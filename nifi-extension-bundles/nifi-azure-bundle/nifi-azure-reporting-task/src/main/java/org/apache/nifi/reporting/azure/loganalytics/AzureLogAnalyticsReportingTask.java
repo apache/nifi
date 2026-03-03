@@ -50,13 +50,22 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
     private static final String JVM_JOB_NAME = "jvm_global";
     private final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
 
-    static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder().name("Send JVM Metrics")
-            .description("Send JVM Metrics in addition to the NiFi-metrics").allowableValues("true", "false")
-            .defaultValue("false").required(true).build();
+    static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder()
+            .name("Send JVM Metrics")
+            .description("Send JVM Metrics in addition to the NiFi-metrics")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
-            .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
-            .defaultValue("nifimetrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
+            .name("Log Analytics Custom Log Name")
+            .description("Log Analytics Custom Log Name")
+            .required(false)
+            .defaultValue("nifimetrics")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SEND_JVM_METRICS,

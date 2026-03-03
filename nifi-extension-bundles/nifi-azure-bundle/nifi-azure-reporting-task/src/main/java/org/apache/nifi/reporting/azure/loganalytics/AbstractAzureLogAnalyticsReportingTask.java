@@ -22,6 +22,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -57,41 +58,79 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             .ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
 
     static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_ID = new PropertyDescriptor.Builder()
-            .name("Log Analytics Workspace Id").description("Log Analytics Workspace Id").required(true)
+            .name("Log Analytics Workspace Id")
+            .description("Log Analytics Workspace Id")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
     static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_KEY = new PropertyDescriptor.Builder()
-            .name("Log Analytics Workspace Key").description("Azure Log Analytic Worskspace Key").required(true)
+            .name("Log Analytics Workspace Key")
+            .description("Azure Log Analytics Workspace Key")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
             .name("Application ID")
             .description("The Application ID to be included in the metrics sent to Azure Log Analytics WS")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).defaultValue("nifi")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .defaultValue("nifi")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Azure Log Analytics WS")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .defaultValue("${hostname(true)}").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .defaultValue("${hostname(true)}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
             .name("Process Group IDs")
-            .description(
-                    "If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
-                            + " none of the group-IDs could be found or no IDs are defined, the Root Process Group is used and global metrics are sent.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .description("""
+                    If specified, the reporting task will send metrics the configured ProcessGroup(s) only.
+                    Multiple IDs should be separated by a comma. If none of the group-IDs could be found or
+                    no IDs are defined, the Root Process Group is used and global metrics are sent.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createListValidator(true, true,
                     StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
-    static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder().name("Job Name")
-            .description("The name of the exporting job").defaultValue("nifi_reporting_job")
+
+    static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
+            .name("Job Name")
+            .description("The name of the exporting job")
+            .defaultValue("nifi_reporting_job")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor LOG_ANALYTICS_URL_ENDPOINT_FORMAT = new PropertyDescriptor.Builder()
-            .name("Log Analytics URL Endpoint Format").description("Log Analytics URL Endpoint Format").required(false)
+            .name("Log Analytics URL Endpoint Format")
+            .description("""
+                    Log Analytics URL Endpoint Format. The placeholder {0} is replaced at runtime with the value
+                    configured in the Log Analytics Workspace Id property.""")
+            .required(false)
             .defaultValue("https://{0}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01")
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
+            .addValidator((subject, input, context) -> {
+                final ValidationResult result = StandardValidators.URL_VALIDATOR.validate(
+                        subject, MessageFormat.format(input, "workspace-id"), context);
+                if (result.isValid()) {
+                    return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                        .explanation("'%s' is not a valid URL format".formatted(input)).build();
+            })
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             LOG_ANALYTICS_WORKSPACE_ID,
