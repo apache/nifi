@@ -37,7 +37,7 @@ The following options for limiting/shaping results are available:
 * Limit - limit the number of results. This should not be confused with the "batch size" option which is a setting for
   the underlying MongoDB driver to tell it how many items to retrieve in each poll of the server.
 * Sort - sort the result set. Requires a JSON document like _{ "someDate": -1 }_
-* Projection - control which fields to return. Exampe, which would remove _\_id_: _{ "\_id": 0 }_
+* Projection - control which fields to return. Example, which would remove _\_id_: _{ "\_id": 0 }_
 
 ## Misc Options
 
