@@ -29,6 +29,7 @@ import com.azure.storage.blob.models.BlobType;
 import com.azure.storage.blob.models.BlockBlobItem;
 import com.azure.storage.blob.models.ParallelTransferOptions;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -63,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.azure.core.http.ContentType.APPLICATION_OCTET_STREAM;
 import static com.azure.core.util.FluxUtil.toFluxByteBuffer;
@@ -251,12 +253,11 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                     if (ignore) {
                         attributes.put(ATTR_NAME_IGNORED, "false");
                     }
-                    if (!userMetadata.isEmpty()) {
-                        StringBuilder userMetaBldr = new StringBuilder();
-                        for (String userKey : userMetadata.keySet()) {
-                            userMetaBldr.append(userKey).append("=").append(userMetadata.get(userKey));
-                        }
-                        attributes.put(ATTR_NAME_USER_METADATA, userMetaBldr.toString());
+                    final String userMetadataAttributeValue = userMetadata.entrySet().stream()
+                            .map(entry -> String.format("%s=%s", entry.getKey(), entry.getValue()))
+                            .collect(Collectors.joining("\n"));
+                    if (StringUtils.isNotBlank(userMetadataAttributeValue)) {
+                        attributes.put(ATTR_NAME_USER_METADATA, userMetadataAttributeValue);
                     }
                 }
             } catch (BlobStorageException e) {
@@ -315,7 +316,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                     String tagValue = attribute.getValue();
 
                     if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
-                        tagKey = tagKey.replace(prefix, "");
+                        tagKey = tagKey.substring(prefix.length());
                     }
                     objectTags.put(tagKey, tagValue);
                 });
