@@ -120,6 +120,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     private static final String CHANGE_TYPE_EDIT = "edit";
     private static final String CHANGE_TYPE_DELETE = "delete";
     private static final String CONTENT_TYPE_BASE64 = "base64encoded";
+    private static final int MAX_PUSH_ATTEMPTS = 3;
 
     // Common query parameter names and values
     private static final String VERSION_DESCRIPTOR_VERSION = "versionDescriptor.version";
@@ -360,25 +361,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         final String message = request.getMessage();
         logger.debug("Creating content at path [{}] on branch [{}] in repo [{}]", path, branch, repoName);
 
-        // Use expectedCommitSha for atomic commit if provided, otherwise fetch current branch HEAD
-        // Azure DevOps will reject the push if oldObjectId doesn't match the current branch HEAD
-        final String oldObjectId;
-        final String expectedCommitSha = request.getExpectedCommitSha();
-        if (expectedCommitSha != null && !expectedCommitSha.isBlank()) {
-            oldObjectId = expectedCommitSha;
-        } else {
-            // Fall back to fetching current branch commit id
-            final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
-                    .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
-                    .addQueryParameter(API, API_VERSION)
-                    .build();
-            final JsonNode refResponse = executeGet(refUri);
-            oldObjectId = refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
-        }
-
-        final URI pushUri = getUriBuilder().addPathSegment(SEGMENT_PUSHES)
-                .addQueryParameter(API, API_VERSION)
-                .build();
+        final String expectedFileCommit = request.getExpectedCommitSha();
 
         final String changeType;
         if (request.getExistingContentSha() == null) {
@@ -389,11 +372,59 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         }
 
         final String encoded = Base64.getEncoder().encodeToString(request.getContent().getBytes(StandardCharsets.UTF_8));
+        final URI pushUri = getUriBuilder().addPathSegment(SEGMENT_PUSHES)
+                .addQueryParameter(API, API_VERSION)
+                .build();
 
+        for (int attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++) {
+            if (expectedFileCommit != null) {
+                final Optional<String> currentFileCommit = getContentSha(request.getPath(), branch);
+                if (currentFileCommit.isPresent() && !currentFileCommit.get().equals(expectedFileCommit)) {
+                    throw new FlowRegistryException("File [%s] has been modified by another commit".formatted(path));
+                }
+            }
+
+            final String branchHead = fetchBranchHead(branch);
+            final HttpResponseEntity response = executePush(pushUri, branch, branchHead, encoded, message, changeType, path);
+
+            if (response.statusCode() == HttpURLConnection.HTTP_CREATED) {
+                try {
+                    final JsonNode pushResponse = MAPPER.readTree(response.body());
+                    return pushResponse.get(SEGMENT_COMMITS).get(0).get(JSON_FIELD_COMMIT_ID).asText();
+                } catch (final IOException e) {
+                    throw new FlowRegistryException("Failed to parse push response", e);
+                }
+            }
+
+            if (response.statusCode() == HttpURLConnection.HTTP_CONFLICT) {
+                if (attempt == MAX_PUSH_ATTEMPTS) {
+                    throw new FlowRegistryException("Push failed after %d attempts due to concurrent branch modifications".formatted(MAX_PUSH_ATTEMPTS));
+                }
+                logger.debug("Push attempt {} for path [{}] failed with 409 (branch HEAD moved), retrying", attempt, path);
+                continue;
+            }
+
+            throw new FlowRegistryException("Request to %s failed - %s".formatted(pushUri, getErrorMessage(response)));
+        }
+
+        throw new FlowRegistryException("Push failed after %d attempts due to concurrent branch modifications".formatted(MAX_PUSH_ATTEMPTS));
+    }
+
+    private String fetchBranchHead(final String branch) throws FlowRegistryException {
+        final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
+                .addQueryParameter(API, API_VERSION)
+                .build();
+        final JsonNode refResponse = executeGet(refUri);
+        return refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
+    }
+
+    private HttpResponseEntity executePush(final URI pushUri, final String branch, final String oldObjectId,
+                                           final String encodedContent, final String message,
+                                           final String changeType, final String path) throws FlowRegistryException {
         final PushRequest pushRequest = new PushRequest(
                 List.of(new RefUpdate(REFS_HEADS_PREFIX + branch, oldObjectId)),
-                List.of(new Commit(message,
-                        List.of(new Change(changeType, new Item(path), new NewContent(encoded, CONTENT_TYPE_BASE64)))))
+                List.of(new Commit(message, List.of(new Change(changeType, new Item(path), new NewContent(encodedContent, CONTENT_TYPE_BASE64)))))
         );
 
         final String json;
@@ -403,36 +434,20 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
             throw new FlowRegistryException("Failed to serialize push request", e);
         }
 
-        final HttpResponseEntity response = this.webClient.getWebClientService()
+        return this.webClient.getWebClientService()
                 .post()
                 .uri(pushUri)
                 .header(AUTHORIZATION_HEADER, bearerToken())
                 .header(CONTENT_TYPE_HEADER, MediaType.APPLICATION_JSON.getMediaType())
                 .body(json)
                 .retrieve();
-
-        if (response.statusCode() != HttpURLConnection.HTTP_CREATED) {
-            throw new FlowRegistryException("Request to %s failed - %s".formatted(pushUri, getErrorMessage(response)));
-        }
-
-        try {
-            final JsonNode pushResponse = MAPPER.readTree(response.body());
-            return pushResponse.get(SEGMENT_COMMITS).get(0).get(JSON_FIELD_COMMIT_ID).asText();
-        } catch (IOException e) {
-            throw new FlowRegistryException("Failed to create content", e);
-        }
     }
 
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
         final String path = getResolvedPath(filePath);
         logger.debug("Deleting file [{}] in repo [{}] on branch [{}]", path, repoName, branch);
-        final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
-                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
-                .addQueryParameter(API, API_VERSION)
-                .build();
-        final JsonNode refResponse = executeGet(refUri);
-        final String oldObjectId = refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
+        final String oldObjectId = fetchBranchHead(branch);
 
         final URI pushUri = getUriBuilder().addPathSegment(SEGMENT_PUSHES)
                 .addQueryParameter(API, API_VERSION)
