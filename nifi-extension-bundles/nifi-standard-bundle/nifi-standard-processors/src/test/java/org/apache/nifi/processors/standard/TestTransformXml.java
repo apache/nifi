@@ -263,11 +263,12 @@ public class TestTransformXml {
     }
 
     @Test
-    public void testTransformSecureProcessingEnabledXmlWithEntity() {
+    public void testTransformSecureProcessingEnabledXmlWithDocumentTypeDefinition() {
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/doc-node.xsl");
         runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
+        runner.setProperty(TransformXml.SECURE_PROCESSING, Boolean.TRUE.toString());
 
-        final String input = "<!DOCTYPE doc [<!ENTITY uri SYSTEM \"http://127.0.0.1\" >]><doc>&uri;</doc>";
+        final String input = "<!DOCTYPE doc SYSTEM \"doc.dtd\"><doc></doc>";
         runner.enqueue(input);
         runner.run();
 
@@ -276,6 +277,18 @@ public class TestTransformXml {
 
         final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><doc xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>";
         transformed.assertContentEquals(expected);
+    }
+
+    @Test
+    public void testTransformSecureProcessingEnabledXmlWithEntity() {
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/doc-node.xsl");
+        runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
+
+        final String input = "<!DOCTYPE doc [<!ENTITY uri SYSTEM \"http://127.0.0.1\" >]><doc>&uri;</doc>";
+        runner.enqueue(input);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
     }
 
     @Test
