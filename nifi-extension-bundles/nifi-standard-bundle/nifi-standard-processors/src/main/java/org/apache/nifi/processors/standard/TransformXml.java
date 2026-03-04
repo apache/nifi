@@ -184,7 +184,11 @@ public class TransformXml extends AbstractProcessor {
             REL_FAILURE
     );
 
+    private static final XMLStreamReaderProvider STREAM_READER_PROVIDER = new StandardXMLStreamReaderProvider();
+
     private LoadingCache<String, Templates> cache;
+
+    private volatile boolean secureProcessingEnabled;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -250,6 +254,8 @@ public class TransformXml extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        secureProcessingEnabled = context.getProperty(SECURE_PROCESSING).asBoolean();
+
         final ComponentLog logger = getLogger();
         final Integer cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final Long cacheTTL = context.getProperty(CACHE_TTL_AFTER_LAST_ACCESS).asTimePeriod(TimeUnit.SECONDS);
@@ -302,7 +308,7 @@ public class TransformXml extends AbstractProcessor {
                         }
                     }
 
-                    final Source source = new StreamSource(bufferedInputStream);
+                    final Source source = getSource(bufferedInputStream);
                     final Result result = new StreamResult(outputStream);
                     transformer.transform(source, result);
                 } catch (final Exception e) {
@@ -335,18 +341,17 @@ public class TransformXml extends AbstractProcessor {
 
     @SuppressWarnings("unchecked")
     private Templates newTemplates(final ProcessContext context, final String path) throws TransformerConfigurationException, LookupFailureException {
-        final boolean secureProcessing = context.getProperty(SECURE_PROCESSING).asBoolean();
-        final TransformerFactory transformerFactory = getTransformerFactory(secureProcessing);
+        final TransformerFactory transformerFactory = getTransformerFactory();
         final LookupService<String> lookupService = context.getProperty(XSLT_CONTROLLER).asControllerService(LookupService.class);
         final boolean filePath = context.getProperty(XSLT_FILE_NAME).isSet();
         final StreamSource templateSource = getTemplateSource(lookupService, path, filePath);
-        final Source configuredTemplateSource = secureProcessing ? getSecureSource(templateSource) : templateSource;
+        final Source configuredTemplateSource = secureProcessingEnabled ? getSecureSource(templateSource) : templateSource;
         return transformerFactory.newTemplates(configuredTemplateSource);
     }
 
-    private TransformerFactory getTransformerFactory(final boolean secureProcessing) throws TransformerConfigurationException {
+    private TransformerFactory getTransformerFactory() throws TransformerConfigurationException {
         final TransformerFactory factory = TransformerFactory.newInstance();
-        if (secureProcessing) {
+        if (secureProcessingEnabled) {
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-parameter-entities", false);
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-general-entities", false);
@@ -375,10 +380,23 @@ public class TransformXml extends AbstractProcessor {
         return streamSource;
     }
 
+    private Source getSource(final InputStream inputStream) {
+        final Source source;
+
+        final StreamSource streamSource = new StreamSource(inputStream);
+        if (secureProcessingEnabled) {
+            final XMLStreamReader streamReader = STREAM_READER_PROVIDER.getStreamReader(streamSource);
+            source = new StAXSource(streamReader);
+        } else {
+            source = streamSource;
+        }
+
+        return source;
+    }
+
     private Source getSecureSource(final StreamSource streamSource) throws TransformerConfigurationException {
-        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
         try {
-            final XMLStreamReader streamReader = provider.getStreamReader(streamSource);
+            final XMLStreamReader streamReader = STREAM_READER_PROVIDER.getStreamReader(streamSource);
             return new StAXSource(streamReader);
         } catch (final ProcessingException e) {
             throw new TransformerConfigurationException("XSLT Source Stream Reader creation failed", e);
