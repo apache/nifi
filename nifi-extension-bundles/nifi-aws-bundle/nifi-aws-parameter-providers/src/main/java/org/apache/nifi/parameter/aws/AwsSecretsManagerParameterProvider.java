@@ -289,31 +289,30 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                 return groups;
             }
 
-            final ObjectNode secretObject = parseSecret(getSecretValueResponse.secretString());
+            final String secretString = getSecretValueResponse.secretString();
+            final ObjectNode secretObject = parseSecret(secretString);
             if (secretObject == null) {
-                getLogger().debug("Secret [{}] is not in the expected JSON key/value format", secretName);
-                return groups;
-            }
-
-            for (final Map.Entry<String, JsonNode> field : secretObject.properties()) {
-                final String parameterName = field.getKey();
-                final JsonNode valueNode = field.getValue();
-                if (!valueNode.isValueNode() || valueNode.isNull()) {
-                    getLogger().debug("Secret [{}] Parameter [{}] is null or not a supported value type", secretName, parameterName);
-                    continue;
+                getLogger().debug("Secret [{}] is not a JSON object, treating as plain text parameter", secretName);
+                parameters.add(createParameter(secretName, secretString, tags));
+            } else {
+                for (final Map.Entry<String, JsonNode> field : secretObject.properties()) {
+                    final String parameterName = field.getKey();
+                    final JsonNode valueNode = field.getValue();
+                    if (!valueNode.isValueNode() || valueNode.isNull()) {
+                        getLogger().debug("Secret [{}] Parameter [{}] is null or not a supported value type", secretName, parameterName);
+                        continue;
+                    }
+                    parameters.add(createParameter(parameterName, valueNode.asText(), tags));
                 }
-                final String parameterValue = valueNode.asText();
-
-                parameters.add(createParameter(parameterName, parameterValue, tags));
             }
 
             groups.add(new ParameterGroup(secretName, parameters));
 
             return groups;
         } catch (final ResourceNotFoundException e) {
-            throw new IllegalStateException(String.format("Secret %s not found", secretName), e);
+            throw new IllegalStateException("Secret %s not found".formatted(secretName), e);
         } catch (final SecretsManagerException e) {
-            throw new IllegalStateException("Error retrieving secret " + secretName, e);
+            throw new IllegalStateException("Error retrieving secret %s".formatted(secretName), e);
         }
     }
 
