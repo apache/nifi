@@ -31,8 +31,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,12 +60,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class GetCouchbaseTest {
-
-    private static final String SERVICE_ID = "couchbaseConnectionService";
-    private static final String TEST_DOCUMENT_ID = "test-document-id";
-    private static final String TEST_SERVICE_LOCATION = "couchbase://test-location";
-    private static final long TEST_CAS = 1L;
+public class GetCouchbaseTest extends AbstractCouchbaseProcessorTest {
 
     private TestRunner runner;
 
@@ -76,20 +71,15 @@ public class GetCouchbaseTest {
 
     @Test
     public void testOnTriggerWithProvidedDocumentId() throws CouchbaseException, InitializationException {
-        final String content = "{\"key\":\"value\"}";
-
-        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
+        final CouchbaseGetResult result = new CouchbaseGetResult(TEST_DOCUMENT_CONTENT.getBytes(), TEST_CAS);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getDocument(anyString())).thenReturn(result);
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
-        when(service.getServiceLocation()).thenReturn(TEST_SERVICE_LOCATION);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(new byte[0]);
@@ -101,7 +91,7 @@ public class GetCouchbaseTest {
         runner.assertTransferCount(REL_FAILURE, 0);
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        outFile.assertContentEquals(content);
+        outFile.assertContentEquals(TEST_DOCUMENT_CONTENT);
         outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, DEFAULT_BUCKET);
         outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, DEFAULT_SCOPE);
         outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, DEFAULT_COLLECTION);
@@ -116,24 +106,18 @@ public class GetCouchbaseTest {
 
     @Test
     public void testWithDocumentIdAsFlowFileAttribute() throws CouchbaseException, InitializationException {
-        final String content = "{\"key\":\"value\"}";
-
-        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
+        final CouchbaseGetResult result = new CouchbaseGetResult(TEST_DOCUMENT_CONTENT.getBytes(), TEST_CAS);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getDocument(anyString())).thenReturn(result);
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("flowfile_document_id", TEST_DOCUMENT_ID);
-        flowFile.putAttributes(attributes);
+        flowFile.putAttributes(Collections.singletonMap("flowfile_document_id", TEST_DOCUMENT_ID));
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, "${flowfile_document_id}");
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(flowFile);
@@ -145,7 +129,7 @@ public class GetCouchbaseTest {
         runner.assertTransferCount(REL_FAILURE, 0);
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        outFile.assertContentEquals(content);
+        outFile.assertContentEquals(TEST_DOCUMENT_CONTENT);
         outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, DEFAULT_BUCKET);
         outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, DEFAULT_SCOPE);
         outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, DEFAULT_COLLECTION);
@@ -154,24 +138,20 @@ public class GetCouchbaseTest {
 
     @Test
     public void testWithFlowFileAttributes() throws CouchbaseException, InitializationException {
-        final String documentId = "test-document-id";
-        final String content = "{\"key\":\"value\"}";
         final String testBucket = "test-bucket";
         final String testScope = "test-scope";
         final String testCollection = "test-collection";
 
-        final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
+        final CouchbaseGetResult result = new CouchbaseGetResult(TEST_DOCUMENT_CONTENT.getBytes(), TEST_CAS);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getDocument(anyString())).thenReturn(result);
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
-        runner.setProperty(DOCUMENT_ID, documentId);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
+        runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
         runner.setProperty(BUCKET_NAME, "${bucket.attribute}");
         runner.setProperty(SCOPE_NAME, "${scope.attribute}");
         runner.setProperty(COLLECTION_NAME, "${collection.attribute}");
@@ -181,17 +161,16 @@ public class GetCouchbaseTest {
         attributes.put("bucket.attribute", testBucket);
         attributes.put("scope.attribute", testScope);
         attributes.put("collection.attribute", testCollection);
-        final byte[] input = documentId.getBytes(StandardCharsets.UTF_8);
-        runner.enqueue(input, attributes);
+        runner.enqueue(new byte[0], attributes);
         runner.run();
 
-        verify(client, times(1)).getDocument(eq(documentId));
+        verify(client, times(1)).getDocument(eq(TEST_DOCUMENT_ID));
 
         runner.assertTransferCount(REL_SUCCESS, 1);
         runner.assertTransferCount(REL_FAILURE, 0);
 
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        outFile.assertContentEquals(content);
+        outFile.assertContentEquals(TEST_DOCUMENT_CONTENT);
         outFile.assertAttributeEquals(BUCKET_ATTRIBUTE, testBucket);
         outFile.assertAttributeEquals(SCOPE_ATTRIBUTE, testScope);
         outFile.assertAttributeEquals(COLLECTION_ATTRIBUTE, testCollection);
@@ -204,13 +183,11 @@ public class GetCouchbaseTest {
         when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.FAILURE);
         when(client.getDocument(anyString())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
         runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(new byte[0]);
         runner.run();
