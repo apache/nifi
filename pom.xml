@@ -154,6 +154,7 @@
         <gson.version>2.13.2</gson.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
         <jackson.bom.version>2.21.1</jackson.bom.version>
+        <jackson3.bom.version>3.1.0</jackson3.bom.version>
         <json.smart.version>2.6.0</json.smart.version>
         <snakeyaml.version>2.6</snakeyaml.version>
 
@@ -481,6 +482,13 @@
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
                 <version>${jackson.bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson3.bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
