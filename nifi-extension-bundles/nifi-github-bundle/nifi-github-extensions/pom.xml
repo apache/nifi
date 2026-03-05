@@ -38,6 +38,12 @@
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
             <version>${github-api.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.infradna.tool</groupId>
+                    <artifactId>bridge-method-annotation</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

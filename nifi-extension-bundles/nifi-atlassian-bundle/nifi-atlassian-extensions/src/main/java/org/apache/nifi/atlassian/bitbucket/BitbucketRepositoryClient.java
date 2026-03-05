@@ -438,6 +438,13 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             multipartBuilder.addPart(FIELD_PARENTS, StandardHttpContentType.TEXT_PLAIN, expectedCommitSha.getBytes(StandardCharsets.UTF_8));
         }
 
+        final String authorName = request.getAuthorName();
+        final String authorEmail = request.getAuthorEmail();
+        if (authorName != null && authorEmail != null) {
+            final String authorValue = "%s <%s>".formatted(authorName, authorEmail);
+            multipartBuilder.addPart(FIELD_AUTHOR, StandardHttpContentType.TEXT_PLAIN, authorValue.getBytes(StandardCharsets.UTF_8));
+        }
+
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
         final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
                 .formatted(repoName, branch, resolvedPath);
