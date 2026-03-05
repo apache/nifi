@@ -2680,7 +2680,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             @FormParam("clientId") final String clientId,
             @Parameter(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
             @FormParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @Parameter(description = "The flow definition content", required = true)
+            @Parameter(description = "The flow definition content")
             @FormParam("file") final InputStream in) throws InterruptedException {
 
         // ensure the group name is specified
@@ -2805,7 +2805,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             )
             @PathParam("id") final String groupId,
-            @Parameter(description = "The Process Group Upload import details", required = true)
+            @Parameter(description = "The Process Group Upload import details")
             final ProcessGroupUploadEntity processGroupUploadEntity) {
 
         // verify the process group was specified

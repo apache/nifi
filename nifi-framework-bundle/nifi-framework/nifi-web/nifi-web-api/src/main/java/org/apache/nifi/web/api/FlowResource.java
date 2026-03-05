@@ -1430,7 +1430,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchFlow(
-            @Parameter(description = "The search term.", required = true)
+            @Parameter(description = "The search term.")
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value,
             @Parameter(description = "The id of the currently visited process group. If not specified, then the root process group is used.")
             @QueryParam("a") @DefaultValue(StringUtils.EMPTY) String activeGroupId
