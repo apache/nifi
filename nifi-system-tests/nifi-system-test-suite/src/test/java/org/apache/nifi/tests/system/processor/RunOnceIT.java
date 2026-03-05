@@ -50,4 +50,20 @@ public class RunOnceIT extends NiFiSystemIT {
         getClientUtil().waitForStoppedProcessor(generate.getId());
         assertEquals(2, getConnectionQueueSize(generateToTerminate.getId()));
     }
+
+    @Test
+    public void testRunOnceOnInvalidProcessorShouldReturnToStopped() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final String processorId = generate.getId();
+
+        getClientUtil().waitForValidationCompleted(generate);
+
+        final ProcessorEntity currentEntity = getNifiClient().getProcessorClient().getProcessor(processorId);
+        assertEquals("INVALID", currentEntity.getComponent().getValidationStatus(),
+                "Processor should be INVALID because its success relationship is not connected");
+
+        getNifiClient().getProcessorClient().runProcessorOnce(currentEntity);
+
+        getClientUtil().waitForStoppedProcessor(processorId);
+    }
 }
