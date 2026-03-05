@@ -2875,6 +2875,10 @@ public class TestQuery {
 
         // All units
         verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1000000000 nanoseconds'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 00:00:01");
+        verifyEquals(
                 "${date:toDate('dd-MM-yyyy'):plusDuration('30 seconds'):format('dd-MM-yyyy HH:mm:ss')}",
                 attributes,
                 "04-08-2026 00:00:30");
@@ -2912,6 +2916,16 @@ public class TestQuery {
                 "${date:toDate('dd-MM-yyyy'):plusDuration('90 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
                 attributes,
                 "04-08-2026 01:30:00");
+
+        // Nanoseconds — singular and plural
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 nanosecond'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 00:00:00");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 nanoseconds'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 00:00:00");
 
         // Singular and plural
         verifyEquals(
@@ -3032,6 +3046,10 @@ public class TestQuery {
 
         // All units
         verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1000000000 nanoseconds'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 23:59:59");
+        verifyEquals(
                 "${date:toDate('dd-MM-yyyy'):minusDuration('30 seconds'):format('dd-MM-yyyy HH:mm:ss')}",
                 attributes,
                 "03-08-2026 23:59:30");
@@ -3069,6 +3087,16 @@ public class TestQuery {
                 "${date:toDate('dd-MM-yyyy'):minusDuration('90 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
                 attributes,
                 "03-08-2026 22:30:00");
+
+        // Nanoseconds — singular and plural (Date truncates to ms, so 1 ns crosses into the previous second)
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 nanosecond'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 23:59:59");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 nanoseconds'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 23:59:59");
 
         // Singular and plural
         verifyEquals(
@@ -3188,6 +3216,10 @@ public class TestQuery {
 
         // All units
         verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1000000000 nanoseconds'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 00:00:01");
+        verifyEquals(
                 "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('30 seconds'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
                 attributes,
                 "04-08-2026 00:00:30");
@@ -3237,6 +3269,16 @@ public class TestQuery {
                 "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('90 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
                 attributes,
                 "04-08-2026 01:30:00");
+
+        // Nanoseconds — sub-second precision and singular/plural
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 nanosecond'):formatInstant('dd-MM-yyyy HH:mm:ss.SSSSSSSSS', 'UTC')}",
+                attributes,
+                "04-08-2026 00:00:00.000000001");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 nanoseconds'):formatInstant('dd-MM-yyyy HH:mm:ss.SSSSSSSSS', 'UTC')}",
+                attributes,
+                "04-08-2026 00:00:00.000000001");
 
         // Singular and plural
         verifyEquals(
@@ -3362,6 +3404,10 @@ public class TestQuery {
 
         // All units
         verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1000000000 nanoseconds'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "03-08-2026 23:59:59");
+        verifyEquals(
                 "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('30 seconds'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
                 attributes,
                 "03-08-2026 23:59:30");
@@ -3411,6 +3457,16 @@ public class TestQuery {
                 "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('90 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
                 attributes,
                 "03-08-2026 22:30:00");
+
+        // Nanoseconds — sub-second precision and singular/plural
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 nanosecond'):formatInstant('dd-MM-yyyy HH:mm:ss.SSSSSSSSS', 'UTC')}",
+                attributes,
+                "03-08-2026 23:59:59.999999999");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 nanoseconds'):formatInstant('dd-MM-yyyy HH:mm:ss.SSSSSSSSS', 'UTC')}",
+                attributes,
+                "03-08-2026 23:59:59.999999999");
 
         // Singular and plural
         verifyEquals(

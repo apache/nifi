@@ -2540,7 +2540,7 @@ If the subject is null, the function returns null.
 
 - [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
 
-*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+*Supported Units*: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
 
 Units are case-insensitive.
 
@@ -2580,7 +2580,7 @@ If the subject is null, the function returns null.
 
 - [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
 
-*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+*Supported Units*: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
 
 Units are case-insensitive.
 
@@ -2620,7 +2620,7 @@ If the subject is null, the function returns null.
 
 - [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
 
-*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+*Supported Units*: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
 
 Units are case-insensitive.
 
@@ -2654,7 +2654,7 @@ If the subject is null, the function returns null.
 
 - [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
 
-*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+*Supported Units*: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
 
 Units are case-insensitive.
 

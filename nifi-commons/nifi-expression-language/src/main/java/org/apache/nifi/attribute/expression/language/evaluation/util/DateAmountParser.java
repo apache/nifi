@@ -37,13 +37,13 @@ public final class DateAmountParser {
 
     // Requires at least one whitespace character (\s+) between the integer and unit.
     private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "^\\s*(\\d+)\\s+(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\\s*$",
+            "^\\s*(\\d+)\\s+(nanoseconds?|seconds?|minutes?|hours?|days?|weeks?|months?|years?)\\s*$",
             Pattern.CASE_INSENSITIVE
     );
 
     private static final String EXPECTED_FORMAT =
             "Expected format: '<integer> <unit>' (e.g. '2 weeks', '1 month'). "
-                    + "Supported units: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)";
+                    + "Supported units: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)";
 
     private record ParsedAmount(long amount, String unit) { }
 
@@ -104,6 +104,8 @@ public final class DateAmountParser {
                                              final ParsedAmount parsed, final boolean add) {
         final long amount = parsed.amount();
         return switch (parsed.unit()) {
+            case "nanosecond" -> add ? dateTime.plus(Duration.ofNanos(amount))
+                    : dateTime.minus(Duration.ofNanos(amount));
             case "second" -> add ? dateTime.plus(Duration.ofSeconds(amount))
                     : dateTime.minus(Duration.ofSeconds(amount));
             case "minute" -> add ? dateTime.plus(Duration.ofMinutes(amount))

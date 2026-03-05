@@ -42,6 +42,7 @@ class DateAmountParserTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
+            "1 nanosecond", "500 nanoseconds",
             "1 second", "30 seconds", "1 minute", "15 minutes",
             "1 hour", "2 hours", "1 day", "7 days",
             "1 week", "2 weeks", "1 month", "3 months",
@@ -97,6 +98,7 @@ class DateAmountParserTest {
 
     @ParameterizedTest
     @CsvSource({
+            "1 nanosecond, 1 nanoseconds",
             "1 second,  1 seconds",
             "1 minute,  1 minutes",
             "1 hour,    1 hours",
@@ -161,6 +163,8 @@ class DateAmountParserTest {
 
     @ParameterizedTest
     @CsvSource({
+            "1 nanosecond,   2026-08-04T00:00:00.000000001",
+            "1000000000 nanoseconds, 2026-08-04T00:00:01",
             "1 second,   2026-08-04T00:00:01",
             "30 seconds, 2026-08-04T00:00:30",
             "1 minute,   2026-08-04T00:01:00",
@@ -188,6 +192,8 @@ class DateAmountParserTest {
 
     @ParameterizedTest
     @CsvSource({
+            "1 nanosecond,   2026-08-03T23:59:59.999999999",
+            "1000000000 nanoseconds, 2026-08-03T23:59:59",
             "1 second,   2026-08-03T23:59:59",
             "30 seconds, 2026-08-03T23:59:30",
             "1 minute,   2026-08-03T23:59:00",
@@ -299,6 +305,31 @@ class DateAmountParserTest {
         assertEquals(
                 ZonedDateTime.of(2026, 8, 4, 1, 30, 0, 0, ZoneId.systemDefault()),
                 DateAmountParser.plus(AUG_4_2026, "90 minutes"));
+    }
+
+    // ================================================================
+    // Nanoseconds
+    // ================================================================
+
+    @Test
+    void testPlusNanosecondFromMidnight() {
+        assertEquals(
+                ZonedDateTime.of(2026, 8, 4, 0, 0, 0, 1, ZoneId.systemDefault()),
+                DateAmountParser.plus(AUG_4_2026, "1 nanosecond"));
+    }
+
+    @Test
+    void testMinusNanosecondFromMidnight() {
+        assertEquals(
+                ZonedDateTime.of(2026, 8, 3, 23, 59, 59, 999_999_999, ZoneId.systemDefault()),
+                DateAmountParser.minus(AUG_4_2026, "1 nanosecond"));
+    }
+
+    @Test
+    void testNanosecondSingularAndPluralMatch() {
+        assertEquals(
+                DateAmountParser.plus(AUG_4_2026, "1 nanosecond"),
+                DateAmountParser.plus(AUG_4_2026, "1 nanoseconds"));
     }
 
     // ================================================================
