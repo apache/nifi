@@ -35,6 +35,22 @@ aws secretsmanager create-secret --name "\[Context\]" --secret-string '{ "\[Para
 In this example, \[Context\] should be the intended name of the Parameter Context, \[Param\] and \[Param2\] should be
 parameter names, and \[secretValue\] and \[secretValue2\] should be the values of each respective parameter.
 
+### Plain Text Secrets
+
+Secrets that are not stored as JSON key/value pairs are also supported. When a secret value is not a JSON object (for
+example, a PEM-encoded private key or any other plain text string), it is treated as a single parameter whose name is the
+secret name and whose value is the entire secret string. The secret name is also used as the Parameter Context name.
+
+For example, to store a PEM key as a secret:
+
+aws secretsmanager create-secret --name "my-private-key" --secret-string file://path/to/key.pem
+
+This produces a Parameter Context named "my-private-key" containing a single parameter also named "my-private-key" with
+the contents of the PEM file as the value.
+
+Both JSON and plain text secrets can be mixed within the same Secret Name Pattern. Each secret is automatically detected
+and handled according to its format.
+
 ### Configuring the Parameter Provider
 
 AWS Secrets must be explicitly matched in the "Secret Name Pattern" property in order for them to be fetched. This

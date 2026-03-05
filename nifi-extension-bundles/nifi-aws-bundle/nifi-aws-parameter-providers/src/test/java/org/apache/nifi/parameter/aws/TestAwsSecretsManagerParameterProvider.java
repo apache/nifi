@@ -310,6 +310,87 @@ public class TestAwsSecretsManagerParameterProvider {
         }
     }
 
+    @Test
+    public void testFetchPlainTextSecretEnumeration() throws InitializationException {
+        final String pemContent = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIIE6TAbBgkqhkiG9w0BBQ0wDjANBgkqhkiG\n-----END ENCRYPTED PRIVATE KEY-----";
+
+        final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
+
+        final GetSecretValueResponse response = GetSecretValueResponse.builder()
+                .name("my-pem-key")
+                .secretString(pemContent)
+                .build();
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("my-pem-key")))).thenReturn(response);
+
+        final DescribeSecretResponse describeResponse = DescribeSecretResponse.builder()
+                .name("my-pem-key")
+                .build();
+        when(secretsManager.describeSecret(argThat(matchesDescribeSecretRequest("my-pem-key")))).thenReturn(describeResponse);
+
+        final List<ParameterGroup> parameterGroups = runProviderTest(secretsManager, 1,
+                ConfigVerificationResult.Outcome.SUCCESSFUL, "ENUMERATION", "my-pem-key");
+
+        assertEquals(1, parameterGroups.size());
+        final ParameterGroup group = parameterGroups.get(0);
+        assertEquals("my-pem-key", group.getGroupName());
+        assertEquals(1, group.getParameters().size());
+
+        final Parameter parameter = group.getParameters().get(0);
+        assertEquals("my-pem-key", parameter.getDescriptor().getName());
+        assertEquals(pemContent, parameter.getValue());
+    }
+
+    @Test
+    public void testFetchMixedJsonAndPlainTextSecretsPattern() throws InitializationException {
+        final String pemContent = "-----BEGIN RSA PRIVATE KEY-----\nMIIBog==\n-----END RSA PRIVATE KEY-----";
+        final String jsonContent = "{ \"dbUser\": \"admin\", \"dbPassword\": \"secret\" }";
+
+        final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
+
+        final SecretListEntry pemEntry = SecretListEntry.builder().name("pem-secret").build();
+        final SecretListEntry jsonEntry = SecretListEntry.builder().name("json-secret").build();
+
+        final ListSecretsResponse firstPage = mock(ListSecretsResponse.class);
+        when(firstPage.secretList()).thenReturn(List.of(pemEntry, jsonEntry));
+        when(firstPage.nextToken()).thenReturn(null);
+        when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(firstPage);
+
+        final GetSecretValueResponse pemResponse = GetSecretValueResponse.builder()
+                .name("pem-secret")
+                .secretString(pemContent)
+                .build();
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("pem-secret")))).thenReturn(pemResponse);
+
+        final GetSecretValueResponse jsonResponse = GetSecretValueResponse.builder()
+                .name("json-secret")
+                .secretString(jsonContent)
+                .build();
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("json-secret")))).thenReturn(jsonResponse);
+
+        final List<ParameterGroup> parameterGroups = runProviderTest(secretsManager, 3,
+                ConfigVerificationResult.Outcome.SUCCESSFUL, "PATTERN", null);
+
+        assertEquals(2, parameterGroups.size());
+
+        final ParameterGroup pemGroup = parameterGroups.stream()
+                .filter(g -> "pem-secret".equals(g.getGroupName()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, pemGroup.getParameters().size());
+        assertEquals("pem-secret", pemGroup.getParameters().get(0).getDescriptor().getName());
+        assertEquals(pemContent, pemGroup.getParameters().get(0).getValue());
+
+        final ParameterGroup jsonGroup = parameterGroups.stream()
+                .filter(g -> "json-secret".equals(g.getGroupName()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(2, jsonGroup.getParameters().size());
+        final Map<String, String> jsonParams = jsonGroup.getParameters().stream()
+                .collect(Collectors.toMap(p -> p.getDescriptor().getName(), Parameter::getValue));
+        assertEquals("admin", jsonParams.get("dbUser"));
+        assertEquals("secret", jsonParams.get("dbPassword"));
+    }
+
     private AwsSecretsManagerParameterProvider getParameterProvider() {
         return spy(new AwsSecretsManagerParameterProvider());
     }
