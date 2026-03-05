@@ -15,9 +15,21 @@
  * limitations under the License.
  */
 
-div.graph-controls {
-    position: absolute;
-    left: 0;
-    top: 16px;
-    z-index: 2;
+import { Component, input, output } from '@angular/core';
+import { OverlappingConnectionGroup } from '../overlap-detection.utils';
+
+@Component({
+    selector: 'overlapping-connections-banner',
+    standalone: true,
+    imports: [],
+    templateUrl: './overlapping-connections-banner.component.html',
+    styleUrls: ['./overlapping-connections-banner.component.scss']
+})
+export class OverlappingConnectionsBannerComponent {
+    overlappingGroups = input<OverlappingConnectionGroup[]>([]);
+    navigateToGroup = output<OverlappingConnectionGroup>();
+
+    showOverlap(overlap: OverlappingConnectionGroup): void {
+        this.navigateToGroup.emit(overlap);
+    }
 }

@@ -24,6 +24,12 @@
             </mat-sidenav>
             <mat-sidenav-content>
                 <graph-controls></graph-controls>
+                <overlapping-connections-banner
+                    class="canvas-overlap-banner"
+                    [class.palettes-expanded]="!navigationCollapsed() || !operationCollapsed()"
+                    [overlappingGroups]="(overlappingConnections$ | async) || []"
+                    (navigateToGroup)="navigateToOverlappingConnections($event)">
+                </overlapping-connections-banner>
                 <div
                     id="canvas-container"
                     class="canvas-background select-none h-full w-full"

@@ -23,8 +23,8 @@ import { flowFeatureKey } from '../state/flow';
 import * as fromFlow from '../state/flow/flow.reducer';
 import { transformFeatureKey } from '../state/transform';
 import * as fromTransform from '../state/transform/transform.reducer';
-import { provideMockStore } from '@ngrx/store/testing';
-import { selectFlowState } from '../state/flow/flow.selectors';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { selectConnections, selectCurrentProcessGroupId, selectFlowState } from '../state/flow/flow.selectors';
 import { controllerServicesFeatureKey } from '../state/controller-services';
 import * as fromControllerServices from '../state/controller-services/controller-services.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -657,6 +657,358 @@ describe('CanvasUtils', () => {
             const bulletinIcon = mockSelection.select('text.bulletin-icon');
             expect(bulletinIcon.classed('error')).toBe(true);
             expect(bulletinIcon.classed('info')).toBe(false);
+        });
+    });
+
+    describe('calculateBendPointsForCollisionAvoidance', () => {
+        it('should return self-loop bend points when source and destination are the same', () => {
+            const componentData = {
+                id: 'proc-a',
+                position: { x: 100, y: 100 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(componentData, componentData);
+
+            expect(bends).toHaveLength(2);
+            expect(bends[0].x).toBeGreaterThan(componentData.position.x + componentData.dimensions.width);
+            expect(bends[1].x).toBeGreaterThan(componentData.position.x + componentData.dimensions.width);
+        });
+
+        it('should return empty bends when no existing connections between components', () => {
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(0);
+        });
+
+        it('should exclude specified connection from collision checks', () => {
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData, 'conn-to-exclude');
+
+            expect(bends).toHaveLength(0);
+        });
+
+        it('should add a bend point when an existing straight-line connection exists between the same components', () => {
+            const store = TestBed.inject(MockStore);
+
+            const existingConnection = {
+                id: 'existing-conn',
+                sourceId: 'proc-a',
+                sourceGroupId: 'root',
+                destinationId: 'proc-b',
+                destinationGroupId: 'root',
+                bends: [],
+                labelIndex: 0
+            };
+
+            store.overrideSelector(selectConnections, [existingConnection] as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(1);
+            expect(bends[0]).toEqual(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+        });
+
+        it('should not add a bend point when existing connection already has bends', () => {
+            const store = TestBed.inject(MockStore);
+
+            const existingConnection = {
+                id: 'existing-conn',
+                sourceId: 'proc-a',
+                sourceGroupId: 'root',
+                destinationId: 'proc-b',
+                destinationGroupId: 'root',
+                bends: [{ x: 300, y: 100 }],
+                labelIndex: 0
+            };
+
+            store.overrideSelector(selectConnections, [existingConnection] as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(0);
+        });
+
+        it('should place bend point offset vertically for horizontal connections', () => {
+            const store = TestBed.inject(MockStore);
+
+            const existingConnection = {
+                id: 'existing-conn',
+                sourceId: 'proc-a',
+                sourceGroupId: 'root',
+                destinationId: 'proc-b',
+                destinationGroupId: 'root',
+                bends: [],
+                labelIndex: 0
+            };
+
+            store.overrideSelector(selectConnections, [existingConnection] as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 500, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(1);
+            const midX = (100 + 600) / 2;
+            expect(bends[0].x).toBe(midX);
+            expect(bends[0].y).not.toBe(50);
+        });
+
+        it('should place bend point offset horizontally for vertical connections', () => {
+            const store = TestBed.inject(MockStore);
+
+            const existingConnection = {
+                id: 'existing-conn',
+                sourceId: 'proc-a',
+                sourceGroupId: 'root',
+                destinationId: 'proc-b',
+                destinationGroupId: 'root',
+                bends: [],
+                labelIndex: 0
+            };
+
+            store.overrideSelector(selectConnections, [existingConnection] as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 0, y: 500 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(1);
+            const midY = (50 + 550) / 2;
+            expect(bends[0].y).toBe(midY);
+            expect(bends[0].x).not.toBe(100);
+        });
+
+        it('should detect collision for bidirectional connections (destination to source)', () => {
+            const store = TestBed.inject(MockStore);
+
+            const existingConnection = {
+                id: 'existing-conn',
+                sourceId: 'proc-b',
+                sourceGroupId: 'root',
+                destinationId: 'proc-a',
+                destinationGroupId: 'root',
+                bends: [],
+                labelIndex: 0
+            };
+
+            store.overrideSelector(selectConnections, [existingConnection] as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(1);
+        });
+
+        it('should exclude a specific connection by ID during collision check', () => {
+            const store = TestBed.inject(MockStore);
+
+            const existingConnection = {
+                id: 'conn-being-updated',
+                sourceId: 'proc-a',
+                sourceGroupId: 'root',
+                destinationId: 'proc-b',
+                destinationGroupId: 'root',
+                bends: [],
+                labelIndex: 0
+            };
+
+            store.overrideSelector(selectConnections, [existingConnection] as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData, 'conn-being-updated');
+
+            expect(bends).toHaveLength(0);
+        });
+
+        it('should avoid colliding with existing bend points when placing new bend', () => {
+            const store = TestBed.inject(MockStore);
+
+            const midX = (100 + 500) / 2;
+            const midY = 50;
+
+            const connections = [
+                {
+                    id: 'straight-conn',
+                    sourceId: 'proc-a',
+                    sourceGroupId: 'root',
+                    destinationId: 'proc-b',
+                    destinationGroupId: 'root',
+                    bends: [],
+                    labelIndex: 0
+                },
+                {
+                    id: 'bent-conn',
+                    sourceId: 'proc-a',
+                    sourceGroupId: 'root',
+                    destinationId: 'proc-b',
+                    destinationGroupId: 'root',
+                    bends: [{ x: midX, y: midY - 75 }],
+                    labelIndex: 0
+                }
+            ];
+
+            store.overrideSelector(selectConnections, connections as any);
+            store.overrideSelector(selectCurrentProcessGroupId, 'root');
+            store.refreshState();
+
+            const sourceData = {
+                id: 'proc-a',
+                position: { x: 0, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+            const destData = {
+                id: 'proc-b',
+                position: { x: 400, y: 0 },
+                dimensions: { width: 200, height: 100 }
+            };
+
+            const bends = service.calculateBendPointsForCollisionAvoidance(sourceData, destData);
+
+            expect(bends).toHaveLength(1);
+            const existingBendY = midY - 75;
+            expect(Math.abs(bends[0].y - existingBendY) > 25 || Math.abs(bends[0].x - midX) > 100).toBe(true);
+        });
+    });
+
+    describe('calculateBendPointsForCollisionAvoidanceByIds', () => {
+        afterEach(() => {
+            document.querySelectorAll('[id^="id-"]').forEach((el) => el.remove());
+        });
+
+        function createDomComponent(
+            id: string,
+            position: { x: number; y: number },
+            dimensions: { width: number; height: number }
+        ): void {
+            const el = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            el.setAttribute('id', 'id-' + id);
+            document.body.appendChild(el);
+            d3.select(el).datum({ id, position, dimensions });
+        }
+
+        it('should return empty array when source element is not in the DOM', () => {
+            createDomComponent('proc-b', { x: 400, y: 0 }, { width: 200, height: 100 });
+
+            const bends = service.calculateBendPointsForCollisionAvoidanceByIds('missing-id', 'proc-b');
+
+            expect(bends).toHaveLength(0);
+        });
+
+        it('should return empty array when destination element is not in the DOM', () => {
+            createDomComponent('proc-a', { x: 0, y: 0 }, { width: 200, height: 100 });
+
+            const bends = service.calculateBendPointsForCollisionAvoidanceByIds('proc-a', 'missing-id');
+
+            expect(bends).toHaveLength(0);
+        });
+
+        it('should delegate to calculateBendPointsForCollisionAvoidance with resolved data', () => {
+            createDomComponent('proc-a', { x: 0, y: 0 }, { width: 200, height: 100 });
+            createDomComponent('proc-b', { x: 400, y: 0 }, { width: 200, height: 100 });
+
+            const spy = jest.spyOn(service, 'calculateBendPointsForCollisionAvoidance');
+
+            service.calculateBendPointsForCollisionAvoidanceByIds('proc-a', 'proc-b', 'conn-exclude');
+
+            expect(spy).toHaveBeenCalledWith(
+                { id: 'proc-a', position: { x: 0, y: 0 }, dimensions: { width: 200, height: 100 } },
+                { id: 'proc-b', position: { x: 400, y: 0 }, dimensions: { width: 200, height: 100 } },
+                'conn-exclude'
+            );
         });
     });
 });

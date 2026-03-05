@@ -2941,6 +2941,28 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToComponents$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToComponents),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, currentProcessGroupId]) => {
+                    if (request.processGroupId) {
+                        this.router.navigate([
+                            '/process-groups',
+                            request.processGroupId,
+                            'bulk',
+                            request.ids.join(',')
+                        ]);
+                    } else {
+                        this.router.navigate(['/process-groups', currentProcessGroupId, 'bulk', request.ids.join(',')]);
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateWithoutTransform$ = createEffect(
         () =>
             this.actions$.pipe(

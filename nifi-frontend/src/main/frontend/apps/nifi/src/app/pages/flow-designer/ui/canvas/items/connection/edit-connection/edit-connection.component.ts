@@ -32,7 +32,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { ComponentType, CopyDirective, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { ComponentType, CopyDirective, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { NiFiState } from '../../../../../../../state';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
@@ -100,6 +100,7 @@ export class EditConnectionComponent extends TabbedDialog {
     private store = inject<Store<NiFiState>>(Store);
     private canvasUtils = inject(CanvasUtils);
     private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
 
     @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
         if (this.sourceType == ComponentType.ProcessGroup) {
@@ -417,6 +418,22 @@ export class EditConnectionComponent extends TabbedDialog {
             payload.component.loadBalanceCompression = this.editConnectionForm.get('compression')?.value;
         } else {
             payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
+        }
+
+        if (this.previousDestination && this.nifiCommon.isEmpty(d.bends)) {
+            const sourceComponentId = this.canvasUtils.getConnectionSourceComponentId(d);
+            const newDestinationComponentId =
+                payload.component.destination?.groupId ?? payload.component.destination?.id;
+            if (newDestinationComponentId && newDestinationComponentId !== sourceComponentId) {
+                const collisionBends = this.canvasUtils.calculateBendPointsForCollisionAvoidanceByIds(
+                    sourceComponentId,
+                    newDestinationComponentId,
+                    d.id
+                );
+                if (collisionBends.length > 0) {
+                    payload.component.bends = collisionBends;
+                }
+            }
         }
 
         this.store.dispatch(
