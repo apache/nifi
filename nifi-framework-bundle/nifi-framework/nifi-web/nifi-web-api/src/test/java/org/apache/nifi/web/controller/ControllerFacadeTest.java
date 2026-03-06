@@ -60,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -120,7 +121,7 @@ public class ControllerFacadeTest {
         assertNotNull(results);
         verify(searchQueryParser).parse(eq(SEARCH_TERM), any(NiFiUser.class), eq(connectorProcessGroup), eq(connectorProcessGroup));
         verify(controllerSearchService).search(eq(searchQuery), any(SearchResultsDTO.class));
-        verify(controllerSearchService).searchParameters(eq(searchQuery), any(SearchResultsDTO.class));
+        verify(controllerSearchService, never()).searchParameters(any(), any());
     }
 
     @Test
