@@ -2013,7 +2013,6 @@ public class ControllerFacade implements Authorizable {
 
         if (!StringUtils.isEmpty(searchQuery.getTerm())) {
             controllerSearchService.search(searchQuery, results);
-            controllerSearchService.searchParameters(searchQuery, results);
         }
 
         return results;
