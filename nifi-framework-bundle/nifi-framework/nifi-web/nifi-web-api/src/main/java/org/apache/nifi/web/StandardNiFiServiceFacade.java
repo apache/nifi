@@ -4103,6 +4103,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
                 case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
                 case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                default -> throw new IllegalArgumentException("Unexpected ComponentType: " + type);
             };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
@@ -6454,6 +6455,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case AccessPolicy -> authorizableLookup.getAccessPolicyById(sourceId);
                 case User, UserGroup -> authorizableLookup.getTenant();
                 case Label -> authorizableLookup.getLabel(sourceId);
+                default -> throw new IllegalArgumentException("Unexpected Component: " + type);
             };
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, use the controller to see if permissions should be allowed

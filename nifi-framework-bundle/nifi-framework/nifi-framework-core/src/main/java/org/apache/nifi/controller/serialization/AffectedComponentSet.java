@@ -516,6 +516,7 @@ public class AffectedComponentSet {
             case OUTPUT_PORT -> flowManager.getOutputPort(identifier);
             case PROCESSOR -> flowManager.getProcessorNode(identifier);
             case REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT -> flowManager.getRootGroup().findRemoteGroupPort(identifier);
+            default -> throw new IllegalArgumentException("Unexpected ConnectableComponentType: " + type);
         };
     }
 
