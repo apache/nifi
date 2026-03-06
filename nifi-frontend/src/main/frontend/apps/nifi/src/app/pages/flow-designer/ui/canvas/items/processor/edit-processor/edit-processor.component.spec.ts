@@ -801,8 +801,14 @@ describe('EditProcessor with TriggerSerially', () => {
     });
 
     it('should return tooltip explaining lack of parallel processing support', () => {
-        expect(component.concurrentTasksTooltip()).toBe(
-            'The number of tasks that should be concurrently scheduled for this processor. This processor does not support parallel processing.'
-        );
+        expect(component.concurrentTasksTooltip()).toBe('This processor does not support parallel processing.');
+    });
+
+    it('should keep concurrent tasks disabled after processRunStateUpdates', () => {
+        component.processorUpdates = serialData.entity;
+        fixture.detectChanges();
+
+        const concurrentTasks = component.editProcessorForm.get('concurrentTasks');
+        expect(concurrentTasks?.disabled).toBe(true);
     });
 });

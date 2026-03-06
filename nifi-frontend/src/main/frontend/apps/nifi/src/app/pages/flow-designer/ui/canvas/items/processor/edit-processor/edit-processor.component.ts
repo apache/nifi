@@ -317,6 +317,10 @@ export class EditProcessor extends TabbedDialog {
                 this.editProcessorForm.get('runDuration')?.enable();
             }
         }
+
+        if (!this.supportsParallelProcessing()) {
+            this.editProcessorForm.get('concurrentTasks')?.disable();
+        }
     }
 
     private relationshipConfigurationValidator(): ValidatorFn {
@@ -360,7 +364,7 @@ export class EditProcessor extends TabbedDialog {
         if (this.supportsParallelProcessing()) {
             return 'The number of tasks that should be concurrently scheduled for this processor. Must be an integer greater than 0.';
         }
-        return 'The number of tasks that should be concurrently scheduled for this processor. This processor does not support parallel processing.';
+        return 'This processor does not support parallel processing.';
     }
 
     formatType(): string {
