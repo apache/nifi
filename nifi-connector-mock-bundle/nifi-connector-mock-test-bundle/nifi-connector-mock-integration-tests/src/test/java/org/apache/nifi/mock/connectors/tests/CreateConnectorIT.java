@@ -18,6 +18,10 @@
 package org.apache.nifi.mock.connectors.tests;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 import org.junit.jupiter.api.Test;
@@ -25,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,6 +43,22 @@ public class CreateConnectorIT {
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .narLibraryDirectory(new File("target/libDir"))
             .build()) {
+
+            // Verify the active flow snapshot reflects the initial flow loaded from Generate_and_Update.json
+            final VersionedExternalFlow activeFlow = testRunner.getActiveFlowSnapshot();
+            final VersionedProcessGroup rootGroup = activeFlow.getFlowContents();
+
+            final Set<VersionedProcessor> processors = rootGroup.getProcessors();
+            assertEquals(3, processors.size());
+            assertTrue(findProcessorByType(processors, "org.apache.nifi.processors.standard.GenerateFlowFile").isPresent());
+            assertTrue(findProcessorByType(processors, "org.apache.nifi.processors.standard.LookupAttribute").isPresent());
+            assertTrue(findProcessorByType(processors, "org.apache.nifi.processors.attributes.UpdateAttribute").isPresent());
+
+            assertEquals(2, rootGroup.getConnections().size());
+
+            final Set<VersionedControllerService> controllerServices = rootGroup.getControllerServices();
+            assertEquals(1, controllerServices.size());
+            assertEquals("org.apache.nifi.lookup.SimpleKeyValueLookupService", controllerServices.iterator().next().getType());
 
             testRunner.startConnector();
             testRunner.stopConnector();
@@ -57,5 +79,14 @@ public class CreateConnectorIT {
             assertTrue(message.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected exception message to contain missing bundle coordinates but was: " + message);
             assertTrue(message.contains("com.example.nonexistent.MissingProcessor"), "Expected exception message to contain missing processor type but was: " + message);
         }
+    }
+
+    private Optional<VersionedProcessor> findProcessorByType(final Set<VersionedProcessor> processors, final String type) {
+        for (final VersionedProcessor processor : processors) {
+            if (type.equals(processor.getType())) {
+                return Optional.of(processor);
+            }
+        }
+        return Optional.empty();
     }
 }

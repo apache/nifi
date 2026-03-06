@@ -27,6 +27,7 @@ import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.mock.connector.server.ConnectorConfigVerificationResult;
 import org.apache.nifi.mock.connector.server.ConnectorMockServer;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
@@ -222,8 +223,19 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
         return mockServer.getHttpPort();
     }
 
+    @Override
     public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName) {
         return mockServer.fetchAllowableValues(stepName, propertyName);
+    }
+
+    @Override
+    public VersionedExternalFlow getActiveFlowSnapshot() {
+        return mockServer.getActiveFlowSnapshot();
+    }
+
+    @Override
+    public VersionedExternalFlow getWorkingFlowSnapshot() {
+        return mockServer.getWorkingFlowSnapshot();
     }
 
 

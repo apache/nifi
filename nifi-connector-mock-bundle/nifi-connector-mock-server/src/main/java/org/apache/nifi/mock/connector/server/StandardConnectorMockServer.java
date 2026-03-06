@@ -36,6 +36,7 @@ import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.GhostConnector;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StandaloneConnectorRequestReplicator;
@@ -59,9 +60,20 @@ import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretsManager;
 import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
+import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
@@ -84,6 +96,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -423,6 +436,80 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             .filter(result -> !result.isValid())
             .filter(result -> !DisabledServiceValidationResult.isMatch(result))
             .toList();
+    }
+
+    @Override
+    public VersionedExternalFlow getActiveFlowSnapshot() {
+        final FrameworkFlowContext activeFlowContext = connectorNode.getActiveFlowContext();
+        if (activeFlowContext == null) {
+            throw new IllegalStateException("Active Flow Context is not available. The Connector may not have been initialized or may not have an initial flow.");
+        }
+        return createFlowSnapshot(activeFlowContext);
+    }
+
+    @Override
+    public VersionedExternalFlow getWorkingFlowSnapshot() {
+        final FrameworkFlowContext workingFlowContext = connectorNode.getWorkingFlowContext();
+        if (workingFlowContext == null) {
+            throw new IllegalStateException("Working Flow Context is not available. No configuration changes may have been made since the last update was applied.");
+        }
+        return createFlowSnapshot(workingFlowContext);
+    }
+
+    private VersionedExternalFlow createFlowSnapshot(final FrameworkFlowContext flowContext) {
+        final ProcessGroup processGroup = flowContext.getManagedProcessGroup();
+
+        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
+            .mapSensitiveConfiguration(false)
+            .mapPropertyDescriptors(true)
+            .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
+            .sensitiveValueEncryptor(value -> value)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
+            .mapControllerServiceReferencesToVersionedId(true)
+            .mapFlowRegistryClientId(true)
+            .mapAssetReferences(true)
+            .build();
+
+        final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(extensionManager, flowMappingOptions);
+        final VersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(
+            processGroup, flowController.getControllerServiceProvider(), flowController.getFlowManager(), true);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        final ParameterContext parameterContext = processGroup.getParameterContext();
+        if (parameterContext != null) {
+            final Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
+            final VersionedParameterContext versionedParameterContext = createVersionedParameterContext(parameterContext);
+            parameterContexts.put(versionedParameterContext.getName(), versionedParameterContext);
+            externalFlow.setParameterContexts(parameterContexts);
+        }
+
+        return externalFlow;
+    }
+
+    private VersionedParameterContext createVersionedParameterContext(final ParameterContext parameterContext) {
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setName(parameterContext.getName());
+        versionedParameterContext.setDescription(parameterContext.getDescription());
+        versionedParameterContext.setIdentifier(parameterContext.getIdentifier());
+
+        final Set<VersionedParameter> versionedParameters = new LinkedHashSet<>();
+        for (final Parameter parameter : parameterContext.getParameters().values()) {
+            final VersionedParameter versionedParameter = new VersionedParameter();
+            versionedParameter.setName(parameter.getDescriptor().getName());
+            versionedParameter.setDescription(parameter.getDescriptor().getDescription());
+            versionedParameter.setSensitive(parameter.getDescriptor().isSensitive());
+            versionedParameter.setProvided(parameter.getDescriptor().isSensitive());
+            if (!parameter.getDescriptor().isSensitive()) {
+                versionedParameter.setValue(parameter.getValue());
+            }
+            versionedParameters.add(versionedParameter);
+        }
+        versionedParameterContext.setParameters(versionedParameters);
+
+        return versionedParameterContext;
     }
 
     @Override
