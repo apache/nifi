@@ -281,6 +281,10 @@ export class EditProcessor extends TabbedDialog {
             comments: new FormControl(request.entity.component.config.comments)
         });
 
+        if (!this.supportsParallelProcessing()) {
+            this.editProcessorForm.get('concurrentTasks')?.disable();
+        }
+
         if (this.supportsBatching()) {
             this.editProcessorForm.addControl(
                 'runDuration',
@@ -312,6 +316,10 @@ export class EditProcessor extends TabbedDialog {
             if (this.supportsBatching()) {
                 this.editProcessorForm.get('runDuration')?.enable();
             }
+        }
+
+        if (!this.supportsParallelProcessing()) {
+            this.editProcessorForm.get('concurrentTasks')?.disable();
         }
     }
 
@@ -346,6 +354,17 @@ export class EditProcessor extends TabbedDialog {
 
     supportsBatching(): boolean {
         return this.request.entity.component.supportsBatching == true;
+    }
+
+    supportsParallelProcessing(): boolean {
+        return this.request.entity.component.supportsParallelProcessing === true;
+    }
+
+    concurrentTasksTooltip(): string {
+        if (this.supportsParallelProcessing()) {
+            return 'The number of tasks that should be concurrently scheduled for this processor. Must be an integer greater than 0.';
+        }
+        return 'This processor does not support parallel processing.';
     }
 
     formatType(): string {
@@ -410,6 +429,22 @@ export class EditProcessor extends TabbedDialog {
             .filter((relationship) => relationship.retry)
             .map((relationship) => relationship.name);
 
+        const config: any = {
+            penaltyDuration: this.editProcessorForm.get('penaltyDuration')?.value,
+            yieldDuration: this.editProcessorForm.get('yieldDuration')?.value,
+            bulletinLevel: this.editProcessorForm.get('bulletinLevel')?.value,
+            schedulingStrategy: this.editProcessorForm.get('schedulingStrategy')?.value,
+            schedulingPeriod: this.editProcessorForm.get('schedulingPeriod')?.value,
+            executionNode: this.editProcessorForm.get('executionNode')?.value,
+            autoTerminatedRelationships: autoTerminated,
+            retriedRelationships: retried,
+            comments: this.editProcessorForm.get('comments')?.value
+        };
+
+        if (this.supportsParallelProcessing()) {
+            config.concurrentlySchedulableTaskCount = this.editProcessorForm.get('concurrentTasks')?.value;
+        }
+
         const payload: any = {
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -419,18 +454,7 @@ export class EditProcessor extends TabbedDialog {
             component: {
                 id: this.request.entity.id,
                 name: this.editProcessorForm.get('name')?.value,
-                config: {
-                    penaltyDuration: this.editProcessorForm.get('penaltyDuration')?.value,
-                    yieldDuration: this.editProcessorForm.get('yieldDuration')?.value,
-                    bulletinLevel: this.editProcessorForm.get('bulletinLevel')?.value,
-                    schedulingStrategy: this.editProcessorForm.get('schedulingStrategy')?.value,
-                    concurrentlySchedulableTaskCount: this.editProcessorForm.get('concurrentTasks')?.value,
-                    schedulingPeriod: this.editProcessorForm.get('schedulingPeriod')?.value,
-                    executionNode: this.editProcessorForm.get('executionNode')?.value,
-                    autoTerminatedRelationships: autoTerminated,
-                    retriedRelationships: retried,
-                    comments: this.editProcessorForm.get('comments')?.value
-                }
+                config
             }
         };
 
