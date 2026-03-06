@@ -605,6 +605,57 @@ the following results:
 
 
 
+[.function]
+=== isValidInstant
+
+*Description*: [.description]#The `isValidInstant` function returns `true` when the Subject can be parsed as a valid ISO-8601 instant or RFC-1123 date-time, and `false` otherwise.
+This function is useful for validating values before calling `toInstant()`. Unlike `toInstant()`, this function does not throw an error when parsing fails.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Boolean#
+
+.isValidInstant Examples
+|===================================================================
+| Expression | Value
+| `${eventTime:isValidInstant()}` where `eventTime` = `2026-08-04T10:15:30Z` | `true`
+| `${eventTime:isValidInstant()}` where `eventTime` = `2026-08-04T10:15:30+05:30` | `true`
+| `${eventTime:isValidInstant()}` where `eventTime` = `Tue, 04 Aug 2026 10:15:30 GMT` | `true`
+| `${eventTime:isValidInstant()}` where `eventTime` = `not-a-date` | `false`
+| `${eventTime:isValidInstant():ifElse('valid-instant', 'invalid-instant')}` where `eventTime` = `2026-08-04T10:15:30Z` | `valid-instant`
+|===================================================================
+
+
+[.function]
+=== isValidDate
+
+*Description*: [.description]#The `isValidDate` function returns `true` when the Subject can be parsed as a valid date using the specified format and optional timezone, and `false` otherwise.
+Validation is calendar-aware, so values that match the format pattern but do not represent a real date, such as `31-02-2026`, return `false`.
+This function is useful for validating values before calling `toDate()`. Unlike `toDate()`, this function does not throw an error when parsing fails.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- *format* (required): The date format to use for parsing. The format must be a valid `java.time.format.DateTimeFormatter` pattern, such as `dd-MM-yyyy`.
+- *timezone* (optional): The timezone to apply when resolving date-time fields, such as `UTC` or `America/New_York`. When not provided, the system default timezone is used.
+
+*Return Type*: [.returnType]#Boolean#
+
+.isValidDate Examples
+|===================================================================
+| Expression | Value
+| `${myDate:isValidDate('dd-MM-yyyy')}` where `myDate` = `04-08-2026` | `true`
+| `${myDate:isValidDate('dd-MM-yyyy')}` where `myDate` = `31-02-2026` | `false`
+| `${myDate:isValidDate('dd-MM-yyyy')}` where `myDate` = `not-a-date` | `false`
+| `${myDate:isValidDate('yyyy-MM-dd HH:mm:ss', 'UTC')}` where `myDate` = `2026-08-04 10:15:30` | `true`
+| `${myDate:isValidDate('dd-MM-yyyy'):ifElse('valid', 'invalid')}` where `myDate` = `04-08-2026` | `valid`
+|===================================================================
+
+
+
 [[strings]]
 == String Manipulation
 
