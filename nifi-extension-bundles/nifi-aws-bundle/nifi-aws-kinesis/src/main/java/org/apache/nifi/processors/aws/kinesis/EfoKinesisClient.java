@@ -1,0 +1,596 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.aws.kinesis;
+
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.ConsumerStatus;
+import software.amazon.awssdk.services.kinesis.model.DeregisterStreamConsumerRequest;
+import software.amazon.awssdk.services.kinesis.model.DescribeStreamConsumerRequest;
+import software.amazon.awssdk.services.kinesis.model.DescribeStreamRequest;
+import software.amazon.awssdk.services.kinesis.model.DescribeStreamResponse;
+import software.amazon.awssdk.services.kinesis.model.LimitExceededException;
+import software.amazon.awssdk.services.kinesis.model.Record;
+import software.amazon.awssdk.services.kinesis.model.RegisterStreamConsumerRequest;
+import software.amazon.awssdk.services.kinesis.model.RegisterStreamConsumerResponse;
+import software.amazon.awssdk.services.kinesis.model.ResourceInUseException;
+import software.amazon.awssdk.services.kinesis.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.kinesis.model.Shard;
+import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
+import software.amazon.awssdk.services.kinesis.model.StartingPosition;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardEvent;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardEventStream;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardRequest;
+import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHandler;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+/**
+ * Enhanced Fan-Out Kinesis consumer that uses SubscribeToShard with dedicated throughput
+ * per shard via HTTP/2. Uses Reactive Streams demand-driven backpressure to control the
+ * rate of event delivery.
+ */
+final class EfoKinesisClient extends KinesisConsumerClient {
+
+    private static final long SUBSCRIBE_BACKOFF_NANOS = TimeUnit.SECONDS.toNanos(5);
+    private static final long CONSUMER_REGISTRATION_POLL_MILLIS = 1_000;
+    private static final int CONSUMER_REGISTRATION_MAX_ATTEMPTS = 60;
+    private static final int MAX_SUBSCRIPTIONS_PER_TRIGGER = 10;
+    private static final int MAX_QUEUED_RESULTS = 200;
+
+    private final Map<String, ShardConsumer> shardConsumers = new ConcurrentHashMap<>();
+    private volatile KinesisAsyncClient kinesisAsyncClient;
+    private volatile String consumerArn;
+    private volatile Instant timestampForInitialPosition;
+
+    EfoKinesisClient(final KinesisClient kinesisClient, final ComponentLog logger) {
+        super(kinesisClient, logger);
+    }
+
+    void setTimestampForInitialPosition(final Instant timestamp) {
+        this.timestampForInitialPosition = timestamp;
+    }
+
+    @Override
+    void initialize(final KinesisAsyncClient asyncClient, final String streamName, final String consumerName) {
+        this.kinesisAsyncClient = asyncClient;
+        registerEfoConsumer(streamName, consumerName);
+    }
+
+    @Override
+    void startFetches(final List<Shard> shards, final String streamName, final int batchSize, final String initialStreamPosition, final KinesisShardManager shardManager) {
+        if (totalQueuedResults() >= MAX_QUEUED_RESULTS) {
+            return;
+        }
+
+        int subscriptionsCreated = 0;
+        final long now = System.nanoTime();
+
+        for (final Shard shard : shards) {
+            if (subscriptionsCreated >= MAX_SUBSCRIPTIONS_PER_TRIGGER) {
+                break;
+            }
+
+            final String shardId = shard.shardId();
+            final ShardConsumer existing = shardConsumers.get(shardId);
+
+            if (existing == null) {
+                final String lastSeq = shardManager.readCheckpoint(shardId);
+                final StartingPosition startingPosition = buildStartingPosition(lastSeq, initialStreamPosition);
+                logger.info("Creating EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), lastSeq);
+                final ShardConsumer sc = new ShardConsumer(shardId, EfoKinesisClient.this::enqueueResult, logger);
+                final ShardConsumer prior = shardConsumers.putIfAbsent(shardId, sc);
+                if (prior == null) {
+                    try {
+                        sc.subscribe(kinesisAsyncClient, consumerArn, startingPosition);
+                    } catch (final Exception e) {
+                        shardConsumers.remove(shardId, sc);
+                        throw e;
+                    }
+                    subscriptionsCreated++;
+                }
+            } else if (existing.isSubscriptionExpired()) {
+                final long lastAttempt = existing.getLastSubscribeAttemptNanos();
+                if (lastAttempt > 0 && now < lastAttempt + SUBSCRIBE_BACKOFF_NANOS) {
+                    continue;
+                }
+
+                final String resumeSeq = maxSequenceNumber(
+                        existing.getLastQueuedSequenceNumber(),
+                        existing.getLastAcknowledgedSequenceNumber(),
+                        shardManager.readCheckpoint(shardId));
+                final StartingPosition startingPosition = buildStartingPosition(resumeSeq, initialStreamPosition);
+                logger.debug("Renewing expired EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), resumeSeq);
+                existing.subscribe(kinesisAsyncClient, consumerArn, startingPosition);
+                subscriptionsCreated++;
+            }
+        }
+    }
+
+    @Override
+    boolean hasPendingFetches() {
+        return !shardConsumers.isEmpty();
+    }
+
+    @Override
+    long drainDeduplicatedEventCount() {
+        long total = 0;
+        for (final ShardConsumer sc : shardConsumers.values()) {
+            total += sc.drainDeduplicatedEventCount();
+        }
+        return total;
+    }
+
+    @Override
+    void acknowledgeResults(final List<ShardFetchResult> results) {
+        final Map<String, ShardConsumer> consumersToRequest = new HashMap<>();
+
+        for (final ShardFetchResult result : results) {
+            final ShardConsumer consumer = shardConsumers.get(result.shardId());
+            if (consumer != null) {
+                consumer.acknowledgeSequenceNumber(result.lastSequenceNumber());
+                consumer.markAcknowledged();
+                consumersToRequest.putIfAbsent(result.shardId(), consumer);
+            }
+        }
+
+        for (final ShardConsumer consumer : consumersToRequest.values()) {
+            consumer.requestNext();
+        }
+    }
+
+    @Override
+    void rollbackResults(final List<ShardFetchResult> results) {
+        for (final ShardFetchResult result : results) {
+            final ShardConsumer sc = shardConsumers.remove(result.shardId());
+            if (sc != null) {
+                sc.cancel();
+            }
+        }
+    }
+
+    @Override
+    void removeUnownedShards(final Set<String> ownedShards) {
+        shardConsumers.entrySet().removeIf(entry -> {
+            if (!ownedShards.contains(entry.getKey())) {
+                entry.getValue().cancel();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    @Override
+    void logDiagnostics(final int ownedCount, final int cachedShardCount) {
+        if (!shouldLogDiagnostics()) {
+            return;
+        }
+
+        final long now = System.nanoTime();
+        int activeSubscriptions = 0;
+        int expiredSubscriptions = 0;
+        int backedOff = 0;
+        for (final ShardConsumer sc : shardConsumers.values()) {
+            if (sc.isSubscriptionExpired()) {
+                expiredSubscriptions++;
+                final long lastAttempt = sc.getLastSubscribeAttemptNanos();
+                if (lastAttempt > 0 && now < lastAttempt + SUBSCRIBE_BACKOFF_NANOS) {
+                    backedOff++;
+                }
+            } else {
+                activeSubscriptions++;
+            }
+        }
+
+        final int queueDepth = totalQueuedResults();
+        logger.debug("Kinesis EFO diagnostics: discoveredShards={}, ownedShards={}, queueDepth={}/{}, shardConsumers={}, activeSubscriptions={}, expiredSubscriptions={}, backedOff={}",
+                cachedShardCount, ownedCount, queueDepth, MAX_QUEUED_RESULTS, shardConsumers.size(), activeSubscriptions, expiredSubscriptions, backedOff);
+    }
+
+    @Override
+    void close() {
+        for (final ShardConsumer sc : shardConsumers.values()) {
+            sc.cancel();
+        }
+        shardConsumers.clear();
+
+        deregisterEfoConsumer();
+
+        if (kinesisAsyncClient != null) {
+            kinesisAsyncClient.close();
+            kinesisAsyncClient = null;
+        }
+
+        super.close();
+    }
+
+    private void deregisterEfoConsumer() {
+        final String arn = consumerArn;
+        consumerArn = null;
+        if (arn == null) {
+            return;
+        }
+
+        try {
+            kinesisClient.deregisterStreamConsumer(DeregisterStreamConsumerRequest.builder()
+                    .consumerARN(arn)
+                    .build());
+            logger.info("Deregistered EFO consumer [{}]", arn);
+        } catch (final Exception e) {
+            logger.warn("Failed to deregister EFO consumer [{}]; manual cleanup may be required", arn, e);
+        }
+    }
+
+    private void registerEfoConsumer(final String streamName, final String consumerName) {
+        final DescribeStreamRequest describeStreamRequest = DescribeStreamRequest.builder().streamName(streamName).build();
+        final DescribeStreamResponse describeResponse = kinesisClient.describeStream(describeStreamRequest);
+        final String arn = describeResponse.streamDescription().streamARN();
+
+        try {
+            final DescribeStreamConsumerRequest describeConsumerReq = DescribeStreamConsumerRequest.builder()
+                    .streamARN(arn)
+                    .consumerName(consumerName)
+                    .build();
+            final ConsumerStatus status = kinesisClient.describeStreamConsumer(describeConsumerReq).consumerDescription().consumerStatus();
+            if (status == ConsumerStatus.ACTIVE) {
+                consumerArn = kinesisClient.describeStreamConsumer(describeConsumerReq).consumerDescription().consumerARN();
+                logger.info("EFO consumer [{}] already registered and ACTIVE", consumerName);
+                return;
+            }
+        } catch (final ResourceNotFoundException ignored) {
+        }
+
+        try {
+            final RegisterStreamConsumerRequest registerRequest = RegisterStreamConsumerRequest.builder()
+                    .streamARN(arn)
+                    .consumerName(consumerName)
+                    .build();
+            final RegisterStreamConsumerResponse registerResponse = kinesisClient.registerStreamConsumer(registerRequest);
+            consumerArn = registerResponse.consumer().consumerARN();
+            logger.info("Registered EFO consumer [{}], waiting for ACTIVE status", consumerName);
+        } catch (final ResourceInUseException e) {
+            final DescribeStreamConsumerRequest fallbackRequest = DescribeStreamConsumerRequest.builder()
+                    .streamARN(arn)
+                    .consumerName(consumerName)
+                    .build();
+            consumerArn = kinesisClient.describeStreamConsumer(fallbackRequest).consumerDescription().consumerARN();
+            logger.info("EFO consumer [{}] already being registered", consumerName);
+        }
+
+        waitForConsumerActive(arn, consumerName);
+    }
+
+    private void waitForConsumerActive(final String theStreamArn, final String consumerName) {
+        final DescribeStreamConsumerRequest describeConsumerRequest = DescribeStreamConsumerRequest.builder()
+                .streamARN(theStreamArn)
+                .consumerName(consumerName)
+                .build();
+
+        for (int i = 0; i < CONSUMER_REGISTRATION_MAX_ATTEMPTS; i++) {
+            final ConsumerStatus status = kinesisClient.describeStreamConsumer(describeConsumerRequest).consumerDescription().consumerStatus();
+            if (status == ConsumerStatus.ACTIVE) {
+                logger.info("EFO consumer [{}] is now ACTIVE", consumerName);
+                return;
+            }
+
+            try {
+                Thread.sleep(CONSUMER_REGISTRATION_POLL_MILLIS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ProcessException("Interrupted while waiting for EFO consumer registration", e);
+            }
+        }
+
+        throw new ProcessException("EFO consumer [%s] did not become ACTIVE within %d seconds".formatted(consumerName, CONSUMER_REGISTRATION_MAX_ATTEMPTS));
+    }
+
+    private static String maxSequenceNumber(final String... candidates) {
+        BigInteger max = null;
+        String maxStr = null;
+        for (final String candidate : candidates) {
+            if (candidate != null) {
+                final BigInteger value = new BigInteger(candidate);
+                if (max == null || value.compareTo(max) > 0) {
+                    max = value;
+                    maxStr = candidate;
+                }
+            }
+        }
+        return maxStr;
+    }
+
+    private StartingPosition buildStartingPosition(final String sequenceNumber, final String initialStreamPosition) {
+        if (sequenceNumber != null) {
+            return StartingPosition.builder()
+                    .type(ShardIteratorType.AFTER_SEQUENCE_NUMBER)
+                    .sequenceNumber(sequenceNumber)
+                    .build();
+        }
+        final ShardIteratorType iteratorType = ShardIteratorType.fromValue(initialStreamPosition);
+        final StartingPosition.Builder builder = StartingPosition.builder().type(iteratorType);
+        if (iteratorType == ShardIteratorType.AT_TIMESTAMP && timestampForInitialPosition != null) {
+            builder.timestamp(timestampForInitialPosition);
+        }
+        return builder.build();
+    }
+
+    static final class ShardConsumer {
+        private final String shardId;
+        private final Consumer<ShardFetchResult> resultSink;
+        private final ComponentLog consumerLogger;
+        private final AtomicBoolean subscribing = new AtomicBoolean(false);
+        private final AtomicInteger subscriptionGeneration = new AtomicInteger();
+        private final AtomicLong deduplicatedEvents = new AtomicLong();
+        private volatile Subscription subscription;
+        private volatile CompletableFuture<Void> subscriptionFuture;
+        private volatile long lastSubscribeAttemptNanos;
+        private volatile String lastQueuedSequenceNumber;
+        private volatile String lastOnNextMaxSequence;
+        private final AtomicReference<String> lastAcknowledgedSequenceNumber = new AtomicReference<>();
+        private final AtomicInteger queuedResultCount = new AtomicInteger();
+
+        ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink, final ComponentLog consumerLogger) {
+            this.shardId = shardId;
+            this.resultSink = resultSink;
+            this.consumerLogger = consumerLogger;
+        }
+
+        void subscribe(final KinesisAsyncClient asyncClient, final String theConsumerArn, final StartingPosition startingPosition) {
+            if (!subscribing.compareAndSet(false, true)) {
+                return;
+            }
+
+            final int generation = subscriptionGeneration.incrementAndGet();
+
+            try {
+                final SubscribeToShardRequest request = SubscribeToShardRequest.builder()
+                        .consumerARN(theConsumerArn)
+                        .shardId(shardId)
+                        .startingPosition(startingPosition)
+                        .build();
+
+                final SubscribeToShardResponseHandler handler = SubscribeToShardResponseHandler.builder()
+                        .subscriber(() -> new DemandDrivenSubscriber(generation))
+                        .onError(t -> {
+                            logSubscriptionError(t);
+                            endSubscriptionIfCurrent(generation);
+                        })
+                        .build();
+
+                lastSubscribeAttemptNanos = System.nanoTime();
+                subscriptionFuture = asyncClient.subscribeToShard(request, handler);
+            } catch (final Exception e) {
+                subscribing.set(false);
+                throw e;
+            }
+        }
+
+        void requestNext() {
+            final Subscription sub = subscription;
+            if (sub != null) {
+                sub.request(1);
+            }
+        }
+
+        boolean isSubscriptionExpired() {
+            final CompletableFuture<Void> future = subscriptionFuture;
+            return future == null || future.isDone();
+        }
+
+        long getLastSubscribeAttemptNanos() {
+            return lastSubscribeAttemptNanos;
+        }
+
+        String getLastAcknowledgedSequenceNumber() {
+            return lastAcknowledgedSequenceNumber.get();
+        }
+
+        String getLastQueuedSequenceNumber() {
+            return lastQueuedSequenceNumber;
+        }
+
+        long drainDeduplicatedEventCount() {
+            return deduplicatedEvents.getAndSet(0);
+        }
+
+        void markAcknowledged() {
+            queuedResultCount.updateAndGet(value -> value > 0 ? value - 1 : 0);
+        }
+
+        void acknowledgeSequenceNumber(final String sequenceNumber) {
+            if (sequenceNumber == null) {
+                return;
+            }
+
+            final BigInteger incoming = new BigInteger(sequenceNumber);
+            String existing;
+            while (true) {
+                existing = lastAcknowledgedSequenceNumber.get();
+                if (existing != null && incoming.compareTo(new BigInteger(existing)) <= 0) {
+                    return;
+                }
+                if (lastAcknowledgedSequenceNumber.compareAndSet(existing, sequenceNumber)) {
+                    return;
+                }
+            }
+        }
+
+        void cancel() {
+            final CompletableFuture<Void> future = subscriptionFuture;
+            if (future != null) {
+                future.cancel(true);
+            }
+            subscription = null;
+        }
+
+        private void logSubscriptionError(final Throwable t) {
+            if (isCancellation(t)) {
+                consumerLogger.debug("EFO subscription cancelled for shard {}", shardId);
+            } else if (isRetryableSubscriptionError(t)) {
+                consumerLogger.info("EFO subscription temporarily rejected for shard {}; will retry after backoff", shardId);
+            } else if (isRetryableStreamDisconnect(t)) {
+                consumerLogger.info("EFO subscription disconnected for shard {}; will retry", shardId);
+            } else {
+                consumerLogger.error("EFO subscription error for shard {}", shardId, t);
+            }
+        }
+
+        private static boolean isCancellation(final Throwable t) {
+            if (t instanceof CancellationException) {
+                return true;
+            }
+            if (t instanceof IOException && "Request cancelled".equals(t.getMessage())) {
+                return true;
+            }
+            final Throwable cause = t.getCause();
+            return cause != null && cause != t && isCancellation(cause);
+        }
+
+        private static boolean isRetryableSubscriptionError(final Throwable t) {
+            if (t instanceof LimitExceededException || t instanceof ResourceInUseException) {
+                return true;
+            }
+            final Throwable cause = t.getCause();
+            return cause != null && cause != t && isRetryableSubscriptionError(cause);
+        }
+
+        private static boolean isRetryableStreamDisconnect(final Throwable t) {
+            if (t instanceof IOException || t instanceof SdkClientException) {
+                return true;
+            }
+            if (t instanceof AwsServiceException ase && ase.statusCode() >= 500) {
+                return true;
+            }
+            final String className = t.getClass().getName();
+            if (className.startsWith("io.netty.")) {
+                return true;
+            }
+            final Throwable cause = t.getCause();
+            return cause != null && cause != t && isRetryableStreamDisconnect(cause);
+        }
+
+        private void endSubscriptionIfCurrent(final int generation) {
+            if (subscriptionGeneration.get() == generation) {
+                subscription = null;
+                subscribing.set(false);
+            }
+        }
+
+        private List<Record> deduplicateRecords(final List<Record> records) {
+            final String prevMax = lastOnNextMaxSequence;
+            if (prevMax == null) {
+                return records;
+            }
+
+            final BigInteger threshold = new BigInteger(prevMax);
+            int firstNewIndex = records.size();
+            for (int i = 0; i < records.size(); i++) {
+                if (new BigInteger(records.get(i).sequenceNumber()).compareTo(threshold) > 0) {
+                    firstNewIndex = i;
+                    break;
+                }
+            }
+
+            if (firstNewIndex == 0) {
+                return records;
+            }
+
+            final int kept = records.size() - firstNewIndex;
+            deduplicatedEvents.incrementAndGet();
+            if (kept == 0) {
+                consumerLogger.debug("Skipped re-delivered EFO event for shard {} ({} records already seen)", shardId, records.size());
+            } else {
+                consumerLogger.debug("Filtered {} duplicate record(s) from EFO event for shard {} (kept {})", firstNewIndex, shardId, kept);
+            }
+
+            return records.subList(firstNewIndex, records.size());
+        }
+
+        private class DemandDrivenSubscriber implements Subscriber<SubscribeToShardEventStream> {
+            private final int generation;
+
+            DemandDrivenSubscriber(final int generation) {
+                this.generation = generation;
+            }
+
+            @Override
+            public void onSubscribe(final Subscription sub) {
+                subscription = sub;
+                sub.request(1);
+            }
+
+            @Override
+            public void onNext(final SubscribeToShardEventStream eventStream) {
+                if (!(eventStream instanceof SubscribeToShardEvent event)) {
+                    requestNext();
+                    return;
+                }
+
+                if (event.records().isEmpty()) {
+                    requestNext();
+                    return;
+                }
+
+                final long millisBehind = event.millisBehindLatest() != null ? event.millisBehindLatest() : -1;
+                final List<Record> records = deduplicateRecords(event.records());
+                if (records.isEmpty()) {
+                    requestNext();
+                    return;
+                }
+
+                final ShardFetchResult result = createFetchResult(shardId, records, millisBehind);
+                lastOnNextMaxSequence = result.lastSequenceNumber();
+                lastQueuedSequenceNumber = result.lastSequenceNumber();
+                queuedResultCount.incrementAndGet();
+                resultSink.accept(result);
+            }
+
+            @Override
+            public void onError(final Throwable t) {
+                logSubscriptionError(t);
+                endSubscriptionIfCurrent(generation);
+            }
+
+            @Override
+            public void onComplete() {
+                consumerLogger.debug("EFO subscription completed normally for shard {}", shardId);
+                endSubscriptionIfCurrent(generation);
+            }
+        }
+    }
+}

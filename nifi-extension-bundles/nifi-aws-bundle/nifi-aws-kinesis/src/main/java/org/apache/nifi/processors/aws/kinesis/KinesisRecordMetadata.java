@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.converter;
+package org.apache.nifi.processors.aws.kinesis;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -22,16 +22,15 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-final class KinesisRecordMetadata {
+public final class KinesisRecordMetadata {
 
-    static final String METADATA = "kinesisMetadata";
-    static final String APPROX_ARRIVAL_TIMESTAMP = "approximateArrival";
+    public static final String METADATA = "kinesisMetadata";
+    public static final String APPROX_ARRIVAL_TIMESTAMP = "approximateArrival";
 
     private static final String STREAM = "stream";
     private static final String SHARD_ID = "shardId";
@@ -49,28 +48,28 @@ final class KinesisRecordMetadata {
     private static final RecordField FIELD_APPROX_ARRIVAL_TIMESTAMP = new RecordField(APPROX_ARRIVAL_TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType());
 
     private static final RecordSchema SCHEMA_METADATA = new SimpleRecordSchema(List.of(
-            FIELD_STREAM,
-            FIELD_SHARD_ID,
-            FIELD_SEQUENCE_NUMBER,
-            FIELD_SUB_SEQUENCE_NUMBER,
-            FIELD_SHARDED_SEQUENCE_NUMBER,
-            FIELD_PARTITION_KEY,
-            FIELD_APPROX_ARRIVAL_TIMESTAMP));
+        FIELD_STREAM,
+        FIELD_SHARD_ID,
+        FIELD_SEQUENCE_NUMBER,
+        FIELD_SUB_SEQUENCE_NUMBER,
+        FIELD_SHARDED_SEQUENCE_NUMBER,
+        FIELD_PARTITION_KEY,
+        FIELD_APPROX_ARRIVAL_TIMESTAMP));
 
-    static final RecordField FIELD_METADATA = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(SCHEMA_METADATA));
+    public static final RecordField FIELD_METADATA = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(SCHEMA_METADATA));
 
-    static Record composeMetadataObject(final KinesisClientRecord kinesisRecord, final String streamName, final String shardId) {
+    public static Record composeMetadataObject(final DeaggregatedRecord record, final String streamName, final String shardId) {
         final Map<String, Object> metadata = new HashMap<>(7, 1.0f);
 
         metadata.put(STREAM, streamName);
         metadata.put(SHARD_ID, shardId);
-        metadata.put(SEQUENCE_NUMBER, kinesisRecord.sequenceNumber());
-        metadata.put(SUB_SEQUENCE_NUMBER, kinesisRecord.subSequenceNumber());
-        metadata.put(SHARDED_SEQUENCE_NUMBER, "%s%020d".formatted(kinesisRecord.sequenceNumber(), kinesisRecord.subSequenceNumber()));
-        metadata.put(PARTITION_KEY, kinesisRecord.partitionKey());
+        metadata.put(SEQUENCE_NUMBER, record.sequenceNumber());
+        metadata.put(SUB_SEQUENCE_NUMBER, record.subSequenceNumber());
+        metadata.put(SHARDED_SEQUENCE_NUMBER, "%s%020d".formatted(record.sequenceNumber(), record.subSequenceNumber()));
+        metadata.put(PARTITION_KEY, record.partitionKey());
 
-        if (kinesisRecord.approximateArrivalTimestamp() != null) {
-            metadata.put(APPROX_ARRIVAL_TIMESTAMP, kinesisRecord.approximateArrivalTimestamp().toEpochMilli());
+        if (record.approximateArrivalTimestamp() != null) {
+            metadata.put(APPROX_ARRIVAL_TIMESTAMP, record.approximateArrivalTimestamp().toEpochMilli());
         }
 
         return new MapRecord(SCHEMA_METADATA, metadata);
