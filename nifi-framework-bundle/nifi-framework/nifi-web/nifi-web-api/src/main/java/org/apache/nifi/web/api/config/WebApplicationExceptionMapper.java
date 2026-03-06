@@ -49,8 +49,12 @@ public class WebApplicationExceptionMapper implements ExceptionMapper<WebApplica
         // get the response
         final Response response = exception.getResponse();
 
-        // log the error
-        logger.warn("{}. Returning {} response.", exception, response.getStatus(), exception);
+        if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+            // log the error
+            logger.warn("{}. Returning {} response.", exception, response.getStatus(), exception);
+        } else {
+            logger.debug("{}. Returning {} response.", exception, response.getStatus(), exception);
+        }
 
         // generate the response
         return Response.status(response.getStatus()).entity(message).type("text/plain").build();
