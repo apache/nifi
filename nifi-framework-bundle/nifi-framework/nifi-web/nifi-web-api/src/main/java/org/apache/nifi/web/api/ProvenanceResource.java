@@ -265,12 +265,12 @@ public class ProvenanceResource extends ApplicationResource {
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
             @Parameter(
-                    description = "Whether or not incremental results are returned. If false, provenance events"
-                            + " are only returned once the query completes. This property is true by default."
+                    description = "Whether or not to summarize provenance events returned. This property is false by default."
             )
             @QueryParam("summarize") @DefaultValue(value = "false") final Boolean summarize,
             @Parameter(
-                    description = "Whether or not to summarize provenance events returned. This property is false by default."
+                    description = "Whether or not incremental results are returned. If false, provenance events"
+                            + " are only returned once the query completes. This property is true by default."
             )
             @QueryParam("incrementalResults") @DefaultValue(value = "true") final Boolean incrementalResults,
             @Parameter(

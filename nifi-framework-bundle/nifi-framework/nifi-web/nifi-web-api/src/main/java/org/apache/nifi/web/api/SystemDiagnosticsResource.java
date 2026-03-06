@@ -93,7 +93,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) final Boolean nodewise,
             @Parameter(
-                    description = "Whether or not to include verbose details. Optional, defaults to false"
+                    description = "BASIC or VERBOSE verbosity details. Optional, defaults to BASIC"
             )
             @QueryParam("diagnosticLevel") @DefaultValue("BASIC") final DiagnosticLevel diagnosticLevel,
             @Parameter(

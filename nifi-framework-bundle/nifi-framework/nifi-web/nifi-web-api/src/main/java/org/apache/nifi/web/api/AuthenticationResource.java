@@ -68,7 +68,7 @@ public class AuthenticationResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/configuration")
     @Operation(
-            summary = "Retrieves the authentication configuration endpoint and status information",
+            summary = "Retrieves the authentication configuration details and status information",
             responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AuthenticationConfigurationEntity.class)))
     )
     @SecurityRequirements

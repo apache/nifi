@@ -339,7 +339,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             )
             @PathParam("port-id") final String portId,
             @Parameter(
-                    description = "The remote process group port.",
+                    description = "The remote process group port configuration details.",
                     required = true
             ) final RemoteProcessGroupPortEntity requestRemoteProcessGroupPortEntity) {
 
@@ -438,7 +438,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             )
             @PathParam("port-id") String portId,
             @Parameter(
-                    description = "The remote process group port.",
+                    description = "The remote process group port configuration details.",
                     required = true
             ) RemoteProcessGroupPortEntity requestRemoteProcessGroupPortEntity) {
 
@@ -512,7 +512,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/input-ports/{port-id}/run-status")
     @Operation(
-            summary = "Updates run status of a remote port",
+            summary = "Updates run status of a remote input port",
             description = NON_GUARANTEED_ENDPOINT,
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = RemoteProcessGroupPortEntity.class))),
@@ -538,7 +538,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             )
             @PathParam("port-id") final String portId,
             @Parameter(
-                    description = "The remote process group port.",
+                    description = "The remote process group port run status details.",
                     required = true
             ) final RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
 
@@ -607,7 +607,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/output-ports/{port-id}/run-status")
     @Operation(
-            summary = "Updates run status of a remote port",
+            summary = "Updates run status of a remote output port",
             description = NON_GUARANTEED_ENDPOINT,
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = RemoteProcessGroupPortEntity.class))),
@@ -633,7 +633,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             )
             @PathParam("port-id") String portId,
             @Parameter(
-                    description = "The remote process group port.",
+                    description = "The remote process group port run status details.",
                     required = true
             ) RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
 
@@ -714,7 +714,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             )
             @PathParam("id") String id,
             @Parameter(
-                    description = "The remote process group.",
+                    description = "The remote process group configuration details.",
                     required = true
             ) final RemoteProcessGroupEntity requestRemoteProcessGroupEntity) {
 
@@ -958,9 +958,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
 
                     RemoteProcessGroupsEntity remoteProcessGroupsEntity = new RemoteProcessGroupsEntity();
 
-                    Response response = generateOkResponse(remoteProcessGroupsEntity).build();
-
-                    return response;
+                    return generateOkResponse(remoteProcessGroupsEntity).build();
                 }
         );
     }

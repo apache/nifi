@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.POST;
@@ -129,7 +130,6 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ParameterContextReplacer;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -2583,8 +2583,12 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
-    public Response initiateReplaceProcessGroup(@Parameter(description = "The process group id.", required = true) @PathParam("id") final String groupId,
-                                                @Parameter(description = "The process group replace request entity", required = true) final ProcessGroupImportEntity importEntity) {
+    public Response initiateReplaceProcessGroup(
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("id") final String groupId,
+            @Parameter(description = "The process group replace request entity", required = true)
+            final ProcessGroupImportEntity importEntity
+    ) {
         if (importEntity == null) {
             throw new IllegalArgumentException("Process Group Import Entity is required");
         }
@@ -2658,25 +2662,26 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     description = "The process group name.",
                     required = true
             )
-            @FormDataParam("groupName") final String groupName,
+            @FormParam("groupName") final String groupName,
             @Parameter(
                     description = "The process group X position.",
                     required = true
             )
-            @FormDataParam("positionX") final Double positionX,
+            @FormParam("positionX") final Double positionX,
             @Parameter(
                     description = "The process group Y position.",
                     required = true
             )
-            @FormDataParam("positionY") final Double positionY,
+            @FormParam("positionY") final Double positionY,
             @Parameter(
                     description = "The client id.",
                     required = true
             )
-            @FormDataParam("clientId") final String clientId,
+            @FormParam("clientId") final String clientId,
             @Parameter(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
-            @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @FormDataParam("file") final InputStream in) throws InterruptedException {
+            @FormParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @Parameter(description = "The flow definition content")
+            @FormParam("file") final InputStream in) throws InterruptedException {
 
         // ensure the group name is specified
         if (StringUtils.isBlank(groupName)) {
@@ -2800,6 +2805,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             )
             @PathParam("id") final String groupId,
+            @Parameter(description = "The Process Group Upload import details")
             final ProcessGroupUploadEntity processGroupUploadEntity) {
 
         // verify the process group was specified
@@ -3247,8 +3253,12 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}")
             }
     )
-    public Response replaceProcessGroup(@Parameter(description = "The process group id.", required = true) @PathParam("id") final String groupId,
-                                        @Parameter(description = "The process group replace request entity.", required = true) final ProcessGroupImportEntity importEntity) {
+    public Response replaceProcessGroup(
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("id") final String groupId,
+            @Parameter(description = "The process group replace request entity.", required = true)
+            final ProcessGroupImportEntity importEntity
+    ) {
         // Verify the request
         if (importEntity == null) {
             throw new IllegalArgumentException("Process Group Import Entity is required");
@@ -3364,7 +3374,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             @Parameter(description = "The ID of the Update Request")
             @PathParam("id") final String replaceRequestId
     ) {
-        return deleteFlowUpdateRequest("replace-requests", replaceRequestId, disconnectedNodeAcknowledged.booleanValue());
+        return deleteFlowUpdateRequest("replace-requests", replaceRequestId, disconnectedNodeAcknowledged);
     }
 
     /**

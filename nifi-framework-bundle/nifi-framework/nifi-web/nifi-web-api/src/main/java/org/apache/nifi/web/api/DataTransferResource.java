@@ -173,6 +173,10 @@ public class DataTransferResource extends ApplicationResource {
                     required = true
             )
             @PathParam("portType") String portType,
+            @Parameter(
+                    description = "The input or output port id.",
+                    required = true
+            )
             @PathParam("portId") String portId,
             @Context HttpServletRequest req,
             @Context ServletContext context,
@@ -243,6 +247,10 @@ public class DataTransferResource extends ApplicationResource {
                     required = true
             )
             @PathParam("portId") String portId,
+            @Parameter(
+                    description = "The transaction id.",
+                    required = true
+            )
             @PathParam("transactionId") String transactionId,
             @Context HttpServletRequest req,
             @Context ServletContext context,
@@ -615,6 +623,10 @@ public class DataTransferResource extends ApplicationResource {
                     required = true
             )
             @PathParam("portId") String portId,
+            @Parameter(
+                    description = "The transaction id.",
+                    required = true
+            )
             @PathParam("transactionId") String transactionId,
             @Context HttpServletRequest req,
             @Context HttpServletResponse res,
@@ -688,7 +700,15 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response extendInputPortTransactionTTL(
+            @Parameter(
+                    description = "The input port id.",
+                    required = true
+            )
             @PathParam("portId") String portId,
+            @Parameter(
+                    description = "The transaction id.",
+                    required = true
+            )
             @PathParam("transactionId") String transactionId,
             @Context HttpServletRequest req,
             @Context HttpServletResponse res,
@@ -724,7 +744,15 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response extendOutputPortTransactionTTL(
+            @Parameter(
+                    description = "The output port id.",
+                    required = true
+            )
             @PathParam("portId") String portId,
+            @Parameter(
+                    description = "The transaction id.",
+                    required = true
+            )
             @PathParam("transactionId") String transactionId,
             @Context HttpServletRequest req,
             @Context HttpServletResponse res,

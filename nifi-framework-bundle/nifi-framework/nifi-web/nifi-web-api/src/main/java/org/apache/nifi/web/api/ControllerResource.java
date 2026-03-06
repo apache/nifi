@@ -214,7 +214,7 @@ public class ControllerResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
     @Operation(
-            summary = "Retrieves the configuration for this NiFi",
+            summary = "Updates the configuration for this NiFi",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ControllerConfigurationEntity.class))),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -2283,7 +2283,7 @@ public class ControllerResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-types")
     @Operation(
-            summary = "Retrieves the types of flow  that this NiFi supports",
+            summary = "Retrieves the types of flow registry clients that this NiFi supports",
             description = NON_GUARANTEED_ENDPOINT,
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = FlowRegistryClientTypesEntity.class))),
@@ -2938,9 +2938,8 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response getNarSummary(
-            @PathParam("id")
             @Parameter(description = "The id of the NAR.", required = true)
-            final String id) {
+            @PathParam("id") final String id) {
         authorizeController(RequestAction.READ);
 
         if (StringUtils.isBlank(id)) {
@@ -2973,9 +2972,8 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response getNarDetails(
-            @PathParam("id")
             @Parameter(description = "The id of the NAR.", required = true)
-            final String id) {
+            @PathParam("id") final String id) {
         authorizeController(RequestAction.READ);
 
         if (StringUtils.isBlank(id)) {
@@ -3008,9 +3006,8 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response downloadNar(
-            @PathParam("id")
             @Parameter(description = "The id of the NAR.", required = true)
-            final String id) {
+            @PathParam("id") final String id) {
         authorizeController(RequestAction.READ);
 
         if (StringUtils.isBlank(id)) {
@@ -3052,13 +3049,14 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response deleteNar(
+            @Parameter(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false")
             final Boolean disconnectedNodeAcknowledged,
+            @Parameter(description = "Indicates if the NAR should be deleted even when components are instantiated.")
             @QueryParam("force") @DefaultValue("false")
             final Boolean forceDelete,
-            @PathParam("id")
             @Parameter(description = "The id of the NAR.", required = true)
-            final String id) throws IOException {
+            @PathParam("id") final String id) throws IOException {
 
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Id is required");
