@@ -99,6 +99,7 @@ public interface VersionedComponentStateLookup {
             return switch (ruleNode.getState()) {
                 case DISABLED -> ScheduledState.DISABLED;
                 case ENABLED -> ScheduledState.ENABLED;
+                default -> throw new IllegalArgumentException("Unexpected FlowAnalysisRuleState: " + ruleNode.getState());
             };
         }
 
