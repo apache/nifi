@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -64,6 +65,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Will set a MIME type value of application/xml.")
 })
+@DeprecationNotice(reason = "NIFI-15688: Depends on Windows platform-specific libraries resulting in minimal usage and maintenance since initial implementation")
 public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     public static final String DEFAULT_CHANNEL = "System";
     public static final String DEFAULT_XPATH = "*";
