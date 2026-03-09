@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -63,6 +64,7 @@ import java.util.concurrent.atomic.AtomicReference;
         @WritesAttribute(attribute = "filename", description = "The output filename"),
         @WritesAttribute(attribute = "mime.type", description = "The output filetype (application/xml for success and failure relationships, original value for bad chunk and original relationships)"),
 })
+@DeprecationNotice(reason = "This processor is dependent on Windows platform-specific operations, making it difficult to test and verify.")
 public class ParseEvtx extends AbstractProcessor {
     public static final String RECORD = "Record";
     public static final String CHUNK = "Chunk";
