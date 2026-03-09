@@ -44,6 +44,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,9 +78,9 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 0)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("30000", 0)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("70000", 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("30000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("70000"), 0)));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(2)).updateItem(captor.capture());
@@ -100,11 +101,11 @@ class KinesisShardManagerTest {
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
         manager.writeCheckpoints(Map.of(
-                "shard-1", new ShardCheckpoint("50000", 0),
-                "shard-2", new ShardCheckpoint("20000", 0)));
+                "shard-1", new ShardCheckpoint(new BigInteger("50000"), 0),
+                "shard-2", new ShardCheckpoint(new BigInteger("20000"), 0)));
         manager.writeCheckpoints(Map.of(
-                "shard-1", new ShardCheckpoint("30000", 0),
-                "shard-2", new ShardCheckpoint("40000", 0)));
+                "shard-1", new ShardCheckpoint(new BigInteger("30000"), 0),
+                "shard-2", new ShardCheckpoint(new BigInteger("40000"), 0)));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(3)).updateItem(captor.capture());
@@ -131,9 +132,9 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 0)));
         manager.close();
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("30000", 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("30000"), 0)));
 
         verify(dynamoDb, times(2)).updateItem(any(UpdateItemRequest.class));
     }
@@ -182,8 +183,8 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenThrow(lostLease).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 0)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("70000", 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("70000"), 0)));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(2)).updateItem(captor.capture());
@@ -201,7 +202,7 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 7)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 7)));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(1)).updateItem(captor.capture());
@@ -221,9 +222,9 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 3)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 1)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint("50000", 5)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 3)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 1)));
+        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 5)));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(2)).updateItem(captor.capture());

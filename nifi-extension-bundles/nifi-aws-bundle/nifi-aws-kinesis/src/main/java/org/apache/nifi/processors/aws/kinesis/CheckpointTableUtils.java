@@ -63,17 +63,18 @@ final class CheckpointTableUtils {
 
     static TableSchema getTableSchema(final DynamoDbClient client, final String tableName) {
         try {
-            final DescribeTableResponse describe = client.describeTable(
-                    DescribeTableRequest.builder().tableName(tableName).build());
+            final DescribeTableResponse describe = client.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
             final List<KeySchemaElement> keySchema = describe.table().keySchema();
             if (keySchema.size() == 2
                     && hasKey(keySchema, "streamName", KeyType.HASH)
                     && hasKey(keySchema, "shardId", KeyType.RANGE)) {
                 return TableSchema.NEW;
             }
+
             if (keySchema.size() == 1 && hasKey(keySchema, "leaseKey", KeyType.HASH)) {
                 return TableSchema.LEGACY;
             }
+
             return TableSchema.UNKNOWN;
         } catch (final ResourceNotFoundException notFound) {
             return TableSchema.NOT_FOUND;
@@ -87,8 +88,7 @@ final class CheckpointTableUtils {
             return;
         }
         if (tableSchema == TableSchema.LEGACY || tableSchema == TableSchema.UNKNOWN) {
-            throw new ProcessException(
-                    "Checkpoint table [%s] exists but does not match expected schema".formatted(tableName));
+            throw new ProcessException("Checkpoint table [%s] exists but does not match expected schema".formatted(tableName));
         }
 
         logger.info("Creating DynamoDB checkpoint table [{}]", tableName);
@@ -103,6 +103,7 @@ final class CheckpointTableUtils {
                             AttributeDefinition.builder().attributeName("shardId").attributeType(ScalarAttributeType.S).build())
                     .billingMode(BillingMode.PAY_PER_REQUEST)
                     .build();
+
             client.createTable(request);
         } catch (final ResourceInUseException alreadyCreating) {
             logger.info("DynamoDB checkpoint table [{}] is already being created by another node", tableName);
@@ -125,8 +126,8 @@ final class CheckpointTableUtils {
                 throw new ProcessException("Interrupted while waiting for DynamoDB table to become ACTIVE", e);
             }
         }
-        throw new ProcessException("DynamoDB checkpoint table [%s] did not become ACTIVE within %d seconds"
-                .formatted(tableName, TABLE_POLL_MAX_ATTEMPTS));
+
+        throw new ProcessException("DynamoDB checkpoint table [%s] did not become ACTIVE within %d seconds".formatted(tableName, TABLE_POLL_MAX_ATTEMPTS));
     }
 
     static void deleteTable(final DynamoDbClient client, final ComponentLog logger, final String tableName) {
@@ -155,18 +156,13 @@ final class CheckpointTableUtils {
                 throw new ProcessException("Interrupted while waiting for DynamoDB table deletion", e);
             }
         }
-        throw new ProcessException(
-                "DynamoDB table [%s] was not deleted within %d seconds".formatted(tableName, TABLE_POLL_MAX_ATTEMPTS));
+
+        throw new ProcessException("DynamoDB table [%s] was not deleted within %d seconds".formatted(tableName, TABLE_POLL_MAX_ATTEMPTS));
     }
 
     static void copyCheckpointItems(final DynamoDbClient client, final ComponentLog logger,
             final String sourceTableName, final String destTableName) {
         logger.info("Copying checkpoint items from [{}] to [{}]", sourceTableName, destTableName);
-        final TableSchema destinationSchema = getTableSchema(client, destTableName);
-        if (destinationSchema == TableSchema.NOT_FOUND || destinationSchema == TableSchema.UNKNOWN) {
-            throw new ProcessException("Cannot copy checkpoint items to [%s]: destination schema is %s"
-                    .formatted(destTableName, destinationSchema));
-        }
 
         Map<String, AttributeValue> exclusiveStartKey = null;
         int copied = 0;
@@ -186,16 +182,9 @@ final class CheckpointTableUtils {
                     }
                 }
 
-                final Map<String, AttributeValue> destinationItem = convertItemForDestinationSchema(item, destinationSchema);
-                if (destinationItem == null) {
-                    logger.debug("Skipping checkpoint item during copy because it cannot be converted for {} schema: keys={}",
-                            destinationSchema, item.keySet());
-                    continue;
-                }
-
                 client.putItem(PutItemRequest.builder()
                         .tableName(destTableName)
-                        .item(destinationItem)
+                        .item(item)
                         .build());
                 copied++;
             }
@@ -204,44 +193,6 @@ final class CheckpointTableUtils {
         } while (exclusiveStartKey != null && !exclusiveStartKey.isEmpty());
 
         logger.info("Copied {} checkpoint item(s) from [{}] to [{}]", copied, sourceTableName, destTableName);
-    }
-
-    private static Map<String, AttributeValue> convertItemForDestinationSchema(final Map<String, AttributeValue> item,
-            final TableSchema destinationSchema) {
-        return switch (destinationSchema) {
-            case NEW -> item;
-            case LEGACY -> convertToLegacyItem(item);
-            case NOT_FOUND, UNKNOWN -> null;
-        };
-    }
-
-    private static Map<String, AttributeValue> convertToLegacyItem(final Map<String, AttributeValue> item) {
-        if (item.containsKey("leaseKey")) {
-            return item;
-        }
-
-        final AttributeValue streamName = item.get("streamName");
-        final AttributeValue shardId = item.get("shardId");
-        if (streamName == null || shardId == null) {
-            return null;
-        }
-
-        final String shardIdValue = shardId.s();
-        if (shardIdValue == null || shardIdValue.isEmpty()
-                || shardIdValue.startsWith(NODE_HEARTBEAT_PREFIX)
-                || MIGRATION_MARKER_SHARD_ID.equals(shardIdValue)) {
-            return null;
-        }
-
-        final AttributeValue sequenceNumber = item.get("sequenceNumber");
-        final String leaseKey = streamName.s() + ":" + shardIdValue;
-        if (sequenceNumber != null && sequenceNumber.s() != null) {
-            return Map.of(
-                    "leaseKey", AttributeValue.builder().s(leaseKey).build(),
-                    "checkpoint", AttributeValue.builder().s(sequenceNumber.s()).build());
-        }
-
-        return Map.of("leaseKey", AttributeValue.builder().s(leaseKey).build());
     }
 
     private static boolean hasKey(final List<KeySchemaElement> keySchema, final String keyName, final KeyType keyType) {

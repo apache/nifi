@@ -27,16 +27,14 @@ import software.amazon.awssdk.services.kinesis.model.StartingPosition;
 import software.amazon.awssdk.services.kinesis.model.SubscribeToShardRequest;
 import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHandler;
 
-import java.lang.reflect.Field;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -73,14 +71,16 @@ class KinesisConsumerClientTest {
         assertEquals("11111", capturedRequests.get(0).startingPosition().sequenceNumber(),
                 "Initial subscription should use the DynamoDB checkpoint");
 
-        simulateExpiredSubscriptionWithAcknowledgedData(client, "shardId-000000000001", "99999");
+        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        consumer.setLastQueuedSequenceNumber(new BigInteger("99999"));
+        consumer.resetForRenewal();
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
         assertEquals(2, capturedRequests.size());
         assertEquals(ShardIteratorType.AFTER_SEQUENCE_NUMBER, capturedRequests.get(1).startingPosition().type());
         assertEquals("99999", capturedRequests.get(1).startingPosition().sequenceNumber(),
-                "Renewal should use max(lastAcknowledged, checkpoint) = lastAcknowledged");
+                "Renewal should use max(lastQueued, checkpoint) = lastQueued");
 
         verify(mockShardManager, times(2)).readCheckpoint("shardId-000000000001");
     }
@@ -100,7 +100,9 @@ class KinesisConsumerClientTest {
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
-        simulateExpiredSubscriptionWithAcknowledgedData(client, "shardId-000000000001", null);
+
+        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        consumer.resetForRenewal();
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
@@ -113,11 +115,10 @@ class KinesisConsumerClientTest {
     }
 
     /**
-     * Verifies that acknowledged sequence tracking is monotonic. If acknowledgements are observed
-     * out-of-order for a shard, renewal must use the highest acknowledged sequence.
+     * Verifies that renewal uses the lastQueuedSequenceNumber when it exceeds the checkpoint.
      */
     @Test
-    void testSubscriptionRenewalUsesHighestAcknowledgedSequence() throws Exception {
+    void testSubscriptionRenewalUsesLastQueuedSequence() throws Exception {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("10000");
 
@@ -127,24 +128,23 @@ class KinesisConsumerClientTest {
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
-        client.acknowledgeResults(List.of(
-                shardFetchResult("shardId-000000000001", "20000"),
-                shardFetchResult("shardId-000000000001", "15000")));
+        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        consumer.setLastQueuedSequenceNumber(new BigInteger("20000"));
+        consumer.resetForRenewal();
 
-        simulateExpiredSubscriptionWithAcknowledgedData(client, "shardId-000000000001", null);
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
         assertEquals(2, capturedRequests.size());
         assertEquals("20000", capturedRequests.get(1).startingPosition().sequenceNumber(),
-                "Renewal should use the highest acknowledged sequence");
+                "Renewal should use max(lastQueued=20000, checkpoint=10000) = lastQueued");
 
         verify(mockShardManager, times(2)).readCheckpoint("shardId-000000000001");
     }
 
     /**
-     * Verifies that renewal always uses the maximum of lastQueued, lastAcknowledged, and
-     * the DynamoDB checkpoint. This prevents one-event replay duplicates caused by races
-     * between onNext counter updates and concurrent handler onError callbacks.
+     * Verifies that renewal always uses the maximum of lastQueued and the DynamoDB checkpoint.
+     * This prevents one-event replay duplicates caused by races between onNext counter updates
+     * and concurrent handler onError callbacks.
      */
     @Test
     void testSubscriptionRenewalAlwaysUsesMaxSequence() throws Exception {
@@ -157,27 +157,26 @@ class KinesisConsumerClientTest {
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
-        simulateExpiredSubscriptionWithState(client, "shardId-000000000001", "90000", "70000", 2);
+        simulateExpiredSubscriptionWithState(client, "shardId-000000000001", "90000");
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
         assertEquals(2, capturedRequests.size());
         assertEquals("90000", capturedRequests.get(1).startingPosition().sequenceNumber(),
-                "Renewal should use max(lastQueued=90000, lastAcked=70000, checkpoint=50000) = 90000");
+                "Renewal should use max(lastQueued=90000, checkpoint=50000) = 90000");
 
-        simulateExpiredSubscriptionWithState(client, "shardId-000000000001", "95000", "80000", 0);
+        simulateExpiredSubscriptionWithState(client, "shardId-000000000001", "95000");
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
         assertEquals(3, capturedRequests.size());
         assertEquals("95000", capturedRequests.get(2).startingPosition().sequenceNumber(),
-                "Renewal should use max(lastQueued=95000, lastAcked=80000, checkpoint=50000) = 95000");
+                "Renewal should use max(lastQueued=95000, checkpoint=50000) = 95000");
 
         verify(mockShardManager, times(3)).readCheckpoint("shardId-000000000001");
     }
 
     /**
      * Verifies that polling a queued result does not affect the renewal position. The renewal
-     * uses max(lastQueued, lastAcknowledged, checkpoint) regardless of whether results have
-     * been polled or acknowledged.
+     * uses max(lastQueued, checkpoint) regardless of whether results have been polled.
      */
     @Test
     void testSubscriptionRenewalAfterPollBeforeAcknowledgeUsesMaxSequence() throws Exception {
@@ -189,7 +188,7 @@ class KinesisConsumerClientTest {
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
-        simulateExpiredSubscriptionWithState(client, "shardId-000000000001", "90000", "70000", 1);
+        simulateExpiredSubscriptionWithState(client, "shardId-000000000001", "90000");
         client.enqueueResult(shardFetchResult("shardId-000000000001", "90000"));
 
         final ShardFetchResult polled = client.pollShardResult("shardId-000000000001");
@@ -199,7 +198,7 @@ class KinesisConsumerClientTest {
 
         assertEquals(2, capturedRequests.size());
         assertEquals("90000", capturedRequests.get(1).startingPosition().sequenceNumber(),
-                "Renewal should use max(lastQueued=90000, lastAcked=70000, checkpoint=50000) = 90000");
+                "Renewal should use max(lastQueued=90000, checkpoint=50000) = 90000");
 
         verify(mockShardManager, times(2)).readCheckpoint("shardId-000000000001");
     }
@@ -218,10 +217,10 @@ class KinesisConsumerClientTest {
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
-        final Object shardConsumer = getShardConsumer(client, "shardId-000000000001");
+        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
         final Subscription subscription = mock(Subscription.class);
-        setField(shardConsumer, "subscription", subscription);
-        setField(shardConsumer, "queuedResultCount", new AtomicInteger(2));
+        consumer.setSubscription(subscription);
+        consumer.pause();
 
         client.acknowledgeResults(List.of(
                 shardFetchResult("shardId-000000000001", "60000"),
@@ -250,8 +249,7 @@ class KinesisConsumerClientTest {
                 });
 
         final EfoKinesisClient client = new EfoKinesisClient(mock(KinesisClient.class), mock(ComponentLog.class));
-        setField(client, "kinesisAsyncClient", mockAsyncClient);
-        setField(client, "consumerArn", "arn:aws:kinesis:us-east-1:123456789:stream/test/consumer/test:1");
+        client.initializeForTest(mockAsyncClient, "arn:aws:kinesis:us-east-1:123456789:stream/test/consumer/test:1");
 
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
         final CountDownLatch startLatch = new CountDownLatch(1);
@@ -268,7 +266,7 @@ class KinesisConsumerClientTest {
                 "Concurrent startup should create only one initial SubscribeToShard request per shard");
     }
 
-    private static EfoKinesisClient createEfoClient(final List<SubscribeToShardRequest> capturedRequests) throws Exception {
+    private static EfoKinesisClient createEfoClient(final List<SubscribeToShardRequest> capturedRequests) {
         final KinesisAsyncClient mockAsyncClient = mock(KinesisAsyncClient.class);
 
         when(mockAsyncClient.subscribeToShard(any(SubscribeToShardRequest.class), any(SubscribeToShardResponseHandler.class)))
@@ -278,34 +276,17 @@ class KinesisConsumerClientTest {
                 });
 
         final EfoKinesisClient client = new EfoKinesisClient(mock(KinesisClient.class), mock(ComponentLog.class));
-        setField(client, "kinesisAsyncClient", mockAsyncClient);
-        setField(client, "consumerArn", "arn:aws:kinesis:us-east-1:123456789:stream/test/consumer/test:1");
+        client.initializeForTest(mockAsyncClient, "arn:aws:kinesis:us-east-1:123456789:stream/test/consumer/test:1");
         return client;
     }
 
-    /**
-     * After the initial subscription is created with a completed future (immediately expired),
-     * this method configures the ShardConsumer so it appears ready for renewal: sets
-     * lastAcknowledgedSequenceNumber, clears the subscribing guard, and resets the backoff timer.
-     *
-     * @param client the consumer client whose internal ShardConsumer state is being configured
-     * @param shardId the shard whose ShardConsumer to modify
-     * @param lastAckedSeq the sequence number to set, or null to leave unset
-     */
-    @SuppressWarnings("unchecked")
-    private static void simulateExpiredSubscriptionWithAcknowledgedData(
-            final EfoKinesisClient client, final String shardId, final String lastAckedSeq) throws Exception {
-        final Field consumersField = EfoKinesisClient.class.getDeclaredField("shardConsumers");
-        consumersField.setAccessible(true);
-        final Map<String, ?> consumers = (Map<String, ?>) consumersField.get(client);
-        final Object shardConsumer = consumers.get(shardId);
-        final Class<?> scClass = shardConsumer.getClass();
-
-        setField(shardConsumer, scClass, "subscribing", new AtomicBoolean(false));
-        setField(shardConsumer, scClass, "lastSubscribeAttemptNanos", 0L);
-        if (lastAckedSeq != null) {
-            getAtomicRef(shardConsumer, scClass, "lastAcknowledgedSequenceNumber").set(lastAckedSeq);
-        }
+    private static void simulateExpiredSubscriptionWithState(
+            final EfoKinesisClient client,
+            final String shardId,
+            final String lastQueuedSeq) {
+        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer(shardId);
+        consumer.resetForRenewal();
+        consumer.setLastQueuedSequenceNumber(new BigInteger(lastQueuedSeq));
     }
 
     /**
@@ -331,126 +312,47 @@ class KinesisConsumerClientTest {
                 .thenReturn(CompletableFuture.completedFuture(null));
 
         final EfoKinesisClient.ShardConsumer consumer =
-                new EfoKinesisClient.ShardConsumer("shardId-000000000001", result -> { }, mockLogger);
+                new EfoKinesisClient.ShardConsumer("shardId-000000000001", result -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
 
         final StartingPosition pos = StartingPosition.builder()
                 .type(ShardIteratorType.TRIM_HORIZON)
                 .build();
 
         consumer.subscribe(mockAsyncClient, "test-arn", pos);
-        final int gen1 = getGeneration(consumer);
+        final int gen1 = consumer.getSubscriptionGeneration();
         assertEquals(1, gen1);
 
-        simulateSubscriberActive(consumer);
+        consumer.setSubscription(mock(Subscription.class));
 
-        final Subscription gen1Subscription = getSubscription(consumer);
-        assertNotNull(gen1Subscription, "Subscription should be set after onSubscribe");
+        assertNotNull(consumer.getSubscription(), "Subscription should be set after onSubscribe");
 
-        endSubscriptionIfCurrent(consumer, gen1);
-        assertFalse(getSubscribing(consumer), "subscribing should be false after endSubscription");
+        consumer.endSubscriptionIfCurrent(gen1);
+        assertFalse(consumer.isSubscribing(), "subscribing should be false after endSubscription");
 
         consumer.subscribe(mockAsyncClient, "test-arn", pos);
-        final int gen2 = getGeneration(consumer);
+        final int gen2 = consumer.getSubscriptionGeneration();
         assertEquals(2, gen2);
 
-        simulateSubscriberActive(consumer);
+        consumer.setSubscription(mock(Subscription.class));
 
-        final Subscription gen2Subscription = getSubscription(consumer);
-        assertNotNull(gen2Subscription, "New subscription should be set");
+        assertNotNull(consumer.getSubscription(), "New subscription should be set");
 
-        endSubscriptionIfCurrent(consumer, gen1);
+        consumer.endSubscriptionIfCurrent(gen1);
 
-        assertNotNull(getSubscription(consumer),
+        assertNotNull(consumer.getSubscription(),
                 "Stale callback (gen1) must NOT null out gen2's subscription");
-        assertTrue(getSubscribing(consumer),
+        assertTrue(consumer.isSubscribing(),
                 "Stale callback (gen1) must NOT reset gen2's subscribing flag");
 
-        endSubscriptionIfCurrent(consumer, gen2);
+        consumer.endSubscriptionIfCurrent(gen2);
 
-        assertFalse(getSubscribing(consumer),
+        assertFalse(consumer.isSubscribing(),
                 "Current-generation callback should clean up normally");
-    }
-
-    private static void simulateSubscriberActive(final Object shardConsumer) throws Exception {
-        final Subscription mockSub = mock(Subscription.class);
-        final Field subField = shardConsumer.getClass().getDeclaredField("subscription");
-        subField.setAccessible(true);
-        subField.set(shardConsumer, mockSub);
-    }
-
-    private static Subscription getSubscription(final Object shardConsumer) throws Exception {
-        final Field field = shardConsumer.getClass().getDeclaredField("subscription");
-        field.setAccessible(true);
-        return (Subscription) field.get(shardConsumer);
-    }
-
-    private static boolean getSubscribing(final Object shardConsumer) throws Exception {
-        final Field field = shardConsumer.getClass().getDeclaredField("subscribing");
-        field.setAccessible(true);
-        return ((AtomicBoolean) field.get(shardConsumer)).get();
-    }
-
-    private static int getGeneration(final Object shardConsumer) throws Exception {
-        final Field field = shardConsumer.getClass().getDeclaredField("subscriptionGeneration");
-        field.setAccessible(true);
-        return ((AtomicInteger) field.get(shardConsumer)).get();
-    }
-
-    private static void endSubscriptionIfCurrent(final Object shardConsumer, final int generation) throws Exception {
-        final java.lang.reflect.Method method = shardConsumer.getClass().getDeclaredMethod("endSubscriptionIfCurrent", int.class);
-        method.setAccessible(true);
-        method.invoke(shardConsumer, generation);
-    }
-
-    private static void setField(final Object target, final String fieldName, final Object value) throws Exception {
-        setField(target, target.getClass(), fieldName, value);
-    }
-
-    private static void setField(final Object target, final Class<?> clazz, final String fieldName, final Object value) throws Exception {
-        final Field field = clazz.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> AtomicReference<T> getAtomicRef(
-            final Object target, final Class<?> clazz, final String fieldName) throws Exception {
-        final Field field = clazz.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return (AtomicReference<T>) field.get(target);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void simulateExpiredSubscriptionWithState(
-            final EfoKinesisClient client,
-            final String shardId,
-            final String lastQueuedSeq,
-            final String lastAckedSeq,
-            final int queuedCount) throws Exception {
-        final Field consumersField = EfoKinesisClient.class.getDeclaredField("shardConsumers");
-        consumersField.setAccessible(true);
-        final Map<String, ?> consumers = (Map<String, ?>) consumersField.get(client);
-        final Object shardConsumer = consumers.get(shardId);
-        final Class<?> scClass = shardConsumer.getClass();
-
-        setField(shardConsumer, scClass, "subscribing", new AtomicBoolean(false));
-        setField(shardConsumer, scClass, "lastSubscribeAttemptNanos", 0L);
-        setField(shardConsumer, scClass, "lastQueuedSequenceNumber", lastQueuedSeq);
-        getAtomicRef(shardConsumer, scClass, "lastAcknowledgedSequenceNumber").set(lastAckedSeq);
-        setField(shardConsumer, scClass, "queuedResultCount", new AtomicInteger(queuedCount));
     }
 
     private static ShardFetchResult shardFetchResult(final String shardId, final String sequenceNumber) {
         final DeaggregatedRecord record = new DeaggregatedRecord(shardId, sequenceNumber, 0, "pk", "{}".getBytes(), null);
         return new ShardFetchResult(shardId, List.of(record), 0L);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Object getShardConsumer(final EfoKinesisClient client, final String shardId) throws Exception {
-        final Field consumersField = EfoKinesisClient.class.getDeclaredField("shardConsumers");
-        consumersField.setAccessible(true);
-        final Map<String, ?> consumers = (Map<String, ?>) consumersField.get(client);
-        return consumers.get(shardId);
     }
 
     /**
@@ -502,13 +404,13 @@ class KinesisConsumerClientTest {
         client.enqueueResult(shardFetchResult("shard-3", "600"));
         client.enqueueResult(shardFetchResult("shard-5", "300"));
 
-        assertEquals("100", client.pollShardResult("shard-5").firstSequenceNumber());
-        assertEquals("200", client.pollShardResult("shard-5").firstSequenceNumber());
-        assertEquals("300", client.pollShardResult("shard-5").firstSequenceNumber());
+        assertEquals(new BigInteger("100"), client.pollShardResult("shard-5").firstSequenceNumber());
+        assertEquals(new BigInteger("200"), client.pollShardResult("shard-5").firstSequenceNumber());
+        assertEquals(new BigInteger("300"), client.pollShardResult("shard-5").firstSequenceNumber());
         assertNull(client.pollShardResult("shard-5"), "Queue should be empty after draining");
 
-        assertEquals("500", client.pollShardResult("shard-3").firstSequenceNumber());
-        assertEquals("600", client.pollShardResult("shard-3").firstSequenceNumber());
+        assertEquals(new BigInteger("500"), client.pollShardResult("shard-3").firstSequenceNumber());
+        assertEquals(new BigInteger("600"), client.pollShardResult("shard-3").firstSequenceNumber());
         assertNull(client.pollShardResult("shard-3"), "Queue should be empty after draining");
     }
 
@@ -530,13 +432,13 @@ class KinesisConsumerClientTest {
 
         assertTrue(client.hasQueuedResults());
         assertEquals(3, client.totalQueuedResults());
-        assertEquals(Set.of("shard-1", "shard-2"), client.getShardIdsWithResults());
+        assertEquals(Set.of("shard-1", "shard-2"), new HashSet<>(client.getShardIdsWithResults()));
 
         client.pollShardResult("shard-1");
         client.pollShardResult("shard-1");
 
         assertEquals(1, client.totalQueuedResults());
-        assertEquals(Set.of("shard-2"), client.getShardIdsWithResults());
+        assertEquals(List.of("shard-2"), client.getShardIdsWithResults());
     }
 
     /**
@@ -563,7 +465,7 @@ class KinesisConsumerClientTest {
         // Task-1: claims shard-1, polls A(100) from its per-shard queue
         assertTrue(client.claimShard("shard-1"), "Task-1 should claim shard-1");
         final ShardFetchResult polledA = client.pollShardResult("shard-1");
-        assertEquals("100", polledA.firstSequenceNumber());
+        assertEquals(new BigInteger("100"), polledA.firstSequenceNumber());
 
         // Task-2: cannot claim shard-1 (held by Task-1), so it skips shard-1 entirely.
         // B and C remain at the head of shard-1's queue, undisturbed.
@@ -572,7 +474,7 @@ class KinesisConsumerClientTest {
         // Task-2: claims shard-2 and polls its result
         assertTrue(client.claimShard("shard-2"));
         final ShardFetchResult polledOther = client.pollShardResult("shard-2");
-        assertEquals("999", polledOther.firstSequenceNumber());
+        assertEquals(new BigInteger("999"), polledOther.firstSequenceNumber());
 
         // Task-1 commits A and releases shard-1
         client.releaseShards(List.of("shard-1"));
@@ -583,8 +485,8 @@ class KinesisConsumerClientTest {
 
         assertNotNull(firstPoll, "Expected shard-1 queue to have B");
         assertNotNull(secondPoll, "Expected shard-1 queue to have C");
-        assertEquals("200", firstPoll.firstSequenceNumber(), "First poll must be B(200), not C(300)");
-        assertEquals("300", secondPoll.firstSequenceNumber(), "Second poll must be C(300)");
+        assertEquals(new BigInteger("200"), firstPoll.firstSequenceNumber(), "First poll must be B(200), not C(300)");
+        assertEquals(new BigInteger("300"), secondPoll.firstSequenceNumber(), "Second poll must be C(300)");
         assertNull(client.pollShardResult("shard-1"), "shard-1 queue should be empty");
     }
 

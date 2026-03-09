@@ -26,14 +26,14 @@ import java.math.BigInteger;
  * @param sequenceNumber the Kinesis record sequence number
  * @param subSequenceNumber the sub-record index within a KPL aggregate (0 for non-aggregated)
  */
-record ShardCheckpoint(String sequenceNumber, long subSequenceNumber) {
+record ShardCheckpoint(BigInteger sequenceNumber, long subSequenceNumber) {
 
     /**
      * Returns the higher of two checkpoints. Comparison is first by sequence number,
      * then by sub-sequence number within the same aggregate.
      */
     ShardCheckpoint max(final ShardCheckpoint other) {
-        final int comparison = new BigInteger(this.sequenceNumber).compareTo(new BigInteger(other.sequenceNumber));
+        final int comparison = this.sequenceNumber.compareTo(other.sequenceNumber);
         if (comparison > 0) {
             return this;
         }

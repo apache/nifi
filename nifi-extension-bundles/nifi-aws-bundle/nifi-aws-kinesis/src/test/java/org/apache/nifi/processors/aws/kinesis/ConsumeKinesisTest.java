@@ -205,6 +205,23 @@ class ConsumeKinesisTest {
     }
 
     @Test
+    void testDelimitedUsesLatestArrivalTimestamp() throws Exception {
+        final Instant firstArrival = Instant.parse("2025-01-15T00:00:00Z");
+        final Instant secondArrival = Instant.parse("2025-01-15T00:00:05Z");
+        final Instant thirdArrival = Instant.parse("2025-01-15T00:00:03Z");
+        final List<DeaggregatedRecord> records = List.of(
+                testRecord("1", "line-one", firstArrival),
+                testRecord("2", "line-two", secondArrival),
+                testRecord("3", "line-three", thirdArrival));
+
+        triggerWithStrategy(records, "LINE_DELIMITED", "shardId-000000000001");
+
+        runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 1);
+        final MockFlowFile success = runner.getFlowFilesForRelationship(ConsumeKinesis.REL_SUCCESS).getFirst();
+        success.assertAttributeEquals(ConsumeKinesis.ATTR_ARRIVAL_TIMESTAMP, String.valueOf(secondArrival.toEpochMilli()));
+    }
+
+    @Test
     void testMultipleShardsNoDataLoss() throws Exception {
         final ShardFetchResult shard1Result = new ShardFetchResult("shard-A",
                 List.of(testRecord("10", "{\"id\":1}"), testRecord("20", "{\"id\":2}")), 0L);
@@ -377,6 +394,7 @@ class ConsumeKinesisTest {
         final MockFlowFile failure = runner.getFlowFilesForRelationship(ConsumeKinesis.REL_PARSE_FAILURE).getFirst();
         failure.assertContentEquals(expectedFailureContent);
         failure.assertAttributeEquals(ConsumeKinesis.ATTR_FIRST_SEQUENCE, expectedFailureSequence);
+        assertNotNull(failure.getAttribute(ConsumeKinesis.ATTR_RECORD_ERROR_MESSAGE));
     }
 
     private void triggerWithOutputStrategy(final List<DeaggregatedRecord> records, final String outputStrategy) throws Exception {
@@ -454,13 +472,17 @@ class ConsumeKinesisTest {
     }
 
     private static DeaggregatedRecord testRecord(final String sequenceNumber, final String data) {
+        return testRecord(sequenceNumber, data, Instant.now());
+    }
+
+    private static DeaggregatedRecord testRecord(final String sequenceNumber, final String data, final Instant arrivalTimestamp) {
         return new DeaggregatedRecord(
                 "shardId-000000000001",
                 sequenceNumber,
                 0,
                 "pk-" + sequenceNumber,
                 data.getBytes(StandardCharsets.UTF_8),
-                Instant.now());
+                arrivalTimestamp);
     }
 
     static class TestableConsumeKinesis extends ConsumeKinesis {

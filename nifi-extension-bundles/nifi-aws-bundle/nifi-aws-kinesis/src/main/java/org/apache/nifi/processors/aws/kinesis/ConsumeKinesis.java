@@ -24,15 +24,18 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
-import org.apache.nifi.migration.RelationshipConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -58,6 +61,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.Protocol;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
@@ -69,6 +73,7 @@ import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClientBuilder;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
+import software.amazon.awssdk.services.kinesis.model.DeregisterStreamConsumerRequest;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 
 import java.io.ByteArrayInputStream;
@@ -90,6 +95,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
@@ -120,7 +126,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
         @WritesAttribute(attribute = "aws.kinesis.last.subsequence.number",
                 description = "Sub-Sequence Number of the last Kinesis Record in the FlowFile"),
         @WritesAttribute(attribute = "aws.kinesis.approximate.arrival.timestamp.ms",
-                description = "Approximate arrival timestamp of the last Kinesis Record in the FlowFile"),
+                description = "Approximate arrival timestamp associated with the Kinesis Record or records in the FlowFile"),
         @WritesAttribute(attribute = "mime.type",
                 description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer (if configured)"),
         @WritesAttribute(attribute = "record.count",
@@ -136,8 +142,16 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = """
         The processor will continually poll for new Records.""")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = """
-        ConsumeKinesis buffers Kinesis Records in memory until they can be processed. \
-        The maximum size of the buffer is controlled by the 'Max Batch Size' property.""")
+        Records are fetched from Kinesis in the background and buffered in memory until they \
+        can be written to FlowFiles. Up to 200 fetch responses may be buffered per shard for \
+        both Shared Throughput and Enhanced Fan-Out. Each Shared Throughput response can \
+        contain up to the value of 'Max Records Per Request' records (default 100) and up \
+        to 10 MB, so the theoretical maximum is 20,000 records or approximately 2 GB per \
+        shard at default settings. Each Enhanced Fan-Out push event can hold up to roughly \
+        2 MB, for a theoretical maximum of approximately 400 MB per shard. In practice the \
+        buffer is typically much smaller because fetch threads block when the queue is \
+        full and most responses are well below the maximum size.
+        """)
 public class ConsumeKinesis extends AbstractProcessor {
 
     static final String ATTR_STREAM_NAME = "aws.kinesis.stream.name";
@@ -149,6 +163,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final String ATTR_PARTITION_KEY = "aws.kinesis.partition.key";
     static final String ATTR_ARRIVAL_TIMESTAMP = "aws.kinesis.approximate.arrival.timestamp.ms";
     static final String ATTR_MILLIS_BEHIND = "kinesis.millis.behind";
+    static final String ATTR_RECORD_ERROR_MESSAGE = "record.error.message";
 
     private static final long QUEUE_POLL_TIMEOUT_MILLIS = 100;
     private static final Duration API_CALL_TIMEOUT = Duration.ofSeconds(30);
@@ -165,7 +180,10 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor APPLICATION_NAME = new PropertyDescriptor.Builder()
             .name("Application Name")
-            .description("The name of the Kinesis application. Used as the DynamoDB table name for checkpoint storage.")
+            .description("""
+                    The name of the Kinesis application. Used as the DynamoDB table name for checkpoint storage. \
+                    When Consumer Type is Enhanced Fan-Out, this value is also used as the registered consumer \
+                    name. This value should be unique for the stream.""")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -248,8 +266,9 @@ public class ConsumeKinesis extends AbstractProcessor {
             .name("Max Records Per Request")
             .description("The maximum number of records to retrieve per GetRecords call. Maximum is 10,000.")
             .required(true)
-            .defaultValue("1000")
+            .defaultValue("100")
             .addValidator(StandardValidators.createLongValidator(1, 10000, true))
+            .dependsOn(CONSUMER_TYPE, ConsumerType.SHARED_THROUGHPUT)
             .build();
 
     static final PropertyDescriptor MAX_BATCH_DURATION = new PropertyDescriptor.Builder()
@@ -330,6 +349,8 @@ public class ConsumeKinesis extends AbstractProcessor {
     private volatile long maxBatchBytes;
 
     private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.valueOf(PROCESSING_STRATEGY.getDefaultValue());
+    private volatile String efoConsumerArn;
+    private final AtomicLong shardRoundRobinCounter = new AtomicLong();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -353,14 +374,10 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
         config.renameProperty("Max Bytes to Buffer", "Max Batch Size");
         config.removeProperty("Checkpoint Interval");
         config.removeProperty("Metrics Publishing");
-    }
-
-    @Override
-    public void migrateRelationships(final RelationshipConfiguration config) {
-        config.renameRelationship("parse failure", "parse.failure");
     }
 
     @OnScheduled
@@ -403,15 +420,15 @@ public class ConsumeKinesis extends AbstractProcessor {
 
         final String checkpointTableName = context.getProperty(APPLICATION_NAME).getValue();
         streamName = context.getProperty(STREAM_NAME).getValue();
-        maxRecordsPerRequest = context.getProperty(MAX_RECORDS_PER_REQUEST).asInteger();
         initialStreamPosition = context.getProperty(INITIAL_STREAM_POSITION).getValue();
         maxBatchNanos = context.getProperty(MAX_BATCH_DURATION).asTimePeriod(TimeUnit.NANOSECONDS);
         maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).asDataSize(DataUnit.B).longValue();
 
+        final boolean efoMode = ConsumerType.ENHANCED_FAN_OUT.equals(context.getProperty(CONSUMER_TYPE).asAllowableValue(ConsumerType.class));
+        maxRecordsPerRequest = efoMode ? 0 : context.getProperty(MAX_RECORDS_PER_REQUEST).asInteger();
+
         shardManager = createShardManager(kinesisClient, dynamoDbClient, getLogger(), checkpointTableName, streamName);
         shardManager.ensureCheckpointTableExists();
-
-        final boolean efoMode = ConsumerType.ENHANCED_FAN_OUT.equals(context.getProperty(CONSUMER_TYPE).asAllowableValue(ConsumerType.class));
         consumerClient = createConsumerClient(kinesisClient, getLogger(), efoMode);
 
         final Instant timestampForPosition = resolveTimestampPosition(context);
@@ -425,6 +442,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
         if (efoMode) {
             final NettyNioAsyncHttpClient.Builder nettyBuilder = NettyNioAsyncHttpClient.builder()
+                    .protocol(Protocol.HTTP2)
                     .maxConcurrency(500)
                     .connectionAcquisitionTimeout(Duration.ofSeconds(60));
 
@@ -498,6 +516,9 @@ public class ConsumeKinesis extends AbstractProcessor {
             shardManager = null;
         }
 
+        if (consumerClient instanceof EfoKinesisClient efo) {
+            efoConsumerArn = efo.getConsumerArn();
+        }
         if (consumerClient != null) {
             consumerClient.close();
             consumerClient = null;
@@ -524,9 +545,41 @@ public class ConsumeKinesis extends AbstractProcessor {
         dynamoHttpClient = null;
     }
 
+    @OnRemoved
+    public void onRemoved(final ProcessContext context) {
+        final String arn = efoConsumerArn;
+        efoConsumerArn = null;
+        if (arn == null) {
+            return;
+        }
+
+        final Region region = RegionUtil.getRegion(context);
+        final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
+                .asControllerService(AwsCredentialsProviderService.class).getAwsCredentialsProvider();
+        final String endpointOverride = context.getProperty(ENDPOINT_OVERRIDE).getValue();
+
+        final KinesisClientBuilder builder = KinesisClient.builder()
+                .region(region)
+                .credentialsProvider(credentialsProvider);
+
+        if (endpointOverride != null && !endpointOverride.isEmpty()) {
+            builder.endpointOverride(URI.create(endpointOverride));
+        }
+
+        try (final KinesisClient tempClient = builder.build()) {
+            tempClient.deregisterStreamConsumer(DeregisterStreamConsumerRequest.builder()
+                    .consumerARN(arn)
+                    .build());
+            getLogger().info("Deregistered EFO consumer [{}]", arn);
+        } catch (final Exception e) {
+            getLogger().warn("Failed to deregister EFO consumer [{}]; manual cleanup may be required", arn, e);
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int clusterMemberCount = Math.max(1, getNodeTypeProvider().getClusterMembers().size());
+        final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
+        final int clusterMemberCount = nodeTypeProvider.isClustered() ? 0 : Math.max(1, nodeTypeProvider.getClusterMembers().size());
         shardManager.refreshLeasesIfNecessary(clusterMemberCount);
         final List<Shard> ownedShards = shardManager.getOwnedShards();
 
@@ -545,49 +598,53 @@ public class ConsumeKinesis extends AbstractProcessor {
         consumerClient.logDiagnostics(ownedShards.size(), shardManager.getCachedShardCount());
 
         final Set<String> claimedShards = new HashSet<>();
-        final List<ShardFetchResult> consumed = consumeRecords(claimedShards);
-        final List<ShardFetchResult> accepted = discardRelinquishedResults(consumed, claimedShards);
-
-        if (accepted.isEmpty()) {
-            consumerClient.releaseShards(claimedShards);
-            context.yield();
-            return;
-        }
-
-        final PartitionedBatch batch = partitionByShardAndCheckpoint(accepted);
-
-        final WriteResult output;
         try {
-            output = writeResults(session, context, batch.resultsByShard());
-        } catch (final Exception e) {
-            handleWriteFailure(e, accepted, claimedShards, context);
-            return;
-        }
+            final List<ShardFetchResult> consumed = consumeRecords(claimedShards);
+            final List<ShardFetchResult> accepted = discardRelinquishedResults(consumed, claimedShards);
 
-        if (output.produced().isEmpty() && output.parseFailures().isEmpty()) {
-            consumerClient.releaseShards(claimedShards);
-            context.yield();
-            return;
-        }
+            if (accepted.isEmpty()) {
+                consumerClient.releaseShards(claimedShards);
+                context.yield();
+                return;
+            }
 
-        session.transfer(output.produced(), REL_SUCCESS);
-        if (!output.parseFailures().isEmpty()) {
-            session.transfer(output.parseFailures(), REL_PARSE_FAILURE);
-            session.adjustCounter("Records Parse Failure", output.parseFailures().size(), false);
-        }
-        session.adjustCounter("Records Consumed", output.totalRecordCount(), false);
-        final long dedupEvents = consumerClient.drainDeduplicatedEventCount();
-        if (dedupEvents > 0) {
-            session.adjustCounter("EFO Deduplicated Events", dedupEvents, false);
-        }
+            final PartitionedBatch batch = partitionByShardAndCheckpoint(accepted);
 
-        session.commitAsync(
+            final WriteResult output;
+            try {
+                output = writeResults(session, context, batch.resultsByShard());
+            } catch (final Exception e) {
+                handleWriteFailure(e, accepted, claimedShards, context);
+                return;
+            }
+
+            if (output.produced().isEmpty() && output.parseFailures().isEmpty()) {
+                consumerClient.releaseShards(claimedShards);
+                context.yield();
+                return;
+            }
+
+            session.transfer(output.produced(), REL_SUCCESS);
+            if (!output.parseFailures().isEmpty()) {
+                session.transfer(output.parseFailures(), REL_PARSE_FAILURE);
+                session.adjustCounter("Records Parse Failure", output.parseFailures().size(), false);
+            }
+            session.adjustCounter("Records Consumed", output.totalRecordCount(), false);
+            final long dedupEvents = consumerClient.drainDeduplicatedEventCount();
+            if (dedupEvents > 0) {
+                session.adjustCounter("EFO Deduplicated Events", dedupEvents, false);
+            }
+
+            session.commitAsync(
                 () -> {
                     try {
                         shardManager.writeCheckpoints(batch.checkpoints());
-                        consumerClient.acknowledgeResults(accepted);
                     } finally {
-                        consumerClient.releaseShards(claimedShards);
+                        try {
+                            consumerClient.acknowledgeResults(accepted);
+                        } finally {
+                            consumerClient.releaseShards(claimedShards);
+                        }
                     }
                 },
                 failure -> {
@@ -598,6 +655,10 @@ public class ConsumeKinesis extends AbstractProcessor {
                         consumerClient.releaseShards(claimedShards);
                     }
                 });
+        } catch (final Exception e) {
+            consumerClient.releaseShards(claimedShards);
+            throw e;
+        }
     }
 
     private List<ShardFetchResult> discardRelinquishedResults(final List<ShardFetchResult> consumedResults, final Set<String> claimedShards) {
@@ -614,8 +675,8 @@ public class ConsumeKinesis extends AbstractProcessor {
         if (!discarded.isEmpty()) {
             getLogger().debug("Discarding {} fetched shard result(s) for relinquished shards", discarded.size());
             consumerClient.rollbackResults(discarded);
-            for (final ShardFetchResult r : discarded) {
-                claimedShards.remove(r.shardId());
+            for (final ShardFetchResult result : discarded) {
+                claimedShards.remove(result.shardId());
             }
             consumerClient.releaseShards(discarded.stream().map(ShardFetchResult::shardId).toList());
         }
@@ -629,13 +690,13 @@ public class ConsumeKinesis extends AbstractProcessor {
             resultsByShard.computeIfAbsent(result.shardId(), k -> new ArrayList<>()).add(result);
         }
         for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
-            shardResults.sort(Comparator.comparing(r -> new BigInteger(r.firstSequenceNumber())));
+            shardResults.sort(Comparator.comparing(ShardFetchResult::firstSequenceNumber));
         }
 
         final Map<String, ShardCheckpoint> checkpoints = new HashMap<>();
-        for (final ShardFetchResult result : accepted) {
-            final ShardCheckpoint incoming = new ShardCheckpoint(result.lastSequenceNumber(), result.lastSubSequenceNumber());
-            checkpoints.merge(result.shardId(), incoming, ShardCheckpoint::max);
+        for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
+            final ShardFetchResult last = shardResults.getLast();
+            checkpoints.put(last.shardId(), new ShardCheckpoint(last.lastSequenceNumber(), last.lastSubSequenceNumber()));
         }
 
         return new PartitionedBatch(resultsByShard, checkpoints);
@@ -647,29 +708,8 @@ public class ConsumeKinesis extends AbstractProcessor {
         long estimatedBytes = 0;
 
         while (System.nanoTime() < startNanos + maxBatchNanos && estimatedBytes < maxBatchBytes) {
-            boolean foundAny = false;
-
-            for (final String shardId : consumerClient.getShardIdsWithResults()) {
-                if (estimatedBytes >= maxBatchBytes) {
-                    break;
-                }
-                if (!claimedShards.contains(shardId) && !consumerClient.claimShard(shardId)) {
-                    continue;
-                }
-                claimedShards.add(shardId);
-
-                ShardFetchResult result;
-                while ((result = consumerClient.pollShardResult(shardId)) != null) {
-                    results.add(result);
-                    estimatedBytes += estimateResultBytes(result);
-                    foundAny = true;
-                    if (estimatedBytes >= maxBatchBytes) {
-                        break;
-                    }
-                }
-            }
-
-            if (!foundAny) {
+            final List<String> readyShards = consumerClient.getShardIdsWithResults();
+            if (readyShards.isEmpty()) {
                 if (!consumerClient.hasPendingFetches()) {
                     break;
                 }
@@ -680,6 +720,29 @@ public class ConsumeKinesis extends AbstractProcessor {
                     Thread.currentThread().interrupt();
                     break;
                 }
+                continue;
+            }
+
+            boolean foundAny = false;
+            final int shardCount = readyShards.size();
+            final int startOffset = (int) (shardRoundRobinCounter.getAndIncrement() % shardCount);
+            for (int i = 0; i < shardCount && estimatedBytes < maxBatchBytes; i++) {
+                final String shardId = readyShards.get((startOffset + i) % shardCount);
+                if (!claimedShards.contains(shardId) && !consumerClient.claimShard(shardId)) {
+                    continue;
+                }
+                claimedShards.add(shardId);
+
+                final ShardFetchResult result = consumerClient.pollShardResult(shardId);
+                if (result != null) {
+                    results.add(result);
+                    estimatedBytes += estimateResultBytes(result);
+                    foundAny = true;
+                }
+            }
+
+            if (!foundAny) {
+                break;
             }
         }
 
@@ -902,6 +965,8 @@ public class ConsumeKinesis extends AbstractProcessor {
                                   final String streamName, final BatchAccumulator batch, final List<FlowFile> output) {
 
         FlowFile flowFile = session.create();
+        final Map<String, String> attributes = new HashMap<>();
+
         try {
             flowFile = session.write(flowFile, new OutputStreamCallback() {
                 @Override
@@ -926,17 +991,17 @@ public class ConsumeKinesis extends AbstractProcessor {
                             int recordIndex = 0;
                             org.apache.nifi.serialization.record.Record nifiRecord;
                             while ((nifiRecord = reader.nextRecord()) != null) {
-                                if (recordIndex < records.size()) {
-                                    final DeaggregatedRecord record = records.get(recordIndex);
-                                    nifiRecord = decorateRecord(nifiRecord, record, record.shardId(), streamName, outputStrategy, writeSchema);
-                                    recordIndex++;
-                                }
+                                final DeaggregatedRecord record = records.get(recordIndex++);
+                                nifiRecord = decorateRecord(nifiRecord, record, record.shardId(), streamName, outputStrategy, writeSchema);
 
                                 writer.write(nifiRecord);
                                 batch.incrementRecordCount();
                             }
 
-                            writer.finishRecordSet();
+                            final org.apache.nifi.serialization.WriteResult writeResult = writer.finishRecordSet();
+                            attributes.putAll(writeResult.getAttributes());
+                            attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                            attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                         }
                     } catch (final MalformedRecordException | SchemaNotFoundException e) {
                         throw new IOException(e);
@@ -944,7 +1009,8 @@ public class ConsumeKinesis extends AbstractProcessor {
                 }
             });
 
-            flowFile = session.putAllAttributes(flowFile, createFlowFileAttributes(streamName, batch));
+            attributes.putAll(createFlowFileAttributes(streamName, batch));
+            flowFile = session.putAllAttributes(flowFile, attributes);
             session.getProvenanceReporter().receive(flowFile, buildTransitUri(streamName, batch.getLastShardId()));
             output.add(flowFile);
         } catch (final Exception e) {
@@ -984,19 +1050,18 @@ public class ConsumeKinesis extends AbstractProcessor {
 
         final List<FlowFile> output = new ArrayList<>();
         final List<FlowFile> parseFailureOutput = new ArrayList<>();
-        final List<DeaggregatedRecord> unparseable = new ArrayList<>();
+        final List<ParseFailureRecord> unparseable = new ArrayList<>();
         FlowFile currentFlowFile = null;
         OutputStream currentOut = null;
         RecordSetWriter currentWriter = null;
         RecordSchema currentReadSchema = null;
         RecordSchema currentWriteSchema = null;
-        int currentRecordCount = 0;
 
         try {
             for (final DeaggregatedRecord record : records) {
 
                 if (record.data().length == 0) {
-                    unparseable.add(record);
+                    unparseable.add(new ParseFailureRecord(record, "Record content is empty"));
                     continue;
                 }
 
@@ -1011,27 +1076,31 @@ public class ConsumeKinesis extends AbstractProcessor {
                         parsedRecords.add(nifiRecord);
                     }
                 } catch (final MalformedRecordException | SchemaNotFoundException | IOException e) {
-                    getLogger().debug("Kinesis record seq {} classified as unparseable: {}",
-                            record.sequenceNumber(), e.getMessage());
-                    unparseable.add(record);
+                    getLogger().debug("Kinesis record seq {} classified as unparseable: {}", record.sequenceNumber(), e.getMessage());
+                    unparseable.add(new ParseFailureRecord(record, e.toString()));
                     continue;
                 } finally {
                     closeQuietly(reader);
                 }
 
                 if (parsedRecords.isEmpty()) {
-                    unparseable.add(record);
+                    unparseable.add(new ParseFailureRecord(record, "Record content produced no parsed records"));
                     continue;
                 }
 
                 if (currentWriter == null || !readSchema.equals(currentReadSchema)) {
                     if (currentWriter != null) {
-                        currentWriter.finishRecordSet();
+                        final org.apache.nifi.serialization.WriteResult writeResult = currentWriter.finishRecordSet();
+
                         currentWriter.close();
                         currentOut.close();
-                        final Map<String, String> attrs = createFlowFileAttributes(streamName, batch);
-                        attrs.put("record.count", String.valueOf(currentRecordCount));
-                        currentFlowFile = session.putAllAttributes(currentFlowFile, attrs);
+
+                        final Map<String, String> attributes = createFlowFileAttributes(streamName, batch);
+                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                        attributes.putAll(writeResult.getAttributes());
+                        attributes.put(CoreAttributes.MIME_TYPE.key(), currentWriter.getMimeType());
+                        currentFlowFile = session.putAllAttributes(currentFlowFile, attributes);
+
                         session.getProvenanceReporter().receive(currentFlowFile, buildTransitUri(streamName, batch.getLastShardId()));
                         output.add(currentFlowFile);
                         currentFlowFile = null;
@@ -1043,26 +1112,30 @@ public class ConsumeKinesis extends AbstractProcessor {
                     currentOut = session.write(currentFlowFile);
                     currentWriter = writerFactory.createWriter(getLogger(), currentWriteSchema, currentOut, Map.of());
                     currentWriter.beginRecordSet();
-                    currentRecordCount = 0;
+                    batch.resetRanges();
                 }
 
+                batch.updateRecordRange(record);
+
                 for (final org.apache.nifi.serialization.record.Record parsed : parsedRecords) {
-                    // TODO: We need to use decorateRecord above also.
                     final org.apache.nifi.serialization.record.Record decorated =
                             decorateRecord(parsed, record, record.shardId(), streamName, outputStrategy, currentWriteSchema);
                     currentWriter.write(decorated);
-                    currentRecordCount++;
                     batch.incrementRecordCount();
                 }
             }
 
             if (currentWriter != null) {
-                currentWriter.finishRecordSet();
+                final org.apache.nifi.serialization.WriteResult writeResult = currentWriter.finishRecordSet();
                 currentWriter.close();
                 currentOut.close();
-                final Map<String, String> attrs = createFlowFileAttributes(streamName, batch);
-                attrs.put("record.count", String.valueOf(currentRecordCount));
-                currentFlowFile = session.putAllAttributes(currentFlowFile, attrs);
+
+                final Map<String, String> attributes = createFlowFileAttributes(streamName, batch);
+                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                attributes.putAll(writeResult.getAttributes());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), currentWriter.getMimeType());
+
+                currentFlowFile = session.putAllAttributes(currentFlowFile, attributes);
                 session.getProvenanceReporter().receive(currentFlowFile, buildTransitUri(streamName, batch.getLastShardId()));
                 output.add(currentFlowFile);
                 currentFlowFile = null;
@@ -1135,10 +1208,11 @@ public class ConsumeKinesis extends AbstractProcessor {
         };
     }
 
-    private void writeParseFailures(final ProcessSession session, final List<DeaggregatedRecord> unparseable,
+    private void writeParseFailures(final ProcessSession session, final List<ParseFailureRecord> unparseable,
                                     final String streamName, final BatchAccumulator batch, final List<FlowFile> parseFailureOutput) {
 
-        for (final DeaggregatedRecord record : unparseable) {
+        for (final ParseFailureRecord parseFailureRecord : unparseable) {
+            final DeaggregatedRecord record = parseFailureRecord.record();
             FlowFile flowFile = session.create();
             try {
                 final byte[] rawBytes = record.data();
@@ -1155,6 +1229,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                     attributes.put(ATTR_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()));
                 }
                 attributes.put("record.count", "1");
+                attributes.put(ATTR_RECORD_ERROR_MESSAGE, parseFailureRecord.reason());
                 if (batch.getLastShardId() != null) {
                     attributes.put(ATTR_SHARD_ID, batch.getLastShardId());
                 }
@@ -1201,26 +1276,24 @@ public class ConsumeKinesis extends AbstractProcessor {
         if (batch.getLastPartitionKey() != null) {
             attributes.put(ATTR_PARTITION_KEY, batch.getLastPartitionKey());
         }
-        if (batch.getEarliestArrivalTimestamp() != null) {
-            attributes.put(ATTR_ARRIVAL_TIMESTAMP, String.valueOf(batch.getEarliestArrivalTimestamp().toEpochMilli()));
+        if (batch.getLatestArrivalTimestamp() != null) {
+            attributes.put(ATTR_ARRIVAL_TIMESTAMP, String.valueOf(batch.getLatestArrivalTimestamp().toEpochMilli()));
         }
 
         return attributes;
     }
 
-    private static void closeQuietly(final AutoCloseable closeable) {
+    private void closeQuietly(final AutoCloseable closeable) {
         if (closeable != null) {
             try {
                 closeable.close();
-            } catch (final Exception ignored) {
+            } catch (final Exception e) {
+                getLogger().warn("Failed to close Record Writer", e);
             }
         }
     }
 
     private static String buildTransitUri(final String streamName, final String shardId) {
-        if (shardId == null || shardId.isEmpty()) {
-            return "kinesis://" + streamName;
-        }
         return "kinesis://" + streamName + "/" + shardId;
     }
 
@@ -1239,6 +1312,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     }
 
     private record RecordBatchResult(List<FlowFile> output, List<FlowFile> parseFailures) {
+    }
+
+    private record ParseFailureRecord(DeaggregatedRecord record, String reason) {
     }
 
     private static final class KinesisRecordInputStream extends InputStream {
@@ -1339,12 +1415,12 @@ public class ConsumeKinesis extends AbstractProcessor {
         private long bytesConsumed;
         private long recordCount;
         private long maxMillisBehind = -1;
-        private String minSequenceNumber;
-        private String maxSequenceNumber;
+        private BigInteger minSequenceNumber;
+        private BigInteger maxSequenceNumber;
         private long minSubSequenceNumber = Long.MAX_VALUE;
         private long maxSubSequenceNumber = Long.MIN_VALUE;
         private String lastPartitionKey;
-        private Instant earliestArrivalTimestamp;
+        private Instant latestArrivalTimestamp;
         private String lastShardId;
 
         long getBytesConsumed() {
@@ -1360,11 +1436,11 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         String getMinSequenceNumber() {
-            return minSequenceNumber;
+            return minSequenceNumber != null ? minSequenceNumber.toString() : null;
         }
 
         String getMaxSequenceNumber() {
-            return maxSequenceNumber;
+            return maxSequenceNumber != null ? maxSequenceNumber.toString() : null;
         }
 
         long getMinSubSequenceNumber() {
@@ -1379,8 +1455,8 @@ public class ConsumeKinesis extends AbstractProcessor {
             return lastPartitionKey;
         }
 
-        Instant getEarliestArrivalTimestamp() {
-            return earliestArrivalTimestamp;
+        Instant getLatestArrivalTimestamp() {
+            return latestArrivalTimestamp;
         }
 
         String getLastShardId() {
@@ -1408,17 +1484,18 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         void updateSequenceRange(final ShardFetchResult result) {
-            final String firstSeq = result.firstSequenceNumber();
-            final String lastSeq = result.lastSequenceNumber();
-            if (minSequenceNumber == null || new BigInteger(firstSeq).compareTo(new BigInteger(minSequenceNumber)) < 0) {
+            final BigInteger firstSeq = result.firstSequenceNumber();
+            final BigInteger lastSeq = result.lastSequenceNumber();
+            if (minSequenceNumber == null || firstSeq.compareTo(minSequenceNumber) < 0) {
                 minSequenceNumber = firstSeq;
             }
-            if (maxSequenceNumber == null || new BigInteger(lastSeq).compareTo(new BigInteger(maxSequenceNumber)) > 0) {
+            if (maxSequenceNumber == null || lastSeq.compareTo(maxSequenceNumber) > 0) {
                 maxSequenceNumber = lastSeq;
             }
         }
 
         void updateRecordRange(final DeaggregatedRecord record) {
+            updateSequenceFromRecord(record);
             final long subSeq = record.subSequenceNumber();
             if (subSeq < minSubSequenceNumber) {
                 minSubSequenceNumber = subSeq;
@@ -1428,9 +1505,28 @@ public class ConsumeKinesis extends AbstractProcessor {
             }
             lastPartitionKey = record.partitionKey();
             final Instant arrival = record.approximateArrivalTimestamp();
-            if (arrival != null && (earliestArrivalTimestamp == null || arrival.isBefore(earliestArrivalTimestamp))) {
-                earliestArrivalTimestamp = arrival;
+            if (arrival != null && (latestArrivalTimestamp == null || arrival.isAfter(latestArrivalTimestamp))) {
+                latestArrivalTimestamp = arrival;
             }
+        }
+
+        void updateSequenceFromRecord(final DeaggregatedRecord record) {
+            final BigInteger seqNum = new BigInteger(record.sequenceNumber());
+            if (minSequenceNumber == null || seqNum.compareTo(minSequenceNumber) < 0) {
+                minSequenceNumber = seqNum;
+            }
+            if (maxSequenceNumber == null || seqNum.compareTo(maxSequenceNumber) > 0) {
+                maxSequenceNumber = seqNum;
+            }
+        }
+
+        void resetRanges() {
+            minSequenceNumber = null;
+            maxSequenceNumber = null;
+            minSubSequenceNumber = Long.MAX_VALUE;
+            maxSubSequenceNumber = Long.MIN_VALUE;
+            lastPartitionKey = null;
+            latestArrivalTimestamp = null;
         }
     }
 

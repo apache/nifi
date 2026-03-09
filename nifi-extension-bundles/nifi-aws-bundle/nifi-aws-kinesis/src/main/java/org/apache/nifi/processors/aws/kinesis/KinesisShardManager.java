@@ -31,7 +31,6 @@ import software.amazon.awssdk.services.kinesis.model.ListShardsRequest;
 import software.amazon.awssdk.services.kinesis.model.ListShardsResponse;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -499,8 +498,6 @@ final class KinesisShardManager {
     }
 
     private void writeCheckpoint(final String shardId, final ShardCheckpoint checkpoint) {
-        final BigInteger incomingSeq = new BigInteger(checkpoint.sequenceNumber());
-
         final ShardCheckpoint written = highestWrittenCheckpoints.compute(shardId, (key, existing) -> {
             if (existing != null && checkpoint.max(existing) == existing) {
                 return existing;
@@ -515,7 +512,7 @@ final class KinesisShardManager {
                                 + " lastUpdateTimestamp = :ts, leaseExpiry = :exp")
                         .conditionExpression("leaseOwner = :owner")
                         .expressionAttributeValues(Map.of(
-                                ":seq", AttributeValue.builder().s(checkpoint.sequenceNumber()).build(),
+                                ":seq", AttributeValue.builder().s(checkpoint.sequenceNumber().toString()).build(),
                                 ":subSeq", AttributeValue.builder().n(String.valueOf(checkpoint.subSequenceNumber())).build(),
                                 ":ts", AttributeValue.builder().n(String.valueOf(now)).build(),
                                 ":exp", AttributeValue.builder().n(String.valueOf(now + leaseDurationMillis)).build(),
@@ -532,7 +529,7 @@ final class KinesisShardManager {
             return existing;
         });
 
-        if (written != null && incomingSeq.compareTo(new BigInteger(written.sequenceNumber())) < 0) {
+        if (written != null && checkpoint.sequenceNumber().compareTo(written.sequenceNumber()) < 0) {
             logger.debug("Skipped checkpoint regression for shard {} (highest: {}, attempted: {})", shardId, written.sequenceNumber(), checkpoint.sequenceNumber());
         }
     }

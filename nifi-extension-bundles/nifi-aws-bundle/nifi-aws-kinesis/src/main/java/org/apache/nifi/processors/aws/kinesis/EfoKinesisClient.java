@@ -25,7 +25,6 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.kinesis.model.ConsumerStatus;
-import software.amazon.awssdk.services.kinesis.model.DeregisterStreamConsumerRequest;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamConsumerRequest;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamRequest;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamResponse;
@@ -46,18 +45,18 @@ import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHan
 import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -70,10 +69,10 @@ final class EfoKinesisClient extends KinesisConsumerClient {
     private static final long SUBSCRIBE_BACKOFF_NANOS = TimeUnit.SECONDS.toNanos(5);
     private static final long CONSUMER_REGISTRATION_POLL_MILLIS = 1_000;
     private static final int CONSUMER_REGISTRATION_MAX_ATTEMPTS = 60;
-    private static final int MAX_SUBSCRIPTIONS_PER_TRIGGER = 10;
     private static final int MAX_QUEUED_RESULTS = 200;
 
     private final Map<String, ShardConsumer> shardConsumers = new ConcurrentHashMap<>();
+    private final Queue<ShardConsumer> pausedConsumers = new ConcurrentLinkedQueue<>();
     private volatile KinesisAsyncClient kinesisAsyncClient;
     private volatile String consumerArn;
     private volatile Instant timestampForInitialPosition;
@@ -92,28 +91,29 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         registerEfoConsumer(streamName, consumerName);
     }
 
+    void initializeForTest(final KinesisAsyncClient asyncClient, final String theConsumerArn) {
+        this.kinesisAsyncClient = asyncClient;
+        this.consumerArn = theConsumerArn;
+    }
+
+    ShardConsumer getShardConsumer(final String shardId) {
+        return shardConsumers.get(shardId);
+    }
+
     @Override
     void startFetches(final List<Shard> shards, final String streamName, final int batchSize, final String initialStreamPosition, final KinesisShardManager shardManager) {
-        if (totalQueuedResults() >= MAX_QUEUED_RESULTS) {
-            return;
-        }
-
-        int subscriptionsCreated = 0;
         final long now = System.nanoTime();
 
         for (final Shard shard : shards) {
-            if (subscriptionsCreated >= MAX_SUBSCRIPTIONS_PER_TRIGGER) {
-                break;
-            }
-
             final String shardId = shard.shardId();
             final ShardConsumer existing = shardConsumers.get(shardId);
 
             if (existing == null) {
-                final String lastSeq = shardManager.readCheckpoint(shardId);
+                final String checkpoint = shardManager.readCheckpoint(shardId);
+                final BigInteger lastSeq = checkpoint != null ? new BigInteger(checkpoint) : null;
                 final StartingPosition startingPosition = buildStartingPosition(lastSeq, initialStreamPosition);
                 logger.info("Creating EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), lastSeq);
-                final ShardConsumer sc = new ShardConsumer(shardId, EfoKinesisClient.this::enqueueResult, logger);
+                final ShardConsumer sc = new ShardConsumer(shardId, EfoKinesisClient.this::enqueueResult, pausedConsumers, logger);
                 final ShardConsumer prior = shardConsumers.putIfAbsent(shardId, sc);
                 if (prior == null) {
                     try {
@@ -122,7 +122,6 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                         shardConsumers.remove(shardId, sc);
                         throw e;
                     }
-                    subscriptionsCreated++;
                 }
             } else if (existing.isSubscriptionExpired()) {
                 final long lastAttempt = existing.getLastSubscribeAttemptNanos();
@@ -130,16 +129,17 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                     continue;
                 }
 
-                final String resumeSeq = maxSequenceNumber(
-                        existing.getLastQueuedSequenceNumber(),
-                        existing.getLastAcknowledgedSequenceNumber(),
-                        shardManager.readCheckpoint(shardId));
+                final String checkpoint = shardManager.readCheckpoint(shardId);
+                final BigInteger checkpointSeq = checkpoint == null ?  null : new BigInteger(checkpoint);
+                final BigInteger lastQueued = existing.getLastQueuedSequenceNumber();
+                final BigInteger resumeSeq = maxSequenceNumber(lastQueued, checkpointSeq);
                 final StartingPosition startingPosition = buildStartingPosition(resumeSeq, initialStreamPosition);
                 logger.debug("Renewing expired EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), resumeSeq);
                 existing.subscribe(kinesisAsyncClient, consumerArn, startingPosition);
-                subscriptionsCreated++;
             }
         }
+
+        resumePausedConsumers();
     }
 
     @Override
@@ -158,25 +158,25 @@ final class EfoKinesisClient extends KinesisConsumerClient {
 
     @Override
     void acknowledgeResults(final List<ShardFetchResult> results) {
-        final Map<String, ShardConsumer> consumersToRequest = new HashMap<>();
+        resumePausedConsumers();
+    }
 
-        for (final ShardFetchResult result : results) {
-            final ShardConsumer consumer = shardConsumers.get(result.shardId());
-            if (consumer != null) {
-                consumer.acknowledgeSequenceNumber(result.lastSequenceNumber());
-                consumer.markAcknowledged();
-                consumersToRequest.putIfAbsent(result.shardId(), consumer);
+    private void resumePausedConsumers() {
+        int available = MAX_QUEUED_RESULTS - totalQueuedResults();
+        int resumed = 0;
+        ShardConsumer consumer;
+        while (resumed < available && (consumer = pausedConsumers.poll()) != null) {
+            if (consumer.requestNextIfReady()) {
+                resumed++;
             }
-        }
-
-        for (final ShardConsumer consumer : consumersToRequest.values()) {
-            consumer.requestNext();
         }
     }
 
     @Override
     void rollbackResults(final List<ShardFetchResult> results) {
         for (final ShardFetchResult result : results) {
+            drainShardQueue(result.shardId());
+
             final ShardConsumer sc = shardConsumers.remove(result.shardId());
             if (sc != null) {
                 sc.cancel();
@@ -229,8 +229,6 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         }
         shardConsumers.clear();
 
-        deregisterEfoConsumer();
-
         if (kinesisAsyncClient != null) {
             kinesisAsyncClient.close();
             kinesisAsyncClient = null;
@@ -239,21 +237,8 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         super.close();
     }
 
-    private void deregisterEfoConsumer() {
-        final String arn = consumerArn;
-        consumerArn = null;
-        if (arn == null) {
-            return;
-        }
-
-        try {
-            kinesisClient.deregisterStreamConsumer(DeregisterStreamConsumerRequest.builder()
-                    .consumerARN(arn)
-                    .build());
-            logger.info("Deregistered EFO consumer [{}]", arn);
-        } catch (final Exception e) {
-            logger.warn("Failed to deregister EFO consumer [{}]; manual cleanup may be required", arn, e);
-        }
+    String getConsumerArn() {
+        return consumerArn;
     }
 
     private void registerEfoConsumer(final String streamName, final String consumerName) {
@@ -319,26 +304,21 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         throw new ProcessException("EFO consumer [%s] did not become ACTIVE within %d seconds".formatted(consumerName, CONSUMER_REGISTRATION_MAX_ATTEMPTS));
     }
 
-    private static String maxSequenceNumber(final String... candidates) {
-        BigInteger max = null;
-        String maxStr = null;
-        for (final String candidate : candidates) {
-            if (candidate != null) {
-                final BigInteger value = new BigInteger(candidate);
-                if (max == null || value.compareTo(max) > 0) {
-                    max = value;
-                    maxStr = candidate;
-                }
-            }
+    private static BigInteger maxSequenceNumber(final BigInteger a, final BigInteger b) {
+        if (a == null) {
+            return b;
         }
-        return maxStr;
+        if (b == null) {
+            return a;
+        }
+        return a.compareTo(b) >= 0 ? a : b;
     }
 
-    private StartingPosition buildStartingPosition(final String sequenceNumber, final String initialStreamPosition) {
+    private StartingPosition buildStartingPosition(final BigInteger sequenceNumber, final String initialStreamPosition) {
         if (sequenceNumber != null) {
             return StartingPosition.builder()
                     .type(ShardIteratorType.AFTER_SEQUENCE_NUMBER)
-                    .sequenceNumber(sequenceNumber)
+                    .sequenceNumber(sequenceNumber.toString())
                     .build();
         }
         final ShardIteratorType iteratorType = ShardIteratorType.fromValue(initialStreamPosition);
@@ -352,21 +332,21 @@ final class EfoKinesisClient extends KinesisConsumerClient {
     static final class ShardConsumer {
         private final String shardId;
         private final Consumer<ShardFetchResult> resultSink;
+        private final Queue<ShardConsumer> pausedConsumers;
         private final ComponentLog consumerLogger;
         private final AtomicBoolean subscribing = new AtomicBoolean(false);
+        private final AtomicBoolean paused = new AtomicBoolean(false);
         private final AtomicInteger subscriptionGeneration = new AtomicInteger();
         private final AtomicLong deduplicatedEvents = new AtomicLong();
         private volatile Subscription subscription;
         private volatile CompletableFuture<Void> subscriptionFuture;
         private volatile long lastSubscribeAttemptNanos;
-        private volatile String lastQueuedSequenceNumber;
-        private volatile String lastOnNextMaxSequence;
-        private final AtomicReference<String> lastAcknowledgedSequenceNumber = new AtomicReference<>();
-        private final AtomicInteger queuedResultCount = new AtomicInteger();
-
-        ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink, final ComponentLog consumerLogger) {
+        private volatile BigInteger lastQueuedSequenceNumber;
+        ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink,
+                      final Queue<ShardConsumer> pausedConsumers, final ComponentLog consumerLogger) {
             this.shardId = shardId;
             this.resultSink = resultSink;
+            this.pausedConsumers = pausedConsumers;
             this.consumerLogger = consumerLogger;
         }
 
@@ -407,6 +387,17 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             }
         }
 
+        boolean requestNextIfReady() {
+            if (paused.compareAndSet(true, false)) {
+                final Subscription sub = subscription;
+                if (sub != null) {
+                    sub.request(1);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         boolean isSubscriptionExpired() {
             final CompletableFuture<Void> future = subscriptionFuture;
             return future == null || future.isDone();
@@ -416,38 +407,12 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             return lastSubscribeAttemptNanos;
         }
 
-        String getLastAcknowledgedSequenceNumber() {
-            return lastAcknowledgedSequenceNumber.get();
-        }
-
-        String getLastQueuedSequenceNumber() {
+        BigInteger getLastQueuedSequenceNumber() {
             return lastQueuedSequenceNumber;
         }
 
         long drainDeduplicatedEventCount() {
             return deduplicatedEvents.getAndSet(0);
-        }
-
-        void markAcknowledged() {
-            queuedResultCount.updateAndGet(value -> value > 0 ? value - 1 : 0);
-        }
-
-        void acknowledgeSequenceNumber(final String sequenceNumber) {
-            if (sequenceNumber == null) {
-                return;
-            }
-
-            final BigInteger incoming = new BigInteger(sequenceNumber);
-            String existing;
-            while (true) {
-                existing = lastAcknowledgedSequenceNumber.get();
-                if (existing != null && incoming.compareTo(new BigInteger(existing)) <= 0) {
-                    return;
-                }
-                if (lastAcknowledgedSequenceNumber.compareAndSet(existing, sequenceNumber)) {
-                    return;
-                }
-            }
         }
 
         void cancel() {
@@ -456,6 +421,37 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                 future.cancel(true);
             }
             subscription = null;
+        }
+
+        void resetForRenewal() {
+            subscribing.set(false);
+            lastSubscribeAttemptNanos = 0;
+        }
+
+        void setLastQueuedSequenceNumber(final BigInteger seq) {
+            lastQueuedSequenceNumber = seq;
+        }
+
+        void setSubscription(final Subscription sub) {
+            subscription = sub;
+        }
+
+        Subscription getSubscription() {
+            return subscription;
+        }
+
+        int getSubscriptionGeneration() {
+            return subscriptionGeneration.get();
+        }
+
+        boolean isSubscribing() {
+            return subscribing.get();
+        }
+
+        void pause() {
+            if (paused.compareAndSet(false, true)) {
+                pausedConsumers.add(this);
+            }
         }
 
         private void logSubscriptionError(final Throwable t) {
@@ -504,7 +500,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             return cause != null && cause != t && isRetryableStreamDisconnect(cause);
         }
 
-        private void endSubscriptionIfCurrent(final int generation) {
+        void endSubscriptionIfCurrent(final int generation) {
             if (subscriptionGeneration.get() == generation) {
                 subscription = null;
                 subscribing.set(false);
@@ -512,12 +508,10 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         }
 
         private List<Record> deduplicateRecords(final List<Record> records) {
-            final String prevMax = lastOnNextMaxSequence;
-            if (prevMax == null) {
+            final BigInteger threshold = lastQueuedSequenceNumber;
+            if (threshold == null) {
                 return records;
             }
-
-            final BigInteger threshold = new BigInteger(prevMax);
             int firstNewIndex = records.size();
             for (int i = 0; i < records.size(); i++) {
                 if (new BigInteger(records.get(i).sequenceNumber()).compareTo(threshold) > 0) {
@@ -551,6 +545,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             @Override
             public void onSubscribe(final Subscription sub) {
                 subscription = sub;
+                paused.set(false);
                 sub.request(1);
             }
 
@@ -574,10 +569,11 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                 }
 
                 final ShardFetchResult result = createFetchResult(shardId, records, millisBehind);
-                lastOnNextMaxSequence = result.lastSequenceNumber();
                 lastQueuedSequenceNumber = result.lastSequenceNumber();
-                queuedResultCount.incrementAndGet();
                 resultSink.accept(result);
+                if (paused.compareAndSet(false, true)) {
+                    pausedConsumers.add(ShardConsumer.this);
+                }
             }
 
             @Override

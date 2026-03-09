@@ -19,9 +19,12 @@ package org.apache.nifi.processors.aws.kinesis;
 import org.apache.nifi.logging.ComponentLog;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.ExpiredIteratorException;
 import software.amazon.awssdk.services.kinesis.model.GetRecordsRequest;
 import software.amazon.awssdk.services.kinesis.model.GetRecordsResponse;
 import software.amazon.awssdk.services.kinesis.model.GetShardIteratorRequest;
+import software.amazon.awssdk.services.kinesis.model.LimitExceededException;
+import software.amazon.awssdk.services.kinesis.model.ProvisionedThroughputExceededException;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
 
@@ -45,19 +48,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>Concurrency is bounded by a semaphore with {@value #MAX_CONCURRENT_FETCHES} permits so
  * that at most that many GetRecords HTTP calls are in flight at any moment, preventing
- * connection-pool exhaustion. Additionally, when the shared result queue exceeds
- * {@value #MAX_QUEUED_RESULTS} entries the fetch loop sleeps until the processor drains results.
+ * connection-pool exhaustion. A second fair semaphore with {@value #MAX_QUEUED_RESULTS}
+ * permits ensures that fetch threads block when the result queue is full, with FIFO ordering
+ * guaranteeing that all shard threads get equal opportunity to enqueue results.
  */
 final class PollingKinesisClient extends KinesisConsumerClient {
 
     private static final long DEFAULT_EMPTY_SHARD_BACKOFF_NANOS = TimeUnit.MILLISECONDS.toNanos(500);
     private static final long DEFAULT_ERROR_BACKOFF_NANOS = TimeUnit.SECONDS.toNanos(2);
-    static final int MAX_QUEUED_RESULTS = 500;
-    static final int MAX_CONCURRENT_FETCHES = 50;
+    static final int MAX_QUEUED_RESULTS = 200;
+    static final int MAX_CONCURRENT_FETCHES = 25;
 
     private final ExecutorService fetchExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final Map<String, PollingShardState> pollingShardStates = new ConcurrentHashMap<>();
     private final Semaphore fetchPermits = new Semaphore(MAX_CONCURRENT_FETCHES, true);
+    private final Semaphore queuePermits = new Semaphore(MAX_QUEUED_RESULTS, true);
     private final long emptyShardBackoffNanos;
     private final long errorBackoffNanos;
     private volatile Instant timestampForInitialPosition;
@@ -167,6 +172,11 @@ final class PollingKinesisClient extends KinesisConsumerClient {
     }
 
     @Override
+    protected void onResultPolled() {
+        queuePermits.release();
+    }
+
+    @Override
     void close() {
         for (final PollingShardState state : pollingShardStates.values()) {
             state.stop();
@@ -213,6 +223,10 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
                 if (state.isResetRequested()) {
                     state.clearReset();
+                    final int drained = drainShardQueue(shardId);
+                    if (drained > 0) {
+                        queuePermits.release(drained);
+                    }
                     state.setIterator(getShardIterator(state, streamName, shardId, initialStreamPosition, shardManager));
                 }
 
@@ -224,42 +238,52 @@ final class PollingKinesisClient extends KinesisConsumerClient {
                     }
                 }
 
-                if (totalQueuedResults() >= MAX_QUEUED_RESULTS) {
-                    sleepNanos(emptyShardBackoffNanos);
-                    continue;
-                }
-
                 try {
-                    fetchPermits.acquire();
+                    queuePermits.acquire();
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
                 }
 
-                final GetRecordsResponse response;
+                boolean queuePermitConsumed = false;
                 try {
-                    response = fetchRecords(shardId, state, batchSize);
+                    try {
+                        fetchPermits.acquire();
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+
+                    final GetRecordsResponse response;
+                    try {
+                        response = fetchRecords(shardId, state, batchSize);
+                    } finally {
+                        fetchPermits.release();
+                    }
+                    if (response == null) {
+                        continue;
+                    }
+
+                    final List<software.amazon.awssdk.services.kinesis.model.Record> records = response.records();
+                    if (!records.isEmpty()) {
+                        final long millisBehind = response.millisBehindLatest() != null ? response.millisBehindLatest() : -1;
+                        enqueueResult(createFetchResult(shardId, records, millisBehind));
+                        queuePermitConsumed = true;
+                    }
+
+                    state.setIterator(response.nextShardIterator());
+                    if (state.getIterator() == null) {
+                        state.markExhausted();
+                        return;
+                    }
+
+                    if (records.isEmpty()) {
+                        sleepNanos(emptyShardBackoffNanos);
+                    }
                 } finally {
-                    fetchPermits.release();
-                }
-                if (response == null) {
-                    continue;
-                }
-
-                final List<software.amazon.awssdk.services.kinesis.model.Record> records = response.records();
-                if (!records.isEmpty()) {
-                    final long millisBehind = response.millisBehindLatest() != null ? response.millisBehindLatest() : -1;
-                    enqueueResult(createFetchResult(shardId, records, millisBehind));
-                }
-
-                state.setIterator(response.nextShardIterator());
-                if (state.getIterator() == null) {
-                    state.markExhausted();
-                    return;
-                }
-
-                if (records.isEmpty()) {
-                    sleepNanos(emptyShardBackoffNanos);
+                    if (!queuePermitConsumed) {
+                        queuePermits.release();
+                    }
                 }
             } catch (final Exception e) {
                 if (!state.isStopped()) {
@@ -279,26 +303,25 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
         try {
             return kinesisClient.getRecords(request);
-        } catch (final software.amazon.awssdk.services.kinesis.model.ProvisionedThroughputExceededException
-                       | software.amazon.awssdk.services.kinesis.model.LimitExceededException e) {
+        } catch (final ProvisionedThroughputExceededException | LimitExceededException e) {
             logger.debug("GetRecords throttled for shard {}; will retry after backoff", shardId);
             sleepNanos(errorBackoffNanos);
             return null;
-        } catch (final software.amazon.awssdk.services.kinesis.model.ExpiredIteratorException e) {
+        } catch (final ExpiredIteratorException e) {
             logger.info("Shard iterator expired for shard {}; will re-acquire", shardId);
-            state.setIterator(null);
+            state.requestReset();
             sleepNanos(errorBackoffNanos);
             return null;
         } catch (final SdkClientException e) {
             if (!state.isStopped()) {
-                logger.warn("GetRecords timed out for shard {}; will retry with existing iterator", shardId);
+                logger.warn("GetRecords failed for shard {}; will retry with existing iterator", shardId, e);
                 sleepNanos(errorBackoffNanos);
             }
             return null;
         } catch (final Exception e) {
             if (!state.isStopped()) {
                 logger.error("GetRecords failed for shard {}", shardId, e);
-                state.setIterator(null);
+                state.requestReset();
                 sleepNanos(errorBackoffNanos);
             }
             return null;

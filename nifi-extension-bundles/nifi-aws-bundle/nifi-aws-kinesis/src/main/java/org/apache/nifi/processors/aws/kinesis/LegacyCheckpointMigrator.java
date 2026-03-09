@@ -82,8 +82,7 @@ final class LegacyCheckpointMigrator {
         if (lingeringMigration == null) {
             return;
         }
-        logger.info("Cleaning up lingering migration table [{}]", lingeringMigration);
-        CheckpointTableUtils.copyCheckpointItems(dynamoDbClient, logger, lingeringMigration, checkpointTableName);
+        logger.info("Deleting orphaned migration table [{}]; legacy checkpoint table [{}] retains original data", lingeringMigration, checkpointTableName);
         CheckpointTableUtils.deleteTable(dynamoDbClient, logger, lingeringMigration);
     }
 
@@ -332,9 +331,10 @@ final class LegacyCheckpointMigrator {
                         .key(Map.of(
                             "streamName", AttributeValue.builder().s(streamName).build(),
                             "shardId", AttributeValue.builder().s(shardId).build()))
-                        .updateExpression("SET sequenceNumber = :seq, lastUpdateTimestamp = :ts")
+                        .updateExpression("SET sequenceNumber = :seq, subSequenceNumber = :subSeq, lastUpdateTimestamp = :ts")
                         .expressionAttributeValues(Map.of(
                             ":seq", AttributeValue.builder().s(checkpoint).build(),
+                            ":subSeq", AttributeValue.builder().n("0").build(),
                             ":ts", AttributeValue.builder().n(String.valueOf(now)).build()))
                         .build();
                 dynamoDbClient.updateItem(request);

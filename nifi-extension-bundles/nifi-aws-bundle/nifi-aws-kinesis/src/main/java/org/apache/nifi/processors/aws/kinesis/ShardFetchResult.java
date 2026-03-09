@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.processors.aws.kinesis;
 
+import java.math.BigInteger;
 import java.util.List;
 
 record ShardFetchResult(String shardId, List<DeaggregatedRecord> records, long millisBehindLatest) {
 
-    String firstSequenceNumber() {
-        return records.getFirst().sequenceNumber();
+    BigInteger firstSequenceNumber() {
+        return new BigInteger(records.getFirst().sequenceNumber());
     }
 
-    String lastSequenceNumber() {
-        return records.getLast().sequenceNumber();
+    BigInteger lastSequenceNumber() {
+        return new BigInteger(records.getLast().sequenceNumber());
     }
 
     long lastSubSequenceNumber() {

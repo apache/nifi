@@ -85,16 +85,16 @@ final class KplDeaggregator {
             return;
         }
 
-        final byte[] protobufBytes = Arrays.copyOfRange(data, KPL_MAGIC.length, data.length - MD5_DIGEST_LENGTH);
-        final byte[] trailingMd5 = Arrays.copyOfRange(data, data.length - MD5_DIGEST_LENGTH, data.length);
+        final int protobufOffset = KPL_MAGIC.length;
+        final int protobufLength = data.length - KPL_MAGIC.length - MD5_DIGEST_LENGTH;
 
-        if (!verifyMd5(protobufBytes, trailingMd5)) {
+        if (!verifyMd5(data, protobufOffset, protobufLength)) {
             out.add(passthrough(shardId, record, data));
             return;
         }
 
         try {
-            parseAggregatedRecord(shardId, record, protobufBytes, out);
+            parseAggregatedRecord(shardId, record, data, protobufOffset, protobufLength, out);
         } catch (final Exception e) {
             out.add(passthrough(shardId, record, data));
         }
@@ -110,22 +110,26 @@ final class KplDeaggregator {
                 && data[3] == KPL_MAGIC[3];
     }
 
-    private static boolean verifyMd5(final byte[] protobufBytes, final byte[] expectedMd5) {
+    private static boolean verifyMd5(final byte[] data, final int protobufOffset, final int protobufLength) {
         try {
-            final byte[] computed = MessageDigest.getInstance("MD5").digest(protobufBytes);
-            return Arrays.equals(computed, expectedMd5);
+            final MessageDigest md5 = MessageDigest.getInstance("MD5");
+            md5.update(data, protobufOffset, protobufLength);
+            final byte[] computed = md5.digest();
+            final int md5Offset = protobufOffset + protobufLength;
+            return Arrays.equals(computed, 0, MD5_DIGEST_LENGTH, data, md5Offset, md5Offset + MD5_DIGEST_LENGTH);
         } catch (final NoSuchAlgorithmException e) {
             return false;
         }
     }
 
-    private static void parseAggregatedRecord(final String shardId, final Record kinesisRecord, final byte[] protobufBytes,
-            final List<DeaggregatedRecord> out) throws Exception {
+    private static void parseAggregatedRecord(final String shardId, final Record kinesisRecord,
+            final byte[] data, final int protobufOffset, final int protobufLength, final List<DeaggregatedRecord> out) throws Exception {
+
         final List<String> partitionKeyTable = new ArrayList<>();
         final List<byte[]> subRecordDataList = new ArrayList<>();
         final List<Integer> subRecordPkIndexList = new ArrayList<>();
 
-        final CodedInputStream input = CodedInputStream.newInstance(protobufBytes);
+        final CodedInputStream input = CodedInputStream.newInstance(data, protobufOffset, protobufLength);
         while (!input.isAtEnd()) {
             final int tag = input.readTag();
             final int fieldNumber = WireFormat.getTagFieldNumber(tag);

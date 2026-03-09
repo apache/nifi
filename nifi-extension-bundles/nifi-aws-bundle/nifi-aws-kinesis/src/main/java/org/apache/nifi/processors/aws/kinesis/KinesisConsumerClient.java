@@ -22,8 +22,8 @@ import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.kinesis.model.Record;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -88,7 +88,26 @@ abstract class KinesisConsumerClient {
 
     ShardFetchResult pollShardResult(final String shardId) {
         final Queue<ShardFetchResult> queue = shardQueues.get(shardId);
-        return queue != null ? queue.poll() : null;
+        final ShardFetchResult result = queue != null ? queue.poll() : null;
+        if (result != null) {
+            onResultPolled();
+        }
+        return result;
+    }
+
+    protected void onResultPolled() {
+    }
+
+    int drainShardQueue(final String shardId) {
+        final Queue<ShardFetchResult> queue = shardQueues.get(shardId);
+        if (queue == null) {
+            return 0;
+        }
+        int drained = 0;
+        while (queue.poll() != null) {
+            drained++;
+        }
+        return drained;
     }
 
     ShardFetchResult pollAnyResult(final long timeout, final TimeUnit unit) throws InterruptedException {
@@ -97,6 +116,7 @@ abstract class KinesisConsumerClient {
             for (final Queue<ShardFetchResult> queue : shardQueues.values()) {
                 final ShardFetchResult result = queue.poll();
                 if (result != null) {
+                    onResultPolled();
                     return result;
                 }
             }
@@ -110,8 +130,8 @@ abstract class KinesisConsumerClient {
         return null;
     }
 
-    Set<String> getShardIdsWithResults() {
-        final Set<String> ids = new HashSet<>();
+    List<String> getShardIdsWithResults() {
+        final List<String> ids = new ArrayList<>();
         for (final Map.Entry<String, Queue<ShardFetchResult>> entry : shardQueues.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 ids.add(entry.getKey());
