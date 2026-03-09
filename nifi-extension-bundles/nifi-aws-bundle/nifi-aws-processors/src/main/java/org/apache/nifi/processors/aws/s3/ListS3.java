@@ -900,7 +900,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         @Override
         public void setNextMarker() {
-            listObjectsRequestBuilder.marker(listObjectsResponse.nextMarker());
+            final String nextMarker = listObjectsResponse.nextMarker();
+            if (nextMarker != null) {
+                listObjectsRequestBuilder.marker(nextMarker);
+            } else {
+                final List<S3Object> contents = listObjectsResponse.contents();
+                if (!contents.isEmpty()) {
+                    listObjectsRequestBuilder.marker(contents.get(contents.size() - 1).key());
+                }
+            }
         }
 
         @Override
