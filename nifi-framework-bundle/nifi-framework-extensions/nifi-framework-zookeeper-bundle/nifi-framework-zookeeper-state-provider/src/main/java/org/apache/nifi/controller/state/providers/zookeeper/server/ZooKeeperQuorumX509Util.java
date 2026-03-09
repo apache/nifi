@@ -30,4 +30,9 @@ public class ZooKeeperQuorumX509Util extends X509Util {
     protected boolean shouldVerifyClientHostname() {
         return true;
     }
+
+    @Override
+    protected boolean shouldAllowReverseDnsLookup() {
+        return false;
+    }
 }

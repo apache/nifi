@@ -116,13 +116,13 @@
         <node.version>v22.19.0</node.version>
 
         <!-- NiFi build -->
-        <nifi-api.version>2.6.0</nifi-api.version>
+        <nifi-api.version>2.7.0</nifi-api.version>
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.42.6</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.42.8</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
-        <azure.sdk.bom.version>1.3.4</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
+        <azure.sdk.bom.version>1.3.5</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.11.0</org.apache.commons.cli.version>
@@ -141,7 +141,7 @@
         <ozone.version>1.4.1</ozone.version>
 
         <!-- Kubernetes -->
-        <io.fabric8.kubernetes.client.version>7.6.0</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>7.6.1</io.fabric8.kubernetes.client.version>
 
         <!-- Data access -->
         <commons.dbcp2.version>2.14.0</commons.dbcp2.version>
@@ -180,7 +180,7 @@
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.33</nimbus-oauth2-oidc.version>
+        <nimbus-oauth2-oidc.version>11.34</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.83</org.bouncycastle.version>
 
         <!-- Utilities -->
@@ -195,7 +195,7 @@
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
         <jaxb.runtime.version>4.0.6</jaxb.runtime.version>
         <jersey.bom.version>4.0.2</jersey.bom.version>
-        <jetty.version>12.1.6</jetty.version>
+        <jetty.version>12.1.7</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>7.0.3</spring.security.version>
         <spring.version>7.0.5</spring.version>
@@ -910,7 +910,7 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <version>3.9.12</version>
+                                    <version>3.9.13</version>
                                 </requireMavenVersion>
                                 <requireReleaseDeps>
                                     <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
