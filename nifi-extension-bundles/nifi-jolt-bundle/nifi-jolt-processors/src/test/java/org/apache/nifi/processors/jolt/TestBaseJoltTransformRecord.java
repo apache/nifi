@@ -684,7 +684,6 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
     }
 
-
     private static Stream<Arguments> getChainrArguments() {
         return Stream.of(Arguments.of(Paths.get(CHAINR_SPEC_PATH), "has no single line comments"),
             Arguments.of(Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json"), "has a single line comment"));

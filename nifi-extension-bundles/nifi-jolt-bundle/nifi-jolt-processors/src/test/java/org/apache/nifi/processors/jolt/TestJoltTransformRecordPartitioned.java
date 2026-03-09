@@ -107,7 +107,6 @@ public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRec
         final String expectedOutput1 = getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutputPartitioned1.json");
         final String expectedOutput2 = getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutputPartitioned2.json");
 
-
         final java.util.List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS);
         final MockFlowFile result1 = flowFiles.get(0);
         final MockFlowFile result2 = flowFiles.get(1);
