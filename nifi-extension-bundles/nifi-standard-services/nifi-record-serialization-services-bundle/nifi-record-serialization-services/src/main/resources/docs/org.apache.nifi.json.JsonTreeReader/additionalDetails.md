@@ -226,6 +226,7 @@ Controller Service is chosen to denote the Schema):
         "type": "array",
         "items": {
           "type": "record",
+          "name": "sibling",
           "fields": [
             {
               "name": "name",
