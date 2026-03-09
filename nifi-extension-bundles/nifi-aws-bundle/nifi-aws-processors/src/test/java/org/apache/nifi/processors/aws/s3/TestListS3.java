@@ -850,6 +850,98 @@ public class TestListS3 {
     }
 
     @Test
+    public void testListV1PaginationWithoutDelimiter() {
+        final List<String> firstPageKeys = List.of("key-0001", "key-0002", "key-0003");
+        final List<String> secondPageKeys = List.of("key-0004", "key-0005", "key-0006");
+        setupV1PaginationMocks(firstPageKeys, null, secondPageKeys, null);
+
+        runner.run();
+
+        final List<ListObjectsRequest> requests = captureListObjectsRequests(2);
+        assertNull(requests.get(0).marker());
+        assertEquals("key-0003", requests.get(1).marker());
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 6);
+    }
+
+    @Test
+    public void testListV1PaginationWithDelimiter() {
+        runner.setProperty(ListS3.DELIMITER, "/");
+
+        final List<String> firstPageKeys = List.of("key-0001", "key-0002");
+        final List<String> secondPageKeys = List.of("key-0003", "key-0004");
+        setupV1PaginationMocks(firstPageKeys, "key-0002", secondPageKeys, null);
+
+        runner.run();
+
+        final List<ListObjectsRequest> requests = captureListObjectsRequests(2);
+        assertNull(requests.get(0).marker());
+        assertEquals("key-0002", requests.get(1).marker());
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 4);
+    }
+
+    @Test
+    public void testListV1PaginationWithEmptyContentsAndNoNextMarker() {
+        final ListObjectsResponse firstPageResponse = ListObjectsResponse.builder()
+                .contents(Collections.emptyList())
+                .isTruncated(true)
+                .build();
+
+        final List<String> secondPageKeys = List.of("key-0001", "key-0002");
+        final ListObjectsResponse secondPageResponse = buildListObjectsResponse(secondPageKeys, false, null);
+
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class)))
+                .thenReturn(firstPageResponse)
+                .thenReturn(secondPageResponse);
+
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LIST_TYPE, "1");
+
+        runner.run();
+
+        final List<ListObjectsRequest> requests = captureListObjectsRequests(2);
+        assertNull(requests.get(0).marker());
+        assertNull(requests.get(1).marker());
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 2);
+    }
+
+    private void setupV1PaginationMocks(final List<String> firstPageKeys, final String firstPageNextMarker,
+                                        final List<String> secondPageKeys, final String secondPageNextMarker) {
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LIST_TYPE, "1");
+
+        final ListObjectsResponse firstPageResponse = buildListObjectsResponse(firstPageKeys, true, firstPageNextMarker);
+        final ListObjectsResponse secondPageResponse = buildListObjectsResponse(secondPageKeys, false, secondPageNextMarker);
+
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class)))
+                .thenReturn(firstPageResponse)
+                .thenReturn(secondPageResponse);
+    }
+
+    private ListObjectsResponse buildListObjectsResponse(final List<String> keys, final boolean isTruncated, final String nextMarker) {
+        final Instant lastModified = Instant.now();
+        final List<S3Object> objects = keys.stream()
+                .map(key -> S3Object.builder().key(key).lastModified(lastModified).build())
+                .toList();
+
+        return ListObjectsResponse.builder()
+                .contents(objects)
+                .isTruncated(isTruncated)
+                .nextMarker(nextMarker)
+                .build();
+    }
+
+    private List<ListObjectsRequest> captureListObjectsRequests(final int expectedCount) {
+        final ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
+        verify(mockS3Client, Mockito.times(expectedCount)).listObjects(captureRequest.capture());
+        return captureRequest.getAllValues();
+    }
+
+    @Test
     void testMigration() {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed =
