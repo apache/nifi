@@ -1646,6 +1646,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             final ValidationStatus validationStatus = getValidationStatus();
             if (validationStatus != ValidationStatus.VALID) {
+                if (desiredState == ScheduledState.RUN_ONCE) {
+                    final ValidationState validationState = getValidationState();
+                    procLog.warn("Cannot run once {} because Processor is not valid (Validation State is {}: {}). Returning to stopped.",
+                            StandardProcessorNode.this, validationState, validationState.getValidationErrors());
+                    schedulingAgentCallback.onTaskComplete();
+                    completeStopAction();
+                    return null;
+                }
+
                 LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 5 seconds", StandardProcessorNode.this);
 
                 startupAttemptCount.incrementAndGet();
