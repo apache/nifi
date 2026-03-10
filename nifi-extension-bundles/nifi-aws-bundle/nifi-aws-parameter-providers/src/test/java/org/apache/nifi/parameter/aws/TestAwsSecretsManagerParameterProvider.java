@@ -312,83 +312,86 @@ public class TestAwsSecretsManagerParameterProvider {
 
     @Test
     public void testFetchPlainTextSecretEnumeration() throws InitializationException {
-        final String pemContent = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIIE6TAbBgkqhkiG9w0BBQ0wDjANBgkqhkiG\n-----END ENCRYPTED PRIVATE KEY-----";
+        final String secretName = "PlainTextSecret";
+        final String plainTextContent = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
 
         final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
 
         final GetSecretValueResponse response = GetSecretValueResponse.builder()
-                .name("my-pem-key")
-                .secretString(pemContent)
+                .name(secretName)
+                .secretString(plainTextContent)
                 .build();
-        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("my-pem-key")))).thenReturn(response);
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(secretName)))).thenReturn(response);
 
         final DescribeSecretResponse describeResponse = DescribeSecretResponse.builder()
-                .name("my-pem-key")
+                .name(secretName)
                 .build();
-        when(secretsManager.describeSecret(argThat(matchesDescribeSecretRequest("my-pem-key")))).thenReturn(describeResponse);
+        when(secretsManager.describeSecret(argThat(matchesDescribeSecretRequest(secretName)))).thenReturn(describeResponse);
 
         final List<ParameterGroup> parameterGroups = runProviderTest(secretsManager, 1,
-                ConfigVerificationResult.Outcome.SUCCESSFUL, "ENUMERATION", "my-pem-key");
+                ConfigVerificationResult.Outcome.SUCCESSFUL, "ENUMERATION", secretName);
 
         assertEquals(1, parameterGroups.size());
         final ParameterGroup group = parameterGroups.get(0);
-        assertEquals("my-pem-key", group.getGroupName());
+        assertEquals(secretName, group.getGroupName());
         assertEquals(1, group.getParameters().size());
 
         final Parameter parameter = group.getParameters().get(0);
-        assertEquals("my-pem-key", parameter.getDescriptor().getName());
-        assertEquals(pemContent, parameter.getValue());
+        assertEquals(secretName, parameter.getDescriptor().getName());
+        assertEquals(plainTextContent, parameter.getValue());
     }
 
     @Test
     public void testFetchMixedJsonAndPlainTextSecretsPattern() throws InitializationException {
-        final String pemContent = "-----BEGIN RSA PRIVATE KEY-----\nMIIBog==\n-----END RSA PRIVATE KEY-----";
-        final String jsonContent = "{ \"dbUser\": \"admin\", \"dbPassword\": \"secret\" }";
+        final String plainTextSecretName = "PlainTextSecret";
+        final String jsonSecretName = "JsonSecret";
+        final String plainTextContent = "Sed ut perspiciatis unde omnis iste natus error sit voluptatem";
+        final String jsonContent = "{ \"serverHost\": \"db.example.com\", \"serverPort\": \"5432\" }";
 
         final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
 
-        final SecretListEntry pemEntry = SecretListEntry.builder().name("pem-secret").build();
-        final SecretListEntry jsonEntry = SecretListEntry.builder().name("json-secret").build();
+        final SecretListEntry plainTextEntry = SecretListEntry.builder().name(plainTextSecretName).build();
+        final SecretListEntry jsonEntry = SecretListEntry.builder().name(jsonSecretName).build();
 
         final ListSecretsResponse firstPage = mock(ListSecretsResponse.class);
-        when(firstPage.secretList()).thenReturn(List.of(pemEntry, jsonEntry));
+        when(firstPage.secretList()).thenReturn(List.of(plainTextEntry, jsonEntry));
         when(firstPage.nextToken()).thenReturn(null);
         when(secretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(firstPage);
 
-        final GetSecretValueResponse pemResponse = GetSecretValueResponse.builder()
-                .name("pem-secret")
-                .secretString(pemContent)
+        final GetSecretValueResponse plainTextResponse = GetSecretValueResponse.builder()
+                .name(plainTextSecretName)
+                .secretString(plainTextContent)
                 .build();
-        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("pem-secret")))).thenReturn(pemResponse);
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(plainTextSecretName)))).thenReturn(plainTextResponse);
 
         final GetSecretValueResponse jsonResponse = GetSecretValueResponse.builder()
-                .name("json-secret")
+                .name(jsonSecretName)
                 .secretString(jsonContent)
                 .build();
-        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("json-secret")))).thenReturn(jsonResponse);
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(jsonSecretName)))).thenReturn(jsonResponse);
 
         final List<ParameterGroup> parameterGroups = runProviderTest(secretsManager, 3,
                 ConfigVerificationResult.Outcome.SUCCESSFUL, "PATTERN", null);
 
         assertEquals(2, parameterGroups.size());
 
-        final ParameterGroup pemGroup = parameterGroups.stream()
-                .filter(g -> "pem-secret".equals(g.getGroupName()))
+        final ParameterGroup plainTextGroup = parameterGroups.stream()
+                .filter(g -> plainTextSecretName.equals(g.getGroupName()))
                 .findFirst()
                 .orElseThrow();
-        assertEquals(1, pemGroup.getParameters().size());
-        assertEquals("pem-secret", pemGroup.getParameters().get(0).getDescriptor().getName());
-        assertEquals(pemContent, pemGroup.getParameters().get(0).getValue());
+        assertEquals(1, plainTextGroup.getParameters().size());
+        assertEquals(plainTextSecretName, plainTextGroup.getParameters().get(0).getDescriptor().getName());
+        assertEquals(plainTextContent, plainTextGroup.getParameters().get(0).getValue());
 
         final ParameterGroup jsonGroup = parameterGroups.stream()
-                .filter(g -> "json-secret".equals(g.getGroupName()))
+                .filter(g -> jsonSecretName.equals(g.getGroupName()))
                 .findFirst()
                 .orElseThrow();
         assertEquals(2, jsonGroup.getParameters().size());
         final Map<String, String> jsonParams = jsonGroup.getParameters().stream()
                 .collect(Collectors.toMap(p -> p.getDescriptor().getName(), Parameter::getValue));
-        assertEquals("admin", jsonParams.get("dbUser"));
-        assertEquals("secret", jsonParams.get("dbPassword"));
+        assertEquals("db.example.com", jsonParams.get("serverHost"));
+        assertEquals("5432", jsonParams.get("serverPort"));
     }
 
     private AwsSecretsManagerParameterProvider getParameterProvider() {
