@@ -469,7 +469,7 @@ public class ParameterContextResource extends AbstractParameterResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{contextId}/assets")
     @Operation(
-            summary = "Lists the assets that belong to the Parameter Context with the given ID",
+            summary = "Lists the assets that belong to the Parameter Context with the given ID.",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = AssetsEntity.class))),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -478,7 +478,6 @@ public class ParameterContextResource extends AbstractParameterResource {
                     @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
-            description = "Lists the assets that belong to the Parameter Context with the given ID.",
             security = {
                     @SecurityRequirement(name = "Read - /parameter-contexts/{id}")
             }
@@ -581,6 +580,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             }
     )
     public Response deleteAsset(
+            @Parameter(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false")
             final Boolean disconnectedNodeAcknowledged,
             @Parameter(description = "The ID of the Parameter Context")
@@ -1015,6 +1015,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             }
     )
     public Response submitValidationRequest(
+            @Parameter(description = "The ID of the ParameterContext")
             @PathParam("contextId") final String contextId,
             @Parameter(description = "The validation request", required = true) final ParameterContextValidationRequestEntity requestEntity) {
 

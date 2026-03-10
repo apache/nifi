@@ -918,6 +918,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
             }
     )
     public Response submitApplyParameters(
+            @Parameter(description = "The ID of the Parameter Provider")
             @PathParam("providerId") final String parameterProviderId,
             @Parameter(description = "The apply parameters request.", required = true) final ParameterProviderParameterApplicationEntity requestEntity) {
 
