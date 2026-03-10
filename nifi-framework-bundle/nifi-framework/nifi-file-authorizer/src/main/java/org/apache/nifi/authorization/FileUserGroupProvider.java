@@ -275,14 +275,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         return userGroupHolder.get().getAllGroups();
     }
 
-    private synchronized void addUsersAndGroups(final AuthorizedUserGroups authorizedUserGroups) {
-        final UserGroupHolder holder = userGroupHolder.get();
-        final AuthorizedUserGroups currentUserGroups = holder.getAuthorizedUserGroups();
-        currentUserGroups.users().addAll(authorizedUserGroups.users());
-        currentUserGroups.groups().addAll(authorizedUserGroups.groups());
-        saveAndRefreshHolder(currentUserGroups);
-    }
-
     @Override
     public synchronized Group addGroup(final Group group) throws AuthorizationAccessException {
         if (group == null) {
@@ -444,11 +436,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         }
     }
 
-    public synchronized void purgeUsersAndGroups() {
-        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(List.of(), List.of());
-        saveAndRefreshHolder(authorizedUserGroups);
-    }
-
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException {
         // ensure we are in a proper state to inherit the fingerprint
@@ -511,6 +498,24 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             final UserGroupHolder userGroupHolder = new UserGroupHolder(authorizedUserGroups);
             this.userGroupHolder.set(userGroupHolder);
         }
+    }
+
+    private void addUsersAndGroups(final AuthorizedUserGroups authorizedUserGroups) {
+        final UserGroupHolder holder = userGroupHolder.get();
+        final AuthorizedUserGroups currentUserGroups = holder.getAuthorizedUserGroups();
+
+        // Build new Lists for Users and Groups to avoid potential immutable Lists
+        final List<User> users = new ArrayList<>(currentUserGroups.users());
+        users.addAll(authorizedUserGroups.users());
+        final List<Group> groups = new ArrayList<>(currentUserGroups.groups());
+        groups.addAll(authorizedUserGroups.groups());
+
+        saveAndRefreshHolder(new AuthorizedUserGroups(users, groups));
+    }
+
+    private void purgeUsersAndGroups() {
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(List.of(), List.of());
+        saveAndRefreshHolder(authorizedUserGroups);
     }
 
     private void saveAuthorizedUserGroups(final AuthorizedUserGroups authorizedUserGroups, final File destinationFile) {
