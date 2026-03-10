@@ -20,8 +20,9 @@ import {
     GuardsCheckEnd,
     GuardsCheckStart,
     NavigationCancel,
-    NavigationStart,
     NavigationEnd,
+    NavigationError,
+    NavigationStart,
     Router
 } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -76,7 +77,11 @@ export class AppComponent implements OnDestroy {
                     if (event instanceof GuardsCheckStart) {
                         this.guardLoading = true;
                     }
-                    if (event instanceof GuardsCheckEnd || event instanceof NavigationCancel) {
+                    if (
+                        event instanceof GuardsCheckEnd ||
+                        event instanceof NavigationCancel ||
+                        event instanceof NavigationError
+                    ) {
                         this.guardLoading = false;
                     }
                 }),

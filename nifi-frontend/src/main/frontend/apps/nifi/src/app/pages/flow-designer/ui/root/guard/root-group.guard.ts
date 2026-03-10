@@ -18,17 +18,20 @@
 import { CanActivateFn, Router } from '@angular/router';
 import { FlowService } from '../../../service/flow.service';
 import { inject } from '@angular/core';
-import { switchMap, take } from 'rxjs';
+import { catchError, of, switchMap, take } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { CurrentUserState } from '../../../../../state/current-user';
 import { FlowState } from '../../../state/flow';
 import { selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { initialState } from '../../../state/flow/flow.reducer';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../../service/error-helper.service';
 
 export const rootGroupGuard: CanActivateFn = () => {
     const router: Router = inject(Router);
     const flowService: FlowService = inject(FlowService);
     const store: Store<CurrentUserState> = inject(Store<FlowState>);
+    const errorHelper: ErrorHelper = inject(ErrorHelper);
 
     return store.select(selectCurrentProcessGroupId).pipe(
         take(1),
@@ -38,6 +41,10 @@ export const rootGroupGuard: CanActivateFn = () => {
                     take(1),
                     switchMap((rootGroupStatus: any) => {
                         return router.navigate(['/process-groups', rootGroupStatus.processGroupStatus.id]);
+                    }),
+                    catchError((error: HttpErrorResponse) => {
+                        store.dispatch(errorHelper.fullScreenError(error));
+                        return of(false);
                     })
                 );
             } else {
