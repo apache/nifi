@@ -380,7 +380,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
             if (expectedFileCommit != null) {
                 final Optional<String> currentFileCommit = getContentSha(request.getPath(), branch);
                 if (currentFileCommit.isPresent() && !currentFileCommit.get().equals(expectedFileCommit)) {
-                    throw new FlowRegistryException("File [%s] has been modified by another commit".formatted(path));
+                    throw new FlowRegistryException("File [%s] has been modified by another commit [%s]".formatted(path, currentFileCommit.get()));
                 }
             }
 
@@ -392,7 +392,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
                     final JsonNode pushResponse = MAPPER.readTree(response.body());
                     return pushResponse.get(SEGMENT_COMMITS).get(0).get(JSON_FIELD_COMMIT_ID).asText();
                 } catch (final IOException e) {
-                    throw new FlowRegistryException("Failed to parse push response", e);
+                    throw new FlowRegistryException("Failed to parse push response from [%s]".formatted(pushUri), e);
                 }
             }
 

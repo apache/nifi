@@ -436,7 +436,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             if (expectedFileCommit != null) {
                 final Optional<String> currentFileCommit = getLatestCommit(branch, resolvedPath);
                 if (currentFileCommit.isPresent() && !currentFileCommit.get().equals(expectedFileCommit)) {
-                    throw new FlowRegistryException("File [%s] has been modified by another commit".formatted(resolvedPath));
+                    throw new FlowRegistryException("File [%s] has been modified by another commit [%s]".formatted(resolvedPath, currentFileCommit.get()));
                 }
             }
 
