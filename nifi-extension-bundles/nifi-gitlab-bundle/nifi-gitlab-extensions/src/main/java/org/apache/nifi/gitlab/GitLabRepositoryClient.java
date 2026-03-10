@@ -46,6 +46,7 @@ import org.gitlab4j.models.Constants;
 import org.gitlab4j.models.Constants.Encoding;
 import org.glassfish.jersey.client.ClientProperties;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -221,14 +222,14 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         logger.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
-        return execute(() -> gitLab.getRepositoryFileApi().getRawFile(projectPath, branch, resolvedPath));
+        return execute(() -> getFileContent(resolvedPath, branch));
     }
 
     @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         logger.debug("Getting content for path [{}] from commit [{}] in repository [{}]", resolvedPath, commitSha, projectPath);
-        return execute(() -> gitLab.getRepositoryFileApi().getRawFile(projectPath, commitSha, resolvedPath));
+        return execute(() -> getFileContent(resolvedPath, commitSha));
     }
 
     @Override
@@ -287,7 +288,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         final String resolvedPath = getResolvedPath(filePath);
         logger.debug("Deleting content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, projectPath);
         return execute(() -> {
-            final InputStream content = gitLab.getRepositoryFileApi().getRawFile(projectPath, branch, resolvedPath);
+            final InputStream content = getFileContent(resolvedPath, branch);
             gitLab.getRepositoryFileApi().deleteFile(projectPath, resolvedPath, branch, commitMessage);
             return content;
         });
@@ -430,6 +431,20 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
                 commit.getMessage(),
                 Instant.ofEpochMilli(commit.getCommittedDate().getTime())
         );
+    }
+
+    /**
+     * Retrieves file content using the standard GitLab repository files API endpoint instead of the raw file endpoint.
+     * The raw file endpoint (/raw) can fail with 403 when GitLab is behind a reverse proxy that handles that path differently.
+     *
+     * @param resolvedPath the resolved file path in the repository
+     * @param ref the branch name or commit SHA to retrieve content from
+     * @return an InputStream containing the decoded file content
+     * @throws GitLabApiException if an error occurs communicating with GitLab
+     */
+    private InputStream getFileContent(final String resolvedPath, final String ref) throws GitLabApiException {
+        final RepositoryFile file = gitLab.getRepositoryFileApi().getFile(projectPath, resolvedPath, ref);
+        return new ByteArrayInputStream(file.getDecodedContentAsBytes());
     }
 
     /**
