@@ -28,8 +28,4 @@ record ShardFetchResult(String shardId, List<DeaggregatedRecord> records, long m
     BigInteger lastSequenceNumber() {
         return new BigInteger(records.getLast().sequenceNumber());
     }
-
-    long lastSubSequenceNumber() {
-        return records.getLast().subSequenceNumber();
-    }
 }

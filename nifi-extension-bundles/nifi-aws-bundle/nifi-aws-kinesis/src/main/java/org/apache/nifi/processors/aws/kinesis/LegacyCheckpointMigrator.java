@@ -331,10 +331,9 @@ final class LegacyCheckpointMigrator {
                         .key(Map.of(
                             "streamName", AttributeValue.builder().s(streamName).build(),
                             "shardId", AttributeValue.builder().s(shardId).build()))
-                        .updateExpression("SET sequenceNumber = :seq, subSequenceNumber = :subSeq, lastUpdateTimestamp = :ts")
+                        .updateExpression("SET sequenceNumber = :seq, lastUpdateTimestamp = :ts")
                         .expressionAttributeValues(Map.of(
                             ":seq", AttributeValue.builder().s(checkpoint).build(),
-                            ":subSeq", AttributeValue.builder().n("0").build(),
                             ":ts", AttributeValue.builder().n(String.valueOf(now)).build()))
                         .build();
                 dynamoDbClient.updateItem(request);

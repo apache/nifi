@@ -78,9 +78,9 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 0)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("30000"), 0)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("70000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("50000")));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("30000")));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("70000")));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(2)).updateItem(captor.capture());
@@ -101,11 +101,11 @@ class KinesisShardManagerTest {
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
         manager.writeCheckpoints(Map.of(
-                "shard-1", new ShardCheckpoint(new BigInteger("50000"), 0),
-                "shard-2", new ShardCheckpoint(new BigInteger("20000"), 0)));
+                "shard-1", new BigInteger("50000"),
+                "shard-2", new BigInteger("20000")));
         manager.writeCheckpoints(Map.of(
-                "shard-1", new ShardCheckpoint(new BigInteger("30000"), 0),
-                "shard-2", new ShardCheckpoint(new BigInteger("40000"), 0)));
+                "shard-1", new BigInteger("30000"),
+                "shard-2", new BigInteger("40000")));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(3)).updateItem(captor.capture());
@@ -132,9 +132,9 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("50000")));
         manager.close();
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("30000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("30000")));
 
         verify(dynamoDb, times(2)).updateItem(any(UpdateItemRequest.class));
     }
@@ -183,8 +183,8 @@ class KinesisShardManagerTest {
         final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
         when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenThrow(lostLease).thenReturn(emptyResponse);
 
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 0)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("70000"), 0)));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("50000")));
+        manager.writeCheckpoints(Map.of("shard-1", new BigInteger("70000")));
 
         final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
         verify(dynamoDb, times(2)).updateItem(captor.capture());
@@ -192,47 +192,6 @@ class KinesisShardManagerTest {
         assertEquals("50000", captor.getAllValues().get(0).expressionAttributeValues().get(":seq").s());
         assertEquals("70000", captor.getAllValues().get(1).expressionAttributeValues().get(":seq").s(),
                 "After a lost-lease failure, the next higher checkpoint must still be attempted");
-    }
-
-    /**
-     * Verifies that writeCheckpoints stores the subSequenceNumber alongside the sequenceNumber.
-     */
-    @Test
-    void testCheckpointStoresSubSequenceNumber() {
-        final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
-        when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
-
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 7)));
-
-        final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
-        verify(dynamoDb, times(1)).updateItem(captor.capture());
-
-        final UpdateItemRequest request = captor.getValue();
-        assertEquals("50000", request.expressionAttributeValues().get(":seq").s());
-        assertEquals("7", request.expressionAttributeValues().get(":subSeq").n(),
-                "subSequenceNumber must be persisted in the DynamoDB checkpoint");
-    }
-
-    /**
-     * Verifies that for the same sequence number, a higher sub-sequence number is written
-     * and a lower one is skipped.
-     */
-    @Test
-    void testCheckpointMonotonicityWithSubSequenceNumber() {
-        final UpdateItemResponse emptyResponse = UpdateItemResponse.builder().build();
-        when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(emptyResponse);
-
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 3)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 1)));
-        manager.writeCheckpoints(Map.of("shard-1", new ShardCheckpoint(new BigInteger("50000"), 5)));
-
-        final ArgumentCaptor<UpdateItemRequest> captor = ArgumentCaptor.forClass(UpdateItemRequest.class);
-        verify(dynamoDb, times(2)).updateItem(captor.capture());
-
-        final List<UpdateItemRequest> requests = captor.getAllValues();
-        assertEquals("3", requests.get(0).expressionAttributeValues().get(":subSeq").n());
-        assertEquals("5", requests.get(1).expressionAttributeValues().get(":subSeq").n(),
-                "Only increasing sub-sequence checkpoints within the same sequence should be written");
     }
 
     /**

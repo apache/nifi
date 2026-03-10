@@ -693,10 +693,10 @@ public class ConsumeKinesis extends AbstractProcessor {
             shardResults.sort(Comparator.comparing(ShardFetchResult::firstSequenceNumber));
         }
 
-        final Map<String, ShardCheckpoint> checkpoints = new HashMap<>();
+        final Map<String, BigInteger> checkpoints = new HashMap<>();
         for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
             final ShardFetchResult last = shardResults.getLast();
-            checkpoints.put(last.shardId(), new ShardCheckpoint(last.lastSequenceNumber(), last.lastSubSequenceNumber()));
+            checkpoints.put(last.shardId(), last.lastSequenceNumber());
         }
 
         return new PartitionedBatch(resultsByShard, checkpoints);
@@ -1404,7 +1404,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    private record PartitionedBatch(Map<String, List<ShardFetchResult>> resultsByShard, Map<String, ShardCheckpoint> checkpoints) {
+    private record PartitionedBatch(Map<String, List<ShardFetchResult>> resultsByShard, Map<String, BigInteger> checkpoints) {
     }
 
     private record WriteResult(List<FlowFile> produced, List<FlowFile> parseFailures,

@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.kinesis.model.ListShardsRequest;
 import software.amazon.awssdk.services.kinesis.model.ListShardsResponse;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -98,7 +99,7 @@ final class KinesisShardManager {
     private final Set<String> ownedShards = ConcurrentHashMap.newKeySet();
     private final Map<String, Long> pendingRelinquishDeadlines = new ConcurrentHashMap<>();
     private final AtomicBoolean leaseRefreshInProgress = new AtomicBoolean(false);
-    private final Map<String, ShardCheckpoint> highestWrittenCheckpoints = new ConcurrentHashMap<>();
+    private final Map<String, BigInteger> highestWrittenCheckpoints = new ConcurrentHashMap<>();
     private volatile Instant lastLeaseRefresh = Instant.EPOCH;
     private volatile String activeCheckpointTableName;
 
@@ -315,8 +316,8 @@ final class KinesisShardManager {
         return null;
     }
 
-    void writeCheckpoints(final Map<String, ShardCheckpoint> checkpoints) {
-        for (final Map.Entry<String, ShardCheckpoint> entry : checkpoints.entrySet()) {
+    void writeCheckpoints(final Map<String, BigInteger> checkpoints) {
+        for (final Map.Entry<String, BigInteger> entry : checkpoints.entrySet()) {
             writeCheckpoint(entry.getKey(), entry.getValue());
         }
     }
@@ -497,41 +498,49 @@ final class KinesisShardManager {
         return Math.max(1, activeNodes);
     }
 
-    private void writeCheckpoint(final String shardId, final ShardCheckpoint checkpoint) {
-        final ShardCheckpoint written = highestWrittenCheckpoints.compute(shardId, (key, existing) -> {
-            if (existing != null && checkpoint.max(existing) == existing) {
-                return existing;
-            }
+    private void writeCheckpoint(final String shardId, final BigInteger checkpoint) {
+        final BigInteger written = highestWrittenCheckpoints.compute(shardId,
+                (key, existing) -> persistIfHigher(shardId, checkpoint, existing));
 
-            try {
-                final long now = Instant.now().toEpochMilli();
-                final UpdateItemRequest checkpointRequest = UpdateItemRequest.builder()
-                        .tableName(activeCheckpointTableName)
-                        .key(checkpointKey(shardId))
-                        .updateExpression("SET sequenceNumber = :seq, subSequenceNumber = :subSeq,"
-                                + " lastUpdateTimestamp = :ts, leaseExpiry = :exp")
-                        .conditionExpression("leaseOwner = :owner")
-                        .expressionAttributeValues(Map.of(
-                                ":seq", AttributeValue.builder().s(checkpoint.sequenceNumber().toString()).build(),
-                                ":subSeq", AttributeValue.builder().n(String.valueOf(checkpoint.subSequenceNumber())).build(),
-                                ":ts", AttributeValue.builder().n(String.valueOf(now)).build(),
-                                ":exp", AttributeValue.builder().n(String.valueOf(now + leaseDurationMillis)).build(),
-                                ":owner", AttributeValue.builder().s(nodeId).build()))
-                        .build();
-                dynamoDbClient.updateItem(checkpointRequest);
-                logger.debug("Checkpointed shard {} at sequence {}/{}", shardId, checkpoint.sequenceNumber(), checkpoint.subSequenceNumber());
-                return checkpoint;
-            } catch (final ConditionalCheckFailedException e) {
-                logger.warn("Lost lease on shard {} during checkpoint; another node may have taken it", shardId);
-            } catch (final Exception e) {
-                logger.error("Failed to write checkpoint for shard {}", shardId, e);
-            }
-            return existing;
-        });
-
-        if (written != null && checkpoint.sequenceNumber().compareTo(written.sequenceNumber()) < 0) {
-            logger.debug("Skipped checkpoint regression for shard {} (highest: {}, attempted: {})", shardId, written.sequenceNumber(), checkpoint.sequenceNumber());
+        if (written != null && checkpoint.compareTo(written) < 0) {
+            logger.debug("Skipped checkpoint regression for shard {} (highest: {}, attempted: {})", shardId, written, checkpoint);
         }
+    }
+
+    /**
+     * Writes the checkpoint to DynamoDB if it is higher than the existing value. Returns the
+     * new highest checkpoint on success, or {@code existing} if the checkpoint was lower or
+     * the write failed.
+     */
+    private BigInteger persistIfHigher(final String shardId, final BigInteger checkpoint, final BigInteger existing) {
+        if (existing != null && checkpoint.max(existing).equals(existing)) {
+            return existing;
+        }
+
+        try {
+            final long now = Instant.now().toEpochMilli();
+            final UpdateItemRequest checkpointRequest = UpdateItemRequest.builder()
+                .tableName(activeCheckpointTableName)
+                .key(checkpointKey(shardId))
+                .updateExpression("SET sequenceNumber = :seq, lastUpdateTimestamp = :ts, leaseExpiry = :exp")
+                .conditionExpression("leaseOwner = :owner")
+                .expressionAttributeValues(Map.of(
+                        ":seq", AttributeValue.builder().s(checkpoint.toString()).build(),
+                        ":ts", AttributeValue.builder().n(String.valueOf(now)).build(),
+                        ":exp", AttributeValue.builder().n(String.valueOf(now + leaseDurationMillis)).build(),
+                        ":owner", AttributeValue.builder().s(nodeId).build()))
+                .build();
+            dynamoDbClient.updateItem(checkpointRequest);
+            logger.debug("Checkpointed shard {} at sequence {}", shardId, checkpoint);
+
+            return checkpoint;
+        } catch (final ConditionalCheckFailedException e) {
+            logger.warn("Lost lease on shard {} during checkpoint; another node may have taken it", shardId);
+        } catch (final Exception e) {
+            logger.error("Failed to write checkpoint for shard {}", shardId, e);
+        }
+
+        return existing;
     }
 
     private Map<String, AttributeValue> checkpointKey(final String shardId) {
