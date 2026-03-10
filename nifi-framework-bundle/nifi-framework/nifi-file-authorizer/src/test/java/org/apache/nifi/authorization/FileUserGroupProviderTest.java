@@ -687,6 +687,19 @@ public class FileUserGroupProviderTest {
         assertEquals(2, userGroupProvider.getGroups().size());
     }
 
+    @Test
+    public void testForciblyInheritFingerprintWithEmptyUsersAndGroups() {
+        userGroupProvider.onConfigured(configurationContext);
+
+        // Inherit null Fingerprint to set empty Users and Groups
+        userGroupProvider.forciblyInheritFingerprint(null);
+
+        userGroupProvider.forciblyInheritFingerprint(FINGERPRINT);
+
+        assertEquals(2, userGroupProvider.getUsers().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
+    }
+
     private static void writeFile(final File file, final String content) throws IOException {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         try (final FileOutputStream fos = new FileOutputStream(file)) {
