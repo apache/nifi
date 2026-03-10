@@ -127,7 +127,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
         for (final ShardFetchResult result : results) {
             final PollingShardState state = pollingShardStates.get(result.shardId());
             if (state != null) {
-                state.requestReset();
+                resetAndDrainShard(result.shardId(), state);
             }
         }
     }
@@ -267,8 +267,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
                     final List<software.amazon.awssdk.services.kinesis.model.Record> records = response.records();
                     if (!records.isEmpty()) {
                         final long millisBehind = response.millisBehindLatest() != null ? response.millisBehindLatest() : -1;
-                        enqueueResult(createFetchResult(shardId, records, millisBehind));
-                        queuePermitConsumed = true;
+                        queuePermitConsumed = enqueueIfActive(shardId, state, createFetchResult(shardId, records, millisBehind));
                     }
 
                     state.setIterator(response.nextShardIterator());
@@ -328,6 +327,26 @@ final class PollingKinesisClient extends KinesisConsumerClient {
         }
     }
 
+    private boolean enqueueIfActive(final String shardId, final PollingShardState state, final ShardFetchResult result) {
+        synchronized (getShardLock(shardId)) {
+            if (state.isResetRequested()) {
+                return false;
+            }
+            enqueueResult(result);
+            return true;
+        }
+    }
+
+    private void resetAndDrainShard(final String shardId, final PollingShardState state) {
+        synchronized (getShardLock(shardId)) {
+            state.requestReset();
+            final int drained = drainShardQueue(shardId);
+            if (drained > 0) {
+                queuePermits.release(drained);
+            }
+        }
+    }
+
     private static void sleepNanos(final long nanos) {
         try {
             TimeUnit.NANOSECONDS.sleep(nanos);
@@ -338,44 +357,6 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
     private String getShardIterator(final PollingShardState state, final String streamName,
             final String shardId, final String initialStreamPosition, final KinesisShardManager shardManager) {
-        final String lastSequenceNumber;
-        try {
-            lastSequenceNumber = shardManager.readCheckpoint(shardId);
-        } catch (final Exception e) {
-            if (!state.isStopped()) {
-                logger.warn("Failed to read checkpoint for shard {}; will retry", shardId, e);
-            }
-            return null;
-        }
-
-        final ShardIteratorType iteratorType;
-        final String startingSequenceNumber;
-        final Instant timestamp;
-        if (lastSequenceNumber != null) {
-            iteratorType = ShardIteratorType.AFTER_SEQUENCE_NUMBER;
-            startingSequenceNumber = lastSequenceNumber;
-            timestamp = null;
-        } else {
-            iteratorType = ShardIteratorType.fromValue(initialStreamPosition);
-            startingSequenceNumber = null;
-            timestamp = (iteratorType == ShardIteratorType.AT_TIMESTAMP) ? timestampForInitialPosition : null;
-        }
-
-        logger.debug("Getting shard iterator for shard {} with type={}, startingSeq={}, timestamp={}",
-                shardId, iteratorType, startingSequenceNumber, timestamp);
-
-        final GetShardIteratorRequest.Builder iteratorRequestBuilder = GetShardIteratorRequest.builder()
-            .streamName(streamName)
-            .shardId(shardId)
-            .shardIteratorType(iteratorType);
-
-        if (startingSequenceNumber != null) {
-            iteratorRequestBuilder.startingSequenceNumber(startingSequenceNumber);
-        }
-        if (timestamp != null) {
-            iteratorRequestBuilder.timestamp(timestamp);
-        }
-
         try {
             fetchPermits.acquire();
         } catch (final InterruptedException e) {
@@ -384,11 +365,48 @@ final class PollingKinesisClient extends KinesisConsumerClient {
         }
 
         try {
+            final String lastSequenceNumber;
+            try {
+                lastSequenceNumber = shardManager.readCheckpoint(shardId);
+            } catch (final Exception e) {
+                if (!state.isStopped()) {
+                    logger.warn("Failed to read checkpoint for shard {}; will retry", shardId, e);
+                }
+                return null;
+            }
+
+            final ShardIteratorType iteratorType;
+            final String startingSequenceNumber;
+            final Instant timestamp;
+            if (lastSequenceNumber != null) {
+                iteratorType = ShardIteratorType.AFTER_SEQUENCE_NUMBER;
+                startingSequenceNumber = lastSequenceNumber;
+                timestamp = null;
+            } else {
+                iteratorType = ShardIteratorType.fromValue(initialStreamPosition);
+                startingSequenceNumber = null;
+                timestamp = (iteratorType == ShardIteratorType.AT_TIMESTAMP) ? timestampForInitialPosition : null;
+            }
+
+            logger.debug("Getting shard iterator for shard {} with type={}, startingSeq={}, timestamp={}",
+                    shardId, iteratorType, startingSequenceNumber, timestamp);
+
+            final GetShardIteratorRequest.Builder iteratorRequestBuilder = GetShardIteratorRequest.builder()
+                .streamName(streamName)
+                .shardId(shardId)
+                .shardIteratorType(iteratorType);
+
+            if (startingSequenceNumber != null) {
+                iteratorRequestBuilder.startingSequenceNumber(startingSequenceNumber);
+            }
+            if (timestamp != null) {
+                iteratorRequestBuilder.timestamp(timestamp);
+            }
+
             return kinesisClient.getShardIterator(iteratorRequestBuilder.build()).shardIterator();
         } catch (final Exception e) {
             if (!state.isStopped()) {
-                logger.error("Failed to get shard iterator for shard {} (type={}, seq={})",
-                        shardId, iteratorType, startingSequenceNumber, e);
+                logger.error("Failed to get shard iterator for shard {} in stream {}", shardId, streamName, e);
             }
             return null;
         } finally {

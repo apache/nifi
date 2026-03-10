@@ -49,6 +49,7 @@ abstract class KinesisConsumerClient {
     protected final KinesisClient kinesisClient;
     protected final ComponentLog logger;
     private final Map<String, Queue<ShardFetchResult>> shardQueues = new ConcurrentHashMap<>();
+    private final Map<String, Object> shardLocks = new ConcurrentHashMap<>();
     private final Semaphore resultNotification = new Semaphore(0);
     protected final Set<String> shardsInFlight = ConcurrentHashMap.newKeySet();
 
@@ -75,8 +76,13 @@ abstract class KinesisConsumerClient {
 
     abstract void logDiagnostics(int ownedCount, int cachedShardCount);
 
+    Object getShardLock(final String shardId) {
+        return shardLocks.computeIfAbsent(shardId, k -> new Object());
+    }
+
     void close() {
         shardQueues.clear();
+        shardLocks.clear();
         resultNotification.drainPermits();
         shardsInFlight.clear();
     }

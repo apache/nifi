@@ -598,8 +598,9 @@ public class ConsumeKinesis extends AbstractProcessor {
         consumerClient.logDiagnostics(ownedShards.size(), shardManager.getCachedShardCount());
 
         final Set<String> claimedShards = new HashSet<>();
+        List<ShardFetchResult> consumed = List.of();
         try {
-            final List<ShardFetchResult> consumed = consumeRecords(claimedShards);
+            consumed = consumeRecords(claimedShards);
             final List<ShardFetchResult> accepted = discardRelinquishedResults(consumed, claimedShards);
 
             if (accepted.isEmpty()) {
@@ -635,6 +636,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 session.adjustCounter("EFO Deduplicated Events", dedupEvents, false);
             }
 
+            consumed = List.of();
             session.commitAsync(
                 () -> {
                     try {
@@ -656,6 +658,9 @@ public class ConsumeKinesis extends AbstractProcessor {
                     }
                 });
         } catch (final Exception e) {
+            if (!consumed.isEmpty()) {
+                consumerClient.rollbackResults(consumed);
+            }
             consumerClient.releaseShards(claimedShards);
             throw e;
         }
@@ -1288,7 +1293,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             try {
                 closeable.close();
             } catch (final Exception e) {
-                getLogger().warn("Failed to close Record Writer", e);
+                getLogger().warn("Failed to close resource", e);
             }
         }
     }

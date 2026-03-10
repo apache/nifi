@@ -113,13 +113,13 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                 final BigInteger lastSeq = checkpoint != null ? new BigInteger(checkpoint) : null;
                 final StartingPosition startingPosition = buildStartingPosition(lastSeq, initialStreamPosition);
                 logger.info("Creating EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), lastSeq);
-                final ShardConsumer sc = new ShardConsumer(shardId, EfoKinesisClient.this::enqueueResult, pausedConsumers, logger);
-                final ShardConsumer prior = shardConsumers.putIfAbsent(shardId, sc);
+                final ShardConsumer shardConsumer = new ShardConsumer(shardId, result -> enqueueIfActiveConsumer(shardId, result), pausedConsumers, logger);
+                final ShardConsumer prior = shardConsumers.putIfAbsent(shardId, shardConsumer);
                 if (prior == null) {
                     try {
-                        sc.subscribe(kinesisAsyncClient, consumerArn, startingPosition);
+                        shardConsumer.subscribe(kinesisAsyncClient, consumerArn, startingPosition);
                     } catch (final Exception e) {
-                        shardConsumers.remove(shardId, sc);
+                        shardConsumers.remove(shardId, shardConsumer);
                         throw e;
                     }
                 }
@@ -172,14 +172,27 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         }
     }
 
+    private void enqueueIfActiveConsumer(final String shardId, final ShardFetchResult result) {
+        synchronized (getShardLock(shardId)) {
+            if (shardConsumers.containsKey(shardId)) {
+                enqueueResult(result);
+            }
+        }
+    }
+
+    private ShardConsumer drainAndRemoveConsumer(final String shardId) {
+        synchronized (getShardLock(shardId)) {
+            drainShardQueue(shardId);
+            return shardConsumers.remove(shardId);
+        }
+    }
+
     @Override
     void rollbackResults(final List<ShardFetchResult> results) {
         for (final ShardFetchResult result : results) {
-            drainShardQueue(result.shardId());
-
-            final ShardConsumer sc = shardConsumers.remove(result.shardId());
-            if (sc != null) {
-                sc.cancel();
+            final ShardConsumer shardConsumer = drainAndRemoveConsumer(result.shardId());
+            if (shardConsumer != null) {
+                shardConsumer.cancel();
             }
         }
     }

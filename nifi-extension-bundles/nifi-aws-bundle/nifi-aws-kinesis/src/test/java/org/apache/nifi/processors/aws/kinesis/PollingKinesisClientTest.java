@@ -38,12 +38,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -192,15 +194,15 @@ class PollingKinesisClientTest {
 
         when(mockShardManager.readCheckpoint(anyString())).thenReturn("100");
         when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenAnswer(invocation -> {
-            final int call = getShardIteratorCallCount.incrementAndGet();
-            return GetShardIteratorResponse.builder().shardIterator("iter-" + call).build();
+            final int callNumber = getShardIteratorCallCount.incrementAndGet();
+            return GetShardIteratorResponse.builder().shardIterator("iter-" + callNumber).build();
         });
 
         when(mockKinesisClient.getRecords(any(GetRecordsRequest.class))).thenAnswer(invocation -> {
             getRecordsCallCount.incrementAndGet();
-            final GetRecordsRequest req = invocation.getArgument(0);
+            final GetRecordsRequest request = invocation.getArgument(0);
 
-            return switch (req.shardIterator()) {
+            return switch (request.shardIterator()) {
                 case "iter-1" -> GetRecordsResponse.builder()
                         .records(record("200", "A"))
                         .nextShardIterator("iter-1a")
@@ -219,7 +221,7 @@ class PollingKinesisClientTest {
                         .build();
                 default -> GetRecordsResponse.builder()
                         .records(List.<Record>of())
-                        .nextShardIterator(req.shardIterator())
+                        .nextShardIterator(request.shardIterator())
                         .millisBehindLatest(0L)
                         .build();
             };
@@ -338,17 +340,16 @@ class PollingKinesisClientTest {
     }
 
     /**
-     * Reproduces out-of-order delivery caused by stale results remaining in the per-shard
-     * queue after a rollback. The scenario for a single shard:
+     * Reproduces out-of-order delivery caused by stale results remaining in the per-shard queue after a rollback.
+     * The scenario for a single shard:
      *
      * <ol>
-     *   <li>Fetch loop enqueues R1 (seq 100-200) and R2 (seq 300-400).</li>
-     *   <li>Consumer polls R1 only; R2 remains in the queue.</li>
-     *   <li>Consumer calls rollbackResults on R1, which sets the reset flag.
-     *       The fetch loop detects the flag, drains R2 from the queue,
-     *       resets the shard iterator, and re-fetches.</li>
-     *   <li>After the reset, the first result polled must come from the re-fetched
-     *       sequence (seq 500), not the stale R2 (seq 300).</li>
+     *   <li>Fetch loop enqueues result 1 (sequence 100-200) and result 2 (sequence 300-400).</li>
+     *   <li>Consumer polls result 1 only; result 2 remains in the queue.</li>
+     *   <li>Consumer calls rollbackResults on result 1, which drains the queue synchronously and sets the reset flag.
+     *       The fetch loop detects the flag, drains any stragglers, resets the shard iterator, and re-fetches.</li>
+     *   <li>After the reset, the first result polled must come from the re-fetched sequence (sequence 500),
+     *       not the stale result 2 (sequence 300).</li>
      * </ol>
      */
     @Test
@@ -358,28 +359,28 @@ class PollingKinesisClientTest {
 
         when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
         when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenAnswer(invocation -> {
-            final int call = getShardIteratorCallCount.incrementAndGet();
-            return GetShardIteratorResponse.builder().shardIterator("iter-" + call).build();
+            final int callNumber = getShardIteratorCallCount.incrementAndGet();
+            return GetShardIteratorResponse.builder().shardIterator("iter-" + callNumber).build();
         });
 
         when(mockKinesisClient.getRecords(any(GetRecordsRequest.class))).thenAnswer(invocation -> {
             getRecordsCallCount.incrementAndGet();
-            final GetRecordsRequest req = invocation.getArgument(0);
+            final GetRecordsRequest request = invocation.getArgument(0);
 
-            if (req.shardIterator().equals("iter-1")) {
+            if (request.shardIterator().equals("iter-1")) {
                 return GetRecordsResponse.builder()
                         .records(record("100", "A"), record("200", "B"))
                         .nextShardIterator("iter-1a").millisBehindLatest(0L).build();
             }
-            if (req.shardIterator().equals("iter-1a")) {
+            if (request.shardIterator().equals("iter-1a")) {
                 return GetRecordsResponse.builder()
                         .records(record("300", "C"), record("400", "D"))
                         .nextShardIterator("iter-1b").millisBehindLatest(0L).build();
             }
-            if (req.shardIterator().startsWith("iter-1")) {
+            if (request.shardIterator().startsWith("iter-1")) {
                 return GetRecordsResponse.builder()
                         .records(List.<Record>of())
-                        .nextShardIterator(req.shardIterator()).millisBehindLatest(0L).build();
+                        .nextShardIterator(request.shardIterator()).millisBehindLatest(0L).build();
             }
             return GetRecordsResponse.builder()
                     .records(record("500", "E"), record("600", "F"))
@@ -388,17 +389,17 @@ class PollingKinesisClientTest {
 
         consumer.startFetches(shards("shard-1"), "test-stream", 1000, "TRIM_HORIZON", mockShardManager);
 
-        final ShardFetchResult r1 = consumer.pollAnyResult(5, TimeUnit.SECONDS);
-        assertNotNull(r1, "R1 must be available");
-        assertEquals(new BigInteger("100"), r1.firstSequenceNumber());
+        final ShardFetchResult firstResult = consumer.pollAnyResult(5, TimeUnit.SECONDS);
+        assertNotNull(firstResult, "First result must be available");
+        assertEquals(new BigInteger("100"), firstResult.firstSequenceNumber());
 
-        final long r2Deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (System.nanoTime() < r2Deadline && getRecordsCallCount.get() < 2) {
+        final long enqueueDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < enqueueDeadline && getRecordsCallCount.get() < 2) {
             Thread.sleep(20);
         }
         Thread.sleep(50);
 
-        consumer.rollbackResults(List.of(r1));
+        consumer.rollbackResults(List.of(firstResult));
 
         final long resetDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (getShardIteratorCallCount.get() < 2 && System.nanoTime() < resetDeadline) {
@@ -407,9 +408,153 @@ class PollingKinesisClientTest {
         Thread.sleep(100);
 
         final ShardFetchResult firstAfterRollback = consumer.pollShardResult("shard-1");
-        assertNotNull(firstAfterRollback, "Queue must contain results after rollback + re-fetch");
+        assertNotNull(firstAfterRollback, "Queue must contain results after rollback and re-fetch");
         assertEquals(new BigInteger("500"), firstAfterRollback.firstSequenceNumber(),
                 "First result after rollback must be re-fetched data, not a stale pre-rollback result");
+    }
+
+    /**
+     * Verifies that rollbackResults drains the queue synchronously so that a concurrent consumer cannot poll stale
+     * pre-rollback results. The fetch loop is blocked inside a GetRecords call while rollback happens, proving the
+     * drain must occur in rollbackResults itself rather than being deferred to the fetch loop thread.
+     */
+    @Test
+    void testRollbackDrainsSynchronouslyPreventingConcurrentStaleRead() throws Exception {
+        final CountDownLatch fetchLoopBlocked = new CountDownLatch(1);
+        final CountDownLatch unblockFetchLoop = new CountDownLatch(1);
+        final AtomicInteger getRecordsCallCount = new AtomicInteger();
+
+        when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
+        when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class)))
+                .thenReturn(GetShardIteratorResponse.builder().shardIterator("iter-1").build());
+
+        when(mockKinesisClient.getRecords(any(GetRecordsRequest.class))).thenAnswer(invocation -> {
+            final int callNumber = getRecordsCallCount.incrementAndGet();
+            final GetRecordsRequest request = invocation.getArgument(0);
+
+            if (callNumber == 1) {
+                return GetRecordsResponse.builder()
+                        .records(record("100", "A"), record("200", "B"))
+                        .nextShardIterator("iter-1a").millisBehindLatest(0L).build();
+            }
+            if (callNumber == 2) {
+                return GetRecordsResponse.builder()
+                        .records(record("300", "C"), record("400", "D"))
+                        .nextShardIterator("iter-1b").millisBehindLatest(0L).build();
+            }
+            if (callNumber == 3) {
+                fetchLoopBlocked.countDown();
+                unblockFetchLoop.await(10, TimeUnit.SECONDS);
+                return GetRecordsResponse.builder()
+                        .records(List.<Record>of())
+                        .nextShardIterator("iter-1c").millisBehindLatest(0L).build();
+            }
+            return GetRecordsResponse.builder()
+                    .records(List.<Record>of())
+                    .nextShardIterator(request.shardIterator()).millisBehindLatest(0L).build();
+        });
+
+        consumer.startFetches(shards("shard-1"), "test-stream", 1000, "TRIM_HORIZON", mockShardManager);
+
+        final ShardFetchResult firstResult = consumer.pollAnyResult(5, TimeUnit.SECONDS);
+        assertNotNull(firstResult, "First result must be available");
+        assertEquals(new BigInteger("100"), firstResult.firstSequenceNumber());
+
+        fetchLoopBlocked.await(5, TimeUnit.SECONDS);
+
+        consumer.rollbackResults(List.of(firstResult));
+
+        final ShardFetchResult staleResult = consumer.pollShardResult("shard-1");
+
+        unblockFetchLoop.countDown();
+
+        assertNull(staleResult, "After rollback, stale results must not be pollable — rollbackResults must drain synchronously");
+    }
+
+    /**
+     * Reproduces the race condition where the fetch loop returns records from GetRecords AFTER rollbackResults has
+     * already drained the queue. Without the per-shard lock, the fetch loop would enqueue the stale result after the
+     * drain, making it visible to the next consumer poll. With the lock, the enqueue is rejected because the fetch
+     * loop sees isResetRequested inside the synchronized block.
+     *
+     * <p>Timeline:
+     * <ol>
+     *   <li>Fetch loop enqueues result 1 (sequence 100-200) and result 2 (sequence 300-400).</li>
+     *   <li>Consumer polls result 1.</li>
+     *   <li>GetRecords call 3 blocks, holding a response with records (sequence 500-600).</li>
+     *   <li>Consumer rolls back result 1 — this drains result 2 and sets the reset flag.</li>
+     *   <li>GetRecords call 3 unblocks — fetch loop receives the stale response.</li>
+     *   <li>Fetch loop calls enqueueIfActive under the shard lock, sees isResetRequested, and discards the result.</li>
+     *   <li>Fetch loop processes the reset and re-fetches from the checkpoint (sequence 800).</li>
+     *   <li>The first result available after rollback must be the re-fetched data (sequence 800), not the stale data (sequence 500).</li>
+     * </ol>
+     */
+    @Test
+    void testLockPreventsStaleEnqueueDuringConcurrentRollback() throws Exception {
+        final CountDownLatch fetchLoopBlockedInsideGetRecords = new CountDownLatch(1);
+        final CountDownLatch unblockGetRecords = new CountDownLatch(1);
+        final AtomicInteger getRecordsCallCount = new AtomicInteger();
+        final AtomicInteger getShardIteratorCallCount = new AtomicInteger();
+
+        when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
+        when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenAnswer(invocation -> {
+            final int callNumber = getShardIteratorCallCount.incrementAndGet();
+            return GetShardIteratorResponse.builder().shardIterator("iter-" + callNumber).build();
+        });
+
+        when(mockKinesisClient.getRecords(any(GetRecordsRequest.class))).thenAnswer(invocation -> {
+            final int callNumber = getRecordsCallCount.incrementAndGet();
+            final GetRecordsRequest request = invocation.getArgument(0);
+
+            if (callNumber == 1) {
+                return GetRecordsResponse.builder()
+                        .records(record("100", "A"), record("200", "B"))
+                        .nextShardIterator("iter-1a").millisBehindLatest(0L).build();
+            }
+            if (callNumber == 2) {
+                return GetRecordsResponse.builder()
+                        .records(record("300", "C"), record("400", "D"))
+                        .nextShardIterator("iter-1b").millisBehindLatest(0L).build();
+            }
+            if (callNumber == 3) {
+                fetchLoopBlockedInsideGetRecords.countDown();
+                unblockGetRecords.await(10, TimeUnit.SECONDS);
+                return GetRecordsResponse.builder()
+                        .records(record("500", "E"), record("600", "F"))
+                        .nextShardIterator("iter-1c").millisBehindLatest(0L).build();
+            }
+            if (request.shardIterator().startsWith("iter-2")) {
+                return GetRecordsResponse.builder()
+                        .records(record("800", "G"), record("900", "H"))
+                        .nextShardIterator("iter-2a").millisBehindLatest(0L).build();
+            }
+            return GetRecordsResponse.builder()
+                    .records(List.<Record>of())
+                    .nextShardIterator(request.shardIterator()).millisBehindLatest(0L).build();
+        });
+
+        consumer.startFetches(shards("shard-1"), "test-stream", 1000, "TRIM_HORIZON", mockShardManager);
+
+        final ShardFetchResult firstResult = consumer.pollAnyResult(5, TimeUnit.SECONDS);
+        assertNotNull(firstResult, "First result must be available");
+        assertEquals(new BigInteger("100"), firstResult.firstSequenceNumber());
+
+        fetchLoopBlockedInsideGetRecords.await(5, TimeUnit.SECONDS);
+
+        consumer.rollbackResults(List.of(firstResult));
+
+        unblockGetRecords.countDown();
+
+        final long resetDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (getShardIteratorCallCount.get() < 2 && System.nanoTime() < resetDeadline) {
+            Thread.sleep(20);
+        }
+        Thread.sleep(100);
+
+        final ShardFetchResult firstAfterRollback = consumer.pollShardResult("shard-1");
+        assertNotNull(firstAfterRollback, "Queue must contain results after rollback and re-fetch");
+        assertEquals(new BigInteger("800"), firstAfterRollback.firstSequenceNumber(),
+                "First result after rollback must be re-fetched data (800), not the stale data (500) that was returned from GetRecords during the rollback");
     }
 
     private void drainAllResults() throws InterruptedException {
