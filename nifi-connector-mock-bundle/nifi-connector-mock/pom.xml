@@ -130,7 +130,7 @@
                 <executions>
                     <execution>
                         <id>copy-nar</id>
-                        <phase>generate-resources</phase>
+                        <phase>package</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
