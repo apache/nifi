@@ -64,7 +64,7 @@ import java.util.concurrent.atomic.AtomicReference;
         @WritesAttribute(attribute = "filename", description = "The output filename"),
         @WritesAttribute(attribute = "mime.type", description = "The output filetype (application/xml for success and failure relationships, original value for bad chunk and original relationships)"),
 })
-@DeprecationNotice(reason = "This processor is dependent on Windows platform-specific operations, making it difficult to test and verify.")
+@DeprecationNotice(reason = "NIFI-15688: Depends on Windows platform-specific libraries resulting in minimal usage and maintenance since initial implementation")
 public class ParseEvtx extends AbstractProcessor {
     public static final String RECORD = "Record";
     public static final String CHUNK = "Chunk";

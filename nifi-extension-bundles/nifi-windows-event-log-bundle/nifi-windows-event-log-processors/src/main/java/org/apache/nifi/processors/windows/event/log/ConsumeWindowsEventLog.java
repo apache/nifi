@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Will set a MIME type value of application/xml.")
 })
-@DeprecationNotice(reason = "This processor is dependent on Windows platform-specific operations, making it difficult to test and verify.")
+@DeprecationNotice(reason = "NIFI-15688: Depends on Windows platform-specific libraries resulting in minimal usage and maintenance since initial implementation")
 public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     public static final String DEFAULT_CHANNEL = "System";
     public static final String DEFAULT_XPATH = "*";
