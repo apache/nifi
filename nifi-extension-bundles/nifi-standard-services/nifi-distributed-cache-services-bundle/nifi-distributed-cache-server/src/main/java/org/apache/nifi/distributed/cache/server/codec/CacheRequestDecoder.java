@@ -235,7 +235,7 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
 
     private void readHeader(final ByteBuf byteBuf, final SocketAddress remoteAddress) {
         if (byteBuf.readableBytes() >= HEADER_LENGTH) {
-            byteBuf.readBytes(HEADER_LENGTH);
+            byteBuf.skipBytes(HEADER_LENGTH);
             headerReceived.getAndSet(true);
             log.debug("Header Received [{}]", remoteAddress);
         }
