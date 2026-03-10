@@ -90,6 +90,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private static final String FIELD_DISPLAY_ID = "displayId";
     private static final String FIELD_ID = "id";
     private static final String FIELD_HASH = "hash";
+    private static final String FIELD_TARGET = "target";
     private static final String FIELD_MESSAGE_TEXT = "message";
     private static final String FIELD_AUTHOR = "author";
     private static final String FIELD_AUTHOR_TIMESTAMP = "authorTimestamp";
@@ -101,6 +102,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private static final String ENTRY_DIRECTORY_CLOUD = "commit_directory";
     private static final String ENTRY_FILE_DATA_CENTER = "FILE";
     private static final String ENTRY_FILE_CLOUD = "commit_file";
+    private static final int MAX_PUSH_ATTEMPTS = 3;
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
@@ -427,33 +429,75 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private String createContentCloud(final GitCreateContentRequest request, final String resolvedPath, final String branch) throws FlowRegistryException {
-        final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
-        multipartBuilder.addPart(resolvedPath, StandardHttpContentType.APPLICATION_JSON, request.getContent().getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, request.getMessage().getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
-
-        // Add parents parameter for atomic commit - Bitbucket Cloud will reject if the branch has moved
-        final String expectedCommitSha = request.getExpectedCommitSha();
-        if (expectedCommitSha != null && !expectedCommitSha.isBlank()) {
-            multipartBuilder.addPart(FIELD_PARENTS, StandardHttpContentType.TEXT_PLAIN, expectedCommitSha.getBytes(StandardCharsets.UTF_8));
-        }
-
+        final String expectedFileCommit = request.getExpectedCommitSha();
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
-        final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
-                .formatted(repoName, branch, resolvedPath);
-        try (final HttpResponseEntity response = this.webClient.getWebClientService()
-                .post()
-                .uri(uri)
-                .body(multipartBuilder.build(), OptionalLong.empty())
-                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
-                .retrieve()) {
-            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED);
-        } catch (final IOException e) {
-            throw new FlowRegistryException("Failed closing Bitbucket create content response", e);
+
+        for (int attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++) {
+            if (expectedFileCommit != null) {
+                final Optional<String> currentFileCommit = getLatestCommit(branch, resolvedPath);
+                if (currentFileCommit.isPresent() && !currentFileCommit.get().equals(expectedFileCommit)) {
+                    throw new FlowRegistryException("File [%s] has been modified by another commit [%s]".formatted(resolvedPath, currentFileCommit.get()));
+                }
+            }
+
+            final String branchHead = getBranchHeadCloud(branch);
+
+            final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
+            multipartBuilder.addPart(resolvedPath, StandardHttpContentType.APPLICATION_JSON, request.getContent().getBytes(StandardCharsets.UTF_8));
+            multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, request.getMessage().getBytes(StandardCharsets.UTF_8));
+            multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
+            multipartBuilder.addPart(FIELD_PARENTS, StandardHttpContentType.TEXT_PLAIN, branchHead.getBytes(StandardCharsets.UTF_8));
+
+            final HttpResponseEntity response = this.webClient.getWebClientService()
+                    .post()
+                    .uri(uri)
+                    .body(multipartBuilder.build(), OptionalLong.empty())
+                    .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                    .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
+                    .retrieve();
+
+            if (response.statusCode() == HttpURLConnection.HTTP_CREATED) {
+                closeQuietly(response);
+                return getRequiredLatestCommit(branch, resolvedPath);
+            }
+
+            if (response.statusCode() == HttpURLConnection.HTTP_CONFLICT) {
+                closeQuietly(response);
+                if (attempt == MAX_PUSH_ATTEMPTS) {
+                    throw new FlowRegistryException("Push failed after %d attempts due to concurrent branch modifications".formatted(MAX_PUSH_ATTEMPTS));
+                }
+                logger.debug("Push attempt {} for path [{}] failed with 409 (branch HEAD moved), retrying", attempt, resolvedPath);
+                continue;
+            }
+
+            final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s".formatted(repoName, branch, resolvedPath);
+            try {
+                throw new FlowRegistryException("%s: %s".formatted(errorMessage, getErrorMessage(response)));
+            } finally {
+                closeQuietly(response);
+            }
         }
 
-        return getRequiredLatestCommit(branch, resolvedPath);
+        throw new FlowRegistryException("Push failed after %d attempts due to concurrent branch modifications".formatted(MAX_PUSH_ATTEMPTS));
+    }
+
+    private String getBranchHeadCloud(final String branch) throws FlowRegistryException {
+        final HttpUriBuilder builder = getRepositoryUriBuilder().addPathSegment("refs").addPathSegment("branches");
+        addPathSegments(builder, branch);
+        final URI uri = builder.build();
+
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .retrieve()) {
+
+            verifyStatusCode(response, "Error while fetching branch HEAD for branch [%s] in repository [%s]".formatted(branch, repoName), HttpURLConnection.HTTP_OK);
+            final JsonNode jsonResponse = parseResponseBody(response, uri);
+            return jsonResponse.get(FIELD_TARGET).get(FIELD_HASH).asText();
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket branch HEAD response", e);
+        }
     }
 
     private String createContentDataCenter(final GitCreateContentRequest request, final String resolvedPath, final String branch) throws FlowRegistryException {
