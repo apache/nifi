@@ -20,6 +20,7 @@ import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.StructLike;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.encryption.EncryptedOutputFile;
@@ -41,11 +42,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,15 +65,20 @@ class ParquetIcebergWriterTest {
 
     private static final String FIRST_FIELD_VALUE = "value";
 
+    private static final int CREATED_FIELD_ID = 1;
+
+    private static final String CREATED_FIELD_NAME = "created";
+
+    private static final LocalDateTime CREATED_FIELD_VALUE = LocalDateTime.of(
+            LocalDate.ofEpochDay(1), LocalTime.ofSecondOfDay(0)
+    );
+
     private ParquetIcebergWriter parquetIcebergWriter;
 
     private TestRunner runner;
 
     @Mock
     private Table table;
-
-    @Mock
-    private PartitionSpec spec;
 
     @Mock
     private FileIO io;
@@ -103,8 +113,9 @@ class ParquetIcebergWriterTest {
 
         final Schema schema = getSchema();
         final InMemoryOutputFile outputFile = new InMemoryOutputFile();
-        setTable(schema, outputFile);
-        when(spec.isUnpartitioned()).thenReturn(true);
+        final PartitionSpec partitionSpec = PartitionSpec.unpartitioned();
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(anyString())).thenReturn(LOCATION);
 
         final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
 
@@ -117,16 +128,67 @@ class ParquetIcebergWriterTest {
 
         final Schema schema = getSchema();
         final InMemoryOutputFile outputFile = new InMemoryOutputFile();
-        setTable(schema, outputFile);
-        when(spec.isUnpartitioned()).thenReturn(true);
+        final PartitionSpec partitionSpec = PartitionSpec.unpartitioned();
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(anyString())).thenReturn(LOCATION);
 
         final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
+        writeRow(schema, rowWriter);
 
+        final DataFile[] dataFiles = rowWriter.dataFiles();
+        final byte[] serialized = outputFile.toByteArray();
+        assertDataFilesFound(dataFiles, serialized);
+    }
+
+    @Test
+    void testWriteDataFilesPartitioned() throws IOException {
+        runner.enableControllerService(parquetIcebergWriter);
+
+        final Schema schema = getSchema();
+        final InMemoryOutputFile outputFile = new InMemoryOutputFile();
+        final PartitionSpec partitionSpec = PartitionSpec.builderFor(schema).identity(FIRST_FIELD_NAME).build();
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(eq(partitionSpec), isA(StructLike.class), anyString())).thenReturn(LOCATION);
+
+        final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
+        writeRow(schema, rowWriter);
+
+        final DataFile[] dataFiles = rowWriter.dataFiles();
+        final byte[] serialized = outputFile.toByteArray();
+        assertDataFilesFound(dataFiles, serialized);
+    }
+
+    @Test
+    void testWriteDataFilesPartitionedTimestamp() throws IOException {
+        runner.enableControllerService(parquetIcebergWriter);
+
+        final Types.NestedField firstNestedField = Types.NestedField.required(FIRST_FIELD_ID, FIRST_FIELD_NAME, Types.StringType.get());
+        final Types.NestedField createdNestedField = Types.NestedField.required(CREATED_FIELD_ID, CREATED_FIELD_NAME, Types.TimestampType.withoutZone());
+        final Schema schema = new Schema(firstNestedField, createdNestedField);
+        final InMemoryOutputFile outputFile = new InMemoryOutputFile();
+        final PartitionSpec partitionSpec = PartitionSpec.builderFor(schema).year(CREATED_FIELD_NAME).build();
+
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(eq(partitionSpec), isA(StructLike.class), anyString())).thenReturn(LOCATION);
+
+        final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
         final GenericRecord row = GenericRecord.create(schema);
         row.setField(FIRST_FIELD_NAME, FIRST_FIELD_VALUE);
+        row.setField(CREATED_FIELD_NAME, CREATED_FIELD_VALUE);
         rowWriter.write(row);
 
         final DataFile[] dataFiles = rowWriter.dataFiles();
+        final byte[] serialized = outputFile.toByteArray();
+        assertDataFilesFound(dataFiles, serialized);
+    }
+
+    private void writeRow(final Schema schema, final IcebergRowWriter rowWriter) throws IOException {
+        final GenericRecord row = GenericRecord.create(schema);
+        row.setField(FIRST_FIELD_NAME, FIRST_FIELD_VALUE);
+        rowWriter.write(row);
+    }
+
+    private void assertDataFilesFound(final DataFile[] dataFiles, final byte[] serialized) {
         assertNotNull(dataFiles);
         assertEquals(1, dataFiles.length);
 
@@ -135,7 +197,6 @@ class ParquetIcebergWriterTest {
         assertEquals(FileFormat.PARQUET, dataFile.format());
         assertEquals(1, dataFile.recordCount());
 
-        final byte[] serialized = outputFile.toByteArray();
         assertEquals(serialized.length, dataFile.fileSizeInBytes());
     }
 
@@ -144,13 +205,12 @@ class ParquetIcebergWriterTest {
         return new Schema(nestedField);
     }
 
-    private void setTable(final Schema schema, final OutputFile outputFile) {
+    private void setTable(final Schema schema, final PartitionSpec spec, final OutputFile outputFile) {
         when(table.schema()).thenReturn(schema);
         when(table.spec()).thenReturn(spec);
         when(table.io()).thenReturn(io);
         when(table.locationProvider()).thenReturn(locationProvider);
         when(table.encryption()).thenReturn(encryptionManager);
-        when(locationProvider.newDataLocation(anyString())).thenReturn(LOCATION);
         when(io.newOutputFile(eq(LOCATION))).thenReturn(outputFile);
         when(encryptionManager.encrypt(eq(outputFile))).thenReturn(encryptedOutputFile);
         when(encryptedOutputFile.encryptingOutputFile()).thenReturn(outputFile);

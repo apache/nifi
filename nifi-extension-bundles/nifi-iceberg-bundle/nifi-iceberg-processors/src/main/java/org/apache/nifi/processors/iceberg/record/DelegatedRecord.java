@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -37,7 +38,7 @@ public class DelegatedRecord implements Record {
             final org.apache.nifi.serialization.record.Record record,
             final Types.StructType struct
     ) {
-        this.record = Objects.requireNonNull(record);
+        this.record = RecordConverter.getConvertedRecord(Objects.requireNonNull(record));
         this.struct = Objects.requireNonNull(struct);
     }
 
@@ -91,14 +92,14 @@ public class DelegatedRecord implements Record {
     }
 
     /**
-     * Create and return a copy of the Record
+     * Create and return a copy of the Record with new Map of fields and values
      *
      * @param overrides Fields and values to override in the copied Record
      * @return Copy of the Record
      */
     @Override
     public Record copy(final Map<String, Object> overrides) {
-        final Map<String, Object> values = record.toMap();
+        final Map<String, Object> values = new LinkedHashMap<>(record.toMap());
         values.putAll(overrides);
         final MapRecord mapRecord = new MapRecord(record.getSchema(), values);
         return new DelegatedRecord(mapRecord, struct);
