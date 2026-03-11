@@ -28,6 +28,7 @@ import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
 import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
+import org.apache.nifi.kafka.service.api.consumer.SessionContext;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.logging.ComponentLog;
@@ -59,6 +60,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     private final Consumer<byte[], byte[]> consumer;
     private final Subscription subscription;
     private volatile RebalanceCallback rebalanceCallback;
+    private volatile SessionContext sessionContext;
     private final Map<TopicPartition, Long> uncommittedOffsets = new ConcurrentHashMap<>();
     private final Set<TopicPartition> revokedPartitions = new CopyOnWriteArraySet<>();
     private volatile boolean closed = false;
@@ -119,7 +121,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
 
             try {
                 componentLog.debug("Invoking rebalance callback for partitions: {}", revokedStates);
-                rebalanceCallback.onPartitionsRevoked(revokedStates);
+                rebalanceCallback.onPartitionsRevoked(revokedStates, sessionContext);
             } catch (final Exception e) {
                 componentLog.warn("Rebalance callback failed, offsets will not be committed for revoked partitions", e);
                 return;
@@ -299,6 +301,16 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     @Override
     public void setRebalanceCallback(final RebalanceCallback callback) {
         this.rebalanceCallback = callback;
+    }
+
+    @Override
+    public void setSessionContext(final SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
+    }
+
+    @Override
+    public SessionContext getSessionContext() {
+        return sessionContext;
     }
 
     private Map<TopicPartition, OffsetAndMetadata> getOffsets(final PollingSummary pollingSummary) {

@@ -51,6 +51,8 @@ public interface RebalanceCallback {
      * </p>
      *
      * @param revokedPartitions the partitions being revoked that have uncommitted offsets
+     * @param sessionContext the session context stored in the consumer service, containing
+     *                       processor-specific state (e.g., ProcessSession and OffsetTracker)
      */
-    void onPartitionsRevoked(Collection<PartitionState> revokedPartitions);
+    void onPartitionsRevoked(Collection<PartitionState> revokedPartitions, SessionContext sessionContext);
 }

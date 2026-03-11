@@ -123,4 +123,27 @@ public interface KafkaConsumerService extends Closeable {
      */
     default void setRebalanceCallback(RebalanceCallback callback) {
     }
+
+    /**
+     * Set a session context object that will be associated with this consumer service instance.
+     * This is used to store processor-specific state (like session and offset tracker) that
+     * needs to be accessed during rebalance callbacks.
+     * <p>
+     * Each consumer service instance should have its own session context to ensure thread safety
+     * when multiple concurrent tasks are using different consumer services from a pool.
+     * </p>
+     *
+     * @param sessionContext the context object to associate with this service, or null to clear
+     */
+    default void setSessionContext(SessionContext sessionContext) {
+    }
+
+    /**
+     * Get the session context object associated with this consumer service instance.
+     *
+     * @return the session context, or null if not set
+     */
+    default SessionContext getSessionContext() {
+        return null;
+    }
 }

@@ -45,6 +45,7 @@ import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
+import org.apache.nifi.kafka.service.api.consumer.SessionContext;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
@@ -349,7 +350,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
-    private final RebalanceSessionHolder rebalanceSessionHolder = new RebalanceSessionHolder();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -427,8 +427,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final OffsetTracker offsetTracker = new OffsetTracker();
         boolean recordsReceived = false;
 
-        rebalanceSessionHolder.session = session;
-        rebalanceSessionHolder.offsetTracker = offsetTracker;
+        final RebalanceSessionHolder sessionHolder = new RebalanceSessionHolder();
+        sessionHolder.session = session;
+        sessionHolder.offsetTracker = offsetTracker;
+        consumerService.setSessionContext(sessionHolder);
 
         try {
             while (System.currentTimeMillis() < stopTime) {
@@ -503,8 +505,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                     context.yield();
                 });
         } finally {
-            rebalanceSessionHolder.session = null;
-            rebalanceSessionHolder.offsetTracker = null;
+            consumerService.setSessionContext(null);
         }
     }
 
@@ -610,16 +611,23 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
         final KafkaConsumerService newService = connectionService.getConsumerService(pollingContext);
-        newService.setRebalanceCallback(createRebalanceCallback(rebalanceSessionHolder));
+        newService.setRebalanceCallback(createRebalanceCallback());
         return newService;
     }
 
-    private RebalanceCallback createRebalanceCallback(final RebalanceSessionHolder holder) {
+    private RebalanceCallback createRebalanceCallback() {
         return new RebalanceCallback() {
             @Override
-            public void onPartitionsRevoked(final Collection<PartitionState> revokedPartitions) {
+            public void onPartitionsRevoked(final Collection<PartitionState> revokedPartitions, final SessionContext sessionContext) {
+                if (sessionContext == null) {
+                    getLogger().debug("No session context during rebalance callback, nothing to commit");
+                    return;
+                }
+
+                final RebalanceSessionHolder holder = (RebalanceSessionHolder) sessionContext;
                 final ProcessSession session = holder.session;
                 final OffsetTracker offsetTracker = holder.offsetTracker;
+
                 if (session == null) {
                     getLogger().debug("No active session during rebalance callback, nothing to commit");
                     return;
@@ -731,7 +739,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         return pollingContext;
     }
 
-    private static class RebalanceSessionHolder {
+    private static class RebalanceSessionHolder implements SessionContext {
         private volatile ProcessSession session;
         private volatile OffsetTracker offsetTracker;
     }

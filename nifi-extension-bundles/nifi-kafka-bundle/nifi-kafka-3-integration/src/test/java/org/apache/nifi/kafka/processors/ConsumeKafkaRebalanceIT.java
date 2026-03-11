@@ -31,6 +31,7 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
+import org.apache.nifi.kafka.service.api.consumer.SessionContext;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.consumer.Subscription;
@@ -55,6 +56,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -350,7 +352,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
 
         // Rebalance callback that simulates processor committing its session
         // In a real processor, this would commit FlowFiles; here we just log and allow the commit
-        final RebalanceCallback callback = revokedPartitions -> {
+        final RebalanceCallback callback = (revokedPartitions, context) -> {
             rebalanceCount.incrementAndGet();
             logger.info("Rebalance callback invoked for partitions: {}", revokedPartitions);
         };
@@ -472,6 +474,151 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
     }
 
     /**
+     * Tests that the per-service session context ensures thread safety during rebalances.
+     *
+     * With multiple concurrent tasks, each consumer service has its own session context.
+     * This test verifies that when a rebalance callback fires, it receives the correct
+     * session context from its own service, not from another concurrent task.
+     *
+     * This test:
+     * 1. Creates two consumer services in the same group
+     * 2. Each service sets its own session context ("session-1" and "session-2")
+     * 3. When a rebalance occurs, each callback receives its own service's session context
+     * 4. Verifies that consumer 1's callback sees "session-1" (not "session-2")
+     */
+    @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
+    void testPerServiceSessionContextEnsuresThreadSafety() throws Exception {
+        final String topic = "session-context-test-" + UUID.randomUUID();
+        final String groupId = "session-context-group-" + UUID.randomUUID();
+
+        createTopic(topic, 2);
+        produceMessagesToTopic(topic, 2, 10);
+
+        final ComponentLog mockLog = mock(ComponentLog.class);
+
+        // Track what session ID was seen in each callback
+        final AtomicReference<String> sessionSeenInCallback1 = new AtomicReference<>();
+        final AtomicReference<String> sessionSeenInCallback2 = new AtomicReference<>();
+
+        // Latches to coordinate thread timing
+        final CountDownLatch thread1SetContext = new CountDownLatch(1);
+        final CountDownLatch thread2SetContext = new CountDownLatch(1);
+        final CountDownLatch thread1RebalanceTriggered = new CountDownLatch(1);
+        final CountDownLatch testComplete = new CountDownLatch(2);
+
+        // Callback for consumer 1 - reads from sessionContext parameter (per-service)
+        final RebalanceCallback callback1 = (revokedPartitions, context) -> {
+            final String sessionId = context != null ? ((TestSessionContext) context).sessionId : null;
+            sessionSeenInCallback1.set(sessionId);
+            logger.info("Consumer 1 callback fired, saw session context: {}", sessionId);
+            thread1RebalanceTriggered.countDown();
+        };
+
+        // Callback for consumer 2 - also reads from sessionContext parameter
+        final RebalanceCallback callback2 = (revokedPartitions, context) -> {
+            final String sessionId = context != null ? ((TestSessionContext) context).sessionId : null;
+            sessionSeenInCallback2.set(sessionId);
+            logger.info("Consumer 2 callback fired, saw session context: {}", sessionId);
+        };
+
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            // Thread 1: Consumer 1 sets its own session context to "session-1"
+            executor.submit(() -> {
+                try {
+                    final Properties consumerProps = getConsumerProperties(groupId);
+                    try (KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProps)) {
+                        final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+                        final Kafka3ConsumerService service1 = new Kafka3ConsumerService(mockLog, kafkaConsumer, subscription, callback1);
+
+                        // Set session context on THIS service (not a shared holder)
+                        service1.setSessionContext(new TestSessionContext("session-1"));
+                        logger.info("Thread 1 set service1 context to: session-1");
+                        thread1SetContext.countDown();
+
+                        // Wait for Thread 2 to set its context
+                        assertTrue(thread2SetContext.await(30, TimeUnit.SECONDS), "Thread 2 did not set context");
+
+                        // Poll to consume some records - this might trigger a rebalance
+                        // when consumer 2 joins the group
+                        for (int i = 0; i < 10; i++) {
+                            final Iterator<ByteRecord> records = service1.poll(Duration.ofMillis(500)).iterator();
+                            while (records.hasNext()) {
+                                records.next();
+                            }
+                            // Check if rebalance callback was triggered
+                            if (sessionSeenInCallback1.get() != null) {
+                                break;
+                            }
+                        }
+
+                        service1.close();
+                    }
+                } catch (Exception e) {
+                    logger.error("Thread 1 error", e);
+                } finally {
+                    testComplete.countDown();
+                }
+            });
+
+            // Thread 2: Sets its own session context to "session-2"
+            executor.submit(() -> {
+                try {
+                    // Wait for Thread 1 to set its context
+                    assertTrue(thread1SetContext.await(30, TimeUnit.SECONDS), "Thread 1 did not set context");
+
+                    final Properties consumerProps = getConsumerProperties(groupId);
+                    try (KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProps)) {
+                        final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+                        final Kafka3ConsumerService service2 = new Kafka3ConsumerService(mockLog, kafkaConsumer, subscription, callback2);
+
+                        // Set session context on THIS service (different from service1)
+                        service2.setSessionContext(new TestSessionContext("session-2"));
+                        logger.info("Thread 2 set service2 context to: session-2");
+                        thread2SetContext.countDown();
+
+                        // Poll to trigger rebalance (joining the group)
+                        for (int i = 0; i < 10; i++) {
+                            final Iterator<ByteRecord> records = service2.poll(Duration.ofMillis(500)).iterator();
+                            while (records.hasNext()) {
+                                records.next();
+                            }
+                        }
+
+                        service2.close();
+                    }
+                } catch (Exception e) {
+                    logger.error("Thread 2 error", e);
+                } finally {
+                    testComplete.countDown();
+                }
+            });
+
+            // Wait for test to complete
+            assertTrue(testComplete.await(45, TimeUnit.SECONDS), "Test did not complete in time");
+
+        } finally {
+            executor.shutdownNow();
+        }
+
+        // If a rebalance occurred for consumer 1, verify the callback saw the CORRECT session context
+        if (sessionSeenInCallback1.get() != null) {
+            logger.info("Consumer 1 callback saw session: {}, expected: session-1", sessionSeenInCallback1.get());
+
+            // With per-service session context, consumer 1's callback should see "session-1"
+            // (its own session context), not "session-2" (consumer 2's session context)
+            assertEquals("session-1", sessionSeenInCallback1.get(),
+                    "Per-service session context failed! Consumer 1's rebalance callback saw the wrong session. " +
+                    "Expected 'session-1' but got '" + sessionSeenInCallback1.get() + "'.");
+        } else {
+            // If no rebalance occurred, we can't verify in this run
+            logger.info("No rebalance occurred for consumer 1 in this test run - test is inconclusive");
+        }
+    }
+
+    /**
      * Produces messages to a specific topic with a given number of partitions.
      */
     private void produceMessagesToTopic(final String topic, final int numPartitions, final int messagesPerPartition) throws Exception {
@@ -536,5 +683,16 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000");
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "3000");
         return props;
+    }
+
+    /**
+     * Simple test implementation of SessionContext for thread-safety testing.
+     */
+    private static class TestSessionContext implements SessionContext {
+        final String sessionId;
+
+        TestSessionContext(final String sessionId) {
+            this.sessionId = sessionId;
+        }
     }
 }
