@@ -106,6 +106,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
+import org.apache.nifi.web.api.entity.RebaseRequestEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
@@ -2029,6 +2031,50 @@ public class NiFiClientUtil {
 
         while (true) {
             final VersionedFlowUpdateRequestEntity entity = versionsClient.getRevertFlowVersionRequest(requestId);
+
+            if (entity.getRequest().isComplete()) {
+                return entity;
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
+    public RebaseAnalysisEntity getRebaseAnalysis(final String processGroupId, final String targetVersion) throws NiFiClientException, IOException {
+        return nifiClient.getVersionsClient().getRebaseAnalysis(processGroupId, targetVersion);
+    }
+
+    public VersionedFlowUpdateRequestEntity rebaseFlowVersion(final String processGroupId, final String targetVersion) throws NiFiClientException, IOException, InterruptedException {
+        logger.info("Submitting Rebase Flow Version request to rebase Group with ID {} to Version {}", processGroupId, targetVersion);
+
+        final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
+        final ProcessGroupDTO groupDto = groupEntity.getComponent();
+        final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
+        if (vciDto == null) {
+            throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        vciDto.setVersion(targetVersion);
+
+        final VersionControlInformationEntity vciEntity = new VersionControlInformationEntity();
+        vciEntity.setProcessGroupRevision(groupEntity.getRevision());
+        vciEntity.setVersionControlInformation(vciDto);
+
+        final RebaseAnalysisEntity analysis = nifiClient.getVersionsClient().getRebaseAnalysis(processGroupId, targetVersion);
+
+        final RebaseRequestEntity rebaseRequest = new RebaseRequestEntity();
+        rebaseRequest.setVersionControlInformationEntity(vciEntity);
+        rebaseRequest.setAnalysisFingerprint(analysis.getAnalysisFingerprint());
+
+        final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().initiateRebase(processGroupId, rebaseRequest);
+        return waitForRebaseCompleted(result.getRequest().getRequestId());
+    }
+
+    private VersionedFlowUpdateRequestEntity waitForRebaseCompleted(final String requestId) throws NiFiClientException, IOException, InterruptedException {
+        final VersionsClient versionsClient = nifiClient.getVersionsClient();
+
+        while (true) {
+            final VersionedFlowUpdateRequestEntity entity = versionsClient.getRebaseRequest(requestId);
 
             if (entity.getRequest().isComplete()) {
                 return entity;

@@ -189,6 +189,7 @@ import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VerifiableFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -199,6 +200,8 @@ import org.apache.nifi.registry.flow.diff.FlowComparator;
 import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.RebaseAnalysis;
+import org.apache.nifi.registry.flow.diff.RebaseEngine;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
@@ -376,6 +379,7 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -452,6 +456,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -467,6 +472,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
     private static final int VALIDATION_WAIT_MILLIS = 50;
     private static final String ROOT_PROCESS_GROUP = "RootProcessGroup";
+
+    private final Map<String, VersionedProcessGroup> rebaseCleanSnapshots = new ConcurrentHashMap<>();
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -5648,6 +5655,226 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowComparisonEntity entity = new FlowComparisonEntity();
         entity.setComponentDifferences(differenceDtos);
         return entity;
+    }
+
+    @Override
+    public RebaseAnalysisEntity getRebaseAnalysis(final String processGroupId, final String targetVersion) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+        if (versionControlInfo == null) {
+            throw new IllegalStateException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        final String currentVersion = versionControlInfo.getVersion();
+        if (currentVersion.equals(targetVersion)) {
+            throw new IllegalArgumentException("Target version %s is the same as the current version".formatted(targetVersion));
+        }
+
+        final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(versionControlInfo.getRegistryIdentifier());
+        if (flowRegistry == null) {
+            throw new IllegalStateException("Process Group with ID %s is tracking to a flow in Flow Registry with ID %s but cannot find a Flow Registry with that identifier"
+                    .formatted(processGroupId, versionControlInfo.getRegistryIdentifier()));
+        }
+
+        final FlowVersionLocation currentVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
+                versionControlInfo.getFlowIdentifier(), currentVersion);
+        final FlowVersionLocation targetVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
+                versionControlInfo.getFlowIdentifier(), targetVersion);
+
+        final VersionedProcessGroup currentRegistryGroup;
+        final VersionedProcessGroup targetRegistryGroup;
+        try {
+            final FlowSnapshotContainer currentSnapshotContainer = flowRegistry.getFlowContents(
+                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), currentVersionLocation, true);
+            currentRegistryGroup = currentSnapshotContainer.getFlowSnapshot().getFlowContents();
+
+            final FlowSnapshotContainer targetSnapshotContainer = flowRegistry.getFlowContents(
+                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
+            targetRegistryGroup = targetSnapshotContainer.getFlowSnapshot().getFlowContents();
+        } catch (final IOException | FlowRegistryException e) {
+            throw new NiFiCoreException("Failed to retrieve flow from Flow Registry in order to perform rebase analysis due to " + e.getMessage(), e);
+        }
+
+        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
+
+        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
+
+        final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", currentRegistryGroup);
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
+        final FlowComparator localComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds,
+                new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+        final FlowComparison localComparison = localComparator.compare();
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext localEnvironmentalContext =
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(localComparison.getDifferences(), controllerFacade.getFlowManager());
+        final Set<FlowDifference> localDifferences = new HashSet<>();
+        for (final FlowDifference difference : localComparison.getDifferences()) {
+            if (!FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, controllerFacade.getFlowManager(), localEnvironmentalContext)) {
+                localDifferences.add(difference);
+            }
+        }
+
+        final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Current Version", currentRegistryGroup);
+        final ComparableDataFlow targetFlow = new StandardComparableDataFlow("Target Version", targetRegistryGroup);
+        final FlowComparator upstreamComparator = new StandardFlowComparator(currentFlow, targetFlow, ancestorServiceIds,
+                new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+        final FlowComparison upstreamComparison = upstreamComparator.compare();
+
+        final Set<FlowDifference> upstreamDifferences = new HashSet<>();
+        for (final FlowDifference difference : upstreamComparison.getDifferences()) {
+            if (!FlowDifferenceFilters.isEnvironmentalChange(difference, currentRegistryGroup, controllerFacade.getFlowManager(),
+                    FlowDifferenceFilters.buildEnvironmentalChangeContext(upstreamComparison.getDifferences(), controllerFacade.getFlowManager()))) {
+                upstreamDifferences.add(difference);
+            }
+        }
+
+        boolean descendantHasLocalModifications = false;
+        String descendantFailureReason = null;
+        try {
+            processGroup.verifyCanRevertLocalModifications();
+        } catch (final Exception e) {
+            descendantHasLocalModifications = true;
+            descendantFailureReason = e.getMessage();
+        }
+
+        final RebaseEngine rebaseEngine = new RebaseEngine();
+        final RebaseAnalysis analysis = rebaseEngine.analyze(localDifferences, upstreamDifferences, targetRegistryGroup);
+
+        if (descendantHasLocalModifications) {
+            final RebaseAnalysis blockedAnalysis = new RebaseAnalysis(analysis.getClassifiedLocalChanges(), upstreamDifferences,
+                    false, analysis.getAnalysisFingerprint(), null);
+            return dtoFactory.createRebaseAnalysisEntity(blockedAnalysis, processGroupId, currentVersion, targetVersion, upstreamDifferences,
+                    descendantFailureReason);
+        }
+
+        return dtoFactory.createRebaseAnalysisEntity(analysis, processGroupId, currentVersion, targetVersion, upstreamDifferences, null);
+    }
+
+    @Override
+    public void verifyCanRebase(final String processGroupId, final String targetVersion) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+        if (versionControlInfo == null) {
+            throw new IllegalStateException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        if (versionControlInfo.getVersion().equals(targetVersion)) {
+            throw new IllegalArgumentException("Target version %s is the same as the current version".formatted(targetVersion));
+        }
+
+        processGroup.verifyCanRevertLocalModifications();
+    }
+
+    @Override
+    public FlowSnapshotContainer getRebasedFlowSnapshot(final String processGroupId, final String targetVersion, final String expectedAnalysisFingerprint) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+        if (versionControlInfo == null) {
+            throw new IllegalStateException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        final String currentVersion = versionControlInfo.getVersion();
+        final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(versionControlInfo.getRegistryIdentifier());
+        if (flowRegistry == null) {
+            throw new IllegalStateException("Process Group with ID %s is tracking to a flow in Flow Registry with ID %s but cannot find a Flow Registry with that identifier"
+                    .formatted(processGroupId, versionControlInfo.getRegistryIdentifier()));
+        }
+
+        final FlowVersionLocation currentVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
+                versionControlInfo.getFlowIdentifier(), currentVersion);
+        final FlowVersionLocation targetVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
+                versionControlInfo.getFlowIdentifier(), targetVersion);
+
+        final VersionedProcessGroup currentRegistryGroup;
+        final FlowSnapshotContainer targetSnapshotContainer;
+        try {
+            final FlowSnapshotContainer currentSnapshotContainer = flowRegistry.getFlowContents(
+                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), currentVersionLocation, true);
+            currentRegistryGroup = currentSnapshotContainer.getFlowSnapshot().getFlowContents();
+
+            targetSnapshotContainer = flowRegistry.getFlowContents(
+                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
+        } catch (final IOException | FlowRegistryException e) {
+            throw new NiFiCoreException("Failed to retrieve flow from Flow Registry for rebase due to " + e.getMessage(), e);
+        }
+
+        final VersionedProcessGroup targetRegistryGroup = targetSnapshotContainer.getFlowSnapshot().getFlowContents();
+        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
+        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
+
+        final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", currentRegistryGroup);
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
+        final FlowComparator localComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds,
+                new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+        final FlowComparison localComparison = localComparator.compare();
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext localEnvironmentalContext =
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(localComparison.getDifferences(), controllerFacade.getFlowManager());
+        final Set<FlowDifference> localDifferences = new HashSet<>();
+        for (final FlowDifference difference : localComparison.getDifferences()) {
+            if (!FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, controllerFacade.getFlowManager(), localEnvironmentalContext)) {
+                localDifferences.add(difference);
+            }
+        }
+
+        final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Current Version", currentRegistryGroup);
+        final ComparableDataFlow targetFlow = new StandardComparableDataFlow("Target Version", targetRegistryGroup);
+        final FlowComparator upstreamComparator = new StandardFlowComparator(currentFlow, targetFlow, ancestorServiceIds,
+                new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+        final FlowComparison upstreamComparison = upstreamComparator.compare();
+
+        final Set<FlowDifference> upstreamDifferences = new HashSet<>();
+        for (final FlowDifference difference : upstreamComparison.getDifferences()) {
+            if (!FlowDifferenceFilters.isEnvironmentalChange(difference, currentRegistryGroup, controllerFacade.getFlowManager(),
+                    FlowDifferenceFilters.buildEnvironmentalChangeContext(upstreamComparison.getDifferences(), controllerFacade.getFlowManager()))) {
+                upstreamDifferences.add(difference);
+            }
+        }
+
+        final RebaseEngine rebaseEngine = new RebaseEngine();
+        final RebaseAnalysis analysis = rebaseEngine.analyze(localDifferences, upstreamDifferences, targetRegistryGroup);
+
+        if (!analysis.isRebaseAllowed()) {
+            throw new IllegalStateException("Rebase is not allowed due to conflicts between local changes and upstream changes");
+        }
+
+        if (!expectedAnalysisFingerprint.equals(analysis.getAnalysisFingerprint())) {
+            throw new IllegalStateException("The rebase analysis has changed since the analysis was performed. Please re-run the rebase analysis.");
+        }
+
+        rebaseCleanSnapshots.put(processGroupId, targetRegistryGroup);
+        targetSnapshotContainer.getFlowSnapshot().setFlowContents(analysis.getMergedSnapshot());
+        return targetSnapshotContainer;
+    }
+
+    @Override
+    public void resetVersionControlSnapshotAfterRebase(final String processGroupId) {
+        final VersionedProcessGroup cleanSnapshot = rebaseCleanSnapshots.remove(processGroupId);
+        if (cleanSnapshot == null) {
+            return;
+        }
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final VersionControlInformation existingVci = processGroup.getVersionControlInformation();
+        if (existingVci == null) {
+            return;
+        }
+        final StandardVersionControlInformation updatedVci = new StandardVersionControlInformation.Builder()
+                .registryId(existingVci.getRegistryIdentifier())
+                .registryName(existingVci.getRegistryName())
+                .branch(existingVci.getBranch())
+                .bucketId(existingVci.getBucketIdentifier())
+                .bucketName(existingVci.getBucketName())
+                .flowId(existingVci.getFlowIdentifier())
+                .flowName(existingVci.getFlowName())
+                .flowDescription(existingVci.getFlowDescription())
+                .storageLocation(existingVci.getStorageLocation())
+                .version(existingVci.getVersion())
+                .status(existingVci.getStatus())
+                .flowSnapshot(cleanSnapshot)
+                .build();
+        processGroup.setVersionControlInformation(updatedVci, Collections.emptyMap());
     }
 
     @Override
