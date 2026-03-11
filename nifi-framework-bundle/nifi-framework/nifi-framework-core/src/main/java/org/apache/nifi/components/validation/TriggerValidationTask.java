@@ -17,6 +17,7 @@
 
 package org.apache.nifi.components.validation;
 
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.slf4j.Logger;
@@ -60,6 +61,10 @@ public class TriggerValidationTask implements Runnable {
 
             for (final ComponentNode node : flowManager.getAllFlowRegistryClients()) {
                 validationTrigger.trigger(node);
+            }
+
+            for (final ConnectorNode connector : flowManager.getAllConnectors()) {
+                connector.validateComponents(validationTrigger);
             }
         } catch (final Throwable t) {
             logger.error("Encountered unexpected error when attempting to validate components", t);

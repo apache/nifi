@@ -32,6 +32,7 @@ import org.apache.nifi.components.connector.components.ParameterContextFacade;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.controller.ProcessorNode;
@@ -1408,6 +1409,18 @@ public class StandardConnectorNode implements ConnectorNode {
         }
     }
 
+    @Override
+    public void validateComponents(final ValidationTrigger validationTrigger) {
+        final ProcessGroup managedGroup = activeFlowContext.getManagedProcessGroup();
+
+        for (final ProcessorNode processor : managedGroup.findAllProcessors()) {
+            validationTrigger.trigger(processor);
+        }
+
+        for (final ControllerServiceNode service : managedGroup.findAllControllerServices()) {
+            validationTrigger.trigger(service);
+        }
+    }
 
     private void validateManagedFlowComponents(final List<ValidationResult> results) {
         final ProcessGroup managedProcessGroup = activeFlowContext.getManagedProcessGroup();

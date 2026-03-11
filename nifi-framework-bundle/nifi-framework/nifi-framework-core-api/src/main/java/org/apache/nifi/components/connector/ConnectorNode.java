@@ -25,6 +25,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
@@ -148,6 +149,13 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @return the ValidationState indicating the results of the validation
      */
     ValidationState performValidation();
+
+    /**
+     * Triggers validation of all processors and controller services within the Connector's managed ProcessGroup.
+     *
+     * @param validationTrigger the ValidationTrigger to use for triggering component validation
+     */
+    void validateComponents(ValidationTrigger validationTrigger);
 
     /**
      * Returns the current validation status of the connector.
