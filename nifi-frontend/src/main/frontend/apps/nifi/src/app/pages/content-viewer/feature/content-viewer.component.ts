@@ -255,7 +255,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                     const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
                     if (supportedContentViewer) {
                         const supportsMimeType = supportedContentViewer.supportedMimeTypes.mimeTypes.some(
-                            (supportedMimeType) => mimeType.startsWith(supportedMimeType)
+                            (supportedMimeType) => this.isMediaTypeCompatible(mimeType, supportedMimeType)
                         );
 
                         if (supportsMimeType) {
@@ -266,6 +266,41 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Checks if a MIME type is compatible with a supported media type.
+     * Supports exact matching, startsWith matching (for parameters like charset),
+     * and base media type resolution for structured syntax suffixes per RFC 6839.
+     * For example, "application/vnd.api+json" resolves to base type "application/json".
+     */
+    private isMediaTypeCompatible(mimeType: string, supportedMimeType: string): boolean {
+        if (mimeType === supportedMimeType || mimeType.startsWith(supportedMimeType)) {
+            return true;
+        }
+
+        const baseMediaType = this.resolveBaseMediaType(mimeType);
+        if (baseMediaType !== null) {
+            return baseMediaType === supportedMimeType || baseMediaType.startsWith(supportedMimeType);
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolves a structured syntax suffix media type to its base media type per RFC 6839.
+     * For example, "application/fhir+xml" resolves to "application/xml" and
+     * "application/vnd.api+json" resolves to "application/json".
+     *
+     * @returns the base media type, or null if the media type does not contain a structured suffix
+     */
+    private resolveBaseMediaType(mimeType: string): string | null {
+        const slashIndex = mimeType.indexOf('/');
+        const plusIndex = mimeType.lastIndexOf('+');
+        if (slashIndex > 0 && plusIndex > slashIndex) {
+            return mimeType.substring(0, slashIndex + 1) + mimeType.substring(plusIndex + 1);
+        }
         return null;
     }
 

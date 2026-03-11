@@ -54,4 +54,58 @@ describe('ContentViewerComponent', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    describe('resolveBaseMediaType', () => {
+        it('should resolve structured syntax suffix to base media type', () => {
+            expect(component['resolveBaseMediaType']('application/vnd.api+json')).toEqual('application/json');
+            expect(component['resolveBaseMediaType']('application/fhir+xml')).toEqual('application/xml');
+            expect(component['resolveBaseMediaType']('application/some-vendor+yaml')).toEqual('application/yaml');
+            expect(component['resolveBaseMediaType']('application/vnd.example.api+json')).toEqual('application/json');
+            expect(component['resolveBaseMediaType']('application/soap+xml')).toEqual('application/xml');
+        });
+
+        it('should return null for media types without a structured suffix', () => {
+            expect(component['resolveBaseMediaType']('application/json')).toBeNull();
+            expect(component['resolveBaseMediaType']('text/plain')).toBeNull();
+            expect(component['resolveBaseMediaType']('application/xml')).toBeNull();
+            expect(component['resolveBaseMediaType']('text/csv')).toBeNull();
+            expect(component['resolveBaseMediaType']('image/png')).toBeNull();
+        });
+
+        it('should handle avro binary type which contains a plus in the subtype', () => {
+            expect(component['resolveBaseMediaType']('application/avro+binary')).toEqual('application/binary');
+        });
+    });
+
+    describe('isMediaTypeCompatible', () => {
+        it('should match exact media types', () => {
+            expect(component['isMediaTypeCompatible']('application/json', 'application/json')).toBe(true);
+            expect(component['isMediaTypeCompatible']('text/xml', 'text/xml')).toBe(true);
+            expect(component['isMediaTypeCompatible']('text/plain', 'text/plain')).toBe(true);
+        });
+
+        it('should match via startsWith for media types with parameters', () => {
+            expect(component['isMediaTypeCompatible']('text/plain; charset=UTF-8', 'text/plain')).toBe(true);
+            expect(component['isMediaTypeCompatible']('application/json; charset=UTF-8', 'application/json')).toBe(true);
+        });
+
+        it('should match structured suffix types to their base media type', () => {
+            expect(component['isMediaTypeCompatible']('application/vnd.api+json', 'application/json')).toBe(true);
+            expect(component['isMediaTypeCompatible']('application/fhir+xml', 'application/xml')).toBe(true);
+            expect(component['isMediaTypeCompatible']('application/fhir+xml', 'text/xml')).toBe(false);
+            expect(component['isMediaTypeCompatible']('application/some-vendor+yaml', 'application/yaml')).toBe(true);
+            expect(component['isMediaTypeCompatible']('application/soap+xml', 'application/xml')).toBe(true);
+        });
+
+        it('should not match unrelated media types', () => {
+            expect(component['isMediaTypeCompatible']('application/json', 'application/xml')).toBe(false);
+            expect(component['isMediaTypeCompatible']('text/plain', 'application/json')).toBe(false);
+            expect(component['isMediaTypeCompatible']('image/png', 'application/json')).toBe(false);
+        });
+
+        it('should not match when suffix resolves to a different base type', () => {
+            expect(component['isMediaTypeCompatible']('application/vnd.api+json', 'application/xml')).toBe(false);
+            expect(component['isMediaTypeCompatible']('application/fhir+xml', 'application/json')).toBe(false);
+        });
+    });
 });
