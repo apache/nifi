@@ -23,7 +23,6 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NgForOf, NgIf } from '@angular/common';
 import { AllowableValue, ParameterConfig, PropertyDescriptor } from '../../../../../state/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -49,8 +48,6 @@ export interface AllowableValueItem extends AllowableValue {
         NifiTooltipDirective,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
-        NgIf,
         A11yModule,
         NgxSkeletonLoaderModule
     ],

@@ -118,7 +118,7 @@
                                         context: { $implicit: request.event.details, title: request.event.details }
                                     "></ng-container>
                             </div>
-                            <ng-container *ngIf="request.event.eventType === 'RECEIVE'">
+                            @if (request.event.eventType === 'RECEIVE') {
                                 <div class="flex flex-col">
                                     <div>Source FlowFile Id</div>
                                     <ng-container
@@ -141,8 +141,8 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                            <ng-container *ngIf="request.event.eventType === 'SEND'">
+                            }
+                            @if (request.event.eventType === 'SEND') {
                                 <div class="flex flex-col">
                                     <div>Transit Uri</div>
                                     <ng-container
@@ -154,8 +154,8 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                            <ng-container *ngIf="request.event.eventType === 'ADDINFO'">
+                            }
+                            @if (request.event.eventType === 'ADDINFO') {
                                 <div class="flex flex-col">
                                     <div>Alternate Identifier Uri</div>
                                     <ng-container
@@ -167,8 +167,8 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                            <ng-container *ngIf="request.event.eventType === 'ROUTE'">
+                            }
+                            @if (request.event.eventType === 'ROUTE') {
                                 <div class="flex flex-col">
                                     <div>Relationship</div>
                                     <ng-container
@@ -180,9 +180,9 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                            <ng-container *ngIf="request.event.eventType === 'FETCH'">
-                                <div class="flex flex-col" *ngIf="request.event.eventType === 'FETCH'">
+                            }
+                            @if (request.event.eventType === 'FETCH') {
+                                <div class="flex flex-col">
                                     <div>Transit Uri</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -193,8 +193,8 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                            <ng-container *ngIf="request.event.clusterNodeId">
+                            }
+                            @if (request.event.clusterNodeId) {
                                 <div class="flex flex-col">
                                     <div>Node Address</div>
                                     <ng-container
@@ -206,16 +206,15 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
+                            }
                             <ng-template #formatDuration let-duration>
-                                <ng-container *ngIf="duration != null; else noDuration">
+                                @if (duration != null) {
                                     <div class="tertiary-color font-medium">
                                         {{ formatDurationValue(duration) }}
                                     </div>
-                                </ng-container>
-                                <ng-template #noDuration>
+                                } @else {
                                     <div class="unset neutral-color">No value set</div>
-                                </ng-template>
+                                }
                             </ng-template>
                         </div>
                         <div class="w-1/2 pl-2 flex flex-col gap-y-3">
@@ -240,14 +239,15 @@
                                     "></ng-container>
                             </div>
                             <ng-template #formatUuids let-uuids let-emptyMessage="emptyMessage">
-                                <ng-container *ngIf="uuids.length > 0; else noUuids">
+                                @if (uuids.length > 0) {
                                     <div class="tertiary-color font-medium">
-                                        <div *ngFor="let uuid of uuids">{{ uuid }}</div>
+                                        @for (uuid of uuids; track uuid) {
+                                            <div>{{ uuid }}</div>
+                                        }
                                     </div>
-                                </ng-container>
-                                <ng-template #noUuids>
+                                } @else {
                                     <div class="unset neutral-color">{{ emptyMessage }}</div>
-                                </ng-template>
+                                }
                             </ng-template>
                         </div>
                     </div>
@@ -268,24 +268,26 @@
                             </div>
                             <div class="flex flex-col">
                                 @for (attribute of request.event.attributes; track attribute.name) {
-                                    <div *ngIf="shouldShowAttribute(attribute)" class="mb-4 flex flex-col">
-                                        <div>{{ attribute.name }}</div>
-                                        <ng-container
-                                            *ngTemplateOutlet="
-                                                formatValue;
-                                                context: { $implicit: attribute.value, title: attribute.value }
-                                            "></ng-container>
-                                        <ng-container *ngIf="attributeValueChanged(attribute)">
+                                    @if (shouldShowAttribute(attribute)) {
+                                        <div class="mb-4 flex flex-col">
+                                            <div>{{ attribute.name }}</div>
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     formatValue;
-                                                    context: {
-                                                        $implicit: attribute.previousValue,
-                                                        title: attribute.previousValue
-                                                    }
+                                                    context: { $implicit: attribute.value, title: attribute.value }
                                                 "></ng-container>
-                                        </ng-container>
-                                    </div>
+                                            @if (attributeValueChanged(attribute)) {
+                                                <ng-container
+                                                    *ngTemplateOutlet="
+                                                        formatValue;
+                                                        context: {
+                                                            $implicit: attribute.previousValue,
+                                                            title: attribute.previousValue
+                                                        }
+                                                    "></ng-container>
+                                            }
+                                        </div>
+                                    }
                                 }
                             </div>
                         </div>
@@ -356,20 +358,23 @@
                                                 }
                                             "></ng-container>
                                     </div>
-                                    <div *ngIf="request.event.inputContentAvailable" class="flex">
-                                        <button mat-stroked-button (click)="downloadContentClicked('input')">
-                                            <i class="fa fa-download"></i>
-                                            Download
-                                        </button>
-                                        <button
-                                            *ngIf="contentViewerAvailable"
-                                            class="ml-3"
-                                            mat-stroked-button
-                                            (click)="viewContentClicked('input')">
-                                            <i class="fa fa-eye"></i>
-                                            View
-                                        </button>
-                                    </div>
+                                    @if (request.event.inputContentAvailable) {
+                                        <div class="flex">
+                                            <button mat-stroked-button (click)="downloadContentClicked('input')">
+                                                <i class="fa fa-download"></i>
+                                                Download
+                                            </button>
+                                            @if (contentViewerAvailable) {
+                                                <button
+                                                    class="ml-3"
+                                                    mat-stroked-button
+                                                    (click)="viewContentClicked('input')">
+                                                    <i class="fa fa-eye"></i>
+                                                    View
+                                                </button>
+                                            }
+                                        </div>
+                                    }
                                 </div>
                             </div>
                             <div class="w-1/2 pl-2">
@@ -430,49 +435,51 @@
                                                 }
                                             "></ng-container>
                                     </div>
-                                    <div *ngIf="request.event.outputContentAvailable" class="flex">
-                                        <button mat-stroked-button (click)="downloadContentClicked('output')">
-                                            <i class="fa fa-download"></i>
-                                            Download
-                                        </button>
-                                        <button
-                                            *ngIf="contentViewerAvailable"
-                                            class="ml-3"
-                                            mat-stroked-button
-                                            (click)="viewContentClicked('output')">
-                                            <i class="fa fa-eye"></i>
-                                            View
-                                        </button>
-                                    </div>
+                                    @if (request.event.outputContentAvailable) {
+                                        <div class="flex">
+                                            <button mat-stroked-button (click)="downloadContentClicked('output')">
+                                                <i class="fa fa-download"></i>
+                                                Download
+                                            </button>
+                                            @if (contentViewerAvailable) {
+                                                <button
+                                                    class="ml-3"
+                                                    mat-stroked-button
+                                                    (click)="viewContentClicked('output')">
+                                                    <i class="fa fa-eye"></i>
+                                                    View
+                                                </button>
+                                            }
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         </div>
                         <div class="flex flex-col">
                             <div class="font-bold primary-color">Replay</div>
-                            <div
-                                *ngIf="request.event.replayAvailable; else replayNotAvailable"
-                                class="flex flex-col gap-y-3">
-                                <div class="flex flex-col">
-                                    <div>Connection Id</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatCopyableContentValue;
-                                            context: {
-                                                $implicit: request.event.sourceConnectionIdentifier,
-                                                title: request.event.sourceConnectionIdentifier
-                                            }
-                                        "></ng-container>
+                            @if (request.event.replayAvailable) {
+                                <div class="flex flex-col gap-y-3">
+                                    <div class="flex flex-col">
+                                        <div>Connection Id</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatCopyableContentValue;
+                                                context: {
+                                                    $implicit: request.event.sourceConnectionIdentifier,
+                                                    title: request.event.sourceConnectionIdentifier
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <button mat-stroked-button (click)="replayClicked()">
+                                            <i class="fa fa-repeat"></i>
+                                            Replay
+                                        </button>
+                                    </div>
                                 </div>
-                                <div>
-                                    <button mat-stroked-button (click)="replayClicked()">
-                                        <i class="fa fa-repeat"></i>
-                                        Replay
-                                    </button>
-                                </div>
-                            </div>
-                            <ng-template #replayNotAvailable>
+                            } @else {
                                 <div>{{ request.event.replayExplanation }}</div>
-                            </ng-template>
+                            }
                         </div>
                     </div>
                 </div>
@@ -480,74 +487,72 @@
         </mat-tab>
     </mat-tab-group>
     <ng-template #formatValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <ng-container *ngIf="value === ''; else nonEmptyValue">
+        @if (value != null) {
+            @if (value === '') {
                 <div class="unset neutral-color">Empty string set</div>
-            </ng-container>
-            <ng-template #nonEmptyValue>
-                <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                    {{ value }}
-                </div>
-                <ng-template #valueWithTitle>
+            } @else {
+                @if (title == null) {
+                    <div class="tertiary-color font-medium">
+                        {{ value }}
+                    </div>
+                } @else {
                     <div class="tertiary-color font-medium truncate" [title]="title">
                         {{ value }}
                     </div>
-                </ng-template>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+                }
+            }
+        } @else {
             <div class="unset neutral-color">No value set</div>
-        </ng-template>
+        }
     </ng-template>
     <ng-template #formatCopyableValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <ng-container *ngIf="value === ''; else nonEmptyValue">
+        @if (value != null) {
+            @if (value === '') {
                 <div class="unset neutral-color">Empty string set</div>
-            </ng-container>
-            <ng-template #nonEmptyValue>
-                <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                    {{ value }}
-                </div>
-                <ng-template #valueWithTitle>
+            } @else {
+                @if (title == null) {
+                    <div [copy]="value" class="tertiary-color font-medium">
+                        {{ value }}
+                    </div>
+                } @else {
                     <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">
                         {{ value }}
                     </div>
-                </ng-template>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+                }
+            }
+        } @else {
             <div class="unset neutral-color">No value set</div>
-        </ng-template>
+        }
     </ng-template>
     <ng-template #formatContentValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                {{ value }}
-            </div>
-            <ng-template #valueWithTitle>
+        @if (value != null) {
+            @if (title == null) {
+                <div class="tertiary-color font-medium">
+                    {{ value }}
+                </div>
+            } @else {
                 <div class="tertiary-color font-medium truncate" [title]="title">
                     {{ value }}
                 </div>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+            }
+        } @else {
             <div class="unset neutral-color">No value previously set</div>
-        </ng-template>
+        }
     </ng-template>
     <ng-template #formatCopyableContentValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                {{ value }}
-            </div>
-            <ng-template #valueWithTitle>
+        @if (value != null) {
+            @if (title == null) {
+                <div [copy]="value" class="tertiary-color font-medium">
+                    {{ value }}
+                </div>
+            } @else {
                 <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">
                     {{ value }}
                 </div>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+            }
+        } @else {
             <div class="unset neutral-color">No value previously set</div>
-        </ng-template>
+        }
     </ng-template>
 
     <mat-dialog-actions align="end">

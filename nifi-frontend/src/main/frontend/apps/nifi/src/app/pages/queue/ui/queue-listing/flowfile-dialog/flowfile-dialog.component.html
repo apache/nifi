@@ -89,7 +89,7 @@
                                     {{ request.flowfile.penalized ? 'Yes' : 'No' }}
                                 </div>
                             </div>
-                            <ng-container *ngIf="request.flowfile.clusterNodeId">
+                            @if (request.flowfile.clusterNodeId) {
                                 <div class="flex flex-col">
                                     <div>Node Address</div>
                                     <ng-container
@@ -101,98 +101,94 @@
                                             }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
+                            }
                             <ng-template #formatDuration let-duration>
-                                <ng-container *ngIf="duration != null; else noDuration">
+                                @if (duration != null) {
                                     <div class="tertiary-color font-medium">
                                         {{ formatDurationValue(duration) }}
                                     </div>
-                                </ng-container>
-                                <ng-template #noDuration>
+                                } @else {
                                     <div class="unset neutral-color">No value set</div>
-                                </ng-template>
+                                }
                             </ng-template>
                         </div>
                         <div class="w-1/2 pl-2 flex flex-col gap-y-3">
                             <div class="flex flex-col">
                                 <div class="font-bold primary-color">Content Claim</div>
                             </div>
-                            <div
-                                class="flex flex-col gap-y-3"
-                                *ngIf="request.flowfile.contentClaimContainer != null; else noContent">
-                                <div>
-                                    <div>Container</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatContentValue;
-                                            context: {
-                                                $implicit: request.flowfile.contentClaimContainer,
-                                                title: request.flowfile.contentClaimContainer
-                                            }
-                                        "></ng-container>
+                            @if (request.flowfile.contentClaimContainer != null) {
+                                <div class="flex flex-col gap-y-3">
+                                    <div>
+                                        <div>Container</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: request.flowfile.contentClaimContainer,
+                                                    title: request.flowfile.contentClaimContainer
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Section</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: request.flowfile.contentClaimSection,
+                                                    title: request.flowfile.contentClaimSection
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Identifier</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatCopyableContentValue;
+                                                context: {
+                                                    $implicit: request.flowfile.contentClaimIdentifier,
+                                                    title: request.flowfile.contentClaimIdentifier
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Offset</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: request.flowfile.contentClaimOffset,
+                                                    title: request.flowfile.contentClaimOffset
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div>
+                                        <div>Size</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                formatContentValue;
+                                                context: {
+                                                    $implicit: request.flowfile.contentClaimFileSize,
+                                                    title: request.flowfile.contentClaimFileSizeBytes + ' bytes'
+                                                }
+                                            "></ng-container>
+                                    </div>
+                                    <div class="flex">
+                                        <button mat-stroked-button (click)="downloadContentClicked()">
+                                            <i class="fa fa-download"></i>
+                                            Download
+                                        </button>
+                                        @if (contentViewerAvailable) {
+                                            <button class="ml-3" mat-stroked-button (click)="viewContentClicked()">
+                                                <i class="fa fa-eye"></i>
+                                                View
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
-                                <div>
-                                    <div>Section</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatContentValue;
-                                            context: {
-                                                $implicit: request.flowfile.contentClaimSection,
-                                                title: request.flowfile.contentClaimSection
-                                            }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Identifier</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatCopyableContentValue;
-                                            context: {
-                                                $implicit: request.flowfile.contentClaimIdentifier,
-                                                title: request.flowfile.contentClaimIdentifier
-                                            }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Offset</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatContentValue;
-                                            context: {
-                                                $implicit: request.flowfile.contentClaimOffset,
-                                                title: request.flowfile.contentClaimOffset
-                                            }
-                                        "></ng-container>
-                                </div>
-                                <div>
-                                    <div>Size</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatContentValue;
-                                            context: {
-                                                $implicit: request.flowfile.contentClaimFileSize,
-                                                title: request.flowfile.contentClaimFileSizeBytes + ' bytes'
-                                            }
-                                        "></ng-container>
-                                </div>
-                                <div class="flex">
-                                    <button mat-stroked-button (click)="downloadContentClicked()">
-                                        <i class="fa fa-download"></i>
-                                        Download
-                                    </button>
-                                    <button
-                                        *ngIf="contentViewerAvailable"
-                                        class="ml-3"
-                                        mat-stroked-button
-                                        (click)="viewContentClicked()">
-                                        <i class="fa fa-eye"></i>
-                                        View
-                                    </button>
-                                </div>
-                            </div>
-                            <ng-template #noContent>
+                            } @else {
                                 <div class="unset neutral-color">No Content Available</div>
-                            </ng-template>
+                            }
                         </div>
                     </div>
                 </div>
@@ -206,7 +202,7 @@
                             <div class="font-bold primary-color">Attribute Values</div>
                         </div>
                         <div class="flex flex-col">
-                            <div *ngFor="let attribute of request.flowfile.attributes | keyvalue">
+                            @for (attribute of request.flowfile.attributes | keyvalue; track attribute.key) {
                                 <div class="mb-4 flex flex-col">
                                     <div>{{ attribute.key }}</div>
                                     <ng-container
@@ -215,7 +211,7 @@
                                             context: { $implicit: attribute.value, title: attribute.value }
                                         "></ng-container>
                                 </div>
-                            </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -223,67 +219,57 @@
         </mat-tab>
     </mat-tab-group>
     <ng-template #formatValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <ng-container *ngIf="value === ''; else nonEmptyValue">
+        @if (value != null) {
+            @if (value === '') {
                 <div class="unset neutral-color">Empty string set</div>
-            </ng-container>
-            <ng-template #nonEmptyValue>
-                <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                    {{ value }}
-                </div>
-                <ng-template #valueWithTitle>
+            } @else {
+                @if (title == null) {
+                    <div class="tertiary-color font-medium">{{ value }}</div>
+                } @else {
                     <div class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
-                </ng-template>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+                }
+            }
+        } @else {
             <div class="unset neutral-color">No value set</div>
-        </ng-template>
+        }
     </ng-template>
     <ng-template #formatCopyableValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <ng-container *ngIf="value === ''; else nonEmptyValue">
+        @if (value != null) {
+            @if (value === '') {
                 <div class="unset neutral-color">Empty string set</div>
-            </ng-container>
-            <ng-template #nonEmptyValue>
-                <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                    {{ value }}
-                </div>
-                <ng-template #valueWithTitle>
+            } @else {
+                @if (title == null) {
+                    <div [copy]="value" class="tertiary-color font-medium">{{ value }}</div>
+                } @else {
                     <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
-                </ng-template>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+                }
+            }
+        } @else {
             <div class="unset neutral-color">No value set</div>
-        </ng-template>
+        }
     </ng-template>
 
     <ng-template #formatContentValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                {{ value }}
-            </div>
-            <ng-template #valueWithTitle>
+        @if (value != null) {
+            @if (title == null) {
+                <div class="tertiary-color font-medium">{{ value }}</div>
+            } @else {
                 <div class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+            }
+        } @else {
             <div class="unset neutral-color">No value previously set</div>
-        </ng-template>
+        }
     </ng-template>
     <ng-template #formatCopyableContentValue let-value let-title="title">
-        <ng-container *ngIf="value != null; else nullValue">
-            <div [copy]="value" class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
-                {{ value }}
-            </div>
-            <ng-template #valueWithTitle>
+        @if (value != null) {
+            @if (title == null) {
+                <div [copy]="value" class="tertiary-color font-medium">{{ value }}</div>
+            } @else {
                 <div [copy]="value" class="tertiary-color font-medium truncate" [title]="title">{{ value }}</div>
-            </ng-template>
-        </ng-container>
-        <ng-template #nullValue>
+            }
+        } @else {
             <div class="unset neutral-color">No value previously set</div>
-        </ng-template>
+        }
     </ng-template>
     <mat-dialog-actions align="end">
         <button mat-flat-button mat-dialog-close>Ok</button>

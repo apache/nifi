@@ -48,4 +48,4 @@ const config: Config = {
     transformIgnorePatterns: []
 };
 
-export default config;
+module.exports = config;

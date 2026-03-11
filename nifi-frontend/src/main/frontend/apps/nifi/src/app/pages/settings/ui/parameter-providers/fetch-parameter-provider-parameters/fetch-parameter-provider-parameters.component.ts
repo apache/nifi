@@ -16,7 +16,7 @@
  */
 
 import { Component, DestroyRef, inject, Input, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe, NgClass } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -51,7 +51,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 @Component({
     selector: 'fetch-parameter-provider-parameters',
     imports: [
-        CommonModule,
+        AsyncPipe,
+        NgClass,
         MatDialogModule,
         ReactiveFormsModule,
         MatButtonModule,

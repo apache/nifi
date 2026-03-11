@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-export default {
+module.exports = {
     displayName: 'NiFi Registry',
     clearMocks: true,
     coverageDirectory: '../../coverage/apps/nifi-registry',

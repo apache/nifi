@@ -648,7 +648,7 @@ export class Canvas implements OnInit, OnDestroy {
         this.canvasView.destroy();
     }
 
-    private processKeyboardEvents(event: KeyboardEvent | ClipboardEvent): boolean {
+    private processKeyboardEvents(event: Event): boolean {
         const source = event.target as any;
         let searchFieldIsEventSource = false;
         if (source) {
@@ -658,7 +658,7 @@ export class Canvas implements OnInit, OnDestroy {
         return this.dialog.openDialogs.length === 0 && !searchFieldIsEventSource;
     }
 
-    private executeAction(actionId: string, event: KeyboardEvent, bypassCondition?: boolean): boolean {
+    private executeAction(actionId: string, event: Event, bypassCondition?: boolean): boolean {
         if (this.processKeyboardEvents(event)) {
             const selection = this.canvasUtils.getSelection();
             const canvasAction = this.canvasActionsService.getAction(actionId);
@@ -672,37 +672,39 @@ export class Canvas implements OnInit, OnDestroy {
         return false;
     }
 
+    // Typed as Event (not KeyboardEvent) because Angular 21's typeCheckHostBindings
+    // infers $event as Event for key-specific bindings (angular/angular#40778).
     @HostListener('window:keydown.delete', ['$event'])
-    handleKeyDownDelete(event: KeyboardEvent) {
+    handleKeyDownDelete(event: Event) {
         this.executeAction('delete', event);
     }
 
     @HostListener('window:keydown.backspace', ['$event'])
-    handleKeyDownBackspace(event: KeyboardEvent) {
+    handleKeyDownBackspace(event: Event) {
         this.executeAction('delete', event);
     }
 
     @HostListener('window:keydown.control.r', ['$event'])
-    handleKeyDownCtrlR(event: KeyboardEvent) {
+    handleKeyDownCtrlR(event: Event) {
         if (this.executeAction('refresh', event, true)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:keydown.meta.r', ['$event'])
-    handleKeyDownMetaR(event: KeyboardEvent) {
+    handleKeyDownMetaR(event: Event) {
         if (this.executeAction('refresh', event, true)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:keydown.escape', ['$event'])
-    handleKeyDownEsc(event: KeyboardEvent) {
+    handleKeyDownEsc(event: Event) {
         this.executeAction('leaveGroup', event);
     }
 
     @HostListener('window:keydown.control.c', ['$event'])
-    handleKeyDownCtrlC(event: KeyboardEvent) {
+    handleKeyDownCtrlC(event: Event) {
         if (!this.canvasUtils.isClipboardAvailable()) {
             return;
         }
@@ -713,20 +715,20 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     @HostListener('window:keydown.meta.c', ['$event'])
-    handleKeyDownMetaC(event: KeyboardEvent) {
+    handleKeyDownMetaC(event: Event) {
         if (this.executeAction('copy', event)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:paste', ['$event'])
-    handlePasteEvent(event: ClipboardEvent) {
+    handlePasteEvent(event: Event) {
         if (!this.processKeyboardEvents(event) || !this.canvasUtils.isPastable()) {
             // don't attempt to paste flow content
             return;
         }
 
-        const textToPaste = event.clipboardData?.getData('text/plain');
+        const textToPaste = (event as ClipboardEvent).clipboardData?.getData('text/plain');
         if (textToPaste) {
             const copyResponse: CopyResponseEntity | null = this.toCopyResponseEntity(textToPaste);
             if (copyResponse) {
@@ -743,14 +745,14 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     @HostListener('window:keydown.control.a', ['$event'])
-    handleKeyDownCtrlA(event: KeyboardEvent) {
+    handleKeyDownCtrlA(event: Event) {
         if (this.executeAction('selectAll', event)) {
             event.preventDefault();
         }
     }
 
     @HostListener('window:keydown.meta.a', ['$event'])
-    handleKeyDownMetaA(event: KeyboardEvent) {
+    handleKeyDownMetaA(event: Event) {
         if (this.executeAction('selectAll', event)) {
             event.preventDefault();
         }

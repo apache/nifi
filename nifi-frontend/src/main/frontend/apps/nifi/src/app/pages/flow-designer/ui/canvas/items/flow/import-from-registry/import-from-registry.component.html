@@ -24,8 +24,8 @@
                 <mat-form-field>
                     <mat-label>Registry</mat-label>
                     <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
-                        <ng-container *ngFor="let option of registryClientOptions">
-                            <ng-container *ngIf="option.description; else noDescription">
+                        @for (option of registryClientOptions; track option.value) {
+                            @if (option.description) {
                                 <mat-option
                                     [value]="option.value"
                                     nifiTooltip
@@ -34,11 +34,10 @@
                                     [delayClose]="false"
                                     >{{ option.text }}</mat-option
                                 >
-                            </ng-container>
-                            <ng-template #noDescription>
+                            } @else {
                                 <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                            </ng-template>
-                        </ng-container>
+                            }
+                        }
                     </mat-select>
                 </mat-form-field>
 
@@ -46,9 +45,9 @@
                     <mat-form-field>
                         <mat-label>Branch</mat-label>
                         <mat-select formControlName="branch" (selectionChange)="branchChanged($event.value)">
-                            <ng-container *ngFor="let option of branchOptions">
+                            @for (option of branchOptions; track option.value) {
                                 <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                            </ng-container>
+                            }
                         </mat-select>
                         @if (importFromRegistryForm.controls['branch'].hasError('required')) {
                             <mat-error>No branches available</mat-error>
@@ -59,8 +58,8 @@
                 <mat-form-field>
                     <mat-label>Bucket</mat-label>
                     <mat-select formControlName="bucket" (selectionChange)="bucketChanged($event.value)">
-                        <ng-container *ngFor="let option of bucketOptions">
-                            <ng-container *ngIf="option.description; else noDescription">
+                        @for (option of bucketOptions; track option.value) {
+                            @if (option.description) {
                                 <mat-option
                                     [value]="option.value"
                                     nifiTooltip
@@ -69,21 +68,20 @@
                                     [delayClose]="false"
                                     >{{ option.text }}</mat-option
                                 >
-                            </ng-container>
-                            <ng-template #noDescription>
+                            } @else {
                                 <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                            </ng-template>
-                        </ng-container>
+                            }
+                        }
                     </mat-select>
-                    <mat-error *ngIf="importFromRegistryForm.controls['bucket'].hasError('required')"
-                        >No buckets available</mat-error
-                    >
+                    @if (importFromRegistryForm.controls['bucket'].hasError('required')) {
+                        <mat-error>No buckets available</mat-error>
+                    }
                 </mat-form-field>
                 <mat-form-field>
                     <mat-label>Flow</mat-label>
                     <mat-select formControlName="flow" (selectionChange)="flowChanged($event.value)">
-                        <ng-container *ngFor="let option of flowOptions">
-                            <ng-container *ngIf="option.description; else noDescription">
+                        @for (option of flowOptions; track option.value) {
+                            @if (option.description) {
                                 <mat-option
                                     [value]="option.value"
                                     nifiTooltip
@@ -92,15 +90,14 @@
                                     [delayClose]="false"
                                     >{{ option.text }}</mat-option
                                 >
-                            </ng-container>
-                            <ng-template #noDescription>
+                            } @else {
                                 <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                            </ng-template>
-                        </ng-container>
+                            }
+                        }
                     </mat-select>
-                    <mat-error *ngIf="importFromRegistryForm.controls['flow'].hasError('required')"
-                        >No flows available</mat-error
-                    >
+                    @if (importFromRegistryForm.controls['flow'].hasError('required')) {
+                        <mat-error>No flows available</mat-error>
+                    }
                 </mat-form-field>
                 <div class="mb-5">
                     <mat-checkbox formControlName="keepParameterContexts">
@@ -189,16 +186,17 @@
             }
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
+    @let saving = (saving$ | async)!;
+    <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="
-                importFromRegistryForm.invalid || saving.value || !selectedFlowVersion || importFromRegistryForm.pending
+                importFromRegistryForm.invalid || saving || !selectedFlowVersion || importFromRegistryForm.pending
             "
             type="button"
             (click)="importFromRegistry()"
             mat-flat-button>
-            <span *nifiSpinner="saving.value">Import</span>
+            <span *nifiSpinner="saving">Import</span>
         </button>
     </mat-dialog-actions>
 </form>
