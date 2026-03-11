@@ -44,7 +44,6 @@ import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHan
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -64,7 +63,7 @@ import java.util.function.Consumer;
  * per shard via HTTP/2. Uses Reactive Streams demand-driven backpressure to control the
  * rate of event delivery.
  */
-final class EfoKinesisClient extends KinesisConsumerClient {
+final class EnhancedFanOutClient extends KinesisConsumerClient {
 
     private static final long SUBSCRIBE_BACKOFF_NANOS = TimeUnit.SECONDS.toNanos(5);
     private static final long CONSUMER_REGISTRATION_POLL_MILLIS = 1_000;
@@ -75,29 +74,17 @@ final class EfoKinesisClient extends KinesisConsumerClient {
     private final Queue<ShardConsumer> pausedConsumers = new ConcurrentLinkedQueue<>();
     private volatile KinesisAsyncClient kinesisAsyncClient;
     private volatile String consumerArn;
-    private volatile Instant timestampForInitialPosition;
+    private volatile String streamName;
 
-    EfoKinesisClient(final KinesisClient kinesisClient, final ComponentLog logger) {
+    EnhancedFanOutClient(final KinesisClient kinesisClient, final ComponentLog logger) {
         super(kinesisClient, logger);
-    }
-
-    void setTimestampForInitialPosition(final Instant timestamp) {
-        this.timestampForInitialPosition = timestamp;
     }
 
     @Override
     void initialize(final KinesisAsyncClient asyncClient, final String streamName, final String consumerName) {
         this.kinesisAsyncClient = asyncClient;
+        this.streamName = streamName;
         registerEfoConsumer(streamName, consumerName);
-    }
-
-    void initializeForTest(final KinesisAsyncClient asyncClient, final String theConsumerArn) {
-        this.kinesisAsyncClient = asyncClient;
-        this.consumerArn = theConsumerArn;
-    }
-
-    ShardConsumer getShardConsumer(final String shardId) {
-        return shardConsumers.get(shardId);
     }
 
     @Override
@@ -110,9 +97,9 @@ final class EfoKinesisClient extends KinesisConsumerClient {
 
             if (existing == null) {
                 final String checkpoint = shardManager.readCheckpoint(shardId);
-                final BigInteger lastSeq = checkpoint != null ? new BigInteger(checkpoint) : null;
+                final BigInteger lastSeq = checkpoint == null ? null : new BigInteger(checkpoint);
                 final StartingPosition startingPosition = buildStartingPosition(lastSeq, initialStreamPosition);
-                logger.info("Creating EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), lastSeq);
+                logger.info("Creating Enhanced Fan-Out subscription for stream [{}] shard [{}] type [{}] seq [{}]", streamName, shardId, startingPosition.type(), lastSeq);
                 final ShardConsumer shardConsumer = new ShardConsumer(shardId, result -> enqueueIfActiveConsumer(shardId, result), pausedConsumers, logger);
                 final ShardConsumer prior = shardConsumers.putIfAbsent(shardId, shardConsumer);
                 if (prior == null) {
@@ -134,7 +121,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                 final BigInteger lastQueued = existing.getLastQueuedSequenceNumber();
                 final BigInteger resumeSeq = maxSequenceNumber(lastQueued, checkpointSeq);
                 final StartingPosition startingPosition = buildStartingPosition(resumeSeq, initialStreamPosition);
-                logger.debug("Renewing expired EFO subscription for shard {} with type={}, seq={}", shardId, startingPosition.type(), resumeSeq);
+                logger.debug("Renewing expired Enhanced Fan-Out subscription for stream [{}] shard [{}] type [{}] seq [{}]", streamName, shardId, startingPosition.type(), resumeSeq);
                 existing.subscribe(kinesisAsyncClient, consumerArn, startingPosition);
             }
         }
@@ -231,7 +218,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         }
 
         final int queueDepth = totalQueuedResults();
-        logger.debug("Kinesis EFO diagnostics: discoveredShards={}, ownedShards={}, queueDepth={}/{}, shardConsumers={}, activeSubscriptions={}, expiredSubscriptions={}, backedOff={}",
+        logger.debug("Kinesis Enhanced Fan-Out diagnostics: discoveredShards={}, ownedShards={}, queueDepth={}/{}, shardConsumers={}, activeSubscriptions={}, expiredSubscriptions={}, backedOff={}",
                 cachedShardCount, ownedCount, queueDepth, MAX_QUEUED_RESULTS, shardConsumers.size(), activeSubscriptions, expiredSubscriptions, backedOff);
     }
 
@@ -248,6 +235,15 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         }
 
         super.close();
+    }
+
+    void initializeForTest(final KinesisAsyncClient asyncClient, final String consumerArn) {
+        this.kinesisAsyncClient = asyncClient;
+        this.consumerArn = consumerArn;
+    }
+
+    ShardConsumer getShardConsumer(final String shardId) {
+        return shardConsumers.get(shardId);
     }
 
     String getConsumerArn() {
@@ -267,7 +263,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             final ConsumerStatus status = kinesisClient.describeStreamConsumer(describeConsumerReq).consumerDescription().consumerStatus();
             if (status == ConsumerStatus.ACTIVE) {
                 consumerArn = kinesisClient.describeStreamConsumer(describeConsumerReq).consumerDescription().consumerARN();
-                logger.info("EFO consumer [{}] already registered and ACTIVE", consumerName);
+                logger.info("Enhanced Fan-Out consumer [{}] for stream [{}] already registered and ACTIVE", consumerName, streamName);
                 return;
             }
         } catch (final ResourceNotFoundException ignored) {
@@ -280,29 +276,29 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                     .build();
             final RegisterStreamConsumerResponse registerResponse = kinesisClient.registerStreamConsumer(registerRequest);
             consumerArn = registerResponse.consumer().consumerARN();
-            logger.info("Registered EFO consumer [{}], waiting for ACTIVE status", consumerName);
+            logger.info("Registered Enhanced Fan-Out consumer [{}] for stream [{}], waiting for ACTIVE status", consumerName, streamName);
         } catch (final ResourceInUseException e) {
             final DescribeStreamConsumerRequest fallbackRequest = DescribeStreamConsumerRequest.builder()
                     .streamARN(arn)
                     .consumerName(consumerName)
                     .build();
             consumerArn = kinesisClient.describeStreamConsumer(fallbackRequest).consumerDescription().consumerARN();
-            logger.info("EFO consumer [{}] already being registered", consumerName);
+            logger.info("Enhanced Fan-Out consumer [{}] for stream [{}] already being registered", consumerName, streamName);
         }
 
         waitForConsumerActive(arn, consumerName);
     }
 
-    private void waitForConsumerActive(final String theStreamArn, final String consumerName) {
+    private void waitForConsumerActive(final String streamArn, final String consumerName) {
         final DescribeStreamConsumerRequest describeConsumerRequest = DescribeStreamConsumerRequest.builder()
-                .streamARN(theStreamArn)
+                .streamARN(streamArn)
                 .consumerName(consumerName)
                 .build();
 
         for (int i = 0; i < CONSUMER_REGISTRATION_MAX_ATTEMPTS; i++) {
             final ConsumerStatus status = kinesisClient.describeStreamConsumer(describeConsumerRequest).consumerDescription().consumerStatus();
             if (status == ConsumerStatus.ACTIVE) {
-                logger.info("EFO consumer [{}] is now ACTIVE", consumerName);
+                logger.info("Enhanced Fan-Out consumer [{}] for stream [{}] is now ACTIVE", consumerName, streamName);
                 return;
             }
 
@@ -310,11 +306,11 @@ final class EfoKinesisClient extends KinesisConsumerClient {
                 Thread.sleep(CONSUMER_REGISTRATION_POLL_MILLIS);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new ProcessException("Interrupted while waiting for EFO consumer registration", e);
+                throw new ProcessException("Interrupted while waiting for Enhanced Fan-Out consumer [%s] registration for stream [%s]".formatted(consumerName, streamName), e);
             }
         }
 
-        throw new ProcessException("EFO consumer [%s] did not become ACTIVE within %d seconds".formatted(consumerName, CONSUMER_REGISTRATION_MAX_ATTEMPTS));
+        throw new ProcessException("Enhanced Fan-Out consumer [%s] for stream [%s] did not become ACTIVE within %d seconds".formatted(consumerName, streamName, CONSUMER_REGISTRATION_MAX_ATTEMPTS));
     }
 
     private static BigInteger maxSequenceNumber(final BigInteger a, final BigInteger b) {
@@ -336,8 +332,8 @@ final class EfoKinesisClient extends KinesisConsumerClient {
         }
         final ShardIteratorType iteratorType = ShardIteratorType.fromValue(initialStreamPosition);
         final StartingPosition.Builder builder = StartingPosition.builder().type(iteratorType);
-        if (iteratorType == ShardIteratorType.AT_TIMESTAMP && timestampForInitialPosition != null) {
-            builder.timestamp(timestampForInitialPosition);
+        if (iteratorType == ShardIteratorType.AT_TIMESTAMP && getTimestampForInitialPosition() != null) {
+            builder.timestamp(getTimestampForInitialPosition());
         }
         return builder.build();
     }
@@ -363,7 +359,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             this.consumerLogger = consumerLogger;
         }
 
-        void subscribe(final KinesisAsyncClient asyncClient, final String theConsumerArn, final StartingPosition startingPosition) {
+        void subscribe(final KinesisAsyncClient asyncClient, final String consumerArn, final StartingPosition startingPosition) {
             if (!subscribing.compareAndSet(false, true)) {
                 return;
             }
@@ -372,7 +368,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
 
             try {
                 final SubscribeToShardRequest request = SubscribeToShardRequest.builder()
-                        .consumerARN(theConsumerArn)
+                        .consumerARN(consumerArn)
                         .shardId(shardId)
                         .startingPosition(startingPosition)
                         .build();
@@ -469,13 +465,13 @@ final class EfoKinesisClient extends KinesisConsumerClient {
 
         private void logSubscriptionError(final Throwable t) {
             if (isCancellation(t)) {
-                consumerLogger.debug("EFO subscription cancelled for shard {}", shardId);
+                consumerLogger.debug("Enhanced Fan-Out subscription cancelled for shard [{}]", shardId);
             } else if (isRetryableSubscriptionError(t)) {
-                consumerLogger.info("EFO subscription temporarily rejected for shard {}; will retry after backoff", shardId);
+                consumerLogger.info("Enhanced Fan-Out subscription temporarily rejected for shard [{}]; will retry after backoff", shardId);
             } else if (isRetryableStreamDisconnect(t)) {
-                consumerLogger.info("EFO subscription disconnected for shard {}; will retry", shardId);
+                consumerLogger.info("Enhanced Fan-Out subscription disconnected for shard [{}]; will retry", shardId);
             } else {
-                consumerLogger.error("EFO subscription error for shard {}", shardId, t);
+                consumerLogger.error("Enhanced Fan-Out subscription error for shard [{}]", shardId, t);
             }
         }
 
@@ -540,9 +536,9 @@ final class EfoKinesisClient extends KinesisConsumerClient {
             final int kept = records.size() - firstNewIndex;
             deduplicatedEvents.incrementAndGet();
             if (kept == 0) {
-                consumerLogger.debug("Skipped re-delivered EFO event for shard {} ({} records already seen)", shardId, records.size());
+                consumerLogger.debug("Skipped re-delivered Enhanced Fan-Out event for shard [{}] ({} records already seen)", shardId, records.size());
             } else {
-                consumerLogger.debug("Filtered {} duplicate record(s) from EFO event for shard {} (kept {})", firstNewIndex, shardId, kept);
+                consumerLogger.debug("Filtered {} duplicate record(s) from Enhanced Fan-Out event for shard [{}] (kept {})", firstNewIndex, shardId, kept);
             }
 
             return records.subList(firstNewIndex, records.size());
@@ -597,7 +593,7 @@ final class EfoKinesisClient extends KinesisConsumerClient {
 
             @Override
             public void onComplete() {
-                consumerLogger.debug("EFO subscription completed normally for shard {}", shardId);
+                consumerLogger.debug("Enhanced Fan-Out subscription completed normally for shard [{}]", shardId);
                 endSubscriptionIfCurrent(generation);
             }
         }

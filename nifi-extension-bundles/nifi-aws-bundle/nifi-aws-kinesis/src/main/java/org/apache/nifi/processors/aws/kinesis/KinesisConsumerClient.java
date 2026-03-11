@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.kinesis.model.Record;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -54,10 +55,19 @@ abstract class KinesisConsumerClient {
     protected final Set<String> shardsInFlight = ConcurrentHashMap.newKeySet();
 
     private volatile long lastDiagnosticLogNanos;
+    private volatile Instant timestampForInitialPosition;
 
     KinesisConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger) {
         this.kinesisClient = kinesisClient;
         this.logger = logger;
+    }
+
+    void setTimestampForInitialPosition(final Instant timestamp) {
+        this.timestampForInitialPosition = timestamp;
+    }
+
+    Instant getTimestampForInitialPosition() {
+        return timestampForInitialPosition;
     }
 
     void initialize(final KinesisAsyncClient asyncClient, final String streamName, final String consumerName) {
@@ -94,7 +104,7 @@ abstract class KinesisConsumerClient {
 
     ShardFetchResult pollShardResult(final String shardId) {
         final Queue<ShardFetchResult> queue = shardQueues.get(shardId);
-        final ShardFetchResult result = queue != null ? queue.poll() : null;
+        final ShardFetchResult result = queue == null ? null : queue.poll();
         if (result != null) {
             onResultPolled();
         }
@@ -177,7 +187,7 @@ abstract class KinesisConsumerClient {
     }
 
     protected static ShardFetchResult createFetchResult(final String shardId, final List<Record> records, final long millisBehindLatest) {
-        return new ShardFetchResult(shardId, KplDeaggregator.deaggregate(shardId, records), millisBehindLatest);
+        return new ShardFetchResult(shardId, ProducerLibraryDeaggregator.deaggregate(shardId, records), millisBehindLatest);
     }
 
     long drainDeduplicatedEventCount() {

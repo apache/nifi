@@ -219,7 +219,7 @@ final class KinesisShardManager {
                 if (item != null && item.containsKey("leaseOwner")) {
                     final String owner = item.get("leaseOwner").s();
                     final AttributeValue expiryAttr = item.get("leaseExpiry");
-                    final long expiry = expiryAttr != null ? Long.parseLong(expiryAttr.n()) : 0;
+                    final long expiry = expiryAttr == null ? 0 : Long.parseLong(expiryAttr.n());
                     if (expiry >= now) {
                         ownerToShards.computeIfAbsent(owner, k -> new ArrayList<>()).add(shardId);
                     } else {
@@ -446,7 +446,7 @@ final class KinesisShardManager {
                     : queryBuilder.exclusiveStartKey(exclusiveStartKey).build();
             final QueryResponse queryResponse = dynamoDbClient.query(queryRequest);
             for (final Map<String, AttributeValue> item : queryResponse.items()) {
-                final AttributeValue shardIdAttr = item.get("shardId");
+                final AttributeValue shardIdAttr = item.get(CheckpointTableUtils.ATTR_SHARD_ID);
                 if (shardIdAttr == null) {
                     continue;
                 }
@@ -545,8 +545,8 @@ final class KinesisShardManager {
 
     private Map<String, AttributeValue> checkpointKey(final String shardId) {
         return Map.of(
-            "streamName", AttributeValue.builder().s(streamName).build(),
-            "shardId", AttributeValue.builder().s(shardId).build());
+            CheckpointTableUtils.ATTR_STREAM_NAME, AttributeValue.builder().s(streamName).build(),
+            CheckpointTableUtils.ATTR_SHARD_ID, AttributeValue.builder().s(shardId).build());
     }
 
     private void releaseLease(final String shardId) {

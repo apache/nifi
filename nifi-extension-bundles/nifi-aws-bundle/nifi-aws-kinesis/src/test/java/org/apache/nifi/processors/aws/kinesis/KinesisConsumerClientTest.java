@@ -60,7 +60,7 @@ class KinesisConsumerClientTest {
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("11111");
 
         final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
-        final EfoKinesisClient client = createEfoClient(capturedRequests);
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
 
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
@@ -71,7 +71,7 @@ class KinesisConsumerClientTest {
         assertEquals("11111", capturedRequests.get(0).startingPosition().sequenceNumber(),
                 "Initial subscription should use the DynamoDB checkpoint");
 
-        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
         consumer.setLastQueuedSequenceNumber(new BigInteger("99999"));
         consumer.resetForRenewal();
 
@@ -95,13 +95,13 @@ class KinesisConsumerClientTest {
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("55555");
 
         final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
-        final EfoKinesisClient client = createEfoClient(capturedRequests);
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
 
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
-        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
         consumer.resetForRenewal();
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
@@ -123,12 +123,12 @@ class KinesisConsumerClientTest {
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("10000");
 
         final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
-        final EfoKinesisClient client = createEfoClient(capturedRequests);
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
-        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
         consumer.setLastQueuedSequenceNumber(new BigInteger("20000"));
         consumer.resetForRenewal();
 
@@ -152,7 +152,7 @@ class KinesisConsumerClientTest {
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
         final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
-        final EfoKinesisClient client = createEfoClient(capturedRequests);
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
@@ -184,7 +184,7 @@ class KinesisConsumerClientTest {
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
         final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
-        final EfoKinesisClient client = createEfoClient(capturedRequests);
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
 
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
@@ -213,11 +213,11 @@ class KinesisConsumerClientTest {
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
         final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
-        final EfoKinesisClient client = createEfoClient(capturedRequests);
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
         client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
 
-        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
         final Subscription subscription = mock(Subscription.class);
         consumer.setSubscription(subscription);
         consumer.pause();
@@ -248,7 +248,7 @@ class KinesisConsumerClientTest {
                     return new CompletableFuture<>();
                 });
 
-        final EfoKinesisClient client = new EfoKinesisClient(mock(KinesisClient.class), mock(ComponentLog.class));
+        final EnhancedFanOutClient client = new EnhancedFanOutClient(mock(KinesisClient.class), mock(ComponentLog.class));
         client.initializeForTest(mockAsyncClient, "arn:aws:kinesis:us-east-1:123456789:stream/test/consumer/test:1");
 
         final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
@@ -266,7 +266,7 @@ class KinesisConsumerClientTest {
                 "Concurrent startup should create only one initial SubscribeToShard request per shard");
     }
 
-    private static EfoKinesisClient createEfoClient(final List<SubscribeToShardRequest> capturedRequests) {
+    private static EnhancedFanOutClient createEfoClient(final List<SubscribeToShardRequest> capturedRequests) {
         final KinesisAsyncClient mockAsyncClient = mock(KinesisAsyncClient.class);
 
         when(mockAsyncClient.subscribeToShard(any(SubscribeToShardRequest.class), any(SubscribeToShardResponseHandler.class)))
@@ -275,16 +275,16 @@ class KinesisConsumerClientTest {
                     return CompletableFuture.completedFuture(null);
                 });
 
-        final EfoKinesisClient client = new EfoKinesisClient(mock(KinesisClient.class), mock(ComponentLog.class));
+        final EnhancedFanOutClient client = new EnhancedFanOutClient(mock(KinesisClient.class), mock(ComponentLog.class));
         client.initializeForTest(mockAsyncClient, "arn:aws:kinesis:us-east-1:123456789:stream/test/consumer/test:1");
         return client;
     }
 
     private static void simulateExpiredSubscriptionWithState(
-            final EfoKinesisClient client,
+            final EnhancedFanOutClient client,
             final String shardId,
             final String lastQueuedSeq) {
-        final EfoKinesisClient.ShardConsumer consumer = client.getShardConsumer(shardId);
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer(shardId);
         consumer.resetForRenewal();
         consumer.setLastQueuedSequenceNumber(new BigInteger(lastQueuedSeq));
     }
@@ -311,8 +311,8 @@ class KinesisConsumerClientTest {
         when(mockAsyncClient.subscribeToShard(any(SubscribeToShardRequest.class), any(SubscribeToShardResponseHandler.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
-        final EfoKinesisClient.ShardConsumer consumer =
-                new EfoKinesisClient.ShardConsumer("shardId-000000000001", result -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
+        final EnhancedFanOutClient.ShardConsumer consumer =
+                new EnhancedFanOutClient.ShardConsumer("shardId-000000000001", result -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
 
         final StartingPosition pos = StartingPosition.builder()
                 .type(ShardIteratorType.TRIM_HORIZON)
@@ -351,7 +351,7 @@ class KinesisConsumerClientTest {
     }
 
     private static ShardFetchResult shardFetchResult(final String shardId, final String sequenceNumber) {
-        final DeaggregatedRecord record = new DeaggregatedRecord(shardId, sequenceNumber, 0, "pk", "{}".getBytes(), null);
+        final UserRecord record = new UserRecord(shardId, sequenceNumber, 0, "pk", "{}".getBytes(), null);
         return new ShardFetchResult(shardId, List.of(record), 0L);
     }
 

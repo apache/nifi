@@ -615,7 +615,7 @@ class ConsumeKinesisIT {
         runUntilOutput(runner);
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKinesis.REL_SUCCESS);
-        assertEquals(15, flowFiles.size(), "3 aggregated records x 5 sub-records each");
+        assertEquals(15, flowFiles.size());
 
         final Set<String> contents = new HashSet<>();
         for (final MockFlowFile ff : flowFiles) {
@@ -837,12 +837,12 @@ class ConsumeKinesisIT {
 
     /**
      * Runs the processor with retries until at least one FlowFile appears on any output relationship
-     * (success or parse failure), or a 10-second deadline is reached. This guards against
+     * (success or parse failure), or a 30-second deadline is reached. This guards against
      * timing-sensitive tests on slow systems where LocalStack may not propagate records within a
      * single 200ms batch window.
      */
     private void runUntilOutput(final TestRunner testRunner) throws InterruptedException {
-        final long deadline = System.currentTimeMillis() + 10_000;
+        final long deadline = System.currentTimeMillis() + 30_000;
         testRunner.run(1, false, true);
         while (!hasOutput(testRunner) && System.currentTimeMillis() < deadline) {
             Thread.sleep(200);
@@ -913,7 +913,7 @@ class ConsumeKinesisIT {
         try {
             final byte[] md5 = MessageDigest.getInstance("MD5").digest(protobufBytes);
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
-            out.write(KplDeaggregator.KPL_MAGIC);
+            out.write(ProducerLibraryDeaggregator.KPL_MAGIC);
             out.write(protobufBytes);
             out.write(md5);
             payload = out.toByteArray();

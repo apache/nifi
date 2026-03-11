@@ -32,7 +32,7 @@ import java.util.List;
  *
  * <p>KPL aggregation packs multiple user records into a single Kinesis record using a protobuf
  * envelope with a 4-byte magic header and a 16-byte MD5 trailer. Non-aggregated records
- * pass through unchanged as a single {@link DeaggregatedRecord} with {@code subSequenceNumber=0}.
+ * pass through unchanged as a single {@link UserRecord} with {@code subSequenceNumber=0}.
  *
  * <p>If a record has the magic header but fails MD5 verification or protobuf parsing, it falls
  * back to passthrough to avoid data loss.
@@ -44,7 +44,7 @@ import java.util.List;
  *
  * @see <a href="https://github.com/awslabs/amazon-kinesis-producer/blob/master/aggregation-format.md">KPL Aggregation Format</a>
  */
-final class KplDeaggregator {
+final class ProducerLibraryDeaggregator {
 
     static final byte[] KPL_MAGIC = {(byte) 0xF3, (byte) 0x89, (byte) 0x9A, (byte) 0xC2};
     private static final int MD5_DIGEST_LENGTH = 16;
@@ -58,7 +58,7 @@ final class KplDeaggregator {
     private static final int RECORD_FIELD_EXPLICIT_HASH_KEY_INDEX = 2;
     private static final int RECORD_FIELD_DATA = 3;
 
-    private KplDeaggregator() {
+    private ProducerLibraryDeaggregator() {
     }
 
     /**
@@ -69,15 +69,15 @@ final class KplDeaggregator {
      * @param records raw Kinesis records from the API
      * @return list of deaggregated records preserving original order
      */
-    static List<DeaggregatedRecord> deaggregate(final String shardId, final List<Record> records) {
-        final List<DeaggregatedRecord> result = new ArrayList<>();
+    static List<UserRecord> deaggregate(final String shardId, final List<Record> records) {
+        final List<UserRecord> result = new ArrayList<>();
         for (final Record record : records) {
             deaggregateRecord(shardId, record, result);
         }
         return result;
     }
 
-    private static void deaggregateRecord(final String shardId, final Record record, final List<DeaggregatedRecord> out) {
+    private static void deaggregateRecord(final String shardId, final Record record, final List<UserRecord> out) {
         final byte[] data = record.data().asByteArrayUnsafe();
 
         if (!isAggregated(data)) {
@@ -111,23 +111,27 @@ final class KplDeaggregator {
     }
 
     private static boolean verifyMd5(final byte[] data, final int protobufOffset, final int protobufLength) {
+        final MessageDigest md5 = getMd5Digest();
+        md5.update(data, protobufOffset, protobufLength);
+        final byte[] computed = md5.digest();
+        final int md5Offset = protobufOffset + protobufLength;
+        return Arrays.equals(computed, 0, MD5_DIGEST_LENGTH, data, md5Offset, md5Offset + MD5_DIGEST_LENGTH);
+    }
+
+    private static MessageDigest getMd5Digest() {
         try {
-            final MessageDigest md5 = MessageDigest.getInstance("MD5");
-            md5.update(data, protobufOffset, protobufLength);
-            final byte[] computed = md5.digest();
-            final int md5Offset = protobufOffset + protobufLength;
-            return Arrays.equals(computed, 0, MD5_DIGEST_LENGTH, data, md5Offset, md5Offset + MD5_DIGEST_LENGTH);
+            return MessageDigest.getInstance("MD5");
         } catch (final NoSuchAlgorithmException e) {
-            return false;
+            throw new IllegalStateException("MD5 algorithm not available", e);
         }
     }
 
     private static void parseAggregatedRecord(final String shardId, final Record kinesisRecord,
-            final byte[] data, final int protobufOffset, final int protobufLength, final List<DeaggregatedRecord> out) throws Exception {
+            final byte[] data, final int protobufOffset, final int protobufLength, final List<UserRecord> out) throws Exception {
 
         final List<String> partitionKeyTable = new ArrayList<>();
-        final List<byte[]> subRecordDataList = new ArrayList<>();
-        final List<Integer> subRecordPkIndexList = new ArrayList<>();
+        final List<byte[]> subRecordData = new ArrayList<>();
+        final List<Integer> subRecordPartitionKeyIndexes = new ArrayList<>();
 
         final CodedInputStream input = CodedInputStream.newInstance(data, protobufOffset, protobufLength);
         while (!input.isAtEnd()) {
@@ -143,20 +147,20 @@ final class KplDeaggregator {
                 case FIELD_RECORDS:
                     final int length = input.readRawVarint32();
                     final int oldLimit = input.pushLimit(length);
-                    int pkIndex = 0;
-                    byte[] subData = new byte[0];
+                    int partitionKeyIndex = 0;
+                    byte[] subRecordPayload = new byte[0];
                     while (!input.isAtEnd()) {
                         final int innerTag = input.readTag();
                         final int innerField = WireFormat.getTagFieldNumber(innerTag);
                         switch (innerField) {
                             case RECORD_FIELD_PARTITION_KEY_INDEX:
-                                pkIndex = (int) input.readUInt64();
+                                partitionKeyIndex = (int) input.readUInt64();
                                 break;
                             case RECORD_FIELD_EXPLICIT_HASH_KEY_INDEX:
                                 input.readUInt64();
                                 break;
                             case RECORD_FIELD_DATA:
-                                subData = input.readByteArray();
+                                subRecordPayload = input.readByteArray();
                                 break;
                             default:
                                 input.skipField(innerTag);
@@ -164,8 +168,8 @@ final class KplDeaggregator {
                         }
                     }
                     input.popLimit(oldLimit);
-                    subRecordDataList.add(subData);
-                    subRecordPkIndexList.add(pkIndex);
+                    subRecordData.add(subRecordPayload);
+                    subRecordPartitionKeyIndexes.add(partitionKeyIndex);
                     break;
                 default:
                     input.skipField(tag);
@@ -177,17 +181,18 @@ final class KplDeaggregator {
         final Instant arrival = kinesisRecord.approximateArrivalTimestamp();
         final String fallbackPartitionKey = kinesisRecord.partitionKey();
 
-        for (int i = 0; i < subRecordDataList.size(); i++) {
-            final int pkIdx = subRecordPkIndexList.get(i);
-            final String partitionKey = pkIdx < partitionKeyTable.size()
-                    ? partitionKeyTable.get(pkIdx)
-                    : fallbackPartitionKey;
-            out.add(new DeaggregatedRecord(shardId, sequenceNumber, i, partitionKey, subRecordDataList.get(i), arrival));
+        for (int i = 0; i < subRecordData.size(); i++) {
+            final int partitionKeyTableIndex = subRecordPartitionKeyIndexes.get(i);
+            final String partitionKey = partitionKeyTableIndex < partitionKeyTable.size()
+                    ? partitionKeyTable.get(partitionKeyTableIndex) : fallbackPartitionKey;
+
+            final UserRecord record = new UserRecord(shardId, sequenceNumber, i, partitionKey, subRecordData.get(i), arrival);
+            out.add(record);
         }
     }
 
-    private static DeaggregatedRecord passthrough(final String shardId, final Record record, final byte[] data) {
-        return new DeaggregatedRecord(
+    private static UserRecord passthrough(final String shardId, final Record record, final byte[] data) {
+        return new UserRecord(
                 shardId,
                 record.sequenceNumber(),
                 0,

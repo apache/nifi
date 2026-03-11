@@ -31,7 +31,7 @@ import java.time.Instant;
  * @param data the user payload bytes
  * @param approximateArrivalTimestamp approximate time the enclosing record arrived at Kinesis
  */
-record DeaggregatedRecord(
+record UserRecord(
         String shardId,
         String sequenceNumber,
         long subSequenceNumber,

@@ -46,6 +46,8 @@ import java.util.Map;
  */
 final class CheckpointTableUtils {
 
+    static final String ATTR_STREAM_NAME = "streamName";
+    static final String ATTR_SHARD_ID = "shardId";
     static final String NODE_HEARTBEAT_PREFIX = "__node__#";
     static final String MIGRATION_MARKER_SHARD_ID = "__migration__";
 
@@ -66,8 +68,8 @@ final class CheckpointTableUtils {
             final DescribeTableResponse describe = client.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
             final List<KeySchemaElement> keySchema = describe.table().keySchema();
             if (keySchema.size() == 2
-                    && hasKey(keySchema, "streamName", KeyType.HASH)
-                    && hasKey(keySchema, "shardId", KeyType.RANGE)) {
+                    && hasKey(keySchema, ATTR_STREAM_NAME, KeyType.HASH)
+                    && hasKey(keySchema, ATTR_SHARD_ID, KeyType.RANGE)) {
                 return TableSchema.NEW;
             }
 
@@ -96,11 +98,11 @@ final class CheckpointTableUtils {
             final CreateTableRequest request = CreateTableRequest.builder()
                     .tableName(tableName)
                     .keySchema(
-                            KeySchemaElement.builder().attributeName("streamName").keyType(KeyType.HASH).build(),
-                            KeySchemaElement.builder().attributeName("shardId").keyType(KeyType.RANGE).build())
+                            KeySchemaElement.builder().attributeName(ATTR_STREAM_NAME).keyType(KeyType.HASH).build(),
+                            KeySchemaElement.builder().attributeName(ATTR_SHARD_ID).keyType(KeyType.RANGE).build())
                     .attributeDefinitions(
-                            AttributeDefinition.builder().attributeName("streamName").attributeType(ScalarAttributeType.S).build(),
-                            AttributeDefinition.builder().attributeName("shardId").attributeType(ScalarAttributeType.S).build())
+                            AttributeDefinition.builder().attributeName(ATTR_STREAM_NAME).attributeType(ScalarAttributeType.S).build(),
+                            AttributeDefinition.builder().attributeName(ATTR_SHARD_ID).attributeType(ScalarAttributeType.S).build())
                     .billingMode(BillingMode.PAY_PER_REQUEST)
                     .build();
 
@@ -123,7 +125,7 @@ final class CheckpointTableUtils {
                 Thread.sleep(TABLE_POLL_MILLIS);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new ProcessException("Interrupted while waiting for DynamoDB table to become ACTIVE", e);
+                throw new ProcessException("Interrupted while waiting for DynamoDB table [%s] to become ACTIVE".formatted(tableName), e);
             }
         }
 
@@ -153,7 +155,7 @@ final class CheckpointTableUtils {
                 Thread.sleep(TABLE_POLL_MILLIS);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new ProcessException("Interrupted while waiting for DynamoDB table deletion", e);
+                throw new ProcessException("Interrupted while waiting for DynamoDB table [%s] deletion".formatted(tableName), e);
             }
         }
 
@@ -173,7 +175,7 @@ final class CheckpointTableUtils {
             final ScanResponse scanResponse = client.scan(scanRequest);
 
             for (final Map<String, AttributeValue> item : scanResponse.items()) {
-                final AttributeValue shardIdAttr = item.get("shardId");
+                final AttributeValue shardIdAttr = item.get(ATTR_SHARD_ID);
                 if (shardIdAttr != null) {
                     final String shardId = shardIdAttr.s();
                     if (shardId.startsWith(NODE_HEARTBEAT_PREFIX)

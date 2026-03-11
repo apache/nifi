@@ -19,7 +19,7 @@ package org.apache.nifi.processors.aws.kinesis;
 import java.math.BigInteger;
 import java.util.List;
 
-record ShardFetchResult(String shardId, List<DeaggregatedRecord> records, long millisBehindLatest) {
+record ShardFetchResult(String shardId, List<UserRecord> records, long millisBehindLatest) {
 
     BigInteger firstSequenceNumber() {
         return new BigInteger(records.getFirst().sequenceNumber());

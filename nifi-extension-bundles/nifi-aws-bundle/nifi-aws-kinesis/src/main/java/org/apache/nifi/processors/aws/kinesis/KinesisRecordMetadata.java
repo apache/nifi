@@ -58,7 +58,7 @@ public final class KinesisRecordMetadata {
 
     public static final RecordField FIELD_METADATA = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(SCHEMA_METADATA));
 
-    public static Record composeMetadataObject(final DeaggregatedRecord record, final String streamName, final String shardId) {
+    public static Record composeMetadataObject(final UserRecord record, final String streamName, final String shardId) {
         final Map<String, Object> metadata = new HashMap<>(7, 1.0f);
 
         metadata.put(STREAM, streamName);

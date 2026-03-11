@@ -39,19 +39,29 @@ import static org.mockito.Mockito.when;
 
 class CheckpointTableUtilsTest {
 
+    private static final String STREAM_NAME = "my-stream";
+    private static final String SHARD_ID_1 = "shardId-0001";
+    private static final String SHARD_ID_2 = "shardId-0002";
+    private static final String SOURCE_TABLE = "source-table";
+    private static final String DEST_TABLE = "dest-table";
+
+    private static AttributeValue str(final String value) {
+        return AttributeValue.builder().s(value).build();
+    }
+
     @Test
     void testCopyCheckpointItemsCopiesShardItems() {
         final DynamoDbClient dynamoDb = mock(DynamoDbClient.class);
         final ComponentLog logger = mock(ComponentLog.class);
 
         final Map<String, AttributeValue> item = Map.of(
-                "streamName", AttributeValue.builder().s("my-stream").build(),
-                "shardId", AttributeValue.builder().s("shardId-0001").build(),
-                "sequenceNumber", AttributeValue.builder().s("12345").build());
+                "streamName", str(STREAM_NAME),
+                "shardId", str(SHARD_ID_1),
+                "sequenceNumber", str("12345"));
         when(dynamoDb.scan(any(ScanRequest.class))).thenReturn(ScanResponse.builder().items(item).build());
         when(dynamoDb.putItem(any(PutItemRequest.class))).thenReturn(PutItemResponse.builder().build());
 
-        CheckpointTableUtils.copyCheckpointItems(dynamoDb, logger, "source-table", "dest-table");
+        CheckpointTableUtils.copyCheckpointItems(dynamoDb, logger, SOURCE_TABLE, DEST_TABLE);
 
         final ArgumentCaptor<PutItemRequest> putCaptor = ArgumentCaptor.forClass(PutItemRequest.class);
         verify(dynamoDb, times(1)).putItem(putCaptor.capture());
@@ -64,21 +74,21 @@ class CheckpointTableUtilsTest {
         final ComponentLog logger = mock(ComponentLog.class);
 
         final Map<String, AttributeValue> nodeItem = Map.of(
-                "streamName", AttributeValue.builder().s("my-stream").build(),
-                "shardId", AttributeValue.builder().s("__node__#node-a").build());
+                "streamName", str(STREAM_NAME),
+                "shardId", str("__node__#node-a"));
         final Map<String, AttributeValue> migrationMarkerItem = Map.of(
-                "streamName", AttributeValue.builder().s("my-stream").build(),
-                "shardId", AttributeValue.builder().s("__migration__").build());
+                "streamName", str(STREAM_NAME),
+                "shardId", str("__migration__"));
         final Map<String, AttributeValue> shardItem = Map.of(
-                "streamName", AttributeValue.builder().s("my-stream").build(),
-                "shardId", AttributeValue.builder().s("shardId-0002").build(),
-                "sequenceNumber", AttributeValue.builder().s("67890").build());
+                "streamName", str(STREAM_NAME),
+                "shardId", str(SHARD_ID_2),
+                "sequenceNumber", str("67890"));
 
         when(dynamoDb.scan(any(ScanRequest.class))).thenReturn(
                 ScanResponse.builder().items(List.of(nodeItem, migrationMarkerItem, shardItem)).build());
         when(dynamoDb.putItem(any(PutItemRequest.class))).thenReturn(PutItemResponse.builder().build());
 
-        CheckpointTableUtils.copyCheckpointItems(dynamoDb, logger, "source-table", "dest-table");
+        CheckpointTableUtils.copyCheckpointItems(dynamoDb, logger, SOURCE_TABLE, DEST_TABLE);
 
         final ArgumentCaptor<PutItemRequest> putCaptor = ArgumentCaptor.forClass(PutItemRequest.class);
         verify(dynamoDb, times(1)).putItem(putCaptor.capture());
@@ -91,13 +101,13 @@ class CheckpointTableUtilsTest {
         final ComponentLog logger = mock(ComponentLog.class);
 
         final Map<String, AttributeValue> nodeItem = Map.of(
-                "streamName", AttributeValue.builder().s("my-stream").build(),
-                "shardId", AttributeValue.builder().s("__node__#node-b").build());
+                "streamName", str(STREAM_NAME),
+                "shardId", str("__node__#node-b"));
 
         when(dynamoDb.scan(any(ScanRequest.class))).thenReturn(
                 ScanResponse.builder().items(List.of(nodeItem)).build());
 
-        CheckpointTableUtils.copyCheckpointItems(dynamoDb, logger, "source-table", "dest-table");
+        CheckpointTableUtils.copyCheckpointItems(dynamoDb, logger, SOURCE_TABLE, DEST_TABLE);
 
         verify(dynamoDb, never()).putItem(any(PutItemRequest.class));
     }

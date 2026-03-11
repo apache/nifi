@@ -65,8 +65,6 @@ final class PollingKinesisClient extends KinesisConsumerClient {
     private final Semaphore queuePermits = new Semaphore(MAX_QUEUED_RESULTS, true);
     private final long emptyShardBackoffNanos;
     private final long errorBackoffNanos;
-    private volatile Instant timestampForInitialPosition;
-
     PollingKinesisClient(final KinesisClient kinesisClient, final ComponentLog logger) {
         this(kinesisClient, logger, DEFAULT_EMPTY_SHARD_BACKOFF_NANOS, DEFAULT_ERROR_BACKOFF_NANOS);
     }
@@ -76,10 +74,6 @@ final class PollingKinesisClient extends KinesisConsumerClient {
         super(kinesisClient, logger);
         this.emptyShardBackoffNanos = emptyShardBackoffNanos;
         this.errorBackoffNanos = errorBackoffNanos;
-    }
-
-    void setTimestampForInitialPosition(final Instant timestamp) {
-        this.timestampForInitialPosition = timestamp;
     }
 
     @Override
@@ -99,7 +93,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
                 }
             } else if (!existing.isExhausted() && !existing.isStopped() && !existing.isLoopRunning()
                     && existing.tryStartLoop()) {
-                logger.warn("Restarting dead fetch loop for shard {}", shardId);
+                logger.warn("Restarting dead fetch loop for stream [{}] shard [{}]", streamName, shardId);
                 launchFetchLoop(existing, shardId, streamName, batchSize, initialStreamPosition, shardManager);
             }
         }
@@ -205,7 +199,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
             });
         } catch (final RejectedExecutionException e) {
             state.markLoopStopped();
-            logger.debug("Executor shut down; cannot start fetch loop for shard {}", shardId);
+            logger.debug("Executor shut down; cannot start fetch loop for stream [{}] shard [{}]", streamName, shardId);
         }
     }
 
@@ -286,7 +280,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
                 }
             } catch (final Exception e) {
                 if (!state.isStopped()) {
-                    logger.error("Unexpected error in fetch loop for shard {}; will retry", shardId, e);
+                    logger.warn("Unexpected error in fetch loop for shard [{}]; will retry", shardId, e);
                     state.setIterator(null);
                     sleepNanos(errorBackoffNanos);
                 }
@@ -385,7 +379,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
             } else {
                 iteratorType = ShardIteratorType.fromValue(initialStreamPosition);
                 startingSequenceNumber = null;
-                timestamp = (iteratorType == ShardIteratorType.AT_TIMESTAMP) ? timestampForInitialPosition : null;
+                timestamp = (iteratorType == ShardIteratorType.AT_TIMESTAMP) ? getTimestampForInitialPosition() : null;
             }
 
             logger.debug("Getting shard iterator for shard {} with type={}, startingSeq={}, timestamp={}",

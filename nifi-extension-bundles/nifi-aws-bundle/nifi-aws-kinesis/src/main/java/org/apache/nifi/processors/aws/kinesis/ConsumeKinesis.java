@@ -63,7 +63,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.Protocol;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
@@ -433,11 +433,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
         final Instant timestampForPosition = resolveTimestampPosition(context);
         if (timestampForPosition != null) {
-            if (consumerClient instanceof PollingKinesisClient polling) {
-                polling.setTimestampForInitialPosition(timestampForPosition);
-            } else if (consumerClient instanceof EfoKinesisClient efo) {
-                efo.setTimestampForInitialPosition(timestampForPosition);
-            }
+            consumerClient.setTimestampForInitialPosition(timestampForPosition);
         }
 
         if (efoMode) {
@@ -484,18 +480,18 @@ public class ConsumeKinesis extends AbstractProcessor {
     }
 
     /**
-     * Builds an {@link ApacheHttpClient} with the given connection pool size and optional proxy
+     * Builds an {@link Apache5HttpClient} with the given connection pool size and optional proxy
      * configuration. Each AWS service client (Kinesis, DynamoDB) should receive its own HTTP client
      * so their connection pools are isolated and cannot starve each other under high shard counts.
      */
     private static SdkHttpClient buildApacheHttpClient(final ProxyConfiguration proxyConfig, final int maxConnections) {
-        final ApacheHttpClient.Builder builder = ApacheHttpClient.builder()
+        final Apache5HttpClient.Builder builder = Apache5HttpClient.builder()
                 .maxConnections(maxConnections);
 
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
             final URI proxyEndpoint = URI.create(String.format("http://%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort()));
-            final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyBuilder =
-                    software.amazon.awssdk.http.apache.ProxyConfiguration.builder().endpoint(proxyEndpoint);
+            final software.amazon.awssdk.http.apache5.ProxyConfiguration.Builder proxyBuilder =
+                    software.amazon.awssdk.http.apache5.ProxyConfiguration.builder().endpoint(proxyEndpoint);
 
             if (proxyConfig.hasCredential()) {
                 proxyBuilder.username(proxyConfig.getProxyUserName());
@@ -516,7 +512,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             shardManager = null;
         }
 
-        if (consumerClient instanceof EfoKinesisClient efo) {
+        if (consumerClient instanceof EnhancedFanOutClient efo) {
             efoConsumerArn = efo.getConsumerArn();
         }
         if (consumerClient != null) {
@@ -776,7 +772,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
                     for (final ShardFetchResult result : shardResults) {
                         batch.updateMillisBehind(result.millisBehindLatest());
-                        for (final DeaggregatedRecord record : result.records()) {
+                        for (final UserRecord record : result.records()) {
                             batch.addBytes(record.data().length);
                         }
                     }
@@ -792,7 +788,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                     for (final ShardFetchResult result : entry.getValue()) {
                         batch.updateMillisBehind(result.millisBehindLatest());
                         batch.updateSequenceRange(result);
-                        for (final DeaggregatedRecord record : result.records()) {
+                        for (final UserRecord record : result.records()) {
                             batch.addBytes(record.data().length);
                             batch.updateRecordRange(record);
                         }
@@ -828,7 +824,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     private void writeFlowFilePerRecord(final ProcessSession session, final List<ShardFetchResult> results,
                                         final String streamName, final BatchAccumulator batch, final List<FlowFile> output) {
         for (final ShardFetchResult result : results) {
-            for (final DeaggregatedRecord record : result.records()) {
+            for (final UserRecord record : result.records()) {
                 final byte[] recordBytes = record.data();
                 FlowFile flowFile = session.create();
                 try {
@@ -872,7 +868,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 public void process(final OutputStream out) throws IOException {
                     boolean first = true;
                     for (final ShardFetchResult result : results) {
-                        for (final DeaggregatedRecord record : result.records()) {
+                        for (final UserRecord record : result.records()) {
                             if (!first) {
                                 out.write(delimiter);
                             }
@@ -944,7 +940,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                                      final BatchAccumulator batch, final List<FlowFile> output,
                                      final List<FlowFile> parseFailureOutput) {
 
-        final List<DeaggregatedRecord> allRecords = new ArrayList<>();
+        final List<UserRecord> allRecords = new ArrayList<>();
         for (final ShardFetchResult result : results) {
             allRecords.addAll(result.records());
         }
@@ -966,7 +962,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     private void writeRecordBatch(final ProcessSession session, final RecordReaderFactory readerFactory,
                                   final RecordSetWriterFactory writerFactory, final OutputStrategy outputStrategy,
-                                  final List<DeaggregatedRecord> records,
+                                  final List<UserRecord> records,
                                   final String streamName, final BatchAccumulator batch, final List<FlowFile> output) {
 
         FlowFile flowFile = session.create();
@@ -996,7 +992,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                             int recordIndex = 0;
                             org.apache.nifi.serialization.record.Record nifiRecord;
                             while ((nifiRecord = reader.nextRecord()) != null) {
-                                final DeaggregatedRecord record = records.get(recordIndex++);
+                                final UserRecord record = records.get(recordIndex++);
                                 nifiRecord = decorateRecord(nifiRecord, record, record.shardId(), streamName, outputStrategy, writeSchema);
 
                                 writer.write(nifiRecord);
@@ -1046,7 +1042,7 @@ public class ConsumeKinesis extends AbstractProcessor {
      * @return a {@link RecordBatchResult} containing the successfully written FlowFiles and any parse-failure FlowFiles
      */
     private RecordBatchResult writeRecordBatchPerRecord(final ProcessSession session, final ProcessContext context,
-                                                        final List<DeaggregatedRecord> records,
+                                                        final List<UserRecord> records,
                                                         final String streamName, final BatchAccumulator batch) {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
@@ -1063,7 +1059,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         RecordSchema currentWriteSchema = null;
 
         try {
-            for (final DeaggregatedRecord record : records) {
+            for (final UserRecord record : records) {
 
                 if (record.data().length == 0) {
                     unparseable.add(new ParseFailureRecord(record, "Record content is empty"));
@@ -1192,7 +1188,7 @@ public class ConsumeKinesis extends AbstractProcessor {
      */
     private static org.apache.nifi.serialization.record.Record decorateRecord(
             final org.apache.nifi.serialization.record.Record nifiRecord,
-            final DeaggregatedRecord kinesisRecord, final String shardId,
+            final UserRecord kinesisRecord, final String shardId,
             final String streamName, final OutputStrategy outputStrategy,
             final RecordSchema writeSchema) {
         return switch (outputStrategy) {
@@ -1217,7 +1213,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                                     final String streamName, final BatchAccumulator batch, final List<FlowFile> parseFailureOutput) {
 
         for (final ParseFailureRecord parseFailureRecord : unparseable) {
-            final DeaggregatedRecord record = parseFailureRecord.record();
+            final UserRecord record = parseFailureRecord.record();
             FlowFile flowFile = session.create();
             try {
                 final byte[] rawBytes = record.data();
@@ -1249,7 +1245,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     private static long estimateResultBytes(final ShardFetchResult result) {
         long bytes = 0;
-        for (final DeaggregatedRecord record : result.records()) {
+        for (final UserRecord record : result.records()) {
             bytes += record.data().length;
         }
         return bytes;
@@ -1311,7 +1307,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     // Exposed for testing to allow injection of a mock client
     protected KinesisConsumerClient createConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger, final boolean efoMode) {
         if (efoMode) {
-            return new EfoKinesisClient(kinesisClient, logger);
+            return new EnhancedFanOutClient(kinesisClient, logger);
         }
         return new PollingKinesisClient(kinesisClient, logger);
     }
@@ -1319,7 +1315,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     private record RecordBatchResult(List<FlowFile> output, List<FlowFile> parseFailures) {
     }
 
-    private record ParseFailureRecord(DeaggregatedRecord record, String reason) {
+    private record ParseFailureRecord(UserRecord record, String reason) {
     }
 
     private static final class KinesisRecordInputStream extends InputStream {
@@ -1329,9 +1325,9 @@ public class ConsumeKinesis extends AbstractProcessor {
         private int markChunkIndex = -1;
         private int markPositionInChunk;
 
-        KinesisRecordInputStream(final List<DeaggregatedRecord> records) {
+        KinesisRecordInputStream(final List<UserRecord> records) {
             this.chunks = new ArrayList<>(records.size());
-            for (final DeaggregatedRecord record : records) {
+            for (final UserRecord record : records) {
                 final byte[] data = record.data();
                 if (data.length > 0) {
                     chunks.add(data);
@@ -1441,11 +1437,11 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         String getMinSequenceNumber() {
-            return minSequenceNumber != null ? minSequenceNumber.toString() : null;
+            return minSequenceNumber == null ? null : minSequenceNumber.toString();
         }
 
         String getMaxSequenceNumber() {
-            return maxSequenceNumber != null ? maxSequenceNumber.toString() : null;
+            return maxSequenceNumber == null ? null : maxSequenceNumber.toString();
         }
 
         long getMinSubSequenceNumber() {
@@ -1499,7 +1495,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             }
         }
 
-        void updateRecordRange(final DeaggregatedRecord record) {
+        void updateRecordRange(final UserRecord record) {
             updateSequenceFromRecord(record);
             final long subSeq = record.subSequenceNumber();
             if (subSeq < minSubSequenceNumber) {
@@ -1515,7 +1511,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             }
         }
 
-        void updateSequenceFromRecord(final DeaggregatedRecord record) {
+        void updateSequenceFromRecord(final UserRecord record) {
             final BigInteger seqNum = new BigInteger(record.sequenceNumber());
             if (minSequenceNumber == null || seqNum.compareTo(minSequenceNumber) < 0) {
                 minSequenceNumber = seqNum;

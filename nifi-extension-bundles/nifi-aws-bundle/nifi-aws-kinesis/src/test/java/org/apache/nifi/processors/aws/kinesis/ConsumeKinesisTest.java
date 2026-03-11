@@ -96,7 +96,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testAllValidRecordsRoutedToSuccess() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "{\"name\":\"Alice\"}"),
                 testRecord("2", "{\"name\":\"Bob\"}"),
                 testRecord("3", "{\"name\":\"Charlie\"}"));
@@ -121,7 +121,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testMultipleInvalidRecordsInBatch() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "BAD FIRST"),
                 testRecord("2", "{\"name\":\"Bob\"}"),
                 testRecord("3", "BAD THIRD"),
@@ -148,7 +148,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testAllInvalidRecordsRoutedToParseFailure() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "BAD1"),
                 testRecord("2", "BAD2"),
                 testRecord("3", "BAD3"));
@@ -161,7 +161,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testFlowFilePerRecordDeliversAllRecords() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "record-one"),
                 testRecord("2", "record-two"),
                 testRecord("3", "record-three"));
@@ -190,7 +190,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testDemarcatorDeliversAllRecords() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "line-one"),
                 testRecord("2", "line-two"),
                 testRecord("3", "line-three"));
@@ -209,7 +209,7 @@ class ConsumeKinesisTest {
         final Instant firstArrival = Instant.parse("2025-01-15T00:00:00Z");
         final Instant secondArrival = Instant.parse("2025-01-15T00:00:05Z");
         final Instant thirdArrival = Instant.parse("2025-01-15T00:00:03Z");
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "line-one", firstArrival),
                 testRecord("2", "line-two", secondArrival),
                 testRecord("3", "line-three", thirdArrival));
@@ -246,7 +246,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testRecordMetadataInjectionPreservesRecordCount() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "{\"name\":\"Alice\"}"),
                 testRecord("2", "{\"name\":\"Bob\"}"),
                 testRecord("3", "{\"name\":\"Charlie\"}"));
@@ -269,7 +269,7 @@ class ConsumeKinesisTest {
 
     @Test
     void testUseWrapperOutputStrategy() throws Exception {
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "{\"name\":\"Alice\"}"),
                 testRecord("2", "{\"name\":\"Bob\"}"));
 
@@ -336,9 +336,9 @@ class ConsumeKinesisTest {
 
     @Test
     void testEmptyRecordDoesNotCauseStuckState() throws Exception {
-        final DeaggregatedRecord emptyRecord = new DeaggregatedRecord("shardId-000000000001", "2", 0, "pk-2", new byte[0], Instant.now());
+        final UserRecord emptyRecord = new UserRecord("shardId-000000000001", "2", 0, "pk-2", new byte[0], Instant.now());
 
-        final List<DeaggregatedRecord> records = List.of(
+        final List<UserRecord> records = List.of(
                 testRecord("1", "{\"name\":\"Alice\"}"),
                 emptyRecord,
                 testRecord("3", "{\"name\":\"Charlie\"}"));
@@ -351,7 +351,7 @@ class ConsumeKinesisTest {
         success.assertAttributeEquals("record.count", "2");
     }
 
-    private void triggerWithRecords(final List<DeaggregatedRecord> records) throws Exception {
+    private void triggerWithRecords(final List<UserRecord> records) throws Exception {
         final KinesisShardManager mockShardManager = buildShardManager("shardId-000000000001");
         final ShardFetchResult fetchResult = new ShardFetchResult("shardId-000000000001", records, 0L);
         final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, fetchResult);
@@ -382,7 +382,7 @@ class ConsumeKinesisTest {
     }
 
     private void assertInvalidRecordAtPosition(final String expectedFailureSequence, final String expectedFailureContent,
-            final DeaggregatedRecord... records) throws Exception {
+            final UserRecord... records) throws Exception {
         triggerWithRecords(List.of(records));
 
         runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 1);
@@ -397,7 +397,7 @@ class ConsumeKinesisTest {
         assertNotNull(failure.getAttribute(ConsumeKinesis.ATTR_RECORD_ERROR_MESSAGE));
     }
 
-    private void triggerWithOutputStrategy(final List<DeaggregatedRecord> records, final String outputStrategy) throws Exception {
+    private void triggerWithOutputStrategy(final List<UserRecord> records, final String outputStrategy) throws Exception {
         final KinesisShardManager mockShardManager = buildShardManager("shardId-000000000001");
         final ShardFetchResult fetchResult = new ShardFetchResult("shardId-000000000001", records, 0L);
         final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, fetchResult);
@@ -420,7 +420,7 @@ class ConsumeKinesisTest {
         runner.run();
     }
 
-    private void triggerWithStrategy(final List<DeaggregatedRecord> records, final String processingStrategy,
+    private void triggerWithStrategy(final List<UserRecord> records, final String processingStrategy,
             final String shardId) throws Exception {
         final KinesisShardManager mockShardManager = buildShardManager(shardId);
         final ShardFetchResult fetchResult = new ShardFetchResult(shardId, records, 0L);
@@ -471,12 +471,12 @@ class ConsumeKinesisTest {
         return mockShardManager;
     }
 
-    private static DeaggregatedRecord testRecord(final String sequenceNumber, final String data) {
+    private static UserRecord testRecord(final String sequenceNumber, final String data) {
         return testRecord(sequenceNumber, data, Instant.now());
     }
 
-    private static DeaggregatedRecord testRecord(final String sequenceNumber, final String data, final Instant arrivalTimestamp) {
-        return new DeaggregatedRecord(
+    private static UserRecord testRecord(final String sequenceNumber, final String data, final Instant arrivalTimestamp) {
+        return new UserRecord(
                 "shardId-000000000001",
                 sequenceNumber,
                 0,

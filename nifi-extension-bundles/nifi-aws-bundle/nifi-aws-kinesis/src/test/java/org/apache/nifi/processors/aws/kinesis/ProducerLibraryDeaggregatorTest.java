@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class KplDeaggregatorTest {
+class ProducerLibraryDeaggregatorTest {
 
     private static final Instant ARRIVAL = Instant.parse("2025-06-15T12:00:00Z");
     private static final String TEST_SHARD_ID = "shardId-000000000000";
@@ -47,10 +47,10 @@ class KplDeaggregatorTest {
         final byte[] payload = "hello".getBytes(StandardCharsets.UTF_8);
         final Record record = buildKinesisRecord("seq-001", "pk-1", payload);
 
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
 
         assertEquals(1, result.size());
-        final DeaggregatedRecord dr = result.getFirst();
+        final UserRecord dr = result.getFirst();
         assertEquals(TEST_SHARD_ID, dr.shardId());
         assertEquals("seq-001", dr.sequenceNumber());
         assertEquals(0, dr.subSequenceNumber());
@@ -66,10 +66,10 @@ class KplDeaggregatorTest {
                 List.of(new SubRecord(0, "data-A".getBytes(StandardCharsets.UTF_8))));
         final Record record = buildKinesisRecord("seq-100", "agg-pk", aggregated);
 
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
 
         assertEquals(1, result.size());
-        final DeaggregatedRecord dr = result.getFirst();
+        final UserRecord dr = result.getFirst();
         assertEquals("seq-100", dr.sequenceNumber());
         assertEquals(0, dr.subSequenceNumber());
         assertEquals("pk-A", dr.partitionKey());
@@ -86,7 +86,7 @@ class KplDeaggregatorTest {
                         new SubRecord(0, "third".getBytes(StandardCharsets.UTF_8))));
         final Record record = buildKinesisRecord("seq-200", "agg-pk", aggregated);
 
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
 
         assertEquals(3, result.size());
 
@@ -102,7 +102,7 @@ class KplDeaggregatorTest {
         assertEquals(2, result.get(2).subSequenceNumber());
         assertArrayEquals("third".getBytes(StandardCharsets.UTF_8), result.get(2).data());
 
-        for (final DeaggregatedRecord dr : result) {
+        for (final UserRecord dr : result) {
             assertEquals("seq-200", dr.sequenceNumber());
             assertEquals(ARRIVAL, dr.approximateArrivalTimestamp());
         }
@@ -118,7 +118,7 @@ class KplDeaggregatorTest {
                 List.of(new SubRecord(0, "agg-data".getBytes(StandardCharsets.UTF_8))));
         final Record aggRecord = buildKinesisRecord("seq-002", "pk-outer", aggregated);
 
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(plainRecord, aggRecord));
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(plainRecord, aggRecord));
 
         assertEquals(2, result.size());
         assertEquals("seq-001", result.get(0).sequenceNumber());
@@ -129,20 +129,20 @@ class KplDeaggregatorTest {
 
     @Test
     void testCorruptedProtobufFallsBackToPassthrough() {
-        final byte[] corrupted = new byte[KplDeaggregator.KPL_MAGIC.length + 20 + 16];
-        System.arraycopy(KplDeaggregator.KPL_MAGIC, 0, corrupted, 0, KplDeaggregator.KPL_MAGIC.length);
+        final byte[] corrupted = new byte[ProducerLibraryDeaggregator.KPL_MAGIC.length + 20 + 16];
+        System.arraycopy(ProducerLibraryDeaggregator.KPL_MAGIC, 0, corrupted, 0, ProducerLibraryDeaggregator.KPL_MAGIC.length);
         final byte[] protobufPart = new byte[20];
         protobufPart[0] = (byte) 0xFF;
-        System.arraycopy(protobufPart, 0, corrupted, KplDeaggregator.KPL_MAGIC.length, 20);
+        System.arraycopy(protobufPart, 0, corrupted, ProducerLibraryDeaggregator.KPL_MAGIC.length, 20);
         try {
             final byte[] md5 = MessageDigest.getInstance("MD5").digest(protobufPart);
-            System.arraycopy(md5, 0, corrupted, KplDeaggregator.KPL_MAGIC.length + 20, 16);
+            System.arraycopy(md5, 0, corrupted, ProducerLibraryDeaggregator.KPL_MAGIC.length + 20, 16);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
 
         final Record record = buildKinesisRecord("seq-bad", "pk-bad", corrupted);
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
 
         assertEquals(1, result.size());
         assertEquals("seq-bad", result.get(0).sequenceNumber());
@@ -159,7 +159,7 @@ class KplDeaggregatorTest {
         aggregated[aggregated.length - 1] ^= 0xFF;
 
         final Record record = buildKinesisRecord("seq-md5", "pk-md5", aggregated);
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(record));
 
         assertEquals(1, result.size());
         assertEquals(0, result.get(0).subSequenceNumber());
@@ -168,24 +168,24 @@ class KplDeaggregatorTest {
 
     @Test
     void testIsAggregatedDetection() {
-        assertFalse(KplDeaggregator.isAggregated(new byte[0]));
-        assertFalse(KplDeaggregator.isAggregated(new byte[]{0x01, 0x02}));
-        assertFalse(KplDeaggregator.isAggregated("regular data".getBytes(StandardCharsets.UTF_8)));
+        assertFalse(ProducerLibraryDeaggregator.isAggregated(new byte[0]));
+        assertFalse(ProducerLibraryDeaggregator.isAggregated(new byte[]{0x01, 0x02}));
+        assertFalse(ProducerLibraryDeaggregator.isAggregated("regular data".getBytes(StandardCharsets.UTF_8)));
 
-        final byte[] withMagic = new byte[KplDeaggregator.KPL_MAGIC.length + 16 + 1];
-        System.arraycopy(KplDeaggregator.KPL_MAGIC, 0, withMagic, 0, KplDeaggregator.KPL_MAGIC.length);
-        assertTrue(KplDeaggregator.isAggregated(withMagic));
+        final byte[] withMagic = new byte[ProducerLibraryDeaggregator.KPL_MAGIC.length + 16 + 1];
+        System.arraycopy(ProducerLibraryDeaggregator.KPL_MAGIC, 0, withMagic, 0, ProducerLibraryDeaggregator.KPL_MAGIC.length);
+        assertTrue(ProducerLibraryDeaggregator.isAggregated(withMagic));
     }
 
     @Test
     void testEmptyRecordList() {
-        final List<DeaggregatedRecord> result = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of());
+        final List<UserRecord> result = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of());
         assertTrue(result.isEmpty());
     }
 
     // ---- KCL cross-validation tests ----
     // These tests use the KCL's own protobuf Messages class to create aggregated records,
-    // then verify that our KplDeaggregator produces the same results as the KCL's AggregatorUtil.
+    // then verify that our ProducerLibraryDeaggregator produces the same results as the KCL's AggregatorUtil.
 
     @Test
     void testKclAggregatedSingleRecord() {
@@ -198,7 +198,7 @@ class KplDeaggregatorTest {
         final byte[] payload = wrapAsKplPayload(aggProto.toByteArray());
         final Record kinesisRecord = buildKinesisRecord("seq-kcl-1", "outer-pk", payload);
 
-        final List<DeaggregatedRecord> ourResult = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
+        final List<UserRecord> ourResult = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
         final List<KinesisClientRecord> kclResult = deaggregateViaKcl(kinesisRecord);
 
         assertEquals(1, ourResult.size());
@@ -227,7 +227,7 @@ class KplDeaggregatorTest {
         final byte[] payload = wrapAsKplPayload(aggProto.toByteArray());
         final Record kinesisRecord = buildKinesisRecord("seq-kcl-multi", "outer-pk", payload);
 
-        final List<DeaggregatedRecord> ourResult = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
+        final List<UserRecord> ourResult = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
         final List<KinesisClientRecord> kclResult = deaggregateViaKcl(kinesisRecord);
 
         assertEquals(3, ourResult.size());
@@ -264,7 +264,7 @@ class KplDeaggregatorTest {
         final Record aggRecord = buildKinesisRecord("seq-agg", "outer-pk",
                 wrapAsKplPayload(aggProto.toByteArray()));
 
-        final List<DeaggregatedRecord> ourResult = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(plainRecord, aggRecord));
+        final List<UserRecord> ourResult = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(plainRecord, aggRecord));
 
         final List<KinesisClientRecord> kclPlain = deaggregateViaKcl(plainRecord);
         final List<KinesisClientRecord> kclAgg = deaggregateViaKcl(aggRecord);
@@ -290,7 +290,7 @@ class KplDeaggregatorTest {
         final byte[] payload = wrapAsKplPayload(aggProto.toByteArray());
         final Record kinesisRecord = buildKinesisRecord("seq-ehk", "outer-pk", payload);
 
-        final List<DeaggregatedRecord> ourResult = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
+        final List<UserRecord> ourResult = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
         final List<KinesisClientRecord> kclResult = deaggregateViaKcl(kinesisRecord);
 
         assertEquals(1, ourResult.size());
@@ -311,7 +311,7 @@ class KplDeaggregatorTest {
         final byte[] payload = wrapAsKplPayload(builder.build().toByteArray());
         final Record kinesisRecord = buildKinesisRecord("seq-batch", "outer-pk", payload);
 
-        final List<DeaggregatedRecord> ourResult = KplDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
+        final List<UserRecord> ourResult = ProducerLibraryDeaggregator.deaggregate(TEST_SHARD_ID, List.of(kinesisRecord));
         final List<KinesisClientRecord> kclResult = deaggregateViaKcl(kinesisRecord);
 
         assertEquals(100, ourResult.size());
@@ -347,7 +347,7 @@ class KplDeaggregatorTest {
         try {
             final byte[] md5 = MessageDigest.getInstance("MD5").digest(protobufBytes);
             final ByteArrayOutputStream result = new ByteArrayOutputStream();
-            result.write(KplDeaggregator.KPL_MAGIC);
+            result.write(ProducerLibraryDeaggregator.KPL_MAGIC);
             result.write(protobufBytes);
             result.write(md5);
             return result.toByteArray();
@@ -367,7 +367,7 @@ class KplDeaggregatorTest {
         return new AggregatorUtil().deaggregate(List.of(kcr));
     }
 
-    private static void assertDeaggregatedMatchesKcl(final DeaggregatedRecord ours, final KinesisClientRecord kcl) {
+    private static void assertDeaggregatedMatchesKcl(final UserRecord ours, final KinesisClientRecord kcl) {
         assertEquals(kcl.sequenceNumber(), ours.sequenceNumber(), "sequence number mismatch");
         assertEquals(kcl.subSequenceNumber(), ours.subSequenceNumber(), "sub-sequence number mismatch");
         assertEquals(kcl.partitionKey(), ours.partitionKey(), "partition key mismatch");
