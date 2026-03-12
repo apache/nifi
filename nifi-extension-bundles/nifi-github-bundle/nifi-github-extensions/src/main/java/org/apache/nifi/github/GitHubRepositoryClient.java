@@ -474,18 +474,22 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
     private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
         GitCommit commit = commitCache.getIfPresent(ghCommit.getSHA1());
-        if (commit != null) {
-            return commit;
-        } else {
+
+        if (commit == null) {
             final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
+            final String author = ghCommit.getAuthor() != null
+                ? ghCommit.getAuthor().getLogin()
+                : shortInfo.getAuthor().getName();
+
             commit = new GitCommit(
-                    ghCommit.getSHA1(),
-                    ghCommit.getAuthor().getLogin(),
-                    shortInfo.getMessage(),
-                    Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
+                ghCommit.getSHA1(),
+                author,
+                shortInfo.getMessage(),
+                Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
             commitCache.put(ghCommit.getSHA1(), commit);
-            return commit;
         }
+
+        return commit;
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {
