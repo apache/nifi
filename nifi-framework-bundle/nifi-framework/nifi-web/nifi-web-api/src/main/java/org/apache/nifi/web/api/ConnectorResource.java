@@ -327,26 +327,6 @@ public class ConnectorResource extends ApplicationResource {
         }
     }
 
-    private void authorizeReadConnector(final String connectorId) {
-        if (connectorId == null) {
-            throw new IllegalArgumentException("Connector ID must be specified");
-        }
-
-        // In order for a node to complete applying updates to a connector, it needs to be able to READ any connector from every other node in the cluster, and connectors can have specific policies
-        // which would require users adding the node identities to all of these policies, so this identifies if the incoming request is made directly by a known node identity and allows
-        // it to bypass standard authorization, meaning a node is automatically granted READ to any connector
-        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
-        if (isRequestFromClusterNode()) {
-            logger.debug("Authorizing READ on Connector[{}] to cluster node [{}]", connectorId, currentUser.getIdentity());
-            return;
-        }
-
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        });
-    }
-
     /**
      * Retrieves the specified connector.
      *
@@ -382,11 +362,20 @@ public class ConnectorResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
+        final boolean clusterNodeRequest = isRequestFromClusterNode();
+
         // authorize access
-        authorizeReadConnector(id);
+        if (clusterNodeRequest) {
+            logger.debug("Authorizing READ on Connector[{}] to cluster node [{}]", id, NiFiUserUtils.getNiFiUser().getIdentity());
+        } else {
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable connector = lookup.getConnector(id);
+                connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+        }
 
         // get the connector
-        final ConnectorEntity entity = serviceFacade.getConnector(id);
+        final ConnectorEntity entity = serviceFacade.getConnector(id, clusterNodeRequest);
         populateRemainingConnectorEntityContent(entity);
 
         return generateOkResponse(entity).build();

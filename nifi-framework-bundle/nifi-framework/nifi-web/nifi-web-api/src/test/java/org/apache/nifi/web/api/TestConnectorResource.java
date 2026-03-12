@@ -136,7 +136,7 @@ public class TestConnectorResource {
     public void testGetConnector() {
         final ConnectorEntity connectorEntity = createConnectorEntity();
 
-        when(serviceFacade.getConnector(CONNECTOR_ID)).thenReturn(connectorEntity);
+        when(serviceFacade.getConnector(CONNECTOR_ID, false)).thenReturn(connectorEntity);
 
         try (Response response = connectorResource.getConnector(CONNECTOR_ID)) {
             assertEquals(200, response.getStatus());
@@ -144,7 +144,7 @@ public class TestConnectorResource {
         }
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnector(CONNECTOR_ID);
+        verify(serviceFacade).getConnector(CONNECTOR_ID, false);
     }
 
     @Test

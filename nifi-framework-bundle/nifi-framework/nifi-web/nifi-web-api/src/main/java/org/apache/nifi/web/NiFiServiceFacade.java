@@ -200,6 +200,8 @@ public interface NiFiServiceFacade {
 
     ConnectorEntity getConnector(String id);
 
+    ConnectorEntity getConnector(String id, boolean clusterNodeRequest);
+
     void verifyUpdateConnector(ConnectorDTO connectorDTO);
 
     ConnectorEntity updateConnector(Revision revision, ConnectorDTO connectorDTO);
