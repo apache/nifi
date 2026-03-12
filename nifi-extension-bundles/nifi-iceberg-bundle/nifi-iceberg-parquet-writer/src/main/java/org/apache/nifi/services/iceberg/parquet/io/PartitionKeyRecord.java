@@ -98,9 +98,9 @@ class PartitionKeyRecord implements StructLike {
         } else if (Type.TypeID.TIMESTAMP == typeId) {
             final Types.TimestampType timestampType = (Types.TimestampType) fieldType;
             if (timestampType.shouldAdjustToUTC()) {
-                converter = dateTime -> DateTimeUtil.nanosFromTimestamptz((OffsetDateTime) dateTime);
+                converter = dateTime -> DateTimeUtil.microsFromTimestamptz((OffsetDateTime) dateTime);
             } else {
-                converter = dateTime -> DateTimeUtil.nanosFromTimestamp((LocalDateTime) dateTime);
+                converter = dateTime -> DateTimeUtil.microsFromTimestamp((LocalDateTime) dateTime);
             }
         } else if (Type.TypeID.DATE == typeId) {
             converter = date -> DateTimeUtil.daysFromDate((LocalDate) date);

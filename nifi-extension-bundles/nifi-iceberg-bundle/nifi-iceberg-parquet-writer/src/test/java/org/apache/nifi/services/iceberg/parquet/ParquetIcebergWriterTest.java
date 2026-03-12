@@ -18,6 +18,7 @@ package org.apache.nifi.services.iceberg.parquet;
 
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
+import org.apache.iceberg.PartitionData;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.StructLike;
@@ -30,6 +31,7 @@ import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.LocationProvider;
 import org.apache.iceberg.io.OutputFile;
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.util.DateTimeUtil;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.nifi.util.NoOpProcessor;
@@ -47,6 +49,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -166,7 +169,7 @@ class ParquetIcebergWriterTest {
         final Types.NestedField createdNestedField = Types.NestedField.required(CREATED_FIELD_ID, CREATED_FIELD_NAME, Types.TimestampType.withoutZone());
         final Schema schema = new Schema(firstNestedField, createdNestedField);
         final InMemoryOutputFile outputFile = new InMemoryOutputFile();
-        final PartitionSpec partitionSpec = PartitionSpec.builderFor(schema).year(CREATED_FIELD_NAME).build();
+        final PartitionSpec partitionSpec = PartitionSpec.builderFor(schema).identity(CREATED_FIELD_NAME).build();
 
         setTable(schema, partitionSpec, outputFile);
         when(locationProvider.newDataLocation(eq(partitionSpec), isA(StructLike.class), anyString())).thenReturn(LOCATION);
@@ -180,6 +183,15 @@ class ParquetIcebergWriterTest {
         final DataFile[] dataFiles = rowWriter.dataFiles();
         final byte[] serialized = outputFile.toByteArray();
         assertDataFilesFound(dataFiles, serialized);
+
+        final DataFile dataFile = dataFiles[0];
+        final StructLike partition = dataFile.partition();
+        assertInstanceOf(PartitionData.class, partition);
+        final PartitionData partitionData = (PartitionData) partition;
+        final Object partitionField = partitionData.get(0);
+
+        final long microsecondsExpected = DateTimeUtil.microsFromTimestamp(CREATED_FIELD_VALUE);
+        assertEquals(microsecondsExpected, partitionField);
     }
 
     private void writeRow(final Schema schema, final IcebergRowWriter rowWriter) throws IOException {
