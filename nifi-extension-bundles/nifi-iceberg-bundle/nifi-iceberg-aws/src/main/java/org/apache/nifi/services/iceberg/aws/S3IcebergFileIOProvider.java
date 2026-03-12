@@ -32,6 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.iceberg.IcebergFileIOProvider;
 import org.apache.nifi.services.iceberg.ProviderContext;
+import software.amazon.awssdk.services.s3.model.StorageClass;
 
 import java.util.HashMap;
 import java.util.List;
@@ -123,6 +124,14 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
+            .name("Storage Class")
+            .description("S3 storage class supporting selection of features such as availability and retrieval charges")
+            .allowableValues(StorageClass.knownValues().toArray(new StorageClass[0]))
+            .defaultValue(StorageClass.STANDARD.toString())
+            .required(true)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AUTHENTICATION_STRATEGY,
             ACCESS_KEY_ID,
@@ -130,7 +139,8 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             SESSION_TOKEN,
             CLIENT_REGION,
             ENDPOINT_URL,
-            PATH_STYLE_ACCESS
+            PATH_STYLE_ACCESS,
+            STORAGE_CLASS
     );
 
     private final Map<String, String> standardProperties = new ConcurrentHashMap<>();
@@ -188,6 +198,9 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
         }
         final String pathStyleAccess = context.getProperty(PATH_STYLE_ACCESS).getValue();
         contextProperties.put(S3FileIOProperties.PATH_STYLE_ACCESS, pathStyleAccess);
+
+        final String storageClass = context.getProperty(STORAGE_CLASS).getValue();
+        contextProperties.put(S3FileIOProperties.WRITE_STORAGE_CLASS, storageClass);
 
         // HttpURLConnection Client Type avoids additional dependencies
         contextProperties.put(HttpClientProperties.CLIENT_TYPE, HttpClientProperties.CLIENT_TYPE_URLCONNECTION);
