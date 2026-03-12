@@ -136,6 +136,11 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                                     logger.error("Failed to obtain Schema for FlowFile, sending to the parse failure relationship", e);
                                     failedMessages.add(message);
                                     flowFileWriterCallback.onParseFailure(flowFile, message, e);
+                                    try {
+                                        rawOut.close();
+                                    } catch (final IOException ioe) {
+                                        logger.warn("Failed to close output stream", ioe);
+                                    }
                                     continue;
                                 }
 
