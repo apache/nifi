@@ -47,6 +47,8 @@ class S3IcebergFileIOProviderTest {
 
     private static final String SESSION_TOKEN = "SessionToken";
 
+    private static final String STANDARD_STORAGE_CLASS = "STANDARD";
+
     private TestRunner runner;
 
     private S3IcebergFileIOProvider provider;
@@ -104,5 +106,8 @@ class S3IcebergFileIOProviderTest {
         assertInstanceOf(S3FileIO.class, fileIO);
         final Map<String, String> configuredProperties = fileIO.properties();
         assertFalse(configuredProperties.isEmpty());
+
+        final String writeStorageClass = configuredProperties.get(S3FileIOProperties.WRITE_STORAGE_CLASS);
+        assertEquals(STANDARD_STORAGE_CLASS, writeStorageClass);
     }
 }
