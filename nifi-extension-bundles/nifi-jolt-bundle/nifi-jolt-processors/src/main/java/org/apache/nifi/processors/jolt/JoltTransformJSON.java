@@ -136,6 +136,8 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             REL_FAILURE
     );
 
+    private static final char LINE_FEED = '\n';
+
     private volatile ClassLoader configuredClassLoader;
     private volatile JsonUtil jsonUtil;
 
@@ -264,7 +266,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
                     final Object inputJson = jsonUtil.jsonToObject(line);
                     final Object transformedJson = TransformUtils.transform(transform, inputJson);
                     writer.write(jsonUtil.toJsonString(transformedJson));
-                    writer.newLine();
+                    writer.write(LINE_FEED);
                 }
             }
         });
