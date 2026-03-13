@@ -522,7 +522,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             toSet(existingVersionedFlow.getRegistries())
         );
 
-        final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
+        final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow,
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
         return flowComparator.compare();
     }
