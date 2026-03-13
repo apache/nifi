@@ -666,7 +666,6 @@ export interface FlowState {
     dragging: boolean;
     transitionRequired: boolean;
     skipTransform: boolean;
-    leavingProcessGroupId: string | null;
     allowTransition: boolean;
     saving: boolean;
     navigationCollapsed: boolean;

@@ -64,7 +64,6 @@ import {
     setAllowTransition,
     setDragging,
     setFlowAnalysisOpen,
-    setLeavingProcessGroupId,
     setNavigationCollapsed,
     setOperationCollapsed,
     setRegistryClients,
@@ -173,7 +172,6 @@ export const initialState: FlowState = {
     versionSaving: false,
     transitionRequired: false,
     skipTransform: false,
-    leavingProcessGroupId: null,
     allowTransition: false,
     navigationCollapsed: false,
     operationCollapsed: false,
@@ -559,10 +557,6 @@ export const flowReducer = createReducer(
     on(navigateWithoutTransform, (state) => ({
         ...state,
         skipTransform: true
-    })),
-    on(setLeavingProcessGroupId, (state, { leavingProcessGroupId }) => ({
-        ...state,
-        leavingProcessGroupId
     })),
     on(setNavigationCollapsed, (state, { navigationCollapsed }) => ({
         ...state,
