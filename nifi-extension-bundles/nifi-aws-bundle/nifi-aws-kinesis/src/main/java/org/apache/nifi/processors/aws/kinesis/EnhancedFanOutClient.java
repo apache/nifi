@@ -205,10 +205,10 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
         int activeSubscriptions = 0;
         int expiredSubscriptions = 0;
         int backedOff = 0;
-        for (final ShardConsumer sc : shardConsumers.values()) {
-            if (sc.isSubscriptionExpired()) {
+        for (final ShardConsumer shardConsumer : shardConsumers.values()) {
+            if (shardConsumer.isSubscriptionExpired()) {
                 expiredSubscriptions++;
-                final long lastAttempt = sc.getLastSubscribeAttemptNanos();
+                final long lastAttempt = shardConsumer.getLastSubscribeAttemptNanos();
                 if (lastAttempt > 0 && now < lastAttempt + SUBSCRIBE_BACKOFF_NANOS) {
                     backedOff++;
                 }
@@ -218,7 +218,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
         }
 
         final int queueDepth = totalQueuedResults();
-        logger.debug("Kinesis Enhanced Fan-Out diagnostics: discoveredShards={}, ownedShards={}, queueDepth={}/{}, shardConsumers={}, activeSubscriptions={}, expiredSubscriptions={}, backedOff={}",
+        logger.debug("Kinesis Enhanced Fan-Out diagnostics: discoveredShards={}, ownedShards={}, queueDepth={}/{}, shardConsumers={}, active={}, expired={}, backedOff={}",
                 cachedShardCount, ownedCount, queueDepth, MAX_QUEUED_RESULTS, shardConsumers.size(), activeSubscriptions, expiredSubscriptions, backedOff);
     }
 
@@ -467,9 +467,9 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
             if (isCancellation(t)) {
                 consumerLogger.debug("Enhanced Fan-Out subscription cancelled for shard [{}]", shardId);
             } else if (isRetryableSubscriptionError(t)) {
-                consumerLogger.info("Enhanced Fan-Out subscription temporarily rejected for shard [{}]; will retry after backoff", shardId);
+                consumerLogger.warn("Enhanced Fan-Out subscription temporarily rejected for shard [{}]; will retry after backoff", shardId, t);
             } else if (isRetryableStreamDisconnect(t)) {
-                consumerLogger.info("Enhanced Fan-Out subscription disconnected for shard [{}]; will retry", shardId);
+                consumerLogger.warn("Enhanced Fan-Out subscription disconnected for shard [{}]; will retry", shardId, t);
             } else {
                 consumerLogger.error("Enhanced Fan-Out subscription error for shard [{}]", shardId, t);
             }
@@ -555,6 +555,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
             public void onSubscribe(final Subscription sub) {
                 subscription = sub;
                 paused.set(false);
+                consumerLogger.info("Enhanced Fan-Out subscription established for shard [{}] (HTTP/2 stream active)", shardId);
                 sub.request(1);
             }
 

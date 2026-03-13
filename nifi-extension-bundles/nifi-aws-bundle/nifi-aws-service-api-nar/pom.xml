@@ -37,6 +37,13 @@
             <artifactId>nifi-aws-service-api</artifactId>
             <scope>compile</scope>
         </dependency>
+        <!-- Shared dependency on Apache 5 HTTP Client for Synchronous HTTP requests -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache5-client</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- Shared dependency on Netty NIO Client for Asynchronous HTTP requests -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
