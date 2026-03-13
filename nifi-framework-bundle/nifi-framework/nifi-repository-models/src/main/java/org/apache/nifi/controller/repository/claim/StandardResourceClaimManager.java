@@ -177,7 +177,7 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             logger.debug("Marking {} as truncatable", contentClaim);
             try {
                 if (!truncatableClaims.offer(contentClaim, 1, TimeUnit.MINUTES)) {
-                    logger.debug("Unable to mark {} as truncatable because the queue is full.", contentClaim);
+                    logger.info("Unable to mark {} as truncatable because maximum queue size [{}] reached", truncatableClaims.size(), contentClaim);
                 }
             } catch (final InterruptedException ie) {
                 Thread.currentThread().interrupt();

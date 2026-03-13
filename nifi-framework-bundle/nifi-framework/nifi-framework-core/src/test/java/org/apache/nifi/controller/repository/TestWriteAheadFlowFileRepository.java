@@ -932,59 +932,59 @@ public class TestWriteAheadFlowFileRepository {
 
     @Test
     public void testDeleteRecordRoutesTruncatableClaimToTruncationQueue() throws IOException {
-        final RuntimeRepoContext ctx = createRuntimeRepoContext();
-        final ResourceClaim rc = ctx.claimManager().newResourceClaim("container", "section", "1", false, false);
-        ctx.claimManager().incrementClaimantCount(rc);
-        ctx.claimManager().incrementClaimantCount(rc); // count = 2 so that after delete decrement it stays > 0 (not destructable)
-        final StandardContentClaim contentClaim = createClaim(rc, 1024L, 5_000_000L, true);
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+        final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        context.claimManager().incrementClaimantCount(resourceClaim); // count = 2 so that after delete decrement it stays > 0 (not destructable)
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
-            repo.initialize(ctx.claimManager());
-            repo.loadFlowFiles(ctx.queueProvider());
-            createAndDeleteFlowFile(repo, ctx.queue(), contentClaim);
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+            createAndDeleteFlowFile(repo, context.queue(), contentClaim);
             repo.checkpoint();
         }
 
         final List<ContentClaim> truncated = new ArrayList<>();
-        ctx.claimManager().drainTruncatableClaims(truncated, 100);
-        assertTrue(truncated.contains(contentClaim), "Truncatable claim should have been routed to the truncation queue");
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertTrue(truncated.contains(contentClaim));
     }
 
     @Test
     public void testDestructableClaimTakesPriorityOverTruncatable() throws IOException {
-        final RuntimeRepoContext ctx = createRuntimeRepoContext();
-        final ResourceClaim rc = ctx.claimManager().newResourceClaim("container", "section", "1", false, false);
-        ctx.claimManager().incrementClaimantCount(rc); // count = 1 -- will reach 0 after delete
-        final StandardContentClaim contentClaim = createClaim(rc, 1024L, 5_000_000L, true);
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+        final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(resourceClaim); // count = 1 -- will reach 0 after delete
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
-            repo.initialize(ctx.claimManager());
-            repo.loadFlowFiles(ctx.queueProvider());
-            createAndDeleteFlowFile(repo, ctx.queue(), contentClaim);
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+            createAndDeleteFlowFile(repo, context.queue(), contentClaim);
             repo.checkpoint();
         }
 
         final List<ResourceClaim> destructed = new ArrayList<>();
-        ctx.claimManager().drainDestructableClaims(destructed, 100);
-        assertTrue(destructed.contains(rc), "Resource claim should be destructable");
+        context.claimManager().drainDestructableClaims(destructed, 100);
+        assertTrue(destructed.contains(resourceClaim));
 
         final List<ContentClaim> truncated = new ArrayList<>();
-        ctx.claimManager().drainTruncatableClaims(truncated, 100);
-        assertFalse(truncated.contains(contentClaim), "Truncatable claim should NOT be in truncation queue when resource claim is destructable");
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertFalse(truncated.contains(contentClaim));
     }
 
     @Test
     public void testUpdateRecordOriginalClaimQueuedForTruncation() throws IOException {
-        final RuntimeRepoContext ctx = createRuntimeRepoContext();
+        final RuntimeRepoContext context = createRuntimeRepoContext();
 
-        final ResourceClaim rc1 = ctx.claimManager().newResourceClaim("container", "section", "1", false, false);
-        ctx.claimManager().incrementClaimantCount(rc1);
-        ctx.claimManager().incrementClaimantCount(rc1); // count = 2 so it stays > 0 after decrement
-        final StandardContentClaim originalClaim = createClaim(rc1, 2048L, 5_000_000L, true);
+        final ResourceClaim originalResourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(originalResourceClaim);
+        context.claimManager().incrementClaimantCount(originalResourceClaim); // count = 2 so it stays > 0 after decrement
+        final StandardContentClaim originalClaim = createClaim(originalResourceClaim, 2048L, 5_000_000L, true);
 
-        final ResourceClaim rc2 = ctx.claimManager().newResourceClaim("container", "section", "2", false, false);
-        ctx.claimManager().incrementClaimantCount(rc2);
-        final StandardContentClaim newClaim = createClaim(rc2, 0L, 100L, false);
+        final ResourceClaim newResourceClaim = context.claimManager().newResourceClaim("container", "section", "2", false, false);
+        context.claimManager().incrementClaimantCount(newResourceClaim);
+        final StandardContentClaim newClaim = createClaim(newResourceClaim, 0L, 100L, false);
 
         final FlowFileRecord originalFlowFile = new StandardFlowFileRecord.Builder()
                 .id(1L)
@@ -993,28 +993,28 @@ public class TestWriteAheadFlowFileRepository {
                 .build();
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
-            repo.initialize(ctx.claimManager());
-            repo.loadFlowFiles(ctx.queueProvider());
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
 
-            final StandardRepositoryRecord createRecord = new StandardRepositoryRecord(ctx.queue());
+            final StandardRepositoryRecord createRecord = new StandardRepositoryRecord(context.queue());
             createRecord.setWorking(originalFlowFile, false);
-            createRecord.setDestination(ctx.queue());
+            createRecord.setDestination(context.queue());
             repo.updateRepository(List.of(createRecord));
 
             final FlowFileRecord updatedFlowFile = new StandardFlowFileRecord.Builder()
                     .fromFlowFile(originalFlowFile)
                     .contentClaim(newClaim)
                     .build();
-            final StandardRepositoryRecord updateRecord = new StandardRepositoryRecord(ctx.queue(), originalFlowFile);
+            final StandardRepositoryRecord updateRecord = new StandardRepositoryRecord(context.queue(), originalFlowFile);
             updateRecord.setWorking(updatedFlowFile, true);
-            updateRecord.setDestination(ctx.queue());
+            updateRecord.setDestination(context.queue());
             repo.updateRepository(List.of(updateRecord));
             repo.checkpoint();
         }
 
         final List<ContentClaim> truncated = new ArrayList<>();
-        ctx.claimManager().drainTruncatableClaims(truncated, 100);
-        assertTrue(truncated.contains(originalClaim), "Original claim should have been queued for truncation after content change");
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertTrue(truncated.contains(originalClaim));
     }
 
     // =========================================================================
@@ -1024,36 +1024,33 @@ public class TestWriteAheadFlowFileRepository {
     @Test
     public void testRecoveryMarksTruncationCandidateForLargeTailClaim() throws IOException {
         final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-        final ResourceClaim rc = claimManager.newResourceClaim("container", "section", "1", false, false);
-        final StandardContentClaim smallClaim = createClaim(rc, 0L, 100L, false);
-        final StandardContentClaim largeClaim = createClaim(rc, 100L, 2_000_000L, false);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim smallClaim = createClaim(resourceClaim, 0L, 100L, false);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
 
         final List<FlowFileRecord> recovered = writeAndRecover(smallClaim, largeClaim);
 
-        final FlowFileRecord recoveredLargeFF = findRecoveredByOffset(recovered, 100L);
-        assertNotNull(recoveredLargeFF, "Should have recovered a FlowFile with the large claim");
-        assertTrue(recoveredLargeFF.getContentClaim().isTruncationCandidate(),
-                "Large tail claim should be marked as truncation candidate after recovery");
+        final FlowFileRecord recoveredLargeFlowFile = findRecoveredByOffset(recovered, 100L);
+        assertNotNull(recoveredLargeFlowFile);
+        assertTrue(recoveredLargeFlowFile.getContentClaim().isTruncationCandidate());
 
-        final FlowFileRecord recoveredSmallFF = findRecoveredByOffset(recovered, 0L);
-        assertNotNull(recoveredSmallFF, "Should have recovered a FlowFile with the small claim");
-        assertFalse(recoveredSmallFF.getContentClaim().isTruncationCandidate(),
-                "Small claim at offset 0 should NOT be a truncation candidate after recovery");
+        final FlowFileRecord recoveredSmallFlowFile = findRecoveredByOffset(recovered, 0L);
+        assertNotNull(recoveredSmallFlowFile);
+        assertFalse(recoveredSmallFlowFile.getContentClaim().isTruncationCandidate());
     }
 
     @Test
     public void testRecoveryDoesNotMarkClonedClaim() throws IOException {
         final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-        final ResourceClaim rc = claimManager.newResourceClaim("container", "section", "1", false, false);
-        final StandardContentClaim sharedClaim = createClaim(rc, 100L, 2_000_000L, false);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim sharedClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
 
         // Two FlowFiles sharing the same claim (clone scenario)
         final List<FlowFileRecord> recovered = writeAndRecover(sharedClaim, sharedClaim);
 
-        for (final FlowFileRecord ff : recovered) {
-            if (ff.getContentClaim() != null) {
-                assertFalse(ff.getContentClaim().isTruncationCandidate(),
-                        "Cloned/shared claim should NOT be a truncation candidate");
+        for (final FlowFileRecord flowFile : recovered) {
+            if (flowFile.getContentClaim() != null) {
+                assertFalse(flowFile.getContentClaim().isTruncationCandidate());
             }
         }
     }
@@ -1061,38 +1058,39 @@ public class TestWriteAheadFlowFileRepository {
     @Test
     public void testRecoveryOnlyMarksTailClaim() throws IOException {
         final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-        final ResourceClaim rc = claimManager.newResourceClaim("container", "section", "1", false, false);
-        final StandardContentClaim claim1 = createClaim(rc, 100L, 2_000_000L, false);
-        final StandardContentClaim claim2 = createClaim(rc, 2_000_100L, 3_000_000L, false);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim nonTailClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
+        final StandardContentClaim tailClaim = createClaim(resourceClaim, 2_000_100L, 3_000_000L, false);
 
-        final List<FlowFileRecord> recovered = writeAndRecover(claim1, claim2);
+        final List<FlowFileRecord> recovered = writeAndRecover(nonTailClaim, tailClaim);
 
-        final FlowFileRecord tailFF = findRecoveredByOffset(recovered, 2_000_100L);
-        assertNotNull(tailFF, "Should have recovered the tail claim FlowFile");
-        assertTrue(tailFF.getContentClaim().isTruncationCandidate(),
-                "Only the tail claim should be a truncation candidate");
+        final FlowFileRecord tailFlowFile = findRecoveredByOffset(recovered, 2_000_100L);
+        assertNotNull(tailFlowFile);
+        assertTrue(tailFlowFile.getContentClaim().isTruncationCandidate());
 
-        final FlowFileRecord nonTailFF = findRecoveredByOffset(recovered, 100L);
-        assertNotNull(nonTailFF, "Should have recovered the non-tail claim FlowFile");
-        assertFalse(nonTailFF.getContentClaim().isTruncationCandidate(),
-                "Non-tail large claim should NOT be a truncation candidate");
+        final FlowFileRecord nonTailFlowFile = findRecoveredByOffset(recovered, 100L);
+        assertNotNull(nonTailFlowFile);
+        assertFalse(nonTailFlowFile.getContentClaim().isTruncationCandidate());
     }
 
     @Test
     public void testRecoverySmallClaimAfterLargeDoesNotMarkLarge() throws IOException {
         final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
-        final ResourceClaim rc = claimManager.newResourceClaim("container", "section", "1", false, false);
-        final StandardContentClaim smallClaim1 = createClaim(rc, 0L, 100L, false);
-        final StandardContentClaim largeClaim = createClaim(rc, 100L, 2_000_000L, false);
-        final StandardContentClaim smallClaim2 = createClaim(rc, 2_000_100L, 50L, false);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim firstSmallClaim = createClaim(resourceClaim, 0L, 100L, false);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
+        final StandardContentClaim secondSmallClaim = createClaim(resourceClaim, 2_000_100L, 50L, false);
 
-        final List<FlowFileRecord> recovered = writeAndRecover(smallClaim1, largeClaim, smallClaim2);
+        final List<FlowFileRecord> recovered = writeAndRecover(firstSmallClaim, largeClaim, secondSmallClaim);
 
-        for (final FlowFileRecord ff : recovered) {
-            if (ff.getContentClaim() != null) {
-                assertFalse(ff.getContentClaim().isTruncationCandidate(),
-                        "No claim should be a truncation candidate because the large claim is not the tail; claim offset=" + ff.getContentClaim().getOffset());
-            }
+        final List<FlowFileRecord> flowFilesWithClaims = recovered.stream()
+                .filter(flowFile -> flowFile.getContentClaim() != null)
+                .toList();
+
+        assertFalse(flowFilesWithClaims.isEmpty());
+        for (final FlowFileRecord flowFile : flowFilesWithClaims) {
+            assertFalse(flowFile.getContentClaim().isTruncationCandidate(),
+                    "No claim should be a truncation candidate because the large claim is not the tail; claim offset=" + flowFile.getContentClaim().getOffset());
         }
     }
 }

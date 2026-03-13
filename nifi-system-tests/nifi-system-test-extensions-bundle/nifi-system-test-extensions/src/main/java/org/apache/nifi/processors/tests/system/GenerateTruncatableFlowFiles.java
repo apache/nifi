@@ -36,8 +36,9 @@ public class GenerateTruncatableFlowFiles extends AbstractProcessor {
 
     static final PropertyDescriptor BATCH_COUNT = new PropertyDescriptor.Builder()
         .name("Batch Count")
-        .description("The maximum number of batches to generate. Each batch produces 10 FlowFiles (9 small + 1 large). "
-                     + "Once this many batches have been generated, no more FlowFiles will be produced until the processor is stopped and restarted.")
+        .description("""
+                The maximum number of batches to generate. Each batch produces 10 FlowFiles (9 small + 1 large). \
+                Once this many batches have been generated, no more FlowFiles will be produced until the processor is stopped and restarted.""")
         .required(true)
         .defaultValue("10")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)

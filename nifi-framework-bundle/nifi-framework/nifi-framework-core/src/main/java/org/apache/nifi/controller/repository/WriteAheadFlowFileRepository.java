@@ -159,6 +159,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         this.maxCharactersToCache = nifiProperties.getIntegerProperty(FLOWFILE_REPO_CACHE_SIZE, DEFAULT_CACHE_SIZE);
         final long maxAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
+        // Cap the truncation threshold at 1 MB so that claims larger than 1 MB are always eligible
+        // for truncation regardless of how large maxAppendableClaimSize is configured.
         truncationThreshold = Math.min(1_000_000, maxAppendableClaimLength);
 
         final String directoryName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
@@ -852,11 +854,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // If any Content Claim was determined to be truncatable, mark it as such now.
         for (final StandardContentClaim eligible : truncationEligibleClaims) {
             final ContentClaim latestForResource = latestContentClaimByResourceClaim.get(eligible.getResourceClaim());
-            if (!Objects.equals(eligible, latestForResource)) {
-                continue;
+            if (Objects.equals(eligible, latestForResource)) {
+                eligible.setTruncationCandidate(true);
             }
-
-            eligible.setTruncationCandidate(true);
         }
 
         // Set the AtomicLong to 1 more than the max ID so that calls to #getNextFlowFileSequence() will

@@ -82,6 +82,7 @@ public class TestFileSystemRepository {
     private Path originalNifiPropertiesFile;
     private Path rootFile;
     private NiFiProperties nifiProperties;
+    private long maxClaimLength;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -93,6 +94,7 @@ public class TestFileSystemRepository {
             NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 sec"
         );
         nifiProperties = NiFiProperties.createBasicNiFiProperties(originalNifiPropertiesFile.toString(), additionalProperties);
+        maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
         repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
         repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
@@ -149,7 +151,6 @@ public class TestFileSystemRepository {
     @Timeout(30)
     public void testClaimsArchivedWhenMarkedDestructable() throws IOException, InterruptedException {
         final ContentClaim contentClaim = repository.create(false);
-        final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
         final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
         assertEquals(1, containerPaths.size());
         final String containerName = containerPaths.keySet().iterator().next();
@@ -158,7 +159,7 @@ public class TestFileSystemRepository {
             long bytesWritten = 0L;
             final byte[] bytes = "Hello World".getBytes(StandardCharsets.UTF_8);
 
-            while (bytesWritten <= configuredAppendableClaimLength) {
+            while (bytesWritten <= maxClaimLength) {
                 out.write(bytes);
                 bytesWritten += bytes.length;
             }
@@ -484,12 +485,9 @@ public class TestFileSystemRepository {
         repository.incrementClaimaintCount(claim);
 
         final Path claimPath = getPath(claim);
-        final String maxAppendableClaimLength = nifiProperties.getMaxAppendableClaimSize();
-        final int maxClaimLength = DataUnit.parseDataSize(maxAppendableClaimLength, DataUnit.B).intValue();
-
         // Create the file.
         try (final OutputStream out = repository.write(claim)) {
-            out.write(new byte[maxClaimLength]);
+            out.write(new byte[(int) maxClaimLength]);
         }
 
         int count = repository.decrementClaimantCount(claim);
@@ -702,9 +700,7 @@ public class TestFileSystemRepository {
 
         // write at least 1 MB to the output stream so that when we close the output stream
         // the repo won't keep the stream open.
-        final String maxAppendableClaimLength = nifiProperties.getMaxAppendableClaimSize();
-        final int maxClaimLength = DataUnit.parseDataSize(maxAppendableClaimLength, DataUnit.B).intValue();
-        final byte[] buff = new byte[maxClaimLength];
+        final byte[] buff = new byte[(int) maxClaimLength];
         out.write(buff);
         out.write(buff);
 
@@ -907,27 +903,24 @@ public class TestFileSystemRepository {
 
     @Test
     public void testTruncationCandidateMarkedOnlyForLargeNonStartClaim() throws IOException {
-        final long maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
-
-        // Create a small claim C1 at offset 0. Write less data than maxAppendableClaimLength so the ResourceClaim
+        // Create a small claim at offset 0. Write less data than maxAppendableClaimLength so the ResourceClaim
         // is recycled back to the writable queue.
-        final ContentClaim c1 = repository.create(false);
+        final ContentClaim smallClaim = repository.create(false);
         final byte[] smallData = new byte[100];
-        try (final OutputStream out = repository.write(c1)) {
+        try (final OutputStream out = repository.write(smallClaim)) {
             out.write(smallData);
         }
-        // C1 should NOT be a truncation candidate (it's small)
-        assertFalse(c1.isTruncationCandidate(), "Small claim at offset 0 should not be a truncation candidate");
+        assertFalse(smallClaim.isTruncationCandidate());
 
-        // Now create C2 on potentially the same ResourceClaim, writing more than maxAppendableClaimLength to freeze
-        // the ResourceClaim. Because c1 was small and recycled, c2 will be at a non-zero offset on the same ResourceClaim.
-        final ContentClaim c2 = repository.create(false);
+        // Now create a large claim on potentially the same ResourceClaim, writing more than maxAppendableClaimLength
+        // to freeze the ResourceClaim. Because smallClaim was small and recycled, largeClaim will be at a non-zero
+        // offset on the same ResourceClaim.
+        final ContentClaim largeClaim = repository.create(false);
         final byte[] largeData = new byte[(int) maxClaimLength + 1024];
-        try (final OutputStream out = repository.write(c2)) {
+        try (final OutputStream out = repository.write(largeClaim)) {
             out.write(largeData);
         }
-        // C2 should be a truncation candidate: large and at a non-zero offset
-        assertTrue(c2.isTruncationCandidate(), "Large claim at non-zero offset should be a truncation candidate");
+        assertTrue(largeClaim.isTruncationCandidate());
 
         // Negative case: create a standalone large claim at offset 0 (fresh ResourceClaim)
         // To ensure a fresh ResourceClaim, write large data to all writable claims to exhaust them,
@@ -936,7 +929,7 @@ public class TestFileSystemRepository {
         ContentClaim offsetZeroClaim = null;
         for (int i = 0; i < 20; i++) {
             final ContentClaim candidate = repository.create(false);
-            if (candidate instanceof StandardContentClaim scc && scc.getOffset() == 0) {
+            if (candidate instanceof StandardContentClaim standardContentClaim && standardContentClaim.getOffset() == 0) {
                 // Write large data that exceeds maxAppendableClaimLength
                 try (final OutputStream out = repository.write(candidate)) {
                     out.write(new byte[(int) maxClaimLength + 1024]);
@@ -951,33 +944,29 @@ public class TestFileSystemRepository {
             }
         }
 
-        assertNotNull(offsetZeroClaim, "Should have found a claim at offset 0");
-        assertFalse(offsetZeroClaim.isTruncationCandidate(), "Large claim at offset 0 should NOT be a truncation candidate");
+        assertNotNull(offsetZeroClaim);
+        assertFalse(offsetZeroClaim.isTruncationCandidate());
     }
 
     @Test
     public void testIncrementClaimantCountClearsTruncationCandidate() throws IOException {
-        final long maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
-
         // Create a small claim to start a ResourceClaim, then a large claim to freeze it
-        final ContentClaim c1 = repository.create(false);
-        try (final OutputStream out = repository.write(c1)) {
+        final ContentClaim smallClaim = repository.create(false);
+        try (final OutputStream out = repository.write(smallClaim)) {
             out.write(new byte[100]);
         }
 
-        final ContentClaim c2 = repository.create(false);
-        try (final OutputStream out = repository.write(c2)) {
+        final ContentClaim largeClaim = repository.create(false);
+        try (final OutputStream out = repository.write(largeClaim)) {
             out.write(new byte[(int) maxClaimLength + 1024]);
         }
 
-        // c2 should be a truncation candidate
-        assertTrue(c2.isTruncationCandidate(), "Claim should be a truncation candidate before incrementClaimaintCount");
+        assertTrue(largeClaim.isTruncationCandidate());
 
         // Simulate a clone by incrementing claimant count
-        repository.incrementClaimaintCount(c2);
+        repository.incrementClaimaintCount(largeClaim);
 
-        // After incrementing, it should no longer be a truncation candidate
-        assertFalse(c2.isTruncationCandidate(), "Claim should NOT be a truncation candidate after incrementClaimaintCount");
+        assertFalse(largeClaim.isTruncationCandidate());
     }
 
     @Test
@@ -986,7 +975,7 @@ public class TestFileSystemRepository {
         // We need to create our own repository that overrides getContainerUsableSpace to simulate disk pressure
         shutdown();
 
-        final FileSystemRepository localRepo = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return 0; // Extreme disk pressure
@@ -1000,55 +989,53 @@ public class TestFileSystemRepository {
 
         try {
             final StandardResourceClaimManager localClaimManager = new StandardResourceClaimManager();
-            localRepo.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
-            localRepo.purge();
+            localRepository.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
+            localRepository.purge();
 
-            final long maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
-
-            // Create C1 (small) then C2 (large) on the same ResourceClaim
-            final ContentClaim c1 = localRepo.create(false);
+            // Create a small claim then a large claim on the same ResourceClaim
+            final ContentClaim smallClaim = localRepository.create(false);
             final byte[] smallData = "Hello World - small claim data".getBytes(StandardCharsets.UTF_8);
-            try (final OutputStream out = localRepo.write(c1)) {
+            try (final OutputStream out = localRepository.write(smallClaim)) {
                 out.write(smallData);
             }
 
-            final ContentClaim c2 = localRepo.create(false);
+            final ContentClaim largeClaim = localRepository.create(false);
             final byte[] largeData = new byte[(int) maxClaimLength + 4096];
             new Random().nextBytes(largeData);
-            try (final OutputStream out = localRepo.write(c2)) {
+            try (final OutputStream out = localRepository.write(largeClaim)) {
                 out.write(largeData);
             }
 
-            assertTrue(c2.isTruncationCandidate(), "C2 should be a truncation candidate");
+            assertTrue(largeClaim.isTruncationCandidate());
 
             // Both claims should share the same resource claim
-            assertEquals(c1.getResourceClaim(), c2.getResourceClaim(), "Both claims should share the same ResourceClaim");
+            assertEquals(smallClaim.getResourceClaim(), largeClaim.getResourceClaim());
 
             // Get the file path
-            final Path filePath = getPath(localRepo, c1);
+            final Path filePath = getPath(localRepository, smallClaim);
             assertNotNull(filePath);
             final long originalSize = Files.size(filePath);
-            assertTrue(originalSize > maxClaimLength, "File should be larger than maxAppendableClaimLength");
+            assertTrue(originalSize > maxClaimLength);
 
-            // Decrement claimant count for C2 to 0 (C1 still holds a reference)
-            localClaimManager.decrementClaimantCount(c2.getResourceClaim());
+            // Decrement claimant count for the large claim to 0 (small claim still holds a reference)
+            localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
 
-            // Mark C2 as truncatable
-            localClaimManager.markTruncatable(c2);
+            // Mark the large claim as truncatable
+            localClaimManager.markTruncatable(largeClaim);
 
             // Wait for the TruncateClaims background task to truncate the file. Poll the file size until it shrinks.
-            final long expectedTruncatedSize = c2.getOffset();
+            final long expectedTruncatedSize = largeClaim.getOffset();
             while (Files.size(filePath) != expectedTruncatedSize) {
                 Thread.sleep(100L);
             }
 
-            // Verify C1's data is still fully readable
-            try (final InputStream in = localRepo.read(c1)) {
+            // Verify the small claim's data is still fully readable
+            try (final InputStream in = localRepository.read(smallClaim)) {
                 final byte[] readData = readFully(in, smallData.length);
-                assertArrayEquals(smallData, readData, "C1's data should still be fully readable after truncation");
+                assertArrayEquals(smallData, readData);
             }
         } finally {
-            localRepo.shutdown();
+            localRepository.shutdown();
         }
     }
 
@@ -1058,7 +1045,7 @@ public class TestFileSystemRepository {
         // Create repository with ample disk space
         shutdown();
 
-        final FileSystemRepository localRepo = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return Long.MAX_VALUE; // Plenty of space
@@ -1072,33 +1059,31 @@ public class TestFileSystemRepository {
 
         try {
             final StandardResourceClaimManager localClaimManager = new StandardResourceClaimManager();
-            localRepo.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
-            localRepo.purge();
+            localRepository.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
+            localRepository.purge();
 
-            final long maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
-
-            final ContentClaim c1 = localRepo.create(false);
-            try (final OutputStream out = localRepo.write(c1)) {
+            final ContentClaim smallClaim = localRepository.create(false);
+            try (final OutputStream out = localRepository.write(smallClaim)) {
                 out.write(new byte[100]);
             }
 
-            final ContentClaim c2 = localRepo.create(false);
-            try (final OutputStream out = localRepo.write(c2)) {
+            final ContentClaim largeClaim = localRepository.create(false);
+            try (final OutputStream out = localRepository.write(largeClaim)) {
                 out.write(new byte[(int) maxClaimLength + 4096]);
             }
 
-            assertTrue(c2.isTruncationCandidate());
+            assertTrue(largeClaim.isTruncationCandidate());
 
-            final Path filePath = getPath(localRepo, c1);
+            final Path filePath = getPath(localRepository, smallClaim);
             final long originalSize = Files.size(filePath);
 
-            localClaimManager.decrementClaimantCount(c2.getResourceClaim());
-            localClaimManager.markTruncatable(c2);
+            localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
+            localClaimManager.markTruncatable(largeClaim);
 
             Thread.sleep(3000L);
-            assertEquals(originalSize, Files.size(filePath), "File should NOT have been truncated when disk space is ample");
+            assertEquals(originalSize, Files.size(filePath));
         } finally {
-            localRepo.shutdown();
+            localRepository.shutdown();
         }
     }
 
@@ -1109,7 +1094,7 @@ public class TestFileSystemRepository {
         shutdown();
 
         final AtomicLong usableSpace = new AtomicLong(Long.MAX_VALUE);
-        final FileSystemRepository localRepo = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return usableSpace.get();
@@ -1123,62 +1108,60 @@ public class TestFileSystemRepository {
 
         try {
             final StandardResourceClaimManager localClaimManager = new StandardResourceClaimManager();
-            localRepo.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
-            localRepo.purge();
+            localRepository.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
+            localRepository.purge();
 
-            final long maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
-
-            // Create C1 (small) then C2 (large) on the same ResourceClaim
-            final ContentClaim c1 = localRepo.create(false);
-            try (final OutputStream out = localRepo.write(c1)) {
+            // Create a small claim then a large claim on the same ResourceClaim
+            final ContentClaim smallClaim = localRepository.create(false);
+            try (final OutputStream out = localRepository.write(smallClaim)) {
                 out.write(new byte[100]);
             }
 
-            final ContentClaim c2 = localRepo.create(false);
-            try (final OutputStream out = localRepo.write(c2)) {
+            final ContentClaim largeClaim = localRepository.create(false);
+            try (final OutputStream out = localRepository.write(largeClaim)) {
                 out.write(new byte[(int) maxClaimLength + 4096]);
             }
 
-            assertTrue(c2.isTruncationCandidate());
-            assertEquals(c1.getResourceClaim(), c2.getResourceClaim());
+            assertTrue(largeClaim.isTruncationCandidate());
+            assertEquals(smallClaim.getResourceClaim(), largeClaim.getResourceClaim());
 
-            final Path filePath = getPath(localRepo, c1);
+            final Path filePath = getPath(localRepository, smallClaim);
             final long originalSize = Files.size(filePath);
 
-            localClaimManager.decrementClaimantCount(c2.getResourceClaim());
-            localClaimManager.markTruncatable(c2);
+            localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
+            localClaimManager.markTruncatable(largeClaim);
 
             // Wait for at least one run of the background task with NO pressure.
             // File should NOT be truncated.
             Thread.sleep(3_000);
-            assertEquals(originalSize, Files.size(filePath), "File should not have been truncated while disk pressure is off");
+            assertEquals(originalSize, Files.size(filePath));
 
             // Now turn on disk pressure
             usableSpace.set(0);
 
             // Wait for the next background task run to truncate the file
-            final long expectedTruncatedSize = c2.getOffset();
+            final long expectedTruncatedSize = largeClaim.getOffset();
             while (Files.size(filePath) != expectedTruncatedSize) {
                 Thread.sleep(100L);
             }
 
-            // Verify C1's data is still readable
-            try (final InputStream in = localRepo.read(c1)) {
+            // Verify the small claim's data is still readable
+            try (final InputStream in = localRepository.read(smallClaim)) {
                 assertNotNull(in);
             }
         } finally {
-            localRepo.shutdown();
+            localRepository.shutdown();
         }
     }
 
     private byte[] readFully(final InputStream inStream, final int size) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream(size);
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream(size);
         int len;
         final byte[] buffer = new byte[size];
         while ((len = inStream.read(buffer)) >= 0) {
-            baos.write(buffer, 0, len);
+            outputStream.write(buffer, 0, len);
         }
 
-        return baos.toByteArray();
+        return outputStream.toByteArray();
     }
 }

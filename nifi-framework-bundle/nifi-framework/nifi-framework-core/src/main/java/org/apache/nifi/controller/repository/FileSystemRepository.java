@@ -101,6 +101,8 @@ public class FileSystemRepository implements ContentRepository {
     private final List<String> containerNames;
     private final AtomicLong index;
 
+    // Executor handles: BinDestructableClaims, one ArchiveOrDestroyDestructableClaims per content repository container,
+    // TruncateClaims, and archive directory scanning tasks submitted during initialization.
     private final ScheduledExecutorService executor = new FlowEngine(6, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ResourceClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
@@ -699,7 +701,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         if (claim.isTruncationCandidate() && claim instanceof final StandardContentClaim scc) {
-            LOG.debug("{} is a truncation candidate, but is being claimed again. Setting truncation candidate to false.", claim);
+            LOG.debug("{} is a truncation candidate, but is being claimed again. Setting truncation candidate to false", claim);
             scc.setTruncationCandidate(false);
         }
 
@@ -1069,6 +1071,9 @@ public class FileSystemRepository implements ContentRepository {
             // If able, truncate those claims. Otherwise, save those claims in the Truncation Claim Manager to be truncated on the next run.
             // This prevents us from having a case where we could truncate a big claim but we don't because we're not yet running out of disk space,
             // but then we later start to run out of disk space and lost the opportunity to truncate that big claim.
+            // Loop to drain the entire queue in a single invocation rather than waiting for the next scheduled run. Because the default
+            // interval is 1 minute, waiting for the next run could delay truncation on a disk that is already under pressure and increases
+            // the risk of having too many claims that the queue overflows (in which case we would lose some optimization).
             while (true) {
                 final List<ContentClaim> toTruncate = new ArrayList<>();
                 resourceClaimManager.drainTruncatableClaims(toTruncate, 10_000);
@@ -1086,7 +1091,7 @@ public class FileSystemRepository implements ContentRepository {
             for (final ContentClaim claim : toTruncate) {
                 final String container = claim.getResourceClaim().getContainer();
                 if (!isTruncationActiveForContainer(container, truncationActivationCache)) {
-                    LOG.debug("Will not truncate {} because truncation is not active for container {}; will save for later truncation.", claim, container);
+                    LOG.debug("Will not truncate {} because truncation is not active for container {}; will save for later truncation", claim, container);
                     claimsSkipped.computeIfAbsent(container, key -> new ArrayList<>()).add(claim);
                     continue;
                 }
@@ -1111,7 +1116,7 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             if (!isArchiveClearedOnLastRun(container)) {
-                LOG.debug("Truncation is not active for container {} because the archive was not cleared on the last run.", container);
+                LOG.debug("Truncation is not active for container {} because the archive was not cleared on the last run", container);
                 activationCache.put(container, false);
                 return false;
             }
@@ -1120,7 +1125,7 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 usableSpace = getContainerUsableSpace(container);
             } catch (final IOException ioe) {
-                LOG.warn("Failed to determine usable space for container {}. Will not truncate claims for this container.", container, ioe);
+                LOG.warn("Failed to determine usable space for container {}. Will not truncate claims for this container", container, ioe);
                 return false;
             }
 
@@ -1153,7 +1158,7 @@ public class FileSystemRepository implements ContentRepository {
                 // This is unlikely but can occur if the claim was truncatable and the underlying Resource Claim becomes
                 // destructable. In this case, we may archive or delete the entire ResourceClaim. This is safe to ignore,
                 // since it means the data is cleaned up anyway.
-                LOG.debug("Failed to truncate {} because file does not exist.", claim, nsfe);
+                LOG.debug("Failed to truncate {} because file [{}] does not exist", claim, path, nsfe);
             } catch (final IOException e) {
                 LOG.warn("Failed to truncate {} to {} bytes", claim, claim.getOffset(), e);
             }
@@ -2068,7 +2073,7 @@ public class FileSystemRepository implements ContentRepository {
         private static final int MAX_THRESHOLD = 100_000;
         private final Map<String, List<ContentClaim>> truncationClaims = new HashMap<>();
 
-        public synchronized void addTruncationClaims(final String container, final List<ContentClaim> claim) {
+        synchronized void addTruncationClaims(final String container, final List<ContentClaim> claim) {
             final List<ContentClaim> contentClaims = truncationClaims.computeIfAbsent(container, c -> new ArrayList<>());
             contentClaims.addAll(claim);
 
@@ -2082,12 +2087,12 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
-        public synchronized List<ContentClaim> removeTruncationClaims(final String container) {
+        synchronized List<ContentClaim> removeTruncationClaims(final String container) {
             final List<ContentClaim> removed = truncationClaims.remove(container);
             return removed == null ? Collections.emptyList() : removed;
         }
 
-        public synchronized List<ContentClaim> removeTruncationClaims(final ResourceClaim resourceClaim) {
+        synchronized List<ContentClaim> removeTruncationClaims(final ResourceClaim resourceClaim) {
             final List<ContentClaim> contentClaims = truncationClaims.get(resourceClaim.getContainer());
             if (contentClaims == null) {
                 return Collections.emptyList();
