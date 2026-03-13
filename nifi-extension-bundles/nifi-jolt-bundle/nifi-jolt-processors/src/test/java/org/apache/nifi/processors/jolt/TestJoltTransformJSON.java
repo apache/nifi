@@ -36,6 +36,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -531,6 +532,52 @@ class TestJoltTransformJSON {
         final String compareOutputPath = "src/test/resources/TestJoltTransformJson/%s".formatted(expectedOutputFilename);
         final Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get(compareOutputPath)));
         assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
+    void testTransformInputWithJsonLines() throws IOException {
+        final String inputJson = """
+                {"rating":{"primary":{"value":3},"series":{"value":[5,4]},"quality":{"value":3}}}
+
+                {"rating":{"primary":{"value":7},"series":{"value":[2,1]},"quality":{"value":8}}}
+                """;
+
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
+        runner.setProperty(JoltTransformJSON.JSON_SOURCE, JsonSourceStrategy.JSON_LINES);
+        runner.enqueue(inputJson);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
+        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), JsonSourceStrategy.JSON_LINES.getContentType());
+
+        final String[] outputLines = new String(transformed.toByteArray(), StandardCharsets.UTF_8)
+                .strip().split("\n");
+        assertEquals(2, outputLines.length);
+
+        final Object firstTransformed = JsonUtils.jsonToObject(outputLines[0]);
+        final Object expectedFirst = JsonUtils.jsonToObject(Files.newInputStream(
+                Paths.get("src/test/resources/TestJoltTransformJson/" + CHAINR_JSON_OUTPUT)));
+        assertTrue(DIFFY.diff(expectedFirst, firstTransformed).isEmpty());
+
+        final Map<String, Object> secondTransformed = JsonUtils.jsonToMap(outputLines[1]);
+        final Object secondRating = secondTransformed.get("Rating");
+        assertEquals(7, secondRating);
+    }
+
+    @Test
+    void testInvalidJsonLinesContent() {
+        final String inputJson = """
+                {"rating":{"primary":{"value":3}}}
+                not valid json
+                """;
+
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
+        runner.setProperty(JoltTransformJSON.JSON_SOURCE, JsonSourceStrategy.JSON_LINES);
+        runner.enqueue(inputJson);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
     }
 
     private static Stream<Arguments> getChainrArguments() {
