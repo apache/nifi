@@ -235,6 +235,28 @@ public class TestListenSyslog {
         tesGetListenPorts(TransportProtocol.UDP, 2);
     }
 
+    @Test
+    public void testGetListenPortsTcpPortNotConfigured() {
+        runner.setProperty(ListenSyslog.PROTOCOL, TransportProtocol.TCP.toString());
+
+        final ConfigurationContext configurationContext = new MockConfigurationContext(runner.getProcessContext().getProperties(), new EmptyControllerServiceLookup(), Map.of());
+        final List<ListenPort> listenPorts = processor.getListenPorts(configurationContext);
+
+        assertNotNull(listenPorts);
+        assertTrue(listenPorts.isEmpty());
+    }
+
+    @Test
+    public void testGetListenPortsUdpPortNotConfigured() {
+        runner.setProperty(ListenSyslog.PROTOCOL, TransportProtocol.UDP.toString());
+
+        final ConfigurationContext configurationContext = new MockConfigurationContext(runner.getProcessContext().getProperties(), new EmptyControllerServiceLookup(), Map.of());
+        final List<ListenPort> listenPorts = processor.getListenPorts(configurationContext);
+
+        assertNotNull(listenPorts);
+        assertTrue(listenPorts.isEmpty());
+    }
+
     private void tesGetListenPorts(final TransportProtocol protocol, final int portNumber) {
         runner.setProperty(ListenSyslog.TCP_PORT, "0");
         runner.setProperty(ListenSyslog.UDP_PORT, "0");
