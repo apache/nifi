@@ -439,11 +439,6 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<String> getAncestorServiceIds() {
-        return null;
-    }
-
-    @Override
     public ControllerServiceNode findControllerService(final String id, final boolean includeDescendants, final boolean includeAncestors) {
         return serviceMap.get(id);
     }
