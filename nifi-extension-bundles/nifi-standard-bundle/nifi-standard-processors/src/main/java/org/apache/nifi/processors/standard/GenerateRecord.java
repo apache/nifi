@@ -64,12 +64,10 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.StringUtils;
 
 import java.math.BigInteger;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -405,11 +403,10 @@ public class GenerateRecord extends AbstractProcessor {
                 yield enums.get(faker.number().numberBetween(0, enums.size() - 1));
             }
             case TIME -> {
-                Date fakeDate = (Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
-                LocalDate fakeLocalDate = fakeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                yield fakeLocalDate.format(DateTimeFormatter.ISO_LOCAL_TIME);
+                Instant fakeInstant = (Instant) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
+                yield fakeInstant.atZone(ZoneId.systemDefault()).toLocalTime();
             }
-            case TIMESTAMP -> ((Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker)).getTime();
+            case TIMESTAMP -> ((Instant) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker)).toEpochMilli();
             case UUID -> UUID.randomUUID();
             case ARRAY -> {
                 final ArrayDataType arrayDataType = (ArrayDataType) recordField.getDataType();

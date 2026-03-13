@@ -21,11 +21,14 @@ import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.avro.AvroRecordSetWriter;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.csv.CSVRecordSetWriter;
+import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processors.standard.faker.FakerMethodHolder;
 import org.apache.nifi.processors.standard.faker.FakerUtils;
 import org.apache.nifi.processors.standard.faker.PredefinedRecordSchema;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -36,8 +39,12 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.xml.XMLRecordSetWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Field;
@@ -49,6 +56,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -428,5 +436,59 @@ public class TestGenerateRecord {
 
         // Verify record count attribute
         flowFile.assertAttributeEquals("record.count", "1");
+    }
+
+    @ParameterizedTest
+    @MethodSource("recordSetWriters")
+    void testSchemaTextWithLogicalTypesTimestampMillisAndTimestampMillis(RecordSetWriterFactory recordWriter) throws InitializationException {
+        final String schemaText = """
+                {
+                    "type": "record",
+                    "name": "Event",
+                    "fields": [
+                      {
+                        "name": "eventTimestamp",
+                        "type": {
+                          "type": "long",
+                          "logicalType": "timestamp-millis"
+                        }
+                      },
+                      {
+                        "name": "eventTime",
+                        "type": {
+                          "type": "long",
+                          "logicalType": "time-micros"
+                        }
+                      },
+                      {
+                        "name": "eventName",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                """;
+
+        testRunner.addControllerService("record-writer", recordWriter);
+        testRunner.enableControllerService(recordWriter);
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.SCHEMA_TEXT, schemaText);
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
+
+        testRunner.assertValid();
+        testRunner.run();
+
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final String content = flowFile.getContent();
+        assertTrue(content.contains("eventTime"));
+        flowFile.assertAttributeEquals("record.count", "1");
+    }
+
+    private static Stream<Arguments> recordSetWriters() {
+        return Stream.of(
+                Arguments.argumentSet("JSON", new JsonRecordSetWriter()),
+                Arguments.argumentSet("XML", new XMLRecordSetWriter()),
+                Arguments.argumentSet("CSV", new CSVRecordSetWriter())
+        );
     }
 }
