@@ -20,12 +20,18 @@ package org.apache.nifi.processors.jolt;
 import org.apache.nifi.components.DescribedValue;
 
 public enum JsonSourceStrategy implements DescribedValue {
-    FLOW_FILE("Transformation applied to FlowFile content containing JSON"),
-    ATTRIBUTE("Transformation applied to FlowFile attribute containing JSON");
+    FLOW_FILE("application/json", "Transformation applied to FlowFile content containing JSON"),
+    ATTRIBUTE("application/json", "Transformation applied to FlowFile attribute containing JSON"),
+    JSON_LINES("application/jsonl", "Transformation applied to FlowFile content containing JSON Lines or NDJSON");
 
+    private final String contentType;
     private final String description;
 
-    JsonSourceStrategy(final String description) {
+    JsonSourceStrategy(
+            final String contentType,
+            final String description
+    ) {
+        this.contentType = contentType;
         this.description = description;
     }
 
@@ -42,5 +48,9 @@ public enum JsonSourceStrategy implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    public String getContentType() {
+        return contentType;
     }
 }
