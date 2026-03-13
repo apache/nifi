@@ -20,11 +20,15 @@ package org.apache.nifi.py4j.client;
 import org.apache.nifi.py4j.client.NiFiPythonGateway.InvocationBindings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import py4j.CallbackClient;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -145,6 +149,43 @@ public class TestNiFiPythonGateway {
 
         // When the final invocation completes, the object should be unbound
         assertNull(gateway.getObject(objectId));
+    }
+
+    @Test
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
+    public void testConcurrentVirtualThreadsDoNotDeadlock() throws InterruptedException {
+        final int threadCount = 200;
+        final int iterationsPerThread = 50;
+        final CountDownLatch startLatch = new CountDownLatch(1);
+        final CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        final AtomicInteger completedCount = new AtomicInteger(0);
+        final AtomicInteger errorCount = new AtomicInteger(0);
+
+        for (int t = 0; t < threadCount; t++) {
+            Thread.ofVirtual().name("gateway-test-" + t).start(() -> {
+                try {
+                    startLatch.await();
+                    for (int i = 0; i < iterationsPerThread; i++) {
+                        final Object[] args = new Object[]{new Object()};
+                        final InvocationBindings invocationBindings = gateway.beginInvocation("o" + Thread.currentThread().getName(), NOP_METHOD, args);
+                        gateway.putNewObject(args[0]);
+                        gateway.endInvocation(invocationBindings);
+                    }
+                    completedCount.incrementAndGet();
+                } catch (final Exception e) {
+                    errorCount.incrementAndGet();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        final boolean allFinished = doneLatch.await(25, TimeUnit.SECONDS);
+
+        assertEquals(true, allFinished, "Not all virtual threads completed within the timeout, possible deadlock");
+        assertEquals(threadCount, completedCount.get());
+        assertEquals(0, errorCount.get());
     }
 
     public void nop(Object... args) {
