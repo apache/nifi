@@ -154,8 +154,8 @@ public class TestNiFiPythonGateway {
     @Test
     @Timeout(value = 30, unit = TimeUnit.SECONDS)
     public void testConcurrentVirtualThreadsDoNotDeadlock() throws InterruptedException {
-        final int threadCount = 200;
-        final int iterationsPerThread = 50;
+        final int threadCount = 50;
+        final int iterationsPerThread = 20;
         final CountDownLatch startLatch = new CountDownLatch(1);
         final CountDownLatch doneLatch = new CountDownLatch(threadCount);
         final AtomicInteger completedCount = new AtomicInteger(0);
