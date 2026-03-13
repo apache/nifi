@@ -353,24 +353,28 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
 
         if (transportProtocol == TransportProtocol.TCP) {
             final Integer tcpPortNumber = context.getProperty(TCP_PORT).evaluateAttributeExpressions().asInteger();
-            final ListenPort port = StandardListenPort.builder()
-                    .portNumber(tcpPortNumber)
-                    .portName(TCP_PORT.getDisplayName())
-                    .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.TCP)
-                    .applicationProtocols(List.of("syslog"))
-                    .build();
-            ports.add(port);
+            if (tcpPortNumber != null) {
+                final ListenPort port = StandardListenPort.builder()
+                        .portNumber(tcpPortNumber)
+                        .portName(TCP_PORT.getDisplayName())
+                        .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.TCP)
+                        .applicationProtocols(List.of("syslog"))
+                        .build();
+                ports.add(port);
+            }
         }
 
         if (transportProtocol == TransportProtocol.UDP) {
             final Integer udpPortNumber = context.getProperty(UDP_PORT).evaluateAttributeExpressions().asInteger();
-            final ListenPort port = StandardListenPort.builder()
-                    .portNumber(udpPortNumber)
-                    .portName(UDP_PORT.getDisplayName())
-                    .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.UDP)
-                    .applicationProtocols(List.of("syslog"))
-                    .build();
-            ports.add(port);
+            if (udpPortNumber != null) {
+                final ListenPort port = StandardListenPort.builder()
+                        .portNumber(udpPortNumber)
+                        .portName(UDP_PORT.getDisplayName())
+                        .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.UDP)
+                        .applicationProtocols(List.of("syslog"))
+                        .build();
+                ports.add(port);
+            }
         }
 
         return ports;
