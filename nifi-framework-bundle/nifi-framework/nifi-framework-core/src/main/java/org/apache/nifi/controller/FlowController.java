@@ -51,10 +51,12 @@ import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.components.ClassLoaderAwarePythonBridge;
 import org.apache.nifi.components.connector.ConnectorConfigurationProvider;
 import org.apache.nifi.components.connector.ConnectorConfigurationProviderInitializationContext;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.ConnectorValidationTrigger;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.StandardConnectorConfigurationProviderInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorRepoInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorRepository;
@@ -1021,6 +1023,60 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public ConnectorRepository getConnectorRepository() {
         return connectorRepository;
+    }
+
+    /**
+     * Finds a Connection by ID, searching both the root process group hierarchy
+     * and all connector-managed process groups.
+     *
+     * @param connectionId the connection identifier
+     * @return the Connection, or null if not found
+     */
+    public Connection findConnectionIncludingConnectorManaged(final String connectionId) {
+        final Connection connection = flowManager.getRootGroup().findConnection(connectionId);
+        if (connection != null) {
+            return connection;
+        }
+
+        for (final ConnectorNode connector : connectorRepository.getConnectors()) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null) {
+                final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
+                final Connection managedConnection = managedGroup.findConnection(connectionId);
+                if (managedConnection != null) {
+                    return managedConnection;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds a RemoteGroupPort by ID, searching both the root process group hierarchy
+     * and all connector-managed process groups.
+     *
+     * @param remoteGroupPortId the remote group port identifier
+     * @return the RemoteGroupPort, or null if not found
+     */
+    public RemoteGroupPort findRemoteGroupPortIncludingConnectorManaged(final String remoteGroupPortId) {
+        final RemoteGroupPort remoteGroupPort = flowManager.getRootGroup().findRemoteGroupPort(remoteGroupPortId);
+        if (remoteGroupPort != null) {
+            return remoteGroupPort;
+        }
+
+        for (final ConnectorNode connector : connectorRepository.getConnectors()) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null) {
+                final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
+                final RemoteGroupPort managedPort = managedGroup.findRemoteGroupPort(remoteGroupPortId);
+                if (managedPort != null) {
+                    return managedPort;
+                }
+            }
+        }
+
+        return null;
     }
 
     private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {
