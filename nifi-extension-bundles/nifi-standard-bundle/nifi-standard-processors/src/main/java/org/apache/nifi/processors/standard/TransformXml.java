@@ -319,7 +319,7 @@ public class TransformXml extends AbstractProcessor {
             session.getProvenanceReporter().modifyContent(transformed, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             getLogger().info("Transformation Completed {}", original);
         } catch (final ProcessException e) {
-            getLogger().error("Transformation Failed", original, e);
+            getLogger().error("Transformation Failed {}", original, e);
             session.transfer(original, REL_FAILURE);
         }
     }

@@ -88,7 +88,8 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void trace(String format, Object... arguments) {
-        traceMessages.add(new LogMessage(null, format, null, arguments));
+        final Throwable throwable = lastArgIsException(arguments) ? (Throwable) arguments[arguments.length - 1] : null;
+        traceMessages.add(new LogMessage(null, format, throwable, arguments));
         logger.trace(format, arguments);
     }
 
@@ -161,7 +162,8 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void debug(String format, Object... arguments) {
-        debugMessages.add(new LogMessage(null, format, null, arguments));
+        final Throwable throwable = lastArgIsException(arguments) ? (Throwable) arguments[arguments.length - 1] : null;
+        debugMessages.add(new LogMessage(null, format, throwable, arguments));
         logger.debug(format, arguments);
     }
 
@@ -232,8 +234,9 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void info(String format, Object... arguments) {
+        final Throwable throwable = lastArgIsException(arguments) ? (Throwable) arguments[arguments.length - 1] : null;
         String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
-        infoMessages.add(new LogMessage(null, message, null, arguments));
+        infoMessages.add(new LogMessage(null, message, throwable, arguments));
         logger.info(format, arguments);
     }
 
@@ -303,8 +306,9 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void warn(String format, Object... arguments) {
+        final Throwable throwable = lastArgIsException(arguments) ? (Throwable) arguments[arguments.length - 1] : null;
         String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
-        warnMessages.add(new LogMessage(null, message, null, arguments));
+        warnMessages.add(new LogMessage(null, message, throwable, arguments));
         logger.warn(format, arguments);
     }
 
@@ -384,8 +388,9 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void error(String format, Object... arguments) {
+        final Throwable throwable = lastArgIsException(arguments) ? (Throwable) arguments[arguments.length - 1] : null;
         final String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
-        errorMessages.add(new LogMessage(null, message, null, arguments));
+        errorMessages.add(new LogMessage(null, message, throwable, arguments));
         logger.error(format, arguments);
     }
 
@@ -434,4 +439,7 @@ public class CapturingLogger implements Logger {
         logger.error(marker, msg, t);
     }
 
+    private boolean lastArgIsException(final Object[] os) {
+        return (os != null && os.length > 0 && (os[os.length - 1] instanceof Throwable));
+    }
 }
