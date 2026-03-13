@@ -328,6 +328,32 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
+     * Determines if the current request is a direct node-to-node request where the authenticated user IS a cluster node,
+     * as opposed to a user request that was replicated through a cluster node. This distinction is necessary because
+     * {@link #isRequestFromClusterNode()} returns true for both cases (it only checks TLS certificates), but only
+     * direct node requests should bypass standard authorization and receive overridden permissions.
+     *
+     * @return true if the request is from a cluster node AND the NiFiUser identity matches a known node identity
+     */
+    private boolean isDirectNodeIdentityRequest() {
+        if (!isRequestFromClusterNode()) {
+            return false;
+        }
+        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
+        if (currentUser == null) {
+            return false;
+        }
+        final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
+        if (clusterCoordinator == null) {
+            return false;
+        }
+        final String userIdentity = currentUser.getIdentity();
+        return clusterCoordinator.getNodeIdentifiers().stream()
+                .anyMatch(nodeId -> nodeId.getNodeIdentities().contains(userIdentity)
+                        || nodeId.getApiAddress().equals(userIdentity));
+    }
+
+    /**
      * Retrieves the specified connector.
      *
      * @param id The id of the connector to retrieve
@@ -362,7 +388,7 @@ public class ConnectorResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        final boolean clusterNodeRequest = isRequestFromClusterNode();
+        final boolean clusterNodeRequest = isDirectNodeIdentityRequest();
 
         // authorize access
         if (clusterNodeRequest) {
