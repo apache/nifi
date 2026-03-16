@@ -1315,13 +1315,13 @@ public abstract class ApplicationResource {
     protected boolean isRequestFromClusterNode() {
         final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
         if (clusterCoordinator == null) {
-            logger.warn("Clustering is not configured");
+            logger.debug("Clustering is not configured");
             return false;
         }
 
         final X509Certificate[] certificates = getAuthenticationCertificates();
         if (certificates == null) {
-            logger.warn("Client credentials do not contain certificates");
+            logger.debug("Client credentials do not contain certificates");
             return false;
         }
 
@@ -1336,16 +1336,16 @@ public abstract class ApplicationResource {
                 .map(NodeIdentifier::getApiAddress)
                 .collect(Collectors.toSet());
 
-        logger.warn("Checking client identities [{}] against cluster node identities [{}]", clientIdentities, nodeIds);
+        logger.debug("Checking client identities [{}] against cluster node identities [{}]", clientIdentities, nodeIds);
 
         for (final String clientIdentity : clientIdentities) {
             if (nodeIds.contains(clientIdentity)) {
-                logger.warn("Client identity [{}] is in the list of cluster nodes", clientIdentity);
+                logger.debug("Client identity [{}] is in the list of cluster nodes", clientIdentity);
                 return true;
             }
         }
 
-        logger.warn("None of the client identities [{}] are in the list of cluster nodes", clientIdentities);
+        logger.debug("None of the client identities [{}] are in the list of cluster nodes", clientIdentities);
         return false;
     }
 

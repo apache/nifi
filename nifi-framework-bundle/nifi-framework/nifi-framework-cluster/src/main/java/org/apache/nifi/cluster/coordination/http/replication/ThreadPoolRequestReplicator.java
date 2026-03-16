@@ -184,11 +184,18 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
     @Override
     public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers) {
+        return replicateToCluster(user, method, uri, entity, headers, false);
+    }
+
+    @Override
+    public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers, boolean clusterNodeRequest) {
+        return replicateToCluster(user, method, uri, entity, headers, clusterNodeRequest);
+    }
+
+    private AsyncClusterResponse replicateToCluster(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers, boolean clusterNodeRequest) {
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
         final boolean mutable = isMutableRequest(method);
 
-        // If the request is mutable, ensure the appropriate state: there can be no Connecting Nodes (in order to avoid confusion where a node gets the dataflow, and then gets modified before the
-        // node fully loads the dataflow), and we cannot delete a connection while a node is OFFLOADING (otherwise, we could delete a connection while a node is trying to push data to it).
         if (mutable) {
             final List<NodeIdentifier> connecting = stateMap.get(NodeConnectionState.CONNECTING);
             if (connecting != null && !connecting.isEmpty()) {
@@ -199,7 +206,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                 }
             }
 
-            // Do not allow any components to be deleted unless all nodes are connected.
             if (isDeleteComponent(method, uri.getPath())) {
                 final List<NodeIdentifier> nonConnectedNodes = getNonConnectedNodes(stateMap);
                 if (!nonConnectedNodes.isEmpty()) {
@@ -215,7 +221,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
 
-        return replicate(nodeIdSet, user, method, uri, entity, headers, true, true);
+        return replicate(nodeIdSet, user, method, uri, entity, headers, true, true, clusterNodeRequest);
     }
 
     private List<NodeIdentifier> getNonConnectedNodes(final Map<NodeConnectionState, List<NodeIdentifier>> stateMap) {
@@ -260,6 +266,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
         // remove the host header
         removeHeader(headers, HOST_HEADER);
+
+        // strip cluster-node-request header to prevent spoofing from external requests
+        removeHeader(headers, RequestReplicationHeader.CLUSTER_NODE_REQUEST.getHeader());
     }
 
     @Override
@@ -272,6 +281,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
                                           final boolean indicateReplicated, final boolean performVerification) {
+        return replicate(nodeIds, user, method, uri, entity, headers, indicateReplicated, performVerification, false);
+    }
+
+    private AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
+                                           final boolean indicateReplicated, final boolean performVerification, final boolean clusterNodeRequest) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         updatedHeaders.put(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), ComponentIdGenerator.generateId().toString());
@@ -279,8 +293,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             updatedHeaders.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
         }
 
-        // include the proxied entities header
+        // include the proxied entities header and strip untrusted headers (including cluster-node-request)
         updateRequestHeaders(updatedHeaders, user);
+
+        // re-add cluster-node-request after sanitization if explicitly requested by an internal caller
+        if (clusterNodeRequest) {
+            updatedHeaders.put(RequestReplicationHeader.CLUSTER_NODE_REQUEST.getHeader(), Boolean.TRUE.toString());
+        }
 
         if (indicateReplicated) {
             // If we are replicating a request and indicating that it is replicated, then this means that we are

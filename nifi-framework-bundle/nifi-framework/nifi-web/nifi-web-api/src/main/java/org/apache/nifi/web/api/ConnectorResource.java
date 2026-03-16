@@ -328,44 +328,22 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
-     * Determines if the current request is a direct node-to-node request where the authenticated user IS a cluster node,
-     * as opposed to a user request that was replicated through a cluster node. This distinction is necessary because
-     * {@link #isRequestFromClusterNode()} returns true for both cases (it only checks TLS certificates), but only
-     * direct node requests should bypass standard authorization and receive overridden permissions.
+     * Determines if the current request originated from a cluster node's internal process by checking for the
+     * trusted {@code cluster-node-request} header. This header is stripped from all externally-originated requests
+     * during replication and only set by {@code ThreadPoolRequestReplicator} when explicitly requested, preventing
+     * spoofing. As an additional safeguard, the check is gated behind {@code properties.isNode()} so the header
+     * is ignored entirely in standalone mode.
      *
-     * @return true if the request is from a cluster node AND the NiFiUser identity matches a known node identity
+     * @return true if clustering is enabled and the request carries the cluster-node-request header
      */
-    private boolean isDirectNodeIdentityRequest() {
-        final boolean fromClusterNode = isRequestFromClusterNode();
-        logger.warn("isDirectNodeIdentityRequest: isRequestFromClusterNode()={}", fromClusterNode);
-        if (!fromClusterNode) {
+    private boolean isClusterNodeRequest() {
+        if (!properties.isNode()) {
             return false;
         }
-        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
-        if (currentUser == null) {
-            logger.warn("isDirectNodeIdentityRequest: currentUser is null, returning false");
-            return false;
-        }
-        final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
-        if (clusterCoordinator == null) {
-            logger.warn("isDirectNodeIdentityRequest: clusterCoordinator is null, returning false");
-            return false;
-        }
-        final String userIdentity = currentUser.getIdentity();
-        logger.warn("isDirectNodeIdentityRequest: userIdentity=[{}], proxied chain=[{}]",
-                userIdentity, currentUser.getChain() != null ? currentUser.getChain().getIdentity() : "no-chain");
-
-        final Set<NodeIdentifier> nodeIdentifiers = clusterCoordinator.getNodeIdentifiers();
-        for (final NodeIdentifier nodeId : nodeIdentifiers) {
-            logger.warn("isDirectNodeIdentityRequest: checking nodeId=[{}], apiAddress=[{}], nodeIdentities={}",
-                    nodeId.getId(), nodeId.getApiAddress(), nodeId.getNodeIdentities());
-        }
-
-        final boolean match = nodeIdentifiers.stream()
-                .anyMatch(nodeId -> nodeId.getNodeIdentities().contains(userIdentity)
-                        || nodeId.getApiAddress().equals(userIdentity));
-        logger.warn("isDirectNodeIdentityRequest: userIdentity=[{}] match={}", userIdentity, match);
-        return match;
+        final String header = httpServletRequest.getHeader(RequestReplicationHeader.CLUSTER_NODE_REQUEST.getHeader());
+        final boolean result = Boolean.TRUE.toString().equals(header);
+        logger.debug("isClusterNodeRequest: header=[{}], result={}", header, result);
+        return result;
     }
 
     /**
@@ -399,23 +377,16 @@ public class ConnectorResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
-        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
-        final String currentUserIdentity = currentUser != null ? currentUser.getIdentity() : "null";
-        logger.warn("getConnector: id=[{}], isReplicateRequest={}, user=[{}]", id, isReplicateRequest(), currentUserIdentity);
-
         if (isReplicateRequest()) {
-            logger.warn("getConnector: replicating request for Connector [{}]", id);
             return replicate(HttpMethod.GET);
         }
 
-        final boolean clusterNodeRequest = isDirectNodeIdentityRequest();
-        logger.warn("getConnector: Connector [{}], clusterNodeRequest={}", id, clusterNodeRequest);
+        final boolean clusterNodeRequest = isClusterNodeRequest();
 
         // authorize access
         if (clusterNodeRequest) {
-            logger.warn("getConnector: bypassing auth for cluster node request on Connector [{}], user=[{}]", id, currentUserIdentity);
+            logger.debug("Bypassing authorization for cluster node request on Connector [{}]", id);
         } else {
-            logger.warn("getConnector: performing standard authorization for Connector [{}], user=[{}]", id, currentUserIdentity);
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connector = lookup.getConnector(id);
                 connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
@@ -424,11 +395,6 @@ public class ConnectorResource extends ApplicationResource {
 
         // get the connector
         final ConnectorEntity entity = serviceFacade.getConnector(id, clusterNodeRequest);
-        logger.warn("getConnector: Connector [{}] — entity component={}, permissions canRead={}, canWrite={}",
-                id,
-                entity.getComponent() != null ? "present (state=" + entity.getComponent().getState() + ")" : "null",
-                entity.getPermissions() != null ? entity.getPermissions().getCanRead() : "null-permissions",
-                entity.getPermissions() != null ? entity.getPermissions().getCanWrite() : "null-permissions");
         populateRemainingConnectorEntityContent(entity);
 
         return generateOkResponse(entity).build();

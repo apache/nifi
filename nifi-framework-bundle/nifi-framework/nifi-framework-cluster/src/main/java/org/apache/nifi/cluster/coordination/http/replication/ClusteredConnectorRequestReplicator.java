@@ -65,7 +65,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
 
         logger.debug("getState: Connector [{}] — replicating GET to URI [{}] as user identity [{}]", connectorId, uri, nodeUser.getIdentity());
 
-        final AsyncClusterResponse asyncResponse = requestReplicator.replicate(nodeUser, GET, uri, Map.of(), Map.of());
+        final AsyncClusterResponse asyncResponse = requestReplicator.replicate(nodeUser, GET, uri, Map.of(), Map.of(), true);
 
         try {
             final NodeResponse mergedNodeResponse = asyncResponse.awaitMergedResponse();

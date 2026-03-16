@@ -24,10 +24,6 @@ import jakarta.ws.rs.core.UriInfo;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -55,8 +51,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.URI;
@@ -499,45 +493,12 @@ public class TestConnectorResource {
     }
 
     @Test
-    public void testGetConnectorReplicatedUserRequestUsesNormalPermissions() {
+    public void testGetConnectorClusterNodeRequestBypassesAuth() {
         final ConnectorResource spyResource = spy(connectorResource);
-        doReturn(true).when(spyResource).isRequestFromClusterNode();
+        doReturn(false).when(spyResource).isReplicateRequest();
 
-        final ClusterCoordinator mockCoordinator = mock(ClusterCoordinator.class);
-        final NodeIdentifier nodeId = new NodeIdentifier("node-1", "nifi-node1.example.com", 8443,
-                "nifi-node1.example.com", 11443, "nifi-node1.example.com", 6342,
-                null, null, null, false, Set.of("CN=nifi-node1"));
-        when(mockCoordinator.getNodeIdentifiers()).thenReturn(Set.of(nodeId));
-        spyResource.setClusterCoordinator(mockCoordinator);
-
-        setSecurityContextUser("user@example.com");
-
-        final ConnectorEntity connectorEntity = createConnectorEntity();
-        when(serviceFacade.getConnector(CONNECTOR_ID, false)).thenReturn(connectorEntity);
-
-        try (Response response = spyResource.getConnector(CONNECTOR_ID)) {
-            assertEquals(200, response.getStatus());
-            assertEquals(connectorEntity, response.getEntity());
-        }
-
-        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnector(CONNECTOR_ID, false);
-    }
-
-    @Test
-    public void testGetConnectorDirectNodeRequestBypassesAuth() {
-        final ConnectorResource spyResource = spy(connectorResource);
-        doReturn(true).when(spyResource).isRequestFromClusterNode();
-
-        final String nodeIdentity = "CN=nifi-node1";
-        final ClusterCoordinator mockCoordinator = mock(ClusterCoordinator.class);
-        final NodeIdentifier nodeId = new NodeIdentifier("node-1", "nifi-node1.example.com", 8443,
-                "nifi-node1.example.com", 11443, "nifi-node1.example.com", 6342,
-                null, null, null, false, Set.of(nodeIdentity));
-        when(mockCoordinator.getNodeIdentifiers()).thenReturn(Set.of(nodeId));
-        spyResource.setClusterCoordinator(mockCoordinator);
-
-        setSecurityContextUser(nodeIdentity);
+        when(properties.isNode()).thenReturn(Boolean.TRUE);
+        when(httpServletRequest.getHeader(eq("cluster-node-request"))).thenReturn(Boolean.TRUE.toString());
 
         final ConnectorEntity connectorEntity = createConnectorEntity();
         when(serviceFacade.getConnector(CONNECTOR_ID, true)).thenReturn(connectorEntity);
@@ -551,14 +512,37 @@ public class TestConnectorResource {
         verify(serviceFacade).getConnector(CONNECTOR_ID, true);
     }
 
-    private void setSecurityContextUser(final String identity) {
-        final NiFiUserDetails userDetails = new NiFiUserDetails(
-                new StandardNiFiUser.Builder().identity(identity).build());
-        final Authentication authentication = mock(Authentication.class);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        final SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
+    @Test
+    public void testGetConnectorClusterNodeHeaderIgnoredInStandaloneMode() {
+        final ConnectorEntity connectorEntity = createConnectorEntity();
+        when(serviceFacade.getConnector(CONNECTOR_ID, false)).thenReturn(connectorEntity);
+
+        try (Response response = connectorResource.getConnector(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(connectorEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnector(CONNECTOR_ID, false);
+    }
+
+    @Test
+    public void testGetConnectorClusterNodeHeaderAbsentUsesNormalAuth() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        when(properties.isNode()).thenReturn(Boolean.TRUE);
+
+        final ConnectorEntity connectorEntity = createConnectorEntity();
+        when(serviceFacade.getConnector(CONNECTOR_ID, false)).thenReturn(connectorEntity);
+
+        try (Response response = spyResource.getConnector(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(connectorEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnector(CONNECTOR_ID, false);
     }
 
     private ConnectorEntity createConnectorEntity() {

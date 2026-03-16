@@ -26,6 +26,14 @@ public enum RequestReplicationHeader {
     CANCEL_TRANSACTION("cancel-transaction"),
 
     /**
+     * Indicator that the request originated from a cluster node's internal process (e.g., connector state polling)
+     * rather than from a user request being replicated through the cluster. This header is stripped from all
+     * incoming requests during replication and only re-added by ThreadPoolRequestReplicator when explicitly
+     * requested via the clusterNodeRequest parameter, preventing external spoofing.
+     */
+    CLUSTER_NODE_REQUEST("cluster-node-request"),
+
+    /**
      * Seed for deterministic cluster identifier generation
      */
     CLUSTER_ID_GENERATION_SEED("cluster-id-generation-seed"),
