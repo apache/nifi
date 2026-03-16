@@ -196,6 +196,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
         final boolean mutable = isMutableRequest(method);
 
+        // If the request is mutable, ensure the appropriate state: there can be no Connecting Nodes (in order to avoid confusion where a node gets the dataflow, and then gets modified before the
+        // node fully loads the dataflow), and we cannot delete a connection while a node is OFFLOADING (otherwise, we could delete a connection while a node is trying to push data to it).
         if (mutable) {
             final List<NodeIdentifier> connecting = stateMap.get(NodeConnectionState.CONNECTING);
             if (connecting != null && !connecting.isEmpty()) {
@@ -206,6 +208,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                 }
             }
 
+            // Do not allow any components to be deleted unless all nodes are connected.
             if (isDeleteComponent(method, uri.getPath())) {
                 final List<NodeIdentifier> nonConnectedNodes = getNonConnectedNodes(stateMap);
                 if (!nonConnectedNodes.isEmpty()) {
