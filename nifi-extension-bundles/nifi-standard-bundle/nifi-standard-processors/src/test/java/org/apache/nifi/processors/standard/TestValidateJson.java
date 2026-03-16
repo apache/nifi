@@ -49,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestValidateJson {
     private static final String JSON = getFileContent("simple-example.json");
@@ -62,7 +63,7 @@ class TestValidateJson {
         runner = TestRunners.newTestRunner(ValidateJson.class);
     }
 
-    @ParameterizedTest(name = "{2}")
+    @ParameterizedTest
     @MethodSource("customValidateArgs")
     void testCustomValidateMissingProperty(final ValidateJson.JsonSchemaStrategy strategy) {
         runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, strategy);
@@ -252,6 +253,35 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 1);
     }
 
+    @ParameterizedTest
+    @MethodSource("multilineJsonArgs")
+    void testMultilineJsonWhereSecondLineInvalid(ValidateJson.InputFormatStrategy inputFormatStrategy, boolean expectedValid) {
+        final String multilineJson = """
+                {"FieldOne":"stringValue","FieldTwo":1234,"FieldThree":[{"arrayField":"arrayValue"}]}
+                {"FieldOne":"stringValue","FieldTwo":"NAN","FieldThree":[{"arrayField":"arrayValue"}]}
+                """;
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, SIMPLE_SCHEMA);
+        runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
+        runner.setProperty(ValidateJson.INPUT_FORMAT, inputFormatStrategy.getValue());
+        runner.enqueue(multilineJson);
+
+        runner.run();
+
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        if (expectedValid) {
+            runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+            runner.assertTransferCount(ValidateJson.REL_VALID, 1);
+        } else {
+            runner.assertTransferCount(ValidateJson.REL_INVALID, 1);
+            runner.assertTransferCount(ValidateJson.REL_VALID, 0);
+
+            assertTrue(runner.getLogger().getWarnMessages().stream()
+                    .anyMatch(logMessage -> logMessage.getMsg().contains("JSON at line 2") && logMessage.getMsg().contains("is invalid")));
+        }
+
+        runner.clearTransferState();
+    }
+
     private void assertValidationErrors(Relationship relationship, boolean expected) {
         final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).getFirst().getAttributes();
 
@@ -265,8 +295,15 @@ class TestValidateJson {
 
     private static Stream<Arguments> customValidateArgs() {
         return Stream.of(
-                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY, "requires that the JSON Schema Registry property be set"),
-                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY, "requires that the JSON Schema property be set")
+                Arguments.argumentSet("Require JSON Schema Registry property to be set", ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY),
+                Arguments.argumentSet("Require JSON Schema property to be set", ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
+        );
+    }
+
+    private static Stream<Arguments> multilineJsonArgs() {
+        return Stream.of(
+                Arguments.argumentSet(ValidateJson.InputFormatStrategy.FLOW_FILE.getDisplayName(), ValidateJson.InputFormatStrategy.FLOW_FILE.getValue(), true),
+                Arguments.argumentSet(ValidateJson.InputFormatStrategy.JSON_LINES.getDisplayName(), ValidateJson.InputFormatStrategy.JSON_LINES.getValue(), false)
         );
     }
 
