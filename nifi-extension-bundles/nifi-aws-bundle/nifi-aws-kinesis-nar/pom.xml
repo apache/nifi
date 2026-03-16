@@ -98,7 +98,7 @@
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
-                <artifactId>apache-client</artifactId>
+                <artifactId>apache5-client</artifactId>
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -241,6 +241,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-kinesis</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>apache-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
