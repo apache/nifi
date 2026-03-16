@@ -1859,7 +1859,6 @@ public class ControllerFacade implements Authorizable {
 
     private void setComponentDetails(final ProvenanceEventDTO dto) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final ProcessGroup root = getRootGroup();
 
         final Connectable connectable = findLocalConnectable(dto.getComponentId());
         if (connectable != null) {
@@ -1879,15 +1878,11 @@ public class ControllerFacade implements Authorizable {
             return;
         }
 
-        final RemoteGroupPort remoteGroupPort = root.findRemoteGroupPort(dto.getComponentId());
+        final RemoteGroupPort remoteGroupPort = flowController.findRemoteGroupPortIncludingConnectorManaged(dto.getComponentId());
         if (remoteGroupPort != null) {
-            final String remoteGroupPortGroupId = remoteGroupPort.getProcessGroupIdentifier();
-            dto.setGroupId(remoteGroupPortGroupId);
-
-            final ProcessGroup remotePortGroup = root.findProcessGroup(remoteGroupPortGroupId);
-            if (remotePortGroup != null) {
-                remotePortGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
-            }
+            final ProcessGroup remotePortGroup = remoteGroupPort.getProcessGroup();
+            dto.setGroupId(remotePortGroup.getIdentifier());
+            remotePortGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(remoteGroupPort.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
@@ -1900,7 +1895,7 @@ public class ControllerFacade implements Authorizable {
             return;
         }
 
-        final Connection connection = root.findConnection(dto.getComponentId());
+        final Connection connection = flowController.findConnectionIncludingConnectorManaged(dto.getComponentId());
         if (connection != null) {
             final ProcessGroup connectionGroup = connection.getProcessGroup();
             dto.setGroupId(connectionGroup.getIdentifier());
