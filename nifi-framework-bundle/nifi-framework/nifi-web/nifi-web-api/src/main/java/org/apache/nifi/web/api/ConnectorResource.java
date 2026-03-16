@@ -399,9 +399,9 @@ public class ConnectorResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
-        logger.warn("getConnector: id=[{}], isReplicateRequest={}, user=[{}]",
-                id, isReplicateRequest(),
-                NiFiUserUtils.getNiFiUser() != null ? NiFiUserUtils.getNiFiUser().getIdentity() : "null");
+        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
+        final String currentUserIdentity = currentUser != null ? currentUser.getIdentity() : "null";
+        logger.warn("getConnector: id=[{}], isReplicateRequest={}, user=[{}]", id, isReplicateRequest(), currentUserIdentity);
 
         if (isReplicateRequest()) {
             logger.warn("getConnector: replicating request for Connector [{}]", id);
@@ -413,9 +413,9 @@ public class ConnectorResource extends ApplicationResource {
 
         // authorize access
         if (clusterNodeRequest) {
-            logger.warn("getConnector: bypassing auth for cluster node request on Connector [{}], user=[{}]", id, NiFiUserUtils.getNiFiUser().getIdentity());
+            logger.warn("getConnector: bypassing auth for cluster node request on Connector [{}], user=[{}]", id, currentUserIdentity);
         } else {
-            logger.warn("getConnector: performing standard authorization for Connector [{}], user=[{}]", id, NiFiUserUtils.getNiFiUser().getIdentity());
+            logger.warn("getConnector: performing standard authorization for Connector [{}], user=[{}]", id, currentUserIdentity);
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connector = lookup.getConnector(id);
                 connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
