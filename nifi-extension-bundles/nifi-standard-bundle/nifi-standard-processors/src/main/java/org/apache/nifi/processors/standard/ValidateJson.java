@@ -84,8 +84,8 @@ import java.util.stream.Collectors;
             + ", this attribute will contain the error message resulting from the validation failure.")
 })
 @CapabilityDescription("Validates the contents of FlowFiles against a configurable JSON Schema. See json-schema.org for specification standards. " +
-        "This Processor does support input containing multiple JSON objects when the 'Input Format' property is set to be 'JSON Lines'" +
-        ", such as newline-delimited JSON otherwise if the input FlowFile contains newline-delimited JSON, only the first line will be validated."
+        "This Processor does support input containing multiple JSON objects such as newline-delimited JSON when the 'Input Format' property is set to be 'JSON Lines'" +
+        ", otherwise if the input FlowFile contains newline-delimited JSON, only the first line will be validated."
 )
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Validating JSON requires reading FlowFile content into memory")
 @Restricted(
