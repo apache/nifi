@@ -24,7 +24,7 @@
     <description>Tooling to make tls configuration easier</description>
 
     <properties>
-        <jline.version>3.30.8</jline.version>
+        <jline.version>4.0.4</jline.version>
     </properties>
 
     <build>
@@ -102,11 +102,7 @@
             <groupId>org.jline</groupId>
             <artifactId>jline</artifactId>
             <version>${jline.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-jna</artifactId>
-            <version>${jline.version}</version>
+            <classifier>jdk11</classifier>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
