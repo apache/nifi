@@ -90,7 +90,7 @@ import javax.xml.transform.stream.StreamSource;
         + "fails, the original FlowFile is routed to the 'failure' relationship")
 @DynamicProperty(name = "An XSLT transform parameter name", value = "An XSLT transform parameter value",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "These XSLT parameters are passed to the transformer")
+        description = "These XSLT parameters are passed to the transformer. See additional details for more information.")
 public class TransformXml extends AbstractProcessor {
 
     private static final List<String> OBSOLETE_XSLT_CONTROLLER_KEY_PROPERTY_NAMES = List.of(
