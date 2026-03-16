@@ -136,8 +136,7 @@ public class ValidateJson extends AbstractProcessor {
         private final String displayName;
         private final String description;
 
-        InputFormatStrategy(final String displayName, final String description
-        ) {
+        InputFormatStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -156,10 +155,9 @@ public class ValidateJson extends AbstractProcessor {
         public String getDescription() {
             return description;
         }
-
     }
 
-    protected static final String ERROR_ATTRIBUTE_KEY = "json.validation.errors";
+    static final String ERROR_ATTRIBUTE_KEY = "json.validation.errors";
     private static final String SCHEMA_NAME_PROPERTY_NAME = "Schema Name";
     private static final String SCHEMA_CONTENT_PROPERTY_NAME = "JSON Schema";
     private static final String DEFAULT_MAX_STRING_LENGTH = "20 MB";
