@@ -19,7 +19,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Action } from '@ngrx/store';
-import { ReplaySubject, of, take, throwError } from 'rxjs';
+import { ReplaySubject, of, take, throwError, Subject } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import * as UserListingActions from './user-listing.actions';
@@ -52,12 +52,20 @@ describe('UserListingEffects', () => {
                         }
                     }
                 }),
-                { provide: UsersService, useValue: { getUsers: jest.fn(), getUserGroups: jest.fn() } },
-                { provide: ErrorHelper, useValue: { handleLoadingError: jest.fn() } },
+                {
+                    provide: UsersService,
+                    useValue: {
+                        getUsers: jest.fn(),
+                        getUserGroups: jest.fn(),
+                        updateUserGroup: jest.fn(),
+                        updateUser: jest.fn()
+                    }
+                },
+                { provide: ErrorHelper, useValue: { handleLoadingError: jest.fn(), getErrorString: jest.fn() } },
                 { provide: MatDialog, useValue: { open: jest.fn(), closeAll: jest.fn() } },
                 { provide: Router, useValue: { navigate: jest.fn() } },
-                { provide: Client, useValue: {} },
-                { provide: NiFiCommon, useValue: {} }
+                { provide: Client, useValue: { getRevision: jest.fn() } },
+                { provide: NiFiCommon, useValue: { isEmpty: jest.fn() } }
             ]
         }).compileComponents();
 
@@ -65,8 +73,11 @@ describe('UserListingEffects', () => {
         const effects = TestBed.inject(UserListingEffects);
         const usersService = TestBed.inject(UsersService);
         const errorHelper = TestBed.inject(ErrorHelper);
+        const client = TestBed.inject(Client);
+        const nifiCommon = TestBed.inject(NiFiCommon);
+        const dialog = TestBed.inject(MatDialog);
 
-        return { effects, store, usersService, errorHelper };
+        return { effects, store, usersService, errorHelper, client, nifiCommon, dialog };
     }
 
     let action$: ReplaySubject<Action>;
@@ -181,6 +192,491 @@ describe('UserListingEffects', () => {
 
             expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(true, error);
             expect(result).toEqual(errorAction);
+        });
+    });
+
+    describe('Update User Group', () => {
+        it('should update user group successfully', async () => {
+            const { effects, usersService } = await setup();
+
+            const mockResponse = { id: 'ug1', component: { identity: 'group1', users: [] } } as any;
+            jest.spyOn(usersService, 'updateUserGroup').mockReturnValueOnce(of(mockResponse) as never);
+
+            const request = {
+                requestId: 42,
+                revision: { version: 0 },
+                id: 'ug1',
+                userGroupPayload: { identity: 'group1', users: [{ id: 'u1' }] }
+            };
+
+            action$.next(UserListingActions.updateUserGroup({ request }));
+
+            const result = await new Promise((resolve) => effects.updateUserGroup$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(
+                UserListingActions.updateUserGroupSuccess({
+                    response: {
+                        requestId: 42,
+                        userGroup: mockResponse
+                    }
+                })
+            );
+        });
+
+        it('should handle update user group error', async () => {
+            const { effects, usersService, errorHelper } = await setup();
+
+            const error = new HttpErrorResponse({ status: 500 });
+            jest.spyOn(usersService, 'updateUserGroup').mockReturnValueOnce(throwError(() => error) as never);
+            jest.spyOn(errorHelper, 'getErrorString').mockReturnValueOnce('Update failed');
+
+            const request = {
+                revision: { version: 0 },
+                id: 'ug1',
+                userGroupPayload: { identity: 'group1', users: [] }
+            };
+
+            action$.next(UserListingActions.updateUserGroup({ request }));
+
+            const result = await new Promise((resolve) => effects.updateUserGroup$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(UserListingActions.usersApiBannerError({ error: 'Update failed' }));
+        });
+
+        it('should handle multiple concurrent updateUserGroup actions', async () => {
+            const { effects, usersService } = await setup();
+
+            const subject1 = new Subject<any>();
+            const subject2 = new Subject<any>();
+            const subject3 = new Subject<any>();
+
+            const mockUpdateUserGroup = jest.spyOn(usersService, 'updateUserGroup');
+            mockUpdateUserGroup
+                .mockReturnValueOnce(subject1.asObservable() as never)
+                .mockReturnValueOnce(subject2.asObservable() as never)
+                .mockReturnValueOnce(subject3.asObservable() as never);
+
+            const results: any[] = [];
+            effects.updateUserGroup$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroup({
+                    request: { requestId: 1, revision: { version: 0 }, id: 'ug1', userGroupPayload: {} }
+                })
+            );
+            action$.next(
+                UserListingActions.updateUserGroup({
+                    request: { requestId: 1, revision: { version: 0 }, id: 'ug2', userGroupPayload: {} }
+                })
+            );
+            action$.next(
+                UserListingActions.updateUserGroup({
+                    request: { requestId: 1, revision: { version: 0 }, id: 'ug3', userGroupPayload: {} }
+                })
+            );
+
+            expect(mockUpdateUserGroup).toHaveBeenCalledTimes(3);
+
+            const mockResponse2 = { id: 'ug2', component: { identity: 'group2', users: [] } } as any;
+            subject2.next(mockResponse2);
+            subject2.complete();
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 1, userGroup: mockResponse2 }
+                })
+            );
+
+            const mockResponse3 = { id: 'ug3', component: { identity: 'group3', users: [] } } as any;
+            subject3.next(mockResponse3);
+            subject3.complete();
+
+            expect(results.length).toBe(2);
+            expect(results[1]).toEqual(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 1, userGroup: mockResponse3 }
+                })
+            );
+
+            const mockResponse1 = { id: 'ug1', component: { identity: 'group1', users: [] } } as any;
+            subject1.next(mockResponse1);
+            subject1.complete();
+
+            expect(results.length).toBe(3);
+            expect(results[2]).toEqual(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 1, userGroup: mockResponse1 }
+                })
+            );
+        });
+    });
+
+    describe('Update User Success', () => {
+        it('should dispatch updateUserComplete when no userGroupUpdate', async () => {
+            const { effects } = await setup();
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) => effects.updateUserSuccess$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(UserListingActions.updateUserComplete());
+        });
+
+        it('should dispatch updateUserComplete when userGroupUpdate has empty added and removed', async () => {
+            const { effects, nifiCommon } = await setup();
+
+            jest.spyOn(nifiCommon, 'isEmpty').mockReturnValue(true);
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 1,
+                            userGroupsAdded: [],
+                            userGroupsRemoved: []
+                        }
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) => effects.updateUserSuccess$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(UserListingActions.updateUserComplete());
+        });
+
+        it('should dispatch updateUserGroup actions for added user groups', async () => {
+            const userGroupEntity = {
+                id: 'ug1',
+                revision: { version: 1 },
+                component: {
+                    identity: 'group1',
+                    users: [{ id: 'existingUser' }]
+                }
+            };
+
+            const stateWithGroups = {
+                ...initialState,
+                userGroups: [userGroupEntity]
+            };
+
+            const { effects, nifiCommon, client } = await setup({ userListingState: stateWithGroups });
+
+            jest.spyOn(nifiCommon, 'isEmpty').mockImplementation((arr: any) => !arr || arr.length === 0);
+            jest.spyOn(client, 'getRevision').mockReturnValue({ version: 1 });
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 5,
+                            userGroupsAdded: ['ug1'],
+                            userGroupsRemoved: []
+                        }
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) => effects.updateUserSuccess$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(
+                UserListingActions.updateUserGroup({
+                    request: {
+                        requestId: 5,
+                        revision: { version: 1 },
+                        id: 'ug1',
+                        userGroupPayload: {
+                            ...userGroupEntity.component,
+                            users: [{ id: 'existingUser' }, { id: 'u1' }]
+                        }
+                    }
+                })
+            );
+        });
+
+        it('should dispatch updateUserGroup actions for removed user groups', async () => {
+            const userGroupEntity = {
+                id: 'ug2',
+                revision: { version: 2 },
+                component: {
+                    identity: 'group2',
+                    users: [{ id: 'u1' }, { id: 'u2' }]
+                }
+            };
+
+            const stateWithGroups = {
+                ...initialState,
+                userGroups: [userGroupEntity]
+            };
+
+            const { effects, nifiCommon, client } = await setup({ userListingState: stateWithGroups });
+
+            jest.spyOn(nifiCommon, 'isEmpty').mockImplementation((arr: any) => !arr || arr.length === 0);
+            jest.spyOn(client, 'getRevision').mockReturnValue({ version: 2 });
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 6,
+                            userGroupsAdded: [],
+                            userGroupsRemoved: ['ug2']
+                        }
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) => effects.updateUserSuccess$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(
+                UserListingActions.updateUserGroup({
+                    request: {
+                        requestId: 6,
+                        revision: { version: 2 },
+                        id: 'ug2',
+                        userGroupPayload: {
+                            ...userGroupEntity.component,
+                            users: [{ id: 'u2' }]
+                        }
+                    }
+                })
+            );
+        });
+    });
+
+    describe('Await Update User Groups For CreateUser', () => {
+        it('should dispatch createUserComplete when expectedCount is 0', async () => {
+            const { effects } = await setup();
+
+            const createUserResponse = {
+                user: { id: 'u1' } as any,
+                userGroupUpdate: {
+                    requestId: 10,
+                    userGroups: []
+                }
+            };
+
+            action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
+
+            const result = await new Promise((resolve) =>
+                effects.awaitUpdateUserGroupsForCreateUser$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+        });
+
+        it('should wait for all updateUserGroupSuccess actions and then dispatch createUserComplete', async () => {
+            const { effects } = await setup();
+
+            const createUserResponse = {
+                user: { id: 'u1' } as any,
+                userGroupUpdate: {
+                    requestId: 11,
+                    userGroups: ['ug1', 'ug2']
+                }
+            };
+
+            action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForCreateUser$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 11, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 11, userGroup: { id: 'ug2' } as any }
+                })
+            );
+
+            expect(results.length).toBe(2);
+            expect(results[1]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+        });
+
+        it('should ignore updateUserGroupSuccess actions with non-matching requestId', async () => {
+            const { effects } = await setup();
+
+            const createUserResponse = {
+                user: { id: 'u1' } as any,
+                userGroupUpdate: {
+                    requestId: 12,
+                    userGroups: ['ug1']
+                }
+            };
+
+            action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForCreateUser$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 999, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(0);
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 12, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+        });
+
+        it('should not emit for createUserSuccess without userGroupUpdate', async () => {
+            const { effects } = await setup();
+
+            const createUserResponse = {
+                user: { id: 'u1' } as any
+            };
+
+            action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForCreateUser$.subscribe((result) => results.push(result));
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(results.length).toBe(0);
+        });
+    });
+
+    describe('Await Update User Groups For Update User', () => {
+        it('should dispatch updateUserComplete when expectedCount is 0', async () => {
+            const { effects } = await setup();
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 20,
+                            userGroupsAdded: [],
+                            userGroupsRemoved: []
+                        }
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) =>
+                effects.awaitUpdateUserGroupsForUpdateUser$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(UserListingActions.updateUserComplete());
+        });
+
+        it('should wait for all updateUserGroupSuccess actions for added and removed groups', async () => {
+            const { effects } = await setup();
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 21,
+                            userGroupsAdded: ['ug1'],
+                            userGroupsRemoved: ['ug2']
+                        }
+                    }
+                })
+            );
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForUpdateUser$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 21, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.updateUserComplete());
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 21, userGroup: { id: 'ug2' } as any }
+                })
+            );
+
+            expect(results.length).toBe(2);
+            expect(results[1]).toEqual(UserListingActions.updateUserComplete());
+        });
+
+        it('should ignore updateUserGroupSuccess actions with non-matching requestId', async () => {
+            const { effects } = await setup();
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 22,
+                            userGroupsAdded: ['ug1'],
+                            userGroupsRemoved: []
+                        }
+                    }
+                })
+            );
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForUpdateUser$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 999, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(0);
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 22, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.updateUserComplete());
+        });
+
+        it('should not emit for updateUserSuccess without userGroupUpdate', async () => {
+            const { effects } = await setup();
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any
+                    }
+                })
+            );
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForUpdateUser$.subscribe((result) => results.push(result));
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(results.length).toBe(0);
         });
     });
 });
