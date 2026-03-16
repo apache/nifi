@@ -810,4 +810,287 @@ public class TestWriteAheadFlowFileRepository {
             return swapLocation;
         }
     }
+
+    // =========================================================================
+    // Truncation Feature: Helpers
+    // =========================================================================
+
+    /**
+     * Creates a mock queue + connection + queueProvider wired together, suitable for runtime truncation tests.
+     * Returns [claimManager, queueProvider, queue].
+     */
+    private record RuntimeRepoContext(StandardResourceClaimManager claimManager, TestQueueProvider queueProvider, FlowFileQueue queue) {
+    }
+
+    private RuntimeRepoContext createRuntimeRepoContext() {
+        final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final TestQueueProvider queueProvider = new TestQueueProvider();
+        final Connection connection = Mockito.mock(Connection.class);
+        when(connection.getIdentifier()).thenReturn("1234");
+        when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
+        final FlowFileQueue queue = Mockito.mock(FlowFileQueue.class);
+        when(queue.getIdentifier()).thenReturn("1234");
+        when(connection.getFlowFileQueue()).thenReturn(queue);
+        queueProvider.addConnection(connection);
+        return new RuntimeRepoContext(claimManager, queueProvider, queue);
+    }
+
+    private StandardContentClaim createClaim(final ResourceClaim rc, final long offset, final long length, final boolean truncationCandidate) {
+        final StandardContentClaim claim = new StandardContentClaim(rc, offset);
+        claim.setLength(length);
+        if (truncationCandidate) {
+            claim.setTruncationCandidate(true);
+        }
+        return claim;
+    }
+
+    private void createAndDeleteFlowFile(final WriteAheadFlowFileRepository repo, final FlowFileQueue queue,
+                                         final ContentClaim claim) throws IOException {
+        final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                .id(1L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(claim)
+                .build();
+
+        final StandardRepositoryRecord createRecord = new StandardRepositoryRecord(queue);
+        createRecord.setWorking(flowFile, false);
+        createRecord.setDestination(queue);
+        repo.updateRepository(List.of(createRecord));
+
+        final StandardRepositoryRecord deleteRecord = new StandardRepositoryRecord(queue, flowFile);
+        deleteRecord.markForDelete();
+        repo.updateRepository(List.of(deleteRecord));
+    }
+
+    /**
+     * Writes FlowFiles (one per claim) to a new repo, closes it, then recovers into a fresh repo
+     * and returns the recovered FlowFileRecords.
+     */
+    private List<FlowFileRecord> writeAndRecover(final ContentClaim... claims) throws IOException {
+        final ResourceClaimManager writeClaimManager = new StandardResourceClaimManager();
+        final TestQueueProvider writeQueueProvider = new TestQueueProvider();
+        final Connection writeConnection = Mockito.mock(Connection.class);
+        when(writeConnection.getIdentifier()).thenReturn("1234");
+        when(writeConnection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
+        final FlowFileSwapManager swapMgr = new MockFlowFileSwapManager();
+        final FlowFileQueue writeQueue = new StandardFlowFileQueue("1234", null, null, null, swapMgr, null, 10000, "0 sec", 0L, "0 B");
+        when(writeConnection.getFlowFileQueue()).thenReturn(writeQueue);
+        writeQueueProvider.addConnection(writeConnection);
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(writeClaimManager);
+            repo.loadFlowFiles(writeQueueProvider);
+
+            final List<RepositoryRecord> records = new ArrayList<>();
+            for (int i = 0; i < claims.length; i++) {
+                final FlowFileRecord ff = new StandardFlowFileRecord.Builder()
+                        .id(i + 1L)
+                        .addAttribute("uuid", "11111111-1111-1111-1111-" + String.format("%012d", i + 1))
+                        .contentClaim(claims[i])
+                        .build();
+                final StandardRepositoryRecord rec = new StandardRepositoryRecord(writeQueue);
+                rec.setWorking(ff, false);
+                rec.setDestination(writeQueue);
+                records.add(rec);
+            }
+            repo.updateRepository(records);
+        }
+
+        // Recover
+        final List<FlowFileRecord> recovered = new ArrayList<>();
+        final FlowFileQueue recoveryQueue = Mockito.mock(FlowFileQueue.class);
+        when(recoveryQueue.getIdentifier()).thenReturn("1234");
+        doAnswer(invocation -> {
+            recovered.add((FlowFileRecord) invocation.getArguments()[0]);
+            return null;
+        }).when(recoveryQueue).put(any(FlowFileRecord.class));
+
+        final Connection recoveryConnection = Mockito.mock(Connection.class);
+        when(recoveryConnection.getIdentifier()).thenReturn("1234");
+        when(recoveryConnection.getFlowFileQueue()).thenReturn(recoveryQueue);
+        final TestQueueProvider recoveryQueueProvider = new TestQueueProvider();
+        recoveryQueueProvider.addConnection(recoveryConnection);
+
+        try (final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo2.initialize(new StandardResourceClaimManager());
+            repo2.loadFlowFiles(recoveryQueueProvider);
+        }
+
+        return recovered;
+    }
+
+    private FlowFileRecord findRecoveredByOffset(final List<FlowFileRecord> recovered, final long offset) {
+        return recovered.stream()
+                .filter(ff -> ff.getContentClaim() != null && ff.getContentClaim().getOffset() == offset)
+                .findFirst()
+                .orElse(null);
+    }
+
+    // =========================================================================
+    // Truncation Feature: Runtime Tests
+    // =========================================================================
+
+    @Test
+    public void testDeleteRecordRoutesTruncatableClaimToTruncationQueue() throws IOException {
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+        final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        context.claimManager().incrementClaimantCount(resourceClaim); // count = 2 so that after delete decrement it stays > 0 (not destructable)
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+            createAndDeleteFlowFile(repo, context.queue(), contentClaim);
+            repo.checkpoint();
+        }
+
+        final List<ContentClaim> truncated = new ArrayList<>();
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertTrue(truncated.contains(contentClaim));
+    }
+
+    @Test
+    public void testDestructableClaimTakesPriorityOverTruncatable() throws IOException {
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+        final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(resourceClaim); // count = 1 -- will reach 0 after delete
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+            createAndDeleteFlowFile(repo, context.queue(), contentClaim);
+            repo.checkpoint();
+        }
+
+        final List<ResourceClaim> destructed = new ArrayList<>();
+        context.claimManager().drainDestructableClaims(destructed, 100);
+        assertTrue(destructed.contains(resourceClaim));
+
+        final List<ContentClaim> truncated = new ArrayList<>();
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertFalse(truncated.contains(contentClaim));
+    }
+
+    @Test
+    public void testUpdateRecordOriginalClaimQueuedForTruncation() throws IOException {
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+
+        final ResourceClaim originalResourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(originalResourceClaim);
+        context.claimManager().incrementClaimantCount(originalResourceClaim); // count = 2 so it stays > 0 after decrement
+        final StandardContentClaim originalClaim = createClaim(originalResourceClaim, 2048L, 5_000_000L, true);
+
+        final ResourceClaim newResourceClaim = context.claimManager().newResourceClaim("container", "section", "2", false, false);
+        context.claimManager().incrementClaimantCount(newResourceClaim);
+        final StandardContentClaim newClaim = createClaim(newResourceClaim, 0L, 100L, false);
+
+        final FlowFileRecord originalFlowFile = new StandardFlowFileRecord.Builder()
+                .id(1L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(originalClaim)
+                .build();
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+
+            final StandardRepositoryRecord createRecord = new StandardRepositoryRecord(context.queue());
+            createRecord.setWorking(originalFlowFile, false);
+            createRecord.setDestination(context.queue());
+            repo.updateRepository(List.of(createRecord));
+
+            final FlowFileRecord updatedFlowFile = new StandardFlowFileRecord.Builder()
+                    .fromFlowFile(originalFlowFile)
+                    .contentClaim(newClaim)
+                    .build();
+            final StandardRepositoryRecord updateRecord = new StandardRepositoryRecord(context.queue(), originalFlowFile);
+            updateRecord.setWorking(updatedFlowFile, true);
+            updateRecord.setDestination(context.queue());
+            repo.updateRepository(List.of(updateRecord));
+            repo.checkpoint();
+        }
+
+        final List<ContentClaim> truncated = new ArrayList<>();
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertTrue(truncated.contains(originalClaim));
+    }
+
+    // =========================================================================
+    // Truncation Feature: Recovery Tests
+    // =========================================================================
+
+    @Test
+    public void testRecoveryMarksTruncationCandidateForLargeTailClaim() throws IOException {
+        final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim smallClaim = createClaim(resourceClaim, 0L, 100L, false);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
+
+        final List<FlowFileRecord> recovered = writeAndRecover(smallClaim, largeClaim);
+
+        final FlowFileRecord recoveredLargeFlowFile = findRecoveredByOffset(recovered, 100L);
+        assertNotNull(recoveredLargeFlowFile);
+        assertTrue(recoveredLargeFlowFile.getContentClaim().isTruncationCandidate());
+
+        final FlowFileRecord recoveredSmallFlowFile = findRecoveredByOffset(recovered, 0L);
+        assertNotNull(recoveredSmallFlowFile);
+        assertFalse(recoveredSmallFlowFile.getContentClaim().isTruncationCandidate());
+    }
+
+    @Test
+    public void testRecoveryDoesNotMarkClonedClaim() throws IOException {
+        final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim sharedClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
+
+        // Two FlowFiles sharing the same claim (clone scenario)
+        final List<FlowFileRecord> recovered = writeAndRecover(sharedClaim, sharedClaim);
+
+        for (final FlowFileRecord flowFile : recovered) {
+            if (flowFile.getContentClaim() != null) {
+                assertFalse(flowFile.getContentClaim().isTruncationCandidate());
+            }
+        }
+    }
+
+    @Test
+    public void testRecoveryOnlyMarksTailClaim() throws IOException {
+        final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim nonTailClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
+        final StandardContentClaim tailClaim = createClaim(resourceClaim, 2_000_100L, 3_000_000L, false);
+
+        final List<FlowFileRecord> recovered = writeAndRecover(nonTailClaim, tailClaim);
+
+        final FlowFileRecord tailFlowFile = findRecoveredByOffset(recovered, 2_000_100L);
+        assertNotNull(tailFlowFile);
+        assertTrue(tailFlowFile.getContentClaim().isTruncationCandidate());
+
+        final FlowFileRecord nonTailFlowFile = findRecoveredByOffset(recovered, 100L);
+        assertNotNull(nonTailFlowFile);
+        assertFalse(nonTailFlowFile.getContentClaim().isTruncationCandidate());
+    }
+
+    @Test
+    public void testRecoverySmallClaimAfterLargeDoesNotMarkLarge() throws IOException {
+        final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1", false, false);
+        final StandardContentClaim firstSmallClaim = createClaim(resourceClaim, 0L, 100L, false);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 2_000_000L, false);
+        final StandardContentClaim secondSmallClaim = createClaim(resourceClaim, 2_000_100L, 50L, false);
+
+        final List<FlowFileRecord> recovered = writeAndRecover(firstSmallClaim, largeClaim, secondSmallClaim);
+
+        final List<FlowFileRecord> flowFilesWithClaims = recovered.stream()
+                .filter(flowFile -> flowFile.getContentClaim() != null)
+                .toList();
+
+        assertFalse(flowFilesWithClaims.isEmpty());
+        for (final FlowFileRecord flowFile : flowFilesWithClaims) {
+            assertFalse(flowFile.getContentClaim().isTruncationCandidate(),
+                    "No claim should be a truncation candidate because the large claim is not the tail; claim offset=" + flowFile.getContentClaim().getOffset());
+        }
+    }
 }
