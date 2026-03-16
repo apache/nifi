@@ -3587,6 +3587,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ConnectorEntity getConnector(final String id, final boolean clusterNodeRequest) {
+        logger.debug("getConnector: id=[{}], clusterNodeRequest={}", id, clusterNodeRequest);
         final ConnectorNode node = connectorDAO.getConnector(id);
         final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(node.getIdentifier()));
@@ -3600,13 +3601,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             operatePermissions = new PermissionsDTO();
             operatePermissions.setCanRead(true);
             operatePermissions.setCanWrite(false);
+            logger.debug("getConnector: id=[{}] — cluster node request, hardcoded permissions canRead=true, canWrite=false", id);
         } else {
             permissions = dtoFactory.createPermissionsDto(node);
             operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+            logger.debug("getConnector: id=[{}] — standard request, evaluated permissions canRead={}, canWrite={}", id,
+                    permissions.getCanRead(), permissions.getCanWrite());
         }
 
         final ConnectorStatusDTO status = createConnectorStatusDto(node);
-        return entityFactory.createConnectorEntity(dto, revision, permissions, operatePermissions, status);
+        final ConnectorEntity entity = entityFactory.createConnectorEntity(dto, revision, permissions, operatePermissions, status);
+        logger.debug("getConnector: id=[{}] — entity created, component={}", id, entity.getComponent() != null ? "present" : "null");
+        return entity;
     }
 
     @Override

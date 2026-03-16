@@ -336,21 +336,36 @@ public class ConnectorResource extends ApplicationResource {
      * @return true if the request is from a cluster node AND the NiFiUser identity matches a known node identity
      */
     private boolean isDirectNodeIdentityRequest() {
-        if (!isRequestFromClusterNode()) {
+        final boolean fromClusterNode = isRequestFromClusterNode();
+        logger.warn("isDirectNodeIdentityRequest: isRequestFromClusterNode()={}", fromClusterNode);
+        if (!fromClusterNode) {
             return false;
         }
         final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
         if (currentUser == null) {
+            logger.warn("isDirectNodeIdentityRequest: currentUser is null, returning false");
             return false;
         }
         final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
         if (clusterCoordinator == null) {
+            logger.warn("isDirectNodeIdentityRequest: clusterCoordinator is null, returning false");
             return false;
         }
         final String userIdentity = currentUser.getIdentity();
-        return clusterCoordinator.getNodeIdentifiers().stream()
+        logger.warn("isDirectNodeIdentityRequest: userIdentity=[{}], proxied chain=[{}]",
+                userIdentity, currentUser.getChain() != null ? currentUser.getChain().getIdentity() : "no-chain");
+
+        final Set<NodeIdentifier> nodeIdentifiers = clusterCoordinator.getNodeIdentifiers();
+        for (final NodeIdentifier nodeId : nodeIdentifiers) {
+            logger.warn("isDirectNodeIdentityRequest: checking nodeId=[{}], apiAddress=[{}], nodeIdentities={}",
+                    nodeId.getId(), nodeId.getApiAddress(), nodeId.getNodeIdentities());
+        }
+
+        final boolean match = nodeIdentifiers.stream()
                 .anyMatch(nodeId -> nodeId.getNodeIdentities().contains(userIdentity)
                         || nodeId.getApiAddress().equals(userIdentity));
+        logger.warn("isDirectNodeIdentityRequest: userIdentity=[{}] match={}", userIdentity, match);
+        return match;
     }
 
     /**
@@ -384,16 +399,23 @@ public class ConnectorResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
+        logger.warn("getConnector: id=[{}], isReplicateRequest={}, user=[{}]",
+                id, isReplicateRequest(),
+                NiFiUserUtils.getNiFiUser() != null ? NiFiUserUtils.getNiFiUser().getIdentity() : "null");
+
         if (isReplicateRequest()) {
+            logger.warn("getConnector: replicating request for Connector [{}]", id);
             return replicate(HttpMethod.GET);
         }
 
         final boolean clusterNodeRequest = isDirectNodeIdentityRequest();
+        logger.warn("getConnector: Connector [{}], clusterNodeRequest={}", id, clusterNodeRequest);
 
         // authorize access
         if (clusterNodeRequest) {
-            logger.debug("Authorizing READ on Connector[{}] to cluster node [{}]", id, NiFiUserUtils.getNiFiUser().getIdentity());
+            logger.warn("getConnector: bypassing auth for cluster node request on Connector [{}], user=[{}]", id, NiFiUserUtils.getNiFiUser().getIdentity());
         } else {
+            logger.warn("getConnector: performing standard authorization for Connector [{}], user=[{}]", id, NiFiUserUtils.getNiFiUser().getIdentity());
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connector = lookup.getConnector(id);
                 connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
@@ -402,6 +424,11 @@ public class ConnectorResource extends ApplicationResource {
 
         // get the connector
         final ConnectorEntity entity = serviceFacade.getConnector(id, clusterNodeRequest);
+        logger.warn("getConnector: Connector [{}] — entity component={}, permissions canRead={}, canWrite={}",
+                id,
+                entity.getComponent() != null ? "present (state=" + entity.getComponent().getState() + ")" : "null",
+                entity.getPermissions() != null ? entity.getPermissions().getCanRead() : "null-permissions",
+                entity.getPermissions() != null ? entity.getPermissions().getCanWrite() : "null-permissions");
         populateRemainingConnectorEntityContent(entity);
 
         return generateOkResponse(entity).build();
