@@ -280,7 +280,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             updatedHeaders.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
         }
 
-        // include the proxied entities header and strip untrusted headers (including cluster-node-request)
+        // include the proxied entities header and strip untrusted headers
         updateRequestHeaders(updatedHeaders, user);
 
         if (indicateReplicated) {
