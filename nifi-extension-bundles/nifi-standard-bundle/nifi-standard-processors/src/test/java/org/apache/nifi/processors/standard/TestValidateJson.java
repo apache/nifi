@@ -255,14 +255,14 @@ class TestValidateJson {
 
     @ParameterizedTest
     @MethodSource("multilineJsonArgs")
-    void testMultilineJsonWhereSecondLineInvalid(ValidateJson.InputFormatStrategy inputFormatStrategy, boolean expectedValid) {
+     void testMultilineJsonWhereSecondLineInvalid(ValidateJson.InputFormat inputFormat, boolean expectedValid) {
         final String multilineJson = """
                 {"FieldOne":"stringValue","FieldTwo":1234,"FieldThree":[{"arrayField":"arrayValue"}]}
                 {"FieldOne":"stringValue","FieldTwo":"NAN","FieldThree":[{"arrayField":"arrayValue"}]}
                 """;
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, SIMPLE_SCHEMA);
         runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
-        runner.setProperty(ValidateJson.INPUT_FORMAT, inputFormatStrategy.getValue());
+        runner.setProperty(ValidateJson.INPUT_FORMAT, inputFormat.getValue());
         runner.enqueue(multilineJson);
 
         runner.run();
@@ -302,8 +302,8 @@ class TestValidateJson {
 
     private static Stream<Arguments> multilineJsonArgs() {
         return Stream.of(
-                Arguments.argumentSet(ValidateJson.InputFormatStrategy.FLOW_FILE.getDisplayName(), ValidateJson.InputFormatStrategy.FLOW_FILE.getValue(), true),
-                Arguments.argumentSet(ValidateJson.InputFormatStrategy.JSON_LINES.getDisplayName(), ValidateJson.InputFormatStrategy.JSON_LINES.getValue(), false)
+                Arguments.argumentSet(ValidateJson.InputFormat.FLOW_FILE.getDisplayName(), ValidateJson.InputFormat.FLOW_FILE.getValue(), true),
+                Arguments.argumentSet(ValidateJson.InputFormat.JSON_LINES.getDisplayName(), ValidateJson.InputFormat.JSON_LINES.getValue(), false)
         );
     }
 
