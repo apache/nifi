@@ -60,12 +60,12 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
     @Override
     public ConnectorState getState(final String connectorId) throws IOException {
         final RequestReplicator requestReplicator = getRequestReplicator();
-        final NiFiUser nodeUser = getNodeUser();
         final URI uri = URI.create(replicationScheme + "://localhost/nifi-api/connectors/" + connectorId);
 
-        logger.debug("getState: Connector [{}] — replicating GET to URI [{}] as user identity [{}]", connectorId, uri, nodeUser.getIdentity());
+        logger.debug("getState: Connector [{}] — replicating GET to URI [{}]", connectorId, uri);
 
-        final AsyncClusterResponse asyncResponse = requestReplicator.replicate(nodeUser, GET, uri, Map.of(), Map.of(), true);
+        // User is null. GET /connectors/{id} API endpoint has special logic for authorizing requests made by nifi cluster nodes based on mTLS cert SANs
+        final AsyncClusterResponse asyncResponse = requestReplicator.replicate(null, GET, uri, Map.of(), Map.of());
 
         try {
             final NodeResponse mergedNodeResponse = asyncResponse.awaitMergedResponse();

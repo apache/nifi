@@ -62,12 +62,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -490,59 +488,6 @@ public class TestConnectorResource {
             connectorResource.initiateDrain(CONNECTOR_ID, requestEntity));
 
         verify(serviceFacade, never()).drainConnector(any(Revision.class), anyString());
-    }
-
-    @Test
-    public void testGetConnectorClusterNodeRequestBypassesAuth() {
-        final ConnectorResource spyResource = spy(connectorResource);
-        doReturn(false).when(spyResource).isReplicateRequest();
-
-        when(properties.isNode()).thenReturn(Boolean.TRUE);
-        when(httpServletRequest.getHeader(eq("cluster-node-request"))).thenReturn(Boolean.TRUE.toString());
-
-        final ConnectorEntity connectorEntity = createConnectorEntity();
-        when(serviceFacade.getConnector(CONNECTOR_ID, true)).thenReturn(connectorEntity);
-
-        try (Response response = spyResource.getConnector(CONNECTOR_ID)) {
-            assertEquals(200, response.getStatus());
-            assertEquals(connectorEntity, response.getEntity());
-        }
-
-        verify(serviceFacade, never()).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnector(CONNECTOR_ID, true);
-    }
-
-    @Test
-    public void testGetConnectorClusterNodeHeaderIgnoredInStandaloneMode() {
-        final ConnectorEntity connectorEntity = createConnectorEntity();
-        when(serviceFacade.getConnector(CONNECTOR_ID, false)).thenReturn(connectorEntity);
-
-        try (Response response = connectorResource.getConnector(CONNECTOR_ID)) {
-            assertEquals(200, response.getStatus());
-            assertEquals(connectorEntity, response.getEntity());
-        }
-
-        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnector(CONNECTOR_ID, false);
-    }
-
-    @Test
-    public void testGetConnectorClusterNodeHeaderAbsentUsesNormalAuth() {
-        final ConnectorResource spyResource = spy(connectorResource);
-        doReturn(false).when(spyResource).isReplicateRequest();
-
-        when(properties.isNode()).thenReturn(Boolean.TRUE);
-
-        final ConnectorEntity connectorEntity = createConnectorEntity();
-        when(serviceFacade.getConnector(CONNECTOR_ID, false)).thenReturn(connectorEntity);
-
-        try (Response response = spyResource.getConnector(CONNECTOR_ID)) {
-            assertEquals(200, response.getStatus());
-            assertEquals(connectorEntity, response.getEntity());
-        }
-
-        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnector(CONNECTOR_ID, false);
     }
 
     private ConnectorEntity createConnectorEntity() {

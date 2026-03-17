@@ -133,7 +133,7 @@ public abstract class ApplicationResource {
     @Context
     protected UriInfo uriInfo;
 
-    protected final PeerIdentityProvider peerIdentityProvider = new StandardPeerIdentityProvider();
+    protected PeerIdentityProvider peerIdentityProvider = new StandardPeerIdentityProvider();
     protected final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
@@ -1310,7 +1310,18 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * @return true if the credentials of the current request contain a certificate that matches an identity of a known cluster node, false otherwise
+     * Determines if the current request was made directly by a cluster node (not proxied on behalf of a user).
+     * Returns true only when all of the following hold:
+     * <ol>
+     *   <li>Clustering is configured</li>
+     *   <li>The request was authenticated via mTLS (X.509 client certificate)</li>
+     *   <li>No {@code X-ProxiedEntitiesChain} header is present (its presence indicates the request
+     *       is being made on behalf of another entity, e.g. a user request replicated through a node)</li>
+     *   <li>A DNS SAN from the client certificate matches a known cluster node API address, either
+     *       exactly or via RFC 6125 wildcard matching (e.g. {@code *.foo.bar} matches {@code baz.foo.bar})</li>
+     * </ol>
+     *
+     * @return true if the request is a direct cluster node request, false otherwise
      */
     protected boolean isRequestFromClusterNode() {
         final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
@@ -1325,6 +1336,12 @@ public abstract class ApplicationResource {
             return false;
         }
 
+        final String proxiedEntitiesChain = httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
+        if (proxiedEntitiesChain != null && !proxiedEntitiesChain.isBlank()) {
+            logger.debug("Request has proxied entities chain, not a direct cluster node request");
+            return false;
+        }
+
         final Set<String> clientIdentities;
         try {
             clientIdentities = peerIdentityProvider.getIdentities(certificates);
@@ -1332,20 +1349,31 @@ public abstract class ApplicationResource {
             throw new RuntimeException("Unable to get identities from client certificates", e);
         }
 
-        final Set<String> nodeIds = getClusterCoordinator().getNodeIdentifiers().stream()
+        final Set<String> nodeApiAddresses = getClusterCoordinator().getNodeIdentifiers().stream()
                 .map(NodeIdentifier::getApiAddress)
                 .collect(Collectors.toSet());
 
-        logger.debug("Checking client identities [{}] against cluster node identities [{}]", clientIdentities, nodeIds);
+        logger.debug("Checking client identities {} against cluster node API addresses {}", clientIdentities, nodeApiAddresses);
 
         for (final String clientIdentity : clientIdentities) {
-            if (nodeIds.contains(clientIdentity)) {
+            if (nodeApiAddresses.contains(clientIdentity)) {
                 logger.debug("Client identity [{}] is in the list of cluster nodes", clientIdentity);
                 return true;
             }
+            if (clientIdentity.startsWith("*.")) {
+                final String wildcardSuffix = clientIdentity.substring(1);
+                for (final String nodeAddress : nodeApiAddresses) {
+                    // RFC-6125 wildcard matching (e.g. {@code *.foo.bar} matches {@code baz.foo.bar}, but does not match {@code baz.baz.foo.bar})
+                    final int firstDot = nodeAddress.indexOf('.');
+                    if (firstDot > 0 && nodeAddress.substring(firstDot).equals(wildcardSuffix)) {
+                        logger.debug("Client wildcard identity [{}] matches cluster node [{}]", clientIdentity, nodeAddress);
+                        return true;
+                    }
+                }
+            }
         }
 
-        logger.debug("None of the client identities [{}] are in the list of cluster nodes", clientIdentities);
+        logger.debug("None of the client identities {} match cluster node API addresses {}", clientIdentities, nodeApiAddresses);
         return false;
     }
 

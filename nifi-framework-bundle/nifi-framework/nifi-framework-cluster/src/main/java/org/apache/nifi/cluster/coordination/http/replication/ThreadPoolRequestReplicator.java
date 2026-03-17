@@ -184,15 +184,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
     @Override
     public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers) {
-        return replicateToCluster(user, method, uri, entity, headers, false);
-    }
-
-    @Override
-    public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers, boolean clusterNodeRequest) {
-        return replicateToCluster(user, method, uri, entity, headers, clusterNodeRequest);
-    }
-
-    private AsyncClusterResponse replicateToCluster(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers, boolean clusterNodeRequest) {
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
         final boolean mutable = isMutableRequest(method);
 
@@ -224,7 +215,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
 
-        return replicate(nodeIdSet, user, method, uri, entity, headers, true, true, clusterNodeRequest);
+        return replicate(nodeIdSet, user, method, uri, entity, headers, true, true);
     }
 
     private List<NodeIdentifier> getNonConnectedNodes(final Map<NodeConnectionState, List<NodeIdentifier>> stateMap) {
@@ -247,19 +238,20 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     }
 
     void updateRequestHeaders(final Map<String, String> headers, final NiFiUser user) {
-        if (user == null) {
-            throw new AccessDeniedException("Unknown user");
+        if (user != null) {
+            // Add the user as a proxied entity so that when the receiving NiFi receives the request,
+            // it knows that we are acting as a proxy on behalf of the current user.
+            final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
+            headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
+
+            // Add the header containing the group information for the end user in the proxied entity chain, these groups would
+            // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
+            final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
+            headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
+        } else {
+            logger.debug("No NiFi user provided. Replicated request will be sent without PROXY_ENTITIES_CHAIN header. " +
+                "This is used for background tasks where the identity making the request is the nifi node, not a proxied user.");
         }
-
-        // Add the user as a proxied entity so that when the receiving NiFi receives the request,
-        // it knows that we are acting as a proxy on behalf of the current user.
-        final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
-        headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
-
-        // Add the header containing the group information for the end user in the proxied entity chain, these groups would
-        // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
-        final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
-        headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
 
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
@@ -269,9 +261,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
         // remove the host header
         removeHeader(headers, HOST_HEADER);
-
-        // strip cluster-node-request header to prevent spoofing from external requests
-        removeHeader(headers, RequestReplicationHeader.CLUSTER_NODE_REQUEST.getHeader());
     }
 
     @Override
@@ -283,12 +272,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
-                                          final boolean indicateReplicated, final boolean performVerification) {
-        return replicate(nodeIds, user, method, uri, entity, headers, indicateReplicated, performVerification, false);
-    }
-
-    private AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
-                                           final boolean indicateReplicated, final boolean performVerification, final boolean clusterNodeRequest) {
+                                           final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         updatedHeaders.put(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), ComponentIdGenerator.generateId().toString());
@@ -298,11 +282,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
         // include the proxied entities header and strip untrusted headers (including cluster-node-request)
         updateRequestHeaders(updatedHeaders, user);
-
-        // re-add cluster-node-request after sanitization if explicitly requested by an internal caller
-        if (clusterNodeRequest) {
-            updatedHeaders.put(RequestReplicationHeader.CLUSTER_NODE_REQUEST.getHeader(), Boolean.TRUE.toString());
-        }
 
         if (indicateReplicated) {
             // If we are replicating a request and indicating that it is replicated, then this means that we are

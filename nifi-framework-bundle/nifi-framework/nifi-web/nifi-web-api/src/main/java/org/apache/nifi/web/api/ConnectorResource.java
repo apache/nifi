@@ -328,25 +328,6 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
-     * Determines if the current request originated from a cluster node's internal process by checking for the
-     * trusted {@code cluster-node-request} header. This header is stripped from all externally-originated requests
-     * during replication and only set by {@code ThreadPoolRequestReplicator} when explicitly requested, preventing
-     * spoofing. As an additional safeguard, the check is gated behind {@code properties.isNode()} so the header
-     * is ignored entirely in standalone mode.
-     *
-     * @return true if clustering is enabled and the request carries the cluster-node-request header
-     */
-    private boolean isClusterNodeRequest() {
-        if (!properties.isNode()) {
-            return false;
-        }
-        final String header = httpServletRequest.getHeader(RequestReplicationHeader.CLUSTER_NODE_REQUEST.getHeader());
-        final boolean result = Boolean.TRUE.toString().equals(header);
-        logger.debug("isClusterNodeRequest: header=[{}], result={}", header, result);
-        return result;
-    }
-
-    /**
      * Retrieves the specified connector.
      *
      * @param id The id of the connector to retrieve
@@ -381,7 +362,7 @@ public class ConnectorResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        final boolean clusterNodeRequest = isClusterNodeRequest();
+        final boolean clusterNodeRequest = isRequestFromClusterNode();
 
         // authorize access
         if (clusterNodeRequest) {

@@ -63,24 +63,6 @@ public interface RequestReplicator {
     AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers);
 
     /**
-     * Replicates a request to each node in the cluster, optionally marking it as a cluster-node-originated request.
-     * When {@code clusterNodeRequest} is true, a header is added to the replicated request indicating that it
-     * originated from a cluster node's internal process rather than from a user. This header is added after
-     * standard header sanitization, so it cannot be spoofed by external callers.
-     *
-     * @param user the user making the request
-     * @param method the HTTP method (e.g., GET, POST)
-     * @param uri the base request URI
-     * @param entity an entity
-     * @param headers any HTTP headers
-     * @param clusterNodeRequest if true, marks the request as originating from a cluster node's internal process
-     * @return an AsyncClusterResponse that indicates the current status of the request
-     */
-    default AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers, boolean clusterNodeRequest) {
-        return replicate(user, method, uri, entity, headers);
-    }
-
-    /**
      * Requests are sent to each node in the given set of Node Identifiers. The returned AsyncClusterResponse object will contain
      * the results that are immediately available, as well as an identifier for obtaining an updated result later.
      * <p>
