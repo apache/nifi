@@ -21,17 +21,13 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.Response.Status.Family;
 import jakarta.ws.rs.core.Response.StatusType;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.Entity;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +35,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public class ClusteredConnectorRequestReplicator implements ConnectorRequestReplicator {
@@ -124,24 +119,6 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
         return Objects.requireNonNull(requestReplicator, "Request Replicator required");
     }
 
-    private NiFiUser getNodeUser() {
-        final ClusterCoordinator clusterCoordinator = clusterCoordinatorSupplier.get();
-        Objects.requireNonNull(clusterCoordinator, "Cluster Coordinator required");
-
-        final NodeIdentifier localNodeIdentifier = clusterCoordinator.getLocalNodeIdentifier();
-        Objects.requireNonNull(localNodeIdentifier, "Local Node Identifier required");
-
-        final Set<String> nodeIdentities = localNodeIdentifier.getNodeIdentities();
-        final String apiAddress = localNodeIdentifier.getApiAddress();
-        final int apiPort = localNodeIdentifier.getApiPort();
-        final String nodeIdentity = nodeIdentities.isEmpty() ? apiAddress : nodeIdentities.iterator().next();
-
-        logger.debug("getNodeUser: localNodeIdentifier id=[{}], apiAddress=[{}], apiPort=[{}], nodeIdentities={}, chosen identity=[{}]",
-                localNodeIdentifier.getId(), apiAddress, apiPort, nodeIdentities, nodeIdentity);
-
-        return new StandardNiFiUser.Builder().identity(nodeIdentity).build();
-    }
-
     private void verifyResponse(final StatusType responseStatusType, final String connectorId) throws IOException {
         final int statusCode = responseStatusType.getStatusCode();
         final String reason = responseStatusType.getReasonPhrase();
@@ -152,7 +129,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
 
         final Family responseFamily = responseStatusType.getFamily();
         if (responseFamily == Family.SERVER_ERROR) {
-            throw new IOException("Server-side error requesting State for Connector with ID + " + connectorId + ". Status code: " + statusCode + ", reason: " + reason);
+            throw new IOException("Server-side error requesting State for Connector with ID " + connectorId + ". Status code: " + statusCode + ", reason: " + reason);
         }
         if (responseFamily == Family.CLIENT_ERROR) {
             throw new IOException("Client-side error requesting State for Connector with ID " + connectorId + ". Status code: " + statusCode + ", reason: " + reason);

@@ -237,8 +237,22 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         return nonConnectedNodes;
     }
 
+    /**
+     * Prepares headers for a replicated request. When a non-null user is provided, the {@code X-ProxiedEntitiesChain}
+     * and {@code X-ProxiedEntityGroups} headers are set so the receiving node knows the request is on behalf of that
+     * user. When user is {@code null}, these headers are omitted, indicating the request is made directly by the
+     * cluster node itself (e.g., for background connector state polling). The receiving node can use the absence of
+     * {@code X-ProxiedEntitiesChain} combined with TLS certificate verification to identify direct node requests.
+     *
+     * @param headers mutable map of HTTP headers to update
+     * @param user the user on whose behalf the request is being made, or {@code null} for direct node requests
+     */
     void updateRequestHeaders(final Map<String, String> headers, final NiFiUser user) {
-        if (user != null) {
+        if (user == null) {
+            // Background tasks where the node itself is the identity making the request, not a proxied user
+            logger.debug("No user provided: omitting proxied entities header from request");
+        } else {
+            logger.debug("NiFi User provided: adding proxied entities header to request");
             // Add the user as a proxied entity so that when the receiving NiFi receives the request,
             // it knows that we are acting as a proxy on behalf of the current user.
             final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
@@ -248,9 +262,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
             final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
             headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
-        } else {
-            logger.debug("No NiFi user provided. Replicated request will be sent without PROXY_ENTITIES_CHAIN header. " +
-                "This is used for background tasks where the identity making the request is the nifi node, not a proxied user.");
         }
 
         // remove the access token if present, since the user is already authenticated... authorization

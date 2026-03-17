@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
@@ -62,10 +63,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -153,6 +156,65 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade).getConnector(CONNECTOR_ID, false);
+    }
+
+    @Test
+    public void testGetConnectorClusterNodeRequestBypassesAuth() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+        doReturn(true).when(spyResource).isRequestFromClusterNode();
+
+        final ConnectorEntity connectorEntity = createConnectorEntity();
+        when(serviceFacade.getConnector(CONNECTOR_ID, true)).thenReturn(connectorEntity);
+
+        try (Response response = spyResource.getConnector(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(connectorEntity, response.getEntity());
+        }
+
+        verify(serviceFacade, never()).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnector(CONNECTOR_ID, true);
+    }
+
+    @Test
+    public void testGetAssetsClusterNodeRequestBypassesAuth() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+        doReturn(true).when(spyResource).isRequestFromClusterNode();
+
+        when(serviceFacade.getConnectorAssets(CONNECTOR_ID)).thenReturn(List.of());
+
+        try (Response response = spyResource.getAssets(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+        }
+
+        verify(serviceFacade, never()).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorAssets(CONNECTOR_ID);
+    }
+
+    @Test
+    public void testGetAssetContentClusterNodeRequestBypassesAuth() throws Exception {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(true).when(spyResource).isRequestFromClusterNode();
+
+        final java.io.File tempFile = java.io.File.createTempFile("test-asset", ".txt");
+        tempFile.deleteOnExit();
+        java.nio.file.Files.writeString(tempFile.toPath(), "asset-content");
+
+        final Asset mockAsset = mock(Asset.class);
+        when(mockAsset.getOwnerIdentifier()).thenReturn(CONNECTOR_ID);
+        when(mockAsset.getFile()).thenReturn(tempFile);
+        when(mockAsset.getName()).thenReturn("test-asset.txt");
+
+        final String assetId = "test-asset-id";
+        when(serviceFacade.getConnectorAsset(assetId)).thenReturn(java.util.Optional.of(mockAsset));
+
+        try (Response response = spyResource.getAssetContent(CONNECTOR_ID, assetId)) {
+            assertEquals(200, response.getStatus());
+        }
+
+        verify(serviceFacade, never()).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorAsset(assetId);
     }
 
     @Test

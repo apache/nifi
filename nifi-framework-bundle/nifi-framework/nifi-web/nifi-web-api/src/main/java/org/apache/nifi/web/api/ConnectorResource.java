@@ -358,10 +358,6 @@ public class ConnectorResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
-
         final boolean clusterNodeRequest = isRequestFromClusterNode();
 
         // authorize access
@@ -372,6 +368,10 @@ public class ConnectorResource extends ApplicationResource {
                 final Authorizable connector = lookup.getConnector(id);
                 connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get the connector
@@ -2080,10 +2080,7 @@ public class ConnectorResource extends ApplicationResource {
         )
         @PathParam("id") final String connectorId
     ) {
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        });
+        authorizeReadConnector(connectorId);
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -2128,10 +2125,7 @@ public class ConnectorResource extends ApplicationResource {
         )
         @PathParam("assetId") final String assetId
     ) {
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        });
+        authorizeReadConnector(connectorId);
 
         final Asset asset = serviceFacade.getConnectorAsset(assetId)
             .orElseThrow(() -> new ResourceNotFoundException("Asset does not exist with id %s".formatted(assetId)));
@@ -2153,6 +2147,27 @@ public class ConnectorResource extends ApplicationResource {
         return generateOkResponse(streamingOutput)
             .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", asset.getName()))
             .build();
+    }
+
+    /**
+     * Authorizes READ access to a connector, bypassing policy-based authorization for direct cluster node requests.
+     * Cluster nodes need to read connector state and assets during internal operations (e.g., state polling via
+     * {@code ClusteredConnectorRequestReplicator} and asset synchronization via {@code StandardConnectorAssetSynchronizer})
+     * but do not have explicit READ policies on individual connectors.
+     *
+     * @param connectorId the connector identifier
+     * @see ApplicationResource#isRequestFromClusterNode()
+     */
+    private void authorizeReadConnector(final String connectorId) {
+        if (isRequestFromClusterNode()) {
+            logger.debug("Authorizing READ on Connector [{}] for direct cluster node request", connectorId);
+            return;
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     // -----------------

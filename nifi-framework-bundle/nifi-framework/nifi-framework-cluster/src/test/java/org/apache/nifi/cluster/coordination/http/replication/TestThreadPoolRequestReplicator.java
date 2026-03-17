@@ -202,6 +202,65 @@ public class TestThreadPoolRequestReplicator {
     }
 
     @Test
+    public void testUpdateRequestHeadersWithNullUserOmitsProxiedEntitiesChain() {
+        final ClusterCoordinator coordinator = createClusterCoordinator();
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties((String) null);
+        final MockReplicationClient client = new MockReplicationClient();
+        final RequestCompletionCallback callback = (uri, method, responses) -> { };
+
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(
+                5, 100, client, coordinator, callback, EventReporter.NO_OP, props);
+
+        try {
+            final Map<String, String> headers = new HashMap<>();
+            replicator.updateRequestHeaders(headers, null);
+
+            assertNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
+            assertNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS));
+        } finally {
+            replicator.shutdown();
+        }
+    }
+
+    @Test
+    public void testUpdateRequestHeadersWithUserSetsProxiedEntitiesChain() {
+        final ClusterCoordinator coordinator = createClusterCoordinator();
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties((String) null);
+        final MockReplicationClient client = new MockReplicationClient();
+        final RequestCompletionCallback callback = (uri, method, responses) -> { };
+
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(
+                5, 100, client, coordinator, callback, EventReporter.NO_OP, props);
+
+        try {
+            final NiFiUser user = new Builder().identity("test-user").build();
+            final Map<String, String> headers = new HashMap<>();
+            replicator.updateRequestHeaders(headers, user);
+
+            assertNotNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
+            assertTrue(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains("test-user"));
+        } finally {
+            replicator.shutdown();
+        }
+    }
+
+    @Test
+    @Timeout(value = 15)
+    public void testReplicateWithNullUserOmitsProxiedEntitiesChain() {
+        withReplicator(replicator -> {
+            final Set<NodeIdentifier> nodeIds = new HashSet<>();
+            nodeIds.add(new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false));
+            final URI uri = new URI("http://localhost:8080/processors/1");
+            final Entity entity = new ProcessorEntity();
+
+            final AsyncClusterResponse response = replicator.replicate(nodeIds, null, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
+
+            final NodeResponse nodeResponse = response.awaitMergedResponse(3, TimeUnit.SECONDS);
+            assertEquals(Response.Status.OK.getStatusCode(), nodeResponse.getStatus());
+        }, Response.Status.OK, 0L, null, null, null);
+    }
+
+    @Test
     @Timeout(value = 15)
     public void testLongWaitForResponse() {
         withReplicator(replicator -> {
