@@ -396,7 +396,8 @@ public class ValidateJson extends AbstractProcessor {
                     reader.close(); // NOTE: Must call close otherwise get IllegalStateException indicating FlowFile already in use
                     // by an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed
                     final String validationMessages = errors.toString();
-                    flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationMessages);
+                    final String validationErrMsg = "JSON at line %s is invalid: %s".formatted(reader.getLineNumber(), validationMessages);
+                    flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationErrMsg);
                     getLogger().warn("JSON at line {} in {} is invalid: Validation Errors {}", reader.getLineNumber(), flowFile, validationMessages);
                     session.getProvenanceReporter().route(flowFile, REL_INVALID);
                     session.transfer(flowFile, REL_INVALID);
