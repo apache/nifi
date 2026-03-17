@@ -1,0 +1,71 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+@mixin generate-theme() {
+    bulk-replay-search-dialog {
+        .filter-chip {
+            background-color: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+            border-color: color-mix(in srgb, var(--mat-sys-primary) 30%, transparent);
+            color: var(--mat-sys-on-surface);
+        }
+
+        .event-type-badge {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: var(--mat-sys-on-surface-variant);
+
+            &.event-type-RECEIVE {
+                color: var(--mat-sys-tertiary);
+            }
+
+            &.event-type-DROP {
+                color: var(--mat-sys-error);
+            }
+
+            &.event-type-SEND {
+                color: var(--mat-sys-primary);
+            }
+        }
+
+        tr.selected-row td {
+            background-color: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+        }
+
+        tr.expanded-row td {
+            border-bottom: none;
+        }
+
+        .event-detail-content {
+            border-top-color: var(--mat-sys-outline-variant);
+            background-color: color-mix(in srgb, var(--mat-sys-surface-variant) 30%, transparent);
+        }
+
+        .attributes-table {
+            .attr-key {
+                color: var(--mat-sys-on-surface);
+            }
+
+            .attr-value {
+                color: var(--mat-sys-on-surface-variant);
+            }
+        }
+    }
+}

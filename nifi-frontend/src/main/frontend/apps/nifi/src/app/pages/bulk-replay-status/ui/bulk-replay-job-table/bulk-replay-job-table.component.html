@@ -1,0 +1,248 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="bulk-replay-job-table flex flex-col h-full">
+    <div class="flex flex-col">
+        <form [formGroup]="filterForm" class="my-2">
+            <div class="flex items-center justify-between">
+                <div class="flex">
+                    <div class="mr-2">
+                        <mat-form-field subscriptSizing="dynamic">
+                            <mat-label>Filter</mat-label>
+                            <input matInput type="text" class="small" formControlName="filterTerm" />
+                        </mat-form-field>
+                    </div>
+                    <div>
+                        <mat-form-field subscriptSizing="dynamic">
+                            <mat-label>Filter By</mat-label>
+                            <mat-select formControlName="filterColumn">
+                                @for (option of filterColumnOptions; track option) {
+                                    <mat-option [value]="option">{{ option }}</mat-option>
+                                }
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+                </div>
+                <button mat-icon-button type="button" title="Clear History" (click)="clearJobs.emit()">
+                    <i class="fa fa-eraser"></i>
+                </button>
+            </div>
+        </form>
+        <div class="tertiary-color font-medium my-2">Filter matched {{ filteredCount }} of {{ totalCount }}</div>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-auto">
+        <div class="listing-table">
+            <table
+                mat-table
+                [dataSource]="dataSource"
+                [trackBy]="trackByJobId"
+                matSort
+                matSortDisableClear
+                (matSortChange)="updateSort($event)"
+                [matSortActive]="sort.active"
+                [matSortDirection]="sort.direction">
+                <!-- Job Name -->
+                <ng-container matColumnDef="jobName">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Job Name</th>
+                    <td mat-cell *matCellDef="let job">
+                        <span [matTooltip]="job.jobName" matTooltipPosition="above">{{ job.jobName }}</span>
+                    </td>
+                </ng-container>
+
+                <!-- Submitted Time -->
+                <ng-container matColumnDef="submissionTime">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Submitted</th>
+                    <td mat-cell *matCellDef="let job">{{ job.submissionTime }}</td>
+                </ng-container>
+
+                <!-- Submitted By -->
+                <ng-container matColumnDef="submittedBy">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Submitted By</th>
+                    <td mat-cell *matCellDef="let job">{{ job.submittedBy }}</td>
+                </ng-container>
+
+                <!-- Processor Name -->
+                <ng-container matColumnDef="processorName">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Processor Name</th>
+                    <td mat-cell *matCellDef="let job">{{ job.processorName }}</td>
+                </ng-container>
+
+                <!-- Processor Type -->
+                <ng-container matColumnDef="processorType">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Processor Type</th>
+                    <td mat-cell *matCellDef="let job">{{ job.processorType }}</td>
+                </ng-container>
+
+                <!-- Status -->
+                <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                    <td mat-cell *matCellDef="let job">
+                        <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+                    </td>
+                </ng-container>
+
+                <!-- Progress -->
+                <ng-container matColumnDef="progress">
+                    <th mat-header-cell *matHeaderCellDef>Progress</th>
+                    <td mat-cell *matCellDef="let job">
+                        @if (job.status === 'RUNNING' && isWaitingForNode(job)) {
+                            <div class="flex flex-col gap-y-1">
+                                <mat-progress-bar mode="determinate" [value]="job.percentComplete"></mat-progress-bar>
+                                <span class="tertiary-color font-medium text-xs">
+                                    {{ job.percentComplete }}% — Waiting for node
+                                </span>
+                            </div>
+                        } @else if (job.status === 'RUNNING') {
+                            <div class="flex flex-col gap-y-1">
+                                <mat-progress-bar mode="determinate" [value]="job.percentComplete"></mat-progress-bar>
+                                <span class="tertiary-color font-medium text-xs">{{ job.percentComplete }}%</span>
+                            </div>
+                        } @else if (job.status === 'QUEUED') {
+                            <div class="flex flex-col gap-y-1">
+                                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                                <span class="tertiary-color font-medium text-xs">Queued</span>
+                            </div>
+                        }
+                    </td>
+                </ng-container>
+
+                <!-- Total Items -->
+                <ng-container matColumnDef="totalItems">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th>
+                    <td mat-cell *matCellDef="let job">{{ job.totalItems }}</td>
+                </ng-container>
+
+                <!-- Succeeded Count -->
+                <ng-container matColumnDef="succeededItems">
+                    <th mat-header-cell *matHeaderCellDef>Replayed</th>
+                    <td mat-cell *matCellDef="let job">
+                        <span class="count-replayed">{{ job.succeededItems }}</span>
+                    </td>
+                </ng-container>
+
+                <!-- Failed Count -->
+                <ng-container matColumnDef="failedItems">
+                    <th mat-header-cell *matHeaderCellDef>Failed</th>
+                    <td mat-cell *matCellDef="let job">
+                        @if (job.failedItems > 0) {
+                            <span class="count-failed">{{ job.failedItems }}</span>
+                        } @else {
+                            <span class="tertiary-color">—</span>
+                        }
+                    </td>
+                </ng-container>
+
+                <!-- Actions -->
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let job">
+                        <!-- Cancel: only shown while job is active and cluster is connected -->
+                        @if (isActive(job) && connectedToCluster) {
+                            <button
+                                mat-icon-button
+                                type="button"
+                                title="Cancel Job"
+                                matTooltip="Cancel Job"
+                                matTooltipPosition="above"
+                                (click)="cancelClicked(job)">
+                                <i class="fa fa-times accent-color"></i>
+                            </button>
+                        }
+                        <button
+                            mat-icon-button
+                            type="button"
+                            title="View Details"
+                            matTooltip="View Details"
+                            matTooltipPosition="above"
+                            (click)="viewDetailsClicked(job)">
+                            <i class="fa fa-list-alt primary-color"></i>
+                        </button>
+                        <button
+                            mat-icon-button
+                            type="button"
+                            title="Go to Processor"
+                            matTooltip="Go to Processor"
+                            matTooltipPosition="above"
+                            (click)="goToProcessor(job)">
+                            <i class="fa fa-long-arrow-right primary-color leading-none"></i>
+                        </button>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns" [class.even]="even"></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="flex justify-between mt-2">
+        <div class="text-sm flex items-center gap-x-2">
+            <button mat-icon-button class="primary-icon-button" (click)="refreshClicked()">
+                <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
+            </button>
+            <div>Last updated:</div>
+            <div class="tertiary-color font-medium">{{ loadedTimestamp }}</div>
+            <mat-slide-toggle [(ngModel)]="autoRefresh" class="text-sm">
+                Auto-refresh ({{ AUTO_REFRESH_SECONDS }}s)
+            </mat-slide-toggle>
+            @if (clustered && config) {
+                <span class="ml-4 border-l pl-4 flex items-center gap-x-1">
+                    <span class="tertiary-color">Node disconnect timeout:</span>
+                    @if (!editingTimeout) {
+                        <span class="font-medium">{{ config.nodeDisconnectTimeout }}</span>
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="edit-timeout-btn"
+                            [disabled]="!connectedToCluster"
+                            title="Edit timeout"
+                            [matTooltip]="
+                                connectedToCluster
+                                    ? 'Edit node disconnect timeout (runtime only, resets on restart)'
+                                    : 'Cannot edit while disconnected from cluster'
+                            "
+                            matTooltipPosition="above"
+                            (click)="startEditTimeout()">
+                            <i class="fa fa-pencil" [class.primary-color]="connectedToCluster"></i>
+                        </button>
+                    } @else {
+                        <mat-form-field subscriptSizing="dynamic" class="timeout-input">
+                            <input
+                                matInput
+                                type="text"
+                                class="small"
+                                [(ngModel)]="timeoutEditValue"
+                                placeholder="e.g. 5 mins"
+                                (keyup.enter)="saveTimeout()"
+                                (keyup.escape)="cancelEditTimeout()" />
+                        </mat-form-field>
+                        <button mat-icon-button type="button" title="Save" (click)="saveTimeout()">
+                            <i class="fa fa-check accent-color"></i>
+                        </button>
+                        <button mat-icon-button type="button" title="Cancel" (click)="cancelEditTimeout()">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    }
+                </span>
+            }
+        </div>
+        <div>
+            <mat-paginator [pageSize]="25" [hidePageSize]="true" [showFirstLastButtons]="true"> </mat-paginator>
+        </div>
+    </div>
+</div>

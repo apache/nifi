@@ -43,6 +43,13 @@
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as
     provenance-event-table;
+@use 'app/pages/bulk-replay-status/feature/bulk-replay-status.component-theme' as bulk-replay-status;
+@use 'app/pages/bulk-replay-status/ui/bulk-replay-job-table/bulk-replay-job-table.component-theme' as
+    bulk-replay-job-table;
+@use 'app/pages/bulk-replay-status/ui/bulk-replay-job-detail-dialog/bulk-replay-job-detail-dialog.component-theme' as
+    bulk-replay-job-detail-dialog;
+@use 'app/pages/bulk-replay-status/ui/bulk-replay-search-dialog/bulk-replay-search-dialog.component-theme' as
+    bulk-replay-search-dialog;
 @use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as
     lineage;
 @use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
@@ -94,6 +101,10 @@ html {
     @include provenance-event-table.generate-theme();
     @include provenance.generate-theme();
     @include lineage.generate-theme();
+    @include bulk-replay-status.generate-theme();
+    @include bulk-replay-job-table.generate-theme();
+    @include bulk-replay-job-detail-dialog.generate-theme();
+    @include bulk-replay-search-dialog.generate-theme();
     @include context-menu.generate-theme();
     @include navigation.generate-theme();
     @include nf-editor.generate-theme();
@@ -127,6 +138,10 @@ html {
         @include provenance-event-table.generate-theme();
         @include provenance.generate-theme();
         @include lineage.generate-theme();
+        @include bulk-replay-status.generate-theme();
+        @include bulk-replay-job-table.generate-theme();
+        @include bulk-replay-job-detail-dialog.generate-theme();
+        @include bulk-replay-search-dialog.generate-theme();
         @include context-menu.generate-theme();
         @include navigation.generate-theme();
         @include nf-editor.generate-theme();
