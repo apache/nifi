@@ -1,0 +1,204 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="bulk-replay-detail-dialog flex flex-col" style="height: 80vh">
+    <!-- Fixed header -->
+    <div class="dialog-header flex items-center justify-between px-4 py-3 flex-shrink-0">
+        <h2 class="primary-color m-0">{{ job.jobName }}</h2>
+        <button mat-icon-button mat-dialog-close title="Close">
+            <i class="fa fa-times primary-color"></i>
+        </button>
+    </div>
+
+    <!-- Fixed summary -->
+    <div class="summary-section px-4 pb-3 flex-shrink-0">
+        <div class="flex gap-x-8 flex-wrap gap-y-1">
+            <div class="flex gap-x-2 items-center">
+                <span class="label-text">Status</span>
+                <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+            </div>
+            <div class="flex gap-x-2 items-center">
+                <span class="label-text">Processor</span>
+                <a
+                    mat-dialog-close
+                    [routerLink]="['/process-groups', job.groupId, 'Processor', job.processorId]"
+                    title="{{ job.processorId }}">
+                    {{ job.processorName }}
+                </a>
+            </div>
+            <div class="flex gap-x-2 items-center">
+                <span class="label-text">Type</span>
+                <span class="tertiary-color font-medium">{{ job.processorType }}</span>
+            </div>
+            <div class="flex gap-x-2 items-center">
+                <span class="label-text">Submitted By</span>
+                <span class="tertiary-color font-medium">{{ job.submittedBy }}</span>
+            </div>
+            <div class="flex gap-x-2 items-center">
+                <span class="label-text">Submitted</span>
+                <span class="tertiary-color font-medium">{{ job.submissionTime }}</span>
+            </div>
+            <div class="flex gap-x-2 items-center">
+                <span class="label-text">Items</span>
+                <span>
+                    <span class="count-replayed">{{ job.succeededItems }} replayed</span>
+                    @if (job.failedItems > 0) {
+                        <span class="count-failed"> / {{ job.failedItems }} failed</span>
+                    }
+                    <span class="tertiary-color"> of {{ job.totalItems }} total</span>
+                </span>
+            </div>
+        </div>
+
+        @if (job.status === 'RUNNING' && countdownSeconds !== null && countdownSeconds > 0) {
+            <div class="flex flex-col gap-y-1 mt-2">
+                <mat-progress-bar mode="determinate" [value]="job.percentComplete"></mat-progress-bar>
+                <span class="tertiary-color font-medium text-xs">
+                    {{ job.percentComplete }}% — {{ job.statusMessage }}
+                    @if (countdownSeconds !== null && countdownSeconds > 0) {
+                        ({{ countdownSeconds }}s remaining)
+                    }
+                </span>
+            </div>
+        } @else if (job.status === 'RUNNING') {
+            <div class="flex flex-col gap-y-1 mt-2">
+                <mat-progress-bar mode="determinate" [value]="job.percentComplete"></mat-progress-bar>
+                <span class="tertiary-color font-medium text-xs"
+                    >{{ job.percentComplete }}% — {{ job.statusMessage }}</span
+                >
+            </div>
+        } @else if (job.status === 'QUEUED') {
+            <div class="flex flex-col gap-y-1 mt-2">
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                <span class="tertiary-color font-medium text-xs">Waiting to start...</span>
+            </div>
+        }
+    </div>
+
+    <mat-divider class="flex-shrink-0"></mat-divider>
+
+    <!-- Item results — fills remaining height -->
+    <mat-dialog-content class="flex-1 flex flex-col min-h-0 px-4 pt-3">
+        @if (loadingItems) {
+            <div class="flex-1 flex flex-col items-center justify-center gap-y-4">
+                <mat-progress-bar mode="indeterminate" class="w-64"></mat-progress-bar>
+                <span class="tertiary-color font-medium">Loading job details...</span>
+            </div>
+        }
+        <div class="flex flex-col flex-shrink-0" [class.hidden]="loadingItems">
+            <div class="flex items-center gap-x-2 my-2">
+                <form [formGroup]="filterForm" class="flex gap-x-2">
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Filter</mat-label>
+                        <input matInput type="text" class="small" formControlName="filterTerm" />
+                    </mat-form-field>
+                    <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Filter By</mat-label>
+                        <mat-select formControlName="filterColumn">
+                            @for (option of filterColumnOptions; track option) {
+                                <mat-option [value]="option">{{ option }}</mat-option>
+                            }
+                        </mat-select>
+                    </mat-form-field>
+                </form>
+                <button mat-icon-button class="primary-icon-button" title="Refresh" (click)="onManualRefresh()">
+                    <i class="fa fa-refresh" [class.fa-spin]="refreshing"></i>
+                </button>
+                <mat-slide-toggle [(ngModel)]="autoRefresh" class="text-sm">
+                    Auto-refresh ({{ AUTO_REFRESH_SECONDS }}s)
+                </mat-slide-toggle>
+                @if (lastRefreshedAt) {
+                    <span class="tertiary-color text-xs"
+                        >Last updated {{ lastRefreshedAt | date: 'mediumTime' }}</span
+                    >
+                }
+            </div>
+            <div class="tertiary-color font-medium mb-2">
+                Filter matched {{ filteredCount }} of {{ totalCount }}
+            </div>
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-auto listing-table" [class.hidden]="loadingItems">
+            <table
+                mat-table
+                [dataSource]="itemsDataSource"
+                matSort
+                matSortDisableClear
+                (matSortChange)="sortData($event)"
+                [matSortActive]="sort.active"
+                [matSortDirection]="sort.direction">
+                <ng-container matColumnDef="provenanceEventId">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Event ID</th>
+                    <td mat-cell *matCellDef="let item">{{ item.provenanceEventId }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="flowFileUuid">
+                    <th mat-header-cell *matHeaderCellDef>FlowFile UUID</th>
+                    <td mat-cell *matCellDef="let item">{{ item.flowFileUuid }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="eventTime">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Event Time</th>
+                    <td mat-cell *matCellDef="let item">{{ item.eventTime }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="fileSize">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>File Size</th>
+                    <td mat-cell *matCellDef="let item">{{ formatFileSize(item.fileSizeBytes) }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                    <td mat-cell *matCellDef="let item">
+                        <span class="event-status status-{{ item.status }}">{{ item.status }}</span>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="errorMessage">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Error</th>
+                    <td mat-cell *matCellDef="let item">
+                        @if (item.errorMessage) {
+                            <span class="count-failed">{{ item.errorMessage }}</span>
+                        }
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let item">
+                        @if (item.status === 'SUCCEEDED') {
+                            <button
+                                mat-icon-button
+                                title="Search Provenance for this FlowFile"
+                                (click)="searchProvenance(item.flowFileUuid)">
+                                <i class="icon icon-provenance primary-color"></i>
+                            </button>
+                        }
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="itemColumns; sticky: true"></tr>
+                <tr mat-row *matRowDef="let row; columns: itemColumns" [class.failed-row]="isFailed(row)"></tr>
+            </table>
+        </div>
+        <mat-paginator
+            [pageSize]="20"
+            [hidePageSize]="true"
+            [showFirstLastButtons]="true"
+            [class.hidden]="loadingItems"></mat-paginator>
+    </mat-dialog-content>
+</div>

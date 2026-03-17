@@ -3144,6 +3144,25 @@ may increase the rate at which the Provenance Repository is able to process thes
 |`nifi.provenance.repository.buffer.size`|The Provenance Repository buffer size. The default value is `100000` provenance events.
 |====
 
+[[bulk_replay_properties]]
+=== Bulk Replay Properties
+
+The following properties control the server-side behavior of the Bulk Replay feature (see link:user-guide.html#bulk_replay[Bulk Replay] in the User Guide).
+Bulk replay jobs are tracked in memory and are lost when the entire cluster is restarted. In a cluster, jobs execute on the primary node; if the primary node is lost, interrupted jobs are automatically resumed by the new primary.
+
+|====
+|*Property*|*Description*
+|`nifi.bulk.replay.max.concurrent`|The number of worker threads available for executing bulk replay jobs.
+Each thread handles one job at a time, so this value caps the number of jobs that can run concurrently.
+Raising this value allows more jobs to execute in parallel but increases load on the node.
+The default value is `5`.
+|`nifi.bulk.replay.max.jobs`|The maximum number of job summaries retained in memory.
+When this limit is exceeded, the oldest terminal (completed, partial success, failed, or cancelled) job is automatically evicted. Active jobs (queued, running, or interrupted) are never evicted.
+The default value is `50`.
+|`nifi.bulk.replay.node.disconnect.timeout`|When a replay item's content resides on a cluster node that is currently disconnected, the worker waits up to this duration for the node to reconnect before failing the item.
+The value is a NiFi duration string (e.g., `5 mins`, `30 secs`).
+The default value is `5 mins`.
+|====
 
 === Status History Repository
 
