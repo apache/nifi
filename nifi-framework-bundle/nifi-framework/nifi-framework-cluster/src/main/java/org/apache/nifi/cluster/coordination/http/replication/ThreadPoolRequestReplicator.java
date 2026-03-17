@@ -272,7 +272,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
-                                           final boolean indicateReplicated, final boolean performVerification) {
+                                          final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         updatedHeaders.put(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), ComponentIdGenerator.generateId().toString());
