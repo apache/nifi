@@ -76,7 +76,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: java
       - name: Maven Package
@@ -93,7 +93,7 @@ jobs:
           package
           pmd:check
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
       - name: Get Project Version
         run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
       - name: Generate SBOM
@@ -105,7 +105,7 @@ jobs:
           artifact-name: nifi-${{ env.PROJECT_VERSION }}.spdx.json
           output-file: nifi-${{ env.PROJECT_VERSION }}.spdx.json
       - name: Scan SBOM
-        uses: anchore/scan-action@v6
+        uses: anchore/scan-action@v7
         with:
           sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
           severity-cutoff: 'medium'
