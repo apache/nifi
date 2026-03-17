@@ -84,8 +84,8 @@ import java.util.stream.Collectors;
             + ", this attribute will contain the error message resulting from the validation failure.")
 })
 @CapabilityDescription("Validates the contents of FlowFiles against a configurable JSON Schema. See json-schema.org for specification standards. " +
-        "This Processor does support input containing multiple JSON objects such as newline-delimited JSON when the 'Input Format' property is set to be 'JSON Lines'" +
-        ", otherwise if the input FlowFile contains newline-delimited JSON, only the first line will be validated."
+        "This Processor supports input containing multiple JSON objects using newline-delimited JSON based on configuration properties, " +
+        "otherwise if the input FlowFile contains newline-delimited JSON, only the first line will be validated."
 )
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Validating JSON requires reading FlowFile content into memory")
 @Restricted(
@@ -129,14 +129,14 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    public enum InputFormatStrategy implements DescribedValue {
+    public enum InputFormat implements DescribedValue {
         FLOW_FILE("FlowFile", "Validation applied to FlowFile content containing JSON"),
         JSON_LINES("JSON Lines", "Validation applied to FlowFile content containing JSON Lines or NDJSON");
 
         private final String displayName;
         private final String description;
 
-        InputFormatStrategy(final String displayName, final String description) {
+        InputFormat(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -199,9 +199,9 @@ public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor INPUT_FORMAT = new PropertyDescriptor.Builder()
             .name("Input Format")
-            .description("Specifies whether the validation is applied to FlowFile content containing JSON or JSON Lines (NDJSON)")
-            .allowableValues(InputFormatStrategy.class)
-            .defaultValue(InputFormatStrategy.FLOW_FILE)
+            .description("Specifies the expected format of FlowFile content containing one or more JSON elements")
+            .allowableValues(InputFormat.class)
+            .defaultValue(InputFormat.FLOW_FILE)
             .required(true)
             .build();
 
@@ -339,26 +339,25 @@ public class ValidateJson extends AbstractProcessor {
             }
         }
 
-        final Schema activeSchema = schema;
-        if (activeSchema == null) {
+        if (schema == null) {
             getLogger().error("JSON schema not configured for {}", flowFile);
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        final InputFormatStrategy inputFormatStrategy = context.getProperty(INPUT_FORMAT).asAllowableValue(InputFormatStrategy.class);
-        if (inputFormatStrategy == InputFormatStrategy.FLOW_FILE) {
-            validateSingleJson(session, flowFile, activeSchema);
+        final InputFormat inputFormat = context.getProperty(INPUT_FORMAT).asAllowableValue(InputFormat.class);
+        if (inputFormat == InputFormat.FLOW_FILE) {
+            validateSingleJson(session, flowFile);
         } else {
-            validateJsonLines(session, flowFile, activeSchema);
+            validateJsonLines(session, flowFile);
         }
     }
 
-    void validateSingleJson(ProcessSession session, FlowFile flowFile, Schema activeSchema) {
+    void validateSingleJson(ProcessSession session, FlowFile flowFile) {
         try (final InputStream in = session.read(flowFile)) {
             final JsonNode node = mapper.readTree(in);
-            final List<Error> errors = activeSchema.validate(node);
+            final List<Error> errors = schema.validate(node);
 
             if (errors.isEmpty()) {
                 getLogger().debug("JSON {} valid", flowFile);
@@ -378,7 +377,7 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    void validateJsonLines(ProcessSession session, FlowFile flowFile, Schema activeSchema) {
+    void validateJsonLines(ProcessSession session, FlowFile flowFile) {
 
         try (final InputStream in = session.read(flowFile);
              final LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
@@ -390,9 +389,8 @@ public class ValidateJson extends AbstractProcessor {
                     continue;
                 }
 
-                final StringReader stringReader = new StringReader(line);
-                final JsonNode node = mapper.readTree(stringReader);
-                final List<Error> errors = activeSchema.validate(node);
+                final JsonNode node = mapper.readTree(line);
+                final List<Error> errors = schema.validate(node);
 
                 if (!errors.isEmpty()) {
                     reader.close(); // NOTE: Must call close otherwise get IllegalStateException indicating FlowFile already in use
@@ -406,12 +404,11 @@ public class ValidateJson extends AbstractProcessor {
                 }
             }
 
-            getLogger().debug("{} in {} are valid", InputFormatStrategy.JSON_LINES.getDisplayName(), flowFile);
             session.getProvenanceReporter().route(flowFile, REL_VALID);
             session.transfer(flowFile, REL_VALID);
 
         } catch (Exception e) {
-            getLogger().error("{} processing failed {}", InputFormatStrategy.JSON_LINES.getDisplayName(), flowFile, e);
+            getLogger().error("{} processing failed {}", InputFormat.JSON_LINES.getDisplayName(), flowFile, e);
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
         }
