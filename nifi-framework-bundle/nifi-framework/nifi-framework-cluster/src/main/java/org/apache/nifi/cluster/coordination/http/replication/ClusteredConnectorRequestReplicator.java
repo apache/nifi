@@ -21,7 +21,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.Response.Status.Family;
 import jakarta.ws.rs.core.Response.StatusType;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -42,13 +41,10 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
     private static final String GET = "GET";
 
     private final Supplier<RequestReplicator> requestReplicatorSupplier;
-    private final Supplier<ClusterCoordinator> clusterCoordinatorSupplier;
     private final String replicationScheme;
 
-    public ClusteredConnectorRequestReplicator(final Supplier<RequestReplicator> requestReplicatorSupplier, final Supplier<ClusterCoordinator> clusterCoordinatorSupplier,
-                final boolean httpsEnabled) {
+    public ClusteredConnectorRequestReplicator(final Supplier<RequestReplicator> requestReplicatorSupplier, final boolean httpsEnabled) {
         this.requestReplicatorSupplier = Objects.requireNonNull(requestReplicatorSupplier, "Request Replicator Supplier required");
-        this.clusterCoordinatorSupplier = Objects.requireNonNull(clusterCoordinatorSupplier, "Cluster Coordinator Supplier required");
         this.replicationScheme = httpsEnabled ? "https" : "http";
     }
 
