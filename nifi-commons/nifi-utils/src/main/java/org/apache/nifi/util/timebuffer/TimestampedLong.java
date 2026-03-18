@@ -19,10 +19,15 @@ package org.apache.nifi.util.timebuffer;
 public class TimestampedLong {
 
     private final Long value;
-    private final long timestamp = System.currentTimeMillis();
+    private final long timestamp;
 
     public TimestampedLong(final Long value) {
+        this(value, System.currentTimeMillis());
+    }
+
+    public TimestampedLong(final Long value, final long timestamp) {
         this.value = value;
+        this.timestamp = timestamp;
     }
 
     public Long getValue() {
