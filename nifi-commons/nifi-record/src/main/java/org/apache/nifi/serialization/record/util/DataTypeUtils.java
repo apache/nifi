@@ -812,7 +812,7 @@ public class DataTypeUtils {
         if (value instanceof final Object[] array) {
             for (final Object element : array) {
                 // Check each element to ensure its type is the same or can be coerced (if need be)
-                if (!isCompatibleDataType(element, elementDataType, strict)) {
+                if (element != null && !isCompatibleDataType(element, elementDataType, strict)) {
                     return false;
                 }
             }

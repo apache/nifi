@@ -1242,4 +1242,56 @@ public class TestDataTypeUtils {
         assertFalse(DataTypeUtils.isUUIDTypeCompatible("not-a-uuid"));
         assertFalse(DataTypeUtils.isUUIDTypeCompatible(""));
     }
+
+    @Test
+    void testIsArrayTypeCompatibleWithNullElements() {
+        final DataType intType = RecordFieldType.INT.getDataType();
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField("db", RecordFieldType.RECORD.getRecordDataType(
+                        new SimpleRecordSchema(List.of(new RecordField("host", RecordFieldType.STRING.getDataType())))
+                ))
+        ));
+        final DataType recordType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
+
+        assertTrue(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, 42}, intType));
+        assertTrue(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, 42}, intType, true));
+        assertFalse(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, 42}, recordType));
+        assertFalse(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, 42}, recordType, true));
+
+        final MapRecord record = new MapRecord(recordSchema, Map.of("db",
+                new MapRecord(new SimpleRecordSchema(List.of(new RecordField("host", RecordFieldType.STRING.getDataType()))),
+                        Map.of("host", "localhost"))));
+        assertTrue(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, record}, recordType));
+        assertTrue(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, record}, recordType, true));
+        assertFalse(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, record}, intType));
+
+        assertTrue(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, null}, intType));
+        assertTrue(DataTypeUtils.isArrayTypeCompatible(new Object[]{null, null}, recordType));
+        assertFalse(DataTypeUtils.isArrayTypeCompatible(null, intType));
+    }
+
+    @Test
+    void testChooseDataTypeForArrayWithNullElementsInChoice() {
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField("db", RecordFieldType.RECORD.getRecordDataType(
+                        new SimpleRecordSchema(List.of(new RecordField("host", RecordFieldType.STRING.getDataType())))
+                ))
+        ));
+        final DataType arrayOfRecord = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema));
+        final DataType arrayOfInt = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType());
+        final ChoiceDataType choiceType = (ChoiceDataType) RecordFieldType.CHOICE.getChoiceDataType(arrayOfRecord, arrayOfInt);
+
+        final DataType chosen = DataTypeUtils.chooseDataType(new Object[]{null, 42}, choiceType);
+        assertNotNull(chosen);
+        assertEquals(RecordFieldType.ARRAY, chosen.getFieldType());
+        assertEquals(RecordFieldType.INT, ((ArrayDataType) chosen).getElementType().getFieldType());
+
+        final MapRecord record = new MapRecord(recordSchema, Map.of("db",
+                new MapRecord(new SimpleRecordSchema(List.of(new RecordField("host", RecordFieldType.STRING.getDataType()))),
+                        Map.of("host", "localhost"))));
+        final DataType chosenRecord = DataTypeUtils.chooseDataType(new Object[]{null, record}, choiceType);
+        assertNotNull(chosenRecord);
+        assertEquals(RecordFieldType.ARRAY, chosenRecord.getFieldType());
+        assertEquals(RecordFieldType.RECORD, ((ArrayDataType) chosenRecord).getElementType().getFieldType());
+    }
 }

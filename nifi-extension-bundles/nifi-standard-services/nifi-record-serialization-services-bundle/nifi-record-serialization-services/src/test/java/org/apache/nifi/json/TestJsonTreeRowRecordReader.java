@@ -905,6 +905,44 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
+    void testChoiceOfArrayTypesWithNullElements() throws Exception {
+        final String inputJson = """
+                {"id":1,"changes":{"config": [{"db": {"host": "old"}}, {"db": {"host": "new"}}], "status": [true, false]}}
+                {"id":2,"changes":{"config": [null, 42], "status": [null, {"code": 200}]}}
+                """;
+
+        try (final InputStream in = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8))) {
+            final RecordSchema schema = inferSchema(in, StartingFieldStrategy.ROOT_NODE, null);
+
+            try (final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
+                final Record record1 = reader.nextRecord();
+                assertNotNull(record1);
+                assertEquals(1, record1.getValue("id"));
+
+                final Record changes1 = (Record) record1.getValue("changes");
+                assertNotNull(changes1);
+                final Object[] config1 = (Object[]) changes1.getValue("config");
+                assertEquals(2, config1.length);
+                assertInstanceOf(Record.class, config1[0]);
+                assertInstanceOf(Record.class, config1[1]);
+
+                final Record record2 = reader.nextRecord();
+                assertNotNull(record2);
+                assertEquals(2, record2.getValue("id"));
+
+                final Record changes2 = (Record) record2.getValue("changes");
+                assertNotNull(changes2);
+                final Object[] config2 = (Object[]) changes2.getValue("config");
+                assertEquals(2, config2.length);
+                assertNull(config2[0]);
+                assertEquals(42, config2[1]);
+
+                assertNull(reader.nextRecord());
+            }
+        }
+    }
+
+    @Test
     void testChoiceOfEmbeddedSimilarRecords() throws Exception {
         String jsonPath = "src/test/resources/json/choice-of-embedded-similar-records.json";
 
