@@ -200,7 +200,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
     }
 
     @Test
-    void testDynamicUrlsParsedFromFlowFileAndAbleToConnectAndDisconnect() throws InitializationException {
+    void testDynamicUrlsParsedFromFlowFileAndAbleToConnectAndDisconnect() throws Exception {
         // Start websocket server
         final TestRunner webSocketListener = TestRunners.newTestRunner(ListenWebSocket.class);
 
@@ -242,6 +242,12 @@ class TestConnectWebSocket extends TestListenWebSocket {
         assertEquals(1, flowFilesForSuccess.size());
 
         webSocketListener.disableControllerService(server);
+
+        final long disconnectTimeout = System.currentTimeMillis() + 5000;
+        while (runner.getFlowFilesForRelationship(ConnectWebSocket.REL_DISCONNECTED).isEmpty()
+                && System.currentTimeMillis() < disconnectTimeout) {
+            Thread.sleep(50);
+        }
 
         final List<MockFlowFile> flowFilesForDisconnectedRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_DISCONNECTED);
         assertEquals(1, flowFilesForDisconnectedRelationship.size());

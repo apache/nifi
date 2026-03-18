@@ -16,24 +16,36 @@
  */
 package org.apache.nifi.util.timebuffer;
 
+import java.util.function.LongSupplier;
+
 public class LongEntityAccess implements EntityAccess<TimestampedLong> {
+
+    private final LongSupplier currentTimeSupplier;
+
+    public LongEntityAccess() {
+        this(System::currentTimeMillis);
+    }
+
+    public LongEntityAccess(final LongSupplier currentTimeSupplier) {
+        this.currentTimeSupplier = currentTimeSupplier;
+    }
 
     @Override
     public TimestampedLong aggregate(TimestampedLong oldValue, TimestampedLong toAdd) {
         if (oldValue == null && toAdd == null) {
-            return new TimestampedLong(0L);
+            return new TimestampedLong(0L, currentTimeSupplier.getAsLong());
         } else if (oldValue == null) {
             return toAdd;
         } else if (toAdd == null) {
             return oldValue;
         }
 
-        return new TimestampedLong(oldValue.getValue() + toAdd.getValue());
+        return new TimestampedLong(oldValue.getValue() + toAdd.getValue(), currentTimeSupplier.getAsLong());
     }
 
     @Override
     public TimestampedLong createNew() {
-        return new TimestampedLong(0L);
+        return new TimestampedLong(0L, currentTimeSupplier.getAsLong());
     }
 
     @Override

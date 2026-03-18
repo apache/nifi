@@ -552,7 +552,7 @@ public class ControlRate extends AbstractProcessor {
 
         private Throttle(final int timePeriod, final TimeUnit unit, final ComponentLog logger, final LongSupplier currentTimeSupplier) {
             this.timePeriodMillis = TimeUnit.MILLISECONDS.convert(timePeriod, unit);
-            this.timedBuffer = new TimedBuffer<>(unit, timePeriod, new LongEntityAccess(), currentTimeSupplier);
+            this.timedBuffer = new TimedBuffer<>(unit, timePeriod, new LongEntityAccess(currentTimeSupplier), currentTimeSupplier);
             this.logger = logger;
             this.currentTimeSupplier = currentTimeSupplier;
         }
@@ -600,7 +600,7 @@ public class ControlRate extends AbstractProcessor {
                         sum == null ? 0 : sum.getValue(), sum == null ? 0 : sum.getTimestamp(), value);
             }
 
-            final long transferred = timedBuffer.add(new TimestampedLong(value)).getValue();
+            final long transferred = timedBuffer.add(new TimestampedLong(value, now)).getValue();
             if (transferred > maxRateValue) {
                 final long amountOver = transferred - maxRateValue;
                 // determine how long it should take to transfer 'amountOver' and 'penalize' the Throttle for that long

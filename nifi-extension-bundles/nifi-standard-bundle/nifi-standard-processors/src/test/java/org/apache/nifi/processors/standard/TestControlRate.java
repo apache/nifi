@@ -434,6 +434,12 @@ public class TestControlRate {
 
         incrementCurrentTime(2000);
         runner.run(1, false);
+        runner.assertTransferCount(ControlRate.REL_SUCCESS, 2);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueNotEmpty();
+
+        incrementCurrentTime();
+        runner.run(1, false);
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 3);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
@@ -464,6 +470,12 @@ public class TestControlRate {
 
         // we have sent 2 flowfile and after 1 second, we should be able to send more, now limited by flowfile count
         incrementCurrentTime(1500);
+        runner.run(1, false);
+        runner.assertTransferCount(ControlRate.REL_SUCCESS, 7);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueNotEmpty();
+
+        incrementCurrentTime();
         runner.run(1, false);
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 8);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
