@@ -94,6 +94,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
@@ -101,6 +102,7 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
@@ -109,6 +111,7 @@ import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -2025,5 +2028,52 @@ public class StandardNiFiServiceFacadeTest {
         assertNotNull(result);
         assertEquals(controllerServiceId, result.getComponentId());
         verify(componentStateDAO).clearState(controllerServiceNode, null);
+    }
+
+    @Test
+    public void testGetConnectorClusterNodeRequest() {
+        final String connectorId = "connector-id";
+        final String managedGroupId = "managed-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        final RevisionManager revisionManager = mock(RevisionManager.class);
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+        serviceFacade.setRevisionManager(revisionManager);
+        serviceFacade.setEntityFactory(new EntityFactory());
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        when(connectorNode.getIdentifier()).thenReturn(connectorId);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.getIdentifier()).thenReturn(managedGroupId);
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+
+        final ProcessGroupStatus managedGroupStatus = new ProcessGroupStatus();
+        when(controllerFacade.getProcessGroupStatus(managedGroupId)).thenReturn(managedGroupStatus);
+
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(connectorId);
+        connectorDTO.setState("RUNNING");
+        when(dtoFactory.createConnectorDto(connectorNode)).thenReturn(connectorDTO);
+        when(dtoFactory.createConnectorStatusDto(connectorNode, managedGroupStatus)).thenReturn(null);
+
+        final RevisionDTO revisionDTO = new RevisionDTO();
+        when(dtoFactory.createRevisionDTO(any(Revision.class))).thenReturn(revisionDTO);
+        when(revisionManager.getRevision(connectorId)).thenReturn(new Revision(1L, null, connectorId));
+
+        final ConnectorEntity entity = serviceFacade.getConnector(connectorId, true);
+
+        assertNotNull(entity);
+        assertNotNull(entity.getPermissions());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
+        assertNotNull(entity.getComponent(), "Component should be populated when clusterNodeRequest is true");
+        assertEquals("RUNNING", entity.getComponent().getState());
     }
 }

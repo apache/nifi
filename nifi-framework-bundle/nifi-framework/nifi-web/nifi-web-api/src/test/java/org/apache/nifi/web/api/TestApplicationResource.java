@@ -19,9 +19,13 @@ package org.apache.nifi.web.api;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.UriInfo;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,18 +33,26 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.URI;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,16 +83,21 @@ public class TestApplicationResource {
         // this stubbing is lenient because it is unnecessary in some tests
         lenient().when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder().uri(new URI(BASE_URI + FORWARD_SLASH)));
 
-        when(request.getScheme()).thenReturn(SCHEME);
-        when(request.getServerName()).thenReturn(HOST);
-        when(request.getServerPort()).thenReturn(PORT);
+        lenient().when(request.getScheme()).thenReturn(SCHEME);
+        lenient().when(request.getServerName()).thenReturn(HOST);
+        lenient().when(request.getServerPort()).thenReturn(PORT);
 
-        when(request.getServletContext()).thenReturn(servletContext);
+        lenient().when(request.getServletContext()).thenReturn(servletContext);
 
         resource = new MockApplicationResource();
         resource.setHttpServletRequest(request);
         resource.setUriInfo(uriInfo);
         resource.setProperties(new NiFiProperties());
+    }
+
+    @AfterEach
+    public void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -162,6 +179,102 @@ public class TestApplicationResource {
         assertEquals(SCHEME + "://" + HOST + ":" + PORT + ALLOWED_PATH + CUSTOM_UI_PATH, resource.generateExternalUiUri(CUSTOM_UI_PATH));
     }
 
+    @Test
+    public void testIsRequestFromClusterNodeExactMatch() {
+        final MockApplicationResource testResource = createClusterNodeResource(
+                Set.of("nifi-node1.example.com"),
+                "nifi-node1.example.com",
+                null
+        );
+        assertTrue(testResource.isRequestFromClusterNode());
+    }
+
+    @Test
+    public void testIsRequestFromClusterNodeWildcardMatch() {
+        final MockApplicationResource testResource = createClusterNodeResource(
+                Set.of("*.nifi.svc.cluster.local"),
+                "nifi-0.nifi.svc.cluster.local",
+                null
+        );
+        assertTrue(testResource.isRequestFromClusterNode());
+    }
+
+    @Test
+    public void testIsRequestFromClusterNodeWildcardNoMatchMultiLevel() {
+        final MockApplicationResource testResource = createClusterNodeResource(
+                Set.of("*.nifi.svc.cluster.local"),
+                "extra-subdomain-level.nifi-0.nifi.svc.cluster.local",
+                null
+        );
+        assertFalse(testResource.isRequestFromClusterNode());
+    }
+
+    @Test
+    public void testIsRequestFromClusterNodeNoMatch() {
+        final MockApplicationResource testResource = createClusterNodeResource(
+                Set.of("other-node.nifi.apache.org"),
+                "nifi-node1.nifi.apache.org",
+                null
+        );
+        assertFalse(testResource.isRequestFromClusterNode());
+    }
+
+    @Test
+    public void testIsRequestFromClusterNodeWithProxiedEntitiesChain() {
+        final MockApplicationResource testResource = createClusterNodeResource(
+                Set.of("nifi-node1.nifi.apache.org"),
+                "nifi-node1.nifi.apache.org",
+                "<user@example.com>"
+        );
+        assertFalse(testResource.isRequestFromClusterNode());
+    }
+
+    @Test
+    public void testIsRequestFromClusterNodeNoCertificates() {
+        final HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        final ClusterCoordinator mockCoordinator = mock(ClusterCoordinator.class);
+
+        final Authentication authentication = mock(Authentication.class);
+        when(authentication.getCredentials()).thenReturn("bearer-token");
+        final SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        final MockApplicationResource testResource = new MockApplicationResource();
+        testResource.setHttpServletRequest(mockRequest);
+        testResource.setClusterCoordinator(mockCoordinator);
+        assertFalse(testResource.isRequestFromClusterNode());
+    }
+
+    private MockApplicationResource createClusterNodeResource(
+            final Set<String> certDnsSans,
+            final String nodeApiAddress,
+            final String proxiedEntitiesChain) {
+
+        final HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        when(mockRequest.getHeader(eq(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN))).thenReturn(proxiedEntitiesChain);
+
+        final ClusterCoordinator mockCoordinator = mock(ClusterCoordinator.class);
+        final NodeIdentifier nodeId = new NodeIdentifier("node-1", nodeApiAddress, 8443,
+                nodeApiAddress, 11443, nodeApiAddress, 6342,
+                null, null, null, false, Set.of());
+        lenient().when(mockCoordinator.getNodeIdentifiers()).thenReturn(Set.of(nodeId));
+
+        final X509Certificate mockCert = mock(X509Certificate.class);
+        final X509Certificate[] certs = new X509Certificate[]{mockCert};
+        final Authentication authentication = mock(Authentication.class);
+        when(authentication.getCredentials()).thenReturn(certs);
+        final SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        final MockApplicationResource testResource = new MockApplicationResource();
+        testResource.setHttpServletRequest(mockRequest);
+        testResource.setClusterCoordinator(mockCoordinator);
+        testResource.setCertDnsSans(certDnsSans);
+        return testResource;
+    }
+
     private void setNiFiProperties(Map<String, String> props) {
         resource.properties = new NiFiProperties(props);
         when(servletContext.getInitParameter(eq(ALLOWED_CONTEXT_PATHS))).thenReturn(resource.properties.getAllowedContextPaths());
@@ -174,6 +287,10 @@ public class TestApplicationResource {
 
         void setUriInfo(UriInfo uriInfo) {
             super.uriInfo = uriInfo;
+        }
+
+        void setCertDnsSans(Set<String> certDnsSans) {
+            super.peerIdentityProvider = certs -> certDnsSans;
         }
     }
 

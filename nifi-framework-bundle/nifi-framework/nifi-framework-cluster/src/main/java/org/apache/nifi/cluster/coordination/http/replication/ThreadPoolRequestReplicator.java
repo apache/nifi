@@ -237,20 +237,32 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         return nonConnectedNodes;
     }
 
+    /**
+     * Prepares headers for a replicated request. When a non-null user is provided, the {@code X-ProxiedEntitiesChain}
+     * and {@code X-ProxiedEntityGroups} headers are set so the receiving node knows the request is on behalf of that
+     * user. When user is {@code null}, these headers are omitted, indicating the request is made directly by the
+     * cluster node itself (e.g., for background connector state polling). The receiving node can use the absence of
+     * {@code X-ProxiedEntitiesChain} combined with TLS certificate verification to identify direct node requests.
+     *
+     * @param headers mutable map of HTTP headers to update
+     * @param user the user on whose behalf the request is being made, or {@code null} for direct node requests
+     */
     void updateRequestHeaders(final Map<String, String> headers, final NiFiUser user) {
         if (user == null) {
-            throw new AccessDeniedException("Unknown user");
+            // Background tasks where the node itself is the identity making the request, not a proxied user
+            logger.debug("No user provided: omitting proxied entities header from request");
+        } else {
+            logger.debug("NiFi User provided: adding proxied entities header to request");
+            // Add the user as a proxied entity so that when the receiving NiFi receives the request,
+            // it knows that we are acting as a proxy on behalf of the current user.
+            final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
+            headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
+
+            // Add the header containing the group information for the end user in the proxied entity chain, these groups would
+            // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
+            final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
+            headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
         }
-
-        // Add the user as a proxied entity so that when the receiving NiFi receives the request,
-        // it knows that we are acting as a proxy on behalf of the current user.
-        final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
-        headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
-
-        // Add the header containing the group information for the end user in the proxied entity chain, these groups would
-        // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
-        final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
-        headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
 
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
@@ -279,7 +291,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             updatedHeaders.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
         }
 
-        // include the proxied entities header
+        // include the proxied entities header and strip untrusted headers
         updateRequestHeaders(updatedHeaders, user);
 
         if (indicateReplicated) {
