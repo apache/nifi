@@ -72,7 +72,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
             final ConnectorEntity connectorEntity;
             final Entity updatedEntity = mergedNodeResponse.getUpdatedEntity();
             if (updatedEntity instanceof ConnectorEntity mergedConnectorEntity) {
-                logger.debug("getState: Connector [{}] — using merged updatedEntity", connectorId);
+                logger.debug("getState: Connector [{}] - using merged updatedEntity", connectorId);
                 connectorEntity = mergedConnectorEntity;
             } else {
                 logger.debug("getState: Connector [{}] — updatedEntity is [{}], falling back to readEntity()", connectorId,
@@ -81,14 +81,9 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
             }
 
             if (connectorEntity == null) {
-                logger.debug("getState: Connector [{}] — connectorEntity is null", connectorId);
                 throw new IOException("Received null ConnectorEntity for Connector with ID " + connectorId);
             }
             if (connectorEntity.getComponent() == null) {
-                logger.debug("getState: Connector [{}] — connectorEntity.getComponent() is null. Permissions: canRead={}, canWrite={}",
-                        connectorId,
-                        connectorEntity.getPermissions() != null ? connectorEntity.getPermissions().getCanRead() : "null-permissions",
-                        connectorEntity.getPermissions() != null ? connectorEntity.getPermissions().getCanWrite() : "null-permissions");
                 throw new IOException("Received ConnectorEntity with null component for Connector with ID " + connectorId
                         + ". Permissions canRead=" + (connectorEntity.getPermissions() != null ? connectorEntity.getPermissions().getCanRead() : "null"));
             }
