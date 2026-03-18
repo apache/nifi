@@ -72,7 +72,7 @@ export class UserAccessPolicies extends CloseOnEscapeDialog {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal = 0;
+            let retVal: number;
             if (a.permissions.canRead && b.permissions.canRead) {
                 switch (sort.active) {
                     case 'policy':
@@ -81,12 +81,13 @@ export class UserAccessPolicies extends CloseOnEscapeDialog {
                     case 'action':
                         retVal = this.nifiCommon.compareString(a.component.action, b.component.action);
                         break;
+                    default:
+                        retVal = 0;
                 }
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead) {
                     retVal = 0;
-                }
-                if (a.permissions.canRead) {
+                } else if (a.permissions.canRead) {
                     retVal = 1;
                 } else {
                     retVal = -1;

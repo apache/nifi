@@ -39,7 +39,7 @@ export class Storage {
                     // attempt to get the item which will expire if necessary
                     this.getItem(key);
                 }
-            } catch (e) {
+            } catch (_e) {
                 //do nothing
             }
         }
@@ -85,7 +85,7 @@ export class Storage {
             } else {
                 return null;
             }
-        } catch (e) {
+        } catch (_e) {
             return null;
         }
     }

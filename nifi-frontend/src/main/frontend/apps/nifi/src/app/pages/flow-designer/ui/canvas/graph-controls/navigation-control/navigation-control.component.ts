@@ -55,7 +55,7 @@ export class NavigationControl {
                 this.navigationCollapsed = item[NavigationControl.NAVIGATION_KEY] === false;
                 this.store.dispatch(setNavigationCollapsed({ navigationCollapsed: this.navigationCollapsed }));
             }
-        } catch (e) {
+        } catch (_e) {
             // likely could not parse item... ignoring
         }
     }

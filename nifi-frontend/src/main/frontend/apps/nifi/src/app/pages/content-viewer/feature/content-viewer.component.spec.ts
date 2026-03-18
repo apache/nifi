@@ -86,7 +86,9 @@ describe('ContentViewerComponent', () => {
 
         it('should match via startsWith for media types with parameters', () => {
             expect(component['isMediaTypeCompatible']('text/plain; charset=UTF-8', 'text/plain')).toBe(true);
-            expect(component['isMediaTypeCompatible']('application/json; charset=UTF-8', 'application/json')).toBe(true);
+            expect(component['isMediaTypeCompatible']('application/json; charset=UTF-8', 'application/json')).toBe(
+                true
+            );
         });
 
         it('should match structured suffix types to their base media type', () => {

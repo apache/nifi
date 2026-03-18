@@ -42,7 +42,7 @@ let disableAnimations = '';
 
 try {
     disableAnimations = entry !== null ? JSON.parse(entry).item : '';
-} catch (error) {
+} catch (_error) {
     /* empty */
 }
 
@@ -51,7 +51,7 @@ try {
     if (disableAnimations !== 'true' && disableAnimations !== 'false') {
         disableAnimations = window.matchMedia('(prefers-reduced-motion: reduce)').matches.toString();
     }
-} catch (error) {
+} catch (_error) {
     /* empty */
 }
 

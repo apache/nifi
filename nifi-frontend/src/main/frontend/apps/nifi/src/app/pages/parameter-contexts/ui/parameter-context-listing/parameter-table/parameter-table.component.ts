@@ -173,7 +173,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         }
         return parameters.slice().sort((a, b) => {
             const isAsc = sort.direction === 'asc';
-            let retVal = 0;
+            let retVal: number;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(

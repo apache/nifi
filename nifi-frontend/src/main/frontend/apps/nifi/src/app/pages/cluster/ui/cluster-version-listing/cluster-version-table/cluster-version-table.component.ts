@@ -72,7 +72,7 @@ export class ClusterVersionTable extends ClusterTable<NodeSnapshot> {
         }
         return data.slice().sort((a, b) => {
             const isAsc = sort.direction === 'asc';
-            let retVal = 0;
+            let retVal: number;
             switch (sort.active) {
                 case 'address':
                     retVal = this.nifiCommon.compareString(a.address, b.address);

@@ -19,7 +19,7 @@ import { ConfigurableExtensionDefinition } from '../index';
 
 export const controllerServiceDefinitionFeatureKey = 'controllerServiceDefinition';
 
-export interface ControllerServiceDefinition extends ConfigurableExtensionDefinition {}
+export type ControllerServiceDefinition = ConfigurableExtensionDefinition;
 
 export interface ControllerServiceDefinitionState {
     controllerServiceDefinition: ControllerServiceDefinition | null;

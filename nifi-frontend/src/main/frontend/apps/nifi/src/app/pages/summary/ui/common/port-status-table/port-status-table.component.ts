@@ -147,7 +147,7 @@ export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEnti
         }
         return data.slice().sort((a, b) => {
             const isAsc: boolean = sort.direction === 'asc';
-            let retVal = 0;
+            let retVal: number;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(a.portStatusSnapshot.name, b.portStatusSnapshot.name);

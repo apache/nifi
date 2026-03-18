@@ -194,7 +194,7 @@ jest.mock('@nifi/shared', () => ({
 describe('StandardContentViewer', () => {
     let component: StandardContentViewer;
     let fixture: ComponentFixture<StandardContentViewer>;
-    let contentViewerService: jest.Mocked<ContentViewerService>;
+    let _contentViewerService: jest.Mocked<ContentViewerService>;
 
     beforeEach(() => {
         const contentViewerServiceSpy = {
@@ -219,7 +219,7 @@ describe('StandardContentViewer', () => {
         });
         fixture = TestBed.createComponent(StandardContentViewer);
         component = fixture.componentInstance;
-        contentViewerService = TestBed.inject(ContentViewerService) as jest.Mocked<ContentViewerService>;
+        _contentViewerService = TestBed.inject(ContentViewerService) as jest.Mocked<ContentViewerService>;
 
         fixture.detectChanges();
     });
@@ -366,7 +366,7 @@ describe('StandardContentViewer', () => {
             } = jest.requireMock('@codemirror/view');
             const { history } = jest.requireMock('@codemirror/commands');
             const { indentOnInput, bracketMatching, indentUnit } = jest.requireMock('@codemirror/language');
-            const { EditorState, Prec } = jest.requireMock('@codemirror/state');
+            const { EditorState, Prec: _Prec } = jest.requireMock('@codemirror/state');
 
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'json';

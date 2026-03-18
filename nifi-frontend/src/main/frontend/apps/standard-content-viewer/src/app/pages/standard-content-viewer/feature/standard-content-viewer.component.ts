@@ -184,7 +184,7 @@ export class StandardContentViewer {
                             try {
                                 const errorBody = JSON.parse(errorBodyString);
                                 this.error = errorBody.message;
-                            } catch (e) {
+                            } catch (_e) {
                                 this.error = 'Unable to load content.';
                             }
                         } else {

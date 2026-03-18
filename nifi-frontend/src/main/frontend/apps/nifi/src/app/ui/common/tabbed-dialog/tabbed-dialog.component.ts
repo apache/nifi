@@ -40,7 +40,7 @@ export abstract class TabbedDialog extends CloseOnEscapeDialog {
             if (previousSelectedIndex != null) {
                 this.selectedIndex = previousSelectedIndex;
             }
-        } catch (error) {
+        } catch (_error) {
             // Gracefully handle localStorage errors - use default selectedIndex
         }
     }
@@ -48,7 +48,7 @@ export abstract class TabbedDialog extends CloseOnEscapeDialog {
     tabChanged(selectedTabIndex: number): void {
         try {
             this.storage.setItem<number>(this.dialogId, selectedTabIndex);
-        } catch (error) {
+        } catch (_error) {
             // Gracefully handle localStorage errors
         }
     }
