@@ -53,6 +53,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 public class AWSCredentialsProviderControllerServiceTest {
 
@@ -407,6 +408,73 @@ public class AWSCredentialsProviderControllerServiceTest {
         assertNotNull(credentialsProvider);
         assertFalse(StsAssumeRoleCredentialsProvider.class.isAssignableFrom(credentialsProvider.getClass()),
                 "Derived AssumeRole should not be chained when OAuth2 (Web Identity) is configured");
+    }
+
+    @Test
+    public void testGetAwsCredentialsProviderReturnsIndependentInstances() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+        runner.enableControllerService(serviceImpl);
+
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+
+        final AwsCredentialsProvider first = service.getAwsCredentialsProvider();
+        final AwsCredentialsProvider second = service.getAwsCredentialsProvider();
+
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNotSame(first, second, "Each call should return an independent AwsCredentialsProvider to avoid shared connection pool issues");
+        assertEquals(DefaultCredentialsProvider.class, first.getClass());
+        assertEquals(DefaultCredentialsProvider.class, second.getClass());
+    }
+
+    @Test
+    public void testGetAwsCredentialsProviderReturnsIndependentInstancesWithAccessKeys() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, ACCESS_KEY_ID, "awsAccessKey");
+        runner.setProperty(serviceImpl, SECRET_KEY, "awsSecretKey");
+        runner.enableControllerService(serviceImpl);
+
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+
+        final AwsCredentialsProvider first = service.getAwsCredentialsProvider();
+        final AwsCredentialsProvider second = service.getAwsCredentialsProvider();
+
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNotSame(first, second, "Each call should return an independent AwsCredentialsProvider to avoid shared connection pool issues");
+        assertEquals("awsAccessKey", first.resolveCredentials().accessKeyId());
+        assertEquals("awsAccessKey", second.resolveCredentials().accessKeyId());
+    }
+
+    @Test
+    public void testGetAwsCredentialsProviderReturnsIndependentInstancesWithAssumeRole() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, ACCESS_KEY_ID, "awsAccessKey");
+        runner.setProperty(serviceImpl, SECRET_KEY, "awsSecretKey");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
+        runner.enableControllerService(serviceImpl);
+
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+
+        final AwsCredentialsProvider first = service.getAwsCredentialsProvider();
+        final AwsCredentialsProvider second = service.getAwsCredentialsProvider();
+
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNotSame(first, second, "Each call should return an independent AwsCredentialsProvider to avoid shared connection pool issues");
+        assertEquals(StsAssumeRoleCredentialsProvider.class, first.getClass());
+        assertEquals(StsAssumeRoleCredentialsProvider.class, second.getClass());
     }
 
     @Test
