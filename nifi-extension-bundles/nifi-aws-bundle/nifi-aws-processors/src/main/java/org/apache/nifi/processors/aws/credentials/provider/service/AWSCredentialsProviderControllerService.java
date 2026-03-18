@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -244,7 +245,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         OAUTH2_ACCESS_TOKEN_PROVIDER
     );
 
-    private volatile AwsCredentialsProvider credentialsProvider;
+    private volatile ConfigurationContext configurationContext;
 
     private final List<CredentialsStrategy> strategies = List.of(
         // Primary Credential Strategies
@@ -292,7 +293,9 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     @Override
     public AwsCredentialsProvider getAwsCredentialsProvider() {
-        return credentialsProvider;
+        final AwsCredentialsProvider provider = createCredentialsProvider(configurationContext);
+        getLogger().debug("Created AwsCredentialsProvider [{}] instance [{}]", provider.getClass().getSimpleName(), System.identityHashCode(provider));
+        return provider;
     }
 
     private AwsCredentialsProvider createCredentialsProvider(final PropertyContext context) {
@@ -361,8 +364,12 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
-        credentialsProvider = createCredentialsProvider(context);
-        getLogger().debug("Using credentials provider: {}", credentialsProvider.getClass());
+        this.configurationContext = context;
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        configurationContext = null;
     }
 
     public static AllowableValue[] getAvailableRegions() {
