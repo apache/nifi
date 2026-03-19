@@ -62,11 +62,11 @@ public class SelectiveDropConnector extends AbstractConnector {
             "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, "GenerateFlowFile", new Position(0, 0));
         generate.getProperties().putAll(Map.of(
             "File Size", "1 B",
-            "Batch Size", "20000",
+            "Batch Size", "2000",
             "Max FlowFiles", "20000",
             "flowFileIndex", "${nextInt()}"
         ));
-        generate.setSchedulingPeriod("10 sec");
+        generate.setSchedulingPeriod("1 sec");
 
         final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup,
             "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle, "TerminateFlowFile", new Position(0, 0));
