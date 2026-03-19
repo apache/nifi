@@ -497,6 +497,8 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             final Socket socket = socketChannel.socket();
             socket.setSoTimeout(timeoutMillis);
 
+            logger.info("Connecting to {}:{} for load balancing (node: {})",
+                nodeIdentifier.getLoadBalanceAddress(), nodeIdentifier.getLoadBalancePort(), nodeIdentifier);
             socket.connect(new InetSocketAddress(nodeIdentifier.getLoadBalanceAddress(), nodeIdentifier.getLoadBalancePort()));
             socket.setSoTimeout(timeoutMillis);
 

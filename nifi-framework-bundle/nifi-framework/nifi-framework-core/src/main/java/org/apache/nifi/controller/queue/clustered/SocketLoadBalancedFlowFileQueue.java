@@ -1180,7 +1180,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 if (nodeIdentifiers.contains(nodeId)) {
-                    logger.debug("Node Identifier {} added to cluster but already known in set: {}", nodeId, nodeIdentifiers);
+                    final NodeIdentifier existingId = nodeIdentifiers.stream()
+                        .filter(id -> id.getId().equals(nodeId.getId())).findFirst().orElse(null);
+                    logger.info("Node Identifier {} added to cluster but already known in set. Incoming LB port: {}, Existing LB port: {}",
+                        nodeId, nodeId.getLoadBalancePort(),
+                        existingId != null ? existingId.getLoadBalancePort() : "unknown");
                     return;
                 }
 
@@ -1265,6 +1269,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         @Override
         public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
+            logger.info("Node {} state changed to {}. LB Address: {}:{}",
+                nodeId, newState, nodeId.getLoadBalanceAddress(), nodeId.getLoadBalancePort());
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {

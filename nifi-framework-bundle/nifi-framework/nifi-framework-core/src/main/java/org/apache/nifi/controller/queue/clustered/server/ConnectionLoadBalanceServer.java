@@ -89,6 +89,8 @@ public class ConnectionLoadBalanceServer {
                     "'nifi.cluster.load.balance.port' and 'nifi.cluster.load.balance.host' properties as well as the 'nifi.security.*' properties", e);
         }
 
+        logger.info("Load Balance Server started, listening on {}:{}", hostname, serverSocket.getLocalPort());
+
         acceptConnection = new AcceptConnection(serverSocket);
         final Thread receiveConnectionThread = new Thread(acceptConnection);
         receiveConnectionThread.setName("Receive Queue Load-Balancing Connections");
