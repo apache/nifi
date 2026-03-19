@@ -84,7 +84,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.LessTh
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MatchesEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusDurationEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusInstantDurationEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ModEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MultiplyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NotEvaluator;
@@ -96,7 +98,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.OneUpS
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PadLeftEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PadRightEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusDurationEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusInstantDurationEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RepeatEvaluator;
@@ -221,6 +225,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATCHES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS_DURATION;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS_INSTANT_DURATION;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MOD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTIPLY;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTI_ATTRIBUTE_REFERENCE;
@@ -234,6 +240,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_RIGHT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PARAMETER_REFERENCE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS_DURATION;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS_INSTANT_DURATION;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.RANDOM;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPEAT;
@@ -874,6 +882,26 @@ public class ExpressionCompiler {
                 } else {
                     return addToken(new NumberToDateEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toDate");
                 }
+            }
+            case PLUS_DURATION: {
+                verifyArgCount(argEvaluators, 1, "plusDuration");
+                return addToken(new PlusDurationEvaluator(toDateEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0))), "plusDuration");
+            }
+            case MINUS_DURATION: {
+                verifyArgCount(argEvaluators, 1, "minusDuration");
+                return addToken(new MinusDurationEvaluator(toDateEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0))), "minusDuration");
+            }
+            case PLUS_INSTANT_DURATION: {
+                verifyArgCount(argEvaluators, 1, "plusInstantDuration");
+                return addToken(new PlusInstantDurationEvaluator(toInstantEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0))), "plusInstantDuration");
+            }
+            case MINUS_INSTANT_DURATION: {
+                verifyArgCount(argEvaluators, 1, "minusInstantDuration");
+                return addToken(new MinusInstantDurationEvaluator(toInstantEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0))), "minusInstantDuration");
             }
             case TO_INSTANT: {
                 if (argEvaluators.isEmpty()) {

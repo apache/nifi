@@ -96,7 +96,8 @@ multiArgBool : (IN) LPAREN! anyArg (COMMA! anyArg)* RPAREN!;
 // functions that return Numbers (whole or decimal)
 zeroArgNum	: (LENGTH | TO_NUMBER | TO_DECIMAL | TO_MICROS | TO_NANOS | COUNT) LPAREN! RPAREN!;
 oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
-			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!);
+			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!) |
+			  ((PLUS_DURATION | MINUS_DURATION | PLUS_INSTANT_DURATION | MINUS_INSTANT_DURATION) LPAREN! anyArg RPAREN!);
 oneOrTwoArgNum : MATH LPAREN! anyArg (COMMA! anyArg)? RPAREN!;
 zeroOrOneOrTwoArgNum : TO_DATE LPAREN! anyArg? (COMMA! anyArg)? RPAREN!;
 zeroOrTwoArgNum: TO_INSTANT LPAREN! (anyArg COMMA! anyArg)? RPAREN!;
