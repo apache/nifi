@@ -109,7 +109,6 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-
         validationResults.set(new HashSet<>());
 
         if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
@@ -117,10 +116,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.scriptEngine.equals(descriptor)) {
             scriptNeedsReload.set(true);
-            // Need to reset scriptEngine if the value has changed
-            if (scriptingComponentHelper.scriptEngine.equals(descriptor) || ScriptingComponentUtils.MODULES.equals(descriptor)) {
-                scriptRunner = null;
-            }
+            scriptRunner = null;
         }
     }
 
