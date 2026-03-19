@@ -2043,12 +2043,13 @@ public class ConnectorResource extends ApplicationResource {
             assetEntity = uploadRequestReplicator.upload(uploadRequest);
         } else {
             final String assetId = generateUuid();
-            logger.info("Creating asset [id={},name={}] in Connector [{}]", assetId, sanitizedAssetName, connectorId);
-            assetEntity = serviceFacade.createConnectorAsset(connectorId, assetId, sanitizedAssetName, maxLengthInputStream);
+            final String existingConnectorId = serviceFacade.getConnector(connectorId).getId();
+            logger.info("Creating asset [id={},name={}] in Connector [{}]", assetId, sanitizedAssetName, existingConnectorId);
+            assetEntity = serviceFacade.createConnectorAsset(existingConnectorId, assetId, sanitizedAssetName, maxLengthInputStream);
 
             final AssetDTO assetDTO = assetEntity.getAsset();
             final long elapsedTime = System.currentTimeMillis() - startTime;
-            logger.info("Creation of asset [id={},name={}] in Connector [{}] completed in {} ms", assetDTO.getId(), assetDTO.getName(), connectorId, elapsedTime);
+            logger.info("Creation of asset [id={},name={}] in Connector [{}] completed in {} ms", assetDTO.getId(), assetDTO.getName(), existingConnectorId, elapsedTime);
         }
 
         return generateOkResponse(assetEntity).build();
