@@ -24,7 +24,7 @@
     <description>Tooling to make tls configuration easier</description>
 
     <properties>
-        <jline.version>4.0.4</jline.version>
+        <jline.version>4.0.7</jline.version>
     </properties>
 
     <build>
