@@ -44,7 +44,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PUBSUB_SCOPE;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 
 public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor implements VerifiableProcessor {
 
@@ -139,7 +139,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
 
     @Override
     protected GoogleCredentials getGoogleCredentials(ProcessContext context) {
-        return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_PUBSUB_SCOPE);
+        return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
     }
 
     protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {
