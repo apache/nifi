@@ -200,6 +200,10 @@ LESS_THAN_OR_EQUAL		: 'le';
 FORMAT			: 'format'; // takes string date format; uses DateTimeFormatter
 FORMAT_INSTANT  : 'formatInstant';
 TO_DATE			: 'toDate'; // takes string date format; converts the subject to a Long based on the date format
+MINUS_DURATION          : 'minusDuration';
+MINUS_INSTANT_DURATION  : 'minusInstantDuration';
+PLUS_DURATION           : 'plusDuration';
+PLUS_INSTANT_DURATION   : 'plusInstantDuration';
 TO_INSTANT		: 'toInstant';
 MOD : 'mod';
 PLUS : 'plus';
