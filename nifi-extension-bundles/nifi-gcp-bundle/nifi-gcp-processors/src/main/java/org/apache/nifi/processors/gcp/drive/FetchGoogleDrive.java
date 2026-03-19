@@ -22,7 +22,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.DriveScopes;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.User;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -304,7 +304,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         driveService = createDriveService(
                 context,
                 new ProxyAwareTransportFactory(proxyConfiguration).create(),
-                DriveScopes.DRIVE, DriveScopes.DRIVE_FILE
+                GOOGLE_CLOUD_PLATFORM_SCOPE
         );
     }
 

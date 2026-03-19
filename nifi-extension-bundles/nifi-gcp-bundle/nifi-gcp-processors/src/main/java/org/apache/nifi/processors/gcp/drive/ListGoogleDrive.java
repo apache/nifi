@@ -18,7 +18,7 @@ package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.DriveScopes;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.drive.model.User;
@@ -229,7 +229,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
-        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY);
+        driveService = createDriveService(context, httpTransport, GOOGLE_CLOUD_PLATFORM_SCOPE);
     }
 
     @Override
