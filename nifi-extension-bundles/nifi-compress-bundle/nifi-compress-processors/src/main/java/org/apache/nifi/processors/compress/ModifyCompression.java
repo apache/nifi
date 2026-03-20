@@ -114,7 +114,6 @@ public class ModifyCompression extends AbstractProcessor {
 
     public static final PropertyDescriptor OUTPUT_COMPRESSION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Output Compression Strategy")
-            .name("Output Compression Strategy")
             .description("The strategy to use for compressing output FlowFiles")
             .allowableValues(EnumSet.complementOf(EnumSet.of(CompressionStrategy.MIME_TYPE_ATTRIBUTE)))
             .defaultValue(CompressionStrategy.NONE)
@@ -168,7 +167,7 @@ public class ModifyCompression extends AbstractProcessor {
             REL_FAILURE
     );
 
-    private static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
+    static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
 
     private static final int STREAM_BUFFER_SIZE = 65536;
 

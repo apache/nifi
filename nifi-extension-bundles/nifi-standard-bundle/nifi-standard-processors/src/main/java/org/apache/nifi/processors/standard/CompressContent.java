@@ -217,12 +217,14 @@ public class CompressContent extends AbstractProcessor {
         Map.entry("application/bzip2", COMPRESSION_FORMAT_BZIP2),
         Map.entry("application/x-bzip2", COMPRESSION_FORMAT_BZIP2),
         Map.entry("application/x-lzma", COMPRESSION_FORMAT_LZMA),
+        Map.entry("application/x-xz", COMPRESSION_FORMAT_XZ_LZMA2),
         Map.entry("application/x-snappy", COMPRESSION_FORMAT_SNAPPY),
         Map.entry("application/x-snappy-hadoop", COMPRESSION_FORMAT_SNAPPY_HADOOP),
         Map.entry("application/x-snappy-framed", COMPRESSION_FORMAT_SNAPPY_FRAMED),
         Map.entry("application/x-lz4-framed", COMPRESSION_FORMAT_LZ4_FRAMED),
         Map.entry("application/zstd", COMPRESSION_FORMAT_ZSTD),
-        Map.entry("application/x-brotli", COMPRESSION_FORMAT_BROTLI));
+        Map.entry("application/x-brotli", COMPRESSION_FORMAT_BROTLI)
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
