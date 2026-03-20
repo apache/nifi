@@ -18,7 +18,6 @@ package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.Drive;
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.drive.model.User;
@@ -102,6 +101,7 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CON
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK_DESC;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 
 @PrimaryNodeOnly
 @TriggerSerially
