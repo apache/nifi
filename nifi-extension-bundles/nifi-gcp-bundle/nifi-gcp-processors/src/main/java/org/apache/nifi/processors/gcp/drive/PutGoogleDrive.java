@@ -26,7 +26,6 @@ import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveRequest;
-import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -101,6 +100,7 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DE
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
 import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 
 @SeeAlso({ListGoogleDrive.class, FetchGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -317,7 +317,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
 
         final HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
-        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA);
+        driveService = createDriveService(context, httpTransport, GOOGLE_CLOUD_PLATFORM_SCOPE);
     }
 
     @Override
