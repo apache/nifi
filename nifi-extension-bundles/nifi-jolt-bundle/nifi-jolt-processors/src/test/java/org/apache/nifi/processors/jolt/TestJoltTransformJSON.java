@@ -18,6 +18,7 @@ package org.apache.nifi.processors.jolt;
 
 import io.joltcommunity.jolt.Diffy;
 import io.joltcommunity.jolt.JsonUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.processor.Processor;
@@ -578,6 +579,41 @@ class TestJoltTransformJSON {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
+    }
+
+    @ParameterizedTest
+    @MethodSource("unicodeEscaping")
+    void testWithUnicodeEscaping(boolean resolveUnicodeEscapeSequences, String expectedText) {
+        final String unicodeJson = """
+                {"value": "\\u011f\\u00fc\\u015f\\u0131\\u00f6\\u00e7\\u011e\\u00dc\\u015e\\u0130\\u00d6\\u00c7"}""";
+        final String passThroughSpec = """
+                [
+                  {
+                    "operation": "shift",
+                    "spec": {
+                      "*": "&"
+                    }
+                  }
+                ]""";
+
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, passThroughSpec);
+        runner.setProperty(JoltTransformJSON.RETAIN_UNICODE_ESCAPE_SEQUENCES, Boolean.toString(resolveUnicodeEscapeSequences));
+        runner.enqueue(unicodeJson);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
+        // NOTE: The JSON specification allows for both uppercase and lowercase hexadecimal letters.
+        // Jackson seems to prefer to upper case them hence must test with case insensitivity when unicode escape sequence is retained.
+        assertTrue(Strings.CI.contains(transformed.getContent(), expectedText));
+    }
+
+    private static Stream<Arguments> unicodeEscaping() {
+        return Stream.of(
+                Arguments.argumentSet("Retain Unicode Escape Sequence", true, "\\u011f\\u00fc\\u015f\\u0131\\u00f6\\u00e7\\u011e\\u00dc\\u015e\\u0130\\u00d6\\u00c7"),
+                Arguments.argumentSet("Resolve Unicode Escape Sequence", false, "ğüşıöçĞÜŞİÖÇ")
+
+        );
     }
 
     private static Stream<Arguments> getChainrArguments() {

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.jolt;
 
 import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.joltcommunity.jolt.JoltTransform;
 import io.joltcommunity.jolt.JsonUtil;
@@ -112,6 +113,15 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RETAIN_UNICODE_ESCAPE_SEQUENCES = new PropertyDescriptor.Builder()
+            .name("Retain Unicode Escape Sequences")
+            .description("Retain Unicode escape sequences instead of resolving e.g. Retain text \u00E9 without resolving to é")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The FlowFile with successfully transformed content or updated attribute will be routed to this relationship")
@@ -127,7 +137,8 @@ public class JoltTransformJSON extends AbstractJoltTransform {
                     JSON_SOURCE,
                     JSON_SOURCE_ATTRIBUTE,
                     PRETTY_PRINT,
-                    MAX_STRING_LENGTH
+                    MAX_STRING_LENGTH,
+                    RETAIN_UNICODE_ESCAPE_SEQUENCES
             )
     ).toList();
 
@@ -160,6 +171,12 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
         final ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
+
+        final boolean retainUnicodeEscapeSequences = context.getProperty(RETAIN_UNICODE_ESCAPE_SEQUENCES).asBoolean();
+        if (retainUnicodeEscapeSequences) {
+            objectMapper.getFactory().enable(JsonWriteFeature.ESCAPE_NON_ASCII.mappedFeature());
+        }
+
         jsonUtil = JsonUtils.customJsonUtil(objectMapper);
 
         configuredClassLoader = getClass().getClassLoader();
