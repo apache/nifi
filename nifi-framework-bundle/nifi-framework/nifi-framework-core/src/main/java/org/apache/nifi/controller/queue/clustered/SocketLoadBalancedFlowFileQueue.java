@@ -1182,10 +1182,16 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 if (nodeIdentifiers.contains(nodeId)) {
                     final NodeIdentifier existingId = nodeIdentifiers.stream()
                         .filter(id -> id.getId().equals(nodeId.getId())).findFirst().orElse(null);
-                    logger.info("Node Identifier {} added to cluster but already known in set. Incoming LB port: {}, Existing LB port: {}",
-                        nodeId, nodeId.getLoadBalancePort(),
-                        existingId != null ? existingId.getLoadBalancePort() : "unknown");
-                    return;
+                    final boolean lbAddressChanged = existingId != null
+                        && (existingId.getLoadBalancePort() != nodeId.getLoadBalancePort()
+                            || !Objects.equals(existingId.getLoadBalanceAddress(), nodeId.getLoadBalanceAddress()));
+                    if (!lbAddressChanged) {
+                        logger.debug("Node Identifier {} added to cluster but already known in set with same LB address", nodeId);
+                        return;
+                    }
+                    logger.info("Node Identifier {} added to cluster with updated LB address. Previous: {}:{}, New: {}:{}",
+                        nodeId, existingId.getLoadBalanceAddress(), existingId.getLoadBalancePort(),
+                        nodeId.getLoadBalanceAddress(), nodeId.getLoadBalancePort());
                 }
 
                 final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
@@ -1269,8 +1275,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         @Override
         public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
-            logger.info("Node {} state changed to {}. LB Address: {}:{}",
-                nodeId, newState, nodeId.getLoadBalanceAddress(), nodeId.getLoadBalancePort());
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {
