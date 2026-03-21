@@ -73,6 +73,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Instan
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsJsonEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.IsValidDateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.IsValidInstantEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathAddEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
@@ -208,6 +210,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_EMPTY;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_JSON;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_NULL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_VALID_DATE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_VALID_INSTANT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_ADD;
@@ -821,6 +825,21 @@ public class ExpressionCompiler {
             case IS_JSON:
                 verifyArgCount(argEvaluators, 0, "isJson");
                 return addToken(new IsJsonEvaluator(toStringEvaluator(subjectEvaluator)), "isJson");
+            case IS_VALID_INSTANT:
+                verifyArgCount(argEvaluators, 0, "isValidInstant");
+                return addToken(new IsValidInstantEvaluator(toStringEvaluator(subjectEvaluator)), "isValidInstant");
+            case IS_VALID_DATE: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new IsValidDateEvaluator(toStringEvaluator(subjectEvaluator),
+                            toStringEvaluator(argEvaluators.get(0), "first argument to isValidDate"), null), "isValidDate");
+                } else if (argEvaluators.size() == 2) {
+                    return addToken(new IsValidDateEvaluator(toStringEvaluator(subjectEvaluator),
+                            toStringEvaluator(argEvaluators.get(0), "first argument to isValidDate"),
+                            toStringEvaluator(argEvaluators.get(1), "second argument to isValidDate")), "isValidDate");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("isValidDate() requires 1 or 2 arguments");
+                }
+            }
             case FIND: {
                 verifyArgCount(argEvaluators, 1, "find");
                 return addToken(new FindEvaluator(toStringEvaluator(subjectEvaluator),

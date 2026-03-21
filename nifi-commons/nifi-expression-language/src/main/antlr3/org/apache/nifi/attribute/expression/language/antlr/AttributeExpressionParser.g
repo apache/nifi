@@ -85,12 +85,13 @@ threeArgString: ((JSON_PATH_PUT) LPAREN! anyArg COMMA! anyArg COMMA! anyArg RPAR
 fiveArgString : GET_DELIMITED_FIELD LPAREN! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg)?)?)?)? RPAREN!;
 
 // functions that return Booleans
-zeroArgBool : (IS_NULL | NOT_NULL | IS_EMPTY | NOT | IS_JSON) LPAREN! RPAREN!;
+zeroArgBool : (IS_NULL | NOT_NULL | IS_EMPTY | NOT | IS_JSON | IS_VALID_INSTANT) LPAREN! RPAREN!;
 oneArgBool	: ((FIND | MATCHES | EQUALS_IGNORE_CASE) LPAREN! anyArg RPAREN!) |
 			  (GREATER_THAN | LESS_THAN | GREATER_THAN_OR_EQUAL | LESS_THAN_OR_EQUAL) LPAREN! anyArg RPAREN! |
 			  (EQUALS) LPAREN! anyArg RPAREN! |
 			  (AND | OR) LPAREN! anyArg RPAREN!;
 multiArgBool : (IN) LPAREN! anyArg (COMMA! anyArg)* RPAREN!;
+oneOrTwoArgBool : IS_VALID_DATE LPAREN! anyArg (COMMA! anyArg)? RPAREN!;
 
 
 // functions that return Numbers (whole or decimal)
@@ -102,10 +103,10 @@ zeroOrOneOrTwoArgNum : TO_DATE LPAREN! anyArg? (COMMA! anyArg)? RPAREN!;
 zeroOrTwoArgNum: TO_INSTANT LPAREN! (anyArg COMMA! anyArg)? RPAREN!;
 
 stringFunctionRef : zeroArgString | oneArgString | twoArgString | threeArgString | fiveArgString;
-booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
+booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool | oneOrTwoArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum | zeroOrTwoArgNum | oneOrTwoArgNum | zeroOrOneOrTwoArgNum;
 
-anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool
+anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool | oneOrTwoArgBool
                 | expression | parameterReference | NULL;
 
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;

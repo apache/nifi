@@ -2571,6 +2571,86 @@ public class TestQuery {
     }
 
     @Test
+    void testIsValidDate() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("validDate", "04-08-2026");
+        attributes.put("invalidCalendarDate", "31-02-2026");
+        attributes.put("formatMismatch", "2026-08-04");
+        attributes.put("notADate", "not-a-date");
+        attributes.put("validDateWithTime", "2026-08-04 10:15:30");
+        attributes.put("validDateUtc", "2026-08-04 10:15:30");
+        attributes.put("leapDay", "29-02");
+        attributes.put("leapDayInLeapYear", "29-02-2000");
+        attributes.put("leapDayInNonLeapYear", "29-02-2001");
+
+        verifyEquals("${validDate:isValidDate('dd-MM-yyyy')}", attributes, true);
+        verifyEquals("${invalidCalendarDate:isValidDate('dd-MM-yyyy')}", attributes, false);
+        verifyEquals("${formatMismatch:isValidDate('dd-MM-yyyy')}", attributes, false);
+        verifyEquals("${notADate:isValidDate('dd-MM-yyyy')}", attributes, false);
+
+        // Feb 29 without a year in the format should be valid (format has no year field)
+        verifyEquals("${leapDay:isValidDate('dd-MM')}", attributes, true);
+        // Feb 29 with an explicit leap year should be valid
+        verifyEquals("${leapDayInLeapYear:isValidDate('dd-MM-yyyy')}", attributes, true);
+        // Feb 29 in a non-leap year should be invalid
+        verifyEquals("${leapDayInNonLeapYear:isValidDate('dd-MM-yyyy')}", attributes, false);
+
+        // with timezone argument
+        verifyEquals("${validDateWithTime:isValidDate('yyyy-MM-dd HH:mm:ss', 'UTC')}", attributes, true);
+        verifyEquals("${notADate:isValidDate('yyyy-MM-dd HH:mm:ss', 'UTC')}", attributes, false);
+
+        // DST gap: Australia/Sydney springs forward from 02:00 to 03:00 on 2024-10-06,
+        // so 02:30 on that date does not exist and should be invalid
+        attributes.put("dstGapTime", "2024-10-06 02:30:00");
+        attributes.put("dstValidTimeBefore", "2024-10-06 01:30:00");
+        attributes.put("dstValidTimeAfter", "2024-10-06 03:30:00");
+        verifyEquals("${dstGapTime:isValidDate('yyyy-MM-dd HH:mm:ss', 'Australia/Sydney')}", attributes, false);
+        verifyEquals("${dstValidTimeBefore:isValidDate('yyyy-MM-dd HH:mm:ss', 'Australia/Sydney')}", attributes, true);
+        verifyEquals("${dstValidTimeAfter:isValidDate('yyyy-MM-dd HH:mm:ss', 'Australia/Sydney')}", attributes, true);
+
+        // chaining with ifElse
+        verifyEquals("${validDate:isValidDate('dd-MM-yyyy'):ifElse('valid', 'invalid')}", attributes, "valid");
+        verifyEquals("${invalidCalendarDate:isValidDate('dd-MM-yyyy'):ifElse('valid', 'invalid')}", attributes, "invalid");
+
+        // null subject (attribute does not exist)
+        verifyEquals("${nonExistentAttr:isValidDate('dd-MM-yyyy')}", attributes, false);
+
+        // leading/trailing whitespace should be trimmed before parsing
+        attributes.put("paddedDate", "  04-08-2026  ");
+        verifyEquals("${paddedDate:isValidDate('dd-MM-yyyy')}", attributes, true);
+
+        // DST gap with 12-hour clock format: Australia/Sydney springs forward from 02:00 to 03:00
+        // on 2024-10-06, so 02:30 AM does not exist and should be invalid
+        attributes.put("dstGapTime12h", "2024-10-06 02:30:00 AM");
+        attributes.put("dstValidTimeBefore12h", "2024-10-06 01:30:00 AM");
+        attributes.put("dstValidTimeAfter12h", "2024-10-06 03:30:00 AM");
+        verifyEquals("${dstGapTime12h:isValidDate('yyyy-MM-dd hh:mm:ss a', 'Australia/Sydney')}", attributes, false);
+        verifyEquals("${dstValidTimeBefore12h:isValidDate('yyyy-MM-dd hh:mm:ss a', 'Australia/Sydney')}", attributes, true);
+        verifyEquals("${dstValidTimeAfter12h:isValidDate('yyyy-MM-dd hh:mm:ss a', 'Australia/Sydney')}", attributes, true);
+    }
+
+    @Test
+    void testIsValidInstant() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("isoInstant", "2026-08-04T10:15:30Z");
+        attributes.put("isoOffsetDateTime", "2026-08-04T10:15:30+05:30");
+        attributes.put("notAnInstant", "not-a-date");
+        attributes.put("plainDate", "2026-08-04");
+
+        verifyEquals("${isoInstant:isValidInstant()}", attributes, true);
+        verifyEquals("${isoOffsetDateTime:isValidInstant()}", attributes, true);
+        verifyEquals("${notAnInstant:isValidInstant()}", attributes, false);
+        verifyEquals("${plainDate:isValidInstant()}", attributes, false);
+
+        // chaining with ifElse
+        verifyEquals("${isoInstant:isValidInstant():ifElse('valid-instant', 'invalid-instant')}", attributes, "valid-instant");
+        verifyEquals("${notAnInstant:isValidInstant():ifElse('valid-instant', 'invalid-instant')}", attributes, "invalid-instant");
+
+        // null subject (attribute does not exist)
+        verifyEquals("${nonExistentAttr:isValidInstant()}", attributes, false);
+    }
+
+    @Test
     void testGetUri() {
         verifyEquals("${getUri('https', 'admin:admin', 'nifi.apache.org', '1234', '/path/data ', 'key=value &key2=value2', 'frag1')}",
                 null, "https://admin:admin@nifi.apache.org:1234/path/data%20?key=value%20&key2=value2#frag1");
