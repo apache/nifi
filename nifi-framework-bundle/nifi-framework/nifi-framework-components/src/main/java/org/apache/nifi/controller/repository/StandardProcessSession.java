@@ -2981,6 +2981,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
             ensureNotAppending(newClaim);
 
+            // Build an OutputStream that we can return to the caller. Note that the returned OutputStream is wrapped with multiple layers
+            // of OutputStream, each with its own purpose. This layering is important for driving the capabilities that are necessary at the
+            // framework level. For example, we intercept flushes and closes to ensure that the framework is able to efficiently manage what
+            // gets written to the Content Repository and manage the full lifecycle of the Content Repository's OutputStream. When the
+            // ProcessSession is committed or rolled back, we ensure that the underlying streams are closed and flushed appropriately.
             final OutputStream rawStream = claimCache.write(newClaim);
             final OutputStream nonFlushable = new NonFlushableOutputStream(rawStream);
             final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable);
@@ -3118,6 +3123,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
 
             ensureNotAppending(newClaim);
+
+            // Build an OutputStream that we can return to the caller. Note that the returned OutputStream is wrapped with multiple layers
+            // of OutputStream, each with its own purpose. This layering is important for driving the capabilities that are necessary at the
+            // framework level. For example, we intercept flushes and closes to ensure that the framework is able to efficiently manage what
+            // gets written to the Content Repository and manage the full lifecycle of the Content Repository's OutputStream. When the
+            // ProcessSession is committed or rolled back, we ensure that the underlying streams are closed and flushed appropriately.
             try (final OutputStream stream = claimCache.write(newClaim);
                 final NonFlushableOutputStream nonFlushableOutputStream = new NonFlushableOutputStream(stream);
                 final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushableOutputStream);
@@ -3405,6 +3416,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 claimCache.flush(currClaim.getResourceClaim());
             }
 
+            // Build a InputStream and OutputStream that we can return to the caller. Note that the returned streams are wrapped with multiple layers,
+            // each with its own purpose. This layering is important for driving the capabilities that are necessary at the
+            // framework level. For example, we intercept flushes and closes to ensure that the framework is able to efficiently manage what
+            // gets written to the Content Repository and manage the full lifecycle of the Content Repository's OutputStream. When the
+            // ProcessSession is committed or rolled back, we ensure that the underlying streams are closed and flushed appropriately.
             try (final InputStream is = getInputStream(source, currClaim, record.getCurrentClaimOffset(), true);
                 final InputStream limitedIn = new LimitedInputStream(is, source.getSize());
                 final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);

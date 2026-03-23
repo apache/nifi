@@ -119,9 +119,47 @@ public interface ResourceClaimManager {
      * storage component for the same reason as described in the {@link #markDestructable(ResourceClaim)}
      * method.
      *
+     * <p>If the given ContentClaim currently has a positive truncation reference count
+     * (see {@link #getTruncationReferenceCount(ContentClaim)}), the claim will not be
+     * enqueued for truncation because at least one FlowFile still references it.</p>
+     *
      * @param claim the ContentClaim that should be used for truncation
      */
     void markTruncatable(ContentClaim claim);
+
+    /**
+     * Increments the truncation reference count for the given ContentClaim. This count tracks
+     * how many live FlowFiles reference a truncation-eligible ContentClaim and is used exclusively
+     * for truncation safety gating. Only truncation-eligible claims (non-zero offset, length above
+     * the truncation threshold) should be tracked via this method. Callers should not treat this
+     * as a general-purpose ContentClaim reference count.
+     *
+     * @param claim the ContentClaim whose truncation reference count should be incremented
+     */
+    void incrementTruncationReferenceCount(ContentClaim claim);
+
+    /**
+     * Decrements the truncation reference count for the given ContentClaim. When the count reaches
+     * zero, the entry is removed from tracking. This method is used exclusively for truncation safety
+     * gating. Only truncation-eligible claims should be tracked. Callers should not treat this as a
+     * general-purpose ContentClaim reference count.
+     *
+     * @param claim the ContentClaim whose truncation reference count should be decremented
+     * @return the new truncation reference count after decrementing, or 0 if the entry was removed
+     */
+    int decrementTruncationReferenceCount(ContentClaim claim);
+
+    /**
+     * Returns the current truncation reference count for the given ContentClaim. This count is
+     * used exclusively to determine whether it is safe to truncate a ContentClaim's underlying
+     * ResourceClaim. A positive count indicates that at least one FlowFile still references the
+     * claim and truncation must not proceed. A return value of 0 indicates that the claim is not
+     * being tracked (either it was never tracked or all references have been removed).
+     *
+     * @param claim the ContentClaim to query
+     * @return the current truncation reference count, or 0 if the claim is not tracked
+     */
+    int getTruncationReferenceCount(ContentClaim claim);
 
     /**
      * Drains up to {@code maxElements} Content Claims from the internal queue
