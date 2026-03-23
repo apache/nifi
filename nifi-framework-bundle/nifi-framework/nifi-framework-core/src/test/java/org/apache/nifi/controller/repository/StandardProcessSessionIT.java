@@ -2931,6 +2931,64 @@ public class StandardProcessSessionIT {
         assertEquals(originalClaim, ((FlowFileRecord) ff2).getContentClaim());
     }
 
+    @Test
+    public void testRemoveFlowFileProducesDeleteRecordWithCorrectClaim() throws IOException {
+        final ContentClaim contentClaim = contentRepo.create("Hello, World!".getBytes(StandardCharsets.UTF_8));
+        assertEquals(1, contentRepo.getClaimantCount(contentClaim));
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(contentClaim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(13L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        session.remove(flowFile);
+        session.commit();
+
+        final List<RepositoryRecord> repositoryUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repositoryUpdates.size());
+
+        final RepositoryRecord deleteRecord = repositoryUpdates.getFirst();
+        assertEquals(RepositoryRecordType.DELETE, deleteRecord.getType());
+        assertEquals(contentClaim, deleteRecord.getCurrentClaim());
+        assertEquals(contentClaim, deleteRecord.getOriginalClaim());
+        assertEquals(0, contentRepo.getClaimantCount(contentClaim));
+    }
+
+    @Test
+    public void testOverwriteContentProducesUpdateRecordWithOriginalClaim() throws IOException {
+        final ContentClaim originalClaim = contentRepo.create("Original large content".getBytes(StandardCharsets.UTF_8));
+        assertEquals(1, contentRepo.getClaimantCount(originalClaim));
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(originalClaim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(22L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        flowFile = session.write(flowFile, out -> out.write("New small content".getBytes(StandardCharsets.UTF_8)));
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.commit();
+
+        final List<RepositoryRecord> repositoryUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repositoryUpdates.size());
+
+        final RepositoryRecord updateRecord = repositoryUpdates.getFirst();
+        assertEquals(RepositoryRecordType.UPDATE, updateRecord.getType());
+        assertNotEquals(originalClaim, updateRecord.getCurrentClaim());
+        assertEquals(originalClaim, updateRecord.getOriginalClaim());
+        assertEquals(0, contentRepo.getClaimantCount(originalClaim));
+        assertEquals(1, contentRepo.getClaimantCount(updateRecord.getCurrentClaim()));
+    }
+
     public void configureRetry(final Connectable connectable, final int retryCount, final BackoffMechanism backoffMechanism,
                                final String maxBackoffPeriod, final long penalizationPeriod) {
         Processor proc = mock(Processor.class);

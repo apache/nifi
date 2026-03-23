@@ -252,6 +252,20 @@ public class TestFileSystemSwapManager {
         public boolean isDestructable(final ResourceClaim claim) {
             return false;
         }
+
+        @Override
+        public void incrementTruncationReferenceCount(final ContentClaim claim) {
+        }
+
+        @Override
+        public int decrementTruncationReferenceCount(final ContentClaim claim) {
+            return 0;
+        }
+
+        @Override
+        public int getTruncationReferenceCount(final ContentClaim claim) {
+            return 0;
+        }
     }
 
 }

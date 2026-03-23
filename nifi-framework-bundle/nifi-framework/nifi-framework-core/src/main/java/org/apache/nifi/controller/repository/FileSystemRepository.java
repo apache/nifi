@@ -126,6 +126,7 @@ public class FileSystemRepository implements ContentRepository {
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
     private final boolean alwaysSync;
+    private final boolean truncationEnabled;
     private final ScheduledExecutorService containerCleanupExecutor;
 
     private ResourceClaimManager resourceClaimManager; // effectively final
@@ -233,6 +234,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         this.alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty("nifi.content.repository.always.sync"));
+        this.truncationEnabled = nifiProperties.isContentClaimTruncationEnabled();
         LOG.info("Initializing FileSystemRepository with 'Always Sync' set to {}", alwaysSync);
         initializeRepository();
 
@@ -252,7 +254,9 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         final long cleanupMillis = this.determineCleanupInterval(nifiProperties);
-        executor.scheduleWithFixedDelay(new TruncateClaims(), cleanupMillis, cleanupMillis, TimeUnit.MILLISECONDS);
+        if (truncationEnabled) {
+            executor.scheduleWithFixedDelay(new TruncateClaims(), cleanupMillis, cleanupMillis, TimeUnit.MILLISECONDS);
+        }
 
         for (final Map.Entry<String, Path> containerEntry : containers.entrySet()) {
             final String containerName = containerEntry.getKey();
@@ -700,11 +704,6 @@ public class FileSystemRepository implements ContentRepository {
             return 0;
         }
 
-        if (claim.isTruncationCandidate() && claim instanceof final StandardContentClaim scc) {
-            LOG.debug("{} is a truncation candidate, but is being claimed again. Setting truncation candidate to false", claim);
-            scc.setTruncationCandidate(false);
-        }
-
         return incrementClaimantCount(claim.getResourceClaim(), false);
     }
 
@@ -1097,6 +1096,12 @@ public class FileSystemRepository implements ContentRepository {
                 }
 
                 if (claim.isTruncationCandidate()) {
+                    final int truncationReferenceCount = resourceClaimManager.getTruncationReferenceCount(claim);
+                    if (truncationReferenceCount > 0) {
+                        LOG.debug("Skipping truncation of {} because truncation reference count is {}", claim, truncationReferenceCount);
+                        continue;
+                    }
+
                     truncate(claim);
                 }
             }
@@ -2040,13 +2045,9 @@ public class FileSystemRepository implements ContentRepository {
                 // Mark the claim as no longer being able to be written to
                 resourceClaimManager.freeze(scc.getResourceClaim());
 
-                // If the content claim length is large (> 1 MB or the max appendable claim length),
-                // mark the claim as a truncation candidate
                 final boolean largeClaim = scc.getLength() > Math.min(1_000_000, maxAppendableClaimLength);
                 final boolean nonStartClaim = scc.getOffset() > 0;
-                if (largeClaim && nonStartClaim) {
-                    scc.setTruncationCandidate(true);
-                }
+                scc.setTruncationCandidate(truncationEnabled && largeClaim && nonStartClaim);
 
                 // ensure that the claim is no longer on the queue
                 writableClaimQueue.remove(new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength));

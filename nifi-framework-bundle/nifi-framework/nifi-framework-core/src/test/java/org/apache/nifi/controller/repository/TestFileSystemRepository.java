@@ -949,8 +949,7 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    public void testIncrementClaimantCountClearsTruncationCandidate() throws IOException {
-        // Create a small claim to start a ResourceClaim, then a large claim to freeze it
+    public void testIncrementClaimantCountPreservesTruncationCandidate() throws IOException {
         final ContentClaim smallClaim = repository.create(false);
         try (final OutputStream out = repository.write(smallClaim)) {
             out.write(new byte[100]);
@@ -963,10 +962,13 @@ public class TestFileSystemRepository {
 
         assertTrue(largeClaim.isTruncationCandidate());
 
-        // Simulate a clone by incrementing claimant count
+        // Simulating a clone by incrementing claimant count should not clear the truncation
+        // candidate flag. ContentClaim reference counting in the FlowFile repository prevents
+        // premature truncation of shared claims; the flag must remain so that truncation can
+        // proceed once all references are removed.
         repository.incrementClaimaintCount(largeClaim);
 
-        assertFalse(largeClaim.isTruncationCandidate());
+        assertTrue(largeClaim.isTruncationCandidate());
     }
 
     @Test
@@ -1163,5 +1165,112 @@ public class TestFileSystemRepository {
         }
 
         return outputStream.toByteArray();
+    }
+
+    @Test
+    @Timeout(60)
+    public void testTruncateClaimsSkipsClaimWithPositiveTruncationReferenceCount() throws IOException, InterruptedException {
+        shutdown();
+
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
+            @Override
+            public long getContainerUsableSpace(final String containerName) {
+                return 0;
+            }
+
+            @Override
+            protected boolean isArchiveClearedOnLastRun(final String containerName) {
+                return true;
+            }
+        };
+
+        try {
+            final StandardResourceClaimManager localClaimManager = new StandardResourceClaimManager();
+            localRepository.initialize(new StandardContentRepositoryContext(localClaimManager, EventReporter.NO_OP));
+            localRepository.purge();
+
+            final ContentClaim smallClaim = localRepository.create(false);
+            final byte[] smallData = "Small claim data".getBytes(StandardCharsets.UTF_8);
+            try (final OutputStream out = localRepository.write(smallClaim)) {
+                out.write(smallData);
+            }
+
+            final ContentClaim largeClaim = localRepository.create(false);
+            final byte[] largeData = new byte[(int) maxClaimLength + 4096];
+            new Random().nextBytes(largeData);
+            try (final OutputStream out = localRepository.write(largeClaim)) {
+                out.write(largeData);
+            }
+
+            assertTrue(largeClaim.isTruncationCandidate());
+            assertEquals(smallClaim.getResourceClaim(), largeClaim.getResourceClaim());
+
+            final Path filePath = getPath(localRepository, smallClaim);
+            final long originalSize = Files.size(filePath);
+            assertTrue(originalSize > maxClaimLength);
+
+            // Simulate a second FlowFile (e.g., a clone) still referencing this claim
+            localClaimManager.incrementTruncationReferenceCount(largeClaim);
+
+            localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
+            localClaimManager.markTruncatable(largeClaim);
+
+            // markTruncatable should have been rejected because the ref count is positive.
+            // But even if it had been enqueued (e.g. a future code path change), TruncateClaims
+            // must also skip it. Directly enqueue to simulate that scenario.
+            final List<ContentClaim> forceEnqueued = new ArrayList<>();
+            localClaimManager.drainTruncatableClaims(forceEnqueued, 100);
+            assertTrue(forceEnqueued.isEmpty(), "markTruncatable should have rejected the claim due to positive ref count");
+
+            // Force-enqueue by decrementing to zero, marking truncatable, then re-incrementing
+            // before the background task can run. This simulates the Layer 3 scenario.
+            localClaimManager.decrementTruncationReferenceCount(largeClaim);
+            localClaimManager.markTruncatable(largeClaim);
+            localClaimManager.incrementTruncationReferenceCount(largeClaim);
+
+            // Wait long enough for the TruncateClaims background task to have executed at least once
+            Thread.sleep(3_000);
+
+            // File should NOT have been truncated because TruncateClaims checks ref count > 0
+            assertEquals(originalSize, Files.size(filePath),
+                    "File should not be truncated because TruncateClaims should skip claims with positive truncation reference count");
+
+            // Clean up: decrement the ref count and re-mark truncatable
+            localClaimManager.decrementTruncationReferenceCount(largeClaim);
+            localClaimManager.markTruncatable(largeClaim);
+
+            // Now TruncateClaims should proceed
+            final long expectedTruncatedSize = largeClaim.getOffset();
+            while (Files.size(filePath) != expectedTruncatedSize) {
+                Thread.sleep(100L);
+            }
+
+            try (final InputStream in = localRepository.read(smallClaim)) {
+                final byte[] readData = readFully(in, smallData.length);
+                assertArrayEquals(smallData, readData);
+            }
+        } finally {
+            localRepository.shutdown();
+        }
+    }
+
+    @Test
+    public void testTruncationDisabledPreventsSettingTruncationCandidate() throws IOException {
+        recreateRepositoryWithPropertyOverrides(Map.of(
+                NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", rootFile.toString(),
+                NiFiProperties.CONTENT_CLAIM_TRUNCATION_ENABLED, "false"));
+
+        final ContentClaim smallClaim = repository.create(false);
+        try (final OutputStream out = repository.write(smallClaim)) {
+            out.write(new byte[100]);
+        }
+
+        final ContentClaim largeClaim = repository.create(false);
+        try (final OutputStream out = repository.write(largeClaim)) {
+            out.write(new byte[(int) maxClaimLength + 1024]);
+        }
+
+        assertFalse(largeClaim.isTruncationCandidate(),
+                "Truncation candidate should not be set when truncation is disabled");
     }
 }
