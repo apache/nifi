@@ -410,6 +410,102 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testDiscardWorkingConfigurationCallsOnStepConfigured() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        connectorNode.discardWorkingConfiguration();
+
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+    }
+
+    @Test
+    public void testApplyUpdateCallsOnStepConfiguredForAllConfiguredSteps() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("prop2", "value2")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value2")));
+        connectorNode.applyUpdate();
+
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+    }
+
+    @Test
+    public void testDiscardWorkingConfigurationCallsOnStepConfiguredForMultipleSteps() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("prop2", "value2")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        connectorNode.discardWorkingConfiguration();
+
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+    }
+
+    @Test
+    public void testApplyUpdateWithNoChangesCallsOnStepConfigured() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.applyUpdate();
+
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+    }
+
+    @Test
+    public void testSynchronizeWorkingFlowParametersContinuesOnStepFailure() throws FlowUpdateException {
+        final FailingStepConnector failingStepConnector = new FailingStepConnector("failingStep");
+        final StandardConnectorNode connectorNode = createConnectorNode(failingStepConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("failingStep", createStepConfiguration(Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("successStep", createStepConfiguration(Map.of("prop2", "value2")));
+        connectorNode.applyUpdate();
+
+        failingStepConnector.reset();
+        failingStepConnector.setFailOnStep(true);
+
+        connectorNode.discardWorkingConfiguration();
+
+        assertTrue(failingStepConnector.wasOnPropertyGroupConfiguredCalled("successStep"));
+    }
+
+    @Test
     public void testVerifyConfigurationStepSurfacesInvalidValidationResults() throws FlowUpdateException {
         final ValidationFailingConnector validationFailingConnector = new ValidationFailingConnector();
         final StandardConnectorNode connectorNode = createConnectorNode(validationFailingConnector);
@@ -647,7 +743,7 @@ public class TestStandardConnectorNode {
         }
 
         @Override
-        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
             onConfigurationStepConfiguredCalls.add(stepName);
         }
 
@@ -662,6 +758,31 @@ public class TestStandardConnectorNode {
 
         public void reset() {
             onConfigurationStepConfiguredCalls.clear();
+        }
+    }
+
+    /**
+     * Test connector that extends TrackingConnector to throw from onStepConfigured for a specific step name.
+     * Used to verify that synchronization continues even when one step fails.
+     */
+    private static class FailingStepConnector extends TrackingConnector {
+        private final String failingStepName;
+        private boolean failOnStep = false;
+
+        public FailingStepConnector(final String failingStepName) {
+            this.failingStepName = failingStepName;
+        }
+
+        public void setFailOnStep(final boolean failOnStep) {
+            this.failOnStep = failOnStep;
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+            super.onStepConfigured(stepName, workingContext);
+            if (failOnStep && failingStepName.equals(stepName)) {
+                throw new FlowUpdateException("Simulated failure for step " + stepName);
+            }
         }
     }
 
