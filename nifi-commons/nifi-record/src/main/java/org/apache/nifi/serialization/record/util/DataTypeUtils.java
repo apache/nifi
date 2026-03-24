@@ -1697,6 +1697,34 @@ public class DataTypeUtils {
                 return widerType.get();
             }
 
+            final RecordFieldType thisFieldType = thisDataType.getFieldType();
+            final RecordFieldType otherFieldType = otherDataType.getFieldType();
+
+            // When both types are RECORD but neither is strictly wider, merge schemas into a single RECORD containing all fields
+            // from both schemas. Creating a CHOICE of RECORDs leads to combinatorial explosion as the number of permutations of
+            // optional fields grows with each new record observed during schema inference.
+            if (thisFieldType == RecordFieldType.RECORD && otherFieldType == RecordFieldType.RECORD) {
+                final RecordSchema thisSchema = ((RecordDataType) thisDataType).getChildSchema();
+                final RecordSchema otherSchema = ((RecordDataType) otherDataType).getChildSchema();
+                final RecordSchema mergedSchema = merge(thisSchema, otherSchema);
+                return RecordFieldType.RECORD.getRecordDataType(mergedSchema);
+            }
+
+            // When both types are ARRAY with RECORD element types, merge the element schemas into a single RECORD rather than
+            // creating a CHOICE of two ARRAY types. This prevents the same combinatorial explosion that affects top-level
+            // RECORD merging. Only RECORD elements are merged this way; arrays with fundamentally different element types
+            // (e.g., ARRAY(RECORD) vs ARRAY(INT)) fall through to the CHOICE path, which is correct since non-RECORD
+            // CHOICEs have bounded size.
+            if (thisFieldType == RecordFieldType.ARRAY && otherFieldType == RecordFieldType.ARRAY) {
+                final DataType thisElementType = ((ArrayDataType) thisDataType).getElementType();
+                final DataType otherElementType = ((ArrayDataType) otherDataType).getElementType();
+                if (thisElementType != null && otherElementType != null
+                        && thisElementType.getFieldType() == RecordFieldType.RECORD && otherElementType.getFieldType() == RecordFieldType.RECORD) {
+                    final DataType mergedElementType = mergeDataTypes(thisElementType, otherElementType);
+                    return RecordFieldType.ARRAY.getArrayDataType(mergedElementType);
+                }
+            }
+
             final DataTypeSet dataTypeSet = new DataTypeSet();
             dataTypeSet.add(thisDataType);
             dataTypeSet.add(otherDataType);
