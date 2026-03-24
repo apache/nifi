@@ -99,6 +99,10 @@ public class VersionedDataflowMapper {
 
         for (final ConnectorNode connectorNode : flowController.getConnectorRepository().getConnectors()) {
             final VersionedConnector versionedConnector = flowMapper.mapConnector(connectorNode);
+            if (flowController.isStartAfterInitialization(connectorNode)) {
+                versionedConnector.setScheduledState(ScheduledState.RUNNING);
+            }
+
             connectors.add(versionedConnector);
         }
 

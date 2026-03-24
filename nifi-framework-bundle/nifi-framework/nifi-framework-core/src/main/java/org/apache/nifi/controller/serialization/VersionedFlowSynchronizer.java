@@ -1057,10 +1057,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     logger.info("Connector {} of type {} with name {} is not in the current flow. Will add Connector.",
                         versionedConnector.getInstanceIdentifier(), versionedConnector.getType(), versionedConnector.getName());
 
-                    addConnector(versionedConnector, connectorRepository, flowController.getFlowManager());
+                    addConnector(versionedConnector, flowController);
                 } else if (isConnectorConfigurationUpdated(existingConnector, versionedConnector)) {
                     logger.info("{} configuration has changed, updating configuration", existingConnector);
-                    updateConnector(versionedConnector, connectorRepository);
+                    updateConnector(versionedConnector, flowController);
                 } else {
                     logger.debug("{} configuration is up to date, no update necessary", existingConnector);
                 }
@@ -1162,15 +1162,18 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         };
     }
 
-    private void addConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository, final FlowManager flowManager) {
+    private void addConnector(final VersionedConnector versionedConnector, final FlowController flowController) {
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        final FlowManager flowManager = flowController.getFlowManager();
         final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedConnector.getBundle(), versionedConnector.getType());
         final ConnectorNode connectorNode = flowManager.createConnector(versionedConnector.getType(), versionedConnector.getInstanceIdentifier(), coordinate, false, true);
         connectorRepository.restoreConnector(connectorNode);
-        updateConnector(versionedConnector, connectorRepository);
+        updateConnector(versionedConnector, flowController);
     }
 
 
-    private void updateConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository) {
+    private void updateConnector(final VersionedConnector versionedConnector, final FlowController flowController) {
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
         final ConnectorNode connectorNode = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
 
         connectorRepository.updateConnector(connectorNode, versionedConnector.getName());
@@ -1182,7 +1185,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
             final ScheduledState desiredState = versionedConnector.getScheduledState();
             if (desiredState == ScheduledState.RUNNING) {
-                connectorRepository.startConnector(connectorNode);
+                flowController.startConnector(connectorNode);
             } else if (desiredState == ScheduledState.ENABLED) {
                 connectorRepository.stopConnector(connectorNode);
             }
@@ -1512,6 +1515,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return false;
         }
         if (!CollectionUtils.isEmpty(dataflow.getParameterContexts())) {
+            return false;
+        }
+        if (!CollectionUtils.isEmpty(dataflow.getConnectors())) {
             return false;
         }
 
