@@ -3,8 +3,10 @@
     "compilerOptions": {
         "outDir": "../../dist/out-tsc",
         "types": ["jest"],
-        "module": "ES2022",
-        "esModuleInterop": true
+        "module": "preserve",
+        "esModuleInterop": true,
+        "moduleResolution": "bundler",
+        "isolatedModules": true
     },
     "files": ["src/test-setup.ts"],
     "include": ["jest.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.d.ts"]

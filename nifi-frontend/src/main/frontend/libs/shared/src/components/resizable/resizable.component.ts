@@ -23,6 +23,8 @@ import { auditTime, merge, of, Subject, tap, withLatestFrom } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
 
 @Component({
+    // Attribute selector required: this component is applied as a behavior on existing elements
+    // eslint-disable-next-line @angular-eslint/component-selector
     selector: '[resizable]',
     imports: [MatDialogModule, MatButtonModule, CdkDrag, AsyncPipe],
     templateUrl: './resizable.component.html',

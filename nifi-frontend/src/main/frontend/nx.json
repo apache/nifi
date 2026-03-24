@@ -35,7 +35,7 @@
             "inputs": ["production", "^production"]
         }
     },
-    "defaultBase": "dev",
+    "defaultBase": "main",
     "namedInputs": {
         "sharedGlobals": [],
         "default": ["{projectRoot}/**/*", "sharedGlobals"],
@@ -129,6 +129,5 @@
         "@schematics/angular:resolver": {
             "typeSeparator": "."
         }
-    },
-    "defaultBase": "main"
+    }
 }

@@ -8,7 +8,9 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "downlevelIteration": true,
-        "useDefineForClassFields": false
+        "useDefineForClassFields": false,
+        "module": "preserve",
+        "moduleResolution": "bundler"
     },
     "angularCompilerOptions": {
         "enableI18nLegacyMessageIdFormat": false,

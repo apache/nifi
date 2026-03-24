@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-export default {
+module.exports = {
     displayName: 'NiFi shared lib',
     clearMocks: true,
     coverageDirectory: '../../coverage/libs/shared',

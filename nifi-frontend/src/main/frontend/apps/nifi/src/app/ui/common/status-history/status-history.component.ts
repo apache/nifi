@@ -312,7 +312,7 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
         }
     }
 
-    @HostListener('window:resize', ['$event.target'])
+    @HostListener('window:resize')
     windowResized() {
         if (this.dialogMaximized) {
             this.resized();

@@ -7,7 +7,9 @@
         "noPropertyAccessFromIndexSignature": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "useDefineForClassFields": false
+        "useDefineForClassFields": false,
+        "module": "preserve",
+        "moduleResolution": "bundler"
     },
     "angularCompilerOptions": {
         "enableI18nLegacyMessageIdFormat": false,
