@@ -861,6 +861,33 @@ public class StandardConnectorNode implements ConnectorNode {
             connectorDetails.getComponentLog(), activeFlowContext.getConfigurationContext(), activeFlowContext.getBundle());
 
         getComponentLog().info("Working Flow Context has been recreated");
+
+        synchronizeWorkingFlowParameters();
+    }
+
+    /**
+     * Re-triggers {@link Connector#onConfigurationStepConfigured} for every configured step in
+     * the working flow context. This ensures that flow parameters derived from the configuration
+     * (e.g., resolved asset paths) are fresh, even when the working context was just recreated
+     * from the active flow whose parameter values may be stale.
+     *
+     * <p>Skipped when {@code initializationContext} is {@code null} because the connector has
+     * not yet been initialized and there is no flow to update.</p>
+     */
+    private void synchronizeWorkingFlowParameters() {
+        if (initializationContext == null) {
+            return;
+        }
+
+        final ConnectorConfiguration config = workingFlowContext.getConfigurationContext().toConnectorConfiguration();
+        for (final NamedStepConfiguration stepConfig : config.getNamedStepConfigurations()) {
+            try {
+                setConfiguration(stepConfig.stepName(), stepConfig.configuration(), true);
+            } catch (final Exception e) {
+                logger.warn("Failed to synchronize working flow parameters for step [{}] of {}",
+                    stepConfig.stepName(), this, e);
+            }
+        }
     }
 
     @Override
