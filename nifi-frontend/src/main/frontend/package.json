@@ -130,7 +130,8 @@
         "@nx/jest": {
             "minimatch": "9.0.9"
         },
-        "undici": ">=7.24.0"
+        "undici": ">=7.24.0",
+        "flatted": "3.4.2"
     },
     "browser": {
         "fs": false,
