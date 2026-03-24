@@ -92,6 +92,8 @@ public final class NarUnpacker {
         try {
             File unpackedJetty = null;
             File unpackedFramework = null;
+            BundleCoordinate frameworkCoordinate = null;
+            BundleCoordinate jettyCoordinate = null;
             final Set<File> unpackedExtensions = new HashSet<>();
             final List<File> narFiles = new ArrayList<>();
 
@@ -139,17 +141,19 @@ public final class NarUnpacker {
                         // determine if this is the framework
                         if (frameworkNarId != null && frameworkNarId.equals(bundleCoordinate.getId())) {
                             if (unpackedFramework != null) {
-                                throw new IllegalStateException("Multiple framework NARs discovered. Only one framework is permitted.");
+                                throw new IllegalStateException("Multiple framework NARs discovered. Only one framework is permitted. Found [%s] and [%s]".formatted(
+                                        frameworkCoordinate, bundleCoordinate));
                             }
 
-                            // unpack the framework nar
+                            frameworkCoordinate = bundleCoordinate;
                             unpackedFramework = unpackNar(narFile, frameworkWorkingDir, verifyHash, unpackMode);
                         } else if (NarClassLoaders.JETTY_NAR_ID.equals(bundleCoordinate.getId())) {
                             if (unpackedJetty != null) {
-                                throw new IllegalStateException("Multiple Jetty NARs discovered. Only one Jetty NAR is permitted.");
+                                throw new IllegalStateException("Multiple Jetty NARs discovered. Only one Jetty NAR is permitted. Found [%s] and [%s]".formatted(
+                                        jettyCoordinate, bundleCoordinate));
                             }
 
-                            // unpack and record the Jetty nar
+                            jettyCoordinate = bundleCoordinate;
                             unpackedJetty = unpackNar(narFile, extensionsWorkingDir, verifyHash, unpackMode);
                             unpackedExtensions.add(unpackedJetty);
                         } else {
