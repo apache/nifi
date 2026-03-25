@@ -1294,4 +1294,102 @@ public class TestDataTypeUtils {
         assertEquals(RecordFieldType.ARRAY, chosenRecord.getFieldType());
         assertEquals(RecordFieldType.RECORD, ((ArrayDataType) chosenRecord).getElementType().getFieldType());
     }
+
+    @Test
+    public void testMergeDataTypesMergesRecordSchemasInsteadOfCreatingChoice() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("firstName", RecordFieldType.STRING.getDataType()),
+            new RecordField("lastName", RecordFieldType.STRING.getDataType()),
+            new RecordField("address", RecordFieldType.STRING.getDataType())));
+
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("firstName", RecordFieldType.STRING.getDataType()),
+            new RecordField("lastName", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.INT.getDataType())));
+
+        final DataType recordTypeA = RecordFieldType.RECORD.getRecordDataType(schemaA);
+        final DataType recordTypeB = RecordFieldType.RECORD.getRecordDataType(schemaB);
+
+        final DataType merged = DataTypeUtils.mergeDataTypes(recordTypeA, recordTypeB);
+        assertEquals(RecordFieldType.RECORD, merged.getFieldType());
+
+        final RecordSchema mergedSchema = ((RecordDataType) merged).getChildSchema();
+        assertEquals(4, mergedSchema.getFieldCount());
+        assertTrue(mergedSchema.getField("firstName").isPresent());
+        assertTrue(mergedSchema.getField("lastName").isPresent());
+        assertTrue(mergedSchema.getField("address").isPresent());
+        assertTrue(mergedSchema.getField("age").isPresent());
+    }
+
+    @Test
+    public void testMergeDataTypesMergesRecordSchemasWithWiderFieldTypes() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.INT.getDataType()),
+            new RecordField("name", RecordFieldType.STRING.getDataType())));
+
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.LONG.getDataType()),
+            new RecordField("name", RecordFieldType.STRING.getDataType())));
+
+        final DataType recordTypeA = RecordFieldType.RECORD.getRecordDataType(schemaA);
+        final DataType recordTypeB = RecordFieldType.RECORD.getRecordDataType(schemaB);
+
+        final DataType merged = DataTypeUtils.mergeDataTypes(recordTypeA, recordTypeB);
+        assertEquals(RecordFieldType.RECORD, merged.getFieldType());
+
+        final RecordSchema mergedSchema = ((RecordDataType) merged).getChildSchema();
+        assertEquals(2, mergedSchema.getFieldCount());
+        assertEquals(RecordFieldType.LONG, mergedSchema.getField("id").get().getDataType().getFieldType());
+    }
+
+    @Test
+    public void testMergeDataTypesMergesArraysOfRecordElements() {
+        final RecordSchema innerSchemaA = new SimpleRecordSchema(List.of(
+            new RecordField("x", RecordFieldType.INT.getDataType())));
+        final RecordSchema innerSchemaB = new SimpleRecordSchema(List.of(
+            new RecordField("y", RecordFieldType.STRING.getDataType())));
+
+        final DataType arrayA = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(innerSchemaA));
+        final DataType arrayB = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(innerSchemaB));
+
+        final DataType merged = DataTypeUtils.mergeDataTypes(arrayA, arrayB);
+        assertEquals(RecordFieldType.ARRAY, merged.getFieldType());
+
+        final DataType elementType = ((ArrayDataType) merged).getElementType();
+        assertEquals(RecordFieldType.RECORD, elementType.getFieldType());
+        final RecordSchema mergedElementSchema = ((RecordDataType) elementType).getChildSchema();
+        assertEquals(2, mergedElementSchema.getFieldCount());
+        assertTrue(mergedElementSchema.getField("x").isPresent());
+        assertTrue(mergedElementSchema.getField("y").isPresent());
+    }
+
+    @Test
+    public void testMergeDataTypesCreatesChoiceForArraysWithDifferentPrimitiveElements() {
+        final DataType arrayOfInts = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType());
+        final DataType arrayOfStrings = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+
+        final DataType merged = DataTypeUtils.mergeDataTypes(arrayOfInts, arrayOfStrings);
+        assertEquals(RecordFieldType.CHOICE, merged.getFieldType());
+    }
+
+    @Test
+    public void testMergeDataTypesWithManyDistinctRecordSchemasCompletesQuickly() {
+        DataType accumulated = null;
+        for (int i = 0; i < 5000; i++) {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField("commonField", RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField("field_" + i, RecordFieldType.INT.getDataType()));
+            final RecordSchema schema = new SimpleRecordSchema(fields);
+            final DataType recordType = RecordFieldType.RECORD.getRecordDataType(schema);
+
+            accumulated = DataTypeUtils.mergeDataTypes(accumulated, recordType);
+        }
+
+        assertEquals(RecordFieldType.RECORD, accumulated.getFieldType());
+        final RecordSchema finalSchema = ((RecordDataType) accumulated).getChildSchema();
+        assertEquals(5001, finalSchema.getFieldCount());
+        assertTrue(finalSchema.getField("commonField").isPresent());
+        assertTrue(finalSchema.getField("field_0").isPresent());
+        assertTrue(finalSchema.getField("field_4999").isPresent());
+    }
 }

@@ -19,7 +19,9 @@ package org.apache.nifi.serialization.record.util;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +61,11 @@ public class DataTypeSet {
             if (widerType.isPresent()) {
                 toRemove = currentType;
                 toAdd = widerType.get();
+            } else if (currentType.getFieldType() == RecordFieldType.RECORD && dataType.getFieldType() == RecordFieldType.RECORD) {
+                final RecordSchema currentSchema = ((RecordDataType) currentType).getChildSchema();
+                final RecordSchema incomingSchema = ((RecordDataType) dataType).getChildSchema();
+                toRemove = currentType;
+                toAdd = RecordFieldType.RECORD.getRecordDataType(DataTypeUtils.merge(currentSchema, incomingSchema));
             }
         }
 

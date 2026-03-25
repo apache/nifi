@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -136,36 +135,30 @@ class TestJsonSchemaInference {
 
         final RecordDataType recordDataType = (RecordDataType) testRecordDataType;
         final DataType childDataType = recordDataType.getChildSchema().getDataType("array_test_record").get();
-        assertSame(RecordFieldType.CHOICE, childDataType.getFieldType());
+        assertSame(RecordFieldType.RECORD, childDataType.getFieldType());
 
-        final ChoiceDataType childChoiceDataType = (ChoiceDataType) childDataType;
-        final List<DataType> childChoices = childChoiceDataType.getPossibleSubTypes();
-        assertEquals(2, childChoices.size());
+        final RecordSchema mergedChildSchema = ((RecordDataType) childDataType).getChildSchema();
+        final DataType testArrayDataType = mergedChildSchema.getDataType("test_array").get();
+        assertSame(RecordFieldType.CHOICE, testArrayDataType.getFieldType());
 
-        final DataType firstChoice = childChoices.get(0);
-        assertSame(RecordFieldType.RECORD, firstChoice.getFieldType());
+        final ChoiceDataType testArrayChoiceType = (ChoiceDataType) testArrayDataType;
+        final List<DataType> choices = testArrayChoiceType.getPossibleSubTypes();
+        assertEquals(2, choices.size());
 
-        final DataType secondChoice = childChoices.get(1);
-        assertSame(RecordFieldType.RECORD, firstChoice.getFieldType());
-
-        final RecordSchema firstChildSchema = ((RecordDataType) firstChoice).getChildSchema();
-        final DataType firstArrayType = firstChildSchema.getDataType("test_array").get();
-        assertSame(RecordFieldType.ARRAY, firstArrayType.getFieldType());
-        final DataType firstArrayElementType = ((ArrayDataType) firstArrayType).getElementType();
-        assertNotNull(firstArrayElementType);
-        final RecordFieldType firstArrayFieldType = firstArrayElementType.getFieldType();
-
-        final RecordSchema secondChildSchema = ((RecordDataType) secondChoice).getChildSchema();
-        final DataType secondArrayType = secondChildSchema.getDataType("test_array").get();
-        assertSame(RecordFieldType.ARRAY, secondArrayType.getFieldType());
-        final DataType secondArrayElementType = ((ArrayDataType) secondArrayType).getElementType();
-        assertNotNull(secondArrayElementType);
-        final RecordFieldType secondArrayFieldType = secondArrayElementType.getFieldType();
-
-        // Ensure that one of the arrays is a STRING and the other is a RECORD.
-        assertTrue(firstArrayFieldType == RecordFieldType.STRING || secondArrayFieldType == RecordFieldType.STRING);
-        assertTrue(firstArrayFieldType == RecordFieldType.RECORD || secondArrayFieldType == RecordFieldType.RECORD);
-        assertNotEquals(firstArrayElementType, secondArrayElementType);
+        boolean hasArrayOfRecord = false;
+        boolean hasArrayOfString = false;
+        for (final DataType choice : choices) {
+            assertSame(RecordFieldType.ARRAY, choice.getFieldType());
+            final DataType elementType = ((ArrayDataType) choice).getElementType();
+            if (elementType.getFieldType() == RecordFieldType.RECORD) {
+                hasArrayOfRecord = true;
+            } else if (elementType.getFieldType() == RecordFieldType.STRING) {
+                hasArrayOfString = true;
+            }
+        }
+        
+        assertTrue(hasArrayOfRecord);
+        assertTrue(hasArrayOfString);
     }
 
     @Test

@@ -621,11 +621,7 @@ class TestYamlTreeRowRecordReader {
                     "integer", 2,
                     "string", "stringValue2",
                     "booleanOrString", "booleanOrStringValue2"
-            )/*new HashMap<>() {{
-                put("integer", 2);
-                put("string", "stringValue2");
-                put("booleanOrString", "booleanOrStringValue2");
-            }}*/)
+            ))
         );
 
         testReadRecords(yamlPath, expected);
@@ -635,29 +631,23 @@ class TestYamlTreeRowRecordReader {
     void testChoiceOfEmbeddedSimilarRecords() throws Exception {
         String yamlPath = "src/test/resources/yaml/choice-of-embedded-similar-records.yaml";
 
-        final SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema mergedRecordSchema = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)
-                ))
+        final RecordSchema expectedOuterSchema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("record", RecordFieldType.RECORD.getRecordDataType(mergedRecordSchema))
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, Map.of(
-                    "record", new MapRecord(expectedRecordSchema1, Map.of(
+            new MapRecord(expectedOuterSchema, Map.of(
+                    "record", new MapRecord(mergedRecordSchema, Map.of(
                             "integer", 1,
                             "boolean", true))
             )),
-            new MapRecord(expectedRecordChoiceSchema, Map.of(
-                    "record", new MapRecord(expectedRecordSchema2, Map.of(
+            new MapRecord(expectedOuterSchema, Map.of(
+                    "record", new MapRecord(mergedRecordSchema, Map.of(
                             "integer", 2,
                             "string", "stringValue2"))
             ))
