@@ -1057,6 +1057,59 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
+    public void testRemoveInheritedContextWithAssetReference() throws NiFiClientException, IOException, InterruptedException {
+        // Create two child parameter contexts
+        final ParameterContextEntity childContext1 = getClientUtil().createParameterContext("childContext1", Map.of("fileToIngest", ""));
+        final ParameterContextEntity childContext2 = getClientUtil().createParameterContext("childContext2", Map.of("otherParam", "otherValue"));
+
+        // Create an asset in child context 1 and update its parameter to reference the asset
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(childContext1.getId(), assetFile);
+
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                childContext1, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(childContext1.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Create a parent context that inherits both child contexts
+        final ParameterContextEntity parentContext = getClientUtil().createParameterContext("parentContext",
+                Collections.emptyMap(), List.of(childContext1.getId(), childContext2.getId()), null);
+
+        // Fetch the parent with inherited parameters included, simulating what the UI does when
+        // loading the parameter context for editing. The response includes inherited parameters
+        // (with inherited=true and referencedAssets populated) from both child contexts.
+        final ParameterContextEntity fetchedParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), true);
+
+        // Verify the fetched parent includes the inherited parameter that references the asset
+        final Set<ParameterEntity> fetchedParams = fetchedParent.getComponent().getParameters();
+        final ParameterEntity inheritedAssetParam = fetchedParams.stream()
+                .filter(p -> "fileToIngest".equals(p.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(inheritedAssetParam);
+        assertTrue(inheritedAssetParam.getParameter().getInherited());
+        assertNotNull(inheritedAssetParam.getParameter().getReferencedAssets());
+        assertFalse(inheritedAssetParam.getParameter().getReferencedAssets().isEmpty());
+
+        // Modify only the inherited contexts list to remove childContext1, keeping all the
+        // parameters from the fetched response intact. This reproduces what the UI sends when
+        // a user removes an inherited context: the full parameter list (including inherited
+        // parameters with asset references from the now-removed context) is still present.
+        fetchedParent.getComponent().setInheritedParameterContexts(
+                fetchedParent.getComponent().getInheritedParameterContexts().stream()
+                        .filter(ref -> ref.getId().equals(childContext2.getId()))
+                        .collect(Collectors.toList()));
+
+        final ParameterContextUpdateRequestEntity removeInheritanceRequest =
+                getNifiClient().getParamContextClient().updateParamContext(fetchedParent);
+        getClientUtil().waitForParameterContextRequestToComplete(parentContext.getId(), removeInheritanceRequest.getRequest().getRequestId());
+
+        // Verify only childContext2 remains as inherited
+        final ParameterContextEntity updatedParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
+        assertEquals(1, updatedParent.getComponent().getInheritedParameterContexts().size());
+        assertEquals(childContext2.getId(), updatedParent.getComponent().getInheritedParameterContexts().get(0).getId());
+    }
+
+    @Test
     public void testAssetReferenceAfterRestart() throws NiFiClientException, IOException, InterruptedException {
         // Create Parameter Context
         final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetReferenceAfterRestart",

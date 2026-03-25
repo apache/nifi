@@ -800,6 +800,10 @@ public class ParameterContextResource extends AbstractParameterResource {
     private void validateAssetReferences(final ParameterContextDTO parameterContextDto) {
         if (parameterContextDto.getParameters() != null) {
             for (final ParameterEntity entity : parameterContextDto.getParameters()) {
+                if (Boolean.TRUE.equals(entity.getParameter().getInherited())) {
+                    continue;
+                }
+
                 final List<AssetReferenceDTO> referencedAssets = entity.getParameter().getReferencedAssets();
                 if (referencedAssets == null) {
                     continue;
