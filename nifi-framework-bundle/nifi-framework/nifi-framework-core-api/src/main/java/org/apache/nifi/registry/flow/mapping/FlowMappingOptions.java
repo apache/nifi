@@ -17,6 +17,8 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
+import org.apache.nifi.components.state.StateManagerProvider;
+
 import static java.util.Objects.requireNonNull;
 
 public class FlowMappingOptions {
@@ -29,6 +31,9 @@ public class FlowMappingOptions {
     private final boolean mapControllerServiceReferencesToVersionedId;
     private final boolean mapFlowRegistryClientId;
     private final boolean mapAssetReferences;
+    private final boolean mapComponentState;
+    private final StateManagerProvider stateManagerProvider;
+    private final int localNodeOrdinal;
 
     private FlowMappingOptions(final Builder builder) {
         encryptor = builder.encryptor;
@@ -40,6 +45,9 @@ public class FlowMappingOptions {
         mapControllerServiceReferencesToVersionedId = builder.mapControllerServiceReferencesToVersionedId;
         mapFlowRegistryClientId = builder.mapFlowRegistryClientId;
         mapAssetReferences = builder.mapAssetReferences;
+        mapComponentState = builder.mapComponentState;
+        stateManagerProvider = builder.stateManagerProvider;
+        localNodeOrdinal = builder.localNodeOrdinal;
     }
 
     public SensitiveValueEncryptor getSensitiveValueEncryptor() {
@@ -78,6 +86,18 @@ public class FlowMappingOptions {
         return mapAssetReferences;
     }
 
+    public boolean isMapComponentState() {
+        return mapComponentState;
+    }
+
+    public StateManagerProvider getStateManagerProvider() {
+        return stateManagerProvider;
+    }
+
+    public int getLocalNodeOrdinal() {
+        return localNodeOrdinal;
+    }
+
     public static class Builder {
         private SensitiveValueEncryptor encryptor;
         private VersionedComponentStateLookup stateLookup;
@@ -88,6 +108,9 @@ public class FlowMappingOptions {
         private boolean mapControllerServiceReferencesToVersionedId = true;
         private boolean mapFlowRegistryClientId = false;
         private boolean mapAssetReferences = false;
+        private boolean mapComponentState = false;
+        private StateManagerProvider stateManagerProvider;
+        private int localNodeOrdinal = 0;
 
         /**
          * Sets the SensitiveValueEncryptor to use for encrypting sensitive values. This value must be set
@@ -191,6 +214,42 @@ public class FlowMappingOptions {
         }
 
         /**
+         * Sets whether or not the component state should be mapped to the Versioned Component during export.
+         * If <code>true</code>, the {@link #stateManagerProvider(StateManagerProvider)} must be set.
+         *
+         * @param mapComponentState whether or not component state should be mapped
+         * @return the builder
+         */
+        public Builder mapComponentState(final boolean mapComponentState) {
+            this.mapComponentState = mapComponentState;
+            return this;
+        }
+
+        /**
+         * Sets the StateManagerProvider to use for retrieving component state. This value must be set
+         * if {@link #mapComponentState(boolean) mapComponentState} is set to <code>true</code>.
+         *
+         * @param stateManagerProvider the StateManagerProvider to use
+         * @return the builder
+         */
+        public Builder stateManagerProvider(final StateManagerProvider stateManagerProvider) {
+            this.stateManagerProvider = stateManagerProvider;
+            return this;
+        }
+
+        /**
+         * Sets the ordinal index of the local node within the cluster. In standalone mode, this defaults to 0.
+         * Used during export to key local-scoped state entries.
+         *
+         * @param localNodeOrdinal the ordinal index of the local node
+         * @return the builder
+         */
+        public Builder localNodeOrdinal(final int localNodeOrdinal) {
+            this.localNodeOrdinal = localNodeOrdinal;
+            return this;
+        }
+
+        /**
          * Creates a FlowMappingOptions object, or throws an Exception if not all required configuration has been provided
          *
          * @return the FlowMappingOptions
@@ -204,6 +263,10 @@ public class FlowMappingOptions {
 
             if (mapSensitiveConfiguration) {
                 requireNonNull(encryptor, "Property Encryptor must be set when sensitive configuration is to be mapped");
+            }
+
+            if (mapComponentState) {
+                requireNonNull(stateManagerProvider, "State Manager Provider must be set when component state is to be mapped");
             }
 
             return new FlowMappingOptions(this);
@@ -224,6 +287,7 @@ public class FlowMappingOptions {
         .mapControllerServiceReferencesToVersionedId(true)
         .mapFlowRegistryClientId(false)
         .mapAssetReferences(false)
+        .mapComponentState(false)
         .build();
 
 }

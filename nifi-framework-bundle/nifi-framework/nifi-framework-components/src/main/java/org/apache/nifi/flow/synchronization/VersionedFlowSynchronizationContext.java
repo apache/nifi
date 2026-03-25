@@ -18,6 +18,7 @@
 package org.apache.nifi.flow.synchronization;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessorNode;
@@ -45,6 +46,9 @@ public class VersionedFlowSynchronizationContext {
     private final Function<ProcessorNode, ProcessContext> processContextFactory;
     private final Function<ComponentNode, ConfigurationContext> configurationContextFactory;
     private final AssetManager assetManager;
+    private final StateManagerProvider stateManagerProvider;
+    private final int localNodeOrdinal;
+    private final int connectedNodeCount;
 
     private VersionedFlowSynchronizationContext(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
@@ -57,6 +61,9 @@ public class VersionedFlowSynchronizationContext {
         this.processContextFactory = builder.processContextFactory;
         this.configurationContextFactory = builder.configurationContextFactory;
         this.assetManager = builder.assetManager;
+        this.stateManagerProvider = builder.stateManagerProvider;
+        this.localNodeOrdinal = builder.localNodeOrdinal;
+        this.connectedNodeCount = builder.connectedNodeCount;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -99,6 +106,18 @@ public class VersionedFlowSynchronizationContext {
         return assetManager;
     }
 
+    public StateManagerProvider getStateManagerProvider() {
+        return stateManagerProvider;
+    }
+
+    public int getLocalNodeOrdinal() {
+        return localNodeOrdinal;
+    }
+
+    public int getConnectedNodeCount() {
+        return connectedNodeCount;
+    }
+
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
         private FlowManager flowManager;
@@ -110,6 +129,9 @@ public class VersionedFlowSynchronizationContext {
         private Function<ProcessorNode, ProcessContext> processContextFactory;
         private Function<ComponentNode, ConfigurationContext> configurationContextFactory;
         private AssetManager assetManager;
+        private StateManagerProvider stateManagerProvider;
+        private int localNodeOrdinal = -1;
+        private int connectedNodeCount = -1;
 
         public Builder componentIdGenerator(final ComponentIdGenerator componentIdGenerator) {
             this.componentIdGenerator = componentIdGenerator;
@@ -158,6 +180,21 @@ public class VersionedFlowSynchronizationContext {
 
         public Builder assetManager(final AssetManager assetManager) {
             this.assetManager = assetManager;
+            return this;
+        }
+
+        public Builder stateManagerProvider(final StateManagerProvider stateManagerProvider) {
+            this.stateManagerProvider = stateManagerProvider;
+            return this;
+        }
+
+        public Builder localNodeOrdinal(final int localNodeOrdinal) {
+            this.localNodeOrdinal = localNodeOrdinal;
+            return this;
+        }
+
+        public Builder connectedNodeCount(final int connectedNodeCount) {
+            this.connectedNodeCount = connectedNodeCount;
             return this;
         }
 
