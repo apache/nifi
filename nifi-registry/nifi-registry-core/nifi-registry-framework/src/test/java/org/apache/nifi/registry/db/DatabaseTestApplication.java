@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.db;
 
+import org.apache.nifi.registry.cluster.LeaderElectionManager;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.mockito.Mockito;
 import org.springframework.boot.SpringApplication;
@@ -31,13 +32,18 @@ import org.springframework.context.annotation.FilterType;
  * This class must be in the "db" package in order to find the entities in "db.entity" and repositories in "db.repository".
  *
  * The DataSourceFactory is excluded so that Spring Boot will load an in-memory H2 database.
+ * DataSyncBootstrapper is excluded because it tries to perform ZK-based bootstrap sync on startup,
+ * which is not relevant in the unit-test context.
  */
 @SpringBootApplication
 @ComponentScan(
         excludeFilters = {
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
-                        value = DataSourceFactory.class)
+                        value = DataSourceFactory.class),
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        value = DataSyncBootstrapper.class)
         })
 public class DatabaseTestApplication {
 
@@ -48,6 +54,11 @@ public class DatabaseTestApplication {
     @Bean
     public NiFiRegistryProperties createNiFiRegistryProperties() {
         return Mockito.mock(NiFiRegistryProperties.class);
+    }
+
+    @Bean
+    public LeaderElectionManager createLeaderElectionManager() {
+        return Mockito.mock(LeaderElectionManager.class);
     }
 
 }

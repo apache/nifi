@@ -23,11 +23,6 @@
     <artifactId>nifi-framework-zookeeper-bundle</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <zookeeper.version>3.9.5</zookeeper.version>
-        <curator.version>5.9.0</curator.version>
-    </properties>
-
     <modules>
         <module>nifi-framework-cluster-zookeeper</module>
         <module>nifi-framework-zookeeper-leader-election</module>

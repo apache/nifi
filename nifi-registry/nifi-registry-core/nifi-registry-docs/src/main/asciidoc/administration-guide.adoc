@@ -1217,6 +1217,112 @@ providing 2 total locations, including `nifi.registry.extension.dir.1`.
 |`nifi.registry.kerberos.spengo.authentication.expiration`|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
 |====
 
+[[maintenance_mode]]
+=== Maintenance Mode
+
+NiFi Registry exposes a runtime maintenance mode toggle via the Spring Boot Actuator endpoint `/nifi-registry/actuator/maintenance`.
+When enabled, all mutating HTTP methods (`POST`, `PUT`, `PATCH`, `DELETE`) to the NiFi Registry API are rejected immediately with
+`503 Service Unavailable` and a `Retry-After: 60` header.  Read operations (`GET`, `HEAD`) continue to be served normally.
+
+Maintenance mode is *not* persisted.  It resets to disabled whenever the process restarts.
+
+.Enabling maintenance mode
+----
+curl -X POST https://localhost:18443/nifi-registry/actuator/maintenance \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+----
+
+.Checking maintenance mode state
+----
+curl https://localhost:18443/nifi-registry/actuator/maintenance
+# → {"enabled":true}
+
+curl https://localhost:18443/nifi-registry/actuator/health
+# → includes "maintenanceMode": true in the health detail
+----
+
+.Re-enabling writes after backup
+----
+curl -X POST https://localhost:18443/nifi-registry/actuator/maintenance \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+----
+
+NOTE: The `/actuator` endpoints are secured by the same authorization policy as the rest of the Registry API.
+Only principals with `READ` or `WRITE` access to the `Actuator` resource are permitted to call them.
+
+[[cluster_properties]]
+=== Cluster Properties
+
+These properties control active-active clustering.  When clustering is enabled, multiple Registry nodes share a single
+external database and use the `CACHE_VERSION` table to keep their in-memory authorization caches coherent.
+
+IMPORTANT: Active-active clustering requires an external database (PostgreSQL or MySQL).  The embedded H2 database is
+not suitable for multi-node deployments because it does not support concurrent access from separate JVM processes.
+All nodes must also be configured to use the database-backed flow persistence provider and the database-backed
+user/group and access-policy authorizers (see `providers.xml` and `authorizers.xml`).
+
+|====
+|*Property*|*Description*
+|`nifi.registry.cluster.enabled`|Set to `true` to activate cluster mode.  When `false` (the default) the
+`CacheRefreshPoller` background thread does not start and no cluster-related database tables are read.
+|`nifi.registry.cluster.node.identifier`|Optional human-readable label for this node. Used in cluster leader-election
+records (stored in the `CLUSTER_LEADER` table) and included in log messages to make it easier to identify which node
+generated a log entry. When blank, the JVM hostname is used.
+|`nifi.registry.cluster.cache.refresh.interval.ms`|Interval, in milliseconds, at which each node polls the
+`CACHE_VERSION` table in the shared database to check whether another node has mutated authorization data.
+When a version increment is detected the node reloads the affected in-memory cache from the database.
+The default value is `15000` (15 seconds).  Reduce this value to shorten the maximum staleness window at the
+cost of more frequent database reads.
+|====
+
+.Minimum required configuration for a two-node cluster
+----
+# nifi-registry.properties on every node
+nifi.registry.cluster.enabled=true
+nifi.registry.cluster.node.identifier=node-1   # change per node
+nifi.registry.cluster.cache.refresh.interval.ms=15000
+
+# shared external database (same on all nodes)
+nifi.registry.db.url=jdbc:postgresql://pg-host:5432/nifi_registry
+nifi.registry.db.driver.class=org.postgresql.Driver
+nifi.registry.db.username=nifireg
+nifi.registry.db.password=<password>
+----
+
+NOTE: Place the PostgreSQL or MySQL JDBC driver JAR in the `lib` directory on every Registry node, or set
+`nifi.registry.db.driver.directory` to the directory containing the driver.
+
+[[leader_election]]
+=== Leader Election
+
+When cluster mode is enabled, exactly one node at a time is designated the *leader* via a TTL-based lease
+stored in the `CLUSTER_LEADER` database table.  Leadership is used to coordinate tasks that must run on
+exactly one node — most notably, delivering <<Event Hooks,event hook>> notifications from the durable
+`REGISTRY_EVENT` log.
+
+[options="header,footer"]
+|====
+|*Parameter*|*Value*|*Description*
+|Lease duration|30 seconds|How long a node's leader status is valid before it must be renewed.
+|Heartbeat interval|10 seconds|How often each node attempts to renew (if leader) or claim (if follower) the lease.
+|====
+
+The election algorithm runs on every heartbeat:
+
+. *Renew* — if this node already owns the `CLUSTER_LEADER` row, update `EXPIRES_AT` and stay leader.
+. *Claim* — if the lease has expired (previous leader died), take ownership and become leader.
+. *Bootstrap* — if no row exists yet (first node to start), insert the row and become leader.
+. *Follow* — if another node holds a valid lease, remain a follower this cycle.
+
+If the current leader node stops sending heartbeats, any follower node will claim the lease within one
+lease-duration window (30 seconds by default) and resume leader duties automatically.  There is no manual
+failover step required.
+
+NOTE: Leader election and event-hook delivery require cluster mode (`nifi.registry.cluster.enabled=true`).
+In standalone mode these features are inactive and event hooks are delivered in-process as before.
+
 == Metadata Database
 
 The metadata database maintains the knowledge of which buckets exist, which versioned items belong to which buckets, as well as the version history for each item.
@@ -1606,6 +1712,23 @@ Qualified class name: `org.apache.nifi.registry.aws.S3BundlePersistenceProvider`
 == Event Hooks
 Event hooks are an integration point that allows for custom code to to be triggered when NiFi Registry application events occur.
 
+[[cluster_event_hooks]]
+=== Event Hook Delivery in Cluster Mode
+
+In standalone mode (the default), events are queued in memory on the node that received the request and
+delivered to hook providers on that same node.
+
+When `nifi.registry.cluster.enabled=true`, event delivery changes to a durable, exactly-once model:
+
+* *Any* node that handles a write request persists the event to the `REGISTRY_EVENT` database table.
+* Only the current <<leader_election,leader>> node polls for unprocessed events (every 5 seconds) and
+  delivers them to the configured hook providers.
+* Once delivered, each row is marked `PROCESSED = TRUE`.  Processed rows older than 7 days are
+  automatically purged by the leader.
+
+This guarantees that every event fires exactly once even if the node that handled the original request
+crashes before delivery completes, or if cluster membership changes mid-operation.
+
 [options="header,footer"]
 |==================================================================================================================================================
 | Event Name | Description
@@ -1736,9 +1859,33 @@ In order to prevent data loss it is important to consider backup and recovery op
  - Persistence providers
  - Configuration files
 
+=== Online Backup with Maintenance Mode
+
+Stopping NiFi Registry to take a consistent backup is disruptive to connected NiFi instances.
+The <<maintenance_mode,Maintenance Mode>> actuator endpoint provides a zero-downtime alternative:
+
+1. Enable maintenance mode — all write requests are rejected with `503 Service Unavailable` while reads continue uninterrupted.
+2. Take a consistent snapshot of the database and flow storage.
+3. Disable maintenance mode — writes resume immediately.
+
+----
+# 1. Enable maintenance mode
+curl -X POST https://localhost:18443/nifi-registry/actuator/maintenance \
+  -H "Content-Type: application/json" -d '{"enabled": true}'
+
+# 2. Copy the H2 database files / pg_dump / rsync flow storage …
+
+# 3. Re-enable writes
+curl -X POST https://localhost:18443/nifi-registry/actuator/maintenance \
+  -H "Content-Type: application/json" -d '{"enabled": false}'
+----
+
+NOTE: In an active-active cluster, enable maintenance mode on each node before taking the backup.
+Each node's maintenance mode state is independent and must be toggled separately.
+
 === Metadata Database
 
-If using H2, the database file should be backed up periodically to an external location. In order to ensure a proper backup, NiFi Registry should be stopped to ensure no write operations are occurring while copying the file.
+If using H2, the database file should be backed up periodically to an external location. In order to ensure a proper backup, NiFi Registry should be stopped to ensure no write operations are occurring while copying the file, or <<maintenance_mode,Maintenance Mode>> can be used to drain writes without stopping the process.
 
 If using Postgres, backups may be taken on the Postgres database, or Postgres may be configured for high availability such that there is a failover or backup instance.
 

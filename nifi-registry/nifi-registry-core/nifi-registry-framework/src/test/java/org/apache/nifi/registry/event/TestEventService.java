@@ -36,12 +36,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestEventService {
 
     private CapturingEventHook eventHook;
-    private EventService eventService;
+    private StandardEventService eventService;
 
     @BeforeEach
     public void setup() {
         eventHook = new CapturingEventHook();
-        eventService = new EventService(Collections.singletonList(eventHook));
+        eventService = new StandardEventService(Collections.singletonList(eventHook));
         eventService.postConstruct();
     }
 

@@ -61,6 +61,8 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
     private DataSource dataSource;
     private IdentityMapper identityMapper;
+    private CacheRefreshPoller cacheRefreshPoller;
+    private CacheInvalidator cacheInvalidator;
 
     private JdbcTemplate jdbcTemplate;
 
@@ -76,10 +78,28 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         this.identityMapper = identityMapper;
     }
 
+    @AuthorizerContext
+    public void setCacheRefreshPoller(final CacheRefreshPoller cacheRefreshPoller) {
+        this.cacheRefreshPoller = cacheRefreshPoller;
+    }
+
+    @AuthorizerContext
+    public void setCacheInvalidator(final CacheInvalidator cacheInvalidator) {
+        this.cacheInvalidator = cacheInvalidator;
+    }
+
     @Override
     protected void doInitialize(AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         super.doInitialize(initializationContext);
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        // Database mode: register with the poller so it can trigger refreshes on version change.
+        if (cacheRefreshPoller != null) {
+            cacheRefreshPoller.setAccessPolicyProvider(this);
+        }
+        // ZooKeeper mode: set up a persistent watch so cache is refreshed on remote writes.
+        if (cacheInvalidator != null) {
+            cacheInvalidator.watchDomain(CacheRefreshPoller.DOMAIN_ACCESS_POLICIES, this::refreshAccessPolicyHolder);
+        }
     }
 
     @Override
@@ -174,6 +194,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         createPolicyUserAndGroups(accessPolicy);
 
         refreshAccessPolicyHolder();
+        bumpCacheVersion();
 
         return accessPolicy;
     }
@@ -200,6 +221,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         createPolicyUserAndGroups(accessPolicy);
 
         refreshAccessPolicyHolder();
+        bumpCacheVersion();
 
         return accessPolicy;
     }
@@ -270,6 +292,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         }
 
         refreshAccessPolicyHolder();
+        bumpCacheVersion();
 
         return accessPolicy;
     }
@@ -292,12 +315,14 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         final String policyGroupSql = "INSERT INTO APP_POLICY_GROUP(POLICY_IDENTIFIER, GROUP_IDENTIFIER) VALUES (?, ?)";
         jdbcTemplate.update(policyGroupSql, policyIdentifier, groupIdentifier);
         refreshAccessPolicyHolder();
+        bumpCacheVersion();
     }
 
     protected void insertPolicyUser(final String policyIdentifier, final String userIdentifier) {
         final String policyUserSql = "INSERT INTO APP_POLICY_USER(POLICY_IDENTIFIER, USER_IDENTIFIER) VALUES (?, ?)";
         jdbcTemplate.update(policyUserSql, policyIdentifier, userIdentifier);
         refreshAccessPolicyHolder();
+        bumpCacheVersion();
     }
 
     protected DatabaseAccessPolicy getDatabaseAcessPolicy(final String policyIdentifier) {
@@ -365,9 +390,15 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         }
     }
 
-    private synchronized void refreshAccessPolicyHolder() {
+    synchronized void refreshAccessPolicyHolder() {
         final Set<AccessPolicy> allPolicies = getDatabaseAccessPolicies();
         this.accessPoliciesHolder.set(new DatabaseAccessPolicyHolder(allPolicies));
+    }
+
+    private void bumpCacheVersion() {
+        if (cacheInvalidator != null) {
+            cacheInvalidator.notifyChanged(CacheRefreshPoller.DOMAIN_ACCESS_POLICIES);
+        }
     }
 
     //-- util methods

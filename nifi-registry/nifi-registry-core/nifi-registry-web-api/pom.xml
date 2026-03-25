@@ -40,6 +40,14 @@
         </resources>
         <plugins>
             <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
@@ -221,6 +229,22 @@
                     <artifactId>spring-security-core</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- Must be marked provided in order to produce a correct WAR -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Undertow is used as the embedded servlet container for the Spring Boot management
+             child context when management.server.port is set to a separate port.
+             Tomcat cannot be used here because its JULI logging initializer crashes in the
+             external Jetty classloader environment. Undertow has no such dependency. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-undertow</artifactId>
+            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

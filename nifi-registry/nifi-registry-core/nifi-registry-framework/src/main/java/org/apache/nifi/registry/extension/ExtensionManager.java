@@ -19,6 +19,7 @@ package org.apache.nifi.registry.extension;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
+import org.apache.nifi.registry.cluster.LeaderElectionManager;
 import org.apache.nifi.registry.hook.EventHookProvider;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.authentication.IdentityProvider;
@@ -65,14 +66,26 @@ public class ExtensionManager {
     private final Map<String, ExtensionClassLoader> classLoaderMap = new HashMap<>();
     private final AtomicBoolean loaded = new AtomicBoolean(false);
 
+    // Optional: injected only when cluster mode is enabled; used for logging.
+    private LeaderElectionManager leaderElectionManager;
+
     @Autowired
     public ExtensionManager(final NiFiRegistryProperties properties) {
         this.properties = properties;
     }
 
+    @Autowired(required = false)
+    public void setLeaderElectionManager(final LeaderElectionManager leaderElectionManager) {
+        this.leaderElectionManager = leaderElectionManager;
+    }
+
     @PostConstruct
     public synchronized void discoverExtensions() {
         if (!loaded.get()) {
+            if (leaderElectionManager != null) {
+                LOGGER.info("Discovering extensions on cluster node (isLeader={}).", leaderElectionManager.isLeader());
+            }
+
             // get the list of class loaders to consider
             final List<ExtensionClassLoader> classLoaders = getClassLoaders();
 

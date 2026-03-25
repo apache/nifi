@@ -59,6 +59,8 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     private DataSource dataSource;
     private IdentityMapper identityMapper;
+    private CacheRefreshPoller cacheRefreshPoller;
+    private CacheInvalidator cacheInvalidator;
 
     private JdbcTemplate jdbcTemplate;
 
@@ -74,9 +76,27 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         this.identityMapper = identityMapper;
     }
 
+    @AuthorizerContext
+    public void setCacheRefreshPoller(final CacheRefreshPoller cacheRefreshPoller) {
+        this.cacheRefreshPoller = cacheRefreshPoller;
+    }
+
+    @AuthorizerContext
+    public void setCacheInvalidator(final CacheInvalidator cacheInvalidator) {
+        this.cacheInvalidator = cacheInvalidator;
+    }
+
     @Override
     public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        // Database mode: register with the poller so it can trigger refreshes on version change.
+        if (cacheRefreshPoller != null) {
+            cacheRefreshPoller.setUserGroupProvider(this);
+        }
+        // ZooKeeper mode: set up a persistent watch so cache is refreshed on remote writes.
+        if (cacheInvalidator != null) {
+            cacheInvalidator.watchDomain(CacheRefreshPoller.DOMAIN_USER_GROUPS, this::refreshUserGroupHolder);
+        }
     }
 
     @Override
@@ -131,6 +151,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         jdbcTemplate.update(sql, user.getIdentifier(), user.getIdentity());
 
         refreshUserGroupHolder();
+        bumpCacheVersion();
 
         return user;
     }
@@ -149,6 +170,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         }
 
         refreshUserGroupHolder();
+        bumpCacheVersion();
 
         return user;
     }
@@ -215,6 +237,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         }
 
         refreshUserGroupHolder();
+        bumpCacheVersion();
 
         return user;
     }
@@ -240,6 +263,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         createUserGroups(group);
 
         refreshUserGroupHolder();
+        bumpCacheVersion();
 
         return group;
     }
@@ -265,6 +289,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         createUserGroups(group);
 
         refreshUserGroupHolder();
+        bumpCacheVersion();
 
         return group;
     }
@@ -314,6 +339,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         }
 
         refreshUserGroupHolder();
+        bumpCacheVersion();
 
         return group;
     }
@@ -335,10 +361,16 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
                 .build();
     }
 
-    private synchronized void refreshUserGroupHolder() {
+    synchronized void refreshUserGroupHolder() {
         final Set<User> allUsers = getDatabaseUsers();
         final Set<Group> allGroups = getDatabaseGroups();
         this.userGroupHolder.set(new DatabaseUserGroupHolder(allUsers, allGroups));
+    }
+
+    private void bumpCacheVersion() {
+        if (cacheInvalidator != null) {
+            cacheInvalidator.notifyChanged(CacheRefreshPoller.DOMAIN_USER_GROUPS);
+        }
     }
 
     //-- util methods

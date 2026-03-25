@@ -122,6 +122,43 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     // Revision Management Properties
     public static final String REVISIONS_ENABLED = "nifi.registry.revisions.enabled";
 
+    // Cluster properties
+    public static final String CLUSTER_ENABLED = "nifi.registry.cluster.enabled";
+    public static final String CLUSTER_NODE_IDENTIFIER = "nifi.registry.cluster.node.identifier";
+    public static final String CLUSTER_CACHE_REFRESH_INTERVAL_MS = "nifi.registry.cluster.cache.refresh.interval.ms";
+
+    // Cluster coordination mode: "database" (default) or "zookeeper"
+    public static final String CLUSTER_COORDINATION = "nifi.registry.cluster.coordination";
+
+    // This node's own HTTP base URL used to register in ZooKeeper and for inter-node replication.
+    // Example: https://node1:18443
+    public static final String CLUSTER_NODE_ADDRESS = "nifi.registry.cluster.node.address";
+
+    // Shared secret required in X-Registry-Internal-Auth header for internal cluster endpoints.
+    public static final String CLUSTER_NODE_INTERNAL_AUTH_TOKEN = "nifi.registry.cluster.node.internal.auth.token";
+    public static final String CLUSTER_COORDINATION_DATABASE = "database";
+    public static final String CLUSTER_COORDINATION_ZOOKEEPER = "zookeeper";
+
+    // ZooKeeper properties (used when cluster.coordination=zookeeper)
+    public static final String ZOOKEEPER_CONNECT_STRING = "nifi.registry.zookeeper.connect.string";
+    public static final String ZOOKEEPER_SESSION_TIMEOUT_MS = "nifi.registry.zookeeper.session.timeout.ms";
+    public static final String ZOOKEEPER_CONNECT_TIMEOUT_MS = "nifi.registry.zookeeper.connect.timeout.ms";
+    public static final String ZOOKEEPER_ROOT_NODE = "nifi.registry.zookeeper.root.node";
+
+    // ZooKeeper TLS / mTLS properties
+    public static final String ZOOKEEPER_CLIENT_SECURE = "nifi.registry.zookeeper.client.secure";
+    public static final String ZOOKEEPER_SECURITY_KEYSTORE = "nifi.registry.zookeeper.security.keystore";
+    public static final String ZOOKEEPER_SECURITY_KEYSTORE_TYPE = "nifi.registry.zookeeper.security.keystoreType";
+    public static final String ZOOKEEPER_SECURITY_KEYSTORE_PASSWD = "nifi.registry.zookeeper.security.keystorePasswd";
+    public static final String ZOOKEEPER_SECURITY_TRUSTSTORE = "nifi.registry.zookeeper.security.truststore";
+    public static final String ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE = "nifi.registry.zookeeper.security.truststoreType";
+    public static final String ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD = "nifi.registry.zookeeper.security.truststorePasswd";
+
+    // ZooKeeper defaults
+    public static final long DEFAULT_ZOOKEEPER_SESSION_TIMEOUT_MS = 10_000L;
+    public static final long DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT_MS = 5_000L;
+    public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi-registry";
+
     // Defaults
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
     public static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "h2 http/1.1";
@@ -135,6 +172,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
     public static final String DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT = "5 secs";
     public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
+    public static final long DEFAULT_CLUSTER_CACHE_REFRESH_INTERVAL_MS = 15_000L;
 
     public NiFiRegistryProperties() {
         this(Collections.EMPTY_MAP);
@@ -343,6 +381,138 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public boolean areRevisionsEnabled() {
         return Boolean.parseBoolean(getPropertyAsTrimmedString(REVISIONS_ENABLED));
+    }
+
+    public boolean isClusterEnabled() {
+        return Boolean.parseBoolean(getPropertyAsTrimmedString(CLUSTER_ENABLED));
+    }
+
+    public String getClusterNodeIdentifier() {
+        return getPropertyAsTrimmedString(CLUSTER_NODE_IDENTIFIER);
+    }
+
+    public long getClusterCacheRefreshIntervalMs() {
+        final String value = getPropertyAsTrimmedString(CLUSTER_CACHE_REFRESH_INTERVAL_MS);
+        if (StringUtils.isBlank(value)) {
+            return DEFAULT_CLUSTER_CACHE_REFRESH_INTERVAL_MS;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (final NumberFormatException nfe) {
+            throw new IllegalStateException(String.format("%s must be a long integer value.", CLUSTER_CACHE_REFRESH_INTERVAL_MS));
+        }
+    }
+
+    public String getClusterCoordination() {
+        final String value = getPropertyAsTrimmedString(CLUSTER_COORDINATION);
+        return value == null ? CLUSTER_COORDINATION_DATABASE : value;
+    }
+
+    public boolean isZooKeeperCoordination() {
+        return CLUSTER_COORDINATION_ZOOKEEPER.equalsIgnoreCase(getClusterCoordination());
+    }
+
+    public String getZooKeeperConnectString() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_CONNECT_STRING);
+    }
+
+    public long getZooKeeperSessionTimeoutMs() {
+        final String value = getPropertyAsTrimmedString(ZOOKEEPER_SESSION_TIMEOUT_MS);
+        if (StringUtils.isBlank(value)) {
+            return DEFAULT_ZOOKEEPER_SESSION_TIMEOUT_MS;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (final NumberFormatException nfe) {
+            throw new IllegalStateException(ZOOKEEPER_SESSION_TIMEOUT_MS + " must be a long integer value.");
+        }
+    }
+
+    public long getZooKeeperConnectTimeoutMs() {
+        final String value = getPropertyAsTrimmedString(ZOOKEEPER_CONNECT_TIMEOUT_MS);
+        if (StringUtils.isBlank(value)) {
+            return DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT_MS;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (final NumberFormatException nfe) {
+            throw new IllegalStateException(ZOOKEEPER_CONNECT_TIMEOUT_MS + " must be a long integer value.");
+        }
+    }
+
+    public String getZooKeeperRootNode() {
+        final String value = getPropertyAsTrimmedString(ZOOKEEPER_ROOT_NODE);
+        return value == null ? DEFAULT_ZOOKEEPER_ROOT_NODE : value;
+    }
+
+    public boolean isZooKeeperClientSecure() {
+        return Boolean.parseBoolean(getPropertyAsTrimmedString(ZOOKEEPER_CLIENT_SECURE));
+    }
+
+    public String getZooKeeperSecurityKeystore() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_SECURITY_KEYSTORE);
+    }
+
+    public String getZooKeeperSecurityKeystoreType() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_SECURITY_KEYSTORE_TYPE);
+    }
+
+    public String getZooKeeperSecurityKeystorePasswd() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_SECURITY_KEYSTORE_PASSWD);
+    }
+
+    public String getZooKeeperSecurityTruststore() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_SECURITY_TRUSTSTORE);
+    }
+
+    public String getZooKeeperSecurityTruststoreType() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE);
+    }
+
+    public String getZooKeeperSecurityTruststorePasswd() {
+        return getPropertyAsTrimmedString(ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD);
+    }
+
+    /**
+     * Returns the HTTP base URL this node registers in ZooKeeper for inter-node
+     * write replication (e.g. {@code http://node1:61080}).
+     *
+     * <p>If {@code nifi.registry.cluster.node.address} is explicitly set that
+     * value is used as-is. Otherwise the URL is derived automatically from the
+     * existing {@code nifi.registry.web.http.*} / {@code nifi.registry.web.https.*}
+     * properties — HTTPS takes precedence over HTTP when both are configured.
+     *
+     * <p>This fallback means Ambari operators do not need to configure an extra
+     * property: the per-host HTTP host and port that Ambari already manages are
+     * sufficient.
+     *
+     * @return base URL string, or {@code null} if none can be determined
+     */
+    public String getClusterNodeAddress() {
+        final String explicit = getPropertyAsTrimmedString(CLUSTER_NODE_ADDRESS);
+        if (!StringUtils.isBlank(explicit)) {
+            return explicit;
+        }
+
+        // Prefer HTTPS when the node has TLS configured.
+        final String httpsHost = getProperty(WEB_HTTPS_HOST);
+        final Integer httpsPort = getPropertyAsInteger(WEB_HTTPS_PORT);
+        if (!StringUtils.isBlank(httpsHost) && httpsPort != null && httpsPort > 0) {
+            return "https://" + httpsHost.trim() + ":" + httpsPort;
+        }
+
+        // Fall back to plain HTTP.
+        final String httpHost = getProperty(WEB_HTTP_HOST);
+        final Integer httpPort = getPropertyAsInteger(WEB_HTTP_PORT);
+        if (!StringUtils.isBlank(httpHost) && httpPort != null && httpPort > 0) {
+            return "http://" + httpHost.trim() + ":" + httpPort;
+        }
+
+        return null;
+    }
+
+    public String getClusterNodeInternalAuthToken() {
+        return getPropertyAsTrimmedString(CLUSTER_NODE_INTERNAL_AUTH_TOKEN);
     }
 
     // Helper functions for common ways of interpreting property values
