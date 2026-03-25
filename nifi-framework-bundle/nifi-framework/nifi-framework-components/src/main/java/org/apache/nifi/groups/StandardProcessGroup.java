@@ -64,9 +64,13 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer;
 import org.apache.nifi.flow.synchronization.VersionedFlowSynchronizationContext;
 import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
@@ -2633,6 +2637,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                     }
                 });
 
+            // When an ancestor controller service is removed, any descendant versioned PG whose
+            // committed snapshot referenced that service needs its cached differences invalidated,
+            // even if no component currently references the deleted service (e.g., the processor
+            // was already switched to a different service before the old one was deleted).
+            findAllProcessGroups(pg -> pg.getVersionControlInformation() != null)
+                .forEach(ProcessGroup::onComponentModified);
+
             scheduler.submitFrameworkTask(() -> stateManagerProvider.onComponentRemoved(service.getIdentifier()));
 
             removed = true;
@@ -3758,6 +3769,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final FlowSnapshotContainer registrySnapshotContainer = flowRegistry.getFlowContents(
                         FlowRegistryClientContextFactory.getAnonymousContext(), flowVersionLocation, false);
                 final RegisteredFlowSnapshot registrySnapshot = registrySnapshotContainer.getFlowSnapshot();
+                resolveExternalServiceReferences(registrySnapshot);
                 final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
                 vci.setFlowSnapshot(registryFlow);
             } catch (final IOException | FlowRegistryException e) {
@@ -3911,26 +3923,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    @Override
-    public Set<String> getAncestorServiceIds() {
-        final Set<String> ancestorServiceIds;
-        ProcessGroup parentGroup = getParent();
-
-        if (parentGroup == null) {
-            ancestorServiceIds = Collections.emptySet();
-        } else {
-            // We want to map the Controller Service to its Versioned Component ID, if it has one.
-            // If it does not have one, we want to generate it in the same way that our Flow Mapper does
-            // because this allows us to find the Controller Service when doing a Flow Diff.
-            ancestorServiceIds = parentGroup.getControllerServices(true).stream()
-                .map(cs -> cs.getVersionedComponentId().orElse(
-                    NiFiRegistryFlowMapper.generateVersionedComponentId(cs.getIdentifier())))
-                .collect(Collectors.toSet());
-        }
-
-        return ancestorServiceIds;
-    }
-
     private String generateUuid(final String propposedId, final String destinationGroupId, final String seed) {
         long msb = UUID.nameUUIDFromBytes((propposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
 
@@ -3945,6 +3937,81 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
         LOG.debug("Generating UUID {} from currentId={}, seed={}", uuid, propposedId, seed);
         return uuid.toString();
+    }
+
+    private void resolveExternalServiceReferences(final RegisteredFlowSnapshot snapshot) {
+        final Map<String, ExternalControllerServiceReference> externalRefs = snapshot.getExternalControllerServices();
+        if (externalRefs == null || externalRefs.isEmpty()) {
+            return;
+        }
+
+        final ProcessGroup parentGroup = getParent();
+        if (parentGroup == null) {
+            return;
+        }
+
+        final Map<String, String> serviceNameToVersionedId = new HashMap<>();
+        for (final ControllerServiceNode serviceNode : parentGroup.getControllerServices(true)) {
+            final String versionedId = serviceNode.getVersionedComponentId().orElse(
+                    NiFiRegistryFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
+            serviceNameToVersionedId.put(serviceNode.getName(), versionedId);
+        }
+
+        final Map<String, String> foreignToLocalId = new HashMap<>();
+        for (final Map.Entry<String, ExternalControllerServiceReference> entry : externalRefs.entrySet()) {
+            final String foreignId = entry.getKey();
+            final String serviceName = entry.getValue().getName();
+            final String localId = serviceNameToVersionedId.get(serviceName);
+            if (localId != null && !localId.equals(foreignId)) {
+                foreignToLocalId.put(foreignId, localId);
+            }
+        }
+
+        if (!foreignToLocalId.isEmpty()) {
+            replaceExternalServiceIds(snapshot.getFlowContents(), foreignToLocalId);
+        }
+    }
+
+    private void replaceExternalServiceIds(final VersionedProcessGroup group, final Map<String, String> foreignToLocalId) {
+        if (group.getProcessors() != null) {
+            for (final VersionedProcessor processor : group.getProcessors()) {
+                replaceServicePropertyIds(processor.getProperties(), processor.getPropertyDescriptors(), foreignToLocalId);
+            }
+        }
+
+        if (group.getControllerServices() != null) {
+            for (final VersionedControllerService service : group.getControllerServices()) {
+                replaceServicePropertyIds(service.getProperties(), service.getPropertyDescriptors(), foreignToLocalId);
+            }
+        }
+
+        if (group.getProcessGroups() != null) {
+            for (final VersionedProcessGroup child : group.getProcessGroups()) {
+                replaceExternalServiceIds(child, foreignToLocalId);
+            }
+        }
+    }
+
+    private void replaceServicePropertyIds(final Map<String, String> properties, final Map<String, VersionedPropertyDescriptor> descriptors,
+                                           final Map<String, String> foreignToLocalId) {
+        if (properties == null || descriptors == null) {
+            return;
+        }
+
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String propertyValue = entry.getValue();
+            if (propertyValue == null) {
+                continue;
+            }
+
+            final VersionedPropertyDescriptor descriptor = descriptors.get(entry.getKey());
+            if (descriptor != null && descriptor.getIdentifiesControllerService()) {
+                final String localId = foreignToLocalId.get(propertyValue);
+                if (localId != null) {
+                    entry.setValue(localId);
+                }
+            }
+        }
     }
 
     private Set<FlowDifference> getModifications() {
@@ -3975,7 +4042,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
             final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
-            final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(),
+            final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow,
                 new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
             final FlowComparison comparison = flowComparator.compare();
             final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();

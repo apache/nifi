@@ -319,7 +319,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", versionedExternalFlow.getFlowContents());
 
         final PropertyDecryptor decryptor = options.getPropertyDecryptor();
-        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, group.getAncestorServiceIds(),
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow,
             new StaticDifferenceDescriptor(), decryptor::decrypt, options.getComponentComparisonIdLookup(), FlowComparatorVersionedStrategy.DEEP);
         final FlowComparison flowComparison = flowComparator.compare();
 

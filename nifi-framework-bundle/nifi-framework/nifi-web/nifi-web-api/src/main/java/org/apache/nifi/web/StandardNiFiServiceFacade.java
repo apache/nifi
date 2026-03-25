@@ -5546,7 +5546,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowComparator flowComparator = new StandardFlowComparator(
                 new StandardComparableDataFlow("Flow A", flowContentsA),
                 new StandardComparableDataFlow("Flow B", flowContentsB),
-                Collections.emptySet(), // Replacement of an external ControllerService is recognized as property change
                 new ConciseEvolvingDifferenceDescriptor(),
                 Function.identity(),
                 VersionedComponent::getIdentifier,
@@ -5626,6 +5625,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion());
             final FlowSnapshotContainer flowSnapshotContainer = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()),
                     flowVersionLocation, true);
+
+            // Resolve external controller service references by name so that cross-instance
+            // ID differences do not appear as phantom local modifications.
+            final String parentGroupId = processGroup.getParent() == null ? processGroup.getIdentifier() : processGroup.getParent().getIdentifier();
+            controllerFacade.getControllerServiceResolver().resolveInheritedControllerServices(flowSnapshotContainer, parentGroupId, NiFiUserUtils.getNiFiUser());
+
             final RegisteredFlowSnapshot versionedFlowSnapshot = flowSnapshotContainer.getFlowSnapshot();
             registryGroup = versionedFlowSnapshot.getFlowContents();
         } catch (final IOException | FlowRegistryException e) {
@@ -5638,8 +5643,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
-        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
-        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(),
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, new ConciseEvolvingDifferenceDescriptor(),
                 Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison flowComparison = flowComparator.compare();
 
@@ -5802,8 +5806,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", updatedSnapshot.getFlowContents());
 
-        final Set<String> ancestorServiceIds = group.getAncestorServiceIds();
-        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorServiceIds, new StaticDifferenceDescriptor(),
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, new StaticDifferenceDescriptor(),
                 Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
         final FlowComparison comparison = flowComparator.compare();
 

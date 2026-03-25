@@ -70,18 +70,16 @@ public class StandardFlowComparator implements FlowComparator {
 
     private final ComparableDataFlow flowA;
     private final ComparableDataFlow flowB;
-    private final Set<String> externallyAccessibleServiceIds;
     private final DifferenceDescriptor differenceDescriptor;
     private final Function<String, String> propertyDecryptor;
     private final Function<VersionedComponent, String> idLookup;
     private final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy;
 
-    public StandardFlowComparator(final ComparableDataFlow flowA, final ComparableDataFlow flowB, final Set<String> externallyAccessibleServiceIds,
+    public StandardFlowComparator(final ComparableDataFlow flowA, final ComparableDataFlow flowB,
                                   final DifferenceDescriptor differenceDescriptor, final Function<String, String> propertyDecryptor,
                                   final Function<VersionedComponent, String> idLookup, final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy) {
         this.flowA = flowA;
         this.flowB = flowB;
-        this.externallyAccessibleServiceIds = externallyAccessibleServiceIds;
         this.differenceDescriptor = differenceDescriptor;
         this.propertyDecryptor = propertyDecryptor;
         this.idLookup = idLookup;
@@ -427,21 +425,6 @@ public class StandardFlowComparator implements FlowComparator {
                     differences.add(difference(DifferenceType.PROPERTY_REMOVED, componentA, componentB, key, displayName, valueA, valueB));
                 }
             } else if (valueA != null && !valueA.equals(valueB)) {
-                // If the property in Flow A references a Controller Service that is not available in the flow
-                // and the property in Flow B references a Controller Service that is available in its environment
-                // but not part of the Versioned Flow, then we do not want to consider this to be a Flow Difference.
-                // This is typically the case when a flow is versioned in one instance, referencing an external Controller Service,
-                // and then imported into another NiFi instance. When imported, the property does not point to any existing Controller
-                // Service, and the user must then point the property an existing Controller Service. We don't want to consider the
-                // flow as having changed, since it is an environment-specific change (similar to how we handle variables).
-                if (descriptor != null && descriptor.getIdentifiesControllerService()) {
-                    final boolean accessibleA = externallyAccessibleServiceIds.contains(valueA);
-                    final boolean accessibleB = externallyAccessibleServiceIds.contains(valueB);
-                    if (!accessibleA && accessibleB) {
-                        return;
-                    }
-                }
-
                 final boolean aParameterized = isParameterReference(valueA);
                 final boolean bParameterized = isParameterReference(valueB);
                 if (aParameterized && !bParameterized) {
