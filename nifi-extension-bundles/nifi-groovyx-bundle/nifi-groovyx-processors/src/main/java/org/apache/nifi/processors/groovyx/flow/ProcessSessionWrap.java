@@ -224,7 +224,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
                 session.transfer(f);
             }
         }
-        session.commit();
+        session.commitAsync();
         onClear();
     }
     /*============================================= NATIVE METHODS ================================================*/
