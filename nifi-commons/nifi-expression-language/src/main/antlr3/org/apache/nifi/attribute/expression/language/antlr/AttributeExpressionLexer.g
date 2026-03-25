@@ -173,6 +173,8 @@ BASE64_DECODE : 'base64Decode';
 GET_STATE_VALUE: 'getStateValue';
 EVALUATE_EL_STRING: 'evaluateELString';
 IS_JSON: 'isJson';
+IS_VALID_INSTANT: 'isValidInstant';
+IS_VALID_DATE: 'isValidDate';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
