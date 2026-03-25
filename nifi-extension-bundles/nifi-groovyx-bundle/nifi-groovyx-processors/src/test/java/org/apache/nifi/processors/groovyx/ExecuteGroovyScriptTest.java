@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.embedded.database.EmbeddedDatabaseConnectionService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.groovyx.flow.ProcessSessionWrap;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -564,6 +565,31 @@ public class ExecuteGroovyScriptTest {
                 "assert context.getProperties().find {k,v -> k.name == 'password'}.key.sensitive");
         runner.assertValid();
         runner.run();
+    }
+
+    @Test void invalidExpressionLanguageInDynamicProperty() {
+        runner.setProperty("myProperty", "${myparam:isempty()}");
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "assert true == true");
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, "transfer to failure");
+        runner.assertNotValid();
+    }
+
+    @Test void validExpressionLanguageInDynamicPropertyWithVariableValueWhichCannotBeUsedWithELExpression() {
+        runner.setProperty("myProperty", "${test:toDate('yyyy-MM-dd')}");
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "assert true == true");
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, "transfer to failure");
+        runner.assertValid();
+
+        runner.setEnvironmentVariableValue("test", "cannot be converted to a date");
+        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_FAILURE.getName(), 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_FAILURE).getFirst();
+        flowFile.assertAttributeExists(ProcessSessionWrap.ERROR_MESSAGE);
+        flowFile.assertAttributeExists(ProcessSessionWrap.ERROR_STACKTRACE);
+        assertTrue(flowFile.getAttribute(ProcessSessionWrap.ERROR_MESSAGE).contains("IllegalAttributeException"));
     }
 
     @Test
