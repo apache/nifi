@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BooleanSupplier;
@@ -56,6 +57,17 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
                                       final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
 
         Set<AsyncLoadBalanceClient> clients = clientMap.get(nodeId);
+        if (clients != null && clients.isEmpty()) {
+            logger.debug("Existing client set for {} is empty; will recreate", nodeId);
+            clientMap.remove(nodeId);
+            clients = null;
+        } else if (clients != null && isLoadBalanceAddressChanged(clients, nodeId)) {
+            logger.info("Load balance address for {} changed; replacing existing clients", nodeId);
+            clients.forEach(AsyncLoadBalanceClient::stop);
+            allClients.removeAll(clients);
+            clientMap.remove(nodeId);
+            clients = null;
+        }
         if (clients == null) {
             clients = registerClients(nodeId);
         }
@@ -87,6 +99,13 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
         }
 
         logger.debug("Un-registered Connection with ID {} so that it will no longer send data to Node {}; {} clients were removed", connectionId, nodeId, toRemove.size());
+    }
+
+    private boolean isLoadBalanceAddressChanged(final Set<AsyncLoadBalanceClient> clients, final NodeIdentifier nodeId) {
+        final AsyncLoadBalanceClient existingClient = clients.iterator().next();
+        final NodeIdentifier existingNodeId = existingClient.getNodeIdentifier();
+        return existingNodeId.getLoadBalancePort() != nodeId.getLoadBalancePort()
+                || !Objects.equals(existingNodeId.getLoadBalanceAddress(), nodeId.getLoadBalanceAddress());
     }
 
     private Set<AsyncLoadBalanceClient> registerClients(final NodeIdentifier nodeId) {

@@ -444,6 +444,82 @@ public class TestSocketLoadBalancedFlowFileQueue {
     }
 
     @Test
+    public void testOnNodeAddedWithChangedLoadBalancePortUpdatesPartition() {
+        final NodeIdentifier originalNodeId = nodeIds.get(1);
+        final int originalLbPort = originalNodeId.getLoadBalancePort();
+
+        NodeIdentifier partitionNodeId = findPartitionNodeIdByUuid(originalNodeId.getId());
+        assertNotNull(partitionNodeId);
+        assertEquals(originalLbPort, partitionNodeId.getLoadBalancePort());
+
+        final int newLbPort = nodePort++;
+        final NodeIdentifier updatedNodeId = new NodeIdentifier(
+            originalNodeId.getId(),
+            originalNodeId.getApiAddress(), originalNodeId.getApiPort(),
+            originalNodeId.getSocketAddress(), originalNodeId.getSocketPort(),
+            originalNodeId.getLoadBalanceAddress(), newLbPort,
+            originalNodeId.getSiteToSiteAddress(), originalNodeId.getSiteToSitePort(),
+            originalNodeId.getSiteToSiteHttpApiPort(), originalNodeId.isSiteToSiteSecure(),
+            Collections.emptySet()
+        );
+
+        clusterTopologyEventListener.onNodeStateChange(updatedNodeId, NodeConnectionState.CONNECTED);
+
+        partitionNodeId = findPartitionNodeIdByUuid(originalNodeId.getId());
+        assertNotNull(partitionNodeId);
+        assertEquals(newLbPort, partitionNodeId.getLoadBalancePort());
+    }
+
+    @Test
+    public void testOnNodeAddedWithSameLoadBalancePortDoesNotRecreatePartition() {
+        final NodeIdentifier originalNodeId = nodeIds.get(1);
+        final QueuePartition originalPartition = findPartitionByUuid(originalNodeId.getId());
+        assertNotNull(originalPartition);
+
+        clusterTopologyEventListener.onNodeStateChange(originalNodeId, NodeConnectionState.CONNECTED);
+
+        final QueuePartition partitionAfter = findPartitionByUuid(originalNodeId.getId());
+        assertSame(originalPartition, partitionAfter);
+    }
+
+    @Test
+    public void testOnNodeAddedWithChangedLoadBalanceAddressUpdatesPartition() {
+        final NodeIdentifier originalNodeId = nodeIds.get(1);
+
+        final NodeIdentifier updatedNodeId = new NodeIdentifier(
+            originalNodeId.getId(),
+            originalNodeId.getApiAddress(), originalNodeId.getApiPort(),
+            originalNodeId.getSocketAddress(), originalNodeId.getSocketPort(),
+            "remotehost", originalNodeId.getLoadBalancePort(),
+            originalNodeId.getSiteToSiteAddress(), originalNodeId.getSiteToSitePort(),
+            originalNodeId.getSiteToSiteHttpApiPort(), originalNodeId.isSiteToSiteSecure(),
+            Collections.emptySet()
+        );
+
+        clusterTopologyEventListener.onNodeStateChange(updatedNodeId, NodeConnectionState.CONNECTED);
+
+        final NodeIdentifier partitionNodeId = findPartitionNodeIdByUuid(originalNodeId.getId());
+        assertNotNull(partitionNodeId);
+        assertEquals("remotehost", partitionNodeId.getLoadBalanceAddress());
+    }
+
+    private NodeIdentifier findPartitionNodeIdByUuid(final String uuid) {
+        final QueuePartition partition = findPartitionByUuid(uuid);
+        return partition == null ? null : partition.getNodeIdentifier().orElse(null);
+    }
+
+    private QueuePartition findPartitionByUuid(final String uuid) {
+        for (int i = 0; i < queue.getPartitionCount(); i++) {
+            final QueuePartition partition = queue.getPartition(i);
+            final NodeIdentifier nodeId = partition.getNodeIdentifier().orElse(null);
+            if (nodeId != null && nodeId.getId().equals(uuid)) {
+                return partition;
+            }
+        }
+        return null;
+    }
+
+    @Test
     public void testOffloadAndReconnectKeepsQueueInCorrectOrder() {
         // Simulate FirstNodePartitioner, which always selects the first node in the partition queue
         queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(0));
