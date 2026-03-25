@@ -34,7 +34,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-connector-utils</artifactId>
+            <artifactId>nifi-connector-common</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

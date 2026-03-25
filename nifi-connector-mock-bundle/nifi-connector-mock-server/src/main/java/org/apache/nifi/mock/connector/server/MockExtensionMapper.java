@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MockExtensionMapper {
+    private static final String MOCK_BUNDLE_GROUP = "org.apache.nifi.mock";
+    private static final String MOCK_BUNDLE_VERSION = "1.0.0";
 
     private final Map<String, String> processorMocks = new HashMap<>();
     private final Map<String, String> controllerServiceMocks = new HashMap<>();
@@ -45,7 +47,7 @@ public class MockExtensionMapper {
         }
 
         processor.setType(implementationClassName);
-        processor.setBundle(new Bundle("org.apache.nifi.mock", implementationClassName, "1.0.0"));
+        processor.setBundle(new Bundle(MOCK_BUNDLE_GROUP, implementationClassName, MOCK_BUNDLE_VERSION));
     }
 
     public void mapControllerService(final VersionedControllerService controllerService) {
@@ -56,6 +58,6 @@ public class MockExtensionMapper {
         }
 
         controllerService.setType(implementationClassName);
-        controllerService.setBundle(new Bundle("org.apache.nifi.mock", implementationClassName, "1.0.0"));
+        controllerService.setBundle(new Bundle(MOCK_BUNDLE_GROUP, implementationClassName, MOCK_BUNDLE_VERSION));
     }
 }

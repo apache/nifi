@@ -175,18 +175,14 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
 
             switch (updateType) {
                 case DELETE:
-                    if (recordId != null) {
-                        recordMap.remove(recordId);
-                    }
+                    recordMap.remove(recordId);
                     break;
                 case SWAP_OUT:
                     final String location = serdeFactory.getLocation(record);
                     if (location == null) {
                         logger.error(logMessage, recordId, UpdateType.SWAP_OUT, "Swapped Out to", "lost");
                     } else {
-                        if (recordId != null) {
-                            recordMap.remove(recordId);
-                        }
+                        recordMap.remove(recordId);
                         this.swapLocations.add(location);
                     }
                     break;
@@ -197,9 +193,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
                     } else {
                         swapLocations.remove(swapLocation);
                     }
-                    if (recordId != null) {
-                        recordMap.put(recordId, record);
-                    }
+                    recordMap.put(recordId, record);
                     break;
                 case SWAP_FILE_DELETED:
                     final String deletedSwapLocation = serdeFactory.getLocation(record);
@@ -218,9 +212,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
                     }
                     break;
                 default:
-                    if (recordId != null) {
-                        recordMap.put(recordId, record);
-                    }
+                    recordMap.put(recordId, record);
                     break;
             }
         }

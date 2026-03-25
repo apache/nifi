@@ -24,7 +24,7 @@
                 "bundle": {
                     "group": "org.apache.nifi",
                     "artifact": "nifi-update-attribute-nar",
-                    "version": "2026.1.20.21-SNAPSHOT"
+                    "version": "2.9.0-SNAPSHOT"
                 },
                 "properties": {
                     "Delete Attributes Expression": null,
@@ -95,7 +95,7 @@
                 "bundle": {
                     "group": "org.apache.nifi",
                     "artifact": "nifi-standard-nar",
-                    "version": "2026.1.20.21-SNAPSHOT"
+                    "version": "2.9.0-SNAPSHOT"
                 },
                 "properties": {
                     "File Size": "0B",
@@ -196,7 +196,7 @@
                 "bundle": {
                     "group": "org.apache.nifi",
                     "artifact": "nifi-standard-nar",
-                    "version": "2026.1.20.21-SNAPSHOT"
+                    "version": "2.9.0-SNAPSHOT"
                 },
                 "properties": {
                     "Lookup Service": "b013f870-aee8-3cc4-b022-ac385ded928d",
@@ -336,7 +336,7 @@
                 "bundle": {
                     "group": "org.apache.nifi",
                     "artifact": "nifi-lookup-services-nar",
-                    "version": "2026.1.20.21-SNAPSHOT"
+                    "version": "2.9.0-SNAPSHOT"
                 },
                 "properties": {
                     "test.key": "Test Value"
@@ -356,7 +356,7 @@
                         "bundle": {
                             "group": "org.apache.nifi",
                             "artifact": "nifi-standard-services-api-nar",
-                            "version": "2026.1.20.21-SNAPSHOT"
+                            "version": "2.9.0-SNAPSHOT"
                         }
                     },
                     {
@@ -364,7 +364,7 @@
                         "bundle": {
                             "group": "org.apache.nifi",
                             "artifact": "nifi-standard-services-api-nar",
-                            "version": "2026.1.20.21-SNAPSHOT"
+                            "version": "2.9.0-SNAPSHOT"
                         }
                     }
                 ],

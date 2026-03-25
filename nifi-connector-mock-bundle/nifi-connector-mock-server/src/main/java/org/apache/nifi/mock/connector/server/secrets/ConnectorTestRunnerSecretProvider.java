@@ -21,7 +21,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.StandardSecret;
-import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ConnectorTestRunnerSecretProvider implements SecretProvider {
+    public static final String SECRET_PROVIDER_ID = "TestRunnerSecretsManager";
+    public static final String SECRET_PROVIDER_NAME = "TestRunnerSecretsManager";
     public static final String GROUP_NAME = "Default";
     private static final Authorizable AUTHORIZABLE = new ConnectorTestRunnerAuthorizable();
 
@@ -40,12 +41,12 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
 
     @Override
     public String getProviderId() {
-        return ConnectorTestRunner.SECRET_PROVIDER_ID;
+        return SECRET_PROVIDER_ID;
     }
 
     @Override
     public String getProviderName() {
-        return ConnectorTestRunner.SECRET_PROVIDER_ID;
+        return SECRET_PROVIDER_ID;
     }
 
     @Override
@@ -53,8 +54,8 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
         final List<Secret> secrets = new ArrayList<>();
         for (final Map.Entry<String, String> entry : this.secrets.entrySet()) {
             final Secret secret = new StandardSecret.Builder()
-                .providerId(ConnectorTestRunner.SECRET_PROVIDER_ID)
-                .providerName(ConnectorTestRunner.SECRET_PROVIDER_NAME)
+                .providerId(SECRET_PROVIDER_ID)
+                .providerName(SECRET_PROVIDER_NAME)
                 .groupName(GROUP_NAME)
                 .name(entry.getKey())
                 .value(entry.getValue())
@@ -77,8 +78,8 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
 
             if (value != null) {
                 final Secret secret = new StandardSecret.Builder()
-                    .providerId(ConnectorTestRunner.SECRET_PROVIDER_ID)
-                    .providerName(ConnectorTestRunner.SECRET_PROVIDER_NAME)
+                    .providerId(SECRET_PROVIDER_ID)
+                    .providerName(SECRET_PROVIDER_NAME)
                     .groupName(GROUP_NAME)
                     .name(secretName)
                     .fullyQualifiedName(GROUP_NAME + "." + secretName)

@@ -32,12 +32,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class MockExtensionDiscoveringManager extends StandardExtensionDiscoveringManager {
+    private static final String MOCK_BUNDLE_GROUP = "org.apache.nifi.mock";
+    private static final String MOCK_BUNDLE_VERSION = "1.0.0";
+
     private final ConcurrentMap<String, ClassLoader> mockComponentClassLoaders = new ConcurrentHashMap<>();
 
     public synchronized void addProcessor(final Class<? extends Processor> mockProcessorClass) {
         final BundleDetails bundleDetails = new BundleDetails.Builder()
             .workingDir(new File("target/work/extensions/mock-bundle"))
-            .coordinate(new BundleCoordinate("org.apache.nifi.mock", mockProcessorClass.getName(), "1.0.0"))
+            .coordinate(new BundleCoordinate(MOCK_BUNDLE_GROUP, mockProcessorClass.getName(), MOCK_BUNDLE_VERSION))
             .build();
 
         final Bundle mockBundle = new Bundle(bundleDetails, mockProcessorClass.getClassLoader());
@@ -50,7 +53,7 @@ public class MockExtensionDiscoveringManager extends StandardExtensionDiscoverin
     public synchronized void addControllerService(final Class<? extends ControllerService> mockControllerServiceClass) {
         final BundleDetails bundleDetails = new BundleDetails.Builder()
             .workingDir(new File("target/work/extensions/mock-bundle"))
-            .coordinate(new BundleCoordinate("org.apache.nifi.mock", mockControllerServiceClass.getName(), "1.0.0"))
+            .coordinate(new BundleCoordinate(MOCK_BUNDLE_GROUP, mockControllerServiceClass.getName(), MOCK_BUNDLE_VERSION))
             .build();
 
         final Bundle mockBundle = new Bundle(bundleDetails, mockControllerServiceClass.getClassLoader());

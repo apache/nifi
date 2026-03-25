@@ -61,17 +61,19 @@ public class S3Step {
 
     public static final ConnectorPropertyDescriptor S3_ENDPOINT_OVERRIDE_URL = new ConnectorPropertyDescriptor.Builder()
         .name("S3 Endpoint Override URL")
-        .description("An optional endpoint URL to use instead of the default AWS S3 endpoint. " +
-                     "This can be used to connect to S3-compatible storage systems but should be left unset for connecting to S3.")
+        .description("""
+            An optional endpoint URL to use instead of the default AWS S3 endpoint. \
+            This can be used to connect to S3-compatible storage systems but should be left unset for connecting to S3.""")
         .required(false)
         .addValidator(StandardValidators.URL_VALIDATOR)
         .build();
 
     public static final ConnectorPropertyDescriptor TARGET_OBJECT_SIZE = new ConnectorPropertyDescriptor.Builder()
         .name("Target Object Size")
-        .description("The target size for each object written to S3. The connector will attempt to " +
-                     "combine messages until this size is reached before writing an object to S3. Note that this size is approximate " +
-                     "and may vary from object to object.")
+        .description("""
+            The target size for each object written to S3. The connector will attempt to \
+            combine messages until this size is reached before writing an object to S3. Note that this size is approximate \
+            and may vary from object to object.""")
         .required(true)
         .defaultValue("256 MB")
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -79,9 +81,10 @@ public class S3Step {
 
     public static final ConnectorPropertyDescriptor MERGE_LATENCY = new ConnectorPropertyDescriptor.Builder()
         .name("Merge Latency")
-        .description("The maximum amount of time to wait while merging messages before writing an object to S3. " +
-                     "If this time is reached before the target object size is met, the current set of merged messages " +
-                     "will be written to S3.")
+        .description("""
+            The maximum amount of time to wait while merging messages before writing an object to S3. \
+            If this time is reached before the target object size is met, the current set of merged messages \
+            will be written to S3.""")
         .required(true)
         .defaultValue("5 min")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)

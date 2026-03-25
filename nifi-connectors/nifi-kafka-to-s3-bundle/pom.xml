@@ -32,8 +32,4 @@
         <module>nifi-kafka-to-s3-integration-tests</module>
     </modules>
 
-    <dependencyManagement>
-        <dependencies>
-        </dependencies>
-    </dependencyManagement>
 </project>

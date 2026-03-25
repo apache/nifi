@@ -150,6 +150,7 @@
         <hsqldb.version>2.7.4</hsqldb.version>
 
         <!-- Data formats and serialization -->
+        <kafka-clients.version>4.2.0</kafka-clients.version>
         <avro.version>1.12.1</avro.version>
         <com.github.luben.zstd-jni.version>1.5.7-7</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>3.0.0</com.jayway.jsonpath.version>

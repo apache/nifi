@@ -24,6 +24,7 @@ import org.apache.nifi.asset.AssetManagerInitializationContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -55,7 +56,7 @@ public class MockConnectorAssetManager implements AssetManager {
             try {
                 Files.createDirectories(assetStorageLocation.toPath());
             } catch (final IOException e) {
-                throw new RuntimeException("Failed to create asset storage directory: " + storageLocation, e);
+                throw new UncheckedIOException("Failed to create asset storage directory: " + storageLocation, e);
             }
         }
     }
@@ -114,7 +115,7 @@ public class MockConnectorAssetManager implements AssetManager {
             try {
                 Files.delete(removed.getFile().toPath());
             } catch (final IOException e) {
-                throw new RuntimeException("Failed to delete asset " + id + " from storage file " + removed.getFile().getAbsolutePath(), e);
+                throw new UncheckedIOException("Failed to delete asset " + id + " from storage file " + removed.getFile().getAbsolutePath(), e);
             }
         }
 

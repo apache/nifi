@@ -21,8 +21,8 @@
         <version>2.9.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-connector-utils</artifactId>
-    <name>nifi-connector-utils</name>
+    <artifactId>nifi-connector-common</artifactId>
+    <name>nifi-connector-common</name>
 
     <dependencies>
         <dependency>

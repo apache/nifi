@@ -40,7 +40,7 @@
 
     <repositories>
         <!-- Shibboleth Repository required for OpenSAML -->
-        <!-- This is required because nifi-framework-nar is the parent/NAR Dependency, andi t requires shibboleth. -->
+        <!-- Required for nifi-framework-nar dependencies -->
         <repository>
             <id>shibboleth</id>
             <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>

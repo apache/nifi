@@ -28,7 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-public class MockAuditService implements AuditService {
+class MockAuditService implements AuditService {
     @Override
     public void addActions(final Collection<Action> actions) {
     }

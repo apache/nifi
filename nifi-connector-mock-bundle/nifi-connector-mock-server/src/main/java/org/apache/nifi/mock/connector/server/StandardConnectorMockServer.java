@@ -65,6 +65,7 @@ import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretProvider;
 import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretsManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.parameter.Parameter;
@@ -325,7 +326,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public SecretReference createSecretReference(final String secretName) {
-        return new SecretReference(ConnectorTestRunner.SECRET_PROVIDER_ID, ConnectorTestRunner.SECRET_PROVIDER_NAME, secretName, secretName);
+        return new SecretReference(ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_ID, ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_NAME, secretName, secretName);
     }
 
     @Override
@@ -404,7 +405,6 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     public void waitForIdle(final Duration minimumIdleTime, final Duration maxWaitTime) {
         Optional<Duration> idleTime = connectorNode.getIdleDuration();
 
-        // Wait until idleTime is not empty and is at least equal to minimumIdleTime
         final long startTime = System.currentTimeMillis();
         final long expirationTime = startTime + maxWaitTime.toMillis();
 
