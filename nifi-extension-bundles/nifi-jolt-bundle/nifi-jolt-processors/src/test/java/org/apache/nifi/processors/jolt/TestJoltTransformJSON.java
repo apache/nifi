@@ -18,7 +18,6 @@ package org.apache.nifi.processors.jolt;
 
 import io.joltcommunity.jolt.Diffy;
 import io.joltcommunity.jolt.JsonUtils;
-import org.apache.commons.lang3.Strings;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.processor.Processor;
@@ -583,7 +582,7 @@ class TestJoltTransformJSON {
 
     @ParameterizedTest
     @MethodSource("unicodeEscaping")
-    void testWithUnicodeEscaping(boolean resolveUnicodeEscapeSequences, String expectedText) {
+    void testWithUnicodeEscaping(boolean retainUnicodeEscapeSequences, String expectedText) {
         final String unicodeJson = """
                 {"value": "\\u011f\\u00fc\\u015f\\u0131\\u00f6\\u00e7\\u011e\\u00dc\\u015e\\u0130\\u00d6\\u00c7"}""";
         final String passThroughSpec = """
@@ -597,7 +596,7 @@ class TestJoltTransformJSON {
                 ]""";
 
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, passThroughSpec);
-        runner.setProperty(JoltTransformJSON.RETAIN_UNICODE_ESCAPE_SEQUENCES, Boolean.toString(resolveUnicodeEscapeSequences));
+        runner.setProperty(JoltTransformJSON.RETAIN_UNICODE_ESCAPE_SEQUENCES, Boolean.toString(retainUnicodeEscapeSequences));
         runner.enqueue(unicodeJson);
         runner.run();
 
@@ -605,7 +604,7 @@ class TestJoltTransformJSON {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
         // NOTE: The JSON specification allows for both uppercase and lowercase hexadecimal letters.
         // Jackson seems to prefer to upper case them hence must test with case insensitivity when unicode escape sequence is retained.
-        assertTrue(Strings.CI.contains(transformed.getContent(), expectedText));
+        assertTrue(transformed.getContent().toLowerCase().contains(expectedText.toLowerCase()));
     }
 
     private static Stream<Arguments> unicodeEscaping() {

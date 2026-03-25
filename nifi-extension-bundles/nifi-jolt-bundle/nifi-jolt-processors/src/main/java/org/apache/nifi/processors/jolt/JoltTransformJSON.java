@@ -115,7 +115,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
 
     public static final PropertyDescriptor RETAIN_UNICODE_ESCAPE_SEQUENCES = new PropertyDescriptor.Builder()
             .name("Retain Unicode Escape Sequences")
-            .description("Allows for retaining Unicode escape sequences instead of resolving them (e.g. retain text \u00E9 without resolving to é)")
+            .description("Allows for retaining Unicode escape sequences instead of resolving them (e.g. retain text \\u00E9 without resolving to é)")
             .required(true)
             .defaultValue("false")
             .allowableValues("true", "false")
