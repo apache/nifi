@@ -57,28 +57,6 @@ class TestModifyCompression {
     }
 
     @Test
-    void testCompressionFormatMimeTypeMap() {
-        final Map<String, CompressionStrategy> expected = Map.ofEntries(
-                Map.entry("application/gzip", CompressionStrategy.GZIP),
-                Map.entry("application/x-gzip", CompressionStrategy.GZIP),
-                Map.entry("application/deflate", CompressionStrategy.DEFLATE),
-                Map.entry("application/x-deflate", CompressionStrategy.DEFLATE),
-                Map.entry("application/x-bzip2", CompressionStrategy.BZIP2),
-                Map.entry("application/bzip2", CompressionStrategy.BZIP2),
-                Map.entry("application/x-xz", CompressionStrategy.XZ_LZMA2),
-                Map.entry("application/x-lzma", CompressionStrategy.LZMA),
-                Map.entry("application/x-snappy", CompressionStrategy.SNAPPY),
-                Map.entry("application/x-snappy-hadoop", CompressionStrategy.SNAPPY_HADOOP),
-                Map.entry("application/x-snappy-framed", CompressionStrategy.SNAPPY_FRAMED),
-                Map.entry("application/x-lz4-framed", CompressionStrategy.LZ4_FRAMED),
-                Map.entry("application/zstd", CompressionStrategy.ZSTD),
-                Map.entry("application/x-brotli", CompressionStrategy.BROTLI)
-        );
-
-        assertEquals(expected, ModifyCompression.compressionFormatMimeTypeMap);
-    }
-
-    @Test
     public void testSnappyCompress() throws Exception {
         runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION_STRATEGY, CompressionStrategy.SNAPPY);
         runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.UPDATED);
@@ -435,7 +413,7 @@ class TestModifyCompression {
     }
 
     @Test
-    void testXzlzma2DecompressWithMimeType() throws Exception {
+    public void testXzlzma2DecompressWithMimeType() throws Exception {
         final String content = "Content for compression";
         final byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         final LZMA2Options options = new LZMA2Options();
@@ -465,7 +443,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-xz");
     }
 

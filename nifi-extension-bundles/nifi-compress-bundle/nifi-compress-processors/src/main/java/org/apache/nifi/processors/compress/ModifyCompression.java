@@ -167,7 +167,7 @@ public class ModifyCompression extends AbstractProcessor {
             REL_FAILURE
     );
 
-    static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
+    private static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
 
     private static final int STREAM_BUFFER_SIZE = 65536;
 

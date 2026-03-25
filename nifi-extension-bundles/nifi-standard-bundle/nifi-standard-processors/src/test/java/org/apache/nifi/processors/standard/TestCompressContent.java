@@ -50,7 +50,7 @@ public class TestCompressContent {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-snappy");
         flowFile.assertAttributeEquals("filename", "SampleFile.txt.snappy");
     }
@@ -82,7 +82,7 @@ public class TestCompressContent {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-snappy-hadoop");
         flowFile.assertAttributeEquals("filename", "SampleFile.txt.snappy");
     }
@@ -243,8 +243,7 @@ public class TestCompressContent {
 
         runner.clearTransferState();
         runner.setProperty(CompressContent.COMPRESSION_FORMAT, CompressContent.COMPRESSION_FORMAT_ATTRIBUTE);
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/x-gzip");
+        Map<String, String> attributes = Map.of(CoreAttributes.MIME_TYPE.key(), "application/x-gzip");
         runner.enqueue(SAMPLE_GZ_FILE, attributes);
         runner.run();
 
@@ -413,7 +412,7 @@ public class TestCompressContent {
     }
 
     @Test
-    void testXzlzma2DecompressWithMimeType() throws Exception {
+    public void testXzlzma2DecompressWithMimeType() throws Exception {
         final String content = "Content for compression";
         final byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         final LZMA2Options options = new LZMA2Options();
@@ -427,8 +426,7 @@ public class TestCompressContent {
         runner.setProperty(CompressContent.MODE, "decompress");
         runner.setProperty(CompressContent.COMPRESSION_FORMAT, CompressContent.COMPRESSION_FORMAT_ATTRIBUTE);
 
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("mime.type", "application/x-xz");
+        final Map<String, String> attributes = Map.of("mime.type", "application/x-xz");
         runner.enqueue(compressedOutput.toByteArray(), attributes);
         runner.run();
 
