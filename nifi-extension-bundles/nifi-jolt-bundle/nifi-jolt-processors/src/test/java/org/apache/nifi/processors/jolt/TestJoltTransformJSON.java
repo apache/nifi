@@ -580,6 +580,41 @@ class TestJoltTransformJSON {
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
     }
 
+    @ParameterizedTest
+    @MethodSource("unicodeEscaping")
+    void testWithUnicodeEscaping(boolean retainUnicodeEscapeSequences, String expectedText) {
+        final String unicodeJson = """
+                {"value": "\\u011f\\u00fc\\u015f\\u0131\\u00f6\\u00e7\\u011e\\u00dc\\u015e\\u0130\\u00d6\\u00c7"}""";
+        final String passThroughSpec = """
+                [
+                  {
+                    "operation": "shift",
+                    "spec": {
+                      "*": "&"
+                    }
+                  }
+                ]""";
+
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, passThroughSpec);
+        runner.setProperty(JoltTransformJSON.RETAIN_UNICODE_ESCAPE_SEQUENCES, Boolean.toString(retainUnicodeEscapeSequences));
+        runner.enqueue(unicodeJson);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
+        // NOTE: The JSON specification allows for both uppercase and lowercase hexadecimal letters.
+        // Jackson seems to prefer to upper case them hence must test with case insensitivity when unicode escape sequence is retained.
+        assertTrue(transformed.getContent().toLowerCase().contains(expectedText.toLowerCase()));
+    }
+
+    private static Stream<Arguments> unicodeEscaping() {
+        return Stream.of(
+                Arguments.argumentSet("Retain Unicode Escape Sequence", true, "\\u011f\\u00fc\\u015f\\u0131\\u00f6\\u00e7\\u011e\\u00dc\\u015e\\u0130\\u00d6\\u00c7"),
+                Arguments.argumentSet("Resolve Unicode Escape Sequence", false, "ğüşıöçĞÜŞİÖÇ")
+
+        );
+    }
+
     private static Stream<Arguments> getChainrArguments() {
         return Stream.of(
                 Arguments.argumentSet("has no single line comments", Paths.get(CHAINR_SPEC_PATH)),
