@@ -120,7 +120,7 @@
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.42.18</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.42.21</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.5</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
@@ -171,7 +171,7 @@
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.4.version>4.2.10.Final</netty.4.version>
+        <netty.4.version>4.2.12.Final</netty.4.version>
         <okhttp.version>5.3.2</okhttp.version>
         <okio.version>3.17.0</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
@@ -180,7 +180,7 @@
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.34</nimbus-oauth2-oidc.version>
+        <nimbus-oauth2-oidc.version>11.35</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.83</org.bouncycastle.version>
 
         <!-- Utilities -->
