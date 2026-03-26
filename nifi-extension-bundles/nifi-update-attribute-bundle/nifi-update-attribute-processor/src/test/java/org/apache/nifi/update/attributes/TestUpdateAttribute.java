@@ -20,6 +20,8 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.attributes.UpdateAttribute;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 import org.apache.nifi.util.MockFlowFile;
@@ -893,6 +895,68 @@ public class TestUpdateAttribute {
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    @Test
+    public void testSequential() {
+        // Covers incremental accumulation across rules, prior-rule attribute visibility, conditions that reference
+        // attributes set by earlier rules, skipped non-matching rules, single output FlowFile, basic-property
+        // baseline, matchedRules attribute, and a single provenance event listing all matched rules.
+        final Criteria criteria = getCriteria();
+        criteria.setFlowFilePolicy(FlowFilePolicy.SEQUENTIAL);
+        addRule(criteria, "init",          List.of("${literal(1):equals('1')}"),                Map.of("hotel.bill.total", "0"));
+        addRule(criteria, "room.rate",     List.of("${room.rate:isEmpty():not()}"),              Map.of("hotel.bill.total", "${hotel.bill.total:plus(${room.rate})}"));
+        addRule(criteria, "room.service",  List.of("${room.service:isEmpty():not()}"),           Map.of("hotel.bill.total", "${hotel.bill.total:plus(${room.service})}"));
+        addRule(criteria, "entertainment", List.of("${in.room.entertainment:isEmpty():not()}"),  Map.of("hotel.bill.total", "${hotel.bill.total:plus(${in.room.entertainment})}"));
+        addRule(criteria, "large.bill",    List.of("${hotel.bill.total:toNumber():gt(100)}"),    Map.of("bill.category", "large"));
+        addRule(criteria, "late.checkout", List.of("${late.checkout:isEmpty():not()}"),          Map.of("hotel.bill.total", "${hotel.bill.total:plus(${late.checkout})}"));
+
+        runner.setProperty("currency", "USD");
+        runner.setAnnotationData(serialize(criteria));
+        runner.enqueue(new byte[0], Map.of("room.rate", "200", "room.service", "35", "in.room.entertainment", "15"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).getFirst();
+
+        ff.assertAttributeEquals("hotel.bill.total", "250");
+        ff.assertAttributeEquals("bill.category", "large");
+        ff.assertAttributeEquals("currency", "USD");
+        ff.assertAttributeNotExists("late.checkout");
+        ff.assertAttributeEquals("UpdateAttribute.matchedRules", "init, room.rate, room.service, entertainment, large.bill");
+
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        assertEquals(1, events.size());
+        assertEquals(ProvenanceEventType.ATTRIBUTES_MODIFIED, events.getFirst().getEventType());
+        assertTrue(events.getFirst().getDetails().contains("init"));
+        assertTrue(events.getFirst().getDetails().contains("large.bill"));
+    }
+
+    @Test
+    public void testSequentialUsesUpdatedStateForFollowingRules() throws Exception {
+        final Criteria criteria = getCriteria();
+        criteria.setFlowFilePolicy(FlowFilePolicy.SEQUENTIAL);
+        addRule(criteria, "increment",
+                List.of("${literal(1):equals('1')}"),
+                Map.of("count", "${getStateValue('count'):plus(1)}"));
+        addRule(criteria, "mark-threshold",
+                List.of("${getStateValue('count'):ge(1)}"),
+                Map.of("threshold.reached", "true"));
+
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
+        runner.setProperty("count", "${getStateValue('count')}");
+        runner.setAnnotationData(serialize(criteria));
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).getFirst();
+        flowFile.assertAttributeEquals("count", "1");
+        flowFile.assertAttributeEquals("threshold.reached", "true");
+
+        mockStateManager.assertStateEquals(Map.of("count", "1", "threshold.reached", "true"), Scope.LOCAL);
     }
 
     private Criteria getCriteria() {
