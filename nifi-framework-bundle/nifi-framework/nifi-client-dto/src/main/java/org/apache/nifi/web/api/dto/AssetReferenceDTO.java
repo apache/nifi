@@ -74,4 +74,9 @@ public class AssetReferenceDTO {
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+    @Override
+    public String toString() {
+        return "AssetReferenceDTO[id=%s, name=%s]".formatted(id, name);
+    }
 }
