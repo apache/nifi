@@ -105,11 +105,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Set up Astral uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          python-version: '3.10'
-          enable-cache: false
+      # Temporarily disabled pending resolution of NIFI-15750 / INFRA-27769
+      # astral-sh/setup-uv action is not currently allowed by ASF Infra
+      # - name: Set up Astral uv
+      #   uses: astral-sh/setup-uv@v5
+      #   with:
+      #     python-version: '3.10'
+      #     enable-cache: false
+      - name: Set up uv
+        run: pip install uv
 
       - name: Build Dependencies
         env:

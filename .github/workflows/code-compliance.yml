@@ -94,20 +94,22 @@ jobs:
           pmd:check
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
-      - name: Get Project Version
-        run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
-        with:
-          format: spdx-json
-          path: ''
-          file: nifi-assembly/target/nifi-${{ env.PROJECT_VERSION }}-bin.zip
-          artifact-name: nifi-${{ env.PROJECT_VERSION }}.spdx.json
-          output-file: nifi-${{ env.PROJECT_VERSION }}.spdx.json
-      - name: Scan SBOM
-        uses: anchore/scan-action@v7
-        with:
-          sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
-          severity-cutoff: 'medium'
-          only-fixed: true
-          fail-build: ${{ github.ref_name == 'main' && 'true' || 'false' }}
+      # Temporarily disabled pending resolution of NIFI-15750 / INFRA-27769
+      # Anchore actions are not currently allowed by ASF Infra
+      # - name: Get Project Version
+      #   run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+      # - name: Generate SBOM
+      #   uses: anchore/sbom-action@v0
+      #   with:
+      #     format: spdx-json
+      #     path: ''
+      #     file: nifi-assembly/target/nifi-${{ env.PROJECT_VERSION }}-bin.zip
+      #     artifact-name: nifi-${{ env.PROJECT_VERSION }}.spdx.json
+      #     output-file: nifi-${{ env.PROJECT_VERSION }}.spdx.json
+      # - name: Scan SBOM
+      #   uses: anchore/scan-action@v7
+      #   with:
+      #     sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
+      #     severity-cutoff: 'medium'
+      #     only-fixed: true
+      #     fail-build: ${{ github.ref_name == 'main' && 'true' || 'false' }}
