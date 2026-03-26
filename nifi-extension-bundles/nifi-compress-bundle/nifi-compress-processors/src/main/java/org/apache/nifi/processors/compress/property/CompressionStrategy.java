@@ -24,7 +24,7 @@ public enum CompressionStrategy implements DescribedValue {
     GZIP("gzip", "GZIP", ".gz", "application/gzip", "application/x-gzip"),
     DEFLATE("deflate", "Deflate", ".zlib", "application/deflate", "application/x-deflate"),
     BZIP2("bzip2", "BZIP2", ".bz2", "application/x-bzip2", "application/bzip2"),
-    XZ_LZMA2("xz-lzma2", "XZ-LZMA2", ".xz", "application/x-lzma"),
+    XZ_LZMA2("xz-lzma2", "XZ-LZMA2", ".xz", "application/x-xz"),
     LZMA("lzma", "LZMA", ".lzma", "application/x-lzma"),
     SNAPPY("snappy", "Snappy", ".snappy", "application/x-snappy"),
     SNAPPY_HADOOP("snappy-hadoop", "Snappy-Hadoop", ".snappy", "application/x-snappy-hadoop"),

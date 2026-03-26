@@ -29,8 +29,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.tukaani.xz.LZMA2Options;
+import org.tukaani.xz.XZOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -405,6 +409,41 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(expectedRelationship, 1);
+    }
+
+    @Test
+    public void testXzlzma2DecompressWithMimeType() throws Exception {
+        final String content = "Content for compression";
+        final byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+        final LZMA2Options options = new LZMA2Options();
+        final ByteArrayOutputStream compressedOutput = new ByteArrayOutputStream();
+        try (XZOutputStream xzOut = new XZOutputStream(compressedOutput, options)) {
+            xzOut.write(contentBytes, 0, contentBytes.length);
+            xzOut.finish();
+        }
+
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION_STRATEGY, CompressionStrategy.MIME_TYPE_ATTRIBUTE);
+        runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.UPDATED);
+        final Map<String, String> attributes = Map.of(CoreAttributes.MIME_TYPE.key(), "application/x-xz");
+        runner.enqueue(compressedOutput.toByteArray(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        flowFile.assertContentEquals(content);
+    }
+
+    @Test
+    public void testXzlzma2Compress() {
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION_STRATEGY, CompressionStrategy.XZ_LZMA2);
+        final String content = "Content for compression";
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-xz");
     }
 
     private static Stream<Arguments> toRelationshipWhenDecompressionNotNeeded() {
