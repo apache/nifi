@@ -929,7 +929,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             // provided in the list of standard extension points. This is due to the fact that ConnectorRepository lives in the nifi-framework-core-api, and
             // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
             final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorRepository.class, SecretsManager.class, ConnectorConfigurationProvider.class);
-            extensionManager.discoverExtensions(extensionManager.getAllBundles(), additionalExtensionTypes, true);
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), additionalExtensionTypes, false);
             final ConnectorRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
 
             final ConnectorRepositoryInitializationContext initializationContext = new StandardConnectorRepoInitializationContext(
@@ -964,7 +964,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             // Discover implementations of Secrets Manager. This is not done at startup because the SecretsManager class is not
             // provided in the list of standard extension points. This is due to the fact that SecretsManager lives in the nifi-framework-core-api, and
             // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
-            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(SecretsManager.class), true);
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(SecretsManager.class), false);
             final SecretsManager created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, SecretsManager.class, properties);
 
             final SecretsManagerInitializationContext initializationContext = new StandardSecretsManagerInitializationContext(flowManager);
@@ -993,7 +993,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         try {
-            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(ConnectorConfigurationProvider.class), true);
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(ConnectorConfigurationProvider.class), false);
             final ConnectorConfigurationProvider created = NarThreadContextClassLoader.createInstance(
                 extensionManager, implementationClassName, ConnectorConfigurationProvider.class, properties);
 
