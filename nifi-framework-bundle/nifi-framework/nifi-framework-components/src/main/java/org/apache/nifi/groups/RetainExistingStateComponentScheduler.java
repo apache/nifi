@@ -39,18 +39,29 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     private final ComponentScheduler delegate;
     private final Map<String, ScheduledState> componentStates;
     private final Map<String, ControllerServiceState> controllerServiceStates;
+    private final boolean processGroupActive;
 
     public RetainExistingStateComponentScheduler(final ProcessGroup processGroup, final ComponentScheduler delegate) {
+        this(processGroup, delegate, false);
+    }
+
+    public RetainExistingStateComponentScheduler(final ProcessGroup processGroup, final ComponentScheduler delegate, final boolean processGroupActive) {
         this.delegate = delegate;
         this.componentStates = mapComponentStates(processGroup);
         this.controllerServiceStates = mapControllerServiceStates(processGroup);
+        this.processGroupActive = processGroupActive;
     }
 
     @Override
     public void startComponent(final Connectable component) {
         final ScheduledState existingState = componentStates.get(component.getIdentifier());
         if (existingState == null) {
-            logger.debug("Will not start {} because it was not previously known in this Process Group", component);
+            if (processGroupActive) {
+                logger.debug("Starting new component {} because the Process Group is active", component);
+                delegate.startComponent(component);
+            } else {
+                logger.debug("Will not start {} because it was not previously known in this Process Group", component);
+            }
             return;
         }
 
@@ -67,7 +78,12 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     public void startStatelessGroup(final ProcessGroup group) {
         final ScheduledState existingState = componentStates.get(group.getIdentifier());
         if (existingState == null) {
-            logger.debug("Will not start {} because it was not previously known in this Process Group", group);
+            if (processGroupActive) {
+                logger.debug("Starting new stateless group {} because the Process Group is active", group);
+                delegate.startStatelessGroup(group);
+            } else {
+                logger.debug("Will not start {} because it was not previously known in this Process Group", group);
+            }
             return;
         }
 
@@ -92,6 +108,11 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
 
     @Override
     public void transitionComponentState(final Connectable component, final org.apache.nifi.flow.ScheduledState desiredState) {
+        final ScheduledState existingState = componentStates.get(component.getIdentifier());
+        if (existingState == null && processGroupActive && desiredState != org.apache.nifi.flow.ScheduledState.DISABLED) {
+            logger.debug("Starting new component {} because the Process Group is active", component);
+            delegate.startComponent(component);
+        }
         delegate.transitionComponentState(component, desiredState);
     }
 
@@ -103,7 +124,12 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
             final ControllerServiceState existingState = controllerServiceStates.get(service.getIdentifier());
 
             if (existingState == null) {
-                logger.debug("Will not enable {} because it was not previously known in this Process Group", service);
+                if (processGroupActive) {
+                    logger.debug("Enabling new service {} because the Process Group is active", service);
+                    toEnable.add(service);
+                } else {
+                    logger.debug("Will not enable {} because it was not previously known in this Process Group", service);
+                }
                 continue;
             }
 
@@ -137,6 +163,10 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     @Override
     public void resume() {
         delegate.resume();
+    }
+
+    boolean isProcessGroupActive() {
+        return processGroupActive;
     }
 
     private Map<String, ControllerServiceState> mapControllerServiceStates(final ProcessGroup group) {
@@ -185,7 +215,7 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     private void findAllStatelessGroups(final ProcessGroup start, final Set<ProcessGroup> statelessGroups) {
         if (start.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
             statelessGroups.add(start);
-            return; // No need to go further, as the top-level stateless group is all we need.
+            return;
         }
 
         for (final ProcessGroup childGroup : start.getProcessGroups()) {

@@ -364,6 +364,128 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("UP_TO_DATE", versionedFlowState);
     }
 
+    /**
+     * Tests that when upgrading an active versioned process group, newly added components are
+     * automatically started/enabled. Covers three scenarios in a single flow:
+     *
+     * 1. Existing running processor references a new controller service (via chaining)
+     * 2. New processor with no controller service dependency
+     * 3. New processor that references a new controller service
+     *
+     * v1: GenerateFlowFile -> CountFlowFiles -> TerminateFlowFile, with a single StandardCountService.
+     *
+     * v2: Same as v1 plus:
+     *     - A new StandardCountService ("NewCountService") chained to the existing service [Case 1]
+     *     - A new SetAttribute processor with its own TerminateFlowFile [Case 2]
+     *     - A new CountFlowFiles processor referencing NewCountService with its own TerminateFlowFile [Case 3]
+     *     - GenerateFlowFile text property changed to trigger restart
+     */
+    @Test
+    public void testNewComponentsStartedDuringVersionChange() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        // Build v1 flow
+        final ProcessGroupEntity group = util.createProcessGroup("Parent", "root");
+        final ControllerServiceEntity countService = util.createControllerService("StandardCountService", group.getId());
+
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", group.getId());
+        final ProcessorEntity countProcessor = util.createProcessor("CountFlowFiles", group.getId());
+        util.updateProcessorProperties(countProcessor, Collections.singletonMap("Count Service", countService.getComponent().getId()));
+
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", group.getId());
+        final ConnectionEntity connectionToTerminate = util.createConnection(countProcessor, terminate, "success");
+        util.setFifoPrioritizer(connectionToTerminate);
+        util.createConnection(generate, countProcessor, "success");
+
+        // Save as v1
+        final VersionControlInformationEntity vci = util.startVersionControl(group, clientEntity, TEST_FLOWS_BUCKET, "Parent");
+
+        // Build v2: add new services, new processors, update existing service.
+        // All v2 additions are purely additive (no connections deleted) to avoid conflicts during version switch.
+
+        // Case 1: new service chained to the existing service via "Dependent Service"
+        final ControllerServiceEntity newCountService = util.createControllerService("StandardCountService", group.getId());
+        util.updateControllerServiceProperties(countService, Collections.singletonMap("Dependent Service", newCountService.getComponent().getId()));
+
+        // Case 2: new processor with no service dependency.
+        // Connect to the existing (stopped) TerminateFlowFile so flow files accumulate in the queue.
+        final ProcessorEntity setAttribute = util.createProcessor("SetAttribute", group.getId());
+        util.updateProcessorProperties(setAttribute, Collections.singletonMap("marker", "v2"));
+        util.createConnection(setAttribute, terminate, "success");
+        util.createConnection(generate, setAttribute, "success");
+
+        // Case 3: new processor referencing the new service.
+        // Also connects to the existing (stopped) TerminateFlowFile.
+        final ProcessorEntity newCountProcessor = util.createProcessor("CountFlowFiles", group.getId());
+        util.updateProcessorProperties(newCountProcessor, Collections.singletonMap("Count Service", newCountService.getComponent().getId()));
+        final ConnectionEntity newCountToTerminate = util.createConnection(newCountProcessor, terminate, "success");
+        util.setFifoPrioritizer(newCountToTerminate);
+        util.createConnection(generate, newCountProcessor, "success");
+
+        // Change GenerateFlowFile so it gets restarted during the version change
+        util.updateProcessorProperties(generate, Collections.singletonMap("Text", "Hello World"));
+
+        // Save as v2
+        util.saveFlowVersion(group, clientEntity, vci);
+
+        // Switch back to v1 and start the flow
+        util.changeFlowVersion(group.getId(), "1");
+        util.assertFlowStaleAndUnmodified(group.getId());
+
+        util.enableControllerService(countService);
+        util.waitForValidProcessor(generate.getId());
+        util.startProcessor(generate);
+        util.waitForValidProcessor(countProcessor.getId());
+        util.startProcessor(countProcessor);
+
+        waitForQueueCount(connectionToTerminate.getId(), getNumberOfNodes());
+        final Map<String, String> v1Attributes = util.getQueueFlowFile(connectionToTerminate.getId(), 0).getFlowFile().getAttributes();
+        assertEquals("1", v1Attributes.get("count"));
+
+        // Upgrade to v2 while the flow is running
+        util.changeFlowVersion(group.getId(), "2");
+        util.assertFlowUpToDate(group.getId());
+
+        // Case 1: Verify existing CountFlowFiles still processes with chained service.
+        // The new service is enabled via dependency resolution when the existing service is re-enabled.
+        // After re-enabling, both services reset counters to 0.
+        // count = newCountService.count() + countService.counter = 1 + 1 = 2
+        waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
+        final Map<String, String> v2CountAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes()).getFlowFile().getAttributes();
+        assertEquals("2", v2CountAttributes.get("count"));
+
+        // After the version change, connection IDs for new components are regenerated.
+        // Query the current flow to find connections by their source/destination processors.
+        final FlowDTO v2Flow = getNifiClient().getFlowClient().getProcessGroup(group.getId()).getProcessGroupFlow().getFlow();
+        final Set<ConnectionEntity> v2Connections = v2Flow.getConnections();
+
+        // Case 2: Verify new SetAttribute processor is running and processing flow files.
+        // Find the connection from SetAttribute to the existing TerminateFlowFile.
+        final String setAttrConnectionId = v2Connections.stream()
+            .filter(c -> "SetAttribute".equals(c.getComponent().getSource().getName()))
+            .map(ConnectionEntity::getId)
+            .findFirst().orElseThrow();
+        waitForQueueCount(setAttrConnectionId, getNumberOfNodes());
+        final Map<String, String> v2SetAttrAttributes = util.getQueueFlowFile(setAttrConnectionId, 0).getFlowFile().getAttributes();
+        assertEquals("v2", v2SetAttrAttributes.get("marker"));
+
+        // Case 3: Verify new CountFlowFiles processor referencing new service is running and producing output.
+        // Find the connection from the new CountFlowFiles to the existing TerminateFlowFile.
+        // The existing CountFlowFiles connection was already verified above, so filter for the other one.
+        final String newCountConnectionId = v2Connections.stream()
+            .filter(c -> "CountFlowFiles".equals(c.getComponent().getSource().getName()))
+            .filter(c -> !c.getId().equals(connectionToTerminate.getId()))
+            .filter(c -> c.getComponent().getDestination().getName().equals("TerminateFlowFile"))
+            .map(ConnectionEntity::getId)
+            .findFirst().orElseThrow();
+        waitForQueueCount(newCountConnectionId, getNumberOfNodes());
+        final Map<String, String> v2NewCountAttributes = util.getQueueFlowFile(newCountConnectionId, 0).getFlowFile().getAttributes();
+        // The count attribute being present and numeric proves the new CountFlowFiles processor started
+        // and the new service it references was enabled. The exact value depends on processing order.
+        assertNotNull(v2NewCountAttributes.get("count"));
+    }
+
     @Test
     public void testStopVersionControlThenSetVersionControlInfo() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient();
