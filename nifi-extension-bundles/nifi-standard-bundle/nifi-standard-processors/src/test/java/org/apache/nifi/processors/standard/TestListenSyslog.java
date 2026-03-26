@@ -56,6 +56,7 @@ public class TestListenSyslog {
     private static final String VALID_MESSAGE = String.format("<%s>%s %s %s", PRIORITY, TIMESTAMP, HOST, BODY);
     private static final String MIME_TYPE = "text/plain";
 
+    private static final int POLL_ITERATIONS = 10;
     private static final boolean STOP_ON_FINISH_DISABLED = false;
     private static final boolean STOP_ON_FINISH_ENABLED = true;
     private static final boolean INITIALIZE_DISABLED = false;
@@ -159,7 +160,7 @@ public class TestListenSyslog {
         final int listeningPort = ((ListenSyslog) runner.getProcessor()).getListeningPort();
 
         sendMessages(protocol, listeningPort, LineEnding.NONE, TIMESTAMP);
-        runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
+        runner.run(POLL_ITERATIONS, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
 
         final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);
         assertEquals(1, invalidFlowFiles.size(), "Invalid FlowFiles not matched");
@@ -179,7 +180,7 @@ public class TestListenSyslog {
         final int port = ((ListenSyslog) runner.getProcessor()).getListeningPort();
 
         sendMessages(protocol, port, LineEnding.UNIX, VALID_MESSAGE);
-        runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
+        runner.run(POLL_ITERATIONS, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
 
         final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);
         assertTrue(invalidFlowFiles.isEmpty(), "Invalid FlowFiles found");
