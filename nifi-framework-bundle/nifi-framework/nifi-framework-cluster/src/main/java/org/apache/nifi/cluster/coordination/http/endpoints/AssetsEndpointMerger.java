@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 
 public class AssetsEndpointMerger extends AbstractSingleDTOEndpoint<AssetsEntity, Collection<AssetEntity>> {
 
-    private static final Pattern ASSETS_URI = Pattern.compile("/nifi-api/parameter-contexts/[a-f0-9\\-]{36}/assets");
+    private static final Pattern ASSETS_URI = Pattern.compile("/nifi-api/(parameter-contexts|connectors)/[a-f0-9\\-]{36}/assets");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

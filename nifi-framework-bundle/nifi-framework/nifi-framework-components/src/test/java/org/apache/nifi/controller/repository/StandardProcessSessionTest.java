@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -34,6 +35,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -48,10 +51,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class StandardProcessSessionTest {
     private static final String BACKOFF_PERIOD = "5 s";
 
@@ -116,6 +121,8 @@ class StandardProcessSessionTest {
         when(repositoryContext.createContentClaimWriteCache(isA(PerformanceTracker.class))).thenReturn(contentClaimWriteCache);
         when(repositoryContext.getConnectable()).thenReturn(connectable);
         when(connectable.getIdentifier()).thenReturn(Connectable.class.getSimpleName());
+        final FlowFileActivity flowFileActivity = mock(FlowFileActivity.class);
+        when(connectable.getFlowFileActivity()).thenReturn(flowFileActivity);
 
         session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker);
     }

@@ -43,12 +43,24 @@ public interface RuntimeManifestService {
     RuntimeManifest getManifestForBundle(String group, String artifact, String version);
 
     /**
-     * Returns a mapping of additionalDetails for the speicfied bundle.
+     * Returns a mapping of additionalDetails for the specified bundle.
      *
      * @param group The bundle group
      * @param artifact The bundle artifact
      * @param version The bundle version
-     * @return The additionaDetails mapping
+     * @return The additionalDetails mapping
      */
     Map<String, File> discoverAdditionalDetails(String group, String artifact, String version);
+
+    /**
+     * Returns a mapping of step documentation files for the specified Connector type.
+     * The keys are the step names and the values are the corresponding documentation files.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param connectorType The fully qualified class name of the Connector
+     * @return The step documentation mapping
+     */
+    Map<String, File> discoverStepDocumentation(String group, String artifact, String version, String connectorType);
 }

@@ -47,7 +47,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "Enable Failure Count": "1000"

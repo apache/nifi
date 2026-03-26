@@ -1,0 +1,253 @@
+{
+  "flowContents": {
+    "identifier": "9caa5337-2e56-3711-a344-b29bce96d3e2",
+    "instanceIdentifier": "77e61da1-0199-1000-ffff-ffff90f30b8d",
+    "name": "Generate and Log with Parameter",
+    "comments": "",
+    "position": {
+      "x": 61.0,
+      "y": -181.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "2abf1573-d8ee-38ad-a745-083fdb1a8903",
+        "instanceIdentifier": "09b902c7-c4b7-3e92-8246-ef0a0bb685e7",
+        "name": "CreateDummyFlowFile",
+        "comments": "",
+        "position": {
+          "x": -355.5,
+          "y": -399.0
+        },
+        "type": "org.apache.nifi.components.connector.processors.CreateDummyFlowFile",
+        "bundle": {
+          "group": "default",
+          "artifact": "system",
+          "version": "unversioned"
+        },
+        "properties": {
+          "Text": "#{Text}"
+        },
+        "propertyDescriptors": {
+          "Text": {
+            "name": "Text",
+            "displayName": "Text",
+            "identifiesControllerService": false,
+            "sensitive": true,
+            "dynamic": false
+          }
+        },
+        "style": {},
+        "schedulingPeriod": "1 min",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "9caa5337-2e56-3711-a344-b29bce96d3e2"
+      },
+      {
+        "identifier": "efefbde7-a9e8-3864-b1d2-9649981b39d1",
+        "instanceIdentifier": "77e69c78-0199-1000-0000-00001e16d8fc",
+        "name": "Sleep",
+        "comments": "",
+        "position": {
+          "x": -352.0,
+          "y": -152.0
+        },
+        "type": "org.apache.nifi.components.connector.processors.Sleep",
+        "bundle": {
+          "group": "default",
+          "artifact": "system",
+          "version": "unversioned"
+        },
+        "properties": {
+          "Sleep Duration": "#{Sleep Duration}",
+          "Sleep On Stopped": "true"
+        },
+        "propertyDescriptors": {
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 25,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "9caa5337-2e56-3711-a344-b29bce96d3e2"
+      },
+      {
+        "identifier": "3d651016-1570-37b6-b3a3-6575d1545cb7",
+        "instanceIdentifier": "81bb2507-6874-3bb7-a280-a327515aa5fe",
+        "name": "LogFlowFileContents",
+        "comments": "",
+        "position": {
+          "x": -352.0,
+          "y": 104.0
+        },
+        "type": "org.apache.nifi.components.connector.processors.LogFlowFileContents",
+        "bundle": {
+          "group": "default",
+          "artifact": "system",
+          "version": "unversioned"
+        },
+        "properties": {},
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 25,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "9caa5337-2e56-3711-a344-b29bce96d3e2"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [
+      {
+        "identifier": "17cbec18-38a6-36f6-ba7a-b5cc3775ef52",
+        "instanceIdentifier": "d303de27-6bb1-39c3-968b-64faabb17d27",
+        "name": "",
+        "source": {
+          "id": "2abf1573-d8ee-38ad-a745-083fdb1a8903",
+          "type": "PROCESSOR",
+          "groupId": "9caa5337-2e56-3711-a344-b29bce96d3e2",
+          "name": "CreateDummyFlowFile",
+          "comments": "",
+          "instanceIdentifier": "09b902c7-c4b7-3e92-8246-ef0a0bb685e7"
+        },
+        "destination": {
+          "id": "efefbde7-a9e8-3864-b1d2-9649981b39d1",
+          "type": "PROCESSOR",
+          "groupId": "9caa5337-2e56-3711-a344-b29bce96d3e2",
+          "name": "Sleep",
+          "comments": "",
+          "instanceIdentifier": "77e69c78-0199-1000-0000-00001e16d8fc"
+        },
+        "labelIndex": 0,
+        "zIndex": 1,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "9caa5337-2e56-3711-a344-b29bce96d3e2"
+      },
+      {
+        "identifier": "5b5e23d7-e6ce-3122-bfe7-3c7bb194893b",
+        "instanceIdentifier": "77e6bb8c-0199-1000-ffff-ffffe70db445",
+        "name": "",
+        "source": {
+          "id": "efefbde7-a9e8-3864-b1d2-9649981b39d1",
+          "type": "PROCESSOR",
+          "groupId": "9caa5337-2e56-3711-a344-b29bce96d3e2",
+          "name": "Sleep",
+          "comments": "",
+          "instanceIdentifier": "77e69c78-0199-1000-0000-00001e16d8fc"
+        },
+        "destination": {
+          "id": "3d651016-1570-37b6-b3a3-6575d1545cb7",
+          "type": "PROCESSOR",
+          "groupId": "9caa5337-2e56-3711-a344-b29bce96d3e2",
+          "name": "LogFlowFileContents",
+          "comments": "",
+          "instanceIdentifier": "81bb2507-6874-3bb7-a280-a327515aa5fe"
+        },
+        "labelIndex": 0,
+        "zIndex": 2,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "9caa5337-2e56-3711-a344-b29bce96d3e2"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "parameterContextName": "Generate and Log",
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {
+    "Generate and Log": {
+      "name": "Generate and Log",
+      "parameters": [
+        {
+          "name": "Text",
+          "description": "",
+          "sensitive": false,
+          "provided": false,
+          "value": "Hello"
+        }, {
+          "name": "Sleep Duration",
+          "description": "",
+          "sensitive": false,
+          "provided": false,
+          "value": "5 sec"
+        }
+      ],
+      "inheritedParameterContexts": [],
+      "componentType": "PARAMETER_CONTEXT"
+    }
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}

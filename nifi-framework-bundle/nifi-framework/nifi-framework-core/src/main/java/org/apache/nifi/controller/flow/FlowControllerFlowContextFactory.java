@@ -1,0 +1,140 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.controller.flow;
+
+import org.apache.nifi.components.connector.FlowContextFactory;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
+import org.apache.nifi.components.connector.ParameterContextFacadeFactory;
+import org.apache.nifi.components.connector.ProcessGroupFacadeFactory;
+import org.apache.nifi.components.connector.ProcessGroupFactory;
+import org.apache.nifi.components.connector.StandardFlowContext;
+import org.apache.nifi.components.connector.components.FlowContextType;
+import org.apache.nifi.components.connector.components.ParameterContextFacade;
+import org.apache.nifi.components.connector.components.ParameterValue;
+import org.apache.nifi.components.connector.facades.standalone.StandaloneParameterContextFacade;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
+import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public class FlowControllerFlowContextFactory implements FlowContextFactory {
+    private final FlowController flowController;
+    private final ProcessGroup activeManagedProcessGroup;
+    private final MutableConnectorConfigurationContext activeConfigurationContext;
+    private final ParameterContextFacadeFactory parameterContextFacadeFactory;
+    private final ProcessGroupFacadeFactory processGroupFacadeFactory;
+    private final ProcessGroupFactory processGroupFactory;
+
+    public FlowControllerFlowContextFactory(final FlowController flowController, final ProcessGroup activeManagedProcessGroup,
+            final MutableConnectorConfigurationContext activeConfigurationContext, final ProcessGroupFactory processGroupFactory) {
+
+        this.flowController = flowController;
+        this.activeManagedProcessGroup = activeManagedProcessGroup;
+        this.activeConfigurationContext = activeConfigurationContext;
+        this.processGroupFactory = processGroupFactory;
+
+        this.processGroupFacadeFactory = new FlowControllerProcessGroupFacadeFactory(flowController);
+        this.parameterContextFacadeFactory = processGroup -> new StandaloneParameterContextFacade(flowController, processGroup);
+    }
+
+    @Override
+    public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
+        return new StandardFlowContext(activeManagedProcessGroup, activeConfigurationContext, processGroupFacadeFactory,
+            parameterContextFacadeFactory, connectorLogger, FlowContextType.ACTIVE, bundle);
+    }
+
+    @Override
+    public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
+                final MutableConnectorConfigurationContext activeConfigurationContext, final Bundle bundle) {
+
+        final String workingGroupId = UUID.nameUUIDFromBytes((connectorId + "-working").getBytes(StandardCharsets.UTF_8)).toString();
+        final ProcessGroup processGroup = processGroupFactory.create(workingGroupId);
+        copyGroupContents(activeManagedProcessGroup, processGroup, connectorId + "-working-context");
+
+        final MutableConnectorConfigurationContext workingConfigurationContext = activeConfigurationContext.clone();
+
+        return new StandardFlowContext(processGroup, workingConfigurationContext, processGroupFacadeFactory,
+            parameterContextFacadeFactory, connectorLogger, FlowContextType.WORKING, bundle);
+    }
+
+    private void copyGroupContents(final ProcessGroup sourceGroup, final ProcessGroup destinationGroup, final String componentIdSeed) {
+        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
+            .mapSensitiveConfiguration(true)
+            .mapPropertyDescriptors(true)
+            .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
+            .sensitiveValueEncryptor(value -> value)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
+            .mapControllerServiceReferencesToVersionedId(true)
+            .mapFlowRegistryClientId(true)
+            .mapAssetReferences(true)
+            .build();
+
+        final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
+        final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(sourceGroup, flowController.getControllerServiceProvider(),
+            flowController.getFlowManager(), true);
+
+        final String contextName = sourceGroup.getParameterContext().getName();
+
+        final VersionedExternalFlow externalFlowWithoutParameterContext = new VersionedExternalFlow();
+        externalFlowWithoutParameterContext.setFlowContents(versionedGroup);
+        externalFlowWithoutParameterContext.setParameterContexts(Map.of());
+
+        final String duplicateContextId = UUID.nameUUIDFromBytes((destinationGroup.getIdentifier() + "-param-context").getBytes(StandardCharsets.UTF_8)).toString();
+        final ParameterContext sourceContext = sourceGroup.getParameterContext();
+        final ParameterContext duplicateParameterContext = flowController.getFlowManager().createEmptyParameterContext(
+            duplicateContextId, contextName, sourceContext.getDescription(), destinationGroup);
+
+        destinationGroup.setParameterContext(duplicateParameterContext);
+        destinationGroup.updateFlow(externalFlowWithoutParameterContext, componentIdSeed, false, true, true);
+
+        final ParameterContextFacade contextFacade = new StandaloneParameterContextFacade(flowController, destinationGroup);
+        final List<ParameterValue> parameterValues = createParameterValues(sourceContext);
+        contextFacade.updateParameters(parameterValues);
+    }
+
+    private List<ParameterValue> createParameterValues(final ParameterContext context) {
+        final List<ParameterValue> parameterValues = new ArrayList<>();
+        for (final Parameter parameter : context.getParameters().values()) {
+            final ParameterValue.Builder parameterValueBuilder = new ParameterValue.Builder()
+                .name(parameter.getDescriptor().getName())
+                .sensitive(parameter.getDescriptor().isSensitive())
+                .value(parameter.getValue());
+
+            parameter.getReferencedAssets().forEach(parameterValueBuilder::addReferencedAsset);
+            parameterValues.add(parameterValueBuilder.build());
+        }
+
+        return parameterValues;
+    }
+}

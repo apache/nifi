@@ -24,12 +24,14 @@ public class ReconstitutedSerializedRepositoryRecord implements SerializedReposi
     private final RepositoryRecordType type;
     private final FlowFileRecord flowFile;
     private final String swapLocation;
+    private final String originalSwapLocation;
 
     private ReconstitutedSerializedRepositoryRecord(final Builder builder) {
         this.queueIdentifier = builder.queueIdentifier;
         this.type = builder.type;
         this.flowFile = builder.flowFile;
         this.swapLocation = builder.swapLocation;
+        this.originalSwapLocation = builder.originalSwapLocation;
     }
 
     @Override
@@ -73,6 +75,11 @@ public class ReconstitutedSerializedRepositoryRecord implements SerializedReposi
     }
 
     @Override
+    public String getOriginalSwapLocation() {
+        return originalSwapLocation;
+    }
+
+    @Override
     public String toString() {
         return "ReconstitutedSerializedRepositoryRecord[recordType=" + type + ", queueId=" + queueIdentifier + ", flowFileUuid=" + flowFile.getAttribute(CoreAttributes.UUID.key())
             + ", attributesChanged=" + isAttributesChanged() + "]";
@@ -83,6 +90,7 @@ public class ReconstitutedSerializedRepositoryRecord implements SerializedReposi
         private RepositoryRecordType type;
         private FlowFileRecord flowFile;
         private String swapLocation;
+        private String originalSwapLocation;
 
         public Builder queueIdentifier(final String queueIdentifier) {
             this.queueIdentifier = queueIdentifier;
@@ -101,6 +109,11 @@ public class ReconstitutedSerializedRepositoryRecord implements SerializedReposi
 
         public Builder swapLocation(final String swapLocation) {
             this.swapLocation = swapLocation;
+            return this;
+        }
+
+        public Builder originalSwapLocation(final String originalSwapLocation) {
+            this.originalSwapLocation = originalSwapLocation;
             return this;
         }
 

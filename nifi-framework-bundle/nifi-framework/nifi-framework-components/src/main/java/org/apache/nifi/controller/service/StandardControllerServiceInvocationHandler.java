@@ -17,6 +17,8 @@
 package org.apache.nifi.controller.service;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.nifi.components.connector.components.ComponentState;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceProxyWrapper;
 import org.apache.nifi.nar.ExtensionManager;
@@ -29,7 +31,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,15 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class StandardControllerServiceInvocationHandler implements ControllerServiceInvocationHandler {
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceInvocationHandler.class);
     private static final Method PROXY_WRAPPER_GET_WRAPPED_METHOD;
-
-    private static final Set<Method> validDisabledMethods;
     static {
-        // methods that are okay to be called when the service is disabled.
-        final Set<Method> validMethods = new HashSet<>();
-        validMethods.addAll(Arrays.asList(ControllerService.class.getMethods()));
-        validMethods.addAll(Arrays.asList(Object.class.getMethods()));
-        validDisabledMethods = Collections.unmodifiableSet(validMethods);
-
         try {
             PROXY_WRAPPER_GET_WRAPPED_METHOD = ControllerServiceProxyWrapper.class.getMethod("getWrapped");
         } catch (final NoSuchMethodException e) {
@@ -54,6 +47,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         }
     }
 
+    private final Set<Method> validDisabledMethods;
     private final ControllerService originalService;
     private final AtomicReference<ControllerServiceNode> serviceNodeHolder = new AtomicReference<>(null);
     private final ExtensionManager extensionManager;
@@ -73,6 +67,34 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         this.extensionManager = extensionManager;
         this.originalService = originalService;
         this.serviceNodeHolder.set(serviceNode);
+        validDisabledMethods = determineDisabledAllowedMethods(originalService);
+    }
+
+    private Set<Method> determineDisabledAllowedMethods(final ControllerService implementation) {
+        // methods that are okay to be called when the service is disabled.
+        final Set<Method> validMethods = new HashSet<>();
+        validMethods.addAll(Arrays.asList(ControllerService.class.getMethods()));
+        validMethods.addAll(Arrays.asList(Object.class.getMethods()));
+
+        // If there are any Connector Methods that are allowed to be called when the service is STOPPED or STOPPING, add those as well.
+        // This allows us to perform actions from Connectors, such as obtaining a list of available resources, during Connector configuration, etc.
+        // while the service is currently stopped.
+        for (final Method method : implementation.getClass().getDeclaredMethods()) {
+            final ConnectorMethod connectorMethod = method.getAnnotation(ConnectorMethod.class);
+            if (connectorMethod == null) {
+                continue;
+            }
+
+            final ComponentState[] allowedStates = connectorMethod.allowedStates();
+            for (final ComponentState allowedState : allowedStates) {
+                if (allowedState == ComponentState.STOPPED || allowedState == ComponentState.STOPPING) {
+                    validMethods.add(method);
+                    break;
+                }
+            }
+        }
+
+        return validMethods;
     }
 
     @Override

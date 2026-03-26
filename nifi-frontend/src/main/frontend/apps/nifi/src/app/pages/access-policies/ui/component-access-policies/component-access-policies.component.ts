@@ -268,7 +268,8 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             }
         } else if (
             policyComponentState.resource === 'parameter-contexts' ||
-            policyComponentState.resource === 'parameter-providers'
+            policyComponentState.resource === 'parameter-providers' ||
+            policyComponentState.resource === 'connectors'
         ) {
             switch (option.value) {
                 case 'read-data':
@@ -331,6 +332,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             case 'parameter-providers':
             case 'parameter-contexts':
             case 'reporting-tasks':
+            case 'connectors':
                 return 'icon-drop';
         }
 
@@ -357,6 +359,8 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return 'Reporting Task';
             case 'parameter-providers':
                 return ComponentType.ParameterProvider;
+            case 'connectors':
+                return 'Connector';
         }
 
         return ComponentType.ProcessGroup;

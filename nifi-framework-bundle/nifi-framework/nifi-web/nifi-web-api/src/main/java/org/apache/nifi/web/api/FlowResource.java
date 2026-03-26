@@ -54,6 +54,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -115,6 +116,9 @@ import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorTypesEntity;
+import org.apache.nifi.web.api.entity.ConnectorsEntity;
 import org.apache.nifi.web.api.entity.ContentViewerEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -155,6 +159,7 @@ import org.apache.nifi.web.api.entity.RuntimeManifestEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
+import org.apache.nifi.web.api.entity.StepDocumentationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
@@ -231,6 +236,7 @@ public class FlowResource extends ApplicationResource {
     private ControllerServiceResource controllerServiceResource;
     private ReportingTaskResource reportingTaskResource;
     private ParameterProviderResource parameterProviderResource;
+    private ConnectorResource connectorResource;
 
     @Context
     private ServletContext servletContext;
@@ -240,7 +246,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param flow group
      */
-    private void populateRemainingFlowContent(ProcessGroupFlowDTO flow) {
+    public void populateRemainingFlowContent(final ProcessGroupFlowDTO flow) {
         FlowDTO flowStructure = flow.getFlow();
 
         // populate the remaining fields for the processors, connections, process group refs, remote process groups, and labels if appropriate
@@ -774,6 +780,105 @@ public class FlowResource extends ApplicationResource {
         final ParameterProvidersEntity entity = new ParameterProvidersEntity();
         entity.setParameterProviders(parameterProviders);
         entity.setCurrentTime(new Date());
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    // ----------
+    // connectors
+    // ----------
+
+    /**
+     * Retrieves all the of connectors in this NiFi.
+     *
+     * @return A connectorsEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("connectors")
+    @Operation(
+            summary = "Gets all connectors",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorsEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response getConnectors() {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get all the connectors
+        final Set<ConnectorEntity> connectors = serviceFacade.getConnectors();
+        connectorResource.populateRemainingConnectorEntitiesContent(connectors);
+
+        // create the response entity
+        final ConnectorsEntity entity = new ConnectorsEntity();
+        entity.setCurrentTime(new Date());
+        entity.setConnectors(connectors);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the types of connectors that this NiFi supports.
+     *
+     * @return A connectorTypesEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("connector-types")
+    @Operation(
+            summary = "Retrieves the types of connectors that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorTypesEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response getConnectorTypes(
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle group."
+            )
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle artifact."
+            )
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
+            @Parameter(
+                    description = "If specified, will only return types whose fully qualified classname matches."
+            )
+            @QueryParam("type") String typeFilter) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ConnectorTypesEntity entity = new ConnectorTypesEntity();
+        entity.setConnectorTypes(serviceFacade.getConnectorTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -2188,6 +2293,60 @@ public class FlowResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("connector-definition/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the Connector Definition for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorDefinition.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The connector definition for the coordinates could not be located.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response getConnectorDefinition(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") final String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") final String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") final String version,
+            @Parameter(
+                    description = "The connector type",
+                    required = true
+            )
+            @PathParam("type") final String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ConnectorDefinition entity = serviceFacade.getConnectorDefinition(group, artifact, version, type);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("additional-details/{group}/{artifact}/{version}/{type}")
     @Operation(
             summary = "Retrieves the additional details for the specified component type.",
@@ -2238,6 +2397,50 @@ public class FlowResource extends ApplicationResource {
         entity.setAdditionalDetails(additionalDetails);
 
         // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("steps/{group}/{artifact}/{version}/{connectorType}/{stepName}")
+    @Operation(
+            summary = "Retrieves the step documentation for the specified Connector configuration step.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = StepDocumentationEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The step documentation for the coordinates could not be located.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response getStepDocumentation(
+            @Parameter(description = "The bundle group", required = true)
+            @PathParam("group") final String group,
+            @Parameter(description = "The bundle artifact", required = true)
+            @PathParam("artifact") final String artifact,
+            @Parameter(description = "The bundle version", required = true)
+            @PathParam("version") final String version,
+            @Parameter(description = "The fully qualified Connector type", required = true)
+            @PathParam("connectorType") final String connectorType,
+            @Parameter(description = "The configuration step name", required = true)
+            @PathParam("stepName") final String stepName
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final String stepDocumentation = serviceFacade.getStepDocumentation(group, artifact, version, connectorType, stepName);
+        final StepDocumentationEntity entity = new StepDocumentationEntity();
+        entity.setStepDocumentation(stepDocumentation);
+
         return generateOkResponse(entity).build();
     }
 
@@ -4154,6 +4357,11 @@ public class FlowResource extends ApplicationResource {
     @Autowired
     public void setParameterProviderResource(final ParameterProviderResource parameterProviderResource) {
         this.parameterProviderResource = parameterProviderResource;
+    }
+
+    @Autowired
+    public void setConnectorResource(final ConnectorResource connectorResource) {
+        this.connectorResource = connectorResource;
     }
 
     @Autowired

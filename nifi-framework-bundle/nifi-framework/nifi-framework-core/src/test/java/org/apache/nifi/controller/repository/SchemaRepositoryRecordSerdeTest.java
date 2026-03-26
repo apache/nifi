@@ -155,7 +155,7 @@ public class SchemaRepositoryRecordSerdeTest {
         }
         attributes.put(stringBuilder.toString(), "testValue");
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
-        record.setSwapLocation("fake");
+        record.setSwapLocation("fake", SWAP_IN);
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
             RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
@@ -176,7 +176,7 @@ public class SchemaRepositoryRecordSerdeTest {
         }
         attributes.put("testName", stringBuilder.toString());
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
-        record.setSwapLocation("fake");
+        record.setSwapLocation("fake", SWAP_IN);
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
             RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
@@ -197,7 +197,7 @@ public class SchemaRepositoryRecordSerdeTest {
         }
         attributes.put(stringBuilder.toString(), "testValue");
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
-        record.setSwapLocation("fake");
+        record.setSwapLocation("fake", SWAP_IN);
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
 
@@ -217,7 +217,7 @@ public class SchemaRepositoryRecordSerdeTest {
         }
         attributes.put("testName", stringBuilder.toString());
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
-        record.setSwapLocation("fake");
+        record.setSwapLocation("fake", SWAP_IN);
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
 
@@ -233,7 +233,7 @@ public class SchemaRepositoryRecordSerdeTest {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("testName", "testValue");
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
-        record.setSwapLocation("fake");
+        record.setSwapLocation("fake", SWAP_IN);
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
             RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);

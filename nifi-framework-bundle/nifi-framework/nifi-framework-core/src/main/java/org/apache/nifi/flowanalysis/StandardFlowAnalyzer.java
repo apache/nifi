@@ -30,7 +30,7 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
@@ -89,7 +89,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     public void analyzeProcessor(ProcessorNode processorNode) {
         logger.debug("Running analysis on {}", processorNode);
 
-        final NiFiRegistryFlowMapper mapper = createMapper();
+        final VersionedComponentFlowMapper mapper = createMapper();
 
         VersionedProcessor versionedProcessor = mapper.mapProcessor(
                 processorNode,
@@ -105,7 +105,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     public void analyzeControllerService(ControllerServiceNode controllerServiceNode) {
         logger.debug("Running analysis on {}", controllerServiceNode);
 
-        final NiFiRegistryFlowMapper mapper = createMapper();
+        final VersionedComponentFlowMapper mapper = createMapper();
 
         VersionedControllerService versionedControllerService = mapper.mapControllerService(
                 controllerServiceNode,
@@ -266,8 +266,8 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
         return displayName;
     }
 
-    private NiFiRegistryFlowMapper createMapper() {
-        NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
+    private VersionedComponentFlowMapper createMapper() {
+        VersionedComponentFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
 
         return mapper;
     }

@@ -688,6 +688,9 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
     @Test
     public void testUnnecessaryProcessorsAndConnectionsRemoved() throws NiFiClientException, IOException, InterruptedException {
+        // We make assertions about the number of components in the flow so make sure that we start with an empty flow.
+        destroyFlow();
+
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "10 mins");
 

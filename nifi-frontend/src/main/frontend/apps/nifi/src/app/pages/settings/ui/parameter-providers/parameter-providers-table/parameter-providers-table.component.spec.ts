@@ -122,6 +122,10 @@ describe('ParameterProvidersTable', () => {
                 canRead: true,
                 canWrite: true
             },
+            connectorsPermissions: {
+                canRead: true,
+                canWrite: true
+            },
             restrictedComponentsPermissions: {
                 canRead: true,
                 canWrite: true

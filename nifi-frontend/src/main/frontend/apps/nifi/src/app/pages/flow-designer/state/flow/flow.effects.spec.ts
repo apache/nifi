@@ -58,9 +58,10 @@ import { CopyPasteService } from '../../service/copy-paste.service';
 import { CanvasView } from '../../service/canvas-view.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { selectDisconnectionAcknowledged } from '../../../../state/cluster-summary/cluster-summary.selectors';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { provideRouter, Router } from '@angular/router';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 
@@ -775,6 +776,8 @@ describe('FlowEffects', () => {
             imports: [],
             providers: [
                 FlowEffects,
+                ComponentTypeNamePipe,
+                provideRouter([]),
                 provideMockActions(() => action$),
                 provideMockStore({
                     selectors: [
@@ -1180,6 +1183,105 @@ describe('FlowEffects', () => {
                     request: { id: childGroupId }
                 })
             );
+        });
+    });
+
+    describe('navigateToProvenanceForComponent$', () => {
+        let router: Router;
+
+        beforeEach(() => {
+            router = TestBed.inject(Router);
+            jest.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-123');
+            store.refreshState();
+        });
+
+        it('should navigate to provenance with Processor type in back navigation route and context', () => {
+            effects.navigateToProvenanceForComponent$.subscribe();
+
+            action$.next(
+                FlowActions.navigateToProvenanceForComponent({
+                    id: 'comp-1',
+                    componentType: ComponentType.Processor
+                })
+            );
+
+            expect(router.navigate).toHaveBeenCalledWith(['/provenance'], {
+                queryParams: { componentId: 'comp-1' },
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'pg-123', ComponentType.Processor, 'comp-1'],
+                        routeBoundary: ['/provenance'],
+                        context: 'Processor'
+                    }
+                }
+            });
+        });
+
+        it('should navigate to provenance with Funnel type in back navigation route and context', () => {
+            effects.navigateToProvenanceForComponent$.subscribe();
+
+            action$.next(
+                FlowActions.navigateToProvenanceForComponent({
+                    id: 'funnel-1',
+                    componentType: ComponentType.Funnel
+                })
+            );
+
+            expect(router.navigate).toHaveBeenCalledWith(['/provenance'], {
+                queryParams: { componentId: 'funnel-1' },
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'pg-123', ComponentType.Funnel, 'funnel-1'],
+                        routeBoundary: ['/provenance'],
+                        context: 'Funnel'
+                    }
+                }
+            });
+        });
+
+        it('should navigate to provenance with InputPort type in back navigation route and context', () => {
+            effects.navigateToProvenanceForComponent$.subscribe();
+
+            action$.next(
+                FlowActions.navigateToProvenanceForComponent({
+                    id: 'port-1',
+                    componentType: ComponentType.InputPort
+                })
+            );
+
+            expect(router.navigate).toHaveBeenCalledWith(['/provenance'], {
+                queryParams: { componentId: 'port-1' },
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'pg-123', ComponentType.InputPort, 'port-1'],
+                        routeBoundary: ['/provenance'],
+                        context: 'Input Port'
+                    }
+                }
+            });
+        });
+
+        it('should navigate to provenance with OutputPort type in back navigation route and context', () => {
+            effects.navigateToProvenanceForComponent$.subscribe();
+
+            action$.next(
+                FlowActions.navigateToProvenanceForComponent({
+                    id: 'port-2',
+                    componentType: ComponentType.OutputPort
+                })
+            );
+
+            expect(router.navigate).toHaveBeenCalledWith(['/provenance'], {
+                queryParams: { componentId: 'port-2' },
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'pg-123', ComponentType.OutputPort, 'port-2'],
+                        routeBoundary: ['/provenance'],
+                        context: 'Output Port'
+                    }
+                }
+            });
         });
     });
 });

@@ -109,4 +109,9 @@ public class AgentPropertyValidationContext implements ValidationContext {
     public PropertyValue getProperty(PropertyDescriptor descriptor) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String evaluateParameters(final String value) {
+        throw new UnsupportedOperationException();
+    }
 }

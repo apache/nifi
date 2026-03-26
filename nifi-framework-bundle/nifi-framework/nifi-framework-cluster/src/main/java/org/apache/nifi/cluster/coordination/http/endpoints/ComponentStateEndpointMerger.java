@@ -38,6 +38,8 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
     public static final Pattern CONTROLLER_SERVICE_STATE_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}/state");
     public static final Pattern REPORTING_TASK_STATE_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/[a-f0-9\\-]{36}/state");
     public static final Pattern FLOW_ANALYSIS_RULE_STATE_URI_PATTERN = Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}/state");
+    public static final Pattern CONNECTOR_PROCESSOR_STATE_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/processors/[a-f0-9\\-]{36}/state");
+    public static final Pattern CONNECTOR_CONTROLLER_SERVICE_STATE_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/controller-services/[a-f0-9\\-]{36}/state");
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -48,7 +50,9 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
         return PROCESSOR_STATE_URI_PATTERN.matcher(uri.getPath()).matches()
             || CONTROLLER_SERVICE_STATE_URI_PATTERN.matcher(uri.getPath()).matches()
             || REPORTING_TASK_STATE_URI_PATTERN.matcher(uri.getPath()).matches()
-            || FLOW_ANALYSIS_RULE_STATE_URI_PATTERN.matcher(uri.getPath()).matches();
+            || FLOW_ANALYSIS_RULE_STATE_URI_PATTERN.matcher(uri.getPath()).matches()
+            || CONNECTOR_PROCESSOR_STATE_URI_PATTERN.matcher(uri.getPath()).matches()
+            || CONNECTOR_CONTROLLER_SERVICE_STATE_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
     @Override

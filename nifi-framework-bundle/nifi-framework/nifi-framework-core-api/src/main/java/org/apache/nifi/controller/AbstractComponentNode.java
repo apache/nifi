@@ -32,6 +32,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.ResourceReferenceFactory;
 import org.apache.nifi.components.resource.ResourceReferences;
@@ -68,6 +69,7 @@ import org.apache.nifi.validation.RuleViolation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -414,7 +416,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
     }
 
-    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterContext parameterContext) {
+    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterLookup parameterLookup) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
@@ -422,7 +424,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = createDescriptorToConfigMap(propertyValues);
             final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
-                getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
+                getProcessGroupIdentifier(), getIdentifier(), parameterLookup, false);
 
             final ValidationState validationState = performValidation(validationContext);
             final ValidationStatus validationStatus = validationState.getStatus();
@@ -469,6 +471,22 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return results;
+    }
+
+    @Override
+    public ValidationContext createValidationContext(final Map<String, String> propertyValues, final String annotationData,
+                final ParameterLookup parameterLookup, final boolean validateConnections) {
+
+        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+        final Map<PropertyDescriptor, PropertyConfiguration> descriptorToRawValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<String, String> entry : propertyValues.entrySet()) {
+            final PropertyDescriptor descriptor = getPropertyDescriptor(entry.getKey());
+            final PropertyConfiguration propertyConfiguration = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(descriptor, entry.getValue());
+            descriptorToRawValueMap.put(descriptor, propertyConfiguration);
+        }
+
+        return getValidationContextFactory().newValidationContext(descriptorToRawValueMap, annotationData, getProcessGroupIdentifier(), getIdentifier(),
+            parameterLookup, validateConnections);
     }
 
     private static Map<PropertyDescriptor, PropertyConfiguration> createDescriptorToConfigMap(final Map<PropertyDescriptor, String> propertyValues) {
@@ -590,7 +608,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!propertyConfiguration.equals(propertyModComparisonValue)) {
             try {
                 final String oldValue = propertyModComparisonValue == null ? null : propertyModComparisonValue.getEffectiveValue(getParameterContext());
-                onPropertyModified(descriptor, oldValue, resolvedValue);
+                if (!Objects.equals(oldValue, resolvedValue)) {
+                    onPropertyModified(descriptor, oldValue, resolvedValue);
+                }
             } catch (final Exception e) {
                 // nothing really to do here...
                 logger.error("Failed to notify {} that property {} changed", this, descriptor, e);
@@ -851,13 +871,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public ValidationState performValidation(final ValidationContext validationContext) {
-        final Collection<ValidationResult> results;
+        final Collection<ValidationResult> allResults;
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
-            results = computeValidationErrors(validationContext);
+            allResults = computeValidationErrors(validationContext);
         }
 
-        final ValidationStatus status = results.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID;
-        final ValidationState validationState = new ValidationState(status, results);
+        final Collection<ValidationResult> invalidResults = allResults.isEmpty() ? Collections.emptyList()
+                : allResults.stream().filter(result -> !result.isValid()).toList();
+        final ValidationStatus status = invalidResults.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID;
+        final ValidationState validationState = new ValidationState(status, invalidResults);
         return validationState;
     }
 
@@ -876,7 +898,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
-        Throwable failureCause = null;
+        Throwable failureCause;
 
         try {
             if (!sensitiveDynamicPropertyNames.get().isEmpty() && !isSupportsSensitiveDynamicProperties()) {
@@ -910,7 +932,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             }
 
             final List<ValidationResult> invalidParameterResults = validateParameterReferences(validationContext);
-            invalidParameterResults.addAll(validateConfig());
+            invalidParameterResults.addAll(validateConfig(validationContext));
 
             if (!invalidParameterResults.isEmpty()) {
                 // At this point, we are not able to properly resolve all property values, so we will not attempt to perform
@@ -971,11 +993,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * Validates the current configuration, returning ValidationResults for any
      * invalid configuration parameter.
      *
+     * @param validationContext the ValidationContext to use for parameter lookup
      * @return Collection of validation result objects for any invalid findings
      *         only. If the collection is empty then the component is valid. Should guarantee
      *         non-null
      */
-    protected abstract List<ValidationResult> validateConfig();
+    protected abstract List<ValidationResult> validateConfig(ValidationContext validationContext);
 
     private List<ValidationResult> validateParameterReferences(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
@@ -1537,6 +1560,32 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         getIdentifier(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
             }
         }
+    }
+
+    protected List<ConnectorMethod> getConnectorMethods(final Class<?> componentClass) {
+        final List<ConnectorMethod> connectorMethods = new ArrayList<>();
+        for (final Method method : componentClass.getDeclaredMethods()) {
+            final ConnectorMethod annotation = method.getAnnotation(ConnectorMethod.class);
+            connectorMethods.add(annotation);
+        }
+
+        return connectorMethods;
+    }
+
+    protected Method discoverConnectorMethod(final Class<?> componentClass, final String connectorMethodName) {
+        for (final Method method : componentClass.getDeclaredMethods()) {
+            final ConnectorMethod annotation = method.getAnnotation(ConnectorMethod.class);
+            if (annotation != null && annotation.name().equals(connectorMethodName)) {
+                return method;
+            }
+        }
+
+        final Class<?> superClass = componentClass.getSuperclass();
+        if (superClass != null && !Object.class.equals(superClass)) {
+            return discoverConnectorMethod(superClass, connectorMethodName);
+        }
+
+        return null;
     }
 
     protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {

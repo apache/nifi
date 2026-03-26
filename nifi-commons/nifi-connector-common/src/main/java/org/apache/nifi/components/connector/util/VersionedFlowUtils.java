@@ -1,0 +1,592 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.components.connector.util;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.PortType;
+import org.apache.nifi.flow.Position;
+import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+
+public class VersionedFlowUtils {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    public static VersionedExternalFlow loadFlowFromResource(final String resourceName) {
+        try (final InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
+            if (in == null) {
+                throw new IllegalArgumentException("Resource not found: " + resourceName);
+            }
+
+            return OBJECT_MAPPER.readValue(in, VersionedExternalFlow.class);
+        } catch (final Exception e) {
+            throw new IllegalStateException("Unable to load resource: " + resourceName, e);
+        }
+    }
+
+    public static Optional<VersionedProcessor> findProcessor(final VersionedProcessGroup group, final Predicate<VersionedProcessor> predicate) {
+        final List<VersionedProcessor> processors = findProcessors(group, predicate);
+        if (processors.size() == 1) {
+            return Optional.of(processors.getFirst());
+        }
+        return Optional.empty();
+    }
+
+    public static List<VersionedProcessor> findProcessors(final VersionedProcessGroup group, final Predicate<VersionedProcessor> predicate) {
+        final List<VersionedProcessor> processors = new ArrayList<>();
+        findProcessors(group, predicate, processors);
+        return processors;
+    }
+
+    private static void findProcessors(final VersionedProcessGroup group, final Predicate<VersionedProcessor> predicate, final List<VersionedProcessor> processors) {
+        for (final VersionedProcessor processor : group.getProcessors()) {
+            if (predicate.test(processor)) {
+                processors.add(processor);
+            }
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            findProcessors(childGroup, predicate, processors);
+        }
+    }
+
+    public static ConnectableComponent createConnectableComponent(final VersionedProcessor processor) {
+        final ConnectableComponent component = new ConnectableComponent();
+        component.setId(processor.getIdentifier());
+        component.setName(processor.getName());
+        component.setType(ConnectableComponentType.PROCESSOR);
+        component.setGroupId(processor.getGroupIdentifier());
+        return component;
+    }
+
+    public static ConnectableComponent createConnectableComponent(final VersionedPort port) {
+        final ConnectableComponent component = new ConnectableComponent();
+        component.setId(port.getIdentifier());
+        component.setName(port.getName());
+        component.setType(port.getComponentType() == ComponentType.INPUT_PORT ? ConnectableComponentType.INPUT_PORT : ConnectableComponentType.OUTPUT_PORT);
+        component.setGroupId(port.getGroupIdentifier());
+        return component;
+    }
+
+    public static VersionedConnection addConnection(final VersionedProcessGroup group, final ConnectableComponent source, final ConnectableComponent destination,
+            final Set<String> relationships) {
+        final VersionedConnection connection = new VersionedConnection();
+        connection.setSource(source);
+        connection.setDestination(destination);
+        connection.setSelectedRelationships(relationships);
+        connection.setBends(List.of());
+        connection.setLabelIndex(0);
+        connection.setzIndex(0L);
+        connection.setGroupIdentifier(group.getIdentifier());
+        connection.setLoadBalanceStrategy("DO_NOT_LOAD_BALANCE");
+        connection.setBackPressureDataSizeThreshold("1 GB");
+        connection.setBackPressureObjectThreshold(10000L);
+        connection.setFlowFileExpiration("0 sec");
+        connection.setPrioritizers(new ArrayList<>());
+        connection.setComponentType(ComponentType.CONNECTION);
+
+        Set<VersionedConnection> connections = group.getConnections();
+        if (connections == null) {
+            connections = new HashSet<>();
+            group.setConnections(connections);
+        }
+        connections.add(connection);
+
+        final String uuid = generateDeterministicUuid(group, ComponentType.CONNECTION);
+        connection.setIdentifier(uuid);
+        return connection;
+    }
+
+    public static List<VersionedConnection> findOutboundConnections(final VersionedProcessGroup group, final VersionedProcessor processor) {
+        final VersionedProcessGroup processorGroup = findGroupForProcessor(group, processor);
+        if (processorGroup == null) {
+            return List.of();
+        }
+
+        final List<VersionedConnection> outboundConnections = new ArrayList<>();
+        final Set<VersionedConnection> connections = processorGroup.getConnections();
+        if (connections == null) {
+            return outboundConnections;
+        }
+
+        for (final VersionedConnection connection : connections) {
+            final ConnectableComponent source = connection.getSource();
+            if (Objects.equals(source.getId(), processor.getIdentifier()) && source.getType() == ConnectableComponentType.PROCESSOR) {
+                outboundConnections.add(connection);
+            }
+        }
+
+        return outboundConnections;
+    }
+
+    public static VersionedProcessGroup findGroupForProcessor(final VersionedProcessGroup rootGroup, final VersionedProcessor processor) {
+        if (rootGroup.getProcessors().contains(processor)) {
+            return rootGroup;
+        }
+
+        for (final VersionedProcessGroup childGroup : rootGroup.getProcessGroups()) {
+            final VersionedProcessGroup foundGroup = findGroupForProcessor(childGroup, processor);
+            if (foundGroup != null) {
+                return foundGroup;
+            }
+        }
+
+        return null;
+    }
+
+    public static String generateDeterministicUuid(final VersionedProcessGroup group, final ComponentType componentType) {
+        final int componentCount = getComponentCount(group, componentType);
+        final String uuidSeed = "%s-%s-%d".formatted(group.getIdentifier(), componentType.name(), componentCount);
+        return UUID.nameUUIDFromBytes(uuidSeed.getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private static int getComponentCount(final VersionedProcessGroup group, final ComponentType componentType) {
+        final Collection<?> components = switch (componentType) {
+            case PROCESSOR -> group.getProcessors();
+            case INPUT_PORT -> group.getInputPorts();
+            case OUTPUT_PORT -> group.getOutputPorts();
+            case CONNECTION -> group.getConnections();
+            case FUNNEL -> group.getFunnels();
+            case LABEL -> group.getLabels();
+            case PROCESS_GROUP -> group.getProcessGroups();
+            case CONTROLLER_SERVICE -> group.getControllerServices();
+            default -> List.of();
+        };
+
+        return components == null ? 0 : components.size();
+    }
+
+    public static VersionedProcessor addProcessor(final VersionedProcessGroup group, final String processorType, final Bundle bundle, final String name, final Position position) {
+        final VersionedProcessor processor = new VersionedProcessor();
+
+        // Generate deterministic UUID based on group and component type
+        processor.setIdentifier(generateDeterministicUuid(group, ComponentType.PROCESSOR));
+
+        processor.setName(name);
+        processor.setType(processorType);
+        processor.setPosition(position);
+        processor.setBundle(bundle);
+
+        // Set default processor configuration
+        processor.setProperties(new HashMap<>());
+        processor.setPropertyDescriptors(new HashMap<>());
+        processor.setStyle(new HashMap<>());
+        processor.setSchedulingPeriod("0 sec");
+        processor.setSchedulingStrategy("TIMER_DRIVEN");
+        processor.setExecutionNode("ALL");
+        processor.setPenaltyDuration("30 sec");
+        processor.setYieldDuration("1 sec");
+        processor.setBulletinLevel("WARN");
+        processor.setRunDurationMillis(25L);
+        processor.setConcurrentlySchedulableTaskCount(1);
+        processor.setAutoTerminatedRelationships(new HashSet<>());
+        processor.setScheduledState(ScheduledState.ENABLED);
+        processor.setRetryCount(10);
+        processor.setRetriedRelationships(new HashSet<>());
+        processor.setBackoffMechanism("PENALIZE_FLOWFILE");
+        processor.setMaxBackoffPeriod("10 mins");
+        processor.setComponentType(ComponentType.PROCESSOR);
+        processor.setGroupIdentifier(group.getIdentifier());
+
+        group.getProcessors().add(processor);
+        return processor;
+    }
+
+    public static VersionedControllerService addControllerService(final VersionedProcessGroup group, final String serviceType, final Bundle bundle, final String name) {
+        final VersionedControllerService controllerService = new VersionedControllerService();
+
+        // Generate deterministic UUID based on group and component type
+        controllerService.setIdentifier(generateDeterministicUuid(group, ComponentType.CONTROLLER_SERVICE));
+
+        controllerService.setName(name);
+        controllerService.setType(serviceType);
+        controllerService.setBundle(bundle);
+        controllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
+
+        // Set default controller service configuration
+        controllerService.setProperties(new HashMap<>());
+        controllerService.setPropertyDescriptors(new HashMap<>());
+        controllerService.setControllerServiceApis(new ArrayList<>());
+        controllerService.setAnnotationData(null);
+        controllerService.setScheduledState(ScheduledState.DISABLED);
+        controllerService.setBulletinLevel("WARN");
+        controllerService.setComments(null);
+        controllerService.setGroupIdentifier(group.getIdentifier());
+
+        // Initialize controller services collection if it doesn't exist
+        Set<VersionedControllerService> controllerServices = group.getControllerServices();
+        if (controllerServices == null) {
+            controllerServices = new HashSet<>();
+            group.setControllerServices(controllerServices);
+        }
+        controllerServices.add(controllerService);
+
+        return controllerService;
+    }
+
+    public static VersionedProcessGroup createProcessGroup(final String identifier, final String name) {
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setIdentifier(identifier);
+        group.setName(name);
+        group.setProcessors(new HashSet<>());
+        group.setProcessGroups(new HashSet<>());
+        group.setConnections(new HashSet<>());
+        group.setControllerServices(new HashSet<>());
+        group.setInputPorts(new HashSet<>());
+        group.setOutputPorts(new HashSet<>());
+        group.setFunnels(new HashSet<>());
+        group.setLabels(new HashSet<>());
+        group.setComponentType(ComponentType.PROCESS_GROUP);
+        return group;
+    }
+
+    public static VersionedPort addInputPort(final VersionedProcessGroup group, final String name, final Position position) {
+        return addPort(group, name, position, PortType.INPUT_PORT);
+    }
+
+    public static VersionedPort addOutputPort(final VersionedProcessGroup group, final String name, final Position position) {
+        return addPort(group, name, position, PortType.OUTPUT_PORT);
+    }
+
+    private static VersionedPort addPort(final VersionedProcessGroup group, final String name, final Position position, final PortType portType) {
+        final boolean isInput = portType == PortType.INPUT_PORT;
+        final ComponentType componentType = isInput ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
+
+        final VersionedPort port = new VersionedPort();
+        port.setIdentifier(generateDeterministicUuid(group, componentType));
+        port.setName(name);
+        port.setPosition(position);
+        port.setType(portType);
+        port.setComponentType(componentType);
+        port.setScheduledState(ScheduledState.ENABLED);
+        port.setConcurrentlySchedulableTaskCount(1);
+        port.setAllowRemoteAccess(false);
+        port.setGroupIdentifier(group.getIdentifier());
+
+        if (isInput) {
+            Set<VersionedPort> inputPorts = group.getInputPorts();
+            if (inputPorts == null) {
+                inputPorts = new HashSet<>();
+                group.setInputPorts(inputPorts);
+            }
+            inputPorts.add(port);
+        } else {
+            Set<VersionedPort> outputPorts = group.getOutputPorts();
+            if (outputPorts == null) {
+                outputPorts = new HashSet<>();
+                group.setOutputPorts(outputPorts);
+            }
+            outputPorts.add(port);
+        }
+
+        return port;
+    }
+
+    public static Set<VersionedControllerService> getReferencedControllerServices(final VersionedProcessGroup group) {
+        final Set<VersionedControllerService> referencedServices = new HashSet<>();
+        collectReferencedControllerServices(group, referencedServices);
+        return referencedServices;
+    }
+
+    private static void collectReferencedControllerServices(final VersionedProcessGroup group, final Set<VersionedControllerService> referencedServices) {
+        final Map<String, VersionedControllerService> serviceMap = new HashMap<>();
+        for (final VersionedControllerService service : group.getControllerServices()) {
+            serviceMap.put(service.getIdentifier(), service);
+        }
+
+        for (final VersionedProcessor processor : group.getProcessors()) {
+            for (final String propertyValue : processor.getProperties().values()) {
+                final VersionedControllerService referencedService = serviceMap.get(propertyValue);
+                if (referencedService != null) {
+                    referencedServices.add(referencedService);
+                }
+            }
+        }
+
+        while (true) {
+            final Set<VersionedControllerService> newlyAddedServices = new HashSet<>();
+
+            for (final VersionedControllerService service : referencedServices) {
+                for (final String propertyValue : service.getProperties().values()) {
+                    final VersionedControllerService referencedService = serviceMap.get(propertyValue);
+                    if (referencedService != null && !referencedServices.contains(referencedService)) {
+                        newlyAddedServices.add(referencedService);
+                    }
+                }
+            }
+
+            referencedServices.addAll(newlyAddedServices);
+            if (newlyAddedServices.isEmpty()) {
+                break;
+            }
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            collectReferencedControllerServices(childGroup, referencedServices);
+        }
+    }
+
+    /**
+     * Returns the set of controller services that are transitively referenced by the given processor.
+     * This includes any services directly referenced by the processor's properties, as well as any services
+     * that those services reference, and so on. Only services that are accessible to the processor are considered,
+     * meaning services in the processor's own group and its ancestor groups.
+     *
+     * @param rootGroup the root process group to search for controller services
+     * @param processor the processor whose referenced services should be found
+     * @return the set of transitively referenced controller services
+     */
+    public static Set<VersionedControllerService> getReferencedControllerServices(final VersionedProcessGroup rootGroup, final VersionedProcessor processor) {
+        return findTransitivelyReferencedServices(rootGroup, processor.getGroupIdentifier(), processor.getProperties());
+    }
+
+    /**
+     * Returns the set of controller services that are transitively referenced by the given controller service.
+     * This includes any services directly referenced by the service's properties, as well as any services
+     * that those services reference, and so on. Only services that are accessible to the given service are considered,
+     * meaning services in the service's own group and its ancestor groups.
+     *
+     * @param rootGroup the root process group to search for controller services
+     * @param controllerService the controller service whose referenced services should be found
+     * @return the set of transitively referenced controller services
+     */
+    public static Set<VersionedControllerService> getReferencedControllerServices(final VersionedProcessGroup rootGroup, final VersionedControllerService controllerService) {
+        return findTransitivelyReferencedServices(rootGroup, controllerService.getGroupIdentifier(), controllerService.getProperties());
+    }
+
+    private static Set<VersionedControllerService> findTransitivelyReferencedServices(final VersionedProcessGroup rootGroup, final String componentGroupId,
+            final Map<String, String> properties) {
+        final Map<String, VersionedControllerService> serviceMap = new HashMap<>();
+        collectAccessibleControllerServices(rootGroup, componentGroupId, serviceMap);
+
+        final Set<VersionedControllerService> referencedServices = new HashSet<>();
+        for (final String propertyValue : properties.values()) {
+            final VersionedControllerService referencedService = serviceMap.get(propertyValue);
+            if (referencedService != null) {
+                referencedServices.add(referencedService);
+            }
+        }
+
+        resolveTransitiveServiceReferences(referencedServices, serviceMap);
+        return referencedServices;
+    }
+
+    /**
+     * Collects controller services that are accessible from the given target group. In NiFi, a component can reference
+     * controller services in its own group or any ancestor group. This method traverses from the root group down to the
+     * target group, collecting services from each group along the path.
+     *
+     * @param group the current group being examined
+     * @param targetGroupId the identifier of the group whose accessible services should be collected
+     * @param serviceMap the map to populate with accessible service identifiers and their corresponding services
+     * @return true if the target group was found at or beneath this group, false otherwise
+     */
+    private static boolean collectAccessibleControllerServices(final VersionedProcessGroup group, final String targetGroupId,
+            final Map<String, VersionedControllerService> serviceMap) {
+        final boolean isTarget = group.getIdentifier().equals(targetGroupId);
+
+        boolean foundInChild = false;
+        if (!isTarget) {
+            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+                if (collectAccessibleControllerServices(childGroup, targetGroupId, serviceMap)) {
+                    foundInChild = true;
+                    break;
+                }
+            }
+        }
+
+        if (isTarget || foundInChild) {
+            for (final VersionedControllerService service : group.getControllerServices()) {
+                serviceMap.put(service.getIdentifier(), service);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void resolveTransitiveServiceReferences(final Set<VersionedControllerService> referencedServices, final Map<String, VersionedControllerService> serviceMap) {
+        while (true) {
+            final Set<VersionedControllerService> newlyAddedServices = new HashSet<>();
+
+            for (final VersionedControllerService service : referencedServices) {
+                for (final String propertyValue : service.getProperties().values()) {
+                    final VersionedControllerService referencedService = serviceMap.get(propertyValue);
+                    if (referencedService != null && !referencedServices.contains(referencedService)) {
+                        newlyAddedServices.add(referencedService);
+                    }
+                }
+            }
+
+            referencedServices.addAll(newlyAddedServices);
+            if (newlyAddedServices.isEmpty()) {
+                break;
+            }
+        }
+    }
+
+    public static void removeControllerServiceReferences(final VersionedProcessGroup processGroup, final String serviceIdentifier) {
+        for (final VersionedProcessor processor : processGroup.getProcessors()) {
+            removeValuesFromMap(processor.getProperties(), serviceIdentifier);
+        }
+
+        for (final VersionedControllerService service : processGroup.getControllerServices()) {
+            removeValuesFromMap(service.getProperties(), serviceIdentifier);
+        }
+
+        for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
+            removeControllerServiceReferences(childGroup, serviceIdentifier);
+        }
+    }
+
+    private static void removeValuesFromMap(final Map<String, String> properties, final String valueToRemove) {
+        final List<String> keysToRemove = new ArrayList<>();
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            if (Objects.equals(entry.getValue(), valueToRemove)) {
+                keysToRemove.add(entry.getKey());
+            }
+        }
+
+        keysToRemove.forEach(properties::remove);
+    }
+
+    public static void setParameterValue(final VersionedExternalFlow externalFlow, final String parameterName, final String parameterValue) {
+        for (final VersionedParameterContext context : externalFlow.getParameterContexts().values()) {
+            setParameterValue(context, parameterName, parameterValue);
+        }
+    }
+
+    public static void setParameterValue(final VersionedParameterContext parameterContext, final String parameterName, final String parameterValue) {
+        final Set<VersionedParameter> parameters = parameterContext.getParameters();
+        for (final VersionedParameter parameter : parameters) {
+            if (parameter.getName().equals(parameterName)) {
+                parameter.setValue(parameterValue);
+            }
+        }
+    }
+
+    public static void setParameterValues(final VersionedExternalFlow externalFlow, final Map<String, String> parameterValues) {
+        for (final Map.Entry<String, String> entry : parameterValues.entrySet()) {
+            setParameterValue(externalFlow, entry.getKey(), entry.getValue());
+        }
+    }
+
+    public static void setParameterValues(final VersionedParameterContext parameterContext, final Map<String, String> parameterValues) {
+        for (final Map.Entry<String, String> entry : parameterValues.entrySet()) {
+            setParameterValue(parameterContext, entry.getKey(), entry.getValue());
+        }
+    }
+
+    public static void removeUnreferencedControllerServices(final VersionedProcessGroup processGroup) {
+        final Set<VersionedControllerService> referencedServices = getReferencedControllerServices(processGroup);
+        final Set<String> referencedServiceIds = new HashSet<>();
+        for (final VersionedControllerService service : referencedServices) {
+            referencedServiceIds.add(service.getIdentifier());
+        }
+
+        removeUnreferencedControllerServices(processGroup, referencedServiceIds);
+    }
+
+    private static void removeUnreferencedControllerServices(final VersionedProcessGroup processGroup, final Set<String> referencedServiceIds) {
+        processGroup.getControllerServices().removeIf(service -> !referencedServiceIds.contains(service.getIdentifier()));
+
+        for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
+            removeUnreferencedControllerServices(childGroup, referencedServiceIds);
+        }
+    }
+
+    /**
+     * Updates all processors and controller services in the given process group (and its child groups)
+     * to use the latest available bundle version. See {@link ComponentBundleLookup#getLatestBundle(String)} for details on how
+     * version comparison is performed.
+     *
+     * @param processGroup the process group containing components to update
+     * @param componentBundleLookup the lookup used to find available bundles for each component type
+     */
+    public static void updateToLatestBundles(final VersionedProcessGroup processGroup, final ComponentBundleLookup componentBundleLookup) {
+        for (final VersionedProcessor processor : processGroup.getProcessors()) {
+            updateToLatestBundle(processor, componentBundleLookup);
+        }
+
+        for (final VersionedControllerService service : processGroup.getControllerServices()) {
+            updateToLatestBundle(service, componentBundleLookup);
+        }
+
+        for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
+            updateToLatestBundles(childGroup, componentBundleLookup);
+        }
+    }
+
+    /**
+     * Updates the given processor to use the latest available bundle version.
+     * If no bundle is available, the processor's bundle is left unchanged.
+     * See {@link ComponentBundleLookup#getLatestBundle(String)} for details on how version comparison is performed.
+     *
+     * @param processor the processor to update
+     * @param componentBundleLookup the lookup used to find available bundles for the processor type
+     * @return true if the bundle was updated, false if no bundle was available
+     */
+    public static boolean updateToLatestBundle(final VersionedProcessor processor, final ComponentBundleLookup componentBundleLookup) {
+        final Optional<Bundle> latestBundle = componentBundleLookup.getLatestBundle(processor.getType());
+        latestBundle.ifPresent(processor::setBundle);
+        return latestBundle.isPresent();
+    }
+
+    /**
+     * Updates the given controller service to use the latest available bundle version.
+     * If no bundle is available, the service's bundle is left unchanged.
+     * See {@link ComponentBundleLookup#getLatestBundle(String)} for details on how version comparison is performed.
+     *
+     * @param service the controller service to update
+     * @param componentBundleLookup the lookup used to find available bundles for the service type
+     * @return true if the bundle was updated, false if no bundle was available
+     */
+    public static boolean updateToLatestBundle(final VersionedControllerService service, final ComponentBundleLookup componentBundleLookup) {
+        final Optional<Bundle> latestBundle = componentBundleLookup.getLatestBundle(service.getType());
+        latestBundle.ifPresent(service::setBundle);
+        return latestBundle.isPresent();
+    }
+
+}

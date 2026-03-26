@@ -186,7 +186,7 @@ class StandardClientRegistrationProviderTest {
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLIENT_SECRET, CLIENT_SECRET);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, USER_NAME_ATTRIBUTE_NAME);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_ADDITIONAL_SCOPES, OidcScopes.PROFILE);
-        return NiFiProperties.createBasicNiFiProperties(null, properties);
+        return NiFiProperties.createBasicNiFiProperties((String) null, properties);
     }
 
     private OIDCProviderMetadata getProviderMetadata() {

@@ -16,15 +16,43 @@
  */
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.File;
+import java.util.List;
 
 public class TerminateFlowFile extends AbstractProcessor {
+
+    public static final PropertyDescriptor GATE_FILE = new PropertyDescriptor.Builder()
+            .name("Gate File")
+            .description("An optional file path. If specified, the processor will only process FlowFiles when this file exists. " +
+                    "If the file does not exist, the processor will yield and return without processing any data.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return List.of(GATE_FILE);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final String gateFilePath = context.getProperty(GATE_FILE).getValue();
+        if (gateFilePath != null) {
+            final File gateFile = new File(gateFilePath);
+            if (!gateFile.exists()) {
+                context.yield();
+                return;
+            }
+        }
+
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;

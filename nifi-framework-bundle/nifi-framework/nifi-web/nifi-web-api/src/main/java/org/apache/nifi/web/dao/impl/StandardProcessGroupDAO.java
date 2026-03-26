@@ -44,7 +44,7 @@ import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -120,7 +120,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public boolean hasProcessGroup(String groupId) {
-        return flowController.getFlowManager().getGroup(groupId) != null;
+        return flowController.getFlowManager().getGroup(groupId, null) != null;
     }
 
     @Override
@@ -185,6 +185,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     @Override
     public ProcessGroup getProcessGroup(String groupId) {
         return locateProcessGroup(flowController, groupId);
+    }
+
+    @Override
+    public ProcessGroup getProcessGroup(String groupId, boolean includeConnectorManaged) {
+        return locateProcessGroup(flowController, groupId, includeConnectorManaged);
     }
 
     @Override
@@ -411,7 +416,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toList());
 
-        final ProcessGroup group = flowManager.getGroup(groupId);
+        final ProcessGroup group = flowManager.getGroup(groupId, null);
         if (group == null) {
             throw new IllegalArgumentException("Cannot activate Controller Services with IDs " + serviceIds + " because the associated Process Group (id=" + groupId + ") could not be found");
         }
@@ -524,7 +529,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String groupId = versionControlInformation.getGroupId();
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(flowController.getExtensionManager());
         final InstantiatedVersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowManager(), false);
 
         updateVersionControlInformation(group, flowSnapshot, versionControlInformation, versionedComponentMapping);
@@ -616,7 +621,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
@@ -628,14 +633,14 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         return processGroup.getDropAllFlowFilesStatus(dropRequestId);
     }
 
     @Override
     public DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         return processGroup.cancelDropAllFlowFiles(dropRequestId);
     }

@@ -48,6 +48,7 @@ public class CurrentUserEndpointMergerTest {
         userNode1.setRestrictedComponentsPermissions(buildPermissions(false, false));
         userNode1.setSystemPermissions(buildPermissions(true, true));
         userNode1.setTenantsPermissions(buildPermissions(false, true));
+        userNode1.setConnectorsPermissions(buildPermissions(true, false));
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode1 = new HashSet<>();
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, true));
@@ -64,6 +65,7 @@ public class CurrentUserEndpointMergerTest {
         userNode2.setRestrictedComponentsPermissions(buildPermissions(true, true));
         userNode2.setSystemPermissions(buildPermissions(false, false));
         userNode2.setTenantsPermissions(buildPermissions(true, true));
+        userNode2.setConnectorsPermissions(buildPermissions(false, true));
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode2 = new HashSet<>();
         componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, false));
@@ -92,6 +94,8 @@ public class CurrentUserEndpointMergerTest {
         assertFalse(userNode1.getSystemPermissions().getCanWrite());
         assertFalse(userNode1.getTenantsPermissions().getCanRead());
         assertTrue(userNode1.getTenantsPermissions().getCanWrite());
+        assertFalse(userNode1.getConnectorsPermissions().getCanRead());
+        assertFalse(userNode1.getConnectorsPermissions().getCanWrite());
 
         userNode1.getComponentRestrictionPermissions().forEach(componentRestriction -> {
             if (RequiredPermission.ACCESS_KEYTAB.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId())) {

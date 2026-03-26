@@ -57,11 +57,13 @@ import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -119,6 +121,21 @@ public abstract class AbstractFlowManager implements FlowManager {
     @Override
     public ProcessGroup getGroup(final String id) {
         return allProcessGroups.get(requireNonNull(id));
+    }
+
+    @Override
+    public ProcessGroup getGroup(final String groupId, final String connectorId) {
+        final ProcessGroup group = allProcessGroups.get(requireNonNull(groupId));
+        if (group == null) {
+            return null;
+        }
+
+        // If we found the group, return it only if it has the correct connector ID
+        if (Objects.equals(group.getConnectorIdentifier().orElse(null), connectorId)) {
+            return group;
+        }
+
+        return null;
     }
 
     @Override
@@ -627,16 +644,27 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ParameterContext createParameterContext(final String id, final String name, final String description,
-                                                   final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
-                                                   final ParameterProviderConfiguration parameterProviderConfiguration) {
-        final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
+               final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
+               final ParameterProviderConfiguration parameterProviderConfiguration) {
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this::getRootGroup);
+        return createParameterContext(id, name, description, parameters, inheritedContextIds, parameterProviderConfiguration, referenceManager, true);
+    }
+
+    protected ParameterContext createParameterContext(final String id, final String name, final String description,
+                final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
+                final ParameterProviderConfiguration parameterProviderConfiguration, final ParameterReferenceManager referenceManager,
+                final boolean register) {
+
+        if (register) {
+            final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
 
-        if (namingConflict) {
-            throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
+            if (namingConflict) {
+                throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
+            }
         }
 
-        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
         final ParameterContext parameterContext = new StandardParameterContext.Builder()
                 .id(id)
                 .name(name)
@@ -659,8 +687,21 @@ public abstract class AbstractFlowManager implements FlowManager {
             parameterContext.setInheritedParameterContexts(parameterContextList);
         }
 
-        parameterContextManager.addParameterContext(parameterContext);
+        if (register) {
+            parameterContextManager.addParameterContext(parameterContext);
+        }
+
         return parameterContext;
+    }
+
+    @Override
+    public ParameterContext createEmptyParameterContext(final String id, final String name, final String description, final ProcessGroup rootGroup) {
+        final Map<String, Parameter> parameterMap = new HashMap<>();
+        final List<String> inheritedContextIds = new ArrayList<>();
+
+        final ParameterReferenceManager parameterReferenceManager = new StandardParameterReferenceManager(() -> rootGroup);
+        return createParameterContext(id, name, description,
+            parameterMap, inheritedContextIds, null, parameterReferenceManager, false);
     }
 
     @Override

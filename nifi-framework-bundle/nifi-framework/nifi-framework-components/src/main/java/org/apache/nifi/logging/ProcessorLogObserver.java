@@ -31,7 +31,7 @@ public class ProcessorLogObserver implements LogObserver {
     private final BulletinRepository bulletinRepository;
     private final ProcessorNode processorNode;
 
-    public ProcessorLogObserver(BulletinRepository bulletinRepository, ProcessorNode processorNode) {
+    public ProcessorLogObserver(final BulletinRepository bulletinRepository, final ProcessorNode processorNode) {
         this.bulletinRepository = bulletinRepository;
         this.processorNode = processorNode;
     }

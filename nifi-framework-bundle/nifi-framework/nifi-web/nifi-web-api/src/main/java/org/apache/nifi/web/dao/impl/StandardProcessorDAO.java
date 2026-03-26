@@ -490,7 +490,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         final LogRepository logRepository = new NopLogRepository();
         final ComponentLog configVerificationLog = new SimpleProcessLogger(processor, logRepository, new StandardLoggingContext(processor));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
-        final List<ConfigVerificationResult> verificationResults = processor.verifyConfiguration(processContext, configVerificationLog, attributes, extensionManager);
+        final List<ConfigVerificationResult> verificationResults = processor.verifyConfiguration(processContext, configVerificationLog, attributes, extensionManager,
+            processor.getProcessGroup().getParameterContext());
 
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
             .map(this::createConfigVerificationResultDto)

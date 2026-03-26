@@ -29,6 +29,7 @@ import { NiFiState } from '../../../state';
 import { Store } from '@ngrx/store';
 import { loadExtensionTypesForDocumentation } from '../../../state/extension-types/extension-types.actions';
 import {
+    selectConnectorTypes,
     selectControllerServiceTypes,
     selectFlowAnalysisRuleTypes,
     selectParameterProviderTypes,
@@ -82,6 +83,9 @@ export class Documentation implements OnInit, AfterViewInit {
     flowAnalysisRuleTypes$ = this.store
         .select(selectFlowAnalysisRuleTypes)
         .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
+    connectorTypes$ = this.store
+        .select(selectConnectorTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
 
     accordion = viewChild.required(MatAccordion);
 
@@ -98,6 +102,7 @@ export class Documentation implements OnInit, AfterViewInit {
     reportingTasksExpanded = false;
     parameterProvidersExpanded = false;
     registryClientsExpanded = false;
+    connectorsExpanded = false;
 
     constructor() {
         this.store
@@ -134,6 +139,9 @@ export class Documentation implements OnInit, AfterViewInit {
                         break;
                     case ComponentType.FlowRegistryClient:
                         this.registryClientsExpanded = true;
+                        break;
+                    case ComponentType.Connector:
+                        this.connectorsExpanded = true;
                         break;
                 }
             });

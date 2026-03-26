@@ -48,8 +48,6 @@ public class FrameworkClusterConfiguration {
 
     private EventReporter eventReporter;
 
-    private FlowController flowController;
-
     private ClusterCoordinator clusterCoordinator;
 
     private WebClientService webClientService;
@@ -57,11 +55,6 @@ public class FrameworkClusterConfiguration {
     @Autowired
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
-    }
-
-    @Autowired
-    public void setFlowController(final FlowController flowController) {
-        this.flowController = flowController;
     }
 
     @Autowired
@@ -106,7 +99,7 @@ public class FrameworkClusterConfiguration {
     }
 
     @Bean
-    public ClusterDecommissionTask decommissionTask() {
+    public ClusterDecommissionTask decommissionTask(final FlowController flowController) {
         return new ClusterDecommissionTask(clusterCoordinator, flowController);
     }
 

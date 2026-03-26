@@ -32,6 +32,7 @@
         <module>nifi-bootstrap</module>
         <module>nifi-code-coverage</module>
         <module>nifi-mock</module>
+        <module>nifi-connector-mock-bundle</module>
         <module>nifi-extension-bundles</module>
         <module>nifi-extension-bom</module>
         <module>nifi-assembly</module>
@@ -44,6 +45,7 @@
         <module>nifi-registry</module>
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
+        <module>nifi-connectors</module>
         <module>c2</module>
     </modules>
     <url>https://nifi.apache.org</url>
@@ -148,6 +150,7 @@
         <hsqldb.version>2.7.4</hsqldb.version>
 
         <!-- Data formats and serialization -->
+        <kafka-clients.version>4.2.0</kafka-clients.version>
         <avro.version>1.12.1</avro.version>
         <com.github.luben.zstd-jni.version>1.5.7-7</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>3.0.0</com.jayway.jsonpath.version>

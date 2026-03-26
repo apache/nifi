@@ -31,6 +31,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.python.PythonProcessorDetails;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,11 +39,14 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -161,6 +165,50 @@ public class StandardRuntimeManifestServiceTest {
 
         final List<ControllerServiceDefinition> controllerServiceDefinitions = testComponentsManifest.getControllerServices();
         assertEquals(0, controllerServiceDefinitions.size());
+    }
+
+    @Test
+    public void testDiscoverStepDocumentation() {
+        when(extensionManager.getBundle(testComponentsBundle.getBundleDetails().getCoordinate())).thenReturn(testComponentsBundle);
+
+        final BundleCoordinate coordinate = testComponentsBundle.getBundleDetails().getCoordinate();
+        final Map<String, File> stepDocs = runtimeManifestService.discoverStepDocumentation(
+                coordinate.getGroup(), coordinate.getId(), coordinate.getVersion(), "org.example.TestConnector");
+
+        assertNotNull(stepDocs);
+        assertEquals(2, stepDocs.size());
+        assertTrue(stepDocs.containsKey("Test Step"));
+        assertTrue(stepDocs.containsKey("Another Test Step"));
+
+        final File testStepFile = stepDocs.get("Test Step");
+        assertNotNull(testStepFile);
+        assertTrue(testStepFile.exists());
+        assertEquals("Test_Step.md", testStepFile.getName());
+
+        final File anotherTestStepFile = stepDocs.get("Another Test Step");
+        assertNotNull(anotherTestStepFile);
+        assertTrue(anotherTestStepFile.exists());
+        assertEquals("Another_Test_Step.md", anotherTestStepFile.getName());
+    }
+
+    @Test
+    public void testDiscoverStepDocumentationWithNonExistentConnector() {
+        when(extensionManager.getBundle(testComponentsBundle.getBundleDetails().getCoordinate())).thenReturn(testComponentsBundle);
+
+        final BundleCoordinate coordinate = testComponentsBundle.getBundleDetails().getCoordinate();
+        final Map<String, File> stepDocs = runtimeManifestService.discoverStepDocumentation(
+                coordinate.getGroup(), coordinate.getId(), coordinate.getVersion(), "org.example.NonExistentConnector");
+
+        assertNotNull(stepDocs);
+        assertTrue(stepDocs.isEmpty());
+    }
+
+    @Test
+    public void testDiscoverStepDocumentationWithNonExistentBundle() {
+        when(extensionManager.getBundle(new BundleCoordinate("org.example", "nonexistent", "1.0.0"))).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class, () ->
+                runtimeManifestService.discoverStepDocumentation("org.example", "nonexistent", "1.0.0", "org.example.TestConnector"));
     }
 
     /**

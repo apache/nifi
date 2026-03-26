@@ -124,6 +124,9 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String ASSET_MANAGER_IMPLEMENTATION = "nifi.asset.manager.implementation";
     public static final String ASSET_MANAGER_PREFIX = "nifi.asset.manager.properties.";
 
+    public static final String CONNECTOR_ASSET_MANAGER_IMPLEMENTATION = "nifi.connector.asset.manager.implementation";
+    public static final String CONNECTOR_ASSET_MANAGER_PREFIX = "nifi.connector.asset.manager.properties.";
+
     // status repository properties
     public static final String COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION = "nifi.components.status.repository.implementation";
     public static final String COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "nifi.components.status.snapshot.frequency";
@@ -135,6 +138,16 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STATUS_REPOSITORY_QUESTDB_PERSIST_LOCATION_BACKUP = "nifi.status.repository.questdb.persist.location.backup";
     public static final String STATUS_REPOSITORY_QUESTDB_PERSIST_BATCH_SIZE = "nifi.status.repository.questdb.persist.batchsize";
     public static final String STATUS_REPOSITORY_QUESTDB_PERSIST_FREQUENCY = "nifi.status.repository.questdb.persist.frequency";
+
+    // Connector Repository properties
+    public static final String CONNECTOR_REPOSITORY_IMPLEMENTATION = "nifi.components.connectors.repository.implementation";
+
+    // Connector Configuration Provider properties
+    public static final String CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION = "nifi.components.connectors.configuration.provider.implementation";
+    public static final String CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX = "nifi.components.connectors.configuration.provider.";
+
+    // Secrets Manager properties
+    public static final String SECRETS_MANAGER_IMPLEMENTATION = "nifi.secrets.manager.implementation";
 
     // security properties
     public static final String SECURITY_KEYSTORE = "nifi.security.keystore";
@@ -1807,8 +1820,28 @@ public class NiFiProperties extends ApplicationProperties {
 
         // The Properties(Properties) constructor does NOT inherit the provided values, just uses them as default values
         if (additionalProperties != null) {
-            additionalProperties.forEach(properties::put);
+            properties.putAll(additionalProperties);
         }
+
+        return createNiFiProperties(properties);
+    }
+
+    public static NiFiProperties createBasicNiFiProperties(final InputStream inputStream) {
+        return createBasicNiFiProperties(inputStream, null);
+    }
+
+    public static NiFiProperties createBasicNiFiProperties(final InputStream inputStream, final Properties additionalProperties) {
+        final Properties properties = new Properties();
+        readFromInputStream(inputStream, properties);
+
+        if (additionalProperties != null) {
+            properties.putAll(additionalProperties);
+        }
+
+        return createNiFiProperties(properties);
+    }
+
+    private static NiFiProperties createNiFiProperties(final Properties properties) {
         return new NiFiProperties() {
             @Override
             public String getProperty(String key) {
@@ -1828,9 +1861,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     private static void readFromPropertiesFile(String propertiesFilePath, Properties properties) {
-        final String nfPropertiesFilePath = (propertiesFilePath == null)
-                ? System.getProperty(PROPERTIES_FILE_PATH)
-                : propertiesFilePath;
+        final String nfPropertiesFilePath = (propertiesFilePath == null) ? System.getProperty(PROPERTIES_FILE_PATH) : propertiesFilePath;
         if (nfPropertiesFilePath != null) {
             final File propertiesFile = new File(nfPropertiesFilePath.trim());
             if (!propertiesFile.exists()) {
@@ -1841,21 +1872,22 @@ public class NiFiProperties extends ApplicationProperties {
                 throw new RuntimeException("Properties file exists but cannot be read '"
                         + propertiesFile.getAbsolutePath() + "'");
             }
-            InputStream inStream = null;
-            try {
-                inStream = new BufferedInputStream(new FileInputStream(propertiesFile));
+
+            try (final InputStream fileIn = new FileInputStream(propertiesFile);
+                 final InputStream inStream = new BufferedInputStream(fileIn)) {
+
                 properties.load(inStream);
             } catch (final Exception ex) {
-                throw new RuntimeException("Cannot load properties file due to "
-                        + ex.getLocalizedMessage(), ex);
-            } finally {
-                if (null != inStream) {
-                    try {
-                        inStream.close();
-                    } catch (final Exception ignored) {
-                    }
-                }
+                throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex);
             }
+        }
+    }
+
+    private static void readFromInputStream(final InputStream inputStream, final Properties properties) {
+        try {
+            properties.load(inputStream);
+        } catch (final Exception ex) {
+            throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex);
         }
     }
 

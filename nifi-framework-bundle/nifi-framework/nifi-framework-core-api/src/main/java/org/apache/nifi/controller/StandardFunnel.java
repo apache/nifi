@@ -24,8 +24,10 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.flowfile.FlowFile;
@@ -83,6 +85,8 @@ public class StandardFunnel implements Funnel {
 
     final int maxIterations;
     private final int maxConcurrentTasks;
+
+    private final ConnectableFlowFileActivity flowFileActivity = new ConnectableFlowFileActivity();
 
     public StandardFunnel(final String identifier, final int maxConcurrentTasks, final int maxBatchSize) {
         this.identifier = identifier;
@@ -645,5 +649,10 @@ public class StandardFunnel implements Funnel {
                 throw new IllegalStateException(this + " is already under version control");
             }
         }
+    }
+
+    @Override
+    public FlowFileActivity getFlowFileActivity() {
+        return flowFileActivity;
     }
 }

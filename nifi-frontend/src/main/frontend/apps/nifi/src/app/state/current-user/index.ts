@@ -41,6 +41,7 @@ export interface CurrentUser {
     policiesPermissions: Permissions;
     systemPermissions: Permissions;
     parameterContextPermissions: Permissions;
+    connectorsPermissions: Permissions;
     restrictedComponentsPermissions: Permissions;
     componentRestrictionPermissions: ComponentRestrictionPermission[];
 }

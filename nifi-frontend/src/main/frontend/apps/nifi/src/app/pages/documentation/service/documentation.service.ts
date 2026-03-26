@@ -26,6 +26,7 @@ import { ReportingTaskDefinition } from '../state/reporting-task-definition';
 import { ParameterProviderDefinition } from '../state/parameter-provider-definition';
 import { FlowAnalysisRuleDefinition } from '../state/flow-analysis-rule-definition';
 import { FlowRegistryClientDefinition } from '../state/flow-registry-client-definition';
+import { ConnectorDefinition } from '../state/connector-definition';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentationService {
@@ -74,4 +75,20 @@ export class DocumentationService {
             `${DocumentationService.API}/flow/additional-details/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
         );
     }
+
+    getConnectorDefinition(coordinates: DefinitionCoordinates): Observable<ConnectorDefinition> {
+        return this.httpClient.get<ConnectorDefinition>(
+            `${DocumentationService.API}/flow/connector-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        );
+    }
+
+    getStepDocumentation(coordinates: DefinitionCoordinates, stepName: string): Observable<StepDocumentationEntity> {
+        return this.httpClient.get<StepDocumentationEntity>(
+            `${DocumentationService.API}/flow/steps/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}/${stepName}`
+        );
+    }
+}
+
+export interface StepDocumentationEntity {
+    stepDocumentation: string;
 }

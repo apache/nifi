@@ -473,7 +473,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, properties, serviceNode.getAnnotationData(),
             parameterLookup, flowController.getControllerServiceProvider(), null);
 
-        final List<ConfigVerificationResult> verificationResults = serviceNode.verifyConfiguration(configurationContext, configVerificationLog, variables, extensionManager);
+        final List<ConfigVerificationResult> verificationResults = serviceNode.verifyConfiguration(configurationContext, configVerificationLog, variables, extensionManager, parameterLookup);
         final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
             .map(this::createConfigVerificationResultDto)
             .collect(Collectors.toList());

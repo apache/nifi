@@ -52,6 +52,19 @@ public interface ParameterProviderNode extends ComponentNode {
     void fetchParameters();
 
     /**
+     * Fetches all parameter values from the Parameter Provider and returns them. This method does not cache the results for later retrieval.
+     * @return all Parameter Groups with Parameter Names and Values
+     */
+    List<ParameterGroup> fetchParameterValues();
+
+    /**
+     * Fetches parameters that match the provided fully qualified parameter names. This method does not cache the results for later retrieval.
+     * @param fullyQualifiedParameterNames fully qualified names of parameters to fetch
+     * @return Parameter Groups with Parameter Names and Values that match the provided names
+     */
+    List<ParameterGroup> fetchParameterValues(List<String> fullyQualifiedParameterNames);
+
+    /**
      * Find a named Parameter Group cached from previous request to fetch Parameters from the configured Parameter Provider
      *
      * @param parameterGroupName Parameter Group Name to find

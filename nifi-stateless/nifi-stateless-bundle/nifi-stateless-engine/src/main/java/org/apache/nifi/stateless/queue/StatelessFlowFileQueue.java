@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.queue;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -32,6 +33,7 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.util.FormatUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +47,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     private final String identifier;
@@ -314,6 +317,11 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
 
     @Override
     public DropFlowFileStatus cancelDropFlowFileRequest(final String requestIdentifier) {
+        throw new UnsupportedOperationException("Cannot drop FlowFiles from a queue in Stateless NiFi");
+    }
+
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         throw new UnsupportedOperationException("Cannot drop FlowFiles from a queue in Stateless NiFi");
     }
 

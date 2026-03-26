@@ -45,7 +45,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
@@ -82,7 +82,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
@@ -121,7 +121,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
@@ -158,7 +158,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
@@ -307,7 +307,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "7"
@@ -319,7 +319,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -337,7 +337,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "9"
@@ -349,7 +349,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -367,7 +367,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "6"
@@ -379,7 +379,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -397,7 +397,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "10"
@@ -409,7 +409,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -427,7 +427,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "1"
@@ -439,7 +439,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -457,7 +457,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "0",
@@ -470,7 +470,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -488,7 +488,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "11"
@@ -500,7 +500,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -518,7 +518,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "3"
@@ -530,7 +530,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -548,7 +548,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "5"
@@ -560,7 +560,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -578,7 +578,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "4"
@@ -590,7 +590,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -608,7 +608,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "2"
@@ -620,7 +620,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],
@@ -638,7 +638,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-system-test-extensions-services-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             },
             "properties": {
               "start-value": "8"
@@ -650,7 +650,7 @@
                 "bundle": {
                   "group": "org.apache.nifi",
                   "artifact": "nifi-system-test-extensions-services-api-nar",
-                  "version": "2.7.0-SNAPSHOT"
+                  "version": "2.8.0-SNAPSHOT"
                 }
               }
             ],

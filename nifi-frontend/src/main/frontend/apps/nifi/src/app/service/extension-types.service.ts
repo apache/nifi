@@ -99,4 +99,8 @@ export class ExtensionTypesService {
     getParameterProviderTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/parameter-provider-types`);
     }
+
+    getConnectorTypes(): Observable<any> {
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/connector-types`);
+    }
 }

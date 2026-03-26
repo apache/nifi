@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
@@ -44,11 +45,15 @@ import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsSnapshotEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
@@ -80,6 +85,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -121,6 +127,25 @@ public final class EntityFactory {
         final ProcessorStatusEntity entity = new ProcessorStatusEntity();
         entity.setCanRead(permissions.getCanRead());
         entity.setProcessorStatus(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectorEntity createConnectorEntity(final ConnectorDTO dto,
+                                                 final RevisionDTO revision,
+                                                 final PermissionsDTO permissions,
+                                                 final PermissionsDTO operatePermissions,
+                                                 final ConnectorStatusDTO status) {
+        final ConnectorEntity entity = new ConnectorEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
+            entity.setStatus(status);
+            entity.setId(dto.getId());
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
         return entity;
     }
 
@@ -841,5 +866,69 @@ public final class EntityFactory {
 
     public NarSummaryEntity createNarSummaryEntity(final NarSummaryDTO narSummaryDTO) {
         return new NarSummaryEntity(narSummaryDTO);
+    }
+
+    public ConfigurationStepNamesEntity createConfigurationStepNamesEntity(final ConnectorDTO connectorDto) {
+        final ConfigurationStepNamesEntity entity = new ConfigurationStepNamesEntity();
+
+        final List<String> configurationStepNames;
+        if (connectorDto != null
+                && connectorDto.getWorkingConfiguration() != null
+                && connectorDto.getWorkingConfiguration().getConfigurationStepConfigurations() != null) {
+
+            configurationStepNames = connectorDto.getWorkingConfiguration().getConfigurationStepConfigurations()
+                    .stream()
+                    .map(ConfigurationStepConfigurationDTO::getConfigurationStepName)
+                    .collect(Collectors.toList());
+        } else {
+            configurationStepNames = List.of();
+        }
+
+        entity.setConfigurationStepNames(configurationStepNames);
+        return entity;
+    }
+
+    public ConfigurationStepEntity createConfigurationStepEntity(final ConnectorDTO connectorDto,
+            final String configurationStepName, final RevisionDTO parentConnectorRevision) {
+        ConfigurationStepConfigurationDTO foundConfigurationStep = null;
+
+        if (connectorDto != null
+                && connectorDto.getWorkingConfiguration() != null
+                && connectorDto.getWorkingConfiguration().getConfigurationStepConfigurations() != null) {
+
+            foundConfigurationStep = connectorDto.getWorkingConfiguration().getConfigurationStepConfigurations()
+                    .stream()
+                    .filter(step -> configurationStepName.equals(step.getConfigurationStepName()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (foundConfigurationStep == null) {
+            final String connectorId = connectorDto != null ? connectorDto.getId() : "null";
+            throw new IllegalArgumentException(
+                    String.format("Configuration step '%s' not found for connector '%s'.", configurationStepName, connectorId));
+        }
+
+        final ConfigurationStepEntity entity = new ConfigurationStepEntity();
+        entity.setConfigurationStep(foundConfigurationStep);
+        entity.setParentConnectorId(connectorDto != null ? connectorDto.getId() : null);
+        entity.setParentConnectorRevision(parentConnectorRevision);
+        return entity;
+    }
+
+    public ConnectorPropertyAllowableValuesEntity createConnectorPropertyAllowableValuesEntity(
+            final String configurationStepName, final String propertyGroupName, final String propertyName, final List<AllowableValueEntity> allowableValues) {
+        final ConnectorPropertyAllowableValuesEntity entity = new ConnectorPropertyAllowableValuesEntity();
+        entity.setConfigurationStepName(configurationStepName);
+        entity.setPropertyGroupName(propertyGroupName);
+        entity.setPropertyName(propertyName);
+        entity.setAllowableValues(allowableValues);
+        return entity;
+    }
+
+    public SecretsEntity createSecretsEntity(final List<SecretDTO> secrets) {
+        final SecretsEntity entity = new SecretsEntity();
+        entity.setSecrets(secrets);
+        return entity;
     }
 }

@@ -31,4 +31,5 @@ public enum UiExtensionType {
     ReportingTaskConfiguration,
     ParameterProviderConfiguration,
     FlowRegistryClientConfiguration,
+    Connector,
 }

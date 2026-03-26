@@ -58,7 +58,7 @@ public class StandardAssetComponentManager implements AssetComponentManager {
     @Override
     public void restartReferencingComponentsAsync(final Asset asset) {
         final String assetName = asset.getName();
-        final String paramContextId = asset.getParameterContextIdentifier();
+        final String paramContextId = asset.getOwnerIdentifier();
         Thread.ofVirtual().name("Restart Components for Asset [%s] in ParameterContext [%s]".formatted(assetName, paramContextId)).start(() -> {
             try {
                 restartReferencingComponents(asset);
@@ -71,7 +71,7 @@ public class StandardAssetComponentManager implements AssetComponentManager {
     @Override
     public void restartReferencingComponents(final Asset asset) {
         final ParameterContextManager parameterContextManager = flowManager.getParameterContextManager();
-        final ParameterContext parameterContext = parameterContextManager.getParameterContext(asset.getParameterContextIdentifier());
+        final ParameterContext parameterContext = parameterContextManager.getParameterContext(asset.getOwnerIdentifier());
 
         // Determine which parameters reference the given asset
         final Set<Parameter> parametersReferencingAsset = getParametersReferencingAsset(parameterContext, asset);

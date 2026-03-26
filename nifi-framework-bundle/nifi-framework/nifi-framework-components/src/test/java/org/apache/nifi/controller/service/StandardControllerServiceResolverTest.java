@@ -29,7 +29,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
-import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +57,7 @@ public class StandardControllerServiceResolverTest {
     private static final String CHILD_REFERENCES_SERVICES_FROM_PARENT_LOCATION = BASE_SNAPSHOT_LOCATION + "/versioned-child-services-from-parent";
     private static final String STANDARD_EXTERNAL_SERVICE_REFERENCE = BASE_SNAPSHOT_LOCATION + "/standard-external-service-reference";
 
-    private NiFiRegistryFlowMapper flowMapper;
+    private VersionedComponentFlowMapper flowMapper;
     private ControllerServiceProvider controllerServiceProvider;
     private ControllerServiceApiLookup controllerServiceApiLookup;
 
@@ -72,7 +72,7 @@ public class StandardControllerServiceResolverTest {
     public void setup() {
         Authorizer authorizer = mock(Authorizer.class);
         FlowManager flowManager = mock(FlowManager.class);
-        flowMapper = mock(NiFiRegistryFlowMapper.class);
+        flowMapper = mock(VersionedComponentFlowMapper.class);
         controllerServiceProvider = mock(ControllerServiceProvider.class);
         controllerServiceApiLookup = mock(ControllerServiceApiLookup.class);
 

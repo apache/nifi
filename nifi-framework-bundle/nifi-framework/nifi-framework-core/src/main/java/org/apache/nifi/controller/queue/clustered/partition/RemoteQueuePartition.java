@@ -24,6 +24,7 @@ import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.queue.StandardRemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.TransferFailureDestination;
@@ -39,6 +40,7 @@ import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
@@ -49,6 +51,7 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,6 +61,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -133,6 +137,11 @@ public class RemoteQueuePartition implements QueuePartition {
     @Override
     public void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
         priorityQueue.dropFlowFiles(dropRequest, requestor);
+    }
+
+    @Override
+    public SelectiveDropResult dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        return priorityQueue.dropFlowFiles(predicate);
     }
 
     @Override

@@ -34,6 +34,7 @@ export const initialState: CurrentUserState = {
         controllerPermissions: NO_PERMISSIONS,
         countersPermissions: NO_PERMISSIONS,
         parameterContextPermissions: NO_PERMISSIONS,
+        connectorsPermissions: NO_PERMISSIONS,
         policiesPermissions: NO_PERMISSIONS,
         provenancePermissions: NO_PERMISSIONS,
         restrictedComponentsPermissions: NO_PERMISSIONS,

@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -36,6 +40,10 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.ComponentState;
+import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.MethodArgument;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -102,6 +110,9 @@ import java.util.stream.Collectors;
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
     private static final long INCREMENTAL_VALIDATION_DELAY_MS = 1000;
     private static final Duration MAXIMUM_DELAY = Duration.ofMinutes(10);
@@ -507,7 +518,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public List<ConfigVerificationResult> verifyConfiguration(final ConfigurationContext context, final ComponentLog logger, final Map<String, String> variables,
-                                                              final ExtensionManager extensionManager) {
+                                                              final ExtensionManager extensionManager, final ParameterLookup parameterLookup) {
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
@@ -516,7 +527,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
             final long startNanos = System.nanoTime();
             // Call super's verifyConfig, which will perform component validation
-            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), getProcessGroup() == null ? null : getProcessGroup().getParameterContext()));
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), parameterLookup));
             final long validationComplete = System.nanoTime();
 
             // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
@@ -607,7 +618,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    protected List<ValidationResult> validateConfig() {
+    protected List<ValidationResult> validateConfig(final ValidationContext validationContext) {
         return Collections.emptyList();
     }
 
@@ -632,6 +643,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
      */
     @Override
     public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure) {
+        return enable(scheduler, administrativeYieldMillis, completeExceptionallyOnFailure, null);
+    }
+
+    @Override
+    public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure,
+            final ConfigurationContext providedConfigurationContext) {
+
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
@@ -650,7 +668,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         scheduler.execute(new Runnable() {
             @Override
             public void run() {
-                final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
+                final ConfigurationContext configContext = providedConfigurationContext == null
+                    ? new StandardConfigurationContext(serviceNode, controllerServiceProvider, null)
+                    : providedConfigurationContext;
 
                 if (!isActive()) {
                     LOG.warn("Enabling {} stopped: no active status", serviceNode);
@@ -659,9 +679,17 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     return;
                 }
 
-                // Perform Validation and evaluate status before continuing
-                performValidation();
-                final ValidationState validationState = getValidationState();
+                // Perform validation - if a ConfigurationContext was provided, validate against its properties
+                final ValidationState validationState;
+                if (providedConfigurationContext == null) {
+                    performValidation();
+                    validationState = getValidationState();
+                } else {
+                    final Map<String, String> properties = providedConfigurationContext.getAllProperties();
+                    final ValidationContext validationContext = createValidationContext(properties, getAnnotationData(), getParameterLookup(), true);
+                    validationState = performValidation(validationContext);
+                }
+
                 final ValidationStatus validationStatus = validationState.getStatus();
                 if (validationStatus == ValidationStatus.VALID) {
                     LOG.debug("Enabling {} proceeding after performing validation", serviceNode);
@@ -685,6 +713,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         LOG.debug("Validation rescheduling rejected for {}", serviceNode, e);
                         future.completeExceptionally(new IllegalStateException("Enabling %s rejected: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
                     }
+
                     // Enable command rescheduled or rejected
                     return;
                 }
@@ -761,6 +790,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
+        // If already disabled, complete immediately
+        if (getState() == ControllerServiceState.DISABLED) {
+            future.complete(null);
+            return future;
+        }
+
         final boolean transitioned = this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
         if (transitioned) {
             // If we transitioned from ENABLING to DISABLING, we need to immediately complete the disable
@@ -908,6 +943,98 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
             overwriteProperties(propertyConfig.getRawProperties());
         }
+    }
+
+    @Override
+    public String invokeConnectorMethod(final String methodName, final Map<String, String> jsonArguments, final ConfigurationContext configurationContext) throws InvocationFailedException {
+        final ConfigurableComponent component = getComponent();
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
+            final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
+            final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
+            final List<Object> argumentValues = new ArrayList<>();
+
+            for (final MethodArgument methodArgument : methodArguments) {
+                if (ConfigurationContext.class.equals(methodArgument.type())) {
+                    continue;
+                }
+
+                final String jsonValue = jsonArguments.get(methodArgument.name());
+                if (jsonValue == null && methodArgument.required()) {
+                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
+                                                       + methodArgument.name() + "' was not provided");
+                }
+
+                if (jsonValue == null) {
+                    argumentValues.add(null);
+                } else {
+                    try {
+                        final Object argumentValue = OBJECT_MAPPER.readValue(jsonValue, methodArgument.type());
+                        argumentValues.add(argumentValue);
+                    } catch (final JsonProcessingException e) {
+                        throw new InvocationFailedException("Failed to deserialize argument '" + methodArgument.name() + "' as type " + methodArgument.type().getName()
+                                                            + " for Connector Method '" + methodName + "' on " + this, e);
+                    }
+                }
+            }
+
+            // Inject ConfigurationContext if the method signature supports it
+            final Class<?>[] argumentTypes = implementationMethod.getParameterTypes();
+            if (argumentTypes.length > 0 && ConfigurationContext.class.isAssignableFrom(argumentTypes[0])) {
+                argumentValues.addFirst(configurationContext);
+            }
+            if (argumentTypes.length > 1 && ConfigurationContext.class.isAssignableFrom(argumentTypes[argumentTypes.length - 1])) {
+                argumentValues.add(configurationContext);
+            }
+
+            try {
+                implementationMethod.setAccessible(true);
+                final Object result = implementationMethod.invoke(component, argumentValues.toArray());
+                if (result == null) {
+                    return null;
+                }
+
+                return OBJECT_MAPPER.writeValueAsString(result);
+            } catch (final JsonProcessingException e) {
+                throw new InvocationFailedException("Failed to serialize return value for Connector Method '" + methodName + "' on " + this, e);
+            } catch (final Exception e) {
+                throw new InvocationFailedException(e);
+            }
+        }
+    }
+
+    @Override
+    public List<ConnectorMethod> getConnectorMethods() {
+        return getConnectorMethods(getControllerServiceImplementation().getClass());
+    }
+
+    private MethodArgument[] getConnectorMethodArguments(final String methodName, final Method implementationMethod, final ConfigurableComponent component) throws InvocationFailedException {
+        if (implementationMethod == null) {
+            throw new InvocationFailedException("No such connector method '" + methodName + "' exists for " + component.getClass().getName());
+        }
+
+        final ConnectorMethod connectorMethodDefinition = implementationMethod.getAnnotation(ConnectorMethod.class);
+        final ComponentState[] componentStates = connectorMethodDefinition.allowedStates();
+        final ComponentState currentState = getComponentState();
+        final boolean validState = Set.of(componentStates).contains(currentState);
+        if (!validState) {
+            throw new IllegalStateException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because Processor is in state " + currentState
+                                            + " but the Connector Method does not allow invocation in this state");
+        }
+
+        final MethodArgument[] methodArguments = connectorMethodDefinition.arguments();
+        return methodArguments;
+    }
+
+    private ComponentState getComponentState() {
+        final ControllerServiceState scheduledState = getState();
+
+        return switch (scheduledState) {
+            case DISABLED -> ComponentState.STOPPED;
+            case DISABLING -> ComponentState.STOPPING;
+            case ENABLING -> ComponentState.STARTING;
+            case ENABLED -> ComponentState.RUNNING;
+        };
     }
 
     @Override
