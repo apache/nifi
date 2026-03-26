@@ -30,5 +30,12 @@ public enum FlowFilePolicy {
      * When multiple rules match, they will all be executed against the original
      * flow file.
      */
-    USE_ORIGINAL;
+    USE_ORIGINAL,
+    /**
+     * Rules are evaluated in order; each matching rule's actions are applied
+     * immediately so subsequent rules see the updated attributes. Basic dynamic
+     * properties are applied first as the baseline; rule actions override them.
+     * Produces one FlowFile with a single provenance event listing all matched rules.
+     */
+    SEQUENTIAL;
 }

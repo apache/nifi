@@ -21,6 +21,7 @@ import { afterNextRender, Component, ElementRef, Input, inject } from '@angular/
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { UpdateAttributeState } from '../../state';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -50,6 +51,7 @@ import { selectEvaluationContextError } from '../../state/evaluation-context/eva
     selector: 'rule-listing',
     imports: [
         CommonModule,
+        MatButtonToggleModule,
         MatSlideToggleModule,
         MatFormFieldModule,
         FormsModule,
@@ -89,9 +91,9 @@ export class RuleListing {
         this.isEditable = editable;
 
         if (editable) {
-            this.flowFilePolicyForm.get('useOriginalFlowFilePolicy')?.enable();
+            this.flowFilePolicyForm.get('flowFilePolicy')?.enable();
         } else {
-            this.flowFilePolicyForm.get('useOriginalFlowFilePolicy')?.disable();
+            this.flowFilePolicyForm.get('flowFilePolicy')?.disable();
         }
     }
 
@@ -107,7 +109,7 @@ export class RuleListing {
     searchForm: FormGroup;
 
     flowFilePolicyForm: FormGroup;
-    flowFilePolicy: string = 'USE_ORIGINAL';
+    flowFilePolicy: string = 'USE_CLONE';
 
     scrollToNewRule: boolean = false;
 
@@ -115,7 +117,7 @@ export class RuleListing {
 
     constructor() {
         this.searchForm = this.formBuilder.group({ searchRules: '' });
-        this.flowFilePolicyForm = this.formBuilder.group({ useOriginalFlowFilePolicy: true });
+        this.flowFilePolicyForm = this.formBuilder.group({ flowFilePolicy: 'USE_CLONE' });
 
         this.searchForm
             .get('searchRules')
@@ -184,7 +186,7 @@ export class RuleListing {
     }
 
     private updateFlowFilePolicy(): void {
-        this.flowFilePolicyForm.get('useOriginalFlowFilePolicy')?.setValue(this.flowFilePolicy === 'USE_ORIGINAL');
+        this.flowFilePolicyForm.get('flowFilePolicy')?.setValue(this.flowFilePolicy);
     }
 
     reorderDisabled(): boolean {
@@ -220,12 +222,12 @@ export class RuleListing {
         this.store.dispatch(promptRuleDeletion({ rule }));
     }
 
-    flowFilePolicyToggled(event: MatSlideToggleChange): void {
+    flowFilePolicyChanged(value: string): void {
         this.store.dispatch(
             saveEvaluationContext({
                 evaluationContext: {
                     ruleOrder: this.ruleOrder,
-                    flowFilePolicy: event.checked ? 'USE_ORIGINAL' : 'USE_CLONE'
+                    flowFilePolicy: value
                 }
             })
         );

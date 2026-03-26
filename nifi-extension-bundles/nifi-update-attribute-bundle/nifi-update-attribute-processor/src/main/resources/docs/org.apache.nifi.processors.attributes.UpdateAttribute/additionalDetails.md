@@ -136,9 +136,10 @@ Taken together, this rule says:
 **Combining the Basic Usage with the Advanced Usage**
 
 The UpdateAttribute processor allows you to make both basic usage changes (i.e., to every FlowFile) and advanced usage
-changes (i.e., conditional) at the same time; however, if they both affect the same attribute(s), then the conditional
-changes take precedence. This has the added benefit of supporting a type of "else" construct. In other words, if none of
-the rules match for the attribute, then the basic usage changes will be made.
+changes (i.e., conditional) at the same time. Basic properties are always applied first as the baseline attribute set.
+Advanced rules are then evaluated and, if they match, their actions are applied on top — overriding any basic property
+that targets the same attribute name. This has the added benefit of supporting a type of "else" construct: if none of
+the advanced rules match a given attribute, the basic property value will stand as the final value.
 
 **Deleting Attributes**
 
@@ -156,22 +157,73 @@ The delete attributes function does not produce a Provenance Event if the **alte
 
 **FlowFile Policy**
 
-Another setting in the Advanced UI is the FlowFile Policy. It is located in the upper-left corner of the UI, and it
-defines the processor's behavior when multiple rules match. It may be changed using the slide toggle. By default, the
-FlowFile Policy is set to use a clone of the original FlowFile for each matching rule.
+Another setting in the Advanced UI is the FlowFile Policy. It is located in the upper-left corner of the UI and
+defines the processor's behavior when multiple rules match. It is selected using a three-way toggle. By default, the
+FlowFile Policy is set to **Clone**.
 
-If the FlowFile policy is set to "use clone", and multiple rules match, then a copy of the incoming FlowFile is created,
-such that the number of outgoing FlowFiles is equal to the number of rules that match. In other words, if two rules (A
-and B) both match, then there will be two outgoing FlowFiles, one for Rule A and one for Rule B. This can be useful in
-situations where you want to add an attribute to use as a flag for routing later. In this example, there will be two
-copies of the file available, one to route for the A path, and one to route for the B path.
+**Clone**
 
-If the FlowFile policy is set to "use original", then all matching rules are applied to the same incoming FlowFile, and
-there is only one outgoing FlowFile with all the attribute changes applied. In this case, the order of the rules matters
-and the action for each rule that matches will be applied in that order. If multiple rules contain actions that update
-the same attribute, the action from the last matching rule will take precedence. Notably, you can drag and drop the
-rules into a certain order within the Rules list once the FlowFile Policy is set to "use original" and the user has
-toggled the "Reorder rules" control. While in this reordering mode, other Rule modifications are not allowed.
+If the FlowFile policy is set to "Clone", and multiple rules match, then a copy of the incoming FlowFile is created for
+each matching rule, such that the number of outgoing FlowFiles equals the number of rules that match. In other words,
+if two rules (A and B) both match, then there will be two outgoing FlowFiles, one for Rule A and one for Rule B. This
+can be useful in situations where you want to add an attribute to use as a flag for routing later. Each clone receives
+the attribute changes from its own matching rule only. All conditions for all rules are evaluated against the original
+incoming FlowFile, so no rule can see attribute changes made by another rule.
+
+**Original**
+
+If the FlowFile policy is set to "Original", then all matching rules are applied to the same incoming FlowFile, and
+there is only one outgoing FlowFile with all the attribute changes applied. All conditions for all rules are still
+evaluated against the original incoming FlowFile — a rule's condition cannot see attribute updates made by a
+previously matched rule. If multiple rules contain actions that update the same attribute, the action from the last
+matching rule will take precedence. Rule order matters: you can drag and drop the rules into a certain order within the
+Rules list once the FlowFile Policy is set to "Original" and the "Reorder rules" control is toggled on. While in
+reordering mode, other rule modifications are not allowed.
+
+**Sequential**
+
+If the FlowFile policy is set to "Sequential", rules are evaluated in configured order and applied one at a time to the
+same FlowFile, producing one output — similar to "Original". The key difference is that each rule's conditions are
+evaluated against the FlowFile *as it has been updated by all previously matched rules*, rather than against the
+original. When a rule's conditions match, its actions are applied immediately before the next rule is evaluated.
+
+This enables incremental, dependent attribute transformations within a single processor — for example, initialising a
+running total in one rule and then adding optional values to it in subsequent rules. Rule order is significant; use the
+"Reorder rules" control to set the desired evaluation sequence.
+
+*Basic properties and Sequential rules:* Basic dynamic properties (defined outside the Advanced UI) are always applied
+first as the baseline for the FlowFile. Sequential rules are then evaluated on top of that baseline. If a sequential
+rule sets the same attribute as a basic property, the rule's value takes precedence. If no sequential rules match,
+the basic property values remain on the output FlowFile unchanged.
+
+*Written attributes in Sequential mode:* When one or more rules match, the processor writes an
+`UpdateAttribute.matchedRules` attribute to the FlowFile containing the names of all matched rules in evaluation
+order, comma-separated. This attribute is not written when no rules match.
+
+*Example — accumulating an optional hotel bill:*
+
+Assume the following incoming attributes: `room.rate=200`, `room.service=35`, `in.room.entertainment=15`
+(no `late.checkout` attribute).
+
+| Rule | Condition | Action |
+|---|---|---|
+| Init | (always matches) | `hotel.bill.total = 0` |
+| Room rate | `${room.rate:isEmpty():not()}` | `hotel.bill.total = ${hotel.bill.total:plus(${room.rate})}` |
+| Room service | `${room.service:isEmpty():not()}` | `hotel.bill.total = ${hotel.bill.total:plus(${room.service})}` |
+| Entertainment | `${in.room.entertainment:isEmpty():not()}` | `hotel.bill.total = ${hotel.bill.total:plus(${in.room.entertainment})}` |
+| Late checkout | `${late.checkout:isEmpty():not()}` | `hotel.bill.total = ${hotel.bill.total:plus(${late.checkout})}` |
+
+Sequential evaluation result:
+
+* After Init: `hotel.bill.total = 0`
+* After Room rate: `hotel.bill.total = 200`
+* After Room service: `hotel.bill.total = 235`
+* After Entertainment: `hotel.bill.total = 250`
+* Late checkout skipped (attribute not present)
+* **Final: `hotel.bill.total = 250`**
+
+This would not be achievable with Clone or Original policies because those evaluate all rule conditions against the
+original FlowFile, meaning `hotel.bill.total` would be `0` when every rule's action expression is evaluated.
 
 **Filtering Rules**
 
