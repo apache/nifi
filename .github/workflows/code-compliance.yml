@@ -97,7 +97,7 @@ jobs:
       - name: Get Project Version
         run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           format: spdx-json
           path: ''
@@ -105,7 +105,7 @@ jobs:
           artifact-name: nifi-${{ env.PROJECT_VERSION }}.spdx.json
           output-file: nifi-${{ env.PROJECT_VERSION }}.spdx.json
       - name: Scan SBOM
-        uses: anchore/scan-action@v7
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
           sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
           severity-cutoff: 'medium'
