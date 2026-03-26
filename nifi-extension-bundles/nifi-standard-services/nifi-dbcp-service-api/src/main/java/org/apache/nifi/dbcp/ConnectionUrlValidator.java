@@ -27,6 +27,7 @@ import java.util.Set;
  * Database Connection URL Validator supports system attribute expressions and evaluates URL formatting
  */
 public class ConnectionUrlValidator implements Validator {
+    private static final String JDBC_URL_PREFIX = "jdbc:";
     private static final Set<String> UNSUPPORTED_SCHEMES = Collections.singleton("jdbc:h2");
 
     @Override
@@ -42,6 +43,9 @@ public class ConnectionUrlValidator implements Validator {
             if (isUrlUnsupported(url)) {
                 builder.valid(false);
                 builder.explanation(String.format("Connection URL contains an unsupported scheme %s", UNSUPPORTED_SCHEMES));
+            } else if (!isJdbcUrl(url)) {
+                builder.valid(false);
+                builder.explanation("Connection URL must start with '%s'".formatted(JDBC_URL_PREFIX));
             } else {
                 builder.valid(true);
                 builder.explanation("Connection URL is valid");
@@ -49,6 +53,10 @@ public class ConnectionUrlValidator implements Validator {
         }
 
         return builder.build();
+    }
+
+    private boolean isJdbcUrl(final String url) {
+        return url.regionMatches(true, 0, JDBC_URL_PREFIX, 0, JDBC_URL_PREFIX.length());
     }
 
     private boolean isUrlUnsupported(final String url) {

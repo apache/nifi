@@ -69,6 +69,8 @@ public class DBCPServiceTest {
 
     private static final String INVALID_CONNECTION_URL = "jdbc:h2";
 
+    private static final String NON_JDBC_URL = "http://localhost:3306/database";
+
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
     private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s";
 
@@ -94,6 +96,14 @@ public class DBCPServiceTest {
         runner.assertValid(service);
 
         runner.setProperty(service, DBCPProperties.DATABASE_URL, INVALID_CONNECTION_URL);
+        runner.assertNotValid(service);
+    }
+
+    @Test
+    public void testConnectionUrlNonJdbc() {
+        runner.assertValid(service);
+
+        runner.setProperty(service, DBCPProperties.DATABASE_URL, NON_JDBC_URL);
         runner.assertNotValid(service);
     }
 

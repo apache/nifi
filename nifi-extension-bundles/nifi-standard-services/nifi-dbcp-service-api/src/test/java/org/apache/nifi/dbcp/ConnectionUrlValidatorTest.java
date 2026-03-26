@@ -43,6 +43,12 @@ class ConnectionUrlValidatorTest {
 
     private static final String VENDOR_URL = "jdbc:vendor";
 
+    private static final String NON_JDBC_URL = "http://localhost:3306/database";
+
+    private static final String NON_JDBC_PLAIN_STRING = "not-a-jdbc-url";
+
+    private static final String UPPERCASE_JDBC_URL = "JDBC:VENDOR://localhost:5432/db";
+
     private ValidationContext validationContext;
 
     private ConnectionUrlValidator validator;
@@ -58,6 +64,14 @@ class ConnectionUrlValidatorTest {
     @Test
     void testValidateEmpty() {
         final ValidationResult result = validator.validate(SUBJECT, EMPTY, validationContext);
+
+        assertNotNull(result);
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    void testValidateNull() {
+        final ValidationResult result = validator.validate(SUBJECT, null, validationContext);
 
         assertNotNull(result);
         assertFalse(result.isValid());
@@ -90,6 +104,30 @@ class ConnectionUrlValidatorTest {
     @Test
     void testValidateSupportedUrl() {
         final ValidationResult result = validator.validate(SUBJECT, VENDOR_URL, validationContext);
+
+        assertNotNull(result);
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    void testValidateNonJdbcUrl() {
+        final ValidationResult result = validator.validate(SUBJECT, NON_JDBC_URL, validationContext);
+
+        assertNotNull(result);
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    void testValidateNonJdbcPlainString() {
+        final ValidationResult result = validator.validate(SUBJECT, NON_JDBC_PLAIN_STRING, validationContext);
+
+        assertNotNull(result);
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    void testValidateUppercaseJdbcUrl() {
+        final ValidationResult result = validator.validate(SUBJECT, UPPERCASE_JDBC_URL, validationContext);
 
         assertNotNull(result);
         assertTrue(result.isValid());

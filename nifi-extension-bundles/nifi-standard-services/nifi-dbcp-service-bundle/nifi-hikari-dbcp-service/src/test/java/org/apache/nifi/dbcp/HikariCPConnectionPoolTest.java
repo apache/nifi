@@ -49,6 +49,8 @@ public class HikariCPConnectionPoolTest {
 
     private static final String INVALID_CONNECTION_URL = "jdbc:h2";
 
+    private static final String NON_JDBC_URL = "http://localhost:3306/database";
+
     private static final String DB_DRIVERNAME_VALUE = "jdbc:mock";
 
     private static final String MAX_WAIT_TIME_VALUE = "5 s";
@@ -69,6 +71,18 @@ public class HikariCPConnectionPoolTest {
         runner.assertValid(service);
 
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, INVALID_CONNECTION_URL);
+        runner.assertNotValid(service);
+    }
+
+    @Test
+    public void testConnectionUrlNonJdbc() throws InitializationException {
+        final HikariCPConnectionPool service = new HikariCPConnectionPool();
+
+        runner.addControllerService(SERVICE_ID, service);
+        setDatabaseProperties(service);
+        runner.assertValid(service);
+
+        runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, NON_JDBC_URL);
         runner.assertNotValid(service);
     }
 
