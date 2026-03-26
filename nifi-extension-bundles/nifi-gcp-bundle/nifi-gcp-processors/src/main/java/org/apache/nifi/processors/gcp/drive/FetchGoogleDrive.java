@@ -22,6 +22,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.User;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -95,8 +96,6 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CON
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK_DESC;
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
-
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "drive", "storage", "fetch"})
 @CapabilityDescription("Fetches files from a Google Drive Folder. Designed to be used in tandem with ListGoogleDrive. " +
@@ -275,6 +274,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             GOOGLE_SPREADSHEET_EXPORT_TYPE,
             GOOGLE_PRESENTATION_EXPORT_TYPE,
             GOOGLE_DRAWING_EXPORT_TYPE,
+            GOOGLE_DRIVE_SCOPE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
             CONNECT_TIMEOUT,
             READ_TIMEOUT
@@ -304,7 +304,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         driveService = createDriveService(
                 context,
                 new ProxyAwareTransportFactory(proxyConfiguration).create(),
-                GOOGLE_CLOUD_PLATFORM_SCOPE
+                resolveScopes(context, DriveScopes.DRIVE, DriveScopes.DRIVE_FILE)
         );
     }
 
