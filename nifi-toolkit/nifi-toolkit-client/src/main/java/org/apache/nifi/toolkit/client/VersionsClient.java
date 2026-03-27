@@ -17,6 +17,8 @@
 package org.apache.nifi.toolkit.client;
 
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
+import org.apache.nifi.web.api.entity.RebaseRequestEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
@@ -43,5 +45,13 @@ public interface VersionsClient {
     VersionedFlowUpdateRequestEntity getRevertFlowVersionRequest(String requestId) throws IOException, NiFiClientException;
 
     VersionedFlowUpdateRequestEntity deleteRevertFlowVersionRequest(String requestId) throws IOException, NiFiClientException;
+
+    RebaseAnalysisEntity getRebaseAnalysis(String processGroupId, String targetVersion) throws IOException, NiFiClientException;
+
+    VersionedFlowUpdateRequestEntity initiateRebase(String processGroupId, RebaseRequestEntity entity) throws IOException, NiFiClientException;
+
+    VersionedFlowUpdateRequestEntity getRebaseRequest(String requestId) throws IOException, NiFiClientException;
+
+    VersionedFlowUpdateRequestEntity deleteRebaseRequest(String requestId) throws IOException, NiFiClientException;
 
 }
