@@ -2821,17 +2821,36 @@ export class FlowEffects {
         { dispatch: false }
     );
 
-    leaveProcessGroup$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.leaveProcessGroup),
-                concatLatestFrom(() => this.store.select(selectParentProcessGroupId)),
-                filter(([, parentProcessGroupId]) => parentProcessGroupId != null),
-                tap(([, parentProcessGroupId]) => {
-                    this.router.navigate(['/process-groups', parentProcessGroupId]);
-                })
+    leaveProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.leaveProcessGroup),
+            concatLatestFrom(() => [
+                this.store.select(selectParentProcessGroupId),
+                this.store.select(selectCurrentProcessGroupId)
+            ]),
+            filter(
+                ([, parentProcessGroupId, currentProcessGroupId]) =>
+                    parentProcessGroupId != null && currentProcessGroupId != null
             ),
-        { dispatch: false }
+            switchMap(([, parentProcessGroupId, currentProcessGroupId]) => {
+                this.router.navigate(['/process-groups', parentProcessGroupId]);
+
+                return this.actions$.pipe(
+                    ofType(FlowActions.loadProcessGroupComplete),
+                    take(1),
+                    map(() =>
+                        FlowActions.navigateWithoutTransform({
+                            url: [
+                                '/process-groups',
+                                parentProcessGroupId!,
+                                ComponentType.ProcessGroup,
+                                currentProcessGroupId!
+                            ]
+                        })
+                    )
+                );
+            })
+        )
     );
 
     addSelectedComponents$ = createEffect(() =>
