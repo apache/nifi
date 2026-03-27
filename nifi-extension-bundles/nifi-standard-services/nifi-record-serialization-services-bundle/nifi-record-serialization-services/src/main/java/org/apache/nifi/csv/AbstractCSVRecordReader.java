@@ -121,17 +121,20 @@ public abstract class AbstractCSVRecordReader implements RecordReader {
                 }
                 break;
             case DATE:
-                if (DataTypeUtils.isDateTypeCompatible(trimmed, dateFormat)) {
+                final boolean allowDefaultDateFormats = dateFormat != null && !dateFormat.isBlank();
+                if (DataTypeUtils.isDateTypeCompatible(trimmed, dateFormat, allowDefaultDateFormats)) {
                     return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIME:
-                if (DataTypeUtils.isTimeTypeCompatible(trimmed, timeFormat)) {
+                final boolean allowDefaultTimeFormats = timeFormat != null && !timeFormat.isBlank();
+                if (DataTypeUtils.isTimeTypeCompatible(trimmed, timeFormat, allowDefaultTimeFormats)) {
                     return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIMESTAMP:
-                if (DataTypeUtils.isTimestampTypeCompatible(trimmed, timestampFormat)) {
+                final boolean allowDefaultTimestampFormats = timestampFormat != null && !timestampFormat.isBlank();
+                if (DataTypeUtils.isTimestampTypeCompatible(trimmed, timestampFormat, allowDefaultTimestampFormats)) {
                     return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
