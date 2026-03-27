@@ -30,6 +30,7 @@ import software.amazon.awssdk.services.kinesis.model.GetShardIteratorRequest;
 import software.amazon.awssdk.services.kinesis.model.GetShardIteratorResponse;
 import software.amazon.awssdk.services.kinesis.model.ProvisionedThroughputExceededException;
 import software.amazon.awssdk.services.kinesis.model.Record;
+import software.amazon.awssdk.services.kinesis.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
 
@@ -49,7 +50,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -555,6 +558,56 @@ class PollingKinesisClientTest {
         assertNotNull(firstAfterRollback, "Queue must contain results after rollback and re-fetch");
         assertEquals(new BigInteger("800"), firstAfterRollback.firstSequenceNumber(),
                 "First result after rollback must be re-fetched data (800), not the stale data (500) that was returned from GetRecords during the rollback");
+    }
+
+    /**
+     * Verifies that when GetShardIterator throws {@link ResourceNotFoundException} (shard has
+     * been deleted via split, merge, or stream resharding), the fetch loop marks the shard as
+     * exhausted and exits cleanly rather than retrying indefinitely.
+     */
+    @Test
+    void testResourceNotFoundOnGetShardIteratorMarksShardExhausted() throws Exception {
+        final ResourceNotFoundException notFound = ResourceNotFoundException.builder()
+                .message("Shard shard-1 does not exist")
+                .build();
+        when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
+        when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenThrow(notFound);
+
+        consumer.startFetches(shards("shard-1"), "test-stream", 1000, "TRIM_HORIZON", mockShardManager);
+
+        assertEventuallyNoPendingFetches();
+
+        final ShardFetchResult result = consumer.pollAnyResult(500, TimeUnit.MILLISECONDS);
+        assertNull(result);
+
+        verify(mockKinesisClient, times(1)).getShardIterator(any(GetShardIteratorRequest.class));
+        verify(mockKinesisClient, never()).getRecords(any(GetRecordsRequest.class));
+    }
+
+    /**
+     * Verifies that when GetRecords throws {@link ResourceNotFoundException} (shard deleted
+     * between obtaining an iterator and fetching records), the fetch loop marks the shard as
+     * exhausted and exits cleanly.
+     */
+    @Test
+    void testResourceNotFoundOnGetRecordsMarksShardExhausted() throws Exception {
+        when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
+        when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenReturn(ITERATOR_RESPONSE);
+
+        final ResourceNotFoundException notFound = ResourceNotFoundException.builder()
+                .message("Shard shard-1 does not exist")
+                .build();
+        when(mockKinesisClient.getRecords(any(GetRecordsRequest.class))).thenThrow(notFound);
+
+        consumer.startFetches(shards("shard-1"), "test-stream", 1000, "TRIM_HORIZON", mockShardManager);
+
+        assertEventuallyNoPendingFetches();
+
+        final ShardFetchResult result = consumer.pollAnyResult(500, TimeUnit.MILLISECONDS);
+        assertNull(result);
+
+        // Records were not polled after receiving ResourceNotFoundException.
+        verify(mockKinesisClient, times(1)).getRecords(any(GetRecordsRequest.class));
     }
 
     private void drainAllResults() throws InterruptedException {

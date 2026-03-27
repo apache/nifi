@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.kinesis.model.GetRecordsResponse;
 import software.amazon.awssdk.services.kinesis.model.GetShardIteratorRequest;
 import software.amazon.awssdk.services.kinesis.model.LimitExceededException;
 import software.amazon.awssdk.services.kinesis.model.ProvisionedThroughputExceededException;
+import software.amazon.awssdk.services.kinesis.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
 
@@ -305,6 +306,10 @@ final class PollingKinesisClient extends KinesisConsumerClient {
             state.requestReset();
             sleepNanos(errorBackoffNanos);
             return null;
+        } catch (final ResourceNotFoundException e) {
+            logger.info("Shard {} no longer exists; marking exhausted", shardId, e);
+            state.markExhausted();
+            return null;
         } catch (final SdkClientException e) {
             if (!state.isStopped()) {
                 logger.warn("GetRecords failed for shard {}; will retry with existing iterator", shardId, e);
@@ -398,6 +403,10 @@ final class PollingKinesisClient extends KinesisConsumerClient {
             }
 
             return kinesisClient.getShardIterator(iteratorRequestBuilder.build()).shardIterator();
+        } catch (final ResourceNotFoundException e) {
+            logger.info("Shard {} no longer exists in stream {}; marking exhausted", shardId, streamName, e);
+            state.markExhausted();
+            return null;
         } catch (final Exception e) {
             if (!state.isStopped()) {
                 logger.error("Failed to get shard iterator for shard {} in stream {}", shardId, streamName, e);
