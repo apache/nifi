@@ -25,6 +25,8 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
+import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -33,27 +35,17 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * System test to verify that parameter context bindings are preserved during versioned flow upgrades
- * when new process groups are added.
- *
- * This test reproduces a bug where:
- * 1. v1: Process Group A with Parameter Context P, containing only a Processor X using param1
- * 2. v2: Process Group A with Parameter Context P, now containing a NEW Process Group B also attached to P
- * 3. When checking out v1 twice with "do not keep parameter context":
- *    - First checkout creates A1 with Parameter Context P
- *    - Second checkout creates A2 with Parameter Context P (1) since P already exists
- * 4. When upgrading A2 from v1 to v2, the newly added Process Group B incorrectly gets
- *    bound to P instead of P (1)
- *
- * The expectation is that the new Process Group B should be bound to P (1), the same
- * parameter context that its parent A2 uses.
+ * System tests to verify that parameter context bindings and inheritance chains are preserved
+ * during versioned flow operations (upgrades and deployments with different handling strategies).
  */
 class ParameterContextPreservationIT extends NiFiSystemIT {
     private static final String TEST_FLOWS_BUCKET = "test-flows";
@@ -177,11 +169,88 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         return getNifiClient().getProcessGroupClient().createProcessGroup("root", groupEntity, false);
     }
 
-    private ProcessGroupEntity getNestedProcessGroup(ProcessGroupEntity parent, String name) throws NiFiClientException, IOException {
+    /**
+     * Verifies that inherited parameter context chains are preserved when deploying a versioned flow
+     * with the KEEP_EXISTING parameter context handling strategy (NIFI-15746).
+     *
+     * Reproduces a multi-environment scenario where shared-service-params is configured to inherit from
+     * target-system-params on the target instance, but the versioned flow snapshot defines it as inheriting
+     * from source-system-params. Deploying with KEEP_EXISTING should preserve the target's inheritance chain.
+     */
+    @Test
+    void testInheritedParameterContextsPreservedWithKeepExistingStrategy() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ParameterContextEntity sourceSystemParams = util.createParameterContext("source-system-params", Map.of("env", "source"));
+        final ParameterContextEntity sharedServiceParams = util.createParameterContext(
+                "shared-service-params", Map.of("shared-param", "shared-value"), List.of(sourceSystemParams.getId()), null);
+
+        final ProcessGroupEntity workflowGroup = util.createProcessGroup("MyWorkflow", "root");
+        util.setParameterContext(workflowGroup.getId(), sharedServiceParams);
+
+        final ProcessGroupEntity serviceGroup = util.createProcessGroup("MyService", workflowGroup.getId());
+        util.setParameterContext(serviceGroup.getId(), sharedServiceParams);
+
+        final ProcessorEntity processor = util.createProcessor(PROCESSOR_TYPE, serviceGroup.getId());
+        util.updateProcessorProperties(processor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, "#{shared-param}"));
+        util.setAutoTerminatedRelationships(processor, RELATIONSHIP_SUCCESS);
+
+        final VersionControlInformationEntity vci = util.startVersionControl(workflowGroup, clientEntity, TEST_FLOWS_BUCKET, "InheritedParamContextFlow");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        final ProcessGroupEntity groupForStopVc = getNifiClient().getProcessGroupClient().getProcessGroup(workflowGroup.getId());
+        getNifiClient().getVersionsClient().stopVersionControl(groupForStopVc);
+        util.deleteAll(workflowGroup.getId());
+        final ProcessGroupEntity groupToDelete = getNifiClient().getProcessGroupClient().getProcessGroup(workflowGroup.getId());
+        getNifiClient().getProcessGroupClient().deleteProcessGroup(groupToDelete);
+
+        final ParameterContextEntity targetSystemParams = util.createParameterContext("target-system-params", Map.of("env", "target"));
+
+        final ParameterContextEntity currentSharedParams = getNifiClient().getParamContextClient().getParamContext(sharedServiceParams.getId(), false);
+        final ParameterContextUpdateRequestEntity updateRequest = util.updateParameterContext(
+                currentSharedParams, Map.of("shared-param", "shared-value"), List.of(targetSystemParams.getId()));
+        util.waitForParameterContextRequestToComplete(sharedServiceParams.getId(), updateRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity verifyBeforeImport = getNifiClient().getParamContextClient().getParamContext(sharedServiceParams.getId(), false);
+        final List<ParameterContextReferenceEntity> inheritedBeforeImport = verifyBeforeImport.getComponent().getInheritedParameterContexts();
+        assertEquals(1, inheritedBeforeImport.size());
+        assertEquals(targetSystemParams.getId(), inheritedBeforeImport.get(0).getId());
+
+        importFlowWithKeepExisting(clientEntity.getId(), flowId, VERSION_1);
+
+        final ParameterContextEntity sharedParamsAfterImport = getNifiClient().getParamContextClient().getParamContext(sharedServiceParams.getId(), false);
+        final List<ParameterContextReferenceEntity> inheritedAfterImport = sharedParamsAfterImport.getComponent().getInheritedParameterContexts();
+        assertNotNull(inheritedAfterImport, "Inherited parameter contexts should not be null after KEEP_EXISTING import");
+        assertFalse(inheritedAfterImport.isEmpty(), "Inherited parameter contexts should not be empty after KEEP_EXISTING import");
+        assertEquals(1, inheritedAfterImport.size());
+        assertEquals(targetSystemParams.getId(), inheritedAfterImport.get(0).getId(),
+                "After KEEP_EXISTING import, shared-service-params should still inherit from target-system-params");
+    }
+
+    private ProcessGroupEntity importFlowWithKeepExisting(final String registryClientId, final String flowId,
+                                                          final String version) throws NiFiClientException, IOException {
+        final VersionControlInformationDTO vci = new VersionControlInformationDTO();
+        vci.setBucketId(TEST_FLOWS_BUCKET);
+        vci.setFlowId(flowId);
+        vci.setVersion(version);
+        vci.setRegistryId(registryClientId);
+
+        final ProcessGroupDTO processGroupDto = new ProcessGroupDTO();
+        processGroupDto.setVersionControlInformation(vci);
+
+        final ProcessGroupEntity groupEntity = new ProcessGroupEntity();
+        groupEntity.setComponent(processGroupDto);
+        groupEntity.setRevision(getClientUtil().createNewRevision());
+
+        return getNifiClient().getProcessGroupClient().createProcessGroup("root", groupEntity, true);
+    }
+
+    private ProcessGroupEntity getNestedProcessGroup(final ProcessGroupEntity parent, final String name) throws NiFiClientException, IOException {
         final ProcessGroupFlowEntity flowEntity = getNifiClient().getFlowClient().getProcessGroup(parent.getId());
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
 
-        for (ProcessGroupEntity childGroup : flowDto.getProcessGroups()) {
+        for (final ProcessGroupEntity childGroup : flowDto.getProcessGroups()) {
             if (name.equals(childGroup.getComponent().getName())) {
                 return getNifiClient().getProcessGroupClient().getProcessGroup(childGroup.getId());
             }
