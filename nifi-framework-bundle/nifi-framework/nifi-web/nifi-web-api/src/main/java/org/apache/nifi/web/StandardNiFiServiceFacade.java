@@ -152,6 +152,7 @@ import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.RetainExistingStateComponentScheduler;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
@@ -6927,7 +6928,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessGroupEntity updateProcessGroupContents(final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
                                                          final RegisteredFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified,
-                                                         final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
+                                                         final boolean updateSettings, final boolean updateDescendantVersionedFlows,
+                                                         final boolean processGroupHadActiveComponentsBeforeUpdate) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -6941,7 +6943,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // update the Process Group
             final VersionedExternalFlow externalFlow = createVersionedExternalFlow(proposedFlowSnapshot);
             processGroupDAO.updateProcessGroupFlow(groupId, externalFlow, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
-                    updateDescendantVersionedFlows);
+                    updateDescendantVersionedFlows, processGroupHadActiveComponentsBeforeUpdate);
 
             // update the revisions
             final Set<Revision> updatedRevisions = revisions.stream()
@@ -6967,6 +6969,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createProcessGroupEntity(revisionUpdate.getComponent(), updatedRevision, permissions, status, bulletinEntities);
+    }
+
+    @Override
+    public boolean isProcessGroupActiveForVersionUpdate(final String groupId) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        return RetainExistingStateComponentScheduler.processGroupHadActiveRuntimeState(group);
     }
 
     private AuthorizationResult authorizeAction(final Action action) {

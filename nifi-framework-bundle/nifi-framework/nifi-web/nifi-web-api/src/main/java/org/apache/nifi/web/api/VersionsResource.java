@@ -860,10 +860,14 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     final VersionControlInformationEntity versionControlInfo = new VersionControlInformationEntity();
                     versionControlInfo.setVersionControlInformation(versionControlInfoDto);
 
+                    final Boolean replicatedActiveFlag = entity.getProcessGroupHadActiveComponentsBeforeUpdate();
+                    final boolean processGroupHadActiveComponentsBeforeUpdate = replicatedActiveFlag != null
+                            ? replicatedActiveFlag
+                            : serviceFacade.isProcessGroupActiveForVersionUpdate(groupId);
                     final ProcessGroupEntity updatedGroup =
                             performUpdateFlow(groupId, revision, versionControlInfo, entity.getVersionedFlowSnapshot(),
                                     getIdGenerationSeed().orElse(null), false,
-                                    entity.getUpdateDescendantVersionedFlows());
+                                    entity.getUpdateDescendantVersionedFlows(), processGroupHadActiveComponentsBeforeUpdate);
 
                     final VersionControlInformationDTO updatedVci = updatedGroup.getComponent().getVersionControlInformation();
 
@@ -1213,7 +1217,8 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     protected ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision,
                                                    final VersionControlInformationEntity requestEntity,
                                                    final RegisteredFlowSnapshot flowSnapshot, final String idGenerationSeed,
-                                                   final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
+                                                   final boolean verifyNotModified, final boolean updateDescendantVersionedFlows,
+                                                   final boolean processGroupHadActiveComponentsBeforeUpdate) {
         logger.info("Updating Process Group with ID {} to version {} of the Versioned Flow", groupId, flowSnapshot.getSnapshotMetadata().getVersion());
 
         // Step 10-11. Update Process Group to the new flow
@@ -1238,7 +1243,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         versionControlInfo.setState(flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE.name() : VersionedFlowState.STALE.name());
 
         return serviceFacade.updateProcessGroupContents(revision, groupId, versionControlInfo, flowSnapshot, idGenerationSeed,
-                verifyNotModified, false, updateDescendantVersionedFlows);
+                verifyNotModified, false, updateDescendantVersionedFlows, processGroupHadActiveComponentsBeforeUpdate);
     }
 
     /**
@@ -1247,12 +1252,13 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
      */
     @Override
     protected Entity createReplicateUpdateFlowEntity(final Revision revision, final VersionControlInformationEntity requestEntity,
-                                                     final RegisteredFlowSnapshot flowSnapshot) {
+                                                     final RegisteredFlowSnapshot flowSnapshot, final boolean processGroupHadActiveComponentsBeforeUpdate) {
         final VersionedFlowSnapshotEntity snapshotEntity = new VersionedFlowSnapshotEntity();
         snapshotEntity.setProcessGroupRevision(dtoFactory.createRevisionDTO(revision));
         snapshotEntity.setRegistryId(requestEntity.getVersionControlInformation().getRegistryId());
         snapshotEntity.setVersionedFlow(flowSnapshot);
         snapshotEntity.setUpdateDescendantVersionedFlows(true);
+        snapshotEntity.setProcessGroupHadActiveComponentsBeforeUpdate(processGroupHadActiveComponentsBeforeUpdate);
         return snapshotEntity;
     }
 

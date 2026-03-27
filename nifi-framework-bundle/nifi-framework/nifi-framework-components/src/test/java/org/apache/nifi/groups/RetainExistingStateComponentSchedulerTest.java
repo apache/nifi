@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.groups.RetainExistingStateComponentScheduler.processGroupHadActiveRuntimeState;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -53,31 +54,29 @@ class RetainExistingStateComponentSchedulerTest {
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
         final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
         assertFalse(scheduler.isProcessGroupActive());
+        assertFalse(processGroupHadActiveRuntimeState(group));
     }
 
     @Test
     void testProcessGroupWithRunningProcessorIsActive() {
         final ProcessorNode processor = createMockProcessor("proc-1", ScheduledState.RUNNING);
         final ProcessGroup group = createProcessGroup(Set.of(processor), Collections.emptySet(), Collections.emptySet());
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
-        assertTrue(scheduler.isProcessGroupActive());
+        assertTrue(processGroupHadActiveRuntimeState(group));
     }
 
     @Test
     void testProcessGroupWithEnabledServiceIsActive() {
         final ControllerServiceNode service = createMockService("svc-1", ControllerServiceState.ENABLED);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Set.of(service));
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
-        assertTrue(scheduler.isProcessGroupActive());
+        assertTrue(processGroupHadActiveRuntimeState(group));
     }
 
     @Test
-    void testProcessGroupWithStoppedComponentsIsActive() {
+    void testProcessGroupWithStoppedComponentsIsNotActiveRuntime() {
         final ProcessorNode processor = createMockProcessor("proc-1", ScheduledState.STOPPED);
         final ControllerServiceNode service = createMockService("svc-1", ControllerServiceState.DISABLED);
         final ProcessGroup group = createProcessGroup(Set.of(processor), Collections.emptySet(), Set.of(service));
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
-        assertTrue(scheduler.isProcessGroupActive());
+        assertFalse(processGroupHadActiveRuntimeState(group));
     }
 
     @Test
@@ -86,15 +85,14 @@ class RetainExistingStateComponentSchedulerTest {
         when(runningPort.getIdentifier()).thenReturn("port-1");
         when(runningPort.getScheduledState()).thenReturn(ScheduledState.RUNNING);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Set.of(runningPort), Collections.emptySet());
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
-        assertTrue(scheduler.isProcessGroupActive());
+        assertTrue(processGroupHadActiveRuntimeState(group));
     }
 
     @Test
     void testNewComponentStartedWhenProcessGroupActive() {
         final ProcessorNode runningProcessor = createMockProcessor("running-proc", ScheduledState.RUNNING);
         final ProcessGroup group = createProcessGroup(Set.of(runningProcessor), Collections.emptySet(), Collections.emptySet());
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate, true);
 
         final Connectable newComponent = mock(Connectable.class);
         when(newComponent.getIdentifier()).thenReturn("new-component-id");
@@ -140,7 +138,7 @@ class RetainExistingStateComponentSchedulerTest {
     void testNewServiceEnabledWhenProcessGroupActive() {
         final ControllerServiceNode existingService = createMockService("existing-svc", ControllerServiceState.ENABLED);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Set.of(existingService));
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate, true);
 
         final ControllerServiceNode newService = createMockService("new-svc", ControllerServiceState.DISABLED);
         scheduler.enableControllerServicesAsync(List.of(newService));
@@ -182,7 +180,7 @@ class RetainExistingStateComponentSchedulerTest {
     void testNewStatelessGroupStartedWhenProcessGroupActive() {
         final ProcessorNode runningProcessor = createMockProcessor("running-proc", ScheduledState.RUNNING);
         final ProcessGroup parentGroup = createProcessGroup(Set.of(runningProcessor), Collections.emptySet(), Collections.emptySet());
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(parentGroup, delegate);
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(parentGroup, delegate, true);
 
         final ProcessGroup newStatelessGroup = mock(ProcessGroup.class);
         when(newStatelessGroup.getIdentifier()).thenReturn("new-stateless-group");
@@ -207,7 +205,7 @@ class RetainExistingStateComponentSchedulerTest {
     void testTransitionComponentStateStartsNewComponentWhenActive() {
         final ProcessorNode runningProcessor = createMockProcessor("running-proc", ScheduledState.RUNNING);
         final ProcessGroup group = createProcessGroup(Set.of(runningProcessor), Collections.emptySet(), Collections.emptySet());
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate, true);
 
         final Connectable newComponent = mock(Connectable.class);
         when(newComponent.getIdentifier()).thenReturn("new-component-id");
@@ -221,7 +219,7 @@ class RetainExistingStateComponentSchedulerTest {
     void testTransitionComponentStateDoesNotStartNewDisabledComponent() {
         final ProcessorNode runningProcessor = createMockProcessor("running-proc", ScheduledState.RUNNING);
         final ProcessGroup group = createProcessGroup(Set.of(runningProcessor), Collections.emptySet(), Collections.emptySet());
-        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate, true);
 
         final Connectable newComponent = mock(Connectable.class);
         when(newComponent.getIdentifier()).thenReturn("new-component-id");

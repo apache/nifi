@@ -3857,12 +3857,12 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void updateFlow(final VersionedExternalFlow proposedSnapshot, final String componentIdSeed, final boolean verifyNotDirty, final boolean updateSettings,
-                           final boolean updateDescendantVersionedFlows) {
+                           final boolean updateDescendantVersionedFlows, final boolean processGroupHadActiveComponentsBeforeUpdate) {
 
         final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> generateUuid(proposedId, destinationGroupId, componentIdSeed);
         final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.ENABLED_OR_DISABLED;
         final ComponentScheduler defaultComponentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
-        final ComponentScheduler retainExistingStateScheduler = new RetainExistingStateComponentScheduler(this, defaultComponentScheduler);
+        final ComponentScheduler retainExistingStateScheduler = new RetainExistingStateComponentScheduler(this, defaultComponentScheduler, processGroupHadActiveComponentsBeforeUpdate);
 
         final FlowSynchronizationOptions.Builder flowSynchronizationBuilder = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)

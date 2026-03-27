@@ -1954,10 +1954,21 @@ public interface NiFiServiceFacade {
      * @param updateSettings whether or not the process group's name and position should be updated
      * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
      *            update the contents of that Process Group
+     * @param processGroupHadActiveComponentsBeforeUpdate if true, new components may be started or enabled when retaining state during the update
      * @return the Process Group
      */
     ProcessGroupEntity updateProcessGroupContents(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, RegisteredFlowSnapshot snapshot,
-                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows,
+                                                  boolean processGroupHadActiveComponentsBeforeUpdate);
+
+    /**
+     * Returns true if the Process Group currently has running or enabling components (including nested contents), for version update flows
+     * that apply before components are stopped.
+     *
+     * @param groupId the process group id
+     * @return true if the group has active runtime state
+     */
+    boolean isProcessGroupActiveForVersionUpdate(String groupId);
 
     /**
      * Returns a Set representing all components that will be affected by updating the Parameter Contexts that are represented by the given DTOs.

@@ -95,7 +95,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
         externalFlowWithResolvedParameters.setFlowContents(versionedExternalFlow.getFlowContents());
         externalFlowWithResolvedParameters.setParameterContexts(Map.of());
 
-        managedProcessGroup.updateFlow(externalFlowWithResolvedParameters, managedProcessGroup.getIdentifier(), false, true, true);
+        managedProcessGroup.updateFlow(externalFlowWithResolvedParameters, managedProcessGroup.getIdentifier(), false, true, true, false);
 
         rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
 

@@ -112,13 +112,17 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      */
     protected abstract ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision, final T requestEntity,
                                                             final RegisteredFlowSnapshot flowSnapshot, final String idGenerationSeed,
-                                                            final boolean verifyNotModified, final boolean updateDescendantVersionedFlows);
+                                                            final boolean verifyNotModified, final boolean updateDescendantVersionedFlows,
+                                                            final boolean processGroupHadActiveComponentsBeforeUpdate);
 
     /**
      * Create the entity that is passed for update flow replication
+     *
+     * @param processGroupHadActiveComponentsBeforeUpdate true if the group had active components before the update sequence began; must be replicated as-is on all nodes
      */
     protected abstract Entity createReplicateUpdateFlowEntity(final Revision revision, final T requestEntity,
-                                                              final RegisteredFlowSnapshot flowSnapshot);
+                                                              final RegisteredFlowSnapshot flowSnapshot,
+                                                              final boolean processGroupHadActiveComponentsBeforeUpdate);
 
     /**
      * Create the entity that captures the status and result of an update request
@@ -351,18 +355,6 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 .filter(entity -> isActive(entity.getComponent()))
                 .collect(Collectors.toSet());
 
-        logger.info("Stopping {} Processors", runningComponents.size());
-        final CancellableTimedPause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        asyncRequest.setCancelCallback(stopComponentsPause::cancel);
-        componentLifecycle.scheduleComponents(requestUri, groupId, runningComponents, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
-
-        if (asyncRequest.isCancelled()) {
-            return;
-        }
-        asyncRequest.markStepComplete();
-
-        // Steps 7-8. Disable enabled controller services that are affected.
-        // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
         final Set<AffectedComponentEntity> servicesToWaitFor = affectedComponents.stream()
                 .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
                 .filter(dto -> {
@@ -378,6 +370,20 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 })
                 .collect(Collectors.toSet());
 
+        final boolean processGroupHadActiveComponentsBeforeUpdate = !runningComponents.isEmpty() || !enabledServices.isEmpty();
+
+        logger.info("Stopping {} Processors", runningComponents.size());
+        final CancellableTimedPause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        asyncRequest.setCancelCallback(stopComponentsPause::cancel);
+        componentLifecycle.scheduleComponents(requestUri, groupId, runningComponents, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
+
+        if (asyncRequest.isCancelled()) {
+            return;
+        }
+        asyncRequest.markStepComplete();
+
+        // Steps 7-8. Disable enabled controller services that are affected.
+        // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
         logger.info("Disabling {} Controller Services", enabledServices.size());
         final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(disableServicesPause::cancel);
@@ -407,14 +413,15 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
                 try {
-                    final NodeResponse clusterResponse = replicateFlowUpdateRequest(replicateUri, user, requestEntity, revision, flowSnapshot);
+                    final NodeResponse clusterResponse = replicateFlowUpdateRequest(replicateUri, user, requestEntity, revision, flowSnapshot,
+                            processGroupHadActiveComponentsBeforeUpdate);
                     verifyResponseCode(clusterResponse, replicateUri, user, "update");
                 } catch (final Exception e) {
                     if (originalFlowSnapshot == null) {
                         logger.debug("Failed to update flow but could not determine original flow to rollback to so will not make any attempt to revert the flow.");
                     } else {
                         try {
-                            final NodeResponse rollbackResponse = replicateFlowUpdateRequest(replicateUri, user, requestEntity, revision, originalFlowSnapshot);
+                            final NodeResponse rollbackResponse = replicateFlowUpdateRequest(replicateUri, user, requestEntity, revision, originalFlowSnapshot, false);
                             verifyResponseCode(rollbackResponse, replicateUri, user, "rollback");
                         } catch (final Exception inner) {
                             e.addSuppressed(inner);
@@ -437,7 +444,8 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 // Step 10-11. Update Process Group to the new flow.
                 // Each concrete class defines its own update flow functionality
                 try {
-                    performUpdateFlow(groupId, currentGroupRevision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true);
+                    performUpdateFlow(groupId, currentGroupRevision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true,
+                            processGroupHadActiveComponentsBeforeUpdate);
                 } catch (final Exception e) {
                     // If clustered, just throw the original Exception.
                     // Otherwise, rollback the flow update. We do not perform the rollback if clustered because
@@ -451,7 +459,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                     // that it can be logged but not overtake the original Exception as the cause.
                     logger.error("Failed to update Process Group {}; will attempt to rollback any changes", groupId, e);
                     try {
-                        performUpdateFlow(groupId, currentGroupRevision, requestEntity, originalFlowSnapshot, idGenerationSeed, false, true);
+                        performUpdateFlow(groupId, currentGroupRevision, requestEntity, originalFlowSnapshot, idGenerationSeed, false, true, false);
                     } catch (final Exception inner) {
                         e.addSuppressed(inner);
                     }
@@ -581,14 +589,15 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         }
     }
 
-    private NodeResponse replicateFlowUpdateRequest(final URI replicateUri, final NiFiUser user, final T requestEntity, final Revision revision, final RegisteredFlowSnapshot flowSnapshot)
+    private NodeResponse replicateFlowUpdateRequest(final URI replicateUri, final NiFiUser user, final T requestEntity, final Revision revision, final RegisteredFlowSnapshot flowSnapshot,
+                                                    final boolean processGroupHadActiveComponentsBeforeUpdate)
             throws LifecycleManagementException {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("content-type", MediaType.APPLICATION_JSON);
 
         // each concrete class creates its own type of entity for replication
-        final Entity replicateEntity = createReplicateUpdateFlowEntity(revision, requestEntity, flowSnapshot);
+        final Entity replicateEntity = createReplicateUpdateFlowEntity(revision, requestEntity, flowSnapshot, processGroupHadActiveComponentsBeforeUpdate);
 
         final NodeResponse clusterResponse;
         try {

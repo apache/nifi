@@ -27,6 +27,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 public abstract class ProcessGroupDescriptorEntity extends Entity {
     private RevisionDTO processGroupRevision;
     private Boolean disconnectedNodeAcknowledged;
+    private Boolean processGroupHadActiveComponentsBeforeUpdate;
 
     @Schema(description = "The Revision for the Process Group")
     public RevisionDTO getProcessGroupRevision() {
@@ -45,5 +46,16 @@ public abstract class ProcessGroupDescriptorEntity extends Entity {
 
     public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
+    }
+
+    @Schema(description = "When replicating a flow update across a cluster, set to true if the process group had running, starting, or enabled "
+        + "components before the update began; callers that replicate this value must not infer it from live state after components were stopped. "
+        + "When null, the server may derive behavior from current runtime state where appropriate.")
+    public Boolean getProcessGroupHadActiveComponentsBeforeUpdate() {
+        return processGroupHadActiveComponentsBeforeUpdate;
+    }
+
+    public void setProcessGroupHadActiveComponentsBeforeUpdate(final Boolean processGroupHadActiveComponentsBeforeUpdate) {
+        this.processGroupHadActiveComponentsBeforeUpdate = processGroupHadActiveComponentsBeforeUpdate;
     }
 }

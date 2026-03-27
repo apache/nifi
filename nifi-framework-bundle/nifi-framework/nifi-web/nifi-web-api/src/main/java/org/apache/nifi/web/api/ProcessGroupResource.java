@@ -1142,7 +1142,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         // To accomplish this, we call updateProcessGroupContents() passing 'true' for the updateSettings flag but null out the position.
                         flowSnapshot.getFlowContents().setPosition(null);
                         entity = serviceFacade.updateProcessGroupContents(newGroupRevision, newGroupId, versionControlInfo, flowSnapshot,
-                                getIdGenerationSeed().orElse(null), false, true, true);
+                                getIdGenerationSeed().orElse(null), false, true, true, false);
                     }
 
                     populateRemainingProcessGroupEntityContent(entity);
@@ -2885,7 +2885,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         flowSnapshot.getFlowContents().setName(processGroupUploadEntity.getGroupName());
 
                         entity = serviceFacade.updateProcessGroupContents(newGroupRevision, newGroupId, null, flowSnapshot,
-                                getIdGenerationSeed().orElse(null), false, false, true);
+                                getIdGenerationSeed().orElse(null), false, false, true, false);
                     }
 
                     populateRemainingProcessGroupEntityContent(entity);
@@ -3300,9 +3300,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     serviceFacade.verifyCanUpdate(groupId, requestFlowSnapshot, true, false);
                 },
                 (revision, entity) -> {
+                    final Boolean replicatedActiveFlag = importEntity.getProcessGroupHadActiveComponentsBeforeUpdate();
+                    final boolean processGroupHadActiveComponentsBeforeUpdate = replicatedActiveFlag != null
+                            ? replicatedActiveFlag
+                            : serviceFacade.isProcessGroupActiveForVersionUpdate(groupId);
                     final ProcessGroupEntity updatedGroup =
                             performUpdateFlow(groupId, revision, importEntity, entity.getVersionedFlowSnapshot(),
-                                    getIdGenerationSeed().orElse(null), false, true);
+                                    getIdGenerationSeed().orElse(null), false, true, processGroupHadActiveComponentsBeforeUpdate);
 
                     // response to replication request is an entity with revision info but no versioned flow snapshot
                     final ProcessGroupImportEntity responseEntity = new ProcessGroupImportEntity();
@@ -3383,12 +3387,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Override
     protected ProcessGroupEntity performUpdateFlow(final String groupId, final Revision revision, final ProcessGroupImportEntity requestEntity,
                                                    final RegisteredFlowSnapshot flowSnapshot, final String idGenerationSeed,
-                                                   final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
+                                                   final boolean verifyNotModified, final boolean updateDescendantVersionedFlows,
+                                                   final boolean processGroupHadActiveComponentsBeforeUpdate) {
         logger.info("Replacing Process Group with ID {} with imported Process Group with ID {}", groupId, flowSnapshot.getFlowContents().getIdentifier());
 
         // Update Process Group to the new flow (including name)
         return serviceFacade.updateProcessGroupContents(revision, groupId, null, flowSnapshot, idGenerationSeed, verifyNotModified,
-                true, updateDescendantVersionedFlows);
+                true, updateDescendantVersionedFlows, processGroupHadActiveComponentsBeforeUpdate);
     }
 
     /**
@@ -3396,7 +3401,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      */
     @Override
     protected Entity createReplicateUpdateFlowEntity(final Revision revision, final ProcessGroupImportEntity requestEntity,
-                                                     final RegisteredFlowSnapshot flowSnapshot) {
+                                                     final RegisteredFlowSnapshot flowSnapshot, final boolean processGroupHadActiveComponentsBeforeUpdate) {
+        requestEntity.setProcessGroupHadActiveComponentsBeforeUpdate(processGroupHadActiveComponentsBeforeUpdate);
         return requestEntity;
     }
 

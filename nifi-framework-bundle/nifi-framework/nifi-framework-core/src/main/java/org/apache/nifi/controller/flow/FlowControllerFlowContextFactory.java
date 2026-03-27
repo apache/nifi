@@ -116,7 +116,7 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
             duplicateContextId, contextName, sourceContext.getDescription(), destinationGroup);
 
         destinationGroup.setParameterContext(duplicateParameterContext);
-        destinationGroup.updateFlow(externalFlowWithoutParameterContext, componentIdSeed, false, true, true);
+        destinationGroup.updateFlow(externalFlowWithoutParameterContext, componentIdSeed, false, true, true, false);
 
         final ParameterContextFacade contextFacade = new StandaloneParameterContextFacade(flowController, destinationGroup);
         final List<ParameterValue> parameterValues = createParameterValues(sourceContext);

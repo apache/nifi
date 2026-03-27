@@ -36,6 +36,41 @@ import java.util.stream.Collectors;
 public class RetainExistingStateComponentScheduler implements ComponentScheduler {
     private static final Logger logger = LoggerFactory.getLogger(RetainExistingStateComponentScheduler.class);
 
+    /**
+     * Returns true if the Process Group (including nested contents) has any component running or starting, any stateless group running,
+     * or any controller service enabled or enabling. Used to decide whether a version update should start or enable newly added components.
+     *
+     * @param group the process group to inspect
+     * @return true if the group had active runtime state at inspection time
+     */
+    public static boolean processGroupHadActiveRuntimeState(final ProcessGroup group) {
+        final Set<Connectable> connectables = new HashSet<>();
+        findAllConnectables(group, connectables);
+        for (final Connectable connectable : connectables) {
+            final ScheduledState state = connectable.getScheduledState();
+            if (state == ScheduledState.RUNNING || state == ScheduledState.STARTING) {
+                return true;
+            }
+        }
+
+        final Set<ProcessGroup> statelessGroups = new HashSet<>();
+        findAllStatelessGroups(group, statelessGroups);
+        for (final ProcessGroup statelessGroup : statelessGroups) {
+            if (statelessGroup.getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
+                return true;
+            }
+        }
+
+        for (final ControllerServiceNode service : group.findAllControllerServices()) {
+            final ControllerServiceState state = service.getState();
+            if (state == ControllerServiceState.ENABLED || state == ControllerServiceState.ENABLING) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private final ComponentScheduler delegate;
     private final Map<String, ScheduledState> componentStates;
     private final Map<String, ControllerServiceState> controllerServiceStates;
@@ -197,7 +232,7 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
         return componentStates;
     }
 
-    private void findAllConnectables(final ProcessGroup group, final Set<Connectable> connectables) {
+    private static void findAllConnectables(final ProcessGroup group, final Set<Connectable> connectables) {
         connectables.addAll(group.getInputPorts());
         connectables.addAll(group.getOutputPorts());
         connectables.addAll(group.getFunnels());
@@ -212,7 +247,7 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
         }
     }
 
-    private void findAllStatelessGroups(final ProcessGroup start, final Set<ProcessGroup> statelessGroups) {
+    private static void findAllStatelessGroups(final ProcessGroup start, final Set<ProcessGroup> statelessGroups) {
         if (start.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
             statelessGroups.add(start);
             return;

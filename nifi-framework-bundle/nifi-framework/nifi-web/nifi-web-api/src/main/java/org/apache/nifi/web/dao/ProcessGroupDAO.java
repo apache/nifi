@@ -165,10 +165,12 @@ public interface ProcessGroupDAO {
      * @param updateSettings whether or not to update the process group's name and position
      * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
      *            update the contents of that Process Group
+     * @param processGroupHadActiveComponentsBeforeUpdate if true, new components from the snapshot may be started or enabled when retaining state
      * @return the process group
      */
     ProcessGroup updateProcessGroupFlow(String groupId, VersionedExternalFlow proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
-                                        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+                                        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows,
+                                        boolean processGroupHadActiveComponentsBeforeUpdate);
 
     /**
      * Adds versioned components to a Process Group

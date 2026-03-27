@@ -187,7 +187,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         rootGroup.addProcessGroup(childGroup);
 
         LogRepositoryFactory.purge();
-        childGroup.updateFlow(dataflowDefinition.getVersionedExternalFlow(), "stateless-component-id-seed", false, true, true);
+        childGroup.updateFlow(dataflowDefinition.getVersionedExternalFlow(), "stateless-component-id-seed", false, true, true, false);
 
         final ParameterValueProvider parameterValueProvider = createParameterValueProvider(dataflowDefinition);
 
