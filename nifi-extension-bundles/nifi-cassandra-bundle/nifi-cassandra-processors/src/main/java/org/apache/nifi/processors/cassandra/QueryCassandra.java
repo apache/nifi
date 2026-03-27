@@ -56,6 +56,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.cassandra.converter.CassandraTypeConverter;
+import org.apache.nifi.processors.cassandra.converter.StandardCassandraTypeConverter;
 import org.apache.nifi.util.StopWatch;
 import org.jetbrains.annotations.NotNull;
 
@@ -102,6 +104,8 @@ import java.util.stream.Stream;
                 + "FlowFiles were produced")
 })
 public class QueryCassandra extends AbstractCassandraProcessor {
+
+    private static final CassandraTypeConverter typeConverter = new StandardCassandraTypeConverter();
 
     public static final String AVRO_FORMAT = "Avro";
     public static final String JSON_FORMAT = "Json";
@@ -498,7 +502,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             long nrOfRows = 0;
 
             for (int i = 0; i < schema.getFields().size(); i++) {
-                rec.put(i, firstRow.isNull(i) ? null : getCassandraObject(firstRow, i));
+                rec.put(i, firstRow.isNull(i) ? null : typeConverter.getCassandraObject(firstRow, i));
             }
             dataFileWriter.append(rec);
             nrOfRows++;
@@ -506,7 +510,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             while (iterator.hasNext() && (maxRowsPerFlowFile == 0 || nrOfRows < maxRowsPerFlowFile)) {
                 Row row = iterator.next();
                 for (int i = 0; i < schema.getFields().size(); i++) {
-                    rec.put(i, row.isNull(i) ? null : getCassandraObject(row, i));
+                    rec.put(i, row.isNull(i) ? null : typeConverter.getCassandraObject(row, i));
                 }
                 dataFileWriter.append(rec);
                 nrOfRows++;
@@ -581,7 +585,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 outStream.write(QUOTE);
                 outStream.write(COLON);
 
-                Object value = row.isNull(i) ? null : getCassandraObject(row, i);
+                Object value = row.isNull(i) ? null : typeConverter.getCassandraObject(row, i);
 
                 String valueStr;
                 if (value instanceof List || value instanceof Set) {
@@ -680,7 +684,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     builder.name(colName)
                             .type().unionOf()
                             .nullBuilder().endNull()
-                            .and().array().items(getUnionFieldType(getPrimitiveAvroTypeFromCassandraType(elementType)))
+                            .and().array().items(typeConverter.getUnionFieldType(typeConverter.getPrimitiveAvroTypeFromCassandraType(elementType)))
                             .endUnion().noDefault();
 
                 } else if (dataType instanceof SetType) {
@@ -688,7 +692,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     builder.name(colName)
                             .type().unionOf()
                             .nullBuilder().endNull()
-                            .and().array().items(getUnionFieldType(getPrimitiveAvroTypeFromCassandraType(elementType)))
+                            .and().array().items(typeConverter.getUnionFieldType(typeConverter.getPrimitiveAvroTypeFromCassandraType(elementType)))
                             .endUnion().noDefault();
 
                 } else if (dataType instanceof MapType) {
@@ -696,12 +700,12 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     builder.name(colName)
                             .type().unionOf()
                             .nullBuilder().endNull()
-                            .and().map().values(getUnionFieldType(getPrimitiveAvroTypeFromCassandraType(valueType)))
+                            .and().map().values(typeConverter.getUnionFieldType(typeConverter.getPrimitiveAvroTypeFromCassandraType(valueType)))
                             .endUnion().noDefault();
 
                 } else {
                     builder.name(colName)
-                            .type(getUnionFieldType(getPrimitiveAvroTypeFromCassandraType(dataType)))
+                            .type(typeConverter.getUnionFieldType(typeConverter.getPrimitiveAvroTypeFromCassandraType(dataType)))
                             .noDefault();
                 }
             }
