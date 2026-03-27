@@ -351,6 +351,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
     public List<String> getAvailableRegions() {
         return RegionUtil.getAwsRegionAllowableValues().stream()
             .map(AllowableValue::getValue)
+            .sorted()
             .toList();
     }
 }
