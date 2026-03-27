@@ -40,6 +40,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -448,6 +449,12 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(processSession, toFailureOnError);
+        if (toFailureOnError) {
+            FlowFile flowFile = session.get();
+            if (flowFile == null) {
+                return;
+            }
+        }
 
         Map<String, Object> ctl = new AccessMap("CTL");
         Map<String, Object> sql = new AccessMap("SQL");
@@ -571,7 +578,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
