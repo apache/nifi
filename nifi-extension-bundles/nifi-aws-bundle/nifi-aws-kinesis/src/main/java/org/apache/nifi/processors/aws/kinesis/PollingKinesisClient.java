@@ -65,7 +65,6 @@ final class PollingKinesisClient extends KinesisConsumerClient {
     private final Semaphore queuePermits = new Semaphore(MAX_QUEUED_RESULTS, true);
     private final long emptyShardBackoffNanos;
     private final long errorBackoffNanos;
-    private volatile boolean closed;
     PollingKinesisClient(final KinesisClient kinesisClient, final ComponentLog logger) {
         this(kinesisClient, logger, DEFAULT_EMPTY_SHARD_BACKOFF_NANOS, DEFAULT_ERROR_BACKOFF_NANOS);
     }
@@ -102,7 +101,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
     @Override
     boolean hasPendingFetches() {
-        if (closed) {
+        if (fetchExecutor.isShutdown()) {
             return false;
         }
         if (hasQueuedResults()) {
@@ -176,7 +175,6 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
     @Override
     void close() {
-        closed = true;
         for (final PollingShardState state : pollingShardStates.values()) {
             state.stop();
         }
