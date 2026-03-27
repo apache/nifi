@@ -453,11 +453,13 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.changeFlowVersion(group.getId(), "2");
         util.assertFlowUpToDate(group.getId());
 
-        // Verify existing CountFlowFiles still processes with chained service.
-        // After re-enabling, both services reset counters so count = newCountService.count + countService.count = 1 + 1 = 2
+        // Verify existing CountFlowFiles still processes with the chained service after upgrade.
+        // The exact count depends on timing (GenerateFlowFile may have produced extra flow files before the upgrade stopped it),
+        // but the count must be greater than 1 to prove the chained service (newCountService + countService) is working.
         waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
         final Map<String, String> v2CountAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes()).getFlowFile().getAttributes();
-        assertEquals("2", v2CountAttributes.get("count"));
+        final int count = Integer.parseInt(v2CountAttributes.get("count"));
+        assertTrue(count > 1, "Expected count > 1 with chained service but was " + count);
 
         // Query the current flow to find connections by their source processor names
         final FlowDTO v2Flow = getNifiClient().getFlowClient().getProcessGroup(group.getId()).getProcessGroupFlow().getFlow();
