@@ -18,6 +18,7 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -33,6 +34,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * A {@link ComponentScheduler} that retains the existing state of components during a flow update. For components that already existed
+ * before the update, the scheduler only starts or enables them if they were previously running or enabled. Components that were stopped
+ * or disabled remain in that state.
+ *
+ * <p>For components that are newly added by the update (i.e., not present before the update), the scheduler determines whether to start
+ * or enable them based on whether the process group is currently "active". The process group is considered active if at least one processor
+ * is running at the time this scheduler is constructed. During a version upgrade, the REST layer stops only the affected (modified)
+ * processors before delegating to the synchronizer, so unaffected processors remain in their original state and serve as the signal
+ * for whether the group is active.</p>
+ *
+ * <p>When the process group is active, newly added processors are started and newly added controller services are enabled. When the
+ * process group is not active (e.g., fully stopped before the upgrade, or an initial import into an empty group), newly added
+ * components remain stopped or disabled.</p>
+ */
 public class RetainExistingStateComponentScheduler implements ComponentScheduler {
     private static final Logger logger = LoggerFactory.getLogger(RetainExistingStateComponentScheduler.class);
 
@@ -194,26 +210,9 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     }
 
     static boolean hasActiveRuntimeState(final ProcessGroup group) {
-        final Set<Connectable> connectables = new HashSet<>();
-        findAllConnectables(group, connectables);
-        for (final Connectable connectable : connectables) {
-            final ScheduledState state = connectable.getScheduledState();
+        for (final ProcessorNode processor : group.findAllProcessors()) {
+            final ScheduledState state = processor.getScheduledState();
             if (state == ScheduledState.RUNNING || state == ScheduledState.STARTING) {
-                return true;
-            }
-        }
-
-        final Set<ProcessGroup> statelessGroups = new HashSet<>();
-        findAllStatelessGroups(group, statelessGroups);
-        for (final ProcessGroup statelessGroup : statelessGroups) {
-            if (statelessGroup.getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
-                return true;
-            }
-        }
-
-        for (final ControllerServiceNode service : group.findAllControllerServices()) {
-            final ControllerServiceState state = service.getState();
-            if (state == ControllerServiceState.ENABLED || state == ControllerServiceState.ENABLING) {
                 return true;
             }
         }

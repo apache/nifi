@@ -72,18 +72,18 @@ class RetainExistingStateComponentSchedulerTest {
     }
 
     @Test
-    void testProcessGroupWithEnabledServiceIsActive() {
+    void testProcessGroupWithEnabledServiceOnlyIsNotActive() {
         final ControllerServiceNode service = createMockService("svc-1", ControllerServiceState.ENABLED);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Set.of(service));
-        assertTrue(RetainExistingStateComponentScheduler.hasActiveRuntimeState(group));
-        assertTrue(new RetainExistingStateComponentScheduler(group, delegate).isProcessGroupActive());
+        assertFalse(RetainExistingStateComponentScheduler.hasActiveRuntimeState(group));
+        assertFalse(new RetainExistingStateComponentScheduler(group, delegate).isProcessGroupActive());
     }
 
     @Test
-    void testProcessGroupWithEnablingServiceIsActive() {
+    void testProcessGroupWithEnablingServiceOnlyIsNotActive() {
         final ControllerServiceNode service = createMockService("svc-1", ControllerServiceState.ENABLING);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Set.of(service));
-        assertTrue(RetainExistingStateComponentScheduler.hasActiveRuntimeState(group));
+        assertFalse(RetainExistingStateComponentScheduler.hasActiveRuntimeState(group));
     }
 
     @Test
@@ -96,12 +96,12 @@ class RetainExistingStateComponentSchedulerTest {
     }
 
     @Test
-    void testProcessGroupWithRunningPortIsActive() {
+    void testProcessGroupWithRunningPortIsNotActive() {
         final Port runningPort = mock(Port.class);
         when(runningPort.getIdentifier()).thenReturn("port-1");
         when(runningPort.getScheduledState()).thenReturn(ScheduledState.RUNNING);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Set.of(runningPort), Collections.emptySet());
-        assertTrue(RetainExistingStateComponentScheduler.hasActiveRuntimeState(group));
+        assertFalse(RetainExistingStateComponentScheduler.hasActiveRuntimeState(group));
     }
 
     @Test
@@ -154,8 +154,9 @@ class RetainExistingStateComponentSchedulerTest {
 
     @Test
     void testNewServiceEnabledWhenProcessGroupActive() {
+        final ProcessorNode runningProcessor = createMockProcessor("running-proc", ScheduledState.RUNNING);
         final ControllerServiceNode existingService = createMockService("existing-svc", ControllerServiceState.ENABLED);
-        final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Set.of(existingService));
+        final ProcessGroup group = createProcessGroup(Set.of(runningProcessor), Collections.emptySet(), Set.of(existingService));
         final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
         assertTrue(scheduler.isProcessGroupActive());
 
@@ -290,6 +291,7 @@ class RetainExistingStateComponentSchedulerTest {
     private ProcessGroup createProcessGroup(final Set<ProcessorNode> processors, final Set<Port> inputPorts, final Set<ControllerServiceNode> services) {
         final ProcessGroup group = Mockito.mock(ProcessGroup.class);
         when(group.getProcessors()).thenReturn(processors);
+        when(group.findAllProcessors()).thenReturn(new java.util.ArrayList<>(processors));
         when(group.getInputPorts()).thenReturn(inputPorts);
         when(group.getOutputPorts()).thenReturn(Collections.emptySet());
         when(group.getFunnels()).thenReturn(Collections.emptySet());
