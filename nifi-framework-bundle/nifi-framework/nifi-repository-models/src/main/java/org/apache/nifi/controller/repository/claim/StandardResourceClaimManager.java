@@ -32,6 +32,8 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
     private static final Logger logger = LoggerFactory.getLogger(StandardResourceClaimManager.class);
     private final ConcurrentMap<ResourceClaim, ClaimCount> claimantCounts = new ConcurrentHashMap<>();
     private final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
+    private final BlockingQueue<ContentClaim> truncatableClaims = new LinkedBlockingQueue<>(100000);
+    private final ConcurrentMap<ContentClaim, Integer> truncationReferenceCounts = new ConcurrentHashMap<>();
 
     @Override
     public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant, final boolean writable) {
@@ -162,6 +164,36 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
     }
 
     @Override
+    public void markTruncatable(final ContentClaim contentClaim) {
+        if (contentClaim == null) {
+            return;
+        }
+
+        final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+        synchronized (resourceClaim) {
+            if (isDestructable(resourceClaim)) {
+                return;
+            }
+
+            final int truncationReferenceCount = getTruncationReferenceCount(contentClaim);
+            if (truncationReferenceCount > 0) {
+                logger.debug("Not marking {} as truncatable because truncation reference count is {}", contentClaim, truncationReferenceCount);
+                return;
+            }
+
+            logger.debug("Marking {} as truncatable", contentClaim);
+            try {
+                if (!truncatableClaims.offer(contentClaim, 1, TimeUnit.MINUTES)) {
+                    logger.info("Unable to mark {} as truncatable because maximum queue size [{}] reached", truncatableClaims.size(), contentClaim);
+                }
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                logger.debug("Interrupted while marking {} as truncatable", contentClaim, ie);
+            }
+        }
+    }
+
+    @Override
     public void drainDestructableClaims(final Collection<ResourceClaim> destination, final int maxElements) {
         final int drainedCount = destructableClaims.drainTo(destination, maxElements);
         logger.debug("Drained {} destructable claims to {}", drainedCount, destination);
@@ -180,8 +212,40 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
     }
 
     @Override
+    public void drainTruncatableClaims(final Collection<ContentClaim> destination, final int maxElements) {
+        final int drainedCount = truncatableClaims.drainTo(destination, maxElements);
+        logger.debug("Drained {} truncatable claims to {}", drainedCount, destination);
+    }
+
+    @Override
+    public void incrementTruncationReferenceCount(final ContentClaim claim) {
+        if (claim == null) {
+            return;
+        }
+        truncationReferenceCounts.merge(claim, 1, Integer::sum);
+    }
+
+    @Override
+    public int decrementTruncationReferenceCount(final ContentClaim claim) {
+        if (claim == null) {
+            return 0;
+        }
+        final Integer newCount = truncationReferenceCounts.computeIfPresent(claim, (key, value) -> value <= 1 ? null : value - 1);
+        return newCount == null ? 0 : newCount;
+    }
+
+    @Override
+    public int getTruncationReferenceCount(final ContentClaim claim) {
+        if (claim == null) {
+            return 0;
+        }
+        return truncationReferenceCounts.getOrDefault(claim, 0);
+    }
+
+    @Override
     public void purge() {
         claimantCounts.clear();
+        truncationReferenceCounts.clear();
     }
 
     @Override
