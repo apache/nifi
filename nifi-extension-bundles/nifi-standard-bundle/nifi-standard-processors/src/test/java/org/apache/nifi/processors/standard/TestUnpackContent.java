@@ -45,6 +45,7 @@ import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUnpackContent {
@@ -585,6 +586,69 @@ public class TestUnpackContent {
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    @Test
+    public void testAddFragmentAttributes() throws IOException {
+        // ZIP: fragment attributes always written; identifier controlled by Fragment Identifier Value
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.enqueue(dataPath.resolve("data.zip"));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        String sharedId = unpacked.getFirst().getAttribute(UnpackContent.FRAGMENT_ID);
+        assertNotNull(sharedId);
+        for (final MockFlowFile ff : unpacked) {
+            ff.assertAttributeEquals(UnpackContent.FRAGMENT_ID, sharedId);
+            ff.assertAttributeEquals(UnpackContent.FRAGMENT_COUNT, "2");
+            ff.assertAttributeExists(UnpackContent.FRAGMENT_INDEX);
+            ff.assertAttributeEquals(UnpackContent.SEGMENT_ORIGINAL_FILENAME, "data");
+        }
+        assertEquals("1", unpacked.get(0).getAttribute(UnpackContent.FRAGMENT_INDEX));
+        assertEquals("2", unpacked.get(1).getAttribute(UnpackContent.FRAGMENT_INDEX));
+
+        // FlowFile stream: fragment attributes only written when Add Fragment Attributes to FlowFile Streams is enabled
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3);
+        runner.setProperty(UnpackContent.ADD_FRAGMENT_ATTRIBUTES, "true");
+        runner.enqueue(dataPath.resolve("data.flowfilev3"));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        final List<MockFlowFile> all = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        unpacked = all.subList(all.size() - 2, all.size());
+        sharedId = unpacked.getFirst().getAttribute(UnpackContent.FRAGMENT_ID);
+        assertNotNull(sharedId);
+        for (final MockFlowFile ff : unpacked) {
+            ff.assertAttributeEquals(UnpackContent.FRAGMENT_ID, sharedId);
+            ff.assertAttributeEquals(UnpackContent.FRAGMENT_COUNT, "2");
+            ff.assertAttributeExists(UnpackContent.FRAGMENT_INDEX);
+            ff.assertAttributeEquals(UnpackContent.SEGMENT_ORIGINAL_FILENAME, "data.flowfilev3");
+        }
+        assertEquals("1", unpacked.get(0).getAttribute(UnpackContent.FRAGMENT_INDEX));
+        assertEquals("2", unpacked.get(1).getAttribute(UnpackContent.FRAGMENT_INDEX));
+    }
+
+    @Test
+    public void testFragmentIdentifierValue() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.FRAGMENT_IDENTIFIER_VALUE, "${filename}");
+        runner.enqueue(dataPath.resolve("data.zip"));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        for (final MockFlowFile ff : unpacked) {
+            ff.assertAttributeEquals(UnpackContent.FRAGMENT_ID, "data.zip");
+            ff.assertAttributeEquals(UnpackContent.FRAGMENT_COUNT, "2");
+            ff.assertAttributeExists(UnpackContent.FRAGMENT_INDEX);
+            ff.assertAttributeEquals(UnpackContent.SEGMENT_ORIGINAL_FILENAME, "data");
+        }
+        assertEquals("1", unpacked.get(0).getAttribute(UnpackContent.FRAGMENT_INDEX));
+        assertEquals("2", unpacked.get(1).getAttribute(UnpackContent.FRAGMENT_INDEX));
     }
 
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
