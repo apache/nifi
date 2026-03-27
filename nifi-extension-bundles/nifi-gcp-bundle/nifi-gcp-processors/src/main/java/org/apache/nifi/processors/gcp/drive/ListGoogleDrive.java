@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.drive.model.User;
@@ -101,8 +102,6 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CON
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_CONTENT_LINK_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.WEB_VIEW_LINK_DESC;
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
-
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"google", "drive", "storage"})
@@ -199,6 +198,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET,
             RECORD_WRITER,
+            GOOGLE_DRIVE_SCOPE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
             CONNECT_TIMEOUT,
             READ_TIMEOUT
@@ -229,7 +229,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
-        driveService = createDriveService(context, httpTransport, GOOGLE_CLOUD_PLATFORM_SCOPE);
+        driveService = createDriveService(context, httpTransport, resolveScopes(context, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY));
     }
 
     @Override

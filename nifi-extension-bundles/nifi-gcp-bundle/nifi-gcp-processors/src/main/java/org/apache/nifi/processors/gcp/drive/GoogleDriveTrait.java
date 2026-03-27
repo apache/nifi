@@ -51,6 +51,17 @@ public interface GoogleDriveTrait {
     String OLD_CONNECT_TIMEOUT_PROPERTY_NAME = "connect-timeout";
     String OLD_READ_TIMEOUT_PROPERTY_NAME = "read-timeout";
 
+    PropertyDescriptor GOOGLE_DRIVE_SCOPE = new PropertyDescriptor.Builder()
+            .name("Google Drive API Scope")
+            .description("""
+                    Specifies the OAuth2 scope to request when accessing Google Drive.
+                    'Drive Scopes' uses drive-specific scopes and is recommended for most setups, including service accounts with domain-wide delegation.
+                    'Cloud Platform' uses the broader cloud-platform scope, which is required when using Workload Identity Federation with service account impersonation.""")
+            .required(true)
+            .defaultValue(GoogleDriveApiScope.DRIVE_SCOPES)
+            .allowableValues(GoogleDriveApiScope.class)
+            .build();
+
     JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -113,6 +124,14 @@ public interface GoogleDriveTrait {
                 .asControllerService(GCPCredentialsService.class);
 
         return gcpCredentialsService.getGoogleCredentials();
+    }
+
+    default String[] resolveScopes(final ProcessContext context, final String... driveSpecificScopes) {
+        final String scopeValue = context.getProperty(GOOGLE_DRIVE_SCOPE).getValue();
+        if (GoogleDriveApiScope.CLOUD_PLATFORM.getValue().equals(scopeValue)) {
+            return new String[] {GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE};
+        }
+        return driveSpecificScopes;
     }
 
     default GoogleDriveFileInfo.Builder createGoogleDriveFileInfoBuilder(final File file) {
