@@ -85,10 +85,7 @@ export class PortManager implements OnDestroy {
      * Utility method to calculate offset y position based on whether this port is remotely accessible.
      */
     private offsetY(y: any) {
-        const self: PortManager = this;
-        return function (d: any) {
-            return y + (self.isLocalPort(d) ? 0 : PortManager.OFFSET_VALUE);
-        };
+        return (d: any) => y + (this.isLocalPort(d) ? 0 : PortManager.OFFSET_VALUE);
     }
 
     private select() {
@@ -177,34 +174,25 @@ export class PortManager implements OnDestroy {
         if (updated.empty()) {
             return;
         }
-        const self: PortManager = this;
 
         // port border authorization
         updated
             .select('rect.border')
-            .attr('height', function (d: any) {
-                return d.dimensions.height;
-            })
-            .classed('unauthorized', function (d: any) {
-                return d.permissions.canRead === false;
-            });
+            .attr('height', (d: any) => d.dimensions.height)
+            .classed('unauthorized', (d: any) => d.permissions.canRead === false);
 
         // port body authorization
         updated
             .select('rect.body')
-            .attr('height', function (d: any) {
-                return d.dimensions.height;
-            })
-            .classed('unauthorized', function (d: any) {
-                return d.permissions.canRead === false;
-            });
+            .attr('height', (d: any) => d.dimensions.height)
+            .classed('unauthorized', (d: any) => d.permissions.canRead === false);
 
-        updated.each(function (this: any, portData: any) {
-            const port: any = d3.select(this);
+        updated.each((portData: any, i: number, nodes: Element[]) => {
+            const port: any = d3.select(nodes[i]);
             let details: any = port.select('g.port-details');
 
             // update the component behavior as appropriate
-            self.editableBehavior.editable(port);
+            this.editableBehavior.editable(port);
 
             // if this port is visible, render everything
             if (port.classed('visible')) {
@@ -218,28 +206,28 @@ export class PortManager implements OnDestroy {
                         .attr('class', 'port-transmission-icon')
                         .attr('x', 10)
                         .attr('y', 18)
-                        .classed('hidden', self.isLocalPort);
+                        .classed('hidden', this.isLocalPort);
 
                     // bulletin background
                     details
                         .append('rect')
                         .attr('class', 'bulletin-background')
-                        .attr('x', self.remotePortDimensions.width - PortManager.OFFSET_VALUE)
+                        .attr('x', this.remotePortDimensions.width - PortManager.OFFSET_VALUE)
                         .attr('width', PortManager.OFFSET_VALUE)
                         .attr('height', PortManager.OFFSET_VALUE)
-                        .classed('hidden', self.isLocalPort);
+                        .classed('hidden', this.isLocalPort);
 
                     // bulletin icon
                     details
                         .append('text')
                         .attr('class', 'bulletin-icon')
-                        .attr('x', self.remotePortDimensions.width - 18)
+                        .attr('x', this.remotePortDimensions.width - 18)
                         .attr('y', 18)
                         .text('\uf24a')
-                        .classed('hidden', self.isLocalPort);
+                        .classed('hidden', this.isLocalPort);
 
                     // run status icon
-                    details.append('text').attr('class', 'run-status-icon').attr('x', 50).attr('y', self.offsetY(25));
+                    details.append('text').attr('class', 'run-status-icon').attr('x', 50).attr('y', this.offsetY(25));
 
                     // --------
                     // comments
@@ -266,31 +254,31 @@ export class PortManager implements OnDestroy {
                     details
                         .append('text')
                         .attr('class', 'active-thread-count-icon')
-                        .attr('y', self.offsetY(43))
+                        .attr('y', this.offsetY(43))
                         .text('\ue83f');
 
                     // active thread icon
-                    details.append('text').attr('class', 'active-thread-count').attr('y', self.offsetY(43));
+                    details.append('text').attr('class', 'active-thread-count').attr('y', this.offsetY(43));
                 }
 
                 if (portData.permissions.canRead) {
                     // Update the remote port banner, these are needed when remote access is changed.
-                    port.select('rect.remote-banner').classed('hidden', self.isLocalPort);
+                    port.select('rect.remote-banner').classed('hidden', this.isLocalPort);
 
-                    port.select('text.port-icon').attr('y', self.offsetY(38));
+                    port.select('text.port-icon').attr('y', this.offsetY(38));
 
-                    details.select('text.port-transmission-icon').classed('hidden', self.isLocalPort);
+                    details.select('text.port-transmission-icon').classed('hidden', this.isLocalPort);
 
-                    details.select('rect.bulletin-background').classed('hidden', self.isLocalPort);
+                    details.select('rect.bulletin-background').classed('hidden', this.isLocalPort);
 
-                    details.select('rect.bulletin-icon').classed('hidden', self.isLocalPort);
+                    details.select('rect.bulletin-icon').classed('hidden', this.isLocalPort);
 
                     // update the port name
                     port.select('text.port-name')
-                        .attr('y', self.offsetY(25))
-                        .each(function (this: any, d: any) {
-                            const portName = d3.select(this);
-                            const name = d.component.name;
+                        .attr('y', this.offsetY(25))
+                        .each((_d: any, i: number, nodes: Element[]) => {
+                            const portName = d3.select(nodes[i]);
+                            const name = portData.component.name;
                             const words = name.split(/\s+/);
 
                             // reset the port name to handle any previous state
@@ -299,9 +287,9 @@ export class PortManager implements OnDestroy {
                             // handle based on the number of tokens in the port name
                             if (words.length === 1) {
                                 // apply ellipsis to the port name as necessary
-                                self.canvasUtils.ellipsis(portName, name, 'port-name');
+                                this.canvasUtils.ellipsis(portName, name, 'port-name');
                             } else {
-                                self.canvasUtils.multilineEllipsis(portName, 2, name, 'port-name');
+                                this.canvasUtils.multilineEllipsis(portName, 2, name, 'port-name');
                             }
                         })
                         .append('title')
@@ -313,13 +301,17 @@ export class PortManager implements OnDestroy {
                     port.select('text.component-comments')
                         .style(
                             'visibility',
-                            self.nifiCommon.isBlank(portData.component.comments) ? 'hidden' : 'visible'
+                            this.nifiCommon.isBlank(portData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function (this: any) {
-                            if (!self.nifiCommon.isBlank(portData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(TextTip, d3.select(this), portData.component.comments);
+                        .each((_d: any, i: number, nodes: Element[]) => {
+                            if (!this.nifiCommon.isBlank(portData.component.comments)) {
+                                this.canvasUtils.canvasTooltip(
+                                    TextTip,
+                                    d3.select(nodes[i]),
+                                    portData.component.comments
+                                );
                             } else {
-                                self.canvasUtils.resetCanvasTooltip(d3.select(this));
+                                this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                             }
                         });
                 } else {
@@ -331,10 +323,10 @@ export class PortManager implements OnDestroy {
                 }
 
                 // populate the stats
-                self.updatePortStatus(port);
+                this.updatePortStatus(port);
 
                 // Update connections to update anchor point positions those may have been updated by changing ports remote accessibility.
-                self.store.dispatch(
+                this.store.dispatch(
                     renderConnectionsForComponent({ id: portData.id, updatePath: true, updateLabel: true })
                 );
             } else {
@@ -365,12 +357,11 @@ export class PortManager implements OnDestroy {
         if (updated.empty()) {
             return;
         }
-        const self: PortManager = this;
 
         // update the run status
         updated
             .select('text.run-status-icon')
-            .attr('class', function (d: any) {
+            .attr('class', (d: any) => {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
@@ -383,7 +374,7 @@ export class PortManager implements OnDestroy {
 
                 return `run-status-icon ${clazz}`;
             })
-            .attr('font-family', function (d: any) {
+            .attr('font-family', (d: any) => {
                 let family = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
@@ -391,7 +382,7 @@ export class PortManager implements OnDestroy {
                 return family;
             })
             .attr('y', this.offsetY(25))
-            .text(function (d: any) {
+            .text((d: any) => {
                 let img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
@@ -404,58 +395,54 @@ export class PortManager implements OnDestroy {
                 }
                 return img;
             })
-            .each(function (this: any, d: any) {
+            .each((d: any, i: number, nodes: Element[]) => {
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && !self.nifiCommon.isEmpty(d.component.validationErrors)) {
-                    self.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(this), {
+                if (d.permissions.canRead && !this.nifiCommon.isEmpty(d.component.validationErrors)) {
+                    this.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(nodes[i]), {
                         isValidating: false,
                         validationErrors: d.component.validationErrors
                     });
                 } else {
-                    self.canvasUtils.resetCanvasTooltip(d3.select(this));
+                    this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                 }
             });
 
         updated
             .select('text.port-transmission-icon')
-            .attr('font-family', function (d: any) {
+            .attr('font-family', (d: any) => {
                 if (d.status.transmitting === true) {
                     return 'FontAwesome';
                 } else {
                     return 'flowfont';
                 }
             })
-            .text(function (d: any) {
+            .text((d: any) => {
                 if (d.status.transmitting === true) {
                     return '\uf140';
                 } else {
                     return '\ue80a';
                 }
             })
-            .classed('transmitting success-color-variant', function (d: any) {
-                return d.status.transmitting === true;
-            })
-            .classed('not-transmitting neutral-color', function (d: any) {
-                return d.status.transmitting !== true;
-            });
+            .classed('transmitting success-color-variant', (d: any) => d.status.transmitting === true)
+            .classed('not-transmitting neutral-color', (d: any) => d.status.transmitting !== true);
 
-        updated.each(function (this: any, d: any) {
-            const port: any = d3.select(this);
+        updated.each((d: any, i: number, nodes: Element[]) => {
+            const port: any = d3.select(nodes[i]);
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(port, d);
+            this.canvasUtils.activeThreadCount(port, d);
 
-            port.select('text.active-thread-count-icon').attr('y', self.offsetY(43));
-            port.select('text.active-thread-count').attr('y', self.offsetY(43));
+            port.select('text.active-thread-count-icon').attr('y', this.offsetY(43));
+            port.select('text.active-thread-count').attr('y', this.offsetY(43));
 
             // ---------
             // bulletins
             // ---------
 
-            self.canvasUtils.bulletins(port, d.bulletins);
+            this.canvasUtils.bulletins(port, d.bulletins);
         });
     }
 

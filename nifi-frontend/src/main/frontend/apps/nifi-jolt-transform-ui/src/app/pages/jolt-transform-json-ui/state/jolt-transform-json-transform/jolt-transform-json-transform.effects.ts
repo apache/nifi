@@ -22,7 +22,7 @@ import { JoltTransformJsonUiService } from '../../service/jolt-transform-json-ui
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, from, map, of, switchMap } from 'rxjs';
 import { transformJoltSpecFailure } from './jolt-transform-json-transform.actions';
-import { TransformJoltSpecRequest } from './index';
+import { TransformJoltSpecSuccess } from './index';
 
 @Injectable()
 export class JoltTransformJsonTransformEffects {
@@ -35,7 +35,7 @@ export class JoltTransformJsonTransformEffects {
             map((action) => action.request),
             switchMap((request) =>
                 from(this.joltTransformJsonUiService.transformJoltSpec(request)).pipe(
-                    map((response: TransformJoltSpecRequest) =>
+                    map((response: TransformJoltSpecSuccess) =>
                         JoltTransformJsonUiActions.transformJoltSpecSuccess({
                             response: response
                         })

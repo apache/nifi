@@ -169,7 +169,7 @@ export class ConnectionStatusTable extends ComponentStatusTable<ConnectionStatus
         }
         return data.slice().sort((a, b) => {
             const isAsc: boolean = sort.direction === 'asc';
-            let retVal = 0;
+            let retVal: number;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(

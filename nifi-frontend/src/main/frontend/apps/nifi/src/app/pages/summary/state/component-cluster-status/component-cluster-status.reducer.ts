@@ -44,7 +44,7 @@ export const componentClusterStatusReducer = createReducer(
         ClusterStatusActions.loadComponentClusterStatusSuccess,
         ClusterStatusActions.openComponentClusterStatusDialog,
         (state, { response }) => {
-            let loadedTimestamp = '';
+            let loadedTimestamp: string;
             switch (response.componentType) {
                 case ComponentType.Processor:
                     loadedTimestamp = response.clusterStatusEntity.processorStatus?.statsLastRefreshed || '';

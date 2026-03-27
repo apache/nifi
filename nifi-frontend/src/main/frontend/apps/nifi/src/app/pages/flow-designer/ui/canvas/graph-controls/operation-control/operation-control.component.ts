@@ -61,7 +61,7 @@ export class OperationControl {
                 this.operationCollapsed = !item[OperationControl.OPERATION_KEY];
                 this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.operationCollapsed }));
             }
-        } catch (e) {
+        } catch (_e) {
             // likely could not parse item... ignoring
         }
     }

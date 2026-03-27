@@ -32,4 +32,4 @@ export interface SavePropertiesRequest {
     disconnectedNodeAcknowledged: boolean;
 }
 
-export interface SavePropertiesSuccess {}
+export type SavePropertiesSuccess = Record<string, never>;

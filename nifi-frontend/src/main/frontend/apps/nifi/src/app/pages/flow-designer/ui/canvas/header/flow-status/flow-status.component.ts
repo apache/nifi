@@ -58,9 +58,7 @@ export class FlowStatus {
             const isEnforcedRuleViolated = state.ruleViolations.find((v) => {
                 return v.enforcementPolicy === 'ENFORCE';
             });
-            isEnforcedRuleViolated
-                ? (this.flowAnalysisNotificationClass = 'enforce')
-                : (this.flowAnalysisNotificationClass = 'warn');
+            this.flowAnalysisNotificationClass = isEnforcedRuleViolated ? 'enforce' : 'warn';
         }
     }
 
@@ -85,7 +83,7 @@ export class FlowStatus {
                 const flowAnalysisOpen = item[FlowStatus.FLOW_ANALYSIS_KEY] === true;
                 this.store.dispatch(setFlowAnalysisOpen({ flowAnalysisOpen }));
             }
-        } catch (e) {
+        } catch (_e) {
             // likely could not parse item... ignoring
         }
     }

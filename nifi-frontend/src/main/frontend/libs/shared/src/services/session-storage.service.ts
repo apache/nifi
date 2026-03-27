@@ -46,7 +46,7 @@ export class SessionStorageService {
             } else {
                 return null;
             }
-        } catch (e) {
+        } catch (_e) {
             return null;
         }
     }

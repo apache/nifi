@@ -19,7 +19,7 @@ import { ConfigurableExtensionDefinition } from '../index';
 
 export const flowAnalysisRuleDefinitionFeatureKey = 'flowAnalysisRuleDefinition';
 
-export interface FlowAnalysisRuleDefinition extends ConfigurableExtensionDefinition {}
+export type FlowAnalysisRuleDefinition = ConfigurableExtensionDefinition;
 
 export interface FlowAnalysisRuleDefinitionState {
     flowAnalysisRuleDefinition: FlowAnalysisRuleDefinition | null;
