@@ -211,11 +211,12 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testGetConnectorWithProviderOverridesWorkingConfig() throws FlowUpdateException {
+    public void testGetConnectorWithProviderOverridesWorkingConfig() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
-        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorNode connector = createConnectorNodeWithWorkingConfig("connector-1", "Original Name", workingConfigContext);
         repository.addConnector(connector);
 
         final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
@@ -228,7 +229,7 @@ public class TestStandardConnectorRepository {
 
         assertNotNull(result);
         verify(connector).setName("External Name");
-        verify(connector).setConfiguration(eq("step1"), any(StepConfiguration.class));
+        verify(workingConfigContext).replaceProperties(eq("step1"), any(StepConfiguration.class));
     }
 
     @Test
@@ -647,11 +648,12 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncFromProviderAppliesNifiUuidsDirectly() throws FlowUpdateException {
+    public void testSyncFromProviderAppliesNifiUuidsDirectly() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
-        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Test Connector");
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorNode connector = createConnectorNodeWithWorkingConfig("connector-1", "Test Connector", workingConfigContext);
         repository.addConnector(connector);
 
         // Provider returns config with NiFi UUIDs (no translation needed in framework)
@@ -668,27 +670,7 @@ public class TestStandardConnectorRepository {
         repository.getConnector("connector-1");
 
         // Working config is updated with NiFi UUIDs as-is -- no translation in the repository
-        verify(connector).setConfiguration(eq("step1"), any(StepConfiguration.class));
-    }
-
-    @Test
-    public void testSyncFromProviderSkipsSetConfigurationWhenNoSteps() throws FlowUpdateException {
-        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
-
-        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Test Connector");
-        repository.addConnector(connector);
-
-        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
-        externalConfig.setName("External Name");
-        externalConfig.setWorkingFlowConfiguration(null);
-        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
-
-        final ConnectorNode result = repository.getConnector("connector-1");
-
-        assertNotNull(result);
-        verify(connector).setName("External Name");
-        verify(connector, never()).setConfiguration(anyString(), any(StepConfiguration.class));
+        verify(workingConfigContext).replaceProperties(eq("step1"), any(StepConfiguration.class));
     }
 
     @Test
