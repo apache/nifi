@@ -130,6 +130,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .name("Read Timeout (ms)")
             .description("Read timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
             .required(false)
+            .defaultValue("15000")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -137,6 +138,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .name("Connect Timeout (ms)")
             .description("Connection timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
             .required(false)
+            .defaultValue("15000")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 

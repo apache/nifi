@@ -25,6 +25,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.processors.cassandra.converter.StandardCassandraTypeConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -46,6 +48,7 @@ public class AbstractCassandraProcessorTest {
 
     MockAbstractCassandraProcessor processor;
     private TestRunner testRunner;
+    private final StandardCassandraTypeConverter typeConverter = new StandardCassandraTypeConverter();
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -80,87 +83,106 @@ public class AbstractCassandraProcessorTest {
     public void testGetCassandraObject() throws Exception {
         Row row = CassandraQueryTestUtil.createMockRow("user1");
 
-        assertEquals("user1", AbstractCassandraProcessor.getCassandraObject(row, 0));
-        assertEquals("Joe", AbstractCassandraProcessor.getCassandraObject(row, 1));
-        assertEquals("Smith", AbstractCassandraProcessor.getCassandraObject(row, 2));
+        assertEquals("user1", typeConverter.getCassandraObject(row, 0));
+        assertEquals("Joe", typeConverter.getCassandraObject(row, 1));
+        assertEquals("Smith", typeConverter.getCassandraObject(row, 2));
 
-        Set<String> emails = (Set<String>) AbstractCassandraProcessor.getCassandraObject(row, 3);
+        Set<String> emails = (Set<String>) typeConverter.getCassandraObject(row, 3);
         assertNotNull(emails);
         assertEquals(1, emails.size());
         assertTrue(emails.contains("jsmith@notareal.com"));
 
-        List<String> topPlaces = (List<String>) AbstractCassandraProcessor.getCassandraObject(row, 4);
+        List<String> topPlaces = (List<String>) typeConverter.getCassandraObject(row, 4);
         assertNotNull(topPlaces);
         assertEquals(2, topPlaces.size());
         assertEquals("New York, NY", topPlaces.get(0));
 
-        Map<String, String> todoMap = (Map<String, String>) AbstractCassandraProcessor.getCassandraObject(row, 5);
+        Map<String, String> todoMap = (Map<String, String>) typeConverter.getCassandraObject(row, 5);
         assertNotNull(todoMap);
         assertEquals(1, todoMap.size());
         assertEquals("Set my alarm \"for\" a month from now", todoMap.get("2016-01-03 05:00:00+0000"));
 
-        Boolean registered = (Boolean) AbstractCassandraProcessor.getCassandraObject(row, 6);
+        Boolean registered = (Boolean) typeConverter.getCassandraObject(row, 6);
         assertNotNull(registered);
         assertFalse(registered);
 
-        assertEquals(1.0f, (Float) AbstractCassandraProcessor.getCassandraObject(row, 7), 0.001);
-        assertEquals(2.0, (Double) AbstractCassandraProcessor.getCassandraObject(row, 8), 0.001);
+        assertEquals(1.0f, (Float) typeConverter.getCassandraObject(row, 7), 0.001);
+        assertEquals(2.0, (Double) typeConverter.getCassandraObject(row, 8), 0.001);
     }
 
     @Test
     public void testGetSchemaForType() throws Exception {
-        assertEquals("string", AbstractCassandraProcessor.getSchemaForType("string").getType().getName());
-        assertEquals("boolean", AbstractCassandraProcessor.getSchemaForType("boolean").getType().getName());
-        assertEquals("int", AbstractCassandraProcessor.getSchemaForType("int").getType().getName());
-        assertEquals("long", AbstractCassandraProcessor.getSchemaForType("long").getType().getName());
-        assertEquals("float", AbstractCassandraProcessor.getSchemaForType("float").getType().getName());
-        assertEquals("double", AbstractCassandraProcessor.getSchemaForType("double").getType().getName());
-        assertEquals("bytes", AbstractCassandraProcessor.getSchemaForType("bytes").getType().getName());
+        assertEquals("string", typeConverter.getSchemaForType("string").getType().getName());
+        assertEquals("boolean", typeConverter.getSchemaForType("boolean").getType().getName());
+        assertEquals("int", typeConverter.getSchemaForType("int").getType().getName());
+        assertEquals("long", typeConverter.getSchemaForType("long").getType().getName());
+        assertEquals("float", typeConverter.getSchemaForType("float").getType().getName());
+        assertEquals("double", typeConverter.getSchemaForType("double").getType().getName());
+        assertEquals("bytes", typeConverter.getSchemaForType("bytes").getType().getName());
     }
 
     @Test
     public void testGetSchemaForTypeBadType() throws Exception {
-        assertThrows(IllegalArgumentException.class, () -> AbstractCassandraProcessor.getSchemaForType("nothing"));
+        assertThrows(IllegalArgumentException.class, () -> typeConverter.getSchemaForType("nothing"));
     }
 
     @Test
     public void testGetPrimitiveAvroTypeFromCassandraType() throws Exception {
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.ASCII));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.TEXT));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.TIMESTAMP));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.DATE));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.TIME));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.TIMEUUID));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.UUID));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.INET));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.VARINT));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.DECIMAL));
-        assertEquals("string", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.DURATION));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.ASCII));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.TEXT));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.TIMESTAMP));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.DATE));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.TIME));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.TIMEUUID));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.UUID));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.INET));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.VARINT));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.DECIMAL));
+        assertEquals("string", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.DURATION));
 
-        assertEquals("boolean", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.BOOLEAN));
+        assertEquals("boolean", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.BOOLEAN));
 
-        assertEquals("int", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.INT));
-        assertEquals("int", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.SMALLINT));
-        assertEquals("int", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.TINYINT));
+        assertEquals("int", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.INT));
+        assertEquals("int", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.SMALLINT));
+        assertEquals("int", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.TINYINT));
 
-        assertEquals("long", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.BIGINT));
-        assertEquals("long", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.COUNTER));
+        assertEquals("long", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.BIGINT));
+        assertEquals("long", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.COUNTER));
 
-        assertEquals("float", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.FLOAT));
-        assertEquals("double", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.DOUBLE));
+        assertEquals("float", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.FLOAT));
+        assertEquals("double", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.DOUBLE));
 
-        assertEquals("bytes", AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(DataTypes.BLOB));
+        assertEquals("bytes", typeConverter.getPrimitiveAvroTypeFromCassandraType(DataTypes.BLOB));
     }
 
     @Test
     public void testGetPrimitiveAvroTypeFromCassandraTypeBadType() throws Exception {
         DataType mockDataType = mock(DataType.class);
-        assertThrows(IllegalArgumentException.class, () -> AbstractCassandraProcessor.getPrimitiveAvroTypeFromCassandraType(mockDataType));
+        assertThrows(IllegalArgumentException.class, () -> typeConverter.getPrimitiveAvroTypeFromCassandraType(mockDataType));
     }
 
     @Test
     public void testGetPrimitiveDataTypeFromString() {
-        assertEquals(DataTypes.ASCII, AbstractCassandraProcessor.getPrimitiveDataTypeFromString("ascii"));
+        assertEquals(DataTypes.ASCII, typeConverter.getPrimitiveDataTypeFromString("ascii"));
+        assertEquals(DataTypes.BOOLEAN, typeConverter.getPrimitiveDataTypeFromString("boolean"));
+        assertEquals(DataTypes.BIGINT, typeConverter.getPrimitiveDataTypeFromString("bigint"));
+        assertEquals(DataTypes.BLOB, typeConverter.getPrimitiveDataTypeFromString("blob"));
+        assertEquals(DataTypes.COUNTER, typeConverter.getPrimitiveDataTypeFromString("counter"));
+        assertEquals(DataTypes.DATE, typeConverter.getPrimitiveDataTypeFromString("date"));
+        assertEquals(DataTypes.DECIMAL, typeConverter.getPrimitiveDataTypeFromString("decimal"));
+        assertEquals(DataTypes.DOUBLE, typeConverter.getPrimitiveDataTypeFromString("double"));
+        assertEquals(DataTypes.FLOAT, typeConverter.getPrimitiveDataTypeFromString("float"));
+        assertEquals(DataTypes.INET, typeConverter.getPrimitiveDataTypeFromString("inet"));
+        assertEquals(DataTypes.INT, typeConverter.getPrimitiveDataTypeFromString("int"));
+        assertEquals(DataTypes.SMALLINT, typeConverter.getPrimitiveDataTypeFromString("smallint"));
+        assertEquals(DataTypes.TEXT, typeConverter.getPrimitiveDataTypeFromString("text"));
+        assertEquals(DataTypes.TIME, typeConverter.getPrimitiveDataTypeFromString("time"));
+        assertEquals(DataTypes.TIMESTAMP, typeConverter.getPrimitiveDataTypeFromString("timestamp"));
+        assertEquals(DataTypes.TIMEUUID, typeConverter.getPrimitiveDataTypeFromString("timeuuid"));
+        assertEquals(DataTypes.TINYINT, typeConverter.getPrimitiveDataTypeFromString("tinyint"));
+        assertEquals(DataTypes.UUID, typeConverter.getPrimitiveDataTypeFromString("uuid"));
+        assertEquals(DataTypes.VARINT, typeConverter.getPrimitiveDataTypeFromString("varint"));
+        assertNull(typeConverter.getPrimitiveDataTypeFromString("nonexistent"));
     }
 
     /**
