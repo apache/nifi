@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
 import software.amazon.awssdk.services.kinesis.model.StartingPosition;
@@ -348,6 +349,74 @@ class KinesisConsumerClientTest {
 
         assertFalse(consumer.isSubscribing(),
                 "Current-generation callback should clean up normally");
+    }
+
+    /**
+     * Simulates the error path that fires when a SubscribeToShard call receives a
+     * {@link ResourceNotFoundException}. The onError callback delegates to processError,
+     * which classifies the exception, sets the shardNotFound flag, and ends the subscription.
+     * This test exercises that path by passing a real ResourceNotFoundException through
+     * processError and verifying the resulting state.
+     */
+    @Test
+    void testResourceNotFoundExceptionEndsSubscriptionCleanly() {
+        final ComponentLog mockLogger = mock(ComponentLog.class);
+        final KinesisAsyncClient mockAsyncClient = mock(KinesisAsyncClient.class);
+
+        final ResourceNotFoundException exception = ResourceNotFoundException.builder()
+                .message("Shard shardId-000000000001 does not exist")
+                .build();
+
+        when(mockAsyncClient.subscribeToShard(any(SubscribeToShardRequest.class), any(SubscribeToShardResponseHandler.class)))
+                .then(inv -> {
+                    final SubscribeToShardResponseHandler handler = inv.getArgument(1);
+                    handler.exceptionOccurred(exception);
+                    return CompletableFuture.completedFuture(null);
+                });
+
+        final EnhancedFanOutClient.ShardConsumer consumer =
+                new EnhancedFanOutClient.ShardConsumer("shardId-000000000001", result -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
+
+        final StartingPosition pos = StartingPosition.builder()
+                .type(ShardIteratorType.TRIM_HORIZON)
+                .build();
+
+        consumer.subscribe(mockAsyncClient, "test-arn", pos);
+
+        assertFalse(consumer.isSubscribing());
+        assertNull(consumer.getSubscription());
+        assertTrue(consumer.isShardNotFound());
+    }
+
+    /**
+     * Verifies the startFetches cleanup path for a shard marked as not-found. When a
+     * ShardConsumer has its shardNotFound flag set (as would happen after a
+     * ResourceNotFoundException in the onError callback), the next startFetches invocation
+     * should remove the consumer from the map instead of attempting a new subscription.
+     */
+    @Test
+    void testStartFetchesRemovesConsumerWithNotFoundShard() {
+        final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
+        when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn(null);
+
+        final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
+
+        final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
+        client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
+
+        assertEquals(1, capturedRequests.size());
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        assertNotNull(consumer);
+
+        consumer.markShardNotFound();
+
+        client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
+
+        assertNull(client.getShardConsumer("shardId-000000000001"),
+                "ShardConsumer marked as shard-not-found must be removed by startFetches");
+        assertEquals(1, capturedRequests.size(),
+                "No new subscription should be created for a shard-not-found consumer");
     }
 
     private static ShardFetchResult shardFetchResult(final String shardId, final String sequenceNumber) {

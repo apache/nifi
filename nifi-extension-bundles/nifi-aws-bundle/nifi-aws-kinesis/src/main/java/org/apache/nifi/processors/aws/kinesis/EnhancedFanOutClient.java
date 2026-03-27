@@ -110,6 +110,9 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
                         throw e;
                     }
                 }
+            } else if (existing.isShardNotFound()) {
+                existing.cancel();
+                shardConsumers.remove(shardId, existing);
             } else if (existing.isSubscriptionExpired()) {
                 final long lastAttempt = existing.getLastSubscribeAttemptNanos();
                 if (lastAttempt > 0 && now < lastAttempt + SUBSCRIBE_BACKOFF_NANOS) {
@@ -351,6 +354,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
         private volatile CompletableFuture<Void> subscriptionFuture;
         private volatile long lastSubscribeAttemptNanos;
         private volatile BigInteger lastQueuedSequenceNumber;
+        private volatile boolean shardNotFound;
         ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink,
                       final Queue<ShardConsumer> pausedConsumers, final ComponentLog consumerLogger) {
             this.shardId = shardId;
@@ -375,10 +379,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
 
                 final SubscribeToShardResponseHandler handler = SubscribeToShardResponseHandler.builder()
                         .subscriber(() -> new DemandDrivenSubscriber(generation))
-                        .onError(t -> {
-                            logSubscriptionError(t);
-                            endSubscriptionIfCurrent(generation);
-                        })
+                        .onError(t -> handleError(t, generation))
                         .build();
 
                 lastSubscribeAttemptNanos = System.nanoTime();
@@ -457,6 +458,14 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
             return subscribing.get();
         }
 
+        boolean isShardNotFound() {
+            return shardNotFound;
+        }
+
+        void markShardNotFound() {
+            shardNotFound = true;
+        }
+
         void pause() {
             if (paused.compareAndSet(false, true)) {
                 pausedConsumers.add(this);
@@ -466,6 +475,8 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
         private void logSubscriptionError(final Throwable t) {
             if (isCancellation(t)) {
                 consumerLogger.debug("Enhanced Fan-Out subscription cancelled for shard [{}]", shardId);
+            } else if (isShardNotFound(t)) {
+                consumerLogger.info("Enhanced Fan-Out subscription stopped for shard [{}]. Shard no longer exists", shardId, t);
             } else if (isRetryableSubscriptionError(t)) {
                 consumerLogger.warn("Enhanced Fan-Out subscription temporarily rejected for shard [{}]; will retry after backoff", shardId, t);
             } else if (isRetryableStreamDisconnect(t)) {
@@ -484,6 +495,14 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
             }
             final Throwable cause = t.getCause();
             return cause != null && cause != t && isCancellation(cause);
+        }
+
+        private static boolean isShardNotFound(final Throwable t) {
+            if (t instanceof ResourceNotFoundException) {
+                return true;
+            }
+            final Throwable cause = t.getCause();
+            return cause != null && cause != t && isShardNotFound(cause);
         }
 
         private static boolean isRetryableSubscriptionError(final Throwable t) {
@@ -507,6 +526,14 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
             }
             final Throwable cause = t.getCause();
             return cause != null && cause != t && isRetryableStreamDisconnect(cause);
+        }
+
+        void handleError(final Throwable t, final int generation) {
+            logSubscriptionError(t);
+            if (isShardNotFound(t)) {
+                markShardNotFound();
+            }
+            endSubscriptionIfCurrent(generation);
         }
 
         void endSubscriptionIfCurrent(final int generation) {
@@ -588,8 +615,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
 
             @Override
             public void onError(final Throwable t) {
-                logSubscriptionError(t);
-                endSubscriptionIfCurrent(generation);
+                handleError(t, generation);
             }
 
             @Override
