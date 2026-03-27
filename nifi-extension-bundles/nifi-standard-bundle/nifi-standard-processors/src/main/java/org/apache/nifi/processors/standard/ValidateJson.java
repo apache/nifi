@@ -82,9 +82,10 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = ValidateJson.ERROR_ATTRIBUTE_KEY, description = "If the flow file is routed to the invalid relationship "
             + ", this attribute will contain the error message resulting from the validation failure.")
 })
-@CapabilityDescription("Validates the contents of FlowFiles against a configurable JSON Schema. See json-schema.org for specification standards. " +
-        "This Processor supports input containing multiple JSON objects using newline-delimited JSON based on configuration properties, " +
-        "otherwise if the input FlowFile contains newline-delimited JSON, only the first line will be validated."
+@CapabilityDescription("""
+        Validates the contents of FlowFiles against a configurable JSON Schema. See json-schema.org for specification standards.
+        This Processor supports input containing multiple JSON objects using newline-delimited JSON based on configuration properties,
+        otherwise if the input FlowFile contains newline-delimited JSON, only the first line will be validated."""
 )
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Validating JSON requires reading FlowFile content into memory")
 @Restricted(
@@ -128,7 +129,7 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    public enum InputFormat implements DescribedValue {
+    enum InputFormat implements DescribedValue {
         FLOW_FILE("FlowFile", "Validation applied to FlowFile content containing JSON"),
         JSON_LINES("JSON Lines", "Validation applied to FlowFile content containing JSON Lines or NDJSON");
 
@@ -347,13 +348,13 @@ public class ValidateJson extends AbstractProcessor {
 
         final InputFormat inputFormat = context.getProperty(INPUT_FORMAT).asAllowableValue(InputFormat.class);
         if (inputFormat == InputFormat.FLOW_FILE) {
-            validateSingleJson(session, flowFile);
+            validateFlowFile(session, flowFile);
         } else {
             validateJsonLines(session, flowFile);
         }
     }
 
-    void validateSingleJson(ProcessSession session, FlowFile flowFile) {
+    void validateFlowFile(ProcessSession session, FlowFile flowFile) {
         try (final InputStream in = session.read(flowFile)) {
             final JsonNode node = mapper.readTree(in);
             final List<Error> errors = schema.validate(node);
@@ -376,7 +377,7 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    void validateJsonLines(ProcessSession session, FlowFile flowFile) {
+    void validateJsonLines(final ProcessSession session, final FlowFile flowFile) {
 
         try (final InputStream in = session.read(flowFile);
              final LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
@@ -396,10 +397,10 @@ public class ValidateJson extends AbstractProcessor {
                     // by an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed
                     final String validationMessages = errors.toString();
                     final String validationErrMsg = "JSON at line %s is invalid: %s".formatted(reader.getLineNumber(), validationMessages);
-                    flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationErrMsg);
+                    final FlowFile invalidJsonFlowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationErrMsg);
                     getLogger().warn("JSON at line {} in {} is invalid: Validation Errors {}", reader.getLineNumber(), flowFile, validationMessages);
-                    session.getProvenanceReporter().route(flowFile, REL_INVALID);
-                    session.transfer(flowFile, REL_INVALID);
+                    session.getProvenanceReporter().route(invalidJsonFlowFile, REL_INVALID);
+                    session.transfer(invalidJsonFlowFile, REL_INVALID);
                     return;
                 }
             }
@@ -407,7 +408,7 @@ public class ValidateJson extends AbstractProcessor {
             session.getProvenanceReporter().route(flowFile, REL_VALID);
             session.transfer(flowFile, REL_VALID);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("{} processing failed {}", InputFormat.JSON_LINES.getDisplayName(), flowFile, e);
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
