@@ -273,8 +273,16 @@ def get_imported_property_descriptors_from_ast(root_node: ast.AST, module_file: 
 
 
 def get_processor_class_nodes(module_file: str) -> list:
-    with open(module_file) as file:
-        root_node = ast.parse(file.read())
+    try:
+        with open(module_file) as file:
+            root_node = ast.parse(file.read())
+    except SystemError as e:
+        # Python 3.11+ AST bug (gh-95185): recursion depth counter not decremented on error path.
+        # Treat as non-processor so the file can still be loaded as a dependency.
+        if "recursion depth mismatch" in str(e):
+            logger.warning("AST parse failed for %s due to Python AST recursion depth bug; treating as non-processor: %s", module_file, e)
+            return []
+        raise
 
     processor_class_nodes = []
     class_nodes = get_class_nodes(root_node)
