@@ -30,6 +30,8 @@ import java.util.Map;
 public class ConfigVerificationResultMerger {
     private final Map<String, List<ConfigVerificationResultDTO>> verificationResultDtos = new HashMap<>();
 
+    private record NodeResult(String nodeId, ConfigVerificationResultDTO result) { }
+
     /**
      * Adds the config verification results for one of the nodes in the cluster
      * @param nodeId the ID of the node in the cluster
@@ -44,12 +46,16 @@ public class ConfigVerificationResultMerger {
     }
 
     /**
-     * Computes the aggregate list of ConfigVerificationResultDTO based on all of the results added using the {link {@link #addNodeResults(NodeIdentifier, List)}} method
+     * Computes the aggregate list of ConfigVerificationResultDTO based on all of the results added using the {link {@link #addNodeResults(NodeIdentifier, List)}} method.
+     *
+     * <p>Node address information is only included in the explanation when nodes produce different outcomes or explanations for the same
+     * verification step. When all nodes agree (including single-node deployments), the explanation is returned without any node prefix.</p>
+     *
      * @return the aggregate results of the config verification results from all nodes
      */
     public List<ConfigVerificationResultDTO> computeAggregateResults() {
         // For each node, build up a mapping of Step Name -> Results
-        final Map<String, List<ConfigVerificationResultDTO>> resultsByStepName = new HashMap<>();
+        final Map<String, List<NodeResult>> resultsByStepName = new HashMap<>();
         for (final Map.Entry<String, List<ConfigVerificationResultDTO>> entry : verificationResultDtos.entrySet()) {
             final String nodeId = entry.getKey();
             final List<ConfigVerificationResultDTO> nodeResults = entry.getValue();
@@ -60,45 +66,45 @@ public class ConfigVerificationResultMerger {
             }
 
             for (final ConfigVerificationResultDTO result : nodeResults) {
-                final String stepName = result.getVerificationStepName();
-                final List<ConfigVerificationResultDTO> resultList = resultsByStepName.computeIfAbsent(stepName, key -> new ArrayList<>());
-
-                // If skipped or unsuccessful, add the node's address to the explanation
-                if (!Outcome.SUCCESSFUL.name().equals(result.getOutcome())) {
-                    result.setExplanation(nodeId + " - " + result.getExplanation());
-                }
-
-                resultList.add(result);
+                resultsByStepName.computeIfAbsent(result.getVerificationStepName(), key -> new ArrayList<>())
+                    .add(new NodeResult(nodeId, result));
             }
         }
 
         // Merge together all results for each step name
         final List<ConfigVerificationResultDTO> aggregateResults = new ArrayList<>();
-        for (final Map.Entry<String, List<ConfigVerificationResultDTO>> entry : resultsByStepName.entrySet()) {
+        for (final Map.Entry<String, List<NodeResult>> entry : resultsByStepName.entrySet()) {
             final String stepName = entry.getKey();
-            final List<ConfigVerificationResultDTO> resultList = entry.getValue();
+            final List<NodeResult> stepResults = entry.getValue();
 
-            final ConfigVerificationResultDTO firstResult = resultList.get(0); // This is safe because the list won't be added to the map unless it has at least 1 element.
-            String outcome = firstResult.getOutcome();
-            String explanation = firstResult.getExplanation();
-
-            for (final ConfigVerificationResultDTO result : resultList) {
-                // If any node indicates failure, the outcome is failure.
-                // Otherwise, if any node indicates that a step was skipped, the outcome is skipped.
-                // Otherwise, all nodes have reported the outcome is successful, so the outcome is successful.
-                if (Outcome.FAILED.name().equals(result.getOutcome())) {
-                    outcome = result.getOutcome();
-                    explanation = result.getExplanation();
-                } else if (Outcome.SKIPPED.name().equals(result.getOutcome()) && Outcome.SUCCESSFUL.name().equals(outcome)) {
-                    outcome = result.getOutcome();
-                    explanation = result.getExplanation();
+            // Select the worst outcome: FAILED > SKIPPED > SUCCESSFUL
+            NodeResult selected = stepResults.get(0);
+            for (final NodeResult nodeResult : stepResults) {
+                if (Outcome.FAILED.name().equals(nodeResult.result().getOutcome())) {
+                    selected = nodeResult;
+                } else if (Outcome.SKIPPED.name().equals(nodeResult.result().getOutcome())
+                        && Outcome.SUCCESSFUL.name().equals(selected.result().getOutcome())) {
+                    selected = nodeResult;
                 }
+            }
+
+            // Only include node prefix when results differ across nodes
+            final long distinctResultCount = stepResults.stream()
+                .map(nodeResult -> nodeResult.result().getOutcome() + " -- " + nodeResult.result().getExplanation())
+                .distinct()
+                .count();
+
+            final String aggregateExplanation;
+            if (distinctResultCount > 1 && !Outcome.SUCCESSFUL.name().equals(selected.result().getOutcome())) {
+                aggregateExplanation = selected.nodeId() + " - " + selected.result().getExplanation();
+            } else {
+                aggregateExplanation = selected.result().getExplanation();
             }
 
             final ConfigVerificationResultDTO resultDto = new ConfigVerificationResultDTO();
             resultDto.setVerificationStepName(stepName);
-            resultDto.setOutcome(outcome);
-            resultDto.setExplanation(explanation);
+            resultDto.setOutcome(selected.result().getOutcome());
+            resultDto.setExplanation(aggregateExplanation);
 
             aggregateResults.add(resultDto);
         }
