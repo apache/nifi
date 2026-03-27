@@ -233,7 +233,7 @@ class RetainExistingStateComponentSchedulerTest {
 
         scheduler.transitionComponentState(newComponent, org.apache.nifi.flow.ScheduledState.ENABLED);
         verify(delegate).startComponent(newComponent);
-        verify(delegate).transitionComponentState(newComponent, org.apache.nifi.flow.ScheduledState.ENABLED);
+        verify(delegate, never()).transitionComponentState(newComponent, org.apache.nifi.flow.ScheduledState.ENABLED);
     }
 
     @Test

@@ -124,6 +124,7 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
         if (existingState == null && processGroupActive && desiredState != org.apache.nifi.flow.ScheduledState.DISABLED) {
             logger.debug("Starting new component {} because the Process Group is active and desired state is {}", component, desiredState);
             delegate.startComponent(component);
+            return;
         }
         delegate.transitionComponentState(component, desiredState);
     }
