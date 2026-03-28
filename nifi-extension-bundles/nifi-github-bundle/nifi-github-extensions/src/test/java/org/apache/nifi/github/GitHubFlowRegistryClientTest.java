@@ -32,6 +32,7 @@ import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
+import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.apache.nifi.registry.flow.git.serialize.FlowSnapshotSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -58,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -69,7 +70,7 @@ public class GitHubFlowRegistryClientTest {
     static final String DEFAULT_REPO_BRANCH = "some-branch";
     static final String DEFAULT_FILTER = "[.].*";
 
-    private GitHubRepositoryClient repositoryClient;
+    private GitRepositoryClient repositoryClient;
     private FlowSnapshotSerializer flowSnapshotSerializer;
     private GitHubFlowRegistryClient flowRegistryClient;
     private FlowRegistryClientConfigurationContext clientConfigurationContext;
@@ -77,7 +78,7 @@ public class GitHubFlowRegistryClientTest {
 
     @BeforeEach
     public void setup() throws IOException, FlowRegistryException {
-        repositoryClient = mock(GitHubRepositoryClient.class);
+        repositoryClient = mock(GitRepositoryClient.class);
         flowSnapshotSerializer = mock(FlowSnapshotSerializer.class);
         flowRegistryClient = new TestableGitHubRepositoryClient(repositoryClient, flowSnapshotSerializer);
 
@@ -94,10 +95,10 @@ public class GitHubFlowRegistryClientTest {
     }
 
     @Test
-    public void testGitHubClientInitializationFailsWithIncompatibleJackson() {
-        assertDoesNotThrow(() -> new GitHubBuilder()
+    public void testGitHubClientInitializationFailsWithIncompatibleJackson() throws IOException {
+        new GitHubBuilder()
                 .withEndpoint("https://api.github.com")
-                .build());
+                .build();
     }
 
     @Test
@@ -130,6 +131,8 @@ public class GitHubFlowRegistryClientTest {
         assertEquals("%s/%s.json".formatted(incomingFlow.getBucketIdentifier(), incomingFlow.getIdentifier()), capturedArgument.getPath());
         assertEquals(serializedSnapshotContent, capturedArgument.getContent());
         assertNull(capturedArgument.getExistingContentSha());
+        assertEquals("test-user@example.com", capturedArgument.getAuthorName());
+        assertEquals("test-user@example.com", capturedArgument.getAuthorEmail());
     }
 
     @Test
@@ -184,6 +187,13 @@ public class GitHubFlowRegistryClientTest {
         assertNotNull(resultBucket);
         assertEquals(incomingMetadata.getBucketIdentifier(), resultBucket.getIdentifier());
         assertEquals(incomingMetadata.getBucketIdentifier(), resultBucket.getName());
+
+        final ArgumentCaptor<GitCreateContentRequest> argumentCaptor = ArgumentCaptor.forClass(GitCreateContentRequest.class);
+        verify(repositoryClient).createContent(argumentCaptor.capture());
+
+        final GitCreateContentRequest capturedRequest = argumentCaptor.getValue();
+        assertEquals("test-user@example.com", capturedRequest.getAuthorName());
+        assertEquals("test-user@example.com", capturedRequest.getAuthorEmail());
     }
 
     @Test
@@ -422,6 +432,10 @@ public class GitHubFlowRegistryClientTest {
     }
 
     private void setupClientConfigurationContext(final String repoPath, final String branch) {
+        setupClientConfigurationContext(repoPath, branch, Optional.of("test-user@example.com"));
+    }
+
+    private void setupClientConfigurationContext(final String repoPath, final String branch, final Optional<String> userIdentity) {
         final PropertyValue repoPathPropertyValue = createMockPropertyValue(repoPath);
         when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.REPOSITORY_PATH)).thenReturn(repoPathPropertyValue);
 
@@ -433,6 +447,8 @@ public class GitHubFlowRegistryClientTest {
 
         final PropertyValue parametersPropertyValue = createMockPropertyValue("Retain");
         when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.PARAMETER_CONTEXT_VALUES)).thenReturn(parametersPropertyValue);
+
+        when(clientConfigurationContext.getNiFiUserIdentity()).thenReturn(userIdentity);
     }
 
     private void setupClientConfigurationContextWithDefaults() {
@@ -449,35 +465,38 @@ public class GitHubFlowRegistryClientTest {
         final PropertyValue propertyValue = mock(PropertyValue.class);
         when(propertyValue.getValue()).thenReturn(value);
 
-        // Mock asAllowableValue to find the enum constant that matches the string value
-        when(propertyValue.asAllowableValue(any())).thenAnswer(invocation -> {
-            Class<?> clazz = invocation.getArgument(0);
+        doAnswer(invocation -> {
+            final Class<?> clazz = invocation.getArgument(0);
             if (clazz.isEnum()) {
-                Object[] enumConstants = clazz.getEnumConstants();
-                for (Object enumConstant : enumConstants) {
+                for (final Object enumConstant : clazz.getEnumConstants()) {
                     if (value.equals(enumConstant.toString())) {
                         return enumConstant;
                     }
                 }
             }
             return null;
-        });
+        }).when(propertyValue).asAllowableValue(any());
 
         return propertyValue;
     }
 
     private static class TestableGitHubRepositoryClient extends GitHubFlowRegistryClient {
-        private final GitHubRepositoryClient repositoryClient;
+        private final GitRepositoryClient repositoryClient;
         private final FlowSnapshotSerializer flowSnapshotSerializer;
 
-        public TestableGitHubRepositoryClient(final GitHubRepositoryClient repositoryClient, final FlowSnapshotSerializer flowSnapshotSerializer) {
+        public TestableGitHubRepositoryClient(final GitRepositoryClient repositoryClient, final FlowSnapshotSerializer flowSnapshotSerializer) {
             this.repositoryClient = repositoryClient;
             this.flowSnapshotSerializer = flowSnapshotSerializer;
         }
 
         @Override
-        protected GitHubRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
+        protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
             return repositoryClient;
+        }
+
+        @Override
+        protected String getStorageLocation(final GitRepositoryClient repositoryClient) {
+            return "git@github.com:test-owner/test-repo.git";
         }
 
         @Override
