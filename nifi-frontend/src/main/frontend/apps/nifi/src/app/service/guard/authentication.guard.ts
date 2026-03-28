@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { CanMatchFn } from '@angular/router';
+import { CanMatchFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
@@ -29,12 +29,15 @@ import { fullScreenError } from '../../state/error/error.actions';
 import { ErrorHelper } from '../error-helper.service';
 import { selectLoginConfiguration } from '../../state/login-configuration/login-configuration.selectors';
 import { loadLoginConfigurationSuccess } from '../../state/login-configuration/login-configuration.actions';
+import { StorageService } from '../storage.service';
 
 export const authenticationGuard: CanMatchFn = () => {
     const authService: AuthService = inject(AuthService);
     const userService: CurrentUserService = inject(CurrentUserService);
     const errorHelper: ErrorHelper = inject(ErrorHelper);
     const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
+    const router: Router = inject(Router);
+    const storageService: StorageService = inject(StorageService);
 
     const getAuthenticationConfig = store.select(selectLoginConfiguration).pipe(
         take(1),
@@ -77,6 +80,13 @@ export const authenticationGuard: CanMatchFn = () => {
                             }),
                             map(() => true),
                             catchError((errorResponse: HttpErrorResponse) => {
+                                if (errorResponse.status === 401) {
+                                    const currentUrl = router.url;
+                                    if (currentUrl && currentUrl !== '/login') {
+                                        storageService.setReturnUrl(currentUrl);
+                                    }
+                                }
+
                                 if (errorResponse.status !== 401 || authConfigResponse.loginSupported) {
                                     store.dispatch(errorHelper.fullScreenError(errorResponse));
                                 }
