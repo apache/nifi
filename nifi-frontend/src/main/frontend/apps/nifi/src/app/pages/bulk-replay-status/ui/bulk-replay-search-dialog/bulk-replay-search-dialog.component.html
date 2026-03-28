@@ -1,0 +1,329 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="bulk-replay-search-dialog flex flex-col" style="height: 85vh">
+    <!-- Header -->
+    <div class="dialog-header flex items-center justify-between px-4 py-3 flex-shrink-0">
+        <h2 class="primary-color m-0">Bulk Replay — {{ processorName }}</h2>
+        <button mat-icon-button mat-dialog-close title="Close">
+            <i class="fa fa-times primary-color"></i>
+        </button>
+    </div>
+
+    @if (hasDisconnectedNodes) {
+        <div class="disconnect-banner flex items-center gap-x-2 px-4 py-2 flex-shrink-0">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span>
+                {{ disconnectedNodeCount }} cluster node{{ disconnectedNodeCount !== 1 ? 's' : '' }} disconnected ({{
+                    clusterSummary!.connectedNodeCount
+                }}/{{ clusterSummary!.totalNodeCount }} connected) — provenance results may not include events from
+                disconnected nodes
+            </span>
+        </div>
+    }
+
+    <!-- Two-panel layout: search form left, results right -->
+    <div class="flex flex-1 min-h-0">
+        <!-- Search Form Panel (left) -->
+        <div class="search-panel flex flex-col flex-shrink-0 px-4 max-h-full overflow-hidden">
+            @if (!searchOptionsLoaded) {
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            }
+            <form [formGroup]="searchForm" class="flex flex-col min-h-0 flex-1">
+                <!-- Scrollable filter fields -->
+                <div class="search-events-form flex-1 overflow-y-auto pb-2 pt-2">
+                    @for (field of searchableFields; track field.id) {
+                        <div [formGroupName]="field.id" class="search-field-group">
+                            <mat-form-field>
+                                <mat-label>{{ field.label }}</mat-label>
+                                <input
+                                    matInput
+                                    formControlName="value"
+                                    type="text"
+                                    [readonly]="field.id === processorIdField" />
+                                @if (field.id === processorIdField) {
+                                    <i
+                                        class="fa fa-lock mat-icon-suffix tertiary-color"
+                                        matSuffix
+                                        title="Locked to selected processor"></i>
+                                }
+                            </mat-form-field>
+                            @if (field.id !== processorIdField) {
+                                <div class="-mt-4 mb-2">
+                                    <mat-checkbox formControlName="inverse">Exclude</mat-checkbox>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Date Range -->
+                    <mat-form-field>
+                        <mat-label>Date Range</mat-label>
+                        <mat-date-range-input [rangePicker]="picker">
+                            <input matStartDate formControlName="startDate" placeholder="Start date" />
+                            <input matEndDate formControlName="endDate" placeholder="End date" />
+                        </mat-date-range-input>
+                        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                        <mat-date-range-picker #picker></mat-date-range-picker>
+                    </mat-form-field>
+
+                    <!-- Start / End Time -->
+                    <mat-form-field>
+                        <mat-label>Start Time</mat-label>
+                        <input matInput type="time" step="1" formControlName="startTime" placeholder="hh:mm:ss" />
+                    </mat-form-field>
+                    <mat-form-field>
+                        <mat-label>End Time</mat-label>
+                        <input matInput type="time" step="1" formControlName="endTime" placeholder="hh:mm:ss" />
+                    </mat-form-field>
+                    <mat-form-field>
+                        <mat-label>Min File Size</mat-label>
+                        <input matInput type="text" formControlName="minFileSize" placeholder="e.g. 2 KB" />
+                    </mat-form-field>
+                    <mat-form-field>
+                        <mat-label>Max File Size</mat-label>
+                        <input matInput type="text" formControlName="maxFileSize" placeholder="e.g. 4 GB" />
+                    </mat-form-field>
+                </div>
+
+                <!-- Pinned footer: Search + Max Results -->
+                <div class="flex items-center gap-x-4 pb-4 flex-shrink-0">
+                    <button
+                        mat-flat-button
+                        type="button"
+                        class="flex-1"
+                        [disabled]="searchForm.invalid || searching"
+                        (click)="runSearch()">
+                        <i class="fa fa-search mr-1"></i> Search
+                    </button>
+                    <mat-form-field subscriptSizing="dynamic" class="max-results-field flex-shrink-0">
+                        <mat-label>Max</mat-label>
+                        <input matInput type="text" inputmode="numeric" formControlName="maxResults" />
+                    </mat-form-field>
+                </div>
+            </form>
+        </div>
+
+        <mat-divider [vertical]="true" class="flex-shrink-0"></mat-divider>
+
+        <!-- Results Panel (right) -->
+        <div class="results-panel flex-1 flex flex-col min-w-0">
+            @if (searching) {
+                <mat-progress-bar mode="indeterminate" class="flex-shrink-0"></mat-progress-bar>
+            }
+
+            <div class="flex items-center gap-x-2 px-4 pt-3 pb-1 flex-shrink-0" [formGroup]="searchForm">
+                <span class="results-header-label">Job Name</span>
+                <mat-form-field subscriptSizing="dynamic" class="flex-1">
+                    <input matInput type="text" formControlName="jobName" [placeholder]="jobNamePlaceholder" />
+                </mat-form-field>
+            </div>
+
+            <div class="flex items-center gap-x-2 px-4 pt-4 pb-1 flex-shrink-0" [formGroup]="filterForm">
+                <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Filter</mat-label>
+                    <input matInput type="text" class="small" formControlName="filterTerm" />
+                </mat-form-field>
+                <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Filter By</mat-label>
+                    <mat-select formControlName="filterColumn">
+                        @for (option of filterColumnOptions; track option) {
+                            <mat-option [value]="option">{{ option }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <div class="flex items-center justify-between px-4 pb-2 flex-shrink-0">
+                <div class="tertiary-color font-medium text-sm">
+                    @if (searching) {
+                        Searching…
+                    } @else if (searchError) {
+                        <span class="warn-color">{{ searchError }}</span>
+                    } @else if (hasSearched) {
+                        Filter matched {{ matchedCount }} of {{ totalCount }}
+                    }
+                </div>
+                @if (hasSearched && matchedCount > 0) {
+                    <button mat-stroked-button class="text-sm" (click)="toggleAllRows()">
+                        {{ isAllSelected() ? 'Deselect All' : 'Select All' }}
+                    </button>
+                }
+            </div>
+
+            <div class="flex-1 min-h-0 overflow-auto px-4 listing-table">
+                <table
+                    mat-table
+                    [dataSource]="dataSource"
+                    matSort
+                    matSortDisableClear
+                    [matSortActive]="'eventTime'"
+                    matSortDirection="desc"
+                    multiTemplateDataRows>
+                    <!-- Checkbox -->
+                    <ng-container matColumnDef="select">
+                        <th mat-header-cell *matHeaderCellDef class="select-col">
+                            <mat-checkbox
+                                [checked]="isAllSelected()"
+                                [indeterminate]="selection.hasValue() && !isAllSelected()"
+                                (change)="toggleAllRows()"
+                                title="Select all">
+                            </mat-checkbox>
+                        </th>
+                        <td mat-cell *matCellDef="let event" class="select-col" (click)="$event.stopPropagation()">
+                            <mat-checkbox [checked]="selection.isSelected(event)" (change)="selection.toggle(event)">
+                            </mat-checkbox>
+                        </td>
+                    </ng-container>
+
+                    <!-- Event ID -->
+                    <ng-container matColumnDef="eventId">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Event ID</th>
+                        <td mat-cell *matCellDef="let event">{{ event.eventId }}</td>
+                    </ng-container>
+
+                    <!-- Event Time -->
+                    <ng-container matColumnDef="eventTime">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Event Time</th>
+                        <td mat-cell *matCellDef="let event">{{ event.eventTimestamp }}</td>
+                    </ng-container>
+
+                    <!-- Event Type -->
+                    <ng-container matColumnDef="eventType">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Event Type</th>
+                        <td mat-cell *matCellDef="let event">
+                            <span class="event-type-badge event-type-{{ event.eventType }}">{{ event.eventType }}</span>
+                        </td>
+                    </ng-container>
+
+                    <!-- FlowFile UUID -->
+                    <ng-container matColumnDef="flowFileUuid">
+                        <th mat-header-cell *matHeaderCellDef>FlowFile UUID</th>
+                        <td mat-cell *matCellDef="let event">
+                            <span
+                                class="font-mono text-sm"
+                                [matTooltip]="event.flowFileUuid"
+                                matTooltipPosition="above">
+                                {{ event.flowFileUuid | slice: 0 : 18 }}…
+                            </span>
+                        </td>
+                    </ng-container>
+
+                    <!-- File Size -->
+                    <ng-container matColumnDef="fileSize">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Size</th>
+                        <td mat-cell *matCellDef="let event">{{ event.fileSize }}</td>
+                    </ng-container>
+
+                    <!-- Actions (expand) -->
+                    <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef></th>
+                        <td mat-cell *matCellDef="let event">
+                            <button
+                                mat-icon-button
+                                class="expand-btn"
+                                [title]="isExpanded(event) ? 'Hide attributes' : 'Show attributes'"
+                                (click)="toggleExpand(event, $event)">
+                                <i
+                                    class="fa"
+                                    [class.fa-chevron-down]="!isExpanded(event)"
+                                    [class.fa-chevron-up]="isExpanded(event)"></i>
+                            </button>
+                        </td>
+                    </ng-container>
+
+                    <!-- Expanded Detail Row -->
+                    <ng-container matColumnDef="expandedDetail">
+                        <td mat-cell *matCellDef="let event" [attr.colspan]="allColumns.length" class="detail-cell">
+                            <div
+                                class="event-detail-wrapper"
+                                [@detailExpand]="isExpanded(event) ? 'expanded' : 'collapsed'">
+                                <div class="event-detail-content px-3 py-2">
+                                    <div class="tertiary-color font-medium text-xs mb-2 uppercase tracking-wide">
+                                        FlowFile Attributes
+                                    </div>
+                                    @if (isLoadingAttributes(event)) {
+                                        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                                    } @else if (loadedEventDetails[event.eventId]) {
+                                        <table class="attributes-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (
+                                                    attr of loadedEventDetails[event.eventId].attributes ?? [];
+                                                    track attr.name
+                                                ) {
+                                                    <tr>
+                                                        <td class="attr-key">{{ attr.name }}</td>
+                                                        <td class="attr-value font-mono">{{ attr.value }}</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    } @else {
+                                        <span class="tertiary-color text-sm">No attributes available.</span>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                    <tr
+                        mat-row
+                        *matRowDef="let row; columns: displayedColumns"
+                        [class.even]="true"
+                        [class.selected-row]="selection.isSelected(row)"
+                        [class.expanded-row]="isExpanded(row)"
+                        (click)="selection.toggle(row)"
+                        style="cursor: pointer"></tr>
+                    <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
+                </table>
+            </div>
+
+            <mat-paginator
+                class="px-4 flex-shrink-0"
+                [pageSize]="20"
+                [hidePageSize]="true"
+                [showFirstLastButtons]="true"></mat-paginator>
+
+            <!-- Footer -->
+            <div class="dialog-footer flex flex-col gap-y-2 px-4 py-3 flex-shrink-0">
+                <div class="flex items-center justify-between">
+                    <div class="tertiary-color text-sm">
+                        @if (selectedCount > 0) {
+                            <span class="primary-color font-medium">{{ selectedCount }}</span>
+                            event{{ selectedCount !== 1 ? 's' : '' }} selected
+                        } @else {
+                            Select events to replay
+                        }
+                    </div>
+                    <div class="flex items-center gap-x-2">
+                        <button mat-stroked-button mat-dialog-close>Cancel</button>
+                        <button mat-flat-button [disabled]="selectedCount === 0" (click)="startBulkReplay()">
+                            Start Bulk Replay{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

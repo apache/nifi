@@ -57,6 +57,9 @@ import { BannerTextEffects } from './state/banner-text/banner-text.effects';
 import { MAT_TOOLTIP_DEFAULT_OPTIONS, MatTooltipDefaultOptions } from '@angular/material/tooltip';
 import { CLIPBOARD_OPTIONS, provideMarkdown } from 'ngx-markdown';
 import { CopyEffects } from './state/copy/copy.effects';
+import { BulkReplayStatusEffects } from './pages/bulk-replay-status/state/bulk-replay-status.effects';
+import { bulkReplayStatusFeatureKey } from './pages/bulk-replay-status/state';
+import { bulkReplayStatusReducer } from './pages/bulk-replay-status/state/bulk-replay-status.reducer';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations: string = '';
@@ -94,6 +97,7 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
+        StoreModule.forFeature(bulkReplayStatusFeatureKey, bulkReplayStatusReducer),
         EffectsModule.forRoot(
             ErrorEffects,
             CurrentUserEffects,
@@ -109,7 +113,8 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
             DocumentationEffects,
             ClusterSummaryEffects,
             PropertyVerificationEffects,
-            CopyEffects
+            CopyEffects,
+            BulkReplayStatusEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

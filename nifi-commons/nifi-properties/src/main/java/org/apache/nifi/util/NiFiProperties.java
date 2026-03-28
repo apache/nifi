@@ -104,6 +104,14 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
 
+    // bulk replay properties
+    public static final String BULK_REPLAY_MAX_CONCURRENT = "nifi.bulk.replay.max.concurrent";
+    public static final int DEFAULT_BULK_REPLAY_MAX_CONCURRENT = 5;
+    public static final String BULK_REPLAY_MAX_JOBS = "nifi.bulk.replay.max.jobs";
+    public static final int DEFAULT_BULK_REPLAY_MAX_JOBS = 50;
+    public static final String BULK_REPLAY_NODE_DISCONNECT_TIMEOUT = "nifi.bulk.replay.node.disconnect.timeout";
+    public static final String DEFAULT_BULK_REPLAY_NODE_DISCONNECT_TIMEOUT = "5 mins";
+
     // provenance properties
     public static final String PROVENANCE_REPO_IMPLEMENTATION_CLASS = "nifi.provenance.repository.implementation";
     public static final String PROVENANCE_REPO_DIRECTORY_PREFIX = "nifi.provenance.repository.directory.";
@@ -499,6 +507,19 @@ public class NiFiProperties extends ApplicationProperties {
         } catch (final NumberFormatException e) {
             return DEFAULT_QUEUE_SWAP_THRESHOLD;
         }
+    }
+
+    public int getBulkReplayMaxConcurrent() {
+        return getIntegerProperty(BULK_REPLAY_MAX_CONCURRENT, DEFAULT_BULK_REPLAY_MAX_CONCURRENT);
+    }
+
+    public int getBulkReplayMaxJobs() {
+        return getIntegerProperty(BULK_REPLAY_MAX_JOBS, DEFAULT_BULK_REPLAY_MAX_JOBS);
+    }
+
+    public String getBulkReplayNodeDisconnectTimeout() {
+        final String value = getProperty(BULK_REPLAY_NODE_DISCONNECT_TIMEOUT);
+        return (value == null || value.isBlank()) ? DEFAULT_BULK_REPLAY_NODE_DISCONNECT_TIMEOUT : value.trim();
     }
 
     public Integer getIntegerProperty(final String propertyName, final Integer defaultValue) {

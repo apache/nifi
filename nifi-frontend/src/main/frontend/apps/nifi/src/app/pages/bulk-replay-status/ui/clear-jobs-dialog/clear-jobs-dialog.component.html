@@ -1,0 +1,67 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="clear-jobs-dialog">
+    <h2 mat-dialog-title>Clear Replay Jobs</h2>
+
+    <mat-dialog-content>
+        <div class="mb-4">Select which jobs to remove from the list.</div>
+
+        <mat-radio-group [(ngModel)]="selectedOption" class="flex flex-col gap-y-3">
+            <mat-radio-button value="successful">
+                <div class="radio-label">
+                    <span class="font-medium">Clear successful jobs</span>
+                    <span class="tertiary-color text-sm block">Removes jobs that completed with no failures.</span>
+                </div>
+            </mat-radio-button>
+
+            <mat-radio-button value="finished">
+                <div class="radio-label">
+                    <span class="font-medium">Clear all finished jobs</span>
+                    <span class="tertiary-color text-sm block"
+                        >Removes all jobs that are no longer active — completed, partially completed, failed, cancelled,
+                        and interrupted.</span
+                    >
+                </div>
+            </mat-radio-button>
+
+            <mat-radio-button value="all">
+                <div class="radio-label">
+                    <span class="font-medium">Clear all jobs</span>
+                    <span class="tertiary-color text-sm block"
+                        >Removes all jobs from the list, including queued and running.</span
+                    >
+                </div>
+            </mat-radio-button>
+        </mat-radio-group>
+
+        @if (isAllSelected) {
+            <div class="warning-banner flex items-start gap-x-2 mt-4 px-3 py-2">
+                <i class="fa fa-exclamation-triangle warning-icon mt-0.5"></i>
+                <span class="text-sm">
+                    Note: this will <strong>not cancel</strong> any currently running or queued jobs. Active jobs will
+                    continue to run — they will simply no longer appear in this list.
+                </span>
+            </div>
+        }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-flat-button (click)="submit()">Clear</button>
+    </mat-dialog-actions>
+</div>
