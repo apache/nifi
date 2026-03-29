@@ -35,10 +35,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.OptionalLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -126,13 +128,20 @@ class BitbucketRepositoryClientTest {
         postAfterHeaders = mock(HttpRequestBodySpec.class);
         lenient().when(webClientService.post()).thenReturn(postSpec);
         lenient().when(postSpec.uri(any(URI.class))).thenReturn(postBodySpec);
+        lenient().when(postBodySpec.header(anyString(), anyString())).thenReturn(postBodySpec);
         lenient().when(postBodySpec.body(any(InputStream.class), any(OptionalLong.class))).thenReturn(afterBody);
+        lenient().when(postBodySpec.body(anyString())).thenReturn(afterBody);
         lenient().when(afterBody.header(anyString(), anyString())).thenReturn(postAfterHeaders);
         lenient().when(postAfterHeaders.header(anyString(), anyString())).thenReturn(postAfterHeaders);
 
-        OngoingStubbing<HttpResponseEntity> stubbing = when(postAfterHeaders.retrieve());
+        OngoingStubbing<HttpResponseEntity> stubbing = lenient().when(postAfterHeaders.retrieve());
         for (final HttpResponseEntity response : responses) {
             stubbing = stubbing.thenReturn(response);
+        }
+
+        OngoingStubbing<HttpResponseEntity> directStubbing = lenient().when(afterBody.retrieve());
+        for (final HttpResponseEntity response : responses) {
+            directStubbing = directStubbing.thenReturn(response);
         }
     }
 
@@ -273,6 +282,52 @@ class BitbucketRepositoryClientTest {
         final BitbucketRepositoryClient client = buildCloudClient();
         final String commitSha = client.createContent(createRequest(null, null));
         assertEquals(RESULT_COMMIT_SHA, commitSha);
+    }
+
+    @Test
+    void testCreateBranchCloudSuccess() throws FlowRegistryException, IOException {
+        stubGetChain(
+                branchListResponse(),
+                branchListResponse(),
+                branchHeadResponse(BRANCH_HEAD_SHA)
+        );
+        stubPostChain(createdResponse());
+
+        final BitbucketRepositoryClient client = buildCloudClient();
+        client.createBranch("feature", "main", Optional.empty());
+    }
+
+    @Test
+    void testCreateBranchCloudWithCommitSha() throws FlowRegistryException, IOException {
+        stubGetChain(branchListResponse(), branchListResponse());
+        stubPostChain(createdResponse());
+
+        final BitbucketRepositoryClient client = buildCloudClient();
+        client.createBranch("feature", "main", Optional.of("abc123"));
+    }
+
+    @Test
+    void testCreateBranchCloudAlreadyExists() throws FlowRegistryException {
+        stubGetChain(branchListResponse(), branchListResponse());
+
+        final BitbucketRepositoryClient client = buildCloudClient();
+        final FlowRegistryException exception = assertThrows(FlowRegistryException.class,
+                () -> client.createBranch("main", "main", Optional.empty()));
+        assertTrue(exception.getMessage().contains("already exists"));
+    }
+
+    @Test
+    void testCreateBranchBlankNameRejected() throws FlowRegistryException {
+        stubGetChain(branchListResponse());
+        final BitbucketRepositoryClient client = buildCloudClient();
+        assertThrows(IllegalArgumentException.class, () -> client.createBranch("  ", "main", Optional.empty()));
+    }
+
+    @Test
+    void testCreateBranchBlankSourceRejected() throws FlowRegistryException {
+        stubGetChain(branchListResponse());
+        final BitbucketRepositoryClient client = buildCloudClient();
+        assertThrows(IllegalArgumentException.class, () -> client.createBranch("feature", "  ", Optional.empty()));
     }
 
     @Test

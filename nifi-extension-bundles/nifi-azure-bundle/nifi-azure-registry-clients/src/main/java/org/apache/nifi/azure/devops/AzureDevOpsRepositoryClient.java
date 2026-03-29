@@ -121,6 +121,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     private static final String CHANGE_TYPE_DELETE = "delete";
     private static final String CONTENT_TYPE_BASE64 = "base64encoded";
     private static final int MAX_PUSH_ATTEMPTS = 3;
+    private static final String ZERO_OBJECT_ID = "0000000000000000000000000000000000000000";
 
     // Common query parameter names and values
     private static final String VERSION_DESCRIPTOR_VERSION = "versionDescriptor.version";
@@ -444,6 +445,75 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     }
 
     @Override
+    public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
+            throws IOException, FlowRegistryException {
+        if (newBranchName == null || newBranchName.isBlank()) {
+            throw new IllegalArgumentException("Branch name must be specified");
+        }
+        if (sourceBranch == null || sourceBranch.isBlank()) {
+            throw new IllegalArgumentException("Source branch must be specified");
+        }
+
+        final String trimmedNewBranch = newBranchName.trim();
+        final String trimmedSourceBranch = sourceBranch.trim();
+
+        if (branchExists(trimmedNewBranch)) {
+            throw new FlowRegistryException("Branch [%s] already exists".formatted(trimmedNewBranch));
+        }
+
+        final String baseCommitSha;
+        if (sourceCommitSha.isPresent() && !sourceCommitSha.get().isBlank()) {
+            baseCommitSha = sourceCommitSha.get();
+        } else {
+            baseCommitSha = fetchBranchHead(trimmedSourceBranch);
+        }
+
+        logger.info("Creating branch [{}] from [{}] at commit [{}] in repo [{}]", trimmedNewBranch, trimmedSourceBranch, baseCommitSha, repoName);
+
+        final URI refsUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                .addQueryParameter(API, API_VERSION)
+                .build();
+
+        final String json;
+        try {
+            json = MAPPER.writeValueAsString(List.of(new CreateRefRequest(REFS_HEADS_PREFIX + trimmedNewBranch, ZERO_OBJECT_ID, baseCommitSha)));
+        } catch (final Exception e) {
+            throw new FlowRegistryException("Failed to serialize branch creation request", e);
+        }
+
+        final HttpResponseEntity response = this.webClient.getWebClientService()
+                .post()
+                .uri(refsUri)
+                .header(AUTHORIZATION_HEADER, bearerToken())
+                .header(CONTENT_TYPE_HEADER, MediaType.APPLICATION_JSON.getMediaType())
+                .body(json)
+                .retrieve();
+
+        if (response.statusCode() != HttpURLConnection.HTTP_OK) {
+            throw new FlowRegistryException("Failed to create branch [%s] in repo [%s] - %s".formatted(trimmedNewBranch, repoName, getErrorMessage(response)));
+        }
+    }
+
+    private boolean branchExists(final String branchName) throws FlowRegistryException {
+        final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branchName)
+                .addQueryParameter(API, API_VERSION)
+                .build();
+        final JsonNode refResponse = executeGet(refUri);
+        final JsonNode values = refResponse.get(JSON_FIELD_VALUE);
+        if (values == null || !values.isArray()) {
+            return false;
+        }
+        for (final JsonNode ref : values) {
+            final String refName = ref.get(JSON_FIELD_NAME).asText();
+            if (refName.equals(REFS_HEADS_PREFIX + branchName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
         final String path = getResolvedPath(filePath);
         logger.debug("Deleting file [{}] in repo [{}] on branch [{}]", path, repoName, branch);
@@ -514,6 +584,8 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     private record Change(String changeType, Item item, NewContent newContent) { }
 
     private record NewContent(String content, String contentType) { }
+
+    private record CreateRefRequest(String name, String oldObjectId, String newObjectId) { }
 
     /**
      * Create URI builder for accessing the repository.
