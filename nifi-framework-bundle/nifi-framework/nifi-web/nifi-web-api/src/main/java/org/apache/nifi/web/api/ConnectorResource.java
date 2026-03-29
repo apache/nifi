@@ -1500,13 +1500,11 @@ public class ConnectorResource extends ApplicationResource {
             final String connectorId, final String configurationStepName, final String requestId) {
 
         final VerifyConnectorConfigStepRequestDTO requestDto = asyncRequest.getRequest().getRequest();
-        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
 
         final VerifyConnectorConfigStepRequestDTO dto = new VerifyConnectorConfigStepRequestDTO();
         dto.setConnectorId(requestDto.getConnectorId());
         dto.setConfigurationStepName(requestDto.getConfigurationStepName());
         dto.setConfigurationStep(requestDto.getConfigurationStep());
-        dto.setResults(resultsList);
 
         dto.setComplete(asyncRequest.isComplete());
         dto.setFailureReason(asyncRequest.getFailureReason());
@@ -1515,6 +1513,7 @@ public class ConnectorResource extends ApplicationResource {
         dto.setRequestId(requestId);
         dto.setState(asyncRequest.getState());
         dto.setUri(generateResourceUri("connectors", connectorId, "configuration-steps", configurationStepName, "verify-config", requestId));
+        dto.setResults(asyncRequest.getResults());
 
         final VerifyConnectorConfigStepRequestEntity entity = new VerifyConnectorConfigStepRequestEntity();
         entity.setRequest(dto);
