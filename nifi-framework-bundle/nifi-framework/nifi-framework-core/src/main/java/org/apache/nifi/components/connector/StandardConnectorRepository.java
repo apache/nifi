@@ -463,13 +463,10 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         final List<VersionedConfigurationStep> workingFlowConfiguration = config.getWorkingFlowConfiguration();
         if (workingFlowConfiguration != null) {
+            final MutableConnectorConfigurationContext workingConfigContext = connector.getWorkingFlowContext().getConfigurationContext();
             for (final VersionedConfigurationStep step : workingFlowConfiguration) {
                 final StepConfiguration stepConfiguration = toStepConfiguration(step);
-                try {
-                    connector.setConfiguration(step.getName(), stepConfiguration);
-                } catch (final FlowUpdateException e) {
-                    logger.warn("Failed to apply configuration step [{}] from provider for connector [{}]", step.getName(), connectorId, e);
-                }
+                workingConfigContext.replaceProperties(step.getName(), stepConfiguration);
             }
         }
     }
