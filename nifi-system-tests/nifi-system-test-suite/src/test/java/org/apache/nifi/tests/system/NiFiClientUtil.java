@@ -401,6 +401,7 @@ public class NiFiClientUtil {
     public void stopConnectors() throws NiFiClientException, IOException, InterruptedException {
         final ConnectorsEntity connectorsEntity = nifiClient.getFlowClient().getConnectors();
         for (final ConnectorEntity connector : connectorsEntity.getConnectors()) {
+            connector.setDisconnectedNodeAcknowledged(true);
             getConnectorClient().stopConnector(connector);
             waitForConnectorStopped(connector.getId());
         }
@@ -412,6 +413,7 @@ public class NiFiClientUtil {
 
     public void startConnector(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
         final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        entity.setDisconnectedNodeAcknowledged(true);
         getConnectorClient().startConnector(entity);
         waitForConnectorState(connectorId, ConnectorState.RUNNING);
     }
@@ -422,6 +424,7 @@ public class NiFiClientUtil {
 
     public void stopConnector(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
         final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        entity.setDisconnectedNodeAcknowledged(true);
         getConnectorClient().stopConnector(entity);
         waitForConnectorStopped(connectorId);
     }
@@ -449,11 +452,13 @@ public class NiFiClientUtil {
 
     public ConnectorEntity drainConnector(final String connectorId) throws NiFiClientException, IOException {
         final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        entity.setDisconnectedNodeAcknowledged(true);
         return getConnectorClient().drainConnector(entity);
     }
 
     public ConnectorEntity cancelDrain(final String connectorId) throws NiFiClientException, IOException {
         final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        entity.setDisconnectedNodeAcknowledged(true);
         return getConnectorClient().cancelDrain(entity);
     }
 
