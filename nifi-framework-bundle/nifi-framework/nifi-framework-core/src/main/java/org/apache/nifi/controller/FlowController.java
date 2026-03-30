@@ -345,6 +345,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final Set<Connectable> startConnectablesAfterInitialization;
     private final Set<ProcessGroup> startGroupsAfterInitialization;
     private final Set<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
+    private final Set<ConnectorNode> startConnectorsAfterInitialization;
     private final LeaderElectionManager leaderElectionManager;
     private final ClusterCoordinator clusterCoordinator;
     private final FlowEngine validationThreadPool;
@@ -679,6 +680,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         startConnectablesAfterInitialization = new HashSet<>();
         startRemoteGroupPortsAfterInitialization = new HashSet<>();
         startGroupsAfterInitialization = new HashSet<>();
+        startConnectorsAfterInitialization = new HashSet<>();
 
         final String gracefulShutdownSecondsVal = nifiProperties.getProperty(GRACEFUL_SHUTDOWN_PERIOD);
         long shutdownSecs;
@@ -1221,6 +1223,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             startConnectablesAfterInitialization.clear();
             startRemoteGroupPortsAfterInitialization.clear();
             startGroupsAfterInitialization.clear();
+            startConnectorsAfterInitialization.clear();
         } finally {
             writeLock.unlock("purge");
         }
@@ -1490,6 +1493,23 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
                 LOG.info("Started {} Remote Group Ports transmitting", startedTransmitting);
                 startRemoteGroupPortsAfterInitialization.clear();
+
+                LOG.info("Starting {} Connectors", startConnectorsAfterInitialization.size());
+                for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
+                    try {
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        if (existingConnector == null) {
+                            LOG.debug("Will not start {} because it no longer exists", connectorNode);
+                            continue;
+                        }
+
+                        connectorRepository.startConnector(connectorNode);
+                    } catch (final Throwable t) {
+                        LOG.error("Unable to start {}", connectorNode, t);
+                    }
+                }
+
+                startConnectorsAfterInitialization.clear();
             } else {
                 // We don't want to start all of the delayed components. However, funnels need to be started anyway
                 // because we don't provide users the ability to start or stop them - they are just notional.
@@ -1505,6 +1525,19 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
                 startConnectablesAfterInitialization.clear();
                 startRemoteGroupPortsAfterInitialization.clear();
+
+                // Explicitly stop Connectors so that their state is properly transitioned from UPDATED to STOPPED.
+                for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
+                    try {
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        if (existingConnector != null) {
+                            connectorRepository.stopConnector(connectorNode);
+                        }
+                    } catch (final Throwable t) {
+                        LOG.error("Unable to stop {}", connectorNode, t);
+                    }
+                }
+                startConnectorsAfterInitialization.clear();
             }
 
             flowManager.getRootGroup().findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
@@ -1572,6 +1605,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public boolean isStartAfterInitialization(final ProcessGroup group) {
         return startGroupsAfterInitialization.contains(group);
+    }
+
+    public boolean isStartAfterInitialization(final ConnectorNode connectorNode) {
+        return startConnectorsAfterInitialization.contains(connectorNode);
     }
 
     private ContentRepository createContentRepository(final NiFiProperties properties) {
@@ -2360,6 +2397,19 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             }
         } finally {
             writeLock.unlock("startProcessGroup");
+        }
+    }
+
+    public void startConnector(final ConnectorNode connectorNode) {
+        writeLock.lock();
+        try {
+            if (initialized.get()) {
+                connectorRepository.startConnector(connectorNode);
+            } else {
+                startConnectorsAfterInitialization.add(connectorNode);
+            }
+        } finally {
+            writeLock.unlock("startConnector");
         }
     }
 
