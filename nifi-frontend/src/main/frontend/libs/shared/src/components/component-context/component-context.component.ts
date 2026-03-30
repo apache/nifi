@@ -28,7 +28,7 @@ import { CopyDirective } from '../../directives/copy/copy.directive';
 })
 export class ComponentContext {
     private _componentType: ComponentType | string | null = ComponentType.Processor;
-    componentIconClass: string = '';
+    componentIconClass = '';
 
     @Input() set type(type: ComponentType | string | null) {
         this._componentType = type;

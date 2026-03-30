@@ -63,7 +63,7 @@ export class CanvasView {
     private birdseyeTranslateInProgress = false;
     private allowTransition = false;
 
-    private canvasInitialized: boolean = false;
+    private canvasInitialized = false;
 
     constructor() {
         let refreshed: Promise<void> | null;

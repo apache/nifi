@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
+import { Bucket } from '../../../../../state/buckets';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon } from '@nifi/shared';
 import { MatMenuModule } from '@angular/material/menu';
@@ -27,7 +27,7 @@ import {
     openDeleteBucketDialog,
     openEditBucketDialog,
     openManageBucketPoliciesDialog
-} from 'apps/nifi-registry/src/app/state/buckets/buckets.actions';
+} from '../../../../../state/buckets/buckets.actions';
 import { MatIconModule } from '@angular/material/icon';
 
 @Component({

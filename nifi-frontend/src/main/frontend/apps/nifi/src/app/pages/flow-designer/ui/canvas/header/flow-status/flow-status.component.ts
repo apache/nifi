@@ -44,7 +44,7 @@ export class FlowStatus {
 
     private static readonly FLOW_ANALYSIS_VISIBILITY_KEY: string = 'flow-analysis-visibility';
     private static readonly FLOW_ANALYSIS_KEY: string = 'flow-analysis';
-    public flowAnalysisNotificationClass: string = '';
+    public flowAnalysisNotificationClass = '';
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary | null = null;

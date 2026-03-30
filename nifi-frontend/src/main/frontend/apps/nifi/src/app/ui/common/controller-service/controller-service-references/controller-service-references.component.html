@@ -16,7 +16,11 @@
   -->
 
 <div class="controller-service-references">
-    @if (serviceReferences == null || serviceReferences.length == 0) {
+    @if (
+        serviceReferences === null ||
+        serviceReferences === undefined ||
+        serviceReferences.length === 0
+    ) {
         <div class="tertiary-color font-medium">No referencing components</div>
     } @else {
         <ng-container

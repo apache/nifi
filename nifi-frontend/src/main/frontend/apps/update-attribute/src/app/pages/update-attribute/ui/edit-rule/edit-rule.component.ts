@@ -90,7 +90,7 @@ export class EditRule implements AfterViewInit {
             this.editRuleForm.get('actions')?.disable();
         }
     }
-    @Input() saving: boolean = false;
+    @Input() saving = false;
     @Input() set ruleUpdate(ruleUpdate: Rule) {
         if (ruleUpdate && this.ruleSaved) {
             this.editRuleForm.markAsPristine();
@@ -104,7 +104,7 @@ export class EditRule implements AfterViewInit {
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
     editRuleForm: FormGroup;
-    isEditable: boolean = true;
+    isEditable = true;
 
     currentName: string | null = null;
     currentComments: string | null = null;
@@ -115,7 +115,7 @@ export class EditRule implements AfterViewInit {
     conditionControl: FormControl;
     actionControl: FormControl;
 
-    private ruleSaved: boolean = false;
+    private ruleSaved = false;
 
     constructor() {
         this.nameControl = new FormControl('', Validators.required);

@@ -36,11 +36,7 @@ import { updateConnection } from '../../../../../state/flow/flow.actions';
 
 describe('EditConnectionComponent', () => {
     // Mock data factories
-    function createMockConnection(
-        sourceType: string = 'INPUT_PORT',
-        destinationType: string = 'OUTPUT_PORT',
-        options: any = {}
-    ) {
+    function createMockConnection(sourceType = 'INPUT_PORT', destinationType = 'OUTPUT_PORT', options: any = {}) {
         return {
             id: options.id || 'connection-id',
             source: {
@@ -86,7 +82,7 @@ describe('EditConnectionComponent', () => {
         };
     }
 
-    function createMockBreadcrumb(canRead: boolean = true) {
+    function createMockBreadcrumb(canRead = true) {
         return {
             id: 'breadcrumb-id',
             permissions: { canRead, canWrite: true },

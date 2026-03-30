@@ -24,5 +24,5 @@ import { Component, Input } from '@angular/core';
     styleUrls: ['./text-tip.component.scss']
 })
 export class TextTip {
-    @Input() data: string = '';
+    @Input() data = '';
 }

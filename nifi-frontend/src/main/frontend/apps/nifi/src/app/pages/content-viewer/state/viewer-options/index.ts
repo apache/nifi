@@ -17,7 +17,7 @@
 
 export const viewerOptionsFeatureKey = 'viewerOptions';
 
-export const HEX_VIEWER_URL: string = '/content-viewer/hex-viewer';
+export const HEX_VIEWER_URL = '/content-viewer/hex-viewer';
 export const BUNDLED_HEX_VIEWER: ContentViewer = {
     displayName: 'Bundled Hex Viewer',
     uri: HEX_VIEWER_URL,
@@ -29,7 +29,7 @@ export const BUNDLED_HEX_VIEWER: ContentViewer = {
     ]
 };
 
-export const IMAGE_VIEWER_URL: string = '/content-viewer/image-viewer';
+export const IMAGE_VIEWER_URL = '/content-viewer/image-viewer';
 export const BUNDLED_IMAGE_VIEWER: ContentViewer = {
     displayName: 'Bundled Image Viewer',
     uri: IMAGE_VIEWER_URL,

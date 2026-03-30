@@ -20,14 +20,14 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { importNewDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
-import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
+import { importNewDropletVersion } from '../../../../../state/droplets/droplets.actions';
+import { Droplet } from '../../../../../state/droplets';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
-import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 export interface ImportNewFlowVersionDialogData {
     droplet: Droplet;

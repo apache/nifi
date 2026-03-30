@@ -154,7 +154,7 @@ export class EditProcessor extends TabbedDialog {
     protected readonly BulletinsTip = BulletinsTip;
 
     editProcessorForm: FormGroup;
-    readonly: boolean = true;
+    readonly = true;
     status: any;
     revision!: Revision;
     bulletins!: BulletinEntity[];

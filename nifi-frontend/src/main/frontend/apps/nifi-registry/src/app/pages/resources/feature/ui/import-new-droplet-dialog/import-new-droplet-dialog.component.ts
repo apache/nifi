@@ -21,13 +21,13 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
+import { Bucket } from '../../../../../state/buckets';
 import { MatInputModule } from '@angular/material/input';
 import { Store } from '@ngrx/store';
-import { createNewDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { createNewDroplet } from '../../../../../state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
-import { ErrorContextKey } from 'apps/nifi-registry/src/app/state/error';
-import { ContextErrorBanner } from 'apps/nifi-registry/src/app/ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 export interface ImportNewFlowDialogData {
     buckets: Bucket[];

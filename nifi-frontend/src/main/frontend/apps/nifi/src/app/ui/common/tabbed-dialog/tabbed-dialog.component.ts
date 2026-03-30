@@ -22,7 +22,7 @@ export const TABBED_DIALOG_ID = new InjectionToken<string>('TABBED_DIALOG_ID');
 
 export abstract class TabbedDialog extends CloseOnEscapeDialog {
     private storage: Storage = inject(Storage);
-    private dialogId: string = 'tabbed-dialog-selected-index';
+    private dialogId = 'tabbed-dialog-selected-index';
 
     selectedIndex = 0;
 

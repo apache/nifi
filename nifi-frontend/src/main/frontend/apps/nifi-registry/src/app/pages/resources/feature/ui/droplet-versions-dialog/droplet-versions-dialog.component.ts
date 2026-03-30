@@ -16,14 +16,14 @@
  */
 
 import { Component, inject } from '@angular/core';
-import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
+import { Droplet } from '../../../../../state/droplets';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { MatMenuModule } from '@angular/material/menu';
-import { exportDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { exportDropletVersion } from '../../../../../state/droplets/droplets.actions';
 import { MatButtonModule } from '@angular/material/button';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { ErrorContextKey } from '../../../../../state/error';

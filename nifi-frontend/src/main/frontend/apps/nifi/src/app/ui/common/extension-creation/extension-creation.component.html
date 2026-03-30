@@ -142,7 +142,10 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button [disabled]="selectedType == null || saving" (click)="createExtension(selectedType)" mat-flat-button>
+        <button
+            [disabled]="selectedType === null || selectedType === undefined || saving"
+            (click)="createExtension(selectedType)"
+            mat-flat-button>
             <span *nifiSpinner="saving">Add</span>
         </button>
     </mat-dialog-actions>

@@ -59,7 +59,7 @@ import { CLIPBOARD_OPTIONS, provideMarkdown } from 'ngx-markdown';
 import { CopyEffects } from './state/copy/copy.effects';
 
 const entry = localStorage.getItem('disable-animations');
-let disableAnimations: string = '';
+let disableAnimations = '';
 
 try {
     disableAnimations = entry !== null ? JSON.parse(entry).item : '';

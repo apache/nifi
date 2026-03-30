@@ -101,7 +101,7 @@
                                     </div>
                                     @if (
                                         disableRequest.error &&
-                                        disableRequest.error.step == SetEnableStep.StopReferencingComponents
+                                        disableRequest.error.step === SetEnableStep.StopReferencingComponents
                                     ) {
                                         <div class="text-sm ml-2">
                                             {{ disableRequest.error.error }}
@@ -121,7 +121,7 @@
                                     </div>
                                     @if (
                                         disableRequest.error &&
-                                        disableRequest.error.step == SetEnableStep.DisableReferencingServices
+                                        disableRequest.error.step === SetEnableStep.DisableReferencingServices
                                     ) {
                                         <div class="text-sm ml-2">
                                             {{ disableRequest.error.error }}
@@ -136,7 +136,7 @@
                                     </div>
                                     @if (
                                         disableRequest.error &&
-                                        disableRequest.error.step == SetEnableStep.DisableService
+                                        disableRequest.error.step === SetEnableStep.DisableService
                                     ) {
                                         <div class="text-sm ml-2">
                                             {{ disableRequest.error.error }}

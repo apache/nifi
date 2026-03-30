@@ -62,7 +62,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
 
     private defaultSupportedMimeTypeId: number | null = null;
 
-    viewerSelected: boolean = false;
+    viewerSelected = false;
     mimeType: string | undefined;
     private clientId: string | undefined;
 
@@ -250,7 +250,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     private getCompatibleViewer(mimeType: string): number | null {
         for (const group of this.viewAsOptions) {
             for (const option of group.options) {
-                const supportedMimeTypeId: number = Number(option.value);
+                const supportedMimeTypeId = Number(option.value);
                 if (Number.isInteger(supportedMimeTypeId)) {
                     const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
                     if (supportedContentViewer) {

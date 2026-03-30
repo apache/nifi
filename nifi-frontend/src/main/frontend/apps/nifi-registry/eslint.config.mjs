@@ -2,6 +2,7 @@ import { FlatCompat } from '@eslint/eslintrc';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import js from '@eslint/js';
+import baseConfig from '../../eslint.config.mjs';
 
 const compat = new FlatCompat({
     baseDirectory: dirname(fileURLToPath(import.meta.url)),
@@ -12,6 +13,7 @@ export default [
     {
         ignores: ['**/dist', '**/out-tsc']
     },
+    ...baseConfig,
     {
         languageOptions: {
             parserOptions: {
@@ -65,6 +67,17 @@ export default [
                 ],
                 'no-useless-escape': 'off',
                 '@angular-eslint/prefer-standalone': 'off'
+            }
+        })),
+    ...compat
+        .config({
+            extends: ['plugin:@nx/angular-template']
+        })
+        .map((config) => ({
+            ...config,
+            files: ['**/*.html'],
+            rules: {
+                ...config.rules
             }
         }))
 ];

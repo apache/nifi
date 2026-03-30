@@ -659,7 +659,9 @@ export class CanvasActionsService {
         if (this._actions && this._actions[id]) {
             return this._actions[id].action;
         }
-        return () => {};
+        return () => {
+            /* noop */
+        };
     }
 
     getConditionFunction(id: string): CanvasConditionFunction {

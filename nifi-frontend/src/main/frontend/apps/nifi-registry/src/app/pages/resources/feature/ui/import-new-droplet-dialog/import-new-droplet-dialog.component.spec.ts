@@ -26,7 +26,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { createNewDroplet } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { createNewDroplet } from '../../../../../state/droplets/droplets.actions';
 
 describe('ImportNewDropletDialogComponent', () => {
     let component: ImportNewDropletDialogComponent;

@@ -97,7 +97,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     onTouched!: () => void;
     onChange!: (parameters: ParameterEntity[]) => void;
 
-    showInheritedParameters: boolean = true;
+    showInheritedParameters = true;
 
     ngAfterViewInit(): void {
         this.initFilter();

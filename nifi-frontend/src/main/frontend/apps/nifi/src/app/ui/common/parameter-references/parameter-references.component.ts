@@ -51,7 +51,7 @@ import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component'
 export class ParameterReferences {
     private nifiCommon = inject(NiFiCommon);
 
-    @Input() disabledLinks: boolean = false;
+    @Input() disabledLinks = false;
     @Input() set parameterReferences(parameterReferences: AffectedComponentEntity[] | undefined) {
         // reset existing state
         this.processGroups = [];

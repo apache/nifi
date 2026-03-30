@@ -19,8 +19,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AddPolicyToBucketDialogComponent, AddPolicyToBucketDialogData } from './add-policy-to-bucket-dialog.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { PolicySubject } from 'apps/nifi-registry/src/app/service/buckets.service';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
+import { PolicySubject } from '../../../../../service/buckets.service';
+import { Bucket } from '../../../../../state/buckets';
 
 const bucket: Bucket = {
     allowBundleRedeploy: false,

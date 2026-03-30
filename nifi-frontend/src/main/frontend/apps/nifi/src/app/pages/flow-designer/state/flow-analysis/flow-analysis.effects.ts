@@ -24,7 +24,7 @@ import { asyncScheduler, catchError, from, interval, map, of, startWith, switchM
 import * as FlowAnalysisActions from './flow-analysis.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FlowAnalysisService } from '../../service/flow-analysis.service';
-import { ErrorHelper } from 'apps/nifi/src/app/service/error-helper.service';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';

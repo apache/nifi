@@ -21,12 +21,7 @@ import { DestinationRemoteProcessGroup } from './destination-remote-process-grou
 
 describe('DestinationRemoteProcessGroup Component', () => {
     // Mock data factories
-    function createMockInputPort(
-        id: string = 'input-port-id',
-        name: string = 'Test Input Port',
-        comments: string = '',
-        exists: boolean = true
-    ) {
+    function createMockInputPort(id = 'input-port-id', name = 'Test Input Port', comments = '', exists = true) {
         return {
             id,
             name,
@@ -35,7 +30,7 @@ describe('DestinationRemoteProcessGroup Component', () => {
         };
     }
 
-    function createMockRemoteProcessGroup(groupName: string = 'Test Remote Process Group', inputPorts: any[] = []) {
+    function createMockRemoteProcessGroup(groupName = 'Test Remote Process Group', inputPorts: any[] = []) {
         return {
             component: {
                 name: groupName,

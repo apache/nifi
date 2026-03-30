@@ -57,7 +57,7 @@ export class ChangeColorDialog extends CloseOnEscapeDialog {
     private formBuilder = inject(FormBuilder);
 
     color: string | null = null;
-    noColor: boolean = true;
+    noColor = true;
     contrastColor: string | null = null;
     type: ComponentType | null = null;
     changeColorForm: FormGroup;

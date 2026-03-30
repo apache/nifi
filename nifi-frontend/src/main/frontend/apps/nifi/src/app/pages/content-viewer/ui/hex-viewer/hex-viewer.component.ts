@@ -43,7 +43,7 @@ export class HexViewer {
     private static readonly HEX_LENGTH: number = 48;
     private static readonly ASCII_LENGTH: number = 16;
 
-    hexdump: string = '';
+    hexdump = '';
     error: string | null = null;
 
     constructor() {

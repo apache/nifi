@@ -95,10 +95,10 @@ export class RuleListing {
         }
     }
 
-    isEditable: boolean = false;
+    isEditable = false;
 
     ruleOrder: string[] = [];
-    allowRuleReordering: boolean = false;
+    allowRuleReordering = false;
     originalRulesList: Rule[] = [];
     rulesList: Rule[] = [];
     dirtyRules: Set<string> = new Set<string>();
@@ -107,11 +107,11 @@ export class RuleListing {
     searchForm: FormGroup;
 
     flowFilePolicyForm: FormGroup;
-    flowFilePolicy: string = 'USE_ORIGINAL';
+    flowFilePolicy = 'USE_ORIGINAL';
 
-    scrollToNewRule: boolean = false;
+    scrollToNewRule = false;
 
-    private openRuleCount: number = 0;
+    private openRuleCount = 0;
 
     constructor() {
         this.searchForm = this.formBuilder.group({ searchRules: '' });

@@ -96,7 +96,7 @@ export class MapTable implements AfterViewInit, ControlValueAccessor {
     private nifiCommon = inject(NiFiCommon);
 
     @Input() createNew!: (existingEntries: string[]) => Observable<MapTableEntry>;
-    @Input() reportChangesOnly: boolean = false;
+    @Input() reportChangesOnly = false;
 
     private destroyRef = inject(DestroyRef);
 

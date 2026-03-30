@@ -94,7 +94,7 @@ describe('ManagementControllerServices', () => {
         } as ControllerServiceEntity;
     }
 
-    function createMockCurrentUser(canRead: boolean = true, canWrite: boolean = true): CurrentUser {
+    function createMockCurrentUser(canRead = true, canWrite = true): CurrentUser {
         return {
             identity: 'test-user',
             anonymous: false,

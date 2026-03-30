@@ -42,7 +42,7 @@ export class ParameterContextService {
         );
     }
 
-    getParameterContext(id: string, includeInheritedParameters: boolean = true): Observable<any> {
+    getParameterContext(id: string, includeInheritedParameters = true): Observable<any> {
         return this.httpClient.get(`${ParameterContextService.API}/parameter-contexts/${id}`, {
             params: {
                 includeInheritedParameters

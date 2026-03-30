@@ -33,9 +33,9 @@ import {
     AddPolicyResult
 } from '../add-policy-to-bucket-dialog/add-policy-to-bucket-dialog.component';
 import { EditPolicyDialogComponent, EditPolicyResult } from '../edit-policy-dialog/edit-policy-dialog.component';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
-import { BucketPolicyOptionsView, PolicySelection, PolicySection } from 'apps/nifi-registry/src/app/state/policies';
-import { PolicySubject, PolicyRevision } from 'apps/nifi-registry/src/app/service/buckets.service';
+import { Bucket } from '../../../../../state/buckets';
+import { BucketPolicyOptionsView, PolicySelection, PolicySection } from '../../../../../state/policies';
+import { PolicySubject, PolicyRevision } from '../../../../../service/buckets.service';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { ErrorContextKey } from '../../../../../state/error';
 

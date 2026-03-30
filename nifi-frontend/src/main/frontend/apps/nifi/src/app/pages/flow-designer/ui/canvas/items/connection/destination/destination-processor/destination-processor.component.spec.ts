@@ -20,11 +20,7 @@ import { DestinationProcessor } from './destination-processor.component';
 
 describe('DestinationProcessor Component', () => {
     // Mock data factories
-    function createMockProcessor(
-        id: string = 'processor-id',
-        canRead: boolean = true,
-        name: string = 'Test Processor'
-    ) {
+    function createMockProcessor(id = 'processor-id', canRead = true, name = 'Test Processor') {
         return {
             id,
             permissions: { canRead, canWrite: true },

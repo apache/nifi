@@ -208,7 +208,7 @@
                                 </div>
                             }
                             <ng-template #formatDuration let-duration>
-                                @if (duration != null) {
+                                @if (duration !== null && duration !== undefined) {
                                     <div class="tertiary-color font-medium">
                                         {{ formatDurationValue(duration) }}
                                     </div>
@@ -487,11 +487,11 @@
         </mat-tab>
     </mat-tab-group>
     <ng-template #formatValue let-value let-title="title">
-        @if (value != null) {
+        @if (value !== null && value !== undefined) {
             @if (value === '') {
                 <div class="unset neutral-color">Empty string set</div>
             } @else {
-                @if (title == null) {
+                @if (title === null || title === undefined) {
                     <div class="tertiary-color font-medium">
                         {{ value }}
                     </div>
@@ -506,11 +506,11 @@
         }
     </ng-template>
     <ng-template #formatCopyableValue let-value let-title="title">
-        @if (value != null) {
+        @if (value !== null && value !== undefined) {
             @if (value === '') {
                 <div class="unset neutral-color">Empty string set</div>
             } @else {
-                @if (title == null) {
+                @if (title === null || title === undefined) {
                     <div [copy]="value" class="tertiary-color font-medium">
                         {{ value }}
                     </div>
@@ -525,8 +525,8 @@
         }
     </ng-template>
     <ng-template #formatContentValue let-value let-title="title">
-        @if (value != null) {
-            @if (title == null) {
+        @if (value !== null && value !== undefined) {
+            @if (title === null || title === undefined) {
                 <div class="tertiary-color font-medium">
                     {{ value }}
                 </div>
@@ -540,8 +540,8 @@
         }
     </ng-template>
     <ng-template #formatCopyableContentValue let-value let-title="title">
-        @if (value != null) {
-            @if (title == null) {
+        @if (value !== null && value !== undefined) {
+            @if (title === null || title === undefined) {
                 <div [copy]="value" class="tertiary-color font-medium">
                     {{ value }}
                 </div>

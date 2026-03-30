@@ -242,7 +242,7 @@
                                     {{ result.name }}
                                 </a>
                             } @else {
-                                @if (result.parentGroup.id == currentProcessGroupId) {
+                                @if (result.parentGroup.id === currentProcessGroupId) {
                                     <a
                                         class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
                                         (click)="componentLinkClicked(path, result.id)"

@@ -39,8 +39,12 @@
                                     [delayClose]="false">
                                     <span
                                         class="option-text"
-                                        [class.neutral-color]="allowableValue.value == null"
-                                        [class.unset]="allowableValue.value == null"
+                                        [class.neutral-color]="
+                                            allowableValue.value === null || allowableValue.value === undefined
+                                        "
+                                        [class.unset]="
+                                            allowableValue.value === null || allowableValue.value === undefined
+                                        "
                                         >{{ allowableValue.displayName }}</span
                                     >
                                 </mat-option>
@@ -51,8 +55,12 @@
                                     (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"
-                                        [class.neutral-color]="allowableValue.value == null"
-                                        [class.unset]="allowableValue.value == null"
+                                        [class.neutral-color]="
+                                            allowableValue.value === null || allowableValue.value === undefined
+                                        "
+                                        [class.unset]="
+                                            allowableValue.value === null || allowableValue.value === undefined
+                                        "
                                         >{{ allowableValue.displayName }}</span
                                     >
                                 </mat-option>
@@ -84,8 +92,14 @@
                                         [delayClose]="false">
                                         <span
                                             class="option-text"
-                                            [class.unset]="parameterAllowableValue.value == null"
-                                            [class.neutral-color]="parameterAllowableValue.value == null"
+                                        [class.unset]="
+                                            parameterAllowableValue.value === null ||
+                                            parameterAllowableValue.value === undefined
+                                        "
+                                        [class.neutral-color]="
+                                            parameterAllowableValue.value === null ||
+                                            parameterAllowableValue.value === undefined
+                                        "
                                             >{{ parameterAllowableValue.displayName }}</span
                                         >
                                     </mat-option>
@@ -96,8 +110,14 @@
                                         (mousedown)="preventDrag($event)">
                                         <span
                                             class="option-text"
-                                            [class.unset]="parameterAllowableValue.value == null"
-                                            [class.neutral-color]="parameterAllowableValue.value == null"
+                                        [class.unset]="
+                                            parameterAllowableValue.value === null ||
+                                            parameterAllowableValue.value === undefined
+                                        "
+                                        [class.neutral-color]="
+                                            parameterAllowableValue.value === null ||
+                                            parameterAllowableValue.value === undefined
+                                        "
                                             >{{ parameterAllowableValue.displayName }}</span
                                         >
                                     </mat-option>
