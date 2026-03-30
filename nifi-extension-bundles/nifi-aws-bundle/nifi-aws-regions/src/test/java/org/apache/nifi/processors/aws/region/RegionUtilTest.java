@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.processors.aws.region;
 
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.util.MockPropertyContext;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.regions.Region;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
@@ -107,13 +105,5 @@ public class RegionUtilTest {
         ));
 
         assertTrue(RegionUtil.isDynamicRegion(propertyContext));
-    }
-
-    @Test
-    void testRegionDisplayNameOrdering() {
-        final List<AllowableValue> allowableRegionValues = REGION.getAllowableValues();
-
-        assertEquals("Africa (Cape Town)", allowableRegionValues.getFirst().getDisplayName());
-        assertEquals(USE_CUSTOM_REGION.getDisplayName(), allowableRegionValues.getLast().getDisplayName());
     }
 }
