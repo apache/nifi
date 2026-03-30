@@ -23,10 +23,12 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -45,7 +47,6 @@ import org.apache.nifi.util.StopWatch;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -68,8 +69,9 @@ import java.util.regex.Pattern;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Text", "Regular Expression", "Update", "Change", "Replace", "Modify", "Regex", "Mapping"})
-@CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that "
-        + "matches the Regular Expression with some alternate value provided in a mapping file.")
+@CapabilityDescription("""
+        Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that
+        matches the Regular Expression with some alternate value provided in a mapping file.""")
 public class ReplaceTextWithMapping extends AbstractProcessor {
 
     public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder()
@@ -90,13 +92,13 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAPPING_FILE = new PropertyDescriptor.Builder()
             .name("Mapping File")
-            .description("The name of the file (including the full path) containing the Mappings.")
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+            .description("The name of the file (including the full path) containing the Mappings or the actual mapping contents.")
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .required(true)
             .build();
     public static final PropertyDescriptor MAPPING_FILE_REFRESH_INTERVAL = new PropertyDescriptor.Builder()
             .name("Mapping File Refresh Interval")
-            .description("The polling interval to check for updates to the mapping file. The default is 60s.")
+            .description("The polling interval to check for updates to the mapping file only if the mapping file is a file on the filesystem. The default is 60s.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .defaultValue("60s")
@@ -176,6 +178,20 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        final ResourceReference resourceReference = context.getProperty(MAPPING_FILE).asResource();
+        if (resourceReference.getResourceType() == ResourceType.TEXT) {
+            try {
+                getLogger().info("Reloading mapping file contents");
+                final InputStream inputStream = resourceReference.read();
+                setConfigurationState(inputStream);
+            } catch (IOException ioe) {
+                getLogger().error("Error reading mapping file", ioe);
+            }
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         updateMapping(context);
@@ -214,7 +230,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                 final StringBuilder sb = new StringBuilder(replacement.length() + 1);
                 final int groupStart = backRefMatcher.start(1) + replacementCount++;
 
-                sb.append(replacement.substring(0, groupStart - 1));
+                sb.append(replacement, 0, groupStart - 1);
                 sb.append("\\");
                 sb.append(replacement.substring(groupStart - 1));
                 replacement = sb.toString();
@@ -227,49 +243,56 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
     }
 
     private void updateMapping(final ProcessContext context) {
-        if (processorLock.tryLock()) {
-            final ComponentLog logger = getLogger();
-            try {
-                // if not queried mapping file lastUpdate time in
-                // mapppingRefreshPeriodSecs, do so.
-                long currentTimeSecs = System.currentTimeMillis() / 1000;
-                long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
+        final ResourceReference resourceReference = context.getProperty(MAPPING_FILE).asResource();
 
-                boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
-                if (retry) {
-                    mappingTestTime.set(System.currentTimeMillis() / 1000);
-                    // see if the mapping file needs to be reloaded
-                    final String fileName = context.getProperty(MAPPING_FILE).getValue();
-                    final File file = new File(fileName);
-                    if (file.exists() && file.isFile() && file.canRead()) {
-                        if (file.lastModified() > lastModified.get()) {
-                            lastModified.getAndSet(file.lastModified());
-                            try (FileInputStream is = new FileInputStream(file)) {
-                                logger.info("Reloading mapping file: {}", fileName);
+        if (resourceReference.getResourceType() == ResourceType.FILE) {
+            if (processorLock.tryLock()) {
+                final ComponentLog logger = getLogger();
+                try {
+                    // if not queried mapping file lastUpdate time in
+                    // mappingRefreshPeriodSecs, do so.
+                    long currentTimeSecs = System.currentTimeMillis() / 1000;
+                    long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
 
-                                final Map<String, String> mapping = loadMappingFile(is);
-                                final ConfigurationState newState = new ConfigurationState(mapping);
-                                configurationStateRef.set(newState);
-                            } catch (IOException e) {
-                                logger.error("Error reading mapping file", e);
+                    boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
+                    if (retry) {
+                        mappingTestTime.set(System.currentTimeMillis() / 1000);
+                        // see if the mapping file needs to be reloaded
+                        final File file = resourceReference.asFile();
+                        final String fileName = file.getName();
+                        if (file.exists() && file.isFile() && file.canRead()) {
+                            if (file.lastModified() > lastModified.get()) {
+                                lastModified.getAndSet(file.lastModified());
+                                try (InputStream is = resourceReference.read()) {
+                                    logger.info("Reloading mapping file: {}", fileName);
+                                    setConfigurationState(is);
+                                } catch (IOException e) {
+                                    logger.error("Error reading mapping file", e);
+                                }
                             }
+                        } else {
+                            logger.error("Mapping file does not exist or is not readable: {}", fileName);
                         }
-                    } else {
-                        logger.error("Mapping file does not exist or is not readable: {}", fileName);
                     }
+                } catch (Exception e) {
+                    logger.error("Error loading mapping file", e);
+                } finally {
+                    processorLock.unlock();
                 }
-            } catch (Exception e) {
-                logger.error("Error loading mapping file", e);
-            } finally {
-                processorLock.unlock();
             }
         }
+    }
+
+    private void setConfigurationState(InputStream inputStream) throws IOException {
+        final Map<String, String> mapping = loadMappingFile(inputStream);
+        final ConfigurationState newState = new ConfigurationState(mapping);
+        configurationStateRef.set(newState);
     }
 
     protected Map<String, String> loadMappingFile(InputStream is) throws IOException {
         Map<String, String> mapping = new HashMap<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        String line = null;
+        String line;
         while ((line = reader.readLine()) != null) {
             final String[] splits = StringUtils.split(line, "\t ", 2);
             if (splits.length == 1) {
@@ -311,14 +334,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         private final int numCapturingGroups;
         private final int groupToMatch;
 
-        private final AttributeValueDecorator quotedAttributeDecorator = new AttributeValueDecorator() {
-            @Override
-            public String decorate(final String attributeValue) {
-                return Pattern.quote(attributeValue);
-            }
-        };
-
         private ReplaceTextCallback(ProcessContext context, FlowFile flowFile, int maxBufferSize) {
+            AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
             this.regex = context.getProperty(REGEX).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
             this.flowFile = flowFile;
 
@@ -348,7 +365,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             matcher.reset();
             boolean result = matcher.find();
             if (result) {
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 do {
                     String matched = matcher.group(groupToMatch);
                     String rv = mapping.get(matched);

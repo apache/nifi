@@ -19,7 +19,11 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,14 +31,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestReplaceTextWithMapping {
+    private TestRunner runner;
 
-    public TestRunner getRunner() {
-        TestRunner runner = TestRunners.newTestRunner(ReplaceTextWithMapping.class);
+    @BeforeEach
+    public void setUp() {
+        runner = TestRunners.newTestRunner(ReplaceTextWithMapping.class);
 
         /*
          * we have to disable validation of expression language because the processor will
@@ -42,32 +49,37 @@ public class TestReplaceTextWithMapping {
          * the test will throw an error about the evaluation scope
          */
         runner.setValidateExpressionUsage(false);
-
-        return runner;
     }
 
-    @Test
-    public void testSimple() throws IOException {
-        final TestRunner runner = getRunner();
-        final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
+    @ParameterizedTest
+    @MethodSource("simpleTestArgs")
+    public void testSimple(String mappingFile) throws IOException {
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are apple\n"
-                + "violets are blueberry\n"
-                + "something else is grape\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                roses are apple
+                violets are blueberry
+                something else is grape
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
+    private static Stream<Arguments> simpleTestArgs() throws IOException {
+        final Path mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt");
+        return Stream.of(
+                Arguments.argumentSet("File path", mappingFile.toFile().getAbsolutePath()),
+                Arguments.argumentSet("File contents", Files.readString(mappingFile))
+        );
+    }
+
     @Test
-    public void testExpressionLanguageInText() throws IOException {
-        final TestRunner runner = getRunner();
+    public void testExpressionLanguageInText() {
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
 
@@ -77,15 +89,14 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "${foo} apple ${baz}";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = "${foo} apple ${baz}";
         assertEquals(expected, outputString);
     }
 
     @Test
-    public void testExpressionLanguageInText2() throws IOException {
-        final TestRunner runner = getRunner();
+    public void testExpressionLanguageInText2() {
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
         runner.setProperty(ReplaceTextWithMapping.REGEX, "\\|(.*?)\\|");
@@ -97,15 +108,14 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "${foo}|apple|${baz}";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = "${foo}|apple|${baz}";
         assertEquals(expected, outputString);
     }
 
     @Test
-    public void testExpressionLanguageInText3() throws IOException {
-        final TestRunner runner = getRunner();
+    public void testExpressionLanguageInText3() {
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
         runner.setProperty(ReplaceTextWithMapping.REGEX, ".*\\|(.*?)\\|.*");
@@ -117,15 +127,14 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "${foo}|apple|${baz}";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = "${foo}|apple|${baz}";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testWithMatchingGroupAndContext() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath());
@@ -134,18 +143,18 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "-roses- are -apple-\n"
-                + "violets are -blueberry-\n"
-                + "something else is -grape-\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                -roses- are -apple-
+                violets are -blueberry-
+                something else is -grape-
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testBackReference() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "(\\S+)");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-backreference-mapping.txt").toFile().getAbsolutePath());
@@ -154,25 +163,25 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are red apple\n"
-                + "violets are blue blueberry\n"
-                + "something else is green grape\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                roses are red apple
+                violets are blue blueberry
+                something else is green grape
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testRoutesToFailureIfTooLarge() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "[123]");
         runner.setProperty(ReplaceTextWithMapping.MAX_BUFFER_SIZE, "1 b");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "Good");
-        runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors.txt"));
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors.txt"), attributes);
 
         runner.run();
 
@@ -181,7 +190,6 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscaped() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-excessive-backreference-mapping.txt").toFile().getAbsolutePath());
@@ -190,18 +198,18 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "-roses- are -red$2 apple-\n"
-                + "violets are -blue$2 blueberry-\n"
-                + "something else is -green$2 grape-\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                -roses- are -red$2 apple-
+                violets are -blue$2 blueberry-
+                something else is -green$2 grape-
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedSimple() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE,
                 Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-excessive-backreference-mapping-simple.txt").toFile().getAbsolutePath());
 
@@ -209,18 +217,18 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are red$1 apple\n"
-                + "violets are blue$1 blueberry\n"
-                + "something else is green$1 grape\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                roses are red$1 apple
+                violets are blue$1 blueberry
+                something else is green$1 grape
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testBackReferenceWithInvalidReferenceIsEscaped() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "(\\S+)");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-invalid-backreference-mapping.txt").toFile().getAbsolutePath());
@@ -229,18 +237,18 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are red$d apple\n"
-                + "violets are blue$d blueberry\n"
-                + "something else is green$d grape\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        String expected = """
+                roses are red$d apple
+                violets are blue$d blueberry
+                something else is green$d grape
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testEscapingDollarSign() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-escaped-dollar-mapping.txt").toFile().getAbsolutePath());
@@ -249,72 +257,72 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "-roses- are -$1 apple-\n"
-                + "violets are -$1 blueberry-\n"
-                + "something else is -$1 grape-\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                -roses- are -$1 apple-
+                violets are -$1 blueberry-
+                something else is -$1 grape-
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testEscapingDollarSignSimple() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-escaped-dollar-mapping.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are $1 apple\n"
-                + "violets are $1 blueberry\n"
-                + "something else is $1 grape\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = """
+                roses are $1 apple
+                violets are $1 blueberry
+                something else is $1 grape
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testReplaceWithEmptyString() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-blank-mapping.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are \n"
-                + "violets are \n"
-                + "something else is \n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        String expected = """
+                roses are\s
+                violets are\s
+                something else is\s
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testReplaceWithSpaceInString() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-space-mapping.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are really red\n"
-                + "violets are super blue\n"
-                + "something else is ultra green\n"
-                + "I'm not good at writing poems";
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        String expected = """
+                roses are really red
+                violets are super blue
+                something else is ultra green
+                I'm not good at writing poems""";
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testWithNoMatch() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-no-match-mapping.txt").toFile().getAbsolutePath());
@@ -324,24 +332,20 @@ public class TestReplaceTextWithMapping {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = new String(Files.readAllBytes(path));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
+        final String outputString = out.getContent();
+        final String expected = Files.readString(path);
         assertEquals(expected, outputString);
     }
 
     @Test
     public void testMatchingGroupForLookupKeyTooLarge() throws IOException {
-        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "2");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-mapping.txt").toFile().getAbsolutePath());
 
         final Path path = Paths.get("src/test/resources/TestReplaceTextWithMapping/colors.txt");
         runner.enqueue(path);
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        assertThrows(AssertionError.class, runner::run);
     }
-
 }
