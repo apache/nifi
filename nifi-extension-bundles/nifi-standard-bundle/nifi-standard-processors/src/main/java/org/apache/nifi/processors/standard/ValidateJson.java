@@ -354,10 +354,12 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    void validateFlowFile(final ProcessSession session, final FlowFile flowFile) {
+    private void validateFlowFile(final ProcessSession session, final FlowFile flowFile) {
+        final Schema currentSchema = schema;
+
         try (final InputStream in = session.read(flowFile)) {
             final JsonNode node = mapper.readTree(in);
-            final List<Error> errors = schema.validate(node);
+            final List<Error> errors = currentSchema.validate(node);
 
             if (errors.isEmpty()) {
                 getLogger().debug("JSON {} valid", flowFile);
@@ -377,7 +379,8 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    void validateJsonLines(final ProcessSession session, final FlowFile flowFile) {
+    private void validateJsonLines(final ProcessSession session, final FlowFile flowFile) {
+        final Schema currentSchema = schema;
 
         try (final InputStream in = session.read(flowFile);
              final LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
@@ -390,7 +393,7 @@ public class ValidateJson extends AbstractProcessor {
                 }
 
                 final JsonNode node = mapper.readTree(line);
-                final List<Error> errors = schema.validate(node);
+                final List<Error> errors = currentSchema.validate(node);
 
                 if (!errors.isEmpty()) {
                     reader.close(); // NOTE: Must call close otherwise get IllegalStateException indicating FlowFile already in use
