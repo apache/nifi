@@ -148,7 +148,6 @@ public class QueryCassandraTest {
         testRunner.clearTransferState();
     }
 
-
     @Test
     public void testProcessorJsonOutput() throws Exception {
         setUpStandardProcessorConfig();
