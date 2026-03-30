@@ -48,6 +48,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.lang.reflect.Proxy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -147,8 +148,8 @@ public class StandardNiFiConnectorWebContextTest {
 
         assertNotNull(webContext.workingFlowContext());
         assertNotNull(webContext.activeFlowContext());
-        assertTrue(webContext.workingFlowContext() instanceof AuthorizingFlowContext);
-        assertTrue(webContext.activeFlowContext() instanceof AuthorizingFlowContext);
+        assertInstanceOf(AuthorizingFlowContext.class, webContext.workingFlowContext());
+        assertInstanceOf(AuthorizingFlowContext.class, webContext.activeFlowContext());
     }
 
     @Test
