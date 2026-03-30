@@ -354,7 +354,7 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    void validateFlowFile(ProcessSession session, FlowFile flowFile) {
+    void validateFlowFile(final ProcessSession session, final FlowFile flowFile) {
         try (final InputStream in = session.read(flowFile)) {
             final JsonNode node = mapper.readTree(in);
             final List<Error> errors = schema.validate(node);
@@ -365,10 +365,10 @@ public class ValidateJson extends AbstractProcessor {
                 session.transfer(flowFile, REL_VALID);
             } else {
                 final String validationMessages = errors.toString();
-                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationMessages);
+                final FlowFile invalidJsonFlowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationMessages);
                 getLogger().warn("JSON {} invalid: Validation Errors {}", flowFile, validationMessages);
-                session.getProvenanceReporter().route(flowFile, REL_INVALID);
-                session.transfer(flowFile, REL_INVALID);
+                session.getProvenanceReporter().route(invalidJsonFlowFile, REL_INVALID);
+                session.transfer(invalidJsonFlowFile, REL_INVALID);
             }
         } catch (final Exception e) {
             getLogger().error("JSON processing failed {}", flowFile, e);
