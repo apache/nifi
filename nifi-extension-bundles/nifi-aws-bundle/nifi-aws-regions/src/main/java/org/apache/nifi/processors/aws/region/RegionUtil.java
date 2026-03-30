@@ -91,8 +91,10 @@ public final class RegionUtil {
     }
 
     private static AllowableValue[] getRegionAllowableValues() {
-        final List<AllowableValue> values = getAwsRegionAllowableValues();
+        final List<AllowableValue> values = new ArrayList<>(getAwsRegionAllowableValues());
         values.add(USE_CUSTOM_REGION);
+        values.sort(Comparator.comparing(AllowableValue::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+
         return values.toArray(new AllowableValue[0]);
     }
 
@@ -105,7 +107,7 @@ public final class RegionUtil {
         for (final Region region : Region.regions()) {
             values.add(createAwsRegionAllowableValue(region));
         }
-        values.sort(Comparator.comparing(AllowableValue::getDisplayName));
+
         return values;
     }
 
