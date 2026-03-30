@@ -1525,6 +1525,18 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
                 startConnectablesAfterInitialization.clear();
                 startRemoteGroupPortsAfterInitialization.clear();
+
+                // Explicitly stop Connectors so that their state is properly transitioned from UPDATED to STOPPED.
+                for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
+                    try {
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        if (existingConnector != null) {
+                            connectorRepository.stopConnector(connectorNode);
+                        }
+                    } catch (final Throwable t) {
+                        LOG.error("Unable to stop {}", connectorNode, t);
+                    }
+                }
                 startConnectorsAfterInitialization.clear();
             }
 
