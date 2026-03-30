@@ -44,9 +44,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -149,7 +149,7 @@ public class KafkaToS3IT {
         schemaRegistryContainer.start();
 
         localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:4.1.0"))
-            .withServices(LocalStackContainer.Service.S3)
+            .withServices("s3")
             .withStartupTimeout(Duration.ofSeconds(30));
 
         localStackContainer.start();
@@ -253,7 +253,7 @@ public class KafkaToS3IT {
         return String.format("http://%s:%d", schemaRegistryContainer.getHost(), schemaRegistryContainer.getMappedPort(8081));
     }
 
-    private void produceAvroRecordsToTopic(final String topicName, final Schema schema, final GenericRecord... records) throws ExecutionException, InterruptedException {
+    private void produceAvroRecordsToTopic(final String topicName, final GenericRecord... records) throws ExecutionException, InterruptedException {
         final Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093");
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
@@ -450,7 +450,7 @@ public class KafkaToS3IT {
         record2.put("id", 200);
         record2.put("message", "Test message 2");
 
-        produceAvroRecordsToTopic("avro-topic", schema, record1, record2);
+        produceAvroRecordsToTopic("avro-topic", record1, record2);
 
         final Map<String, String> kafkaConnectionConfig = Map.of(
             "Kafka Brokers", "localhost:9093",
@@ -521,7 +521,7 @@ public class KafkaToS3IT {
         record3.put("eventType", "logout");
         record3.put("timestamp", System.currentTimeMillis());
 
-        produceAvroRecordsToTopic("user-events", schema, record1, record2, record3);
+        produceAvroRecordsToTopic("user-events", record1, record2, record3);
 
         final Map<String, String> kafkaConnectionConfig = Map.of(
             "Kafka Brokers", "localhost:9093",
@@ -622,7 +622,7 @@ public class KafkaToS3IT {
         avroRecord3.put("type", "avro");
         avroRecord3.put("data", "Third Avro record");
 
-        produceAvroRecordsToTopic("avro", schema, avroRecord1, avroRecord2, avroRecord3);
+        produceAvroRecordsToTopic("avro", avroRecord1, avroRecord2, avroRecord3);
 
         // Configure Connector to consume from JSON Kafka topic and write to S3 in JSON format, but with an invalid S3 endpoint.
         // This will cause the data to remain queued, since PutS3Object will fail to write the data.
