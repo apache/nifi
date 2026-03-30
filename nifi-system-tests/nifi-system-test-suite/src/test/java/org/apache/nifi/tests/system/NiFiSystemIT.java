@@ -156,17 +156,29 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public void teardown() throws Exception {
         logger.info("Beginning teardown");
 
+        setupClient();
+
         try {
             // In some cases a test can pass, but still leave a clustered instance with one
             // of the nodes in a bad state, if the instance then gets reused
             // it will cause later tests to fail, so it is better to destroy the environment
             // if the cluster is in a bad state at the end of a test
             final NiFiInstance nifiInstance = nifiRef.get();
-            if (nifiInstance != null && nifiInstance.isClustered() && (!isCoordinatorElected() || !allNodesConnected(nifiInstance.getNumberOfNodes()))) {
-                logger.info("Clustered environment is in a bad state, will completely tear down the environments and start with a clean environment for the next test.");
-                instanceCache.poison(nifiInstance);
-                cleanup();
-                return;
+            if (nifiInstance != null && nifiInstance.isClustered()) {
+                boolean clusterHealthy;
+                try {
+                    clusterHealthy = isCoordinatorElected() && allNodesConnected(nifiInstance.getNumberOfNodes());
+                } catch (final Exception e) {
+                    logger.warn("Failed to determine cluster health during teardown", e);
+                    clusterHealthy = false;
+                }
+
+                if (!clusterHealthy) {
+                    logger.info("Clustered environment is in a bad state, will completely tear down the environments and start with a clean environment for the next test.");
+                    instanceCache.poison(nifiInstance);
+                    cleanup();
+                    return;
+                }
             }
 
             Exception destroyFlowFailure = null;
