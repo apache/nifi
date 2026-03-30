@@ -136,6 +136,10 @@ class GoogleCloudStorageFileIO implements FileIO {
      */
     @Override
     public void close() {
-        httpClientProvider.close();
+        if (httpClientProvider == null) {
+            logger.warn("Closed before initialized");
+        } else {
+            httpClientProvider.close();
+        }
     }
 }

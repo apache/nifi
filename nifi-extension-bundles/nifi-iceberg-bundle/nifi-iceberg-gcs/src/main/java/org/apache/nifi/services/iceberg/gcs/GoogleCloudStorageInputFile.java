@@ -25,6 +25,7 @@ import java.net.http.HttpResponse;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_OK;
 
 /**
@@ -108,7 +109,18 @@ class GoogleCloudStorageInputFile implements InputFile {
 
         try {
             final HttpResponse<Void> response = httpClientProvider.send(request, HttpResponse.BodyHandlers.discarding());
-            return response.statusCode() == HTTP_OK;
+            final int statusCode = response.statusCode();
+
+            final boolean exists;
+            if (statusCode == HTTP_OK) {
+                exists = true;
+            } else if (statusCode == HTTP_NOT_FOUND) {
+                exists = false;
+            } else {
+                throw new HttpResponseException("Metadata URI [%s] request failed: HTTP %d".formatted(uri, statusCode));
+            }
+
+            return exists;
         } catch (final IOException e) {
             throw new HttpRequestException("Metadata URI [%s] request failed".formatted(uri), e);
         }

@@ -34,7 +34,6 @@ class GoogleCloudStorageProperties {
     static final String DEFAULT_SERVICE_HOST = "https://storage.googleapis.com";
     static final int DEFAULT_WRITE_CHUNK_SIZE = 8 * 1024 * 1024;
     static final int DEFAULT_READ_CHUNK_SIZE = 2 * 1024 * 1024;
-    static final int MINIMUM_CHUNK_SIZE = 256 * 1024;
 
     private static final String METADATA_URI_FORMAT = "%s/storage/v1/b/%s/o/%s";
     private static final String UPLOAD_URI_FORMAT = "%s/upload/storage/v1/b/%s/o?uploadType=resumable&name=%s";

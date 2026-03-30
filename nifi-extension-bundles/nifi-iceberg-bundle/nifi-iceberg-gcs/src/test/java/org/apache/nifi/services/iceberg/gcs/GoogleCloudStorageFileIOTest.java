@@ -33,7 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
 import static java.net.HttpURLConnection.HTTP_OK;
@@ -147,9 +147,9 @@ class GoogleCloudStorageFileIOTest {
     }
 
     @Test
-    void testDeleteFileFailedServerError() {
+    void testDeleteFileFailedForbidden() {
         mockWebServer.enqueue(new MockResponse.Builder()
-                .code(HTTP_INTERNAL_ERROR)
+                .code(HTTP_FORBIDDEN)
                 .build());
 
         fileIO = createFileIO(null);
@@ -217,7 +217,7 @@ class GoogleCloudStorageFileIOTest {
                 .build());
 
         fileIO = createFileIO(TOKEN, Map.of(
-                WRITE_CHUNK_SIZE_BYTES.getProperty(), String.valueOf(GoogleCloudStorageProperties.MINIMUM_CHUNK_SIZE)
+                WRITE_CHUNK_SIZE_BYTES.getProperty(), String.valueOf(GoogleCloudStorageProperties.DEFAULT_WRITE_CHUNK_SIZE)
         ));
 
         final OutputFile outputFile = fileIO.newOutputFile(BUCKET_OUTPUT_URI);
