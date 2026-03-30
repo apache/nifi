@@ -973,12 +973,10 @@ public class ReportingTaskResource extends ApplicationResource {
             final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
 
         final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
-        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
 
         final VerifyConfigRequestDTO dto = new VerifyConfigRequestDTO();
         dto.setComponentId(requestDto.getComponentId());
         dto.setProperties(requestDto.getProperties());
-        dto.setResults(resultsList);
 
         dto.setComplete(asyncRequest.isComplete());
         dto.setFailureReason(asyncRequest.getFailureReason());
@@ -987,6 +985,7 @@ public class ReportingTaskResource extends ApplicationResource {
         dto.setRequestId(requestId);
         dto.setState(asyncRequest.getState());
         dto.setUri(generateResourceUri("reporting-tasks", requestDto.getComponentId(), "config", "verification-requests", requestId));
+        dto.setResults(asyncRequest.getResults());
 
         final VerifyConfigRequestEntity entity = new VerifyConfigRequestEntity();
         entity.setRequest(dto);

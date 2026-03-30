@@ -102,8 +102,8 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
         }
 
         currentStepIndex++;
-        this.complete = currentStepIndex >= updateSteps.size();
         this.results = results;
+        this.complete = currentStepIndex >= updateSteps.size();
         this.lastUpdated = new Date();
         this.percentComplete = currentStepIndex  * 100 / updateSteps.size();
     }
