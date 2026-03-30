@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -104,7 +105,7 @@ public class StandardNiFiConnectorWebContextTest {
         context.setAuthorizer(authorizer);
         context.setAuthorizableLookup(authorizableLookup);
 
-        testConnectorMock = mock(TestConnector.class, withSettings().extraInterfaces(Connector.class).lenient());
+        testConnectorMock = mock(TestConnector.class, withSettings().extraInterfaces(Connector.class).strictness(Strictness.LENIENT));
         lenient().when(testConnectorMock.readData()).thenReturn("read-result");
         lenient().when(testConnectorMock.writeData(any())).thenAnswer(invocation -> {
             lastWrittenValue = invocation.getArgument(0);
