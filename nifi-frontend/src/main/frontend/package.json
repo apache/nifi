@@ -60,7 +60,7 @@
         "zone.js": "0.16.1"
     },
     "devDependencies": {
-        "@angular-devkit/build-angular": "21.1.5",
+        "@angular-devkit/build-angular": "21.2.5",
         "@angular-devkit/core": "21.1.5",
         "@angular-devkit/schematics": "21.1.5",
         "@angular-eslint/eslint-plugin": "21.3.0",
@@ -72,7 +72,7 @@
         "@eslint/eslintrc": "^3.3.5",
         "@eslint/js": "^10.0.1",
         "@happy-dom/jest-environment": "^20.0.0",
-        "@nx/angular": "22.5.4",
+        "@nx/angular": "22.6.3",
         "@nx/eslint": "22.5.4",
         "@nx/eslint-plugin": "22.5.4",
         "@nx/jest": "22.5.4",
