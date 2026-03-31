@@ -20,9 +20,11 @@ package org.apache.nifi.processors.email;
 import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetupTest;
+import jakarta.mail.FolderClosedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.StoreClosedException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.apache.nifi.util.MockFlowFile;
@@ -32,16 +34,29 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.integration.mail.inbound.AbstractMailReceiver;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConsumeEmail {
+
+    private static final String IMAP_USER = "nifiUserImap";
+    private static final String IMAP_PASSWORD = "nifiPassword";
+    @SuppressWarnings("unused")
+    private static final String POP3_USER = "nifiUserPop";
+    @SuppressWarnings("unused")
+    private static final String POP3_PASSWORD = "nifiPassword";
+    private static final String INBOX_FOLDER = "INBOX";
+    private static final long RECONNECT_WAIT_BUFFER_MILLIS = 1500L;
 
     private GreenMail mockIMAP4Server;
     private GreenMail mockPOP3Server;
@@ -79,17 +94,12 @@ public class TestConsumeEmail {
     @Test
     public void testConsumeIMAP4() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ConsumeIMAP());
-        runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.IMAP.getBindAddress());
-        runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.IMAP.getPort()));
-        runner.setProperty(ConsumeIMAP.USER, "nifiUserImap");
-        runner.setProperty(ConsumeIMAP.PASSWORD, "nifiPassword");
-        runner.setProperty(ConsumeIMAP.FOLDER, "INBOX");
-        runner.setProperty(ConsumeIMAP.USE_SSL, "false");
+        configureImapRunner(runner);
 
         addMessage("testConsumeImap1", imapUser);
         addMessage("testConsumeImap2", imapUser);
 
-        runner.run();
+        runner.run(5);
 
         runner.assertTransferCount(ConsumeIMAP.REL_SUCCESS, 2);
         final List<MockFlowFile> messages = runner.getFlowFilesForRelationship(ConsumeIMAP.REL_SUCCESS);
@@ -103,6 +113,18 @@ public class TestConsumeEmail {
 
         // Verify subject
         assertTrue(result.contains("testConsumeImap1"));
+
+        // Verify second email message
+        String result2 = new String(runner.getContentAsByteArray(messages.get(1)));
+
+        // Verify body
+        assertTrue(result2.contains("test test test chocolate"));
+
+        // Verify sender
+        assertTrue(result2.contains("alice@nifi.org"));
+
+        // Verify subject
+        assertTrue(result2.contains("testConsumeImap2"));
 
     }
 
@@ -119,7 +141,9 @@ public class TestConsumeEmail {
         addMessage("testConsumePop1", popUser);
         addMessage("testConsumePop2", popUser);
 
-        runner.run();
+        // We can not run the processor more than twice due to fact that
+        // GreenMail does not have a "SEEN" concept.
+        runner.run(2);
 
         runner.assertTransferCount(ConsumePOP3.REL_SUCCESS, 2);
         final List<MockFlowFile> messages = runner.getFlowFilesForRelationship(ConsumePOP3.REL_SUCCESS);
@@ -132,26 +156,38 @@ public class TestConsumeEmail {
         assertTrue(result.contains("alice@nifi.org"));
 
         // Verify subject
-        assertTrue(result.contains("Pop1"));
+        assertTrue(result.contains("testConsumePop1"));
+
+        // Verify second email message
+        String result2 = new String(runner.getContentAsByteArray(messages.get(1)));
+
+        // Verify body
+        assertTrue(result2.contains("test test test chocolate"));
+
+        // Verify sender
+        assertTrue(result2.contains("alice@nifi.org"));
+
+        // Verify subject
+        assertTrue(result2.contains("testConsumePop2"));
 
     }
 
     @Test
     public void validateProtocol() {
-        AbstractEmailProcessor<? extends AbstractMailReceiver> consume = new ConsumeIMAP();
-        TestRunner runner = TestRunners.newTestRunner(consume);
+        ConsumeIMAP consumeIMAP = new ConsumeIMAP();
+        TestRunner runner = TestRunners.newTestRunner(consumeIMAP);
         runner.setProperty(ConsumeIMAP.USE_SSL, "false");
 
-        assertEquals("imap", consume.getProtocol(runner.getProcessContext()));
+        assertEquals("imap", consumeIMAP.getProtocol(runner.getProcessContext()));
 
-        runner = TestRunners.newTestRunner(consume);
+        runner = TestRunners.newTestRunner(consumeIMAP);
         runner.setProperty(ConsumeIMAP.USE_SSL, "true");
 
-        assertEquals("imaps", consume.getProtocol(runner.getProcessContext()));
+        assertEquals("imaps", consumeIMAP.getProtocol(runner.getProcessContext()));
 
-        consume = new ConsumePOP3();
+        ConsumePOP3 consumePOP3 = new ConsumePOP3();
 
-        assertEquals("pop3", consume.getProtocol(runner.getProcessContext()));
+        assertEquals("pop3", consumePOP3.getProtocol(runner.getProcessContext()));
     }
 
     @Test
@@ -172,5 +208,119 @@ public class TestConsumeEmail {
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    @Test
+    public void testIsConnectionLostException() throws Exception {
+        ConsumeIMAP consume = new ConsumeIMAP();
+        TestRunner runner = TestRunners.newTestRunner(consume);
+        configureImapRunner(runner);
+
+        // Use reflection to access the private method
+        Method isConnectionLostException = AbstractEmailProcessor.class.getDeclaredMethod(
+                "isConnectionLostException", MessagingException.class);
+        isConnectionLostException.setAccessible(true);
+
+        // Test StoreClosedException - should return true
+        StoreClosedException storeClosedException = new StoreClosedException(null, "Connection dropped by server");
+        assertTrue((boolean) isConnectionLostException.invoke(consume, storeClosedException));
+
+        // Test FolderClosedException - should return true
+        FolderClosedException folderClosedException = new FolderClosedException(null, "Folder closed");
+        assertTrue((boolean) isConnectionLostException.invoke(consume, folderClosedException));
+
+        // Test MessagingException with connection-related message - should return true
+        MessagingException connectionDropped = new MessagingException("Connection dropped by server");
+        assertTrue((boolean) isConnectionLostException.invoke(consume, connectionDropped));
+
+        // Test MessagingException with IOException cause - should return true
+        MessagingException ioExceptionCause = new MessagingException("Error", new IOException("Connection reset"));
+        assertTrue((boolean) isConnectionLostException.invoke(consume, ioExceptionCause));
+
+        // Test regular MessagingException - should return false
+        MessagingException regularException = new MessagingException("Some other error");
+        assertFalse((boolean) isConnectionLostException.invoke(consume, regularException));
+
+        // Test MessagingException with non-connection IOException cause - should return
+        // false
+        MessagingException nonConnectionIoException = new MessagingException("Error", new IOException("Some IO error"));
+        assertFalse((boolean) isConnectionLostException.invoke(consume, nonConnectionIoException));
+    }
+
+    @Test
+    public void testHandleConnectionErrorSetsReceiverToNull() throws Exception {
+        // Arrange - Create and configure processor
+        ConsumeIMAP consume = new ConsumeIMAP();
+        TestRunner runner = TestRunners.newTestRunner(consume);
+        configureImapRunner(runner);
+        runner.setProperty(AbstractEmailProcessor.RECONNECT_WAIT_TIME, "1 sec");
+
+        // Set up reflection access to private members
+        java.lang.reflect.Field messageReceiverField = getAccessibleField("messageReceiver");
+        Method handleConnectionError = getAccessibleMethod("handleConnectionError", Exception.class);
+
+        // Act - Initialize processor by processing first message
+        addMessage("testHandleConnectionError", imapUser);
+        runner.run(1, false);
+
+        // Assert - Verify initial state after initialization
+        assertNotNull(messageReceiverField.get(consume), "messageReceiver should be initialized after first run");
+
+        // Act - Simulate connection error
+        StoreClosedException storeClosedException = new StoreClosedException(null, "Connection dropped by server");
+        handleConnectionError.invoke(consume, storeClosedException);
+
+        // Assert - Verify receiver is null after connection error
+        assertNull(messageReceiverField.get(consume), "messageReceiver should be null after handleConnectionError");
+
+        // Act - Wait for reconnection delay and trigger reinitialization
+        Thread.sleep(RECONNECT_WAIT_BUFFER_MILLIS);
+        addMessage("testHandleConnectionErrorReconnect", imapUser);
+        runner.run(1, false);
+
+        // Assert - Verify reconnection succeeded
+        assertNotNull(messageReceiverField.get(consume), "messageReceiver should be reinitialized after reconnection");
+        runner.assertAllFlowFilesTransferred(ConsumeIMAP.REL_SUCCESS, 2);
+    }
+
+    /**
+     * Configures the test runner with standard IMAP properties for testing.
+     *
+     * @param runner the test runner to configure
+     */
+    private void configureImapRunner(TestRunner runner) {
+        runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.IMAP.getBindAddress());
+        runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.IMAP.getPort()));
+        runner.setProperty(ConsumeIMAP.USER, IMAP_USER);
+        runner.setProperty(ConsumeIMAP.PASSWORD, IMAP_PASSWORD);
+        runner.setProperty(ConsumeIMAP.FOLDER, INBOX_FOLDER);
+        runner.setProperty(ConsumeIMAP.USE_SSL, Boolean.FALSE.toString());
+    }
+
+    /**
+     * Gets an accessible field from AbstractEmailProcessor using reflection.
+     *
+     * @param fieldName the name of the field to access
+     * @return an accessible Field object
+     * @throws NoSuchFieldException if the field does not exist
+     */
+    private java.lang.reflect.Field getAccessibleField(String fieldName) throws NoSuchFieldException {
+        java.lang.reflect.Field field = AbstractEmailProcessor.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field;
+    }
+
+    /**
+     * Gets an accessible method from AbstractEmailProcessor using reflection.
+     *
+     * @param methodName     the name of the method to access
+     * @param parameterTypes the parameter types of the method
+     * @return an accessible Method object
+     * @throws NoSuchMethodException if the method does not exist
+     */
+    private Method getAccessibleMethod(String methodName, Class<?>... parameterTypes) throws NoSuchMethodException {
+        Method method = AbstractEmailProcessor.class.getDeclaredMethod(methodName, parameterTypes);
+        method.setAccessible(true);
+        return method;
     }
 }

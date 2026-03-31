@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.email;
 
 import jakarta.mail.Address;
+import jakarta.mail.FolderClosedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.StoreClosedException;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -152,6 +154,18 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("30 sec")
             .build();
+    static final PropertyDescriptor RECONNECT_WAIT_TIME = new PropertyDescriptor.Builder()
+            .name("reconnect.wait.time")
+            .displayName("Reconnect Wait Time")
+            .description(
+                    "The amount of time to wait before attempting to reconnect to the Email server after a connection error. "
+                            +
+                            "This allows the processor to gracefully handle temporary connection issues without stopping.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .defaultValue("15 sec")
+            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -172,8 +186,8 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             FOLDER,
             FETCH_SIZE,
             SHOULD_DELETE_MESSAGES,
-            CONNECTION_TIMEOUT
-    );
+            CONNECTION_TIMEOUT,
+            RECONNECT_WAIT_TIME);
 
     static final Set<Relationship> SHARED_RELATIONSHIPS = Set.of(
             REL_SUCCESS
@@ -189,7 +203,9 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     private volatile ProcessSession processSession;
 
-    protected volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
+    private volatile long reconnectWaitTimeMillis = 15000; // Default to 15 seconds
+
+    protected volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional = Optional.empty();
     protected volatile AccessToken oauth2AccessDetails;
 
     protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
@@ -323,6 +339,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             this.messageReceiver = this.buildMessageReceiver(context);
 
             int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+            this.reconnectWaitTimeMillis = context.getProperty(RECONNECT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
             this.messageReceiver.setMaxFetchSize(fetchSize);
             this.messageReceiver.setJavaMailProperties(this.buildJavaMailProperties(context));
@@ -385,6 +402,10 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             try {
                 messages = this.messageReceiver.receive();
             } catch (MessagingException e) {
+                if (isConnectionLostException(e)) {
+                    handleConnectionError(e);
+                    return;
+                }
                 String errorMsg = "Failed to receive messages from Email server: [" + e.getClass().getName()
                         + " - " + e.getMessage();
                 this.getLogger().error(errorMsg);
@@ -397,6 +418,96 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
                 }
             }
         }
+    }
+
+    /**
+     * Determines if the given exception indicates a lost connection to the email
+     * server.
+     * This includes StoreClosedException, FolderClosedException, and
+     * IOException-related
+     * connection failures.
+     *
+     * @param e the exception to check
+     * @return true if the exception indicates a connection loss, false otherwise
+     */
+    private boolean isConnectionLostException(MessagingException e) {
+        // Check for StoreClosedException (connection to store was closed)
+        if (e instanceof StoreClosedException) {
+            return true;
+        }
+        // Check for FolderClosedException (folder was closed unexpectedly)
+        if (e instanceof FolderClosedException) {
+            return true;
+        }
+        // Check for connection-related messages in the exception
+        String message = e.getMessage();
+        if (message != null) {
+            String lowerMessage = message.toLowerCase();
+            // Only check for specific connection error patterns
+            if (lowerMessage.contains("connection dropped by server")
+                    || lowerMessage.contains("connection reset")
+                    || lowerMessage.contains("connection timed out")
+                    || lowerMessage.contains("connection closed by server")
+                    || lowerMessage.startsWith("* bye")) {
+                return true;
+            }
+        }
+        // Check for IOException as cause (common for connection failures)
+        // But only if it's a connection-related IOException
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof java.io.IOException) {
+                String causeMessage = cause.getMessage();
+                if (causeMessage != null) {
+                    String lowerCauseMessage = causeMessage.toLowerCase();
+                    if (lowerCauseMessage.contains("connection")
+                            || lowerCauseMessage.contains("reset")
+                            || lowerCauseMessage.contains("closed")
+                            || lowerCauseMessage.contains("timeout")) {
+                        return true;
+                    }
+                }
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    /**
+     * Handles connection errors by logging the error, destroying the current
+     * receiver,
+     * sleeping for the configured wait time, and triggering a reconnection.
+     *
+     * @param e the exception that caused the connection error
+     */
+    private void handleConnectionError(Exception e) {
+        long reconnectWaitTimeSeconds = TimeUnit.MILLISECONDS.toSeconds(this.reconnectWaitTimeMillis);
+
+        String errorMsg = "Connection to Email server failed: [" + e.getClass().getName()
+                + " - " + e.getMessage() + "]. Will attempt to reconnect in " + reconnectWaitTimeSeconds + " seconds.";
+        this.getLogger().error(errorMsg, e);
+
+        // Destroy the current receiver immediately before sleeping
+        // This ensures the broken connection is cleaned up before reconnection attempt
+        try {
+            if (this.messageReceiver != null) {
+                this.messageReceiver.destroy();
+            }
+        } catch (Exception destroyException) {
+            this.getLogger().debug("Exception while destroying the mail receiver during reconnection",
+                    destroyException);
+        } finally {
+            this.messageReceiver = null;
+        }
+
+        try {
+            Thread.sleep(this.reconnectWaitTimeMillis);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            this.getLogger().debug("Reconnection sleep was interrupted");
+        }
+
+        this.getLogger().info("Attempting to reconnect to Email server...");
     }
 
     /**
