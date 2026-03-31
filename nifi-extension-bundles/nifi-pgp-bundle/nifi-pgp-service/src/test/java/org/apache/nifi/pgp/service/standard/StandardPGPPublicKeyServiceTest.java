@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apche.nifi.pgp.service.standard;
+package org.apache.nifi.pgp.service.standard;
 
 import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
-import org.apache.nifi.pgp.service.standard.StandardPGPPublicKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.util.NoOpProcessor;

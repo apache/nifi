@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apche.nifi.pgp.service.standard;
+package org.apache.nifi.pgp.service.standard;
 
-import org.apache.nifi.pgp.service.standard.StandardPGPPrivateKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.util.NoOpProcessor;
@@ -29,12 +28,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardPGPPrivateKeyServiceTest {
@@ -42,11 +43,17 @@ public class StandardPGPPrivateKeyServiceTest {
 
     private static final String KEY_ENCRYPTION_PASSWORD = UUID.randomUUID().toString();
 
+    private static final String DIFFERENT_KEY_ENCRYPTION_PASSWORD = UUID.randomUUID().toString();
+
     private static PGPSecretKey rsaSecretKey;
+
+    private static PGPSecretKey rsaSecretKeyDifferentPassword;
 
     private static File rsaKeyringFileAscii;
 
     private static File rsaKeyringFileBinary;
+
+    private static File multiKeyKeyringFile;
 
     private static String rsaKeyAscii;
 
@@ -70,6 +77,12 @@ public class StandardPGPPrivateKeyServiceTest {
 
         elGamalKeyring = PGPSecretKeyGenerator.generateDsaElGamalSecretKeyRing(KEY_ENCRYPTION_PASSWORD.toCharArray());
         elGamalKeyringAscii = PGPFileUtils.getArmored(elGamalKeyring.getEncoded());
+
+        rsaSecretKeyDifferentPassword = PGPSecretKeyGenerator.generateRsaSecretKey(DIFFERENT_KEY_ENCRYPTION_PASSWORD.toCharArray());
+        final ByteArrayOutputStream combinedKeyring = new ByteArrayOutputStream();
+        combinedKeyring.write(rsaSecretKey.getEncoded());
+        combinedKeyring.write(rsaSecretKeyDifferentPassword.getEncoded());
+        multiKeyKeyringFile = PGPFileUtils.getKeyFile(combinedKeyring.toByteArray());
     }
 
     @BeforeEach
@@ -158,6 +171,21 @@ public class StandardPGPPrivateKeyServiceTest {
         for (final PGPSecretKey secretKey : elGamalKeyring) {
             assertPrivateKeyFound(secretKey);
         }
+    }
+
+    @Test
+    public void testFindPrivateKeyMultiKeyringMixedPasswords() throws Exception {
+        runner.addControllerService(SERVICE_ID, service);
+        runner.setProperty(service, StandardPGPPrivateKeyService.KEYRING_FILE, multiKeyKeyringFile.getAbsolutePath());
+        runner.setProperty(service, StandardPGPPrivateKeyService.KEY_PASSWORD, KEY_ENCRYPTION_PASSWORD);
+
+        runner.assertValid(service);
+        runner.enableControllerService(service);
+
+        assertPrivateKeyFound(rsaSecretKey);
+
+        final Optional<PGPPrivateKey> nonMatchingKey = service.findPrivateKey(rsaSecretKeyDifferentPassword.getKeyID());
+        assertFalse(nonMatchingKey.isPresent());
     }
 
     private void assertPrivateKeyFound(final PGPSecretKey pgpSecretKey) {

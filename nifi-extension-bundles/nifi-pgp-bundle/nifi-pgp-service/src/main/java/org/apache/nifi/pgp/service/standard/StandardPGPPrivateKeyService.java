@@ -112,6 +112,10 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
             final List<PGPPrivateKey> extractedPrivateKeys = new ArrayList<>(readKeyringFile(keyDecryptor, context));
             extractedPrivateKeys.addAll(readKeyring(keyDecryptor, context));
 
+            if (extractedPrivateKeys.isEmpty()) {
+                throw new InitializationException("No private keys could be decrypted with the provided passphrase");
+            }
+
             privateKeys = extractedPrivateKeys.stream().collect(
                     Collectors.toMap(
                             privateKey -> privateKey.getKeyID(),
@@ -263,11 +267,14 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
                 final String keyIdentifier = KeyIdentifierConverter.format(keyId);
                 try {
                     final PGPPrivateKey privateKey = secretKey.extractPrivateKey(keyDecryptor);
+                    if (privateKey == null) {
+                        getLogger().debug("Private Key [{}] extraction returned null: skipping", keyIdentifier);
+                        continue;
+                    }
                     extractedPrivateKeys.add(privateKey);
                     getLogger().debug("Extracted Private Key [{}]", keyIdentifier);
                 } catch (final PGPException e) {
-                    final String message = String.format("Private Key [%s] Extraction Failed: check password", keyIdentifier);
-                    throw new PGPConfigurationException(message, e);
+                    getLogger().debug("Private Key [{}] extraction failed: skipping", keyIdentifier, e);
                 }
             }
         }
