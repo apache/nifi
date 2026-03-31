@@ -53,6 +53,12 @@ Good candidates for system tests include changes to `ProcessScheduler`, `Process
 `ControllerServiceNode`, `FlowController`, `FlowManager`, how Parameters are handled, flow
 synchronization, the repositories, etc.
 
+When a system test switches the client to a specific cluster node using `switchClientToNode(...)`
+and then needs to verify the state of that node specifically, the request must bypass request
+replication by passing `NiFiSystemIT.DO_NOT_REPLICATE` to the client call. Otherwise, the request
+may be replicated or merged across the cluster and will not reliably reflect the state of the
+selected node.
+
 ## Escalation
 
 Any unit test that ends up requiring a large number of mocks is a good candidate for an

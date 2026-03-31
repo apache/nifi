@@ -30,3 +30,18 @@ codebase, but only after you have attempted to build the relevant modules yourse
 It is important not to run `mvn clean` at the root level or at the `nifi-assembly` level without
 the user's express permission, as this may delete a running instance of NiFi, causing permanent
 loss of flows and configuration.
+
+When preparing to run system tests, packaged runtime artifacts must be refreshed using
+`mvn clean install` on the relevant packaging modules. Do not rely on `mvn install` or
+`mvn package` alone for system tests, as stale NARs or assemblies may be reused.
+
+If a change affects code packaged into a NAR, rebuild the packaging module that delivers that
+code before running system tests. For example, changes under
+`nifi-framework-bundle/nifi-framework/nifi-web/...` require rebuilding
+`nifi-framework-bundle/nifi-server-nar`, because the runtime uses `nifi-server-nar` to deliver
+the updated web application classes.
+
+Before running tests in `nifi-system-tests/nifi-system-test-suite`, refresh its runtime assembly
+with `mvn clean install` for that module as well. The system test runtime uses
+`target/nifi-lib-assembly`, which is populated in `pre-integration-test` and later phases, so
+running `mvn test` or `mvn package` alone may leave stale runtime contents in place.

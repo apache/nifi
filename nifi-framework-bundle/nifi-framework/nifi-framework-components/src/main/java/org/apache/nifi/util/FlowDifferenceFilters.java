@@ -107,6 +107,31 @@ public class FlowDifferenceFilters {
             || isPropertyAddedFromMigration(difference, flowManager);
     }
 
+    /**
+     * Determines whether a Flow Difference represents a change that requires stopping and updating the affected component. Returns false for differences
+     * that are benign with respect to the running state of a component -- for example, a new property added with a default value, or a position change.
+     *
+     * This method must be used consistently in both the "affected components" calculation (which determines what to stop) and the synchronizer
+     * (which determines what to update). If these two paths use different filter sets, a component may be updated without first being stopped, causing failures.
+     *
+     * @param difference the Flow Difference to evaluate
+     * @param proposedContents the proposed VersionedProcessGroup from the target flow snapshot
+     * @param flowManager the Flow Manager
+     * @return true if the difference requires a component update, false if it can be safely ignored
+     */
+    public static boolean isComponentUpdateRequired(final FlowDifference difference, final VersionedProcessGroup proposedContents, final FlowManager flowManager) {
+        if (difference.getDifferenceType() == DifferenceType.POSITION_CHANGED) {
+            return false;
+        }
+
+        return !isPropertyMissingFromGhostComponent(difference, flowManager)
+            && !isScheduledStateNew(difference)
+            && !isNewPropertyWithDefaultValue(difference, flowManager)
+            && !isNewRelationshipAutoTerminatedAndDefaulted(difference, proposedContents, flowManager)
+            && !isLocalScheduleStateChange(difference)
+            && !isStaticPropertyRemoved(difference, flowManager);
+    }
+
     public static boolean isBundleChange(final FlowDifference difference) {
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED;
     }

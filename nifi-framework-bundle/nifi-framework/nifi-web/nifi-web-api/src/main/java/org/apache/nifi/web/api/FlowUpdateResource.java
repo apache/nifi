@@ -398,6 +398,11 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         } else {
             final FlowSnapshotContainer originalFlowSnapshotContainer = serviceFacade.getVersionedFlowSnapshot(vciEntity.getVersionControlInformation(), true);
             originalFlowSnapshot = originalFlowSnapshotContainer.getFlowSnapshot();
+
+            // Resolve compatible bundles for the rollback snapshot before any replication occurs,
+            // ensuring that all nodes in the cluster receive the same resolved bundle versions.
+            serviceFacade.discoverCompatibleBundles(originalFlowSnapshot.getFlowContents());
+            serviceFacade.discoverCompatibleBundles(originalFlowSnapshot.getParameterProviders());
         }
 
         try {

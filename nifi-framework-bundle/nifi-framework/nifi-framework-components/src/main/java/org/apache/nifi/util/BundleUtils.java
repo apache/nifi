@@ -26,6 +26,8 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,8 @@ import java.util.Optional;
  * Utility class for Bundles.
  */
 public final class BundleUtils {
+    private static final Logger logger = LoggerFactory.getLogger(BundleUtils.class);
+
     static Optional<BundleCoordinate> findOptionalBundleForType(final ExtensionManager extensionManager, final String type, final Bundle frameworkBundle) {
         final List<Bundle> bundles = extensionManager.getBundles(type);
         if (bundles.size() == 1) {
@@ -246,16 +250,32 @@ public final class BundleUtils {
     }
 
     public static void discoverCompatibleBundle(final ExtensionManager extensionManager, final ParameterProviderReference parameterProviderReference) {
-        final BundleDTO dto = createBundleDto(parameterProviderReference.getBundle());
+        final org.apache.nifi.flow.Bundle originalBundle = parameterProviderReference.getBundle();
+        final BundleDTO dto = createBundleDto(originalBundle);
         final BundleCoordinate coordinate = getOptionalCompatibleBundle(extensionManager, parameterProviderReference.getType(), dto).orElse(
                 new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
+
+        if (!coordinate.getVersion().equals(originalBundle.getVersion())) {
+            logger.info("Discovered compatible bundle for [{}] - original bundle [{}:{}:{}] mapped to compatible bundle [{}:{}:{}]", parameterProviderReference.getType(),
+                    originalBundle.getGroup(), originalBundle.getArtifact(), originalBundle.getVersion(),
+                    coordinate.getGroup(), coordinate.getId(), coordinate.getVersion());
+        }
+
         parameterProviderReference.setBundle(createBundle(coordinate));
     }
 
     public static void discoverCompatibleBundle(final ExtensionManager extensionManager, final VersionedConfigurableExtension extension) {
-        final BundleDTO dto = createBundleDto(extension.getBundle());
+        final org.apache.nifi.flow.Bundle originalBundle = extension.getBundle();
+        final BundleDTO dto = createBundleDto(originalBundle);
         final BundleCoordinate coordinate = getOptionalCompatibleBundle(extensionManager, extension.getType(), dto).orElse(
                 new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
+
+        if (!coordinate.getVersion().equals(originalBundle.getVersion())) {
+            logger.info("Discovered compatible bundle for [{}] - original bundle [{}:{}:{}] mapped to compatible bundle [{}:{}:{}]", extension.getType(),
+                    originalBundle.getGroup(), originalBundle.getArtifact(), originalBundle.getVersion(),
+                    coordinate.getGroup(), coordinate.getId(), coordinate.getVersion());
+        }
+
         extension.setBundle(createBundle(coordinate));
     }
 

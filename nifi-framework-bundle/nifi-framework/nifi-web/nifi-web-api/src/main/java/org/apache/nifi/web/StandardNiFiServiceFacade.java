@@ -6350,13 +6350,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(difference -> difference.getComponentA() != null) // a difference that would not affect a local component
-                .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
-                .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, proposedFlow.getContents(), flowManager))
-                .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
-                .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
-                .filter(diff -> !FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, flowManager))
-                .filter(diff -> !FlowDifferenceFilters.isStaticPropertyRemoved(diff, flowManager))
-                .filter(difference -> difference.getDifferenceType() != DifferenceType.POSITION_CHANGED)
+                .filter(diff -> FlowDifferenceFilters.isComponentUpdateRequired(diff, proposedFlow.getContents(), flowManager))
                 .map(difference -> {
                     final VersionedComponent localComponent = difference.getComponentA();
 
