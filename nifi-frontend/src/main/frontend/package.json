@@ -91,7 +91,7 @@
         "eslint-config-prettier": "10.1.8",
         "eslint-plugin-prettier": "5.5.5",
         "globals": "^17.4.0",
-        "happy-dom": "^20.0.2",
+        "happy-dom": "^20.8.9",
         "jest": "30.3.0",
         "jest-preset-angular": "16.0.0",
         "jest-util": "30.3.0",
