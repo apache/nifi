@@ -258,6 +258,7 @@ public class ValidateJson extends AbstractProcessor {
                             schemaDraftVersion -> SchemaRegistry.withDefaultDialect(mapToSpecification(schemaDraftVersion))
                     )
             );
+
     private volatile Schema schema;
     private volatile JsonSchemaRegistry jsonSchemaRegistry;
 
@@ -311,6 +312,7 @@ public class ValidateJson extends AbstractProcessor {
                 }
             }
         }
+
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
         final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
         mapper = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
@@ -337,13 +339,6 @@ public class ValidateJson extends AbstractProcessor {
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
-        }
-
-        if (schema == null) {
-            getLogger().error("JSON schema not configured for {}", flowFile);
-            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
-            session.transfer(flowFile, REL_FAILURE);
-            return;
         }
 
         final InputFormat inputFormat = context.getProperty(INPUT_FORMAT).asAllowableValue(InputFormat.class);
