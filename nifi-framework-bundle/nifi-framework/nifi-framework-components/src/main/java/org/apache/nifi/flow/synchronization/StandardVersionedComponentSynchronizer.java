@@ -328,10 +328,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         setSynchronizationOptions(options);
 
         for (final FlowDifference diff : flowComparison.getDifferences()) {
-            if (FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, context.getFlowManager())) {
-                continue;
-            }
-            if (FlowDifferenceFilters.isScheduledStateNew(diff)) {
+            if (!FlowDifferenceFilters.isComponentUpdateRequired(diff, versionedExternalFlow.getFlowContents(), context.getFlowManager())) {
                 continue;
             }
 
@@ -353,10 +350,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         continue;
                     }
                 }
-            }
-
-            if (diff.getDifferenceType() == DifferenceType.POSITION_CHANGED) {
-                continue;
             }
 
             final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();

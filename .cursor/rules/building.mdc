@@ -2,20 +2,6 @@
 description: Maven build instructions for the NiFi codebase
 alwaysApply: true
 ---
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-      http://www.apache.org/licenses/LICENSE-2.0
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
 
 # Building
 
@@ -30,3 +16,18 @@ codebase, but only after you have attempted to build the relevant modules yourse
 It is important not to run `mvn clean` at the root level or at the `nifi-assembly` level without
 the user's express permission, as this may delete a running instance of NiFi, causing permanent
 loss of flows and configuration.
+
+When preparing to run system tests, packaged runtime artifacts must be refreshed using
+`mvn clean install` on the relevant packaging modules. Do not rely on `mvn install` or
+`mvn package` alone for system tests, as stale NARs or assemblies may be reused.
+
+If a change affects code packaged into a NAR, rebuild the packaging module that delivers that
+code before running system tests. For example, changes under
+`nifi-framework-bundle/nifi-framework/nifi-web/...` require rebuilding
+`nifi-framework-bundle/nifi-server-nar`, because the runtime uses `nifi-server-nar` to deliver
+the updated web application classes.
+
+Before running tests in `nifi-system-tests/nifi-system-test-suite`, refresh its runtime assembly
+with `mvn clean install` for that module as well. The system test runtime uses
+`target/nifi-lib-assembly`, which is populated in `pre-integration-test` and later phases, so
+running `mvn test` or `mvn package` alone may leave stale runtime contents in place.

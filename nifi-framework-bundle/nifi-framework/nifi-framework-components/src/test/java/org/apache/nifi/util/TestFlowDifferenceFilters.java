@@ -740,6 +740,57 @@ public class TestFlowDifferenceFilters {
         assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
     }
 
+    @Test
+    public void testIsComponentUpdateRequiredForPositionChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final VersionedProcessor processorA = new VersionedProcessor();
+        final VersionedProcessor processorB = new VersionedProcessor();
+
+        final StandardFlowDifference positionDiff = new StandardFlowDifference(
+                DifferenceType.POSITION_CHANGED, processorA, processorB, null, null, "Position changed");
+
+        assertFalse(FlowDifferenceFilters.isComponentUpdateRequired(positionDiff, null, flowManager));
+    }
+
+    @Test
+    public void testIsComponentUpdateRequiredForScheduledStateNew() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final VersionedProcessor processorA = new VersionedProcessor();
+        final VersionedProcessor processorB = new VersionedProcessor();
+        processorA.setScheduledState(null);
+        processorB.setScheduledState(org.apache.nifi.flow.ScheduledState.RUNNING);
+
+        final StandardFlowDifference scheduledStateDiff = new StandardFlowDifference(
+                DifferenceType.SCHEDULED_STATE_CHANGED, processorA, processorB,
+                processorA.getScheduledState(), processorB.getScheduledState(), "");
+
+        assertFalse(FlowDifferenceFilters.isComponentUpdateRequired(scheduledStateDiff, null, flowManager));
+    }
+
+    @Test
+    public void testIsComponentUpdateRequiredForPropertyChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final VersionedProcessor processorA = new VersionedProcessor();
+        final VersionedProcessor processorB = new VersionedProcessor();
+
+        final StandardFlowDifference propertyDiff = new StandardFlowDifference(
+                DifferenceType.PROPERTY_CHANGED, processorA, processorB, "oldValue", "newValue", "Property changed");
+
+        assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(propertyDiff, null, flowManager));
+    }
+
+    @Test
+    public void testIsComponentUpdateRequiredForLocalScheduleStateChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final VersionedProcessor processorA = new VersionedProcessor();
+        final VersionedProcessor processorB = new VersionedProcessor();
+
+        final StandardFlowDifference scheduledStateDiff = new StandardFlowDifference(
+                DifferenceType.SCHEDULED_STATE_CHANGED, processorA, processorB, "STOPPED", "RUNNING", "");
+
+        assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(scheduledStateDiff, null, flowManager));
+    }
+
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
     private static class DynamicAnnotationProcessor extends AbstractProcessor {
         @Override

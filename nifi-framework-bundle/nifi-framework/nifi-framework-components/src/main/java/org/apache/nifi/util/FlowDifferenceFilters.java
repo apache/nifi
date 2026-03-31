@@ -107,6 +107,37 @@ public class FlowDifferenceFilters {
             || isPropertyAddedFromMigration(difference, flowManager);
     }
 
+    /**
+     * Determines whether a Flow Difference represents a change that requires stopping and updating the affected component. Returns false for differences
+     * that are benign with respect to the running state of a component -- for example, a new property added with a default value, or a position change.
+     *
+     * This method is used by the synchronizer to decide which components to update and by the affected-components calculation to decide which components
+     * to stop. Both callers must agree; otherwise a component may be updated without being stopped first, causing failures.
+     *
+     * Note: {@link #isLocalScheduleStateChange} is intentionally not included here. During a versioned flow update the
+     * {@code RetainExistingStateComponentScheduler} already preserves local scheduled-state, so including it would be harmless but redundant. During
+     * cluster reconnection, however, scheduled-state differences must be applied so the reconnecting node matches the cluster, and filtering them out
+     * would prevent the synchronizer from starting or stopping components as needed. Callers that build an "affected components" set for version
+     * changes should apply {@link #isLocalScheduleStateChange} as a separate filter to avoid flagging components whose only difference is a
+     * user-initiated state change.
+     *
+     * @param difference the Flow Difference to evaluate
+     * @param proposedContents the proposed VersionedProcessGroup from the target flow snapshot
+     * @param flowManager the Flow Manager
+     * @return true if the difference requires a component update, false if it can be safely ignored
+     */
+    public static boolean isComponentUpdateRequired(final FlowDifference difference, final VersionedProcessGroup proposedContents, final FlowManager flowManager) {
+        if (difference.getDifferenceType() == DifferenceType.POSITION_CHANGED) {
+            return false;
+        }
+
+        return !isPropertyMissingFromGhostComponent(difference, flowManager)
+            && !isScheduledStateNew(difference)
+            && !isNewPropertyWithDefaultValue(difference, flowManager)
+            && !isNewRelationshipAutoTerminatedAndDefaulted(difference, proposedContents, flowManager)
+            && !isStaticPropertyRemoved(difference, flowManager);
+    }
+
     public static boolean isBundleChange(final FlowDifference difference) {
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED;
     }

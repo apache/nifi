@@ -1,0 +1,9 @@
+---
+description: General coding best practices for maintainable NiFi changes
+alwaysApply: true
+---
+
+# Best Practices
+
+- Reuse expensive, thread-safe helpers instead of constructing them ad hoc in methods or tests.
+- For example, when a class needs an `ObjectMapper`, prefer a shared field such as `private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();` unless a special configuration requires a dedicated instance.

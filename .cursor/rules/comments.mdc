@@ -1,0 +1,14 @@
+---
+description: Keep source and test comments durable and code-focused
+alwaysApply: true
+---
+
+# Comment Guidance
+
+Write comments as durable explanations of the code or test contract itself.
+
+- Do not write temporary commentary such as "without the fix", "with the fix", "before this change", or "after this change".
+- Do not describe a code path relative to the current patch or bugfix timeline.
+- In tests, describe the scenario, setup, and behavior being verified, not how the test behaved before or after a fix.
+- Do not add redundant assertion messages that simply restate the assertion or expected value. Use an assertion message only when it adds unique diagnostic context that the assertion itself does not already provide.
+- If historical context matters, put it in commit messages, pull request descriptions, or issue tracking, not in source comments.
