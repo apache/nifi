@@ -148,7 +148,7 @@ describe('ComboEditor', () => {
             expect(component.itemLookup.get(formValue)?.value).toEqual(item.value);
             expect(component.comboEditorForm.get('parameterReference')).toBeNull();
 
-            jest.spyOn(component.ok, 'next');
+            vi.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.value);
         }
@@ -171,7 +171,7 @@ describe('ComboEditor', () => {
             expect(component.itemLookup.get(formValue)?.value).toEqual(item.descriptor.defaultValue);
             expect(component.comboEditorForm.get('parameterReference')).toBeNull();
 
-            jest.spyOn(component.ok, 'next');
+            vi.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.descriptor.defaultValue);
         }
@@ -265,7 +265,7 @@ describe('ComboEditor', () => {
             expect(component.itemLookup.get(formValue)?.value).toEqual(item.value);
             expect(component.comboEditorForm.get('parameterReference')).toBeNull();
 
-            jest.spyOn(component.ok, 'next');
+            vi.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.value);
         }
@@ -291,7 +291,7 @@ describe('ComboEditor', () => {
             const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
             expect(component.itemLookup.get(Number(parameterReferenceValue))?.value).toEqual(item.value);
 
-            jest.spyOn(component.ok, 'next');
+            vi.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(item.value);
         }
@@ -320,7 +320,7 @@ describe('ComboEditor', () => {
             const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
             expect(component.itemLookup.get(Number(parameterReferenceValue))?.value).toEqual(firstParameterValue);
 
-            jest.spyOn(component.ok, 'next');
+            vi.spyOn(component.ok, 'next');
             component.okClicked();
             expect(component.ok.next).toHaveBeenCalledWith(firstParameterValue);
         }

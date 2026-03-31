@@ -271,7 +271,7 @@ describe('ParameterProvidersTable', () => {
         it('should emit clearBulletinsParameterProvider when clearBulletinsClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockParameterProviderEntity();
-            jest.spyOn(component.clearBulletinsParameterProvider, 'next');
+            vi.spyOn(component.clearBulletinsParameterProvider, 'next');
 
             component.clearBulletinsClicked(mockEntity);
 

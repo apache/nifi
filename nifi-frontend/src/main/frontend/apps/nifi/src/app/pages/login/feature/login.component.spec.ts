@@ -20,6 +20,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Login } from './login.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { initialState as initialLoginConfigurationState } from '../../../state/login-configuration/login-configuration.reducer';
+import { loginConfigurationFeatureKey } from '../../../state/login-configuration';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 
 describe('Login', () => {
@@ -30,7 +33,14 @@ describe('Login', () => {
         TestBed.configureTestingModule({
             declarations: [Login],
             imports: [MatProgressSpinner],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [currentUserFeatureKey]: initialState,
+                        [loginConfigurationFeatureKey]: initialLoginConfigurationState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(Login);
         component = fixture.componentInstance;

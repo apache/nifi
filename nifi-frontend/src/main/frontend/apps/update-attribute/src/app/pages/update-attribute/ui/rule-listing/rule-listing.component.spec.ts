@@ -20,8 +20,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RuleListing } from './rule-listing.component';
 import { provideMockStore } from '@ngrx/store/testing';
+import { initialState as rulesInitialState } from '../../state/rules/rules.reducer';
+import { initialState as evaluationContextInitialState } from '../../state/evaluation-context/evaluation-context.reducer';
+import { initialState as advancedUiParametersInitialState } from '../../state/advanced-ui-parameters/advanced-ui-parameters.reducer';
+import { updateAttributeFeatureKey } from '../../state';
+import { advancedUiParametersFeatureKey } from '../../state/advanced-ui-parameters';
+import { evaluationContextFeatureKey } from '../../state/evaluation-context';
 import { rulesFeatureKey } from '../../state/rules';
-import { initialState } from '../../state/rules/rules.reducer';
 
 describe('RuleListing', () => {
     let component: RuleListing;
@@ -33,7 +38,11 @@ describe('RuleListing', () => {
             providers: [
                 provideMockStore({
                     initialState: {
-                        [rulesFeatureKey]: initialState
+                        [updateAttributeFeatureKey]: {
+                            [rulesFeatureKey]: rulesInitialState,
+                            [evaluationContextFeatureKey]: evaluationContextInitialState,
+                            [advancedUiParametersFeatureKey]: advancedUiParametersInitialState
+                        }
                     }
                 })
             ]

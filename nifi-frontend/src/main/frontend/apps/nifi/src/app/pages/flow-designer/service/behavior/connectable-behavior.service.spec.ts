@@ -23,7 +23,7 @@ import * as fromFlow from '../../state/flow/flow.reducer';
 import * as fromTransform from '../../state/transform/transform.reducer';
 import { flowFeatureKey } from '../../state/flow';
 import { selectFlowState } from '../../state/flow/flow.selectors';
-import { CanvasState } from '../../state';
+import { canvasFeatureKey, CanvasState } from '../../state';
 import { transformFeatureKey } from '../../state/transform';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
@@ -42,7 +42,7 @@ describe('ConnectableBehavior', () => {
     let service: ConnectableBehavior;
 
     beforeEach(() => {
-        const initialState: CanvasState = {
+        const canvasInitialState: CanvasState = {
             [flowFeatureKey]: fromFlow.initialState,
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
@@ -54,11 +54,13 @@ describe('ConnectableBehavior', () => {
         TestBed.configureTestingModule({
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [canvasFeatureKey]: canvasInitialState
+                    },
                     selectors: [
                         {
                             selector: selectFlowState,
-                            value: initialState[flowFeatureKey]
+                            value: canvasInitialState[flowFeatureKey]
                         },
                         {
                             selector: selectCurrentUser,

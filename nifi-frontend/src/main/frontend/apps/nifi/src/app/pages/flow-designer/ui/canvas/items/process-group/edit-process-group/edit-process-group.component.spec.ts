@@ -167,7 +167,7 @@ describe('EditProcessGroup', () => {
                     {
                         provide: ClusterConnectionService,
                         useValue: {
-                            isDisconnectionAcknowledged: jest.fn()
+                            isDisconnectionAcknowledged: vi.fn()
                         }
                     },
                     { provide: MatDialogRef, useValue: null }
@@ -330,7 +330,7 @@ describe('EditProcessGroup', () => {
                     {
                         provide: ClusterConnectionService,
                         useValue: {
-                            isDisconnectionAcknowledged: jest.fn()
+                            isDisconnectionAcknowledged: vi.fn()
                         }
                     },
                     { provide: MatDialogRef, useValue: null }
@@ -457,7 +457,7 @@ describe('EditProcessGroup', () => {
                     {
                         provide: ClusterConnectionService,
                         useValue: {
-                            isDisconnectionAcknowledged: jest.fn()
+                            isDisconnectionAcknowledged: vi.fn()
                         }
                     },
                     { provide: MatDialogRef, useValue: null }

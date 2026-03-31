@@ -25,119 +25,133 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ContentViewerService } from '../service/content-viewer.service';
 import { of } from 'rxjs';
+import { syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, indentUnit } from '@codemirror/language';
+import { json } from '@codemirror/lang-json';
+import { xml } from '@codemirror/lang-xml';
+import { yaml } from '@codemirror/lang-yaml';
+import { markdown } from '@codemirror/lang-markdown';
+import {
+    lineNumbers,
+    rectangularSelection,
+    crosshairCursor,
+    highlightActiveLine,
+    highlightActiveLineGutter
+} from '@codemirror/view';
+import { history } from '@codemirror/commands';
+import { EditorState } from '@codemirror/state';
 
 // Mock CodeMirror dependencies
-jest.mock('@codemirror/state', () => ({
+vi.mock('@codemirror/state', () => ({
     EditorState: {
-        create: jest.fn().mockReturnValue({
+        create: vi.fn().mockReturnValue({
             mockState: true,
             doc: {
                 length: 0,
                 lines: 1,
-                toString: jest.fn().mockReturnValue('')
+                toString: vi.fn().mockReturnValue('')
             }
         }),
         allowMultipleSelections: {
-            of: jest.fn().mockReturnValue({ mockAllowMultipleSelections: true })
+            of: vi.fn().mockReturnValue({ mockAllowMultipleSelections: true })
         },
         readOnly: {
-            of: jest.fn().mockReturnValue({ mockReadOnly: true })
+            of: vi.fn().mockReturnValue({ mockReadOnly: true })
         }
     },
     Prec: {
-        highest: jest.fn().mockReturnValue({ mockPrecHighest: true })
+        highest: vi.fn().mockReturnValue({ mockPrecHighest: true })
     },
     Annotation: {
-        define: jest.fn().mockReturnValue({
-            of: jest.fn().mockReturnValue({ mockAnnotation: true })
+        define: vi.fn().mockReturnValue({
+            of: vi.fn().mockReturnValue({ mockAnnotation: true })
         })
     },
-    Compartment: jest.fn().mockImplementation(() => ({
-        of: jest.fn().mockReturnValue({ mockCompartment: true }),
-        reconfigure: jest.fn().mockReturnValue({ mockReconfigure: true })
+    Compartment: vi.fn().mockImplementation(() => ({
+        of: vi.fn().mockReturnValue({ mockCompartment: true }),
+        reconfigure: vi.fn().mockReturnValue({ mockReconfigure: true })
     }))
 }));
 
-jest.mock('@codemirror/view', () => ({
+vi.mock('@codemirror/view', () => ({
     EditorView: Object.assign(
-        jest.fn().mockImplementation(() => ({
+        vi.fn().mockImplementation(() => ({
             contentDOM: {
-                addEventListener: jest.fn(),
-                removeEventListener: jest.fn()
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn()
             },
             state: {
                 doc: {
                     length: 10,
                     lines: 2,
-                    toString: jest.fn().mockReturnValue('test content')
+                    toString: vi.fn().mockReturnValue('test content')
                 }
             },
-            dispatch: jest.fn(),
-            focus: jest.fn(),
-            destroy: jest.fn()
+            dispatch: vi.fn(),
+            focus: vi.fn(),
+            destroy: vi.fn()
         })),
         {
             lineWrapping: { mockLineWrapping: true },
             contentAttributes: {
-                of: jest.fn().mockReturnValue({ mockContentAttributes: true })
+                of: vi.fn().mockReturnValue({ mockContentAttributes: true })
             },
-            theme: jest.fn().mockReturnValue({ mockTheme: true })
+            theme: vi.fn().mockReturnValue({ mockTheme: true })
         }
     ),
-    lineNumbers: jest.fn().mockReturnValue({ mockLineNumbers: true }),
-    highlightActiveLine: jest.fn().mockReturnValue({ mockHighlightActiveLine: true }),
-    highlightActiveLineGutter: jest.fn().mockReturnValue({ mockHighlightActiveLineGutter: true }),
-    rectangularSelection: jest.fn().mockReturnValue({ mockRectangularSelection: true }),
-    crosshairCursor: jest.fn().mockReturnValue({ mockCrosshairCursor: true }),
+    lineNumbers: vi.fn().mockReturnValue({ mockLineNumbers: true }),
+    highlightActiveLine: vi.fn().mockReturnValue({ mockHighlightActiveLine: true }),
+    highlightActiveLineGutter: vi.fn().mockReturnValue({ mockHighlightActiveLineGutter: true }),
+    rectangularSelection: vi.fn().mockReturnValue({ mockRectangularSelection: true }),
+    crosshairCursor: vi.fn().mockReturnValue({ mockCrosshairCursor: true }),
     keymap: {
-        of: jest.fn().mockReturnValue({ mockKeymap: true })
+        of: vi.fn().mockReturnValue({ mockKeymap: true })
     }
 }));
 
-jest.mock('@codemirror/language', () => ({
-    syntaxHighlighting: jest.fn().mockReturnValue({ mockSyntaxHighlighting: true }),
-    indentOnInput: jest.fn().mockReturnValue({ mockIndentOnInput: true }),
-    bracketMatching: jest.fn().mockReturnValue({ mockBracketMatching: true }),
-    foldGutter: jest.fn().mockReturnValue({ mockFoldGutter: true }),
+vi.mock('@codemirror/language', () => ({
+    syntaxHighlighting: vi.fn().mockReturnValue({ mockSyntaxHighlighting: true }),
+    indentOnInput: vi.fn().mockReturnValue({ mockIndentOnInput: true }),
+    bracketMatching: vi.fn().mockReturnValue({ mockBracketMatching: true }),
+    foldGutter: vi.fn().mockReturnValue({ mockFoldGutter: true }),
     foldKeymap: [{ mockFoldKeymap: true }],
     indentUnit: {
-        of: jest.fn().mockReturnValue({ mockIndentUnit: true })
+        of: vi.fn().mockReturnValue({ mockIndentUnit: true })
     },
     HighlightStyle: {
-        define: jest.fn().mockReturnValue({ mockHighlightStyle: true })
+        define: vi.fn().mockReturnValue({ mockHighlightStyle: true })
     }
 }));
 
-jest.mock('@codemirror/commands', () => ({
-    history: jest.fn().mockReturnValue({ mockHistory: true }),
+vi.mock('@codemirror/commands', () => ({
+    history: vi.fn().mockReturnValue({ mockHistory: true }),
     defaultKeymap: [{ mockDefaultKeymap: true }],
     historyKeymap: [{ mockHistoryKeymap: true }]
 }));
 
-jest.mock('@codemirror/lang-json', () => ({
-    json: jest.fn().mockReturnValue({ mockJson: true })
+vi.mock('@codemirror/lang-json', () => ({
+    json: vi.fn().mockReturnValue({ mockJson: true })
 }));
 
-jest.mock('@codemirror/lang-xml', () => ({
-    xml: jest.fn().mockReturnValue({ mockXml: true })
+vi.mock('@codemirror/lang-xml', () => ({
+    xml: vi.fn().mockReturnValue({ mockXml: true })
 }));
 
-jest.mock('@codemirror/lang-yaml', () => ({
-    yaml: jest.fn().mockReturnValue({ mockYaml: true })
+vi.mock('@codemirror/lang-yaml', () => ({
+    yaml: vi.fn().mockReturnValue({ mockYaml: true })
 }));
 
-jest.mock('@codemirror/lang-markdown', () => ({
-    markdown: jest.fn().mockReturnValue({ mockMarkdown: true })
+vi.mock('@codemirror/lang-markdown', () => ({
+    markdown: vi.fn().mockReturnValue({ mockMarkdown: true })
 }));
 
-jest.mock('@codemirror/autocomplete', () => ({
-    CompletionContext: jest.fn(),
-    autocompletion: jest.fn().mockReturnValue({ mockAutocompletion: true }),
-    Completion: jest.fn()
+vi.mock('@codemirror/autocomplete', () => ({
+    CompletionContext: vi.fn(),
+    autocompletion: vi.fn().mockReturnValue({ mockAutocompletion: true }),
+    Completion: vi.fn()
 }));
 
 // Mock @lezer/highlight
-jest.mock('@lezer/highlight', () => ({
+vi.mock('@lezer/highlight', () => ({
     tags: {
         keyword: 'keyword',
         string: 'string',
@@ -147,9 +161,9 @@ jest.mock('@lezer/highlight', () => ({
         punctuation: 'punctuation',
         bracket: 'bracket',
         variableName: 'variableName',
-        function: jest.fn().mockReturnValue('function'),
-        special: jest.fn().mockReturnValue('special'),
-        definition: jest.fn().mockReturnValue('definition'),
+        function: vi.fn().mockReturnValue('function'),
+        special: vi.fn().mockReturnValue('special'),
+        definition: vi.fn().mockReturnValue('definition'),
         labelName: 'labelName',
         typeName: 'typeName',
         className: 'className',
@@ -184,8 +198,8 @@ jest.mock('@lezer/highlight', () => ({
 }));
 
 // Mock the highlight styles
-jest.mock('@nifi/shared', () => ({
-    ...jest.requireActual('@nifi/shared'),
+vi.mock('@nifi/shared', async () => ({
+    ...(await vi.importActual('@nifi/shared')),
     jsonHighlightStyle: { mockJsonHighlightStyle: true },
     xmlHighlightStyle: { mockXmlHighlightStyle: true },
     yamlHighlightStyle: { mockYamlHighlightStyle: true }
@@ -194,11 +208,11 @@ jest.mock('@nifi/shared', () => ({
 describe('StandardContentViewer', () => {
     let component: StandardContentViewer;
     let fixture: ComponentFixture<StandardContentViewer>;
-    let _contentViewerService: jest.Mocked<ContentViewerService>;
+    let _contentViewerService: vi.Mocked<ContentViewerService>;
 
     beforeEach(() => {
         const contentViewerServiceSpy = {
-            getContent: jest.fn().mockReturnValue(of('mock content'))
+            getContent: vi.fn().mockReturnValue(of('mock content'))
         };
 
         TestBed.configureTestingModule({
@@ -219,7 +233,7 @@ describe('StandardContentViewer', () => {
         });
         fixture = TestBed.createComponent(StandardContentViewer);
         component = fixture.componentInstance;
-        _contentViewerService = TestBed.inject(ContentViewerService) as jest.Mocked<ContentViewerService>;
+        _contentViewerService = TestBed.inject(ContentViewerService) as vi.Mocked<ContentViewerService>;
 
         fixture.detectChanges();
     });
@@ -231,13 +245,10 @@ describe('StandardContentViewer', () => {
     describe('Syntax Highlighting', () => {
         beforeEach(() => {
             // Clear mocks before each test
-            jest.clearAllMocks();
+            vi.clearAllMocks();
         });
 
         it('should apply jsonHighlightStyle for json MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { json } = jest.requireMock('@codemirror/lang-json');
-
             // Set up component properties using bracket notation to access private properties
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'json';
@@ -251,9 +262,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should apply jsonHighlightStyle for avro MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { json } = jest.requireMock('@codemirror/lang-json');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'avro';
 
@@ -264,9 +272,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should apply xmlHighlightStyle for xml MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { xml } = jest.requireMock('@codemirror/lang-xml');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'xml';
 
@@ -277,9 +282,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should apply yamlHighlightStyle for yaml MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { yaml } = jest.requireMock('@codemirror/lang-yaml');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'yaml';
 
@@ -290,9 +292,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should apply markdown language for markdown MIME type without custom highlighting', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { markdown } = jest.requireMock('@codemirror/lang-markdown');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'markdown';
 
@@ -304,11 +303,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should not apply language-specific highlighting for text MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { json } = jest.requireMock('@codemirror/lang-json');
-            const { xml } = jest.requireMock('@codemirror/lang-xml');
-            const { yaml } = jest.requireMock('@codemirror/lang-yaml');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'text';
 
@@ -321,11 +315,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should not apply language-specific highlighting for csv MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { json } = jest.requireMock('@codemirror/lang-json');
-            const { xml } = jest.requireMock('@codemirror/lang-xml');
-            const { yaml } = jest.requireMock('@codemirror/lang-yaml');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'csv';
 
@@ -338,11 +327,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should not apply language-specific highlighting for unknown MIME type', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-            const { json } = jest.requireMock('@codemirror/lang-json');
-            const { xml } = jest.requireMock('@codemirror/lang-xml');
-            const { yaml } = jest.requireMock('@codemirror/lang-yaml');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'unknown';
 
@@ -356,18 +340,11 @@ describe('StandardContentViewer', () => {
     });
 
     describe('CodeMirror Configuration', () => {
-        it('should include base extensions for all MIME types', () => {
-            const {
-                lineNumbers,
-                rectangularSelection,
-                crosshairCursor,
-                highlightActiveLine,
-                highlightActiveLineGutter
-            } = jest.requireMock('@codemirror/view');
-            const { history } = jest.requireMock('@codemirror/commands');
-            const { indentOnInput, bracketMatching, indentUnit } = jest.requireMock('@codemirror/language');
-            const { EditorState, Prec: _Prec } = jest.requireMock('@codemirror/state');
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
 
+        it('should include base extensions for all MIME types', () => {
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'json';
 
@@ -387,8 +364,6 @@ describe('StandardContentViewer', () => {
         });
 
         it('should include fold functionality for structured languages', () => {
-            const { foldGutter } = jest.requireMock('@codemirror/language');
-
             (component as any).ref = 'test-ref';
             (component as any).mimeTypeDisplayName = 'json';
 
@@ -398,15 +373,13 @@ describe('StandardContentViewer', () => {
         });
 
         it('should not call loadContent when ref or mimeTypeDisplayName is missing', () => {
-            const { syntaxHighlighting } = jest.requireMock('@codemirror/language');
-
             // Test with missing ref
             (component as any).ref = '';
             (component as any).mimeTypeDisplayName = 'json';
             component.loadContent();
             expect(syntaxHighlighting).not.toHaveBeenCalled();
 
-            jest.clearAllMocks();
+            vi.clearAllMocks();
 
             // Test with missing mimeTypeDisplayName
             (component as any).ref = 'test-ref';

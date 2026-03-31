@@ -60,8 +60,8 @@ describe('DestinationRemoteProcessGroup Component', () => {
         }
 
         // Set up mock callbacks
-        component.onChange = jest.fn();
-        component.onTouched = jest.fn();
+        component.onChange = vi.fn();
+        component.onTouched = vi.fn();
 
         fixture.detectChanges();
 
@@ -69,7 +69,7 @@ describe('DestinationRemoteProcessGroup Component', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -152,14 +152,14 @@ describe('DestinationRemoteProcessGroup Component', () => {
     describe('ControlValueAccessor implementation', () => {
         it('should register onChange callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnChange(callback);
             expect(component.onChange).toBe(callback);
         });
 
         it('should register onTouched callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnTouched(callback);
             expect(component.onTouched).toBe(callback);
         });
@@ -178,8 +178,8 @@ describe('DestinationRemoteProcessGroup Component', () => {
 
         it('should handle value changes and call callbacks', async () => {
             const { component } = await setup();
-            const mockOnChange = jest.fn();
-            const mockOnTouched = jest.fn();
+            const mockOnChange = vi.fn();
+            const mockOnTouched = vi.fn();
 
             component.registerOnChange(mockOnChange);
             component.registerOnTouched(mockOnTouched);
@@ -194,8 +194,8 @@ describe('DestinationRemoteProcessGroup Component', () => {
 
         it('should not call onTouched multiple times', async () => {
             const { component } = await setup();
-            const mockOnChange = jest.fn();
-            const mockOnTouched = jest.fn();
+            const mockOnChange = vi.fn();
+            const mockOnTouched = vi.fn();
 
             component.registerOnChange(mockOnChange);
             component.registerOnTouched(mockOnTouched);
@@ -284,19 +284,20 @@ describe('DestinationRemoteProcessGroup Component', () => {
         });
 
         it('should toggle between error and select display based on ports availability', async () => {
-            const { component, fixture } = await setup();
+            const { fixture } = await setup();
 
             // Start with no ports
-            component.remoteProcessGroup = createMockRemoteProcessGroup('Test Group', []);
+            fixture.componentRef.setInput('remoteProcessGroup', createMockRemoteProcessGroup('Test Group', []));
             fixture.detectChanges();
 
             expect(fixture.nativeElement.querySelector('[data-qa="error-section"]')).toBeTruthy();
             expect(fixture.nativeElement.querySelector('[data-qa="input-port-select"]')).toBeFalsy();
 
             // Add ports
-            component.remoteProcessGroup = createMockRemoteProcessGroup('Test Group', [
-                createMockInputPort('port-1', 'Port 1')
-            ]);
+            fixture.componentRef.setInput(
+                'remoteProcessGroup',
+                createMockRemoteProcessGroup('Test Group', [createMockInputPort('port-1', 'Port 1')])
+            );
             fixture.detectChanges();
 
             expect(fixture.nativeElement.querySelector('[data-qa="error-section"]')).toBeFalsy();

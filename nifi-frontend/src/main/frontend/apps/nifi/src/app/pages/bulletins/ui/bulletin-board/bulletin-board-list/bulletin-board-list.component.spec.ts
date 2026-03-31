@@ -26,7 +26,7 @@ describe('BulletinBoardList', () => {
     let fixture: ComponentFixture<BulletinBoardList>;
 
     beforeEach(() => {
-        Element.prototype.scroll = jest.fn();
+        Element.prototype.scroll = vi.fn();
         TestBed.configureTestingModule({
             imports: [BulletinBoardList, NoopAnimationsModule, RouterTestingModule]
         });
@@ -242,7 +242,7 @@ describe('BulletinBoardList', () => {
     });
 
     it('should auto-scroll when bulletins change', fakeAsync(() => {
-        const scrollSpy = jest.spyOn(Element.prototype as any, 'scroll');
+        const scrollSpy = vi.spyOn(Element.prototype as any, 'scroll');
         scrollSpy.mockClear();
         const bulletin = {
             canRead: true,

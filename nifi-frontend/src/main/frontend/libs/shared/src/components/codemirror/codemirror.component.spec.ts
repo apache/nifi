@@ -19,17 +19,17 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Codemirror, CodeMirrorConfig } from './codemirror.component';
 import { SimpleChange } from '@angular/core';
 
-jest.mock('@codemirror/state', () => ({
+vi.mock('@codemirror/state', () => ({
     EditorState: {
-        create: jest.fn().mockReturnValue({
+        create: vi.fn().mockReturnValue({
             mockState: true,
             doc: {
                 length: 0,
                 lines: 1,
-                toString: jest.fn().mockReturnValue(''),
-                line: jest.fn().mockReturnValue({ text: 'mock line content' })
+                toString: vi.fn().mockReturnValue(''),
+                line: vi.fn().mockReturnValue({ text: 'mock line content' })
             },
-            update: jest.fn().mockReturnValue({ mockTransaction: true }),
+            update: vi.fn().mockReturnValue({ mockTransaction: true }),
             selection: {
                 main: {
                     from: 0,
@@ -38,28 +38,30 @@ jest.mock('@codemirror/state', () => ({
             }
         }),
         readOnly: {
-            of: jest.fn().mockReturnValue({ mockReadOnly: true })
+            of: vi.fn().mockReturnValue({ mockReadOnly: true })
         }
     },
-    Compartment: jest.fn().mockImplementation(() => ({
-        of: jest.fn().mockReturnValue({ mockCompartment: true }),
-        reconfigure: jest.fn().mockReturnValue({ mockReconfigure: true })
-    })),
+    Compartment: vi.fn().mockImplementation(function () {
+        return {
+            of: vi.fn().mockReturnValue({ mockCompartment: true }),
+            reconfigure: vi.fn().mockReturnValue({ mockReconfigure: true })
+        };
+    }),
     StateEffect: {
-        define: jest.fn().mockReturnValue(jest.fn().mockReturnValue({ mockDefinedEffect: true })),
+        define: vi.fn().mockReturnValue(vi.fn().mockReturnValue({ mockDefinedEffect: true })),
         reconfigure: {
-            of: jest.fn().mockReturnValue({ mockStateEffect: true })
+            of: vi.fn().mockReturnValue({ mockStateEffect: true })
         }
     },
     Annotation: {
-        define: jest.fn().mockReturnValue({
-            of: jest.fn().mockReturnValue({ mockAnnotation: true })
+        define: vi.fn().mockReturnValue({
+            of: vi.fn().mockReturnValue({ mockAnnotation: true })
         })
     }
 }));
 
 // Mock @lezer/highlight
-jest.mock('@lezer/highlight', () => ({
+vi.mock('@lezer/highlight', () => ({
     tags: {
         keyword: 'keyword',
         string: 'string',
@@ -69,9 +71,9 @@ jest.mock('@lezer/highlight', () => ({
         punctuation: 'punctuation',
         bracket: 'bracket',
         variableName: 'variableName',
-        function: jest.fn().mockReturnValue('function'),
-        special: jest.fn().mockReturnValue('special'),
-        definition: jest.fn().mockReturnValue('definition'),
+        function: vi.fn().mockReturnValue('function'),
+        special: vi.fn().mockReturnValue('special'),
+        definition: vi.fn().mockReturnValue('definition'),
         labelName: 'labelName',
         typeName: 'typeName',
         className: 'className',
@@ -106,63 +108,65 @@ jest.mock('@lezer/highlight', () => ({
 }));
 
 // Mock @codemirror/language
-jest.mock('@codemirror/language', () => ({
+vi.mock('@codemirror/language', () => ({
     HighlightStyle: {
-        define: jest.fn().mockReturnValue({ mockHighlightStyle: true })
+        define: vi.fn().mockReturnValue({ mockHighlightStyle: true })
     },
-    syntaxHighlighting: jest.fn().mockReturnValue({ mockSyntaxHighlighting: true }),
+    syntaxHighlighting: vi.fn().mockReturnValue({ mockSyntaxHighlighting: true }),
     defaultHighlightStyle: { mockDefaultHighlightStyle: true },
     StreamLanguage: {
-        define: jest.fn().mockReturnValue({ mockStreamLanguage: true })
+        define: vi.fn().mockReturnValue({ mockStreamLanguage: true })
     }
 }));
 
 // Mock EditorView for testing
-jest.mock('@codemirror/view', () => ({
+vi.mock('@codemirror/view', () => ({
     EditorView: Object.assign(
-        jest.fn().mockImplementation(() => ({
-            contentDOM: {
-                addEventListener: jest.fn(),
-                removeEventListener: jest.fn()
-            },
-            state: {
-                doc: {
-                    length: 10,
-                    lines: 2,
-                    toString: jest.fn().mockReturnValue('test content'),
-                    line: jest.fn().mockReturnValue({ text: 'mock line content' })
+        vi.fn().mockImplementation(function () {
+            return {
+                contentDOM: {
+                    addEventListener: vi.fn(),
+                    removeEventListener: vi.fn()
                 },
-                readOnly: false,
-                facet: jest.fn().mockReturnValue(true),
-                update: jest.fn().mockReturnValue({ mockTransaction: true }),
-                selection: {
-                    main: {
-                        from: 0,
-                        to: 5
+                state: {
+                    doc: {
+                        length: 10,
+                        lines: 2,
+                        toString: vi.fn().mockReturnValue('test content'),
+                        line: vi.fn().mockReturnValue({ text: 'mock line content' })
+                    },
+                    readOnly: false,
+                    facet: vi.fn().mockReturnValue(true),
+                    update: vi.fn().mockReturnValue({ mockTransaction: true }),
+                    selection: {
+                        main: {
+                            from: 0,
+                            to: 5
+                        }
                     }
-                }
-            },
-            dispatch: jest.fn(),
-            focus: jest.fn(),
-            destroy: jest.fn(),
-            hasFocus: true
-        })),
+                },
+                dispatch: vi.fn(),
+                focus: vi.fn(),
+                destroy: vi.fn(),
+                hasFocus: true
+            };
+        }),
         {
             updateListener: {
-                of: jest.fn().mockReturnValue({ mockUpdateListener: true })
+                of: vi.fn().mockReturnValue({ mockUpdateListener: true })
             },
             editable: {
-                of: jest.fn().mockReturnValue({ mockEditable: true })
+                of: vi.fn().mockReturnValue({ mockEditable: true })
             },
-            theme: jest.fn().mockReturnValue({ mockTheme: true }),
+            theme: vi.fn().mockReturnValue({ mockTheme: true }),
             lineWrapping: { mockLineWrapping: true }
         }
     ),
     keymap: {
-        of: jest.fn().mockReturnValue({ mockKeymap: true })
+        of: vi.fn().mockReturnValue({ mockKeymap: true })
     },
-    placeholder: jest.fn().mockReturnValue({ mockPlaceholder: true }),
-    highlightWhitespace: jest.fn().mockReturnValue({ mockHighlightWhitespace: true })
+    placeholder: vi.fn().mockReturnValue({ mockPlaceholder: true }),
+    highlightWhitespace: vi.fn().mockReturnValue({ mockHighlightWhitespace: true })
 }));
 
 describe('Codemirror', () => {
@@ -245,7 +249,7 @@ describe('Codemirror', () => {
         });
 
         it('should emit ready event after initialization', () => {
-            const readySpy = jest.spyOn(component.ready, 'emit');
+            const readySpy = vi.spyOn(component.ready, 'emit');
 
             component.ngOnInit();
 
@@ -375,7 +379,7 @@ describe('Codemirror', () => {
 
         it('should write value to editor via ControlValueAccessor', () => {
             const testValue = 'form control test value';
-            const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+            const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
             component.writeValue(testValue);
 
@@ -391,7 +395,7 @@ describe('Codemirror', () => {
 
         it('should not write same value twice', () => {
             const testValue = 'test content'; // Same as mock return value
-            const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+            const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
             dispatchSpy.mockClear(); // Clear any calls from initialization
 
             component.writeValue(testValue);
@@ -400,7 +404,7 @@ describe('Codemirror', () => {
         });
 
         it('should register onChange callback', () => {
-            const onChangeFn = jest.fn();
+            const onChangeFn = vi.fn();
 
             component.registerOnChange(onChangeFn);
 
@@ -408,7 +412,7 @@ describe('Codemirror', () => {
         });
 
         it('should register onTouched callback', () => {
-            const onTouchedFn = jest.fn();
+            const onTouchedFn = vi.fn();
 
             component.registerOnTouched(onTouchedFn);
 
@@ -416,7 +420,7 @@ describe('Codemirror', () => {
         });
 
         it('should handle disabled state changes', () => {
-            const setEditableSpy = jest.spyOn(component as any, 'setEditable');
+            const setEditableSpy = vi.spyOn(component as any, 'setEditable');
 
             component.setDisabledState(true);
 
@@ -424,7 +428,7 @@ describe('Codemirror', () => {
         });
 
         it('should handle enabled state changes', () => {
-            const setEditableSpy = jest.spyOn(component as any, 'setEditable');
+            const setEditableSpy = vi.spyOn(component as any, 'setEditable');
 
             component.setDisabledState(false);
 
@@ -439,8 +443,8 @@ describe('Codemirror', () => {
 
         describe('Event Listener Management', () => {
             it('should add event listener to content DOM', () => {
-                const mockListener = jest.fn();
-                const addEventListenerSpy = jest.spyOn(component['view']!.contentDOM, 'addEventListener');
+                const mockListener = vi.fn();
+                const addEventListenerSpy = vi.spyOn(component['view']!.contentDOM, 'addEventListener');
 
                 component.addEventListener('click', mockListener);
 
@@ -449,14 +453,14 @@ describe('Codemirror', () => {
 
             it('should not add event listener if view is not initialized', () => {
                 component['view'] = null;
-                const mockListener = jest.fn();
+                const mockListener = vi.fn();
 
                 expect(() => component.addEventListener('click', mockListener)).not.toThrow();
             });
 
             it('should remove event listener from content DOM', () => {
-                const mockListener = jest.fn();
-                const removeEventListenerSpy = jest.spyOn(component['view']!.contentDOM, 'removeEventListener');
+                const mockListener = vi.fn();
+                const removeEventListenerSpy = vi.spyOn(component['view']!.contentDOM, 'removeEventListener');
 
                 component.removeEventListener('click', mockListener);
 
@@ -465,7 +469,7 @@ describe('Codemirror', () => {
 
             it('should not remove event listener if view is not initialized', () => {
                 component['view'] = null;
-                const mockListener = jest.fn();
+                const mockListener = vi.fn();
 
                 expect(() => component.removeEventListener('click', mockListener)).not.toThrow();
             });
@@ -473,7 +477,7 @@ describe('Codemirror', () => {
 
         describe('Focus Management', () => {
             it('should focus the editor', () => {
-                const focusSpy = jest.spyOn(component['view']!, 'focus');
+                const focusSpy = vi.spyOn(component['view']!, 'focus');
 
                 component.focus();
 
@@ -511,7 +515,7 @@ describe('Codemirror', () => {
             });
 
             it('should set editor value programmatically', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component.setEditorValue('new content');
 
@@ -551,7 +555,7 @@ describe('Codemirror', () => {
 
         describe('Selection Management', () => {
             it('should select all text', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component.selectAll();
 
@@ -579,7 +583,7 @@ describe('Codemirror', () => {
             });
 
             it('should set selection range', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component.setSelection(2, 8);
 
@@ -589,7 +593,7 @@ describe('Codemirror', () => {
             });
 
             it('should set cursor position when to is not provided', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component.setSelection(5);
 
@@ -607,7 +611,7 @@ describe('Codemirror', () => {
 
         describe('Text Manipulation', () => {
             it('should insert text at cursor position', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component.insertText('inserted text');
 
@@ -627,7 +631,7 @@ describe('Codemirror', () => {
             });
 
             it('should replace text in range', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component.replaceRange(2, 8, 'replacement');
 
@@ -650,7 +654,7 @@ describe('Codemirror', () => {
         });
 
         it('should emit focused event on editor focus', () => {
-            const focusedSpy = jest.spyOn(component.focused, 'emit');
+            const focusedSpy = vi.spyOn(component.focused, 'emit');
 
             component.focused.emit();
 
@@ -658,7 +662,7 @@ describe('Codemirror', () => {
         });
 
         it('should emit blurred event on editor blur', () => {
-            const blurredSpy = jest.spyOn(component.blurred, 'emit');
+            const blurredSpy = vi.spyOn(component.blurred, 'emit');
 
             component.blurred.emit();
 
@@ -666,7 +670,7 @@ describe('Codemirror', () => {
         });
 
         it('should emit contentChange on document changes', () => {
-            const contentChangeSpy = jest.spyOn(component.contentChange, 'emit');
+            const contentChangeSpy = vi.spyOn(component.contentChange, 'emit');
 
             component.contentChange.emit('new content');
 
@@ -674,7 +678,7 @@ describe('Codemirror', () => {
         });
 
         it('should setup event listeners during initialization', () => {
-            const addEventListenerSpy = jest.spyOn(component['view']!.contentDOM, 'addEventListener');
+            const addEventListenerSpy = vi.spyOn(component['view']!.contentDOM, 'addEventListener');
 
             // Call setupEventListeners method directly
             component['setupEventListeners']();
@@ -697,10 +701,10 @@ describe('Codemirror', () => {
 
         describe('Configuration Application', () => {
             it('should apply initial configuration', () => {
-                const setThemeSpy = jest.spyOn(component as any, 'setTheme');
-                const setEditableSpy = jest.spyOn(component as any, 'setEditable');
-                const setReadonlySpy = jest.spyOn(component as any, 'setReadonly');
-                const setPluginsSpy = jest.spyOn(component as any, 'setPlugins');
+                const setThemeSpy = vi.spyOn(component as any, 'setTheme');
+                const setEditableSpy = vi.spyOn(component as any, 'setEditable');
+                const setReadonlySpy = vi.spyOn(component as any, 'setReadonly');
+                const setPluginsSpy = vi.spyOn(component as any, 'setPlugins');
 
                 component['applyInitialConfiguration']();
 
@@ -711,11 +715,11 @@ describe('Codemirror', () => {
             });
 
             it('should process configuration changes correctly', () => {
-                const setValueSpy = jest.spyOn(component as any, 'setValue');
-                const setEditableSpy = jest.spyOn(component as any, 'setEditable');
-                const setReadonlySpy = jest.spyOn(component as any, 'setReadonly');
-                const setThemeSpy = jest.spyOn(component as any, 'setTheme');
-                const setPluginsSpy = jest.spyOn(component as any, 'setPlugins');
+                const setValueSpy = vi.spyOn(component as any, 'setValue');
+                const setEditableSpy = vi.spyOn(component as any, 'setEditable');
+                const setReadonlySpy = vi.spyOn(component as any, 'setReadonly');
+                const setThemeSpy = vi.spyOn(component as any, 'setTheme');
+                const setPluginsSpy = vi.spyOn(component as any, 'setPlugins');
 
                 const previousConfig = {
                     content: 'old content',
@@ -743,8 +747,8 @@ describe('Codemirror', () => {
             });
 
             it('should not process unchanged configuration properties', () => {
-                const setValueSpy = jest.spyOn(component as any, 'setValue');
-                const setEditableSpy = jest.spyOn(component as any, 'setEditable');
+                const setValueSpy = vi.spyOn(component as any, 'setValue');
+                const setEditableSpy = vi.spyOn(component as any, 'setEditable');
 
                 const sameConfig = {
                     content: 'same content',
@@ -760,7 +764,7 @@ describe('Codemirror', () => {
 
         describe('Theme Management', () => {
             it('should set theme when view is initialized', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
                 const mockTheme = { mockTheme: true };
 
                 component['setTheme'](mockTheme as any);
@@ -778,7 +782,7 @@ describe('Codemirror', () => {
 
         describe('Editable State Management', () => {
             it('should set editable state when view is initialized', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component['setEditable'](false);
 
@@ -794,7 +798,7 @@ describe('Codemirror', () => {
 
         describe('Read-only State Management', () => {
             it('should set readonly state when view is initialized', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component['setReadonly'](true);
 
@@ -810,7 +814,7 @@ describe('Codemirror', () => {
 
         describe('Plugin Management', () => {
             it('should set plugins when view is initialized', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
                 const mockPlugins = [{ mockPlugin: true }];
 
                 component['setPlugins'](mockPlugins as any);
@@ -828,7 +832,7 @@ describe('Codemirror', () => {
 
         describe('Value Management', () => {
             it('should set value with external annotation', () => {
-                const dispatchSpy = jest.spyOn(component['view']!, 'dispatch');
+                const dispatchSpy = vi.spyOn(component['view']!, 'dispatch');
 
                 component['setValue']('new value');
 
@@ -915,7 +919,7 @@ describe('Codemirror', () => {
     describe('Cleanup', () => {
         it('should clean up editor on destroy', () => {
             fixture.detectChanges();
-            const destroySpy = jest.spyOn(component['view']!, 'destroy');
+            const destroySpy = vi.spyOn(component['view']!, 'destroy');
 
             component.ngOnDestroy();
 
@@ -942,7 +946,7 @@ describe('Codemirror', () => {
 
         it('should handle cleanup of event listeners', () => {
             fixture.detectChanges();
-            const mockListener = jest.fn();
+            const mockListener = vi.fn();
 
             // Add and remove event listener
             component.addEventListener('test-event', mockListener);

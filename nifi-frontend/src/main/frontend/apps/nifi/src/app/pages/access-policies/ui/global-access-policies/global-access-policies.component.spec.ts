@@ -23,7 +23,18 @@ import { initialState as initialErrorState } from '../../../../state/error/error
 import { errorFeatureKey } from '../../../../state/error';
 import { accessPoliciesFeatureKey } from '../../state';
 import { accessPolicyFeatureKey } from '../../state/access-policy';
+import { tenantsFeatureKey } from '../../state/tenants';
+import { initialState as initialTenantsState } from '../../state/tenants/tenants.reducer';
+import { policyComponentFeatureKey } from '../../state/policy-component';
+import { initialState as initialPolicyComponentState } from '../../state/policy-component/policy-component.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { extensionTypesFeatureKey } from '../../../../state/extension-types';
+import { initialExtensionsTypesState } from '../../../../state/extension-types/extension-types.reducer';
+import { flowConfigurationFeatureKey } from '../../../../state/flow-configuration';
+import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
+import { selectCurrentRoute } from '@nifi/shared';
 
 describe('GlobalAccessPolicies', () => {
     let component: GlobalAccessPolicies;
@@ -37,10 +48,25 @@ describe('GlobalAccessPolicies', () => {
                 provideMockStore({
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState,
+                        [flowConfigurationFeatureKey]: fromFlowConfiguration.initialState,
                         [accessPoliciesFeatureKey]: {
-                            [accessPolicyFeatureKey]: initialState
+                            [accessPolicyFeatureKey]: initialState,
+                            [tenantsFeatureKey]: initialTenantsState,
+                            [policyComponentFeatureKey]: initialPolicyComponentState
                         }
-                    }
+                    },
+                    selectors: [
+                        {
+                            selector: selectCurrentRoute,
+                            value: {
+                                params: {},
+                                routeConfig: { path: 'global' },
+                                url: []
+                            }
+                        }
+                    ]
                 })
             ]
         });

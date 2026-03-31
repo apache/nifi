@@ -100,7 +100,7 @@ const mockSelection: Partial<Record<'read' | 'write' | 'delete', PolicySelection
 describe('ManageBucketPoliciesDialogComponent', () => {
     let component: ManageBucketPoliciesDialogComponent;
     let fixture: ComponentFixture<ManageBucketPoliciesDialogComponent>;
-    let dialogRef: jest.Mocked<MatDialogRef<ManageBucketPoliciesDialogComponent>>;
+    let dialogRef: vi.Mocked<MatDialogRef<ManageBucketPoliciesDialogComponent>>;
 
     beforeEach(async () => {
         const options$ = new BehaviorSubject<BucketPolicyOptionsView>(mockOptions);
@@ -111,16 +111,16 @@ describe('ManageBucketPoliciesDialogComponent', () => {
         const isPolicyError$ = new BehaviorSubject<boolean>(false);
 
         const mockDialogRef = {
-            close: jest.fn()
+            close: vi.fn()
         };
 
         const afterOpenedSubject = new Subject();
         const afterAllClosedSubject = new Subject();
         const mockDialog = {
-            open: jest.fn().mockReturnValue({
+            open: vi.fn().mockReturnValue({
                 afterClosed: () => of(undefined)
             }),
-            _getAfterAllClosed: jest.fn(),
+            _getAfterAllClosed: vi.fn(),
             get afterAllClosed() {
                 return afterAllClosedSubject.asObservable();
             },
@@ -163,7 +163,7 @@ describe('ManageBucketPoliciesDialogComponent', () => {
 
         fixture = TestBed.createComponent(ManageBucketPoliciesDialogComponent);
         component = fixture.componentInstance;
-        dialogRef = TestBed.inject(MatDialogRef) as jest.Mocked<MatDialogRef<ManageBucketPoliciesDialogComponent>>;
+        dialogRef = TestBed.inject(MatDialogRef) as vi.Mocked<MatDialogRef<ManageBucketPoliciesDialogComponent>>;
         fixture.detectChanges();
     });
 
@@ -191,7 +191,7 @@ describe('ManageBucketPoliciesDialogComponent', () => {
     });
 
     it('should open add policy dialog when addPolicy is called', () => {
-        const dialogSpy = jest.spyOn(component['dialog'], 'open').mockReturnValue({
+        const dialogSpy = vi.spyOn(component['dialog'], 'open').mockReturnValue({
             afterClosed: () => of(undefined)
         } as any);
 
@@ -209,7 +209,7 @@ describe('ManageBucketPoliciesDialogComponent', () => {
     });
 
     it('should open edit policy dialog when editPolicy is called', () => {
-        const dialogSpy = jest.spyOn(component['dialog'], 'open').mockReturnValue({
+        const dialogSpy = vi.spyOn(component['dialog'], 'open').mockReturnValue({
             afterClosed: () => of(undefined)
         } as any);
 
@@ -228,79 +228,82 @@ describe('ManageBucketPoliciesDialogComponent', () => {
         );
     });
 
-    it('should emit savePolicies when addPolicy dialog returns result', (done) => {
-        const addResult = {
-            userOrGroup: user2,
-            permissions: ['read', 'write']
-        };
-        jest.spyOn(component['dialog'], 'open').mockReturnValue({
-            afterClosed: () => of(addResult)
-        } as any);
-
-        let emitCount = 0;
-        component.savePolicies.subscribe((request) => {
-            expect(request.bucketId).toBe(bucket.identifier);
-            expect(['read', 'write']).toContain(request.action);
-            emitCount++;
-            if (emitCount === 2) {
-                done();
-            }
-        });
-
-        component.addPolicy();
-    });
-
-    it('should emit savePolicies when editPolicy dialog returns result', (done) => {
-        // Wait for initialization to complete
-        setTimeout(() => {
-            const row = component.dataSource.data.find((r) => r.identity === 'alice')!; // alice with ['read', 'write']
-            const editResult = {
-                permissions: ['read'] // Removing 'write'
+    it('should emit savePolicies when addPolicy dialog returns result', () =>
+        new Promise<void>((resolve) => {
+            const addResult = {
+                userOrGroup: user2,
+                permissions: ['read', 'write']
             };
-            jest.spyOn(component['dialog'], 'open').mockReturnValue({
-                afterClosed: () => of(editResult)
+            vi.spyOn(component['dialog'], 'open').mockReturnValue({
+                afterClosed: () => of(addResult)
             } as any);
 
             let emitCount = 0;
             component.savePolicies.subscribe((request) => {
                 expect(request.bucketId).toBe(bucket.identifier);
+                expect(['read', 'write']).toContain(request.action);
                 emitCount++;
-                // Should emit once for removing 'write'
-                if (emitCount === 1) {
-                    expect(request.action).toBe('write');
-                    done();
+                if (emitCount === 2) {
+                    resolve();
                 }
             });
 
-            component.editPolicy(row);
-        }, 100);
-    });
+            component.addPolicy();
+        }));
 
-    it('should open confirmation dialog and emit savePolicies when removePolicy is called', (done) => {
-        const yesSubject = new Subject();
-        jest.spyOn(component['dialog'], 'open').mockReturnValue({
-            componentInstance: {
-                yes: yesSubject.asObservable()
-            },
-            afterClosed: () => of(undefined)
-        } as any);
+    it('should emit savePolicies when editPolicy dialog returns result', () =>
+        new Promise<void>((resolve) => {
+            // Wait for initialization to complete
+            setTimeout(() => {
+                const row = component.dataSource.data.find((r) => r.identity === 'alice')!; // alice with ['read', 'write']
+                const editResult = {
+                    permissions: ['read'] // Removing 'write'
+                };
+                vi.spyOn(component['dialog'], 'open').mockReturnValue({
+                    afterClosed: () => of(editResult)
+                } as any);
 
-        const row = component.dataSource.data[0];
+                let emitCount = 0;
+                component.savePolicies.subscribe((request) => {
+                    expect(request.bucketId).toBe(bucket.identifier);
+                    emitCount++;
+                    // Should emit once for removing 'write'
+                    if (emitCount === 1) {
+                        expect(request.action).toBe('write');
+                        resolve();
+                    }
+                });
 
-        let emitCount = 0;
-        const expectedEmissions = row.actions.length;
-        component.savePolicies.subscribe((request) => {
-            expect(request.bucketId).toBe(bucket.identifier);
-            expect(row.actions).toContain(request.action);
-            emitCount++;
-            if (emitCount === expectedEmissions) {
-                done();
-            }
-        });
+                component.editPolicy(row);
+            }, 100);
+        }));
 
-        component.removePolicy(row);
-        yesSubject.next(true);
-    });
+    it('should open confirmation dialog and emit savePolicies when removePolicy is called', () =>
+        new Promise<void>((resolve) => {
+            const yesSubject = new Subject();
+            vi.spyOn(component['dialog'], 'open').mockReturnValue({
+                componentInstance: {
+                    yes: yesSubject.asObservable()
+                },
+                afterClosed: () => of(undefined)
+            } as any);
+
+            const row = component.dataSource.data[0];
+
+            let emitCount = 0;
+            const expectedEmissions = row.actions.length;
+            component.savePolicies.subscribe((request) => {
+                expect(request.bucketId).toBe(bucket.identifier);
+                expect(row.actions).toContain(request.action);
+                emitCount++;
+                if (emitCount === expectedEmissions) {
+                    resolve();
+                }
+            });
+
+            component.removePolicy(row);
+            yesSubject.next(true);
+        }));
 
     it('should format permissions correctly', () => {
         const permissions = component['formatPermissions'](['write', 'read', 'delete']);

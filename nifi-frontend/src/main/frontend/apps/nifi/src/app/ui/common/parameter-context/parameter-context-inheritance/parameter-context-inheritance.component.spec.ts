@@ -97,11 +97,13 @@ describe('ParameterContextInheritance', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should retain the order of inheritance', () => {
+    it('should retain the order of inheritance', async () => {
         component.allParameterContexts = [parameterContext1, parameterContext2, parameterContext3, parameterContext4];
         // set the inheritance chain
         component.writeValue([parameterContext2, parameterContext1, parameterContext3]);
-        fixture.detectChanges();
+        fixture.detectChanges(false);
+        await fixture.whenStable();
+        fixture.detectChanges(false);
 
         expect(component.selectedParameterContexts.length).toEqual(3);
         expect(component.selectedParameterContexts[0].component?.id).toEqual('pc 2');

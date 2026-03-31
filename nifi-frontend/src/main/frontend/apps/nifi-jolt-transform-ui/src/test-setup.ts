@@ -14,9 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
 
-setupZoneTestEnv({
-    errorOnUnknownElements: true,
-    errorOnUnknownProperties: true
+import '@angular/compiler';
+import '@analogjs/vitest-angular/setup-zone';
+
+import { TestBed } from '@angular/core/testing';
+import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
+
+try {
+    TestBed.initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+        errorOnUnknownElements: true,
+        errorOnUnknownProperties: true
+    });
+} catch (_e) {
+    // Already initialized
+}
+
+afterEach(() => {
+    TestBed.resetTestingModule();
 });

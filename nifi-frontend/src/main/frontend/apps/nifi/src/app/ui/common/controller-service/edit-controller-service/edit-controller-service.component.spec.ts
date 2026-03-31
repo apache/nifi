@@ -27,6 +27,9 @@ import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 import { Client } from '../../../../service/client.service';
 import { Revision } from '@nifi/shared';
+import { provideMockStore } from '@ngrx/store/testing';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
 
 describe('EditControllerService', () => {
     let component: EditControllerService;
@@ -556,11 +559,16 @@ describe('EditControllerService', () => {
         TestBed.configureTestingModule({
             imports: [EditControllerService, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                }),
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null },
@@ -595,7 +603,7 @@ describe('EditControllerService', () => {
             properties: []
         };
 
-        jest.spyOn(component.editControllerService, 'next');
+        vi.spyOn(component.editControllerService, 'next');
         component.editControllerServiceForm.setValue(mockFormData);
         component.submitForm();
 

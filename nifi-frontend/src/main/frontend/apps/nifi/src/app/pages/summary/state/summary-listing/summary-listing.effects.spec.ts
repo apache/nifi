@@ -96,28 +96,28 @@ describe('SummaryListingEffects', () => {
                 {
                     provide: ProcessGroupStatusService,
                     useValue: {
-                        getProcessGroupsStatus: jest.fn()
+                        getProcessGroupsStatus: vi.fn()
                     }
                 },
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        handleLoadingError: jest.fn(),
-                        getErrorString: jest.fn()
+                        handleLoadingError: vi.fn(),
+                        getErrorString: vi.fn()
                     }
                 }
             ]
         }).compileComponents();
 
         const store = TestBed.inject(MockStore);
-        const summaryService = TestBed.inject(ProcessGroupStatusService) as jest.Mocked<ProcessGroupStatusService>;
-        const errorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        const summaryService = TestBed.inject(ProcessGroupStatusService) as vi.Mocked<ProcessGroupStatusService>;
+        const errorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
         const effects = TestBed.inject(SummaryListingEffects);
 
         return { store, summaryService, errorHelper, effects };
@@ -141,7 +141,7 @@ describe('SummaryListingEffects', () => {
             const { effects, summaryService } = await setup();
 
             action$.next(SummaryListingActions.loadSummaryListing({ recursive: false }));
-            jest.spyOn(summaryService, 'getProcessGroupsStatus').mockReturnValueOnce(
+            vi.spyOn(summaryService, 'getProcessGroupsStatus').mockReturnValueOnce(
                 of(mockSummaryResponse.status) as never
             );
 
@@ -161,7 +161,7 @@ describe('SummaryListingEffects', () => {
 
             action$.next(SummaryListingActions.loadSummaryListing({ recursive: false }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(summaryService, 'getProcessGroupsStatus').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(summaryService, 'getProcessGroupsStatus').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadSummaryListing$.pipe(take(1)).subscribe(resolve));
 
@@ -183,7 +183,7 @@ describe('SummaryListingEffects', () => {
 
             action$.next(SummaryListingActions.loadSummaryListing({ recursive: false }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(summaryService, 'getProcessGroupsStatus').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(summaryService, 'getProcessGroupsStatus').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadSummaryListing$.pipe(take(1)).subscribe(resolve));
 
@@ -212,7 +212,7 @@ describe('SummaryListingEffects', () => {
                     status: mockSummaryResponse.status
                 }
             });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadSummaryListingError$.pipe(take(1)).subscribe(resolve)
@@ -238,7 +238,7 @@ describe('SummaryListingEffects', () => {
                     status: mockSummaryResponse.status
                 }
             });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadSummaryListingError$.pipe(take(1)).subscribe(resolve)

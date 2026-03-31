@@ -77,7 +77,7 @@ describe('BucketTableComponent', () => {
         fixture = TestBed.createComponent(BucketTableComponent);
         component = fixture.componentInstance;
         store = TestBed.inject(Store);
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
 
         const buckets = [
             createBucket({ identifier: 'bucket-1', name: 'Alpha' }),
@@ -93,7 +93,7 @@ describe('BucketTableComponent', () => {
     });
 
     it('should emit when a bucket row is selected', () => {
-        jest.spyOn(component.selectBucket, 'next');
+        vi.spyOn(component.selectBucket, 'next');
         component.select(component.dataSource.data[0]);
         expect(component.selectBucket.next).toHaveBeenCalledWith(component.dataSource.data[0]);
     });

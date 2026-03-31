@@ -41,7 +41,7 @@ async function setup(options: SetupOptions = {}) {
     const { currentProcessGroupId = 'root', statusResponse, statusError } = options;
 
     const mockFlowService = {
-        getProcessGroupStatus: jest.fn()
+        getProcessGroupStatus: vi.fn()
     };
 
     if (statusError) {
@@ -51,11 +51,11 @@ async function setup(options: SetupOptions = {}) {
     }
 
     const mockRouter = {
-        navigate: jest.fn().mockReturnValue(Promise.resolve(true))
+        navigate: vi.fn().mockReturnValue(Promise.resolve(true))
     };
 
     const mockErrorHelper = {
-        fullScreenError: jest.fn().mockImplementation((error: HttpErrorResponse) =>
+        fullScreenError: vi.fn().mockImplementation((error: HttpErrorResponse) =>
             fullScreenError({
                 errorDetail: {
                     title: 'Insufficient Permissions',
@@ -76,14 +76,14 @@ async function setup(options: SetupOptions = {}) {
 
     const store = TestBed.inject(MockStore);
     store.overrideSelector(selectCurrentProcessGroupId, currentProcessGroupId);
-    const dispatchSpy = jest.spyOn(store, 'dispatch');
+    const dispatchSpy = vi.spyOn(store, 'dispatch');
 
     return { store, mockFlowService, mockRouter, mockErrorHelper, dispatchSpy };
 }
 
 describe('rootGroupGuard', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('when process group id is initial state (root)', () => {

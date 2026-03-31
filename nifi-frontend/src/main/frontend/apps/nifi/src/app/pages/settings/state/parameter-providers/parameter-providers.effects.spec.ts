@@ -39,9 +39,9 @@ import { settingsFeatureKey } from '../index';
 describe('ParameterProvidersEffects', () => {
     let actions$: ReplaySubject<Action>;
     let effects: ParameterProvidersEffects;
-    let mockParameterProviderService: jest.Mocked<ParameterProviderService>;
-    let mockErrorHelper: jest.Mocked<ErrorHelper>;
-    let mockDialog: jest.Mocked<MatDialog>;
+    let mockParameterProviderService: vi.Mocked<ParameterProviderService>;
+    let mockErrorHelper: vi.Mocked<ErrorHelper>;
+    let mockDialog: vi.Mocked<MatDialog>;
 
     // Mock data factories
     function createMockParameterProviderEntity(): ParameterProviderEntity {
@@ -85,36 +85,36 @@ describe('ParameterProvidersEffects', () => {
 
     beforeEach(() => {
         const parameterProviderServiceSpy = {
-            getParameterProviders: jest.fn(),
-            createParameterProvider: jest.fn(),
-            updateParameterProvider: jest.fn(),
-            deleteParameterProvider: jest.fn(),
-            fetchParameters: jest.fn(),
-            applyParameters: jest.fn(),
-            pollParameterProviderParametersUpdateRequest: jest.fn(),
-            deleteParameterProviderParametersUpdateRequest: jest.fn(),
-            clearBulletins: jest.fn()
-        } as unknown as jest.Mocked<ParameterProviderService>;
+            getParameterProviders: vi.fn(),
+            createParameterProvider: vi.fn(),
+            updateParameterProvider: vi.fn(),
+            deleteParameterProvider: vi.fn(),
+            fetchParameters: vi.fn(),
+            applyParameters: vi.fn(),
+            pollParameterProviderParametersUpdateRequest: vi.fn(),
+            deleteParameterProviderParametersUpdateRequest: vi.fn(),
+            clearBulletins: vi.fn()
+        } as unknown as vi.Mocked<ParameterProviderService>;
 
         const clientSpy = {
-            getClientId: jest.fn().mockReturnValue('test-client-id')
-        } as unknown as jest.Mocked<Client>;
+            getClientId: vi.fn().mockReturnValue('test-client-id')
+        } as unknown as vi.Mocked<Client>;
 
         const errorHelperSpy = {
-            handleLoadingError: jest.fn().mockReturnValue({ type: '[Error] Loading Error' }),
-            getErrorString: jest.fn().mockReturnValue('Test error message'),
-            showErrorInContext: jest.fn().mockReturnValue(true),
-            fullScreenError: jest.fn()
-        } as unknown as jest.Mocked<ErrorHelper>;
+            handleLoadingError: vi.fn().mockReturnValue({ type: '[Error] Loading Error' }),
+            getErrorString: vi.fn().mockReturnValue('Test error message'),
+            showErrorInContext: vi.fn().mockReturnValue(true),
+            fullScreenError: vi.fn()
+        } as unknown as vi.Mocked<ErrorHelper>;
 
         const routerSpy = {
-            navigate: jest.fn()
-        } as unknown as jest.Mocked<Router>;
+            navigate: vi.fn()
+        } as unknown as vi.Mocked<Router>;
 
         const dialogSpy = {
-            open: jest.fn(),
-            closeAll: jest.fn()
-        } as unknown as jest.Mocked<MatDialog>;
+            open: vi.fn(),
+            closeAll: vi.fn()
+        } as unknown as vi.Mocked<MatDialog>;
 
         TestBed.configureTestingModule({
             providers: [
@@ -150,30 +150,28 @@ describe('ParameterProvidersEffects', () => {
                 {
                     provide: PropertyTableHelperService,
                     useValue: {
-                        getComponentHistory: jest.fn(),
-                        createNewProperty: jest.fn(),
-                        createNewService: jest.fn()
+                        getComponentHistory: vi.fn(),
+                        createNewProperty: vi.fn(),
+                        createNewService: vi.fn()
                     }
                 },
                 {
                     provide: ManagementControllerServiceService,
                     useValue: {
-                        getControllerServices: jest.fn(),
-                        createControllerService: jest.fn(),
-                        getControllerService: jest.fn(),
-                        updateControllerService: jest.fn(),
-                        deleteControllerService: jest.fn()
+                        getControllerServices: vi.fn(),
+                        createControllerService: vi.fn(),
+                        getControllerService: vi.fn(),
+                        updateControllerService: vi.fn(),
+                        deleteControllerService: vi.fn()
                     }
                 }
             ]
         });
 
         effects = TestBed.inject(ParameterProvidersEffects);
-        mockParameterProviderService = TestBed.inject(
-            ParameterProviderService
-        ) as jest.Mocked<ParameterProviderService>;
-        mockErrorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
-        mockDialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+        mockParameterProviderService = TestBed.inject(ParameterProviderService) as vi.Mocked<ParameterProviderService>;
+        mockErrorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
+        mockDialog = TestBed.inject(MatDialog) as vi.Mocked<MatDialog>;
         actions$ = new ReplaySubject(1);
     });
 

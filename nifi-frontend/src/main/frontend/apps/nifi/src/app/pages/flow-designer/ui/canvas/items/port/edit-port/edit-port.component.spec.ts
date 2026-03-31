@@ -31,6 +31,21 @@ import { initialState as initialCurrentUserState } from '../../../../../../../st
 import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 import { canvasFeatureKey } from '../../../../../state';
 import { flowFeatureKey } from '../../../../../state/flow';
+import { initialState as initialTransformState } from '../../../../../state/transform/transform.reducer';
+import { transformFeatureKey } from '../../../../../state/transform';
+import { controllerServicesFeatureKey } from '../../../../../state/controller-services';
+import { initialState as initialControllerServicesState } from '../../../../../state/controller-services/controller-services.reducer';
+import { parameterFeatureKey } from '../../../../../state/parameter';
+import { initialState as initialParameterState } from '../../../../../state/parameter/parameter.reducer';
+import { queueFeatureKey } from '../../../../../../queue/state';
+import { initialState as initialQueueState } from '../../../../../state/queue/queue.reducer';
+import { flowAnalysisFeatureKey } from '../../../../../state/flow-analysis';
+import { initialState as initialFlowAnalysisState } from '../../../../../state/flow-analysis/flow-analysis.reducer';
+import { selectFlowState } from '../../../../../state/flow/flow.selectors';
+import { selectCurrentUser } from '../../../../../../../state/current-user/current-user.selectors';
+import { selectFlowConfiguration } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../../../../../state/flow-configuration/flow-configuration.reducer';
+import { flowConfigurationFeatureKey } from '../../../../../../../state/flow-configuration';
 
 describe('EditPort', () => {
     let component: EditPort;
@@ -109,15 +124,35 @@ describe('EditPort', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: fromFlowConfiguration.initialState,
                         [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialState
+                            [flowFeatureKey]: initialState,
+                            [transformFeatureKey]: initialTransformState,
+                            [controllerServicesFeatureKey]: initialControllerServicesState,
+                            [parameterFeatureKey]: initialParameterState,
+                            [queueFeatureKey]: initialQueueState,
+                            [flowAnalysisFeatureKey]: initialFlowAnalysisState
                         }
-                    }
+                    },
+                    selectors: [
+                        {
+                            selector: selectFlowState,
+                            value: initialState
+                        },
+                        {
+                            selector: selectCurrentUser,
+                            value: initialCurrentUserState.user
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
+                        }
+                    ]
                 }),
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null }

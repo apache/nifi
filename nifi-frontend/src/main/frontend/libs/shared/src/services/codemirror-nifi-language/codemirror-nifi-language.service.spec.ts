@@ -27,8 +27,8 @@ import { syntaxTree } from '@codemirror/language';
 
 describe('CodemirrorNifiLanguageService', () => {
     let service: CodemirrorNifiLanguageService;
-    let mockElService: jest.Mocked<ElService>;
-    let mockNiFiCommon: jest.Mocked<NiFiCommon>;
+    let mockElService: vi.Mocked<ElService>;
+    let mockNiFiCommon: vi.Mocked<NiFiCommon>;
 
     // Centralized test data
     const mockFunctions = [
@@ -52,8 +52,8 @@ describe('CodemirrorNifiLanguageService', () => {
     ];
 
     beforeEach(() => {
-        mockElService = { getElGuide: jest.fn() } as unknown as jest.Mocked<ElService>;
-        mockNiFiCommon = { compareString: jest.fn() } as unknown as jest.Mocked<NiFiCommon>;
+        mockElService = { getElGuide: vi.fn() } as unknown as vi.Mocked<ElService>;
+        mockNiFiCommon = { compareString: vi.fn() } as unknown as vi.Mocked<NiFiCommon>;
 
         // Generate EL guide HTML from mock data
         const functionsHtml = mockFunctions
@@ -102,7 +102,7 @@ describe('CodemirrorNifiLanguageService', () => {
             state,
             pos: position,
             explicit: false,
-            matchBefore: jest.fn((regex: RegExp) => {
+            matchBefore: vi.fn((regex: RegExp) => {
                 const beforeText = text.substring(0, position);
                 const match = beforeText.match(regex);
                 return match ? { from: position - match[0].length, to: position, text: match[0] } : null;

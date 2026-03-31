@@ -52,10 +52,10 @@ describe('UserListingEffects', () => {
                         }
                     }
                 }),
-                { provide: UsersService, useValue: { getUsers: jest.fn(), getUserGroups: jest.fn() } },
-                { provide: ErrorHelper, useValue: { handleLoadingError: jest.fn() } },
-                { provide: MatDialog, useValue: { open: jest.fn(), closeAll: jest.fn() } },
-                { provide: Router, useValue: { navigate: jest.fn() } },
+                { provide: UsersService, useValue: { getUsers: vi.fn(), getUserGroups: vi.fn() } },
+                { provide: ErrorHelper, useValue: { handleLoadingError: vi.fn() } },
+                { provide: MatDialog, useValue: { open: vi.fn(), closeAll: vi.fn() } },
+                { provide: Router, useValue: { navigate: vi.fn() } },
                 { provide: Client, useValue: {} },
                 { provide: NiFiCommon, useValue: {} }
             ]
@@ -84,8 +84,8 @@ describe('UserListingEffects', () => {
             const { effects, usersService } = await setup();
 
             action$.next(UserListingActions.loadTenants());
-            jest.spyOn(usersService, 'getUsers').mockReturnValueOnce(of(mockUsersResponse) as never);
-            jest.spyOn(usersService, 'getUserGroups').mockReturnValueOnce(of(mockUserGroupsResponse) as never);
+            vi.spyOn(usersService, 'getUsers').mockReturnValueOnce(of(mockUsersResponse) as never);
+            vi.spyOn(usersService, 'getUserGroups').mockReturnValueOnce(of(mockUserGroupsResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadTenants$.pipe(take(1)).subscribe(resolve));
 
@@ -105,8 +105,8 @@ describe('UserListingEffects', () => {
 
             action$.next(UserListingActions.loadTenants());
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(usersService, 'getUsers').mockImplementationOnce(() => throwError(() => error));
-            jest.spyOn(usersService, 'getUserGroups').mockReturnValueOnce(of(mockUserGroupsResponse) as never);
+            vi.spyOn(usersService, 'getUsers').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(usersService, 'getUserGroups').mockReturnValueOnce(of(mockUserGroupsResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadTenants$.pipe(take(1)).subscribe(resolve));
 
@@ -125,8 +125,8 @@ describe('UserListingEffects', () => {
 
             action$.next(UserListingActions.loadTenants());
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(usersService, 'getUsers').mockImplementationOnce(() => throwError(() => error));
-            jest.spyOn(usersService, 'getUserGroups').mockReturnValueOnce(of(mockUserGroupsResponse) as never);
+            vi.spyOn(usersService, 'getUsers').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(usersService, 'getUserGroups').mockReturnValueOnce(of(mockUserGroupsResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadTenants$.pipe(take(1)).subscribe(resolve));
 
@@ -146,7 +146,7 @@ describe('UserListingEffects', () => {
 
             const error = new HttpErrorResponse({ status: 500 });
             const errorAction = UserListingActions.usersApiBannerError({ error: 'Error loading' });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             action$.next(
                 UserListingActions.loadTenantsError({
@@ -167,7 +167,7 @@ describe('UserListingEffects', () => {
 
             const error = new HttpErrorResponse({ status: 500 });
             const errorAction = UserListingActions.usersApiBannerError({ error: 'Error loading' });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             action$.next(
                 UserListingActions.loadTenantsError({

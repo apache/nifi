@@ -14,9 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
 
-setupZoneTestEnv({
-    errorOnUnknownElements: true,
-    errorOnUnknownProperties: true
-});
+import { defineConfig, mergeConfig } from 'vitest/config';
+import sharedConfig from '../../vitest.shared.mts';
+
+export default mergeConfig(
+    sharedConfig,
+    defineConfig({
+        test: {
+            setupFiles: ['src/test-setup.ts'],
+            coverage: {
+                reportsDirectory: '../../coverage/apps/nifi-jolt-transform-ui'
+            }
+        }
+    })
+);

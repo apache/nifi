@@ -20,7 +20,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Canvas } from './canvas.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/flow/flow.reducer';
+import { initialState as flowInitialState } from '../../state/flow/flow.reducer';
 import { ContextMenu } from '../../../../ui/common/context-menu/context-menu.component';
 import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 import { selectBreadcrumbs } from '../../state/flow/flow.selectors';
@@ -40,6 +40,19 @@ import { initialState as initialErrorState } from '../../../../state/error/error
 import { errorFeatureKey } from '../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../state/current-user';
+import { flowConfigurationFeatureKey } from '../../../../state/flow-configuration';
+import { initialState as initialFlowConfigurationState } from '../../../../state/flow-configuration/flow-configuration.reducer';
+import { transformFeatureKey } from '../../state/transform';
+import { initialState as initialTransformState } from '../../state/transform/transform.reducer';
+import { controllerServicesFeatureKey } from '../../state/controller-services';
+import { initialState as initialControllerServicesState } from '../../state/controller-services/controller-services.reducer';
+import { parameterFeatureKey } from '../../state/parameter';
+import { initialState as initialParameterState } from '../../state/parameter/parameter.reducer';
+import { queueFeatureKey } from '../../../queue/state';
+import { initialState as initialQueueState } from '../../state/queue/queue.reducer';
+import { flowAnalysisFeatureKey } from '../../state/flow-analysis';
+import { initialState as initialFlowAnalysisState } from '../../state/flow-analysis/flow-analysis.reducer';
+import { selectUrl } from '@nifi/shared';
 
 describe('Canvas', () => {
     let component: Canvas;
@@ -79,14 +92,24 @@ describe('Canvas', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: initialFlowConfigurationState,
                         [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialState
+                            [flowFeatureKey]: flowInitialState,
+                            [transformFeatureKey]: initialTransformState,
+                            [controllerServicesFeatureKey]: initialControllerServicesState,
+                            [parameterFeatureKey]: initialParameterState,
+                            [queueFeatureKey]: initialQueueState,
+                            [flowAnalysisFeatureKey]: initialFlowAnalysisState
                         }
                     },
                     selectors: [
                         {
                             selector: selectBreadcrumbs,
                             value: breadcrumbEntity
+                        },
+                        {
+                            selector: selectUrl,
+                            value: '/'
                         }
                     ]
                 }),

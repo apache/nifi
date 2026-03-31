@@ -45,17 +45,17 @@ interface SetupOptions {
 
 async function setup(options: SetupOptions = {}) {
     const mockStorage = {
-        getItem: jest.fn(),
-        setItem: jest.fn()
+        getItem: vi.fn(),
+        setItem: vi.fn()
     };
 
     const mockDialogRef = {
-        keydownEvents: jest.fn().mockReturnValue({
-            pipe: jest.fn().mockReturnValue({
-                subscribe: jest.fn()
+        keydownEvents: vi.fn().mockReturnValue({
+            pipe: vi.fn().mockReturnValue({
+                subscribe: vi.fn()
             })
         }),
-        close: jest.fn()
+        close: vi.fn()
     };
 
     const providers: any[] = [
@@ -94,7 +94,7 @@ async function setup(options: SetupOptions = {}) {
 
 describe('TabbedDialog', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Dialog ID Configuration', () => {
@@ -195,8 +195,8 @@ describe('TabbedDialog', () => {
         it('should maintain separate storage entries for different dialog IDs', async () => {
             // Test first dialog with custom ID
             const mockStorage1 = {
-                getItem: jest.fn().mockReturnValue(1),
-                setItem: jest.fn()
+                getItem: vi.fn().mockReturnValue(1),
+                setItem: vi.fn()
             };
 
             TestBed.resetTestingModule();
@@ -207,10 +207,10 @@ describe('TabbedDialog', () => {
                     {
                         provide: MatDialogRef,
                         useValue: {
-                            keydownEvents: jest
+                            keydownEvents: vi
                                 .fn()
-                                .mockReturnValue({ pipe: jest.fn().mockReturnValue({ subscribe: jest.fn() }) }),
-                            close: jest.fn()
+                                .mockReturnValue({ pipe: vi.fn().mockReturnValue({ subscribe: vi.fn() }) }),
+                            close: vi.fn()
                         }
                     },
                     { provide: TABBED_DIALOG_ID, useValue: 'dialog-1' }
@@ -230,8 +230,8 @@ describe('TabbedDialog', () => {
 
             // Test second dialog with different custom ID
             const mockStorage2 = {
-                getItem: jest.fn().mockReturnValue(2),
-                setItem: jest.fn()
+                getItem: vi.fn().mockReturnValue(2),
+                setItem: vi.fn()
             };
 
             TestBed.resetTestingModule();
@@ -242,10 +242,10 @@ describe('TabbedDialog', () => {
                     {
                         provide: MatDialogRef,
                         useValue: {
-                            keydownEvents: jest
+                            keydownEvents: vi
                                 .fn()
-                                .mockReturnValue({ pipe: jest.fn().mockReturnValue({ subscribe: jest.fn() }) }),
-                            close: jest.fn()
+                                .mockReturnValue({ pipe: vi.fn().mockReturnValue({ subscribe: vi.fn() }) }),
+                            close: vi.fn()
                         }
                     },
                     { provide: TABBED_DIALOG_ID, useValue: 'dialog-2' }
@@ -267,8 +267,8 @@ describe('TabbedDialog', () => {
         it('should work correctly when switching from default to custom dialog ID', async () => {
             // Test default dialog ID
             const mockStorage1 = {
-                getItem: jest.fn().mockReturnValue(1),
-                setItem: jest.fn()
+                getItem: vi.fn().mockReturnValue(1),
+                setItem: vi.fn()
             };
 
             TestBed.resetTestingModule();
@@ -279,10 +279,10 @@ describe('TabbedDialog', () => {
                     {
                         provide: MatDialogRef,
                         useValue: {
-                            keydownEvents: jest
+                            keydownEvents: vi
                                 .fn()
-                                .mockReturnValue({ pipe: jest.fn().mockReturnValue({ subscribe: jest.fn() }) }),
-                            close: jest.fn()
+                                .mockReturnValue({ pipe: vi.fn().mockReturnValue({ subscribe: vi.fn() }) }),
+                            close: vi.fn()
                         }
                     }
                 ]
@@ -294,8 +294,8 @@ describe('TabbedDialog', () => {
 
             // Test custom dialog ID
             const mockStorage2 = {
-                getItem: jest.fn().mockReturnValue(5),
-                setItem: jest.fn()
+                getItem: vi.fn().mockReturnValue(5),
+                setItem: vi.fn()
             };
 
             TestBed.resetTestingModule();
@@ -306,10 +306,10 @@ describe('TabbedDialog', () => {
                     {
                         provide: MatDialogRef,
                         useValue: {
-                            keydownEvents: jest
+                            keydownEvents: vi
                                 .fn()
-                                .mockReturnValue({ pipe: jest.fn().mockReturnValue({ subscribe: jest.fn() }) }),
-                            close: jest.fn()
+                                .mockReturnValue({ pipe: vi.fn().mockReturnValue({ subscribe: vi.fn() }) }),
+                            close: vi.fn()
                         }
                     },
                     { provide: TABBED_DIALOG_ID, useValue: 'custom-id' }
@@ -327,19 +327,19 @@ describe('TabbedDialog', () => {
     describe('Error Handling', () => {
         it('should handle storage errors gracefully during initialization', async () => {
             const mockStorage = {
-                getItem: jest.fn().mockImplementation(() => {
+                getItem: vi.fn().mockImplementation(() => {
                     throw new Error('storage error');
                 }),
-                setItem: jest.fn()
+                setItem: vi.fn()
             };
 
             const mockDialogRef = {
-                keydownEvents: jest.fn().mockReturnValue({
-                    pipe: jest.fn().mockReturnValue({
-                        subscribe: jest.fn()
+                keydownEvents: vi.fn().mockReturnValue({
+                    pipe: vi.fn().mockReturnValue({
+                        subscribe: vi.fn()
                     })
                 }),
-                close: jest.fn()
+                close: vi.fn()
             };
 
             // Should not throw an error during component creation

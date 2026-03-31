@@ -289,7 +289,7 @@ describe('ConnectorDefinitionComponent', () => {
 
         it('should call loadStepDocumentation when step is documented', async () => {
             const { component, store } = await setup();
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
             const connectorDefinition = createMockConnectorDefinition();
             const step = createMockConfigurationStep('Documented Step', []);
             step.documented = true;
@@ -311,7 +311,7 @@ describe('ConnectorDefinitionComponent', () => {
 
         it('should not call loadStepDocumentation when step is not documented', async () => {
             const { component, store } = await setup();
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
             dispatchSpy.mockClear();
             const connectorDefinition = createMockConnectorDefinition();
             const step = createMockConfigurationStep('Undocumented Step', []);
@@ -342,7 +342,7 @@ describe('ConnectorDefinitionComponent', () => {
                     'Loading Step': { documentation: null, error: null, status: 'loading' }
                 }
             });
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
             dispatchSpy.mockClear();
             const connectorDefinition = createMockConnectorDefinition();
 
@@ -357,7 +357,7 @@ describe('ConnectorDefinitionComponent', () => {
                     'Loaded Step': { documentation: '# Docs', error: null, status: 'success' }
                 }
             });
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
             dispatchSpy.mockClear();
             const connectorDefinition = createMockConnectorDefinition();
 
@@ -368,7 +368,7 @@ describe('ConnectorDefinitionComponent', () => {
 
         it('should dispatch when step is not in state', async () => {
             const { component, store } = await setup();
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
             dispatchSpy.mockClear();
             const connectorDefinition = createMockConnectorDefinition();
 
@@ -393,7 +393,7 @@ describe('ConnectorDefinitionComponent', () => {
                     'Error Step': { documentation: null, error: 'Failed', status: 'error' }
                 }
             });
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
             dispatchSpy.mockClear();
             const connectorDefinition = createMockConnectorDefinition();
 

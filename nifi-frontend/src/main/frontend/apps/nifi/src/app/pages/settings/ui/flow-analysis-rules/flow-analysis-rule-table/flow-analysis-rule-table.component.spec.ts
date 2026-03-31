@@ -712,7 +712,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit selectFlowAnalysisRule when select is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.selectFlowAnalysisRule, 'next');
+            vi.spyOn(component.selectFlowAnalysisRule, 'next');
 
             component.select(entity);
 
@@ -722,7 +722,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit viewFlowAnalysisRuleDocumentation when viewDocumentationClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.viewFlowAnalysisRuleDocumentation, 'next');
+            vi.spyOn(component.viewFlowAnalysisRuleDocumentation, 'next');
 
             component.viewDocumentationClicked(entity);
 
@@ -732,7 +732,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit configureFlowAnalysisRule when configureClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.configureFlowAnalysisRule, 'next');
+            vi.spyOn(component.configureFlowAnalysisRule, 'next');
 
             component.configureClicked(entity);
 
@@ -742,7 +742,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit enableFlowAnalysisRule when enabledClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.enableFlowAnalysisRule, 'next');
+            vi.spyOn(component.enableFlowAnalysisRule, 'next');
 
             component.enabledClicked(entity);
 
@@ -752,7 +752,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit disableFlowAnalysisRule when disableClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.disableFlowAnalysisRule, 'next');
+            vi.spyOn(component.disableFlowAnalysisRule, 'next');
 
             component.disableClicked(entity);
 
@@ -762,7 +762,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit changeFlowAnalysisRuleVersion when changeVersionClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.changeFlowAnalysisRuleVersion, 'next');
+            vi.spyOn(component.changeFlowAnalysisRuleVersion, 'next');
 
             component.changeVersionClicked(entity);
 
@@ -772,7 +772,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit deleteFlowAnalysisRule when deleteClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.deleteFlowAnalysisRule, 'next');
+            vi.spyOn(component.deleteFlowAnalysisRule, 'next');
 
             component.deleteClicked(entity);
 
@@ -782,7 +782,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit viewStateFlowAnalysisRule when viewStateClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.viewStateFlowAnalysisRule, 'next');
+            vi.spyOn(component.viewStateFlowAnalysisRule, 'next');
 
             component.viewStateClicked(entity);
 
@@ -792,7 +792,7 @@ describe('FlowAnalysisRuleTable', () => {
         it('should emit clearBulletinsFlowAnalysisRule when clearBulletinsClicked is called', async () => {
             const { component } = await setup();
             const entity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(component.clearBulletinsFlowAnalysisRule, 'next');
+            vi.spyOn(component.clearBulletinsFlowAnalysisRule, 'next');
 
             component.clearBulletinsClicked(entity);
 

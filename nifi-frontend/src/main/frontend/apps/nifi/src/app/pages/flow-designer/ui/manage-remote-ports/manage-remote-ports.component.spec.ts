@@ -30,6 +30,9 @@ import { initialState as initialErrorState } from '../../../../state/error/error
 import { errorFeatureKey } from '../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../state/current-user';
+import { flowConfigurationFeatureKey } from '../../../../state/flow-configuration';
+import { aboutFeatureKey } from '../../../../state/about';
+import { selectCurrentRoute } from '@nifi/shared';
 
 describe('ManageRemotePorts', () => {
     let component: ManageRemotePorts;
@@ -49,8 +52,40 @@ describe('ManageRemotePorts', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
-                        [remotePortsFeatureKey]: initialState
-                    }
+                        [remotePortsFeatureKey]: initialState,
+                        [flowConfigurationFeatureKey]: {
+                            flowConfiguration: {
+                                supportsManagedAuthorizer: false,
+                                supportsConfigurableAuthorizer: false,
+                                supportsConfigurableUsersAndGroups: false,
+                                currentTime: '',
+                                timeOffset: 0,
+                                defaultBackPressureObjectThreshold: 0,
+                                defaultBackPressureDataSizeThreshold: 0
+                            },
+                            status: 'success' as const
+                        },
+                        [aboutFeatureKey]: {
+                            about: {
+                                title: '',
+                                version: '',
+                                uri: '',
+                                contentViewerUrl: '',
+                                timezone: 'UTC'
+                            },
+                            status: 'success' as const
+                        }
+                    },
+                    selectors: [
+                        {
+                            selector: selectCurrentRoute,
+                            value: {
+                                params: { rpgId: 'test-rpg' },
+                                routeConfig: { path: 'ports' },
+                                url: []
+                            }
+                        }
+                    ]
                 })
             ]
         });

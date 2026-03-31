@@ -28,6 +28,11 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { currentUserFeatureKey } from '../../../../state/current-user';
+import { accessFeatureKey } from '../../state/access';
+import { initialState as initialAccessState } from '../../state/access/access.reducer';
+import { loginFeatureKey } from '../../state';
+import { initialState as initialLoginConfigurationState } from '../../../../state/login-configuration/login-configuration.reducer';
+import { loginConfigurationFeatureKey } from '../../../../state/login-configuration';
 
 describe('LoginForm', () => {
     let component: LoginForm;
@@ -49,7 +54,11 @@ describe('LoginForm', () => {
             providers: [
                 provideMockStore({
                     initialState: {
-                        [currentUserFeatureKey]: initialState
+                        [currentUserFeatureKey]: initialState,
+                        [loginFeatureKey]: {
+                            [accessFeatureKey]: initialAccessState
+                        },
+                        [loginConfigurationFeatureKey]: initialLoginConfigurationState
                     }
                 })
             ]

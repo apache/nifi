@@ -52,8 +52,8 @@ describe('BulletinBoardEffects', () => {
                         }
                     }
                 }),
-                { provide: BulletinBoardService, useValue: { getBulletins: jest.fn() } },
-                { provide: ErrorHelper, useValue: { handleLoadingError: jest.fn() } }
+                { provide: BulletinBoardService, useValue: { getBulletins: vi.fn() } },
+                { provide: ErrorHelper, useValue: { handleLoadingError: vi.fn() } }
             ]
         }).compileComponents();
 
@@ -81,7 +81,7 @@ describe('BulletinBoardEffects', () => {
 
             const request = { after: 1, limit: 10 };
             action$.next(BulletinBoardActions.loadBulletinBoard({ request }));
-            jest.spyOn(bulletinBoardService, 'getBulletins').mockReturnValueOnce(of(mockResponse) as never);
+            vi.spyOn(bulletinBoardService, 'getBulletins').mockReturnValueOnce(of(mockResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadBulletinBoard$.pipe(take(1)).subscribe(resolve));
 
@@ -101,7 +101,7 @@ describe('BulletinBoardEffects', () => {
             const request = { after: 1, limit: 10 };
             action$.next(BulletinBoardActions.loadBulletinBoard({ request }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(bulletinBoardService, 'getBulletins').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(bulletinBoardService, 'getBulletins').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadBulletinBoard$.pipe(take(1)).subscribe(resolve));
 
@@ -121,7 +121,7 @@ describe('BulletinBoardEffects', () => {
             const request = { after: 1, limit: 10 };
             action$.next(BulletinBoardActions.loadBulletinBoard({ request }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(bulletinBoardService, 'getBulletins').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(bulletinBoardService, 'getBulletins').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadBulletinBoard$.pipe(take(1)).subscribe(resolve));
 
@@ -153,7 +153,7 @@ describe('BulletinBoardEffects', () => {
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.bulletinBoardListingError$.pipe(take(1)).subscribe(resolve)
@@ -180,7 +180,7 @@ describe('BulletinBoardEffects', () => {
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.bulletinBoardListingError$.pipe(take(1)).subscribe(resolve)

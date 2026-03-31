@@ -32,10 +32,10 @@ describe('NfEditor', () => {
 
     beforeEach(() => {
         mockNifiLanguagePackage = {
-            setLanguageOptions: jest.fn(),
-            getLanguageSupport: jest.fn().mockReturnValue({}),
-            isValidParameter: jest.fn().mockReturnValue(true),
-            isValidElFunction: jest.fn().mockReturnValue(true)
+            setLanguageOptions: vi.fn(),
+            getLanguageSupport: vi.fn().mockReturnValue({}),
+            isValidParameter: vi.fn().mockReturnValue(true),
+            isValidElFunction: vi.fn().mockReturnValue(true)
         };
 
         TestBed.configureTestingModule({
@@ -45,15 +45,15 @@ describe('NfEditor', () => {
                     provide: FormBuilder,
                     useValue: {
                         group: () => ({
-                            patchValue: jest.fn(),
-                            get: jest.fn().mockReturnValue({
+                            patchValue: vi.fn(),
+                            get: vi.fn().mockReturnValue({
                                 value: 'test',
-                                setValue: jest.fn(),
-                                disable: jest.fn(),
-                                enable: jest.fn(),
-                                addValidators: jest.fn(),
-                                removeValidators: jest.fn(),
-                                updateValueAndValidity: jest.fn()
+                                setValue: vi.fn(),
+                                disable: vi.fn(),
+                                enable: vi.fn(),
+                                addValidators: vi.fn(),
+                                removeValidators: vi.fn(),
+                                updateValueAndValidity: vi.fn()
                             }),
                             dirty: false,
                             valid: true
@@ -209,23 +209,23 @@ describe('NfEditor', () => {
 
         // Mock the form controls to track setValue and markAsDirty calls
         const mockValueControl = {
-            setValue: jest.fn(),
-            addValidators: jest.fn(),
-            removeValidators: jest.fn(),
-            disable: jest.fn(),
-            enable: jest.fn()
+            setValue: vi.fn(),
+            addValidators: vi.fn(),
+            removeValidators: vi.fn(),
+            disable: vi.fn(),
+            enable: vi.fn()
         };
         const mockEmptyStringControl = {
-            setValue: jest.fn(),
+            setValue: vi.fn(),
             value: false
         };
         const mockForm = {
-            get: jest.fn((control: string) => {
+            get: vi.fn((control: string) => {
                 if (control === 'value') return mockValueControl;
                 if (control === 'setEmptyString') return mockEmptyStringControl;
                 return null;
             }),
-            markAsDirty: jest.fn()
+            markAsDirty: vi.fn()
         };
 
         component.nfEditorForm = mockForm as any;

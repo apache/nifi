@@ -74,27 +74,27 @@ describe('FlowConfigurationHistoryListingEffects', () => {
                 {
                     provide: FlowConfigurationHistoryService,
                     useValue: {
-                        getHistory: jest.fn(),
-                        purgeHistory: jest.fn()
+                        getHistory: vi.fn(),
+                        purgeHistory: vi.fn()
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn()
+                        open: vi.fn()
                     }
                 },
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        handleLoadingError: jest.fn(),
-                        getErrorString: jest.fn()
+                        handleLoadingError: vi.fn(),
+                        getErrorString: vi.fn()
                     }
                 }
             ]
@@ -103,8 +103,8 @@ describe('FlowConfigurationHistoryListingEffects', () => {
         const store = TestBed.inject(MockStore);
         const historyService = TestBed.inject(
             FlowConfigurationHistoryService
-        ) as jest.Mocked<FlowConfigurationHistoryService>;
-        const errorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        ) as vi.Mocked<FlowConfigurationHistoryService>;
+        const errorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
         const effects = TestBed.inject(FlowConfigurationHistoryListingEffects);
 
         return { store, historyService, errorHelper, effects };
@@ -129,7 +129,7 @@ describe('FlowConfigurationHistoryListingEffects', () => {
 
             const request = { count: 50, offset: 0 };
             action$.next(HistoryActions.loadHistory({ request }));
-            jest.spyOn(historyService, 'getHistory').mockReturnValueOnce(of(mockHistoryResponse) as never);
+            vi.spyOn(historyService, 'getHistory').mockReturnValueOnce(of(mockHistoryResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadHistory$.pipe(take(1)).subscribe(resolve));
 
@@ -146,7 +146,7 @@ describe('FlowConfigurationHistoryListingEffects', () => {
             const request = { count: 50, offset: 0 };
             action$.next(HistoryActions.loadHistory({ request }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(historyService, 'getHistory').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(historyService, 'getHistory').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadHistory$.pipe(take(1)).subscribe(resolve));
 
@@ -169,7 +169,7 @@ describe('FlowConfigurationHistoryListingEffects', () => {
             const request = { count: 50, offset: 0 };
             action$.next(HistoryActions.loadHistory({ request }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(historyService, 'getHistory').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(historyService, 'getHistory').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadHistory$.pipe(take(1)).subscribe(resolve));
 
@@ -196,7 +196,7 @@ describe('FlowConfigurationHistoryListingEffects', () => {
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) => effects.loadHistoryError$.pipe(take(1)).subscribe(resolve));
 
@@ -216,7 +216,7 @@ describe('FlowConfigurationHistoryListingEffects', () => {
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) => effects.loadHistoryError$.pipe(take(1)).subscribe(resolve));
 

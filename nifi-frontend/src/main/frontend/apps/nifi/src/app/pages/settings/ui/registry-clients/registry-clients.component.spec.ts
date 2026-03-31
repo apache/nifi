@@ -117,7 +117,7 @@ describe('RegistryClients', () => {
     describe('Component Initialization', () => {
         it('should dispatch loadRegistryClients on ngOnInit', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnInit();
 
@@ -126,7 +126,7 @@ describe('RegistryClients', () => {
 
         it('should dispatch resetRegistryClientsState on ngOnDestroy', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnDestroy();
 
@@ -154,7 +154,7 @@ describe('RegistryClients', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadRegistryClients action when refreshRegistryClientListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.refreshRegistryClientListing();
 
@@ -163,7 +163,7 @@ describe('RegistryClients', () => {
 
         it('should dispatch openNewRegistryClientDialog action when openNewRegistryClientDialog is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openNewRegistryClientDialog();
 
@@ -173,7 +173,7 @@ describe('RegistryClients', () => {
         it('should dispatch selectClient action when selectRegistryClient is called', async () => {
             const { component, store } = await setup();
             const mockRegistryClientEntity = createMockRegistryClientEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.selectRegistryClient(mockRegistryClientEntity);
 
@@ -189,7 +189,7 @@ describe('RegistryClients', () => {
         it('should dispatch navigateToEditRegistryClient action when configureRegistryClient is called', async () => {
             const { component, store } = await setup();
             const mockRegistryClientEntity = createMockRegistryClientEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.configureRegistryClient(mockRegistryClientEntity);
 
@@ -203,7 +203,7 @@ describe('RegistryClients', () => {
         it('should dispatch promptRegistryClientDeletion action when deleteRegistryClient is called', async () => {
             const { component, store } = await setup();
             const mockRegistryClientEntity = createMockRegistryClientEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.deleteRegistryClient(mockRegistryClientEntity);
 
@@ -219,7 +219,7 @@ describe('RegistryClients', () => {
         it('should dispatch clearRegistryClientBulletins action when clearBulletinsRegistryClient is called', async () => {
             const { component, store } = await setup();
             const mockRegistryClientEntity = createMockRegistryClientEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsRegistryClient(mockRegistryClientEntity);
 
@@ -238,7 +238,7 @@ describe('RegistryClients', () => {
         it('should dispatch navigateToComponentDocumentation action when viewRegistryClientDocumentation is called', async () => {
             const { component, store } = await setup();
             const mockRegistryClientEntity = createMockRegistryClientEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewRegistryClientDocumentation(mockRegistryClientEntity);
 

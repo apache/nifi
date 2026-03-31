@@ -22,6 +22,11 @@ import { MatTableModule } from '@angular/material/table';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as errorInitialState } from '../../../../../state/error/error.reducer';
+import { flowConfigurationFeatureKey } from '../../../../../state/flow-configuration';
+import { initialState as flowConfigurationInitialState } from '../../../../../state/flow-configuration/flow-configuration.reducer';
 
 describe('ProvenanceEventTable', () => {
     let component: ProvenanceEventTable;
@@ -29,7 +34,15 @@ describe('ProvenanceEventTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceEventTable, MockComponent(ContextErrorBanner), MatTableModule, NoopAnimationsModule]
+            imports: [ProvenanceEventTable, MockComponent(ContextErrorBanner), MatTableModule, NoopAnimationsModule],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: errorInitialState,
+                        [flowConfigurationFeatureKey]: flowConfigurationInitialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(ProvenanceEventTable);
         component = fixture.componentInstance;

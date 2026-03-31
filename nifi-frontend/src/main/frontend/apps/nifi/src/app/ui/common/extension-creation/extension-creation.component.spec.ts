@@ -26,13 +26,15 @@ describe('ExtensionCreation', () => {
     let component: ExtensionCreation;
     let fixture: ComponentFixture<ExtensionCreation>;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         TestBed.configureTestingModule({
             imports: [ExtensionCreation, NoopAnimationsModule],
             providers: [{ provide: MatDialogRef, useValue: null }]
         });
         fixture = TestBed.createComponent(ExtensionCreation);
         component = fixture.componentInstance;
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
     });
 
@@ -41,8 +43,12 @@ describe('ExtensionCreation', () => {
     });
 
     describe('extensionTypesLoadingStatus', () => {
-        it('should show error', () => {
-            component.extensionTypesLoadingStatus = 'error';
+        it('should show error', async () => {
+            fixture.componentRef.setInput('extensionTypesLoadingStatus', 'error');
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            await fixture.whenStable();
             fixture.detectChanges();
 
             const errorLoadingTypes = fixture.debugElement.query(By.css('div[data-qa="error-loading-types"]'));
@@ -71,8 +77,12 @@ describe('ExtensionCreation', () => {
             expect(extensionTypesSkeleton).toBeTruthy();
         });
 
-        it('should show listing', () => {
-            component.extensionTypesLoadingStatus = 'success';
+        it('should show listing', async () => {
+            fixture.componentRef.setInput('extensionTypesLoadingStatus', 'success');
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            await fixture.whenStable();
             fixture.detectChanges();
 
             const errorLoadingTypes = fixture.debugElement.query(By.css('div[data-qa="error-loading-types"]'));

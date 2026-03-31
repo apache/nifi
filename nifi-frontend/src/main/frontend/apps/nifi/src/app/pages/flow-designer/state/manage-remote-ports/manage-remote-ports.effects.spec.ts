@@ -115,41 +115,41 @@ describe('ManageRemotePortsEffects', () => {
                 {
                     provide: ManageRemotePortService,
                     useValue: {
-                        getRemotePorts: jest.fn(),
-                        configureRemotePort: jest.fn()
+                        getRemotePorts: vi.fn(),
+                        configureRemotePort: vi.fn()
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn()
+                        open: vi.fn()
                     }
                 },
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn().mockReturnValue(false)
+                        isDisconnectionAcknowledged: vi.fn().mockReturnValue(false)
                     }
                 },
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        handleLoadingError: jest.fn(),
-                        getErrorString: jest.fn()
+                        handleLoadingError: vi.fn(),
+                        getErrorString: vi.fn()
                     }
                 }
             ]
         }).compileComponents();
 
         const store = TestBed.inject(MockStore);
-        const remotePortService = TestBed.inject(ManageRemotePortService) as jest.Mocked<ManageRemotePortService>;
-        const errorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        const remotePortService = TestBed.inject(ManageRemotePortService) as vi.Mocked<ManageRemotePortService>;
+        const errorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
         const effects = TestBed.inject(ManageRemotePortsEffects);
 
         return { store, remotePortService, errorHelper, effects };
@@ -174,7 +174,7 @@ describe('ManageRemotePortsEffects', () => {
 
             const request = { rpgId: 'rpg-1' };
             action$.next(ManageRemotePortsActions.loadRemotePorts({ request }));
-            jest.spyOn(remotePortService, 'getRemotePorts').mockReturnValueOnce(of(mockRemotePortsResponse) as never);
+            vi.spyOn(remotePortService, 'getRemotePorts').mockReturnValueOnce(of(mockRemotePortsResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadRemotePorts$.pipe(take(1)).subscribe(resolve));
 
@@ -195,7 +195,7 @@ describe('ManageRemotePortsEffects', () => {
             const request = { rpgId: 'rpg-1' };
             action$.next(ManageRemotePortsActions.loadRemotePorts({ request }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(remotePortService, 'getRemotePorts').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(remotePortService, 'getRemotePorts').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadRemotePorts$.pipe(take(1)).subscribe(resolve));
 
@@ -218,7 +218,7 @@ describe('ManageRemotePortsEffects', () => {
             const request = { rpgId: 'rpg-1' };
             action$.next(ManageRemotePortsActions.loadRemotePorts({ request }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(remotePortService, 'getRemotePorts').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(remotePortService, 'getRemotePorts').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadRemotePorts$.pipe(take(1)).subscribe(resolve));
 
@@ -245,7 +245,7 @@ describe('ManageRemotePortsEffects', () => {
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadRemotePortsError$.pipe(take(1)).subscribe(resolve)
@@ -267,7 +267,7 @@ describe('ManageRemotePortsEffects', () => {
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadRemotePortsError$.pipe(take(1)).subscribe(resolve)

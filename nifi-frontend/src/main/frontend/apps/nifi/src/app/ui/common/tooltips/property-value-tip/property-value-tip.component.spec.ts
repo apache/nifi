@@ -63,7 +63,7 @@ describe('PropertyValueTip', () => {
                 parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: '1' } }]
             };
 
-            component.data = data;
+            fixture.componentRef.setInput('data', data);
             fixture.detectChanges();
 
             expect(component.parameterReferences.length).toBe(0);
@@ -83,7 +83,7 @@ describe('PropertyValueTip', () => {
                 ]
             };
 
-            component.data = data;
+            fixture.componentRef.setInput('data', data);
             fixture.detectChanges();
 
             const names = component.parameterReferences.map((p) => p.name);
@@ -103,7 +103,7 @@ describe('PropertyValueTip', () => {
                 ]
             };
 
-            component.data = data;
+            fixture.componentRef.setInput('data', data);
             fixture.detectChanges();
 
             const names = component.parameterReferences.map((p) => p.name);
@@ -120,7 +120,7 @@ describe('PropertyValueTip', () => {
                 parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: 'a' } }]
             };
 
-            component.data = data;
+            fixture.componentRef.setInput('data', data);
             fixture.detectChanges();
 
             expect(component.parameterReferences.length).toBe(1);
@@ -140,7 +140,7 @@ describe('PropertyValueTip', () => {
                 ]
             };
 
-            component.data = data;
+            fixture.componentRef.setInput('data', data);
             fixture.detectChanges();
 
             expect(component.parameterReferences.length).toBe(2);
@@ -158,7 +158,7 @@ describe('PropertyValueTip', () => {
                 parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: 'a' } }]
             };
 
-            component.data = dataNull;
+            fixture.componentRef.setInput('data', dataNull);
             fixture.detectChanges();
             expect(component.parameterReferences.length).toBe(0);
 
@@ -171,7 +171,7 @@ describe('PropertyValueTip', () => {
                 parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: 'a' } }]
             };
 
-            component.data = dataEmpty;
+            fixture.componentRef.setInput('data', dataEmpty);
             fixture.detectChanges();
             expect(component.parameterReferences.length).toBe(0);
         });

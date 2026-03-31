@@ -627,7 +627,7 @@ describe('ReportingTaskTable', () => {
         it('should emit selectReportingTask when select is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockReportingTaskEntity();
-            jest.spyOn(component.selectReportingTask, 'next');
+            vi.spyOn(component.selectReportingTask, 'next');
 
             component.select(mockEntity);
 
@@ -637,7 +637,7 @@ describe('ReportingTaskTable', () => {
         it('should emit clearBulletinsReportingTask when clearBulletinsClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockReportingTaskEntity();
-            jest.spyOn(component.clearBulletinsReportingTask, 'next');
+            vi.spyOn(component.clearBulletinsReportingTask, 'next');
 
             component.clearBulletinsClicked(mockEntity);
 
@@ -647,7 +647,7 @@ describe('ReportingTaskTable', () => {
         it('should emit configureReportingTask when configureClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockReportingTaskEntity();
-            jest.spyOn(component.configureReportingTask, 'next');
+            vi.spyOn(component.configureReportingTask, 'next');
 
             component.configureClicked(mockEntity);
 
@@ -657,7 +657,7 @@ describe('ReportingTaskTable', () => {
         it('should emit deleteReportingTask when deleteClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockReportingTaskEntity();
-            jest.spyOn(component.deleteReportingTask, 'next');
+            vi.spyOn(component.deleteReportingTask, 'next');
 
             component.deleteClicked(mockEntity);
 
@@ -667,7 +667,7 @@ describe('ReportingTaskTable', () => {
         it('should emit startReportingTask when startClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockReportingTaskEntity();
-            jest.spyOn(component.startReportingTask, 'next');
+            vi.spyOn(component.startReportingTask, 'next');
 
             component.startClicked(mockEntity);
 
@@ -677,7 +677,7 @@ describe('ReportingTaskTable', () => {
         it('should emit stopReportingTask when stopClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockReportingTaskEntity();
-            jest.spyOn(component.stopReportingTask, 'next');
+            vi.spyOn(component.stopReportingTask, 'next');
 
             component.stopClicked(mockEntity);
 

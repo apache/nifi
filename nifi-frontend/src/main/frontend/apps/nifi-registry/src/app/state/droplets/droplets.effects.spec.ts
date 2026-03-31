@@ -87,28 +87,28 @@ const createBucket = (overrides = {}): Bucket => ({
 describe('DropletsEffects', () => {
     let actions$: Observable<Action>;
     let effects: DropletsEffects;
-    let dropletsService: jest.Mocked<DropletsService>;
-    let errorHelper: jest.Mocked<ErrorHelper>;
-    let dialog: jest.Mocked<MatDialog>;
+    let dropletsService: vi.Mocked<DropletsService>;
+    let errorHelper: vi.Mocked<ErrorHelper>;
+    let dialog: vi.Mocked<MatDialog>;
     let store: Store;
 
     beforeEach(() => {
         const mockDropletsService = {
-            getDroplets: jest.fn(),
-            deleteDroplet: jest.fn(),
-            createNewDroplet: jest.fn(),
-            uploadDroplet: jest.fn(),
-            exportDropletVersionedSnapshot: jest.fn(),
-            getDropletSnapshotMetadata: jest.fn()
+            getDroplets: vi.fn(),
+            deleteDroplet: vi.fn(),
+            createNewDroplet: vi.fn(),
+            uploadDroplet: vi.fn(),
+            exportDropletVersionedSnapshot: vi.fn(),
+            getDropletSnapshotMetadata: vi.fn()
         };
 
         const mockErrorHelper = {
-            getErrorString: jest.fn()
+            getErrorString: vi.fn()
         };
 
         const mockDialog = {
-            open: jest.fn(),
-            closeAll: jest.fn()
+            open: vi.fn(),
+            closeAll: vi.fn()
         };
 
         TestBed.configureTestingModule({
@@ -123,142 +123,148 @@ describe('DropletsEffects', () => {
         });
 
         effects = TestBed.inject(DropletsEffects);
-        dropletsService = TestBed.inject(DropletsService) as jest.Mocked<DropletsService>;
-        errorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
-        dialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+        dropletsService = TestBed.inject(DropletsService) as vi.Mocked<DropletsService>;
+        errorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
+        dialog = TestBed.inject(MatDialog) as vi.Mocked<MatDialog>;
         store = TestBed.inject(Store);
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
     });
 
     describe('loadDroplets$', () => {
-        it('should return loadDropletsSuccess with droplets on success', (done) => {
-            const droplets = [createDroplet(), createDroplet({ identifier: 'droplet-2' })];
-            dropletsService.getDroplets.mockReturnValue(of(droplets));
+        it('should return loadDropletsSuccess with droplets on success', () =>
+            new Promise<void>((resolve) => {
+                const droplets = [createDroplet(), createDroplet({ identifier: 'droplet-2' })];
+                dropletsService.getDroplets.mockReturnValue(of(droplets));
 
-            actions$ = of(DropletsActions.loadDroplets());
+                actions$ = of(DropletsActions.loadDroplets());
 
-            effects.loadDroplets$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.loadDropletsSuccess({
-                        response: { droplets }
-                    })
-                );
-                done();
-            });
-        });
+                effects.loadDroplets$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.loadDropletsSuccess({
+                            response: { droplets }
+                        })
+                    );
+                    resolve();
+                });
+            }));
 
-        it('should return error action on failure', (done) => {
-            const error = new HttpErrorResponse({ status: 404, statusText: 'Not Found' });
-            dropletsService.getDroplets.mockReturnValue(throwError(() => error));
-            errorHelper.getErrorString.mockReturnValue('Error loading droplets');
+        it('should return error action on failure', () =>
+            new Promise<void>((resolve) => {
+                const error = new HttpErrorResponse({ status: 404, statusText: 'Not Found' });
+                dropletsService.getDroplets.mockReturnValue(throwError(() => error));
+                errorHelper.getErrorString.mockReturnValue('Error loading droplets');
 
-            actions$ = of(DropletsActions.loadDroplets());
+                actions$ = of(DropletsActions.loadDroplets());
 
-            effects.loadDroplets$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.dropletsBannerError({
-                        errorContext: {
-                            errors: ['Error loading droplets'],
-                            context: ErrorContextKey.GLOBAL
-                        }
-                    })
-                );
-                done();
-            });
-        });
+                effects.loadDroplets$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.dropletsBannerError({
+                            errorContext: {
+                                errors: ['Error loading droplets'],
+                                context: ErrorContextKey.GLOBAL
+                            }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('openDeleteDropletDialog$', () => {
-        it('should open delete confirmation dialog and dispatch delete action on confirmation', (done) => {
-            const droplet = createDroplet();
-            const mockDialogRef = {
-                componentInstance: {
-                    yes: of(true)
-                }
-            };
-            dialog.open.mockReturnValue(mockDialogRef as any);
+        it('should open delete confirmation dialog and dispatch delete action on confirmation', () =>
+            new Promise<void>((resolve) => {
+                const droplet = createDroplet();
+                const mockDialogRef = {
+                    componentInstance: {
+                        yes: of(true)
+                    }
+                };
+                dialog.open.mockReturnValue(mockDialogRef as any);
 
-            actions$ = of(DropletsActions.openDeleteDropletDialog({ request: { droplet } }));
+                actions$ = of(DropletsActions.openDeleteDropletDialog({ request: { droplet } }));
 
-            effects.openDeleteDropletDialog$.subscribe(() => {
-                expect(dialog.open).toHaveBeenCalledWith(
-                    YesNoDialog,
-                    expect.objectContaining({
-                        data: {
-                            title: 'Delete resource',
-                            message: `This action will delete all versions of ${droplet.name}`
-                        }
-                    })
-                );
-                expect(store.dispatch).toHaveBeenCalledWith(
-                    DropletsActions.deleteDroplet({
-                        request: { droplet }
-                    })
-                );
-                done();
-            });
-        });
+                effects.openDeleteDropletDialog$.subscribe(() => {
+                    expect(dialog.open).toHaveBeenCalledWith(
+                        YesNoDialog,
+                        expect.objectContaining({
+                            data: {
+                                title: 'Delete resource',
+                                message: `This action will delete all versions of ${droplet.name}`
+                            }
+                        })
+                    );
+                    expect(store.dispatch).toHaveBeenCalledWith(
+                        DropletsActions.deleteDroplet({
+                            request: { droplet }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('deleteDroplet$', () => {
         const droplet = createDroplet();
 
-        it('should return deleteDropletSuccess on success', (done) => {
-            dropletsService.deleteDroplet.mockReturnValue(of(droplet));
+        it('should return deleteDropletSuccess on success', () =>
+            new Promise<void>((resolve) => {
+                dropletsService.deleteDroplet.mockReturnValue(of(droplet));
 
-            actions$ = of(DropletsActions.deleteDroplet({ request: { droplet } }));
+                actions$ = of(DropletsActions.deleteDroplet({ request: { droplet } }));
 
-            effects.deleteDroplet$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.deleteDropletSuccess({
-                        response: droplet
-                    })
-                );
-                done();
-            });
-        });
-
-        it('should return error actions on failure', (done) => {
-            const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
-            dropletsService.deleteDroplet.mockReturnValue(throwError(() => error));
-            errorHelper.getErrorString.mockReturnValue('Error deleting droplet');
-
-            actions$ = of(DropletsActions.deleteDroplet({ request: { droplet } }));
-
-            let actionCount = 0;
-            effects.deleteDroplet$.subscribe((action) => {
-                if (actionCount === 0) {
-                    expect(action).toEqual(DropletsActions.deleteDropletFailure());
-                } else {
+                effects.deleteDroplet$.subscribe((action) => {
                     expect(action).toEqual(
-                        ErrorActions.snackBarError({
-                            error: 'Error deleting droplet'
+                        DropletsActions.deleteDropletSuccess({
+                            response: droplet
                         })
                     );
-                    done();
-                }
-                actionCount++;
-            });
-        });
+                    resolve();
+                });
+            }));
+
+        it('should return error actions on failure', () =>
+            new Promise<void>((resolve) => {
+                const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
+                dropletsService.deleteDroplet.mockReturnValue(throwError(() => error));
+                errorHelper.getErrorString.mockReturnValue('Error deleting droplet');
+
+                actions$ = of(DropletsActions.deleteDroplet({ request: { droplet } }));
+
+                let actionCount = 0;
+                effects.deleteDroplet$.subscribe((action) => {
+                    if (actionCount === 0) {
+                        expect(action).toEqual(DropletsActions.deleteDropletFailure());
+                    } else {
+                        expect(action).toEqual(
+                            ErrorActions.snackBarError({
+                                error: 'Error deleting droplet'
+                            })
+                        );
+                        resolve();
+                    }
+                    actionCount++;
+                });
+            }));
     });
 
     describe('openImportNewDropletDialog$', () => {
-        it('should open import new droplet dialog', (done) => {
-            const buckets = [createBucket(), createBucket({ identifier: 'bucket-2' })];
+        it('should open import new droplet dialog', () =>
+            new Promise<void>((resolve) => {
+                const buckets = [createBucket(), createBucket({ identifier: 'bucket-2' })];
 
-            actions$ = of(DropletsActions.openImportNewDropletDialog({ request: { buckets } }));
+                actions$ = of(DropletsActions.openImportNewDropletDialog({ request: { buckets } }));
 
-            effects.openImportNewDropletDialog$.subscribe(() => {
-                expect(dialog.open).toHaveBeenCalledWith(
-                    ImportNewDropletDialogComponent,
-                    expect.objectContaining({
-                        autoFocus: false,
-                        data: { buckets }
-                    })
-                );
-                done();
-            });
-        });
+                effects.openImportNewDropletDialog$.subscribe(() => {
+                    expect(dialog.open).toHaveBeenCalledWith(
+                        ImportNewDropletDialogComponent,
+                        expect.objectContaining({
+                            autoFocus: false,
+                            data: { buckets }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('createNewDroplet$', () => {
@@ -270,46 +276,48 @@ describe('DropletsEffects', () => {
             file: new File([], 'test.json')
         };
 
-        it('should return createNewDropletSuccess and trigger version import on success', (done) => {
-            const newDroplet = createDroplet({ name: request.name, description: request.description });
-            dropletsService.createNewDroplet.mockReturnValue(of(newDroplet));
+        it('should return createNewDropletSuccess and trigger version import on success', () =>
+            new Promise<void>((resolve) => {
+                const newDroplet = createDroplet({ name: request.name, description: request.description });
+                dropletsService.createNewDroplet.mockReturnValue(of(newDroplet));
 
-            actions$ = of(DropletsActions.createNewDroplet({ request }));
+                actions$ = of(DropletsActions.createNewDroplet({ request }));
 
-            effects.createNewDroplet$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.createNewDropletSuccess({
-                        response: newDroplet,
-                        request: {
-                            href: newDroplet.link.href,
-                            file: request.file,
-                            description: request.description
-                        }
-                    })
-                );
-                done();
-            });
-        });
+                effects.createNewDroplet$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.createNewDropletSuccess({
+                            response: newDroplet,
+                            request: {
+                                href: newDroplet.link.href,
+                                file: request.file,
+                                description: request.description
+                            }
+                        })
+                    );
+                    resolve();
+                });
+            }));
 
-        it('should return error action on failure', (done) => {
-            const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
-            dropletsService.createNewDroplet.mockReturnValue(throwError(() => error));
-            errorHelper.getErrorString.mockReturnValue('Error creating droplet');
+        it('should return error action on failure', () =>
+            new Promise<void>((resolve) => {
+                const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
+                dropletsService.createNewDroplet.mockReturnValue(throwError(() => error));
+                errorHelper.getErrorString.mockReturnValue('Error creating droplet');
 
-            actions$ = of(DropletsActions.createNewDroplet({ request }));
+                actions$ = of(DropletsActions.createNewDroplet({ request }));
 
-            effects.createNewDroplet$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.dropletsBannerError({
-                        errorContext: {
-                            errors: ['Error creating droplet'],
-                            context: ErrorContextKey.CREATE_DROPLET
-                        }
-                    })
-                );
-                done();
-            });
-        });
+                effects.createNewDroplet$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.dropletsBannerError({
+                            errorContext: {
+                                errors: ['Error creating droplet'],
+                                context: ErrorContextKey.CREATE_DROPLET
+                            }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('importNewDropletVersion$', () => {
@@ -320,40 +328,42 @@ describe('DropletsEffects', () => {
             description: 'New Version Description'
         };
 
-        it('should return importNewDropletVersionSuccess on success', (done) => {
-            dropletsService.uploadDroplet.mockReturnValue(of(droplet));
+        it('should return importNewDropletVersionSuccess on success', () =>
+            new Promise<void>((resolve) => {
+                dropletsService.uploadDroplet.mockReturnValue(of(droplet));
 
-            actions$ = of(DropletsActions.importNewDropletVersion({ request }));
+                actions$ = of(DropletsActions.importNewDropletVersion({ request }));
 
-            effects.importNewDroplet$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.importNewDropletVersionSuccess({
-                        response: droplet
-                    })
-                );
-                done();
-            });
-        });
+                effects.importNewDroplet$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.importNewDropletVersionSuccess({
+                            response: droplet
+                        })
+                    );
+                    resolve();
+                });
+            }));
 
-        it('should return error action on failure', (done) => {
-            const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
-            dropletsService.uploadDroplet.mockReturnValue(throwError(() => error));
-            errorHelper.getErrorString.mockReturnValue('Error importing version');
+        it('should return error action on failure', () =>
+            new Promise<void>((resolve) => {
+                const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
+                dropletsService.uploadDroplet.mockReturnValue(throwError(() => error));
+                errorHelper.getErrorString.mockReturnValue('Error importing version');
 
-            actions$ = of(DropletsActions.importNewDropletVersion({ request }));
+                actions$ = of(DropletsActions.importNewDropletVersion({ request }));
 
-            effects.importNewDroplet$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.dropletsBannerError({
-                        errorContext: {
-                            errors: ['Error importing version'],
-                            context: ErrorContextKey.IMPORT_DROPLET_VERSION
-                        }
-                    })
-                );
-                done();
-            });
-        });
+                effects.importNewDroplet$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.dropletsBannerError({
+                            errorContext: {
+                                errors: ['Error importing version'],
+                                context: ErrorContextKey.IMPORT_DROPLET_VERSION
+                            }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('exportDropletVersion$', () => {
@@ -363,134 +373,148 @@ describe('DropletsEffects', () => {
             version: 1
         };
 
-        it('should return exportDropletVersionSuccess and trigger download on success', (done) => {
-            const headers = new HttpHeaders().set('Filename', 'test.json');
-            const mockResponse = new HttpResponse({
-                body: JSON.stringify({ content: 'test' }),
-                headers
-            });
-            dropletsService.exportDropletVersionedSnapshot.mockReturnValue(of(mockResponse));
+        it('should return exportDropletVersionSuccess and trigger download on success', () =>
+            new Promise<void>((resolve) => {
+                const headers = new HttpHeaders().set('Filename', 'test.json');
+                const mockResponse = new HttpResponse({
+                    body: JSON.stringify({ content: 'test' }),
+                    headers
+                });
+                dropletsService.exportDropletVersionedSnapshot.mockReturnValue(of(mockResponse));
 
-            // Mock document methods
-            const mockAnchor = {
-                href: '',
-                download: '',
-                setAttribute: jest.fn(),
-                click: jest.fn()
-            };
-            jest.spyOn(document, 'createElement').mockReturnValue(mockAnchor as any);
-            jest.spyOn(document.body, 'appendChild').mockImplementation();
-            jest.spyOn(document.body, 'removeChild').mockImplementation();
+                // Mock document methods
+                const mockAnchor = {
+                    href: '',
+                    download: '',
+                    setAttribute: vi.fn(),
+                    click: vi.fn()
+                };
+                const createElSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor as any);
+                const appendSpy = vi
+                    .spyOn(document.body, 'appendChild')
+                    .mockImplementation(() => mockAnchor as unknown as Node);
+                const removeSpy = vi
+                    .spyOn(document.body, 'removeChild')
+                    .mockImplementation(() => mockAnchor as unknown as Node);
 
-            actions$ = of(DropletsActions.exportDropletVersion({ request }));
+                actions$ = of(DropletsActions.exportDropletVersion({ request }));
 
-            effects.exportDropletVersion$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.exportDropletVersionSuccess({
-                        response: mockResponse
-                    })
-                );
-                expect(document.createElement).toHaveBeenCalledWith('a');
-                expect(mockAnchor.click).toHaveBeenCalled();
-                done();
-            });
-        });
+                effects.exportDropletVersion$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.exportDropletVersionSuccess({
+                            response: mockResponse
+                        })
+                    );
+                    expect(document.createElement).toHaveBeenCalledWith('a');
+                    expect(mockAnchor.click).toHaveBeenCalled();
+                    createElSpy.mockRestore();
+                    appendSpy.mockRestore();
+                    removeSpy.mockRestore();
+                    resolve();
+                });
+            }));
 
-        it('should return error action on failure', (done) => {
-            const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
-            dropletsService.exportDropletVersionedSnapshot.mockReturnValue(throwError(() => error));
-            errorHelper.getErrorString.mockReturnValue('Error exporting version');
+        it('should return error action on failure', () =>
+            new Promise<void>((resolve) => {
+                const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
+                dropletsService.exportDropletVersionedSnapshot.mockReturnValue(throwError(() => error));
+                errorHelper.getErrorString.mockReturnValue('Error exporting version');
 
-            actions$ = of(DropletsActions.exportDropletVersion({ request }));
+                actions$ = of(DropletsActions.exportDropletVersion({ request }));
 
-            effects.exportDropletVersion$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.dropletsBannerError({
-                        errorContext: {
-                            errors: ['Error exporting version'],
-                            context: ErrorContextKey.EXPORT_DROPLET_VERSION
-                        }
-                    })
-                );
-                done();
-            });
-        });
+                effects.exportDropletVersion$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.dropletsBannerError({
+                            errorContext: {
+                                errors: ['Error exporting version'],
+                                context: ErrorContextKey.EXPORT_DROPLET_VERSION
+                            }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('openDropletVersionsDialog$', () => {
-        it('should open versions dialog with metadata', (done) => {
-            const droplet = createDroplet();
-            const versions = [{ version: 1, userIdentity: 'user1', timestamp: Date.now() }];
-            dropletsService.getDropletSnapshotMetadata.mockReturnValue(of(versions));
+        it('should open versions dialog with metadata', () =>
+            new Promise<void>((resolve) => {
+                const droplet = createDroplet();
+                const versions = [{ version: 1, userIdentity: 'user1', timestamp: Date.now() }];
+                dropletsService.getDropletSnapshotMetadata.mockReturnValue(of(versions));
 
-            actions$ = of(DropletsActions.openDropletVersionsDialog({ request: { droplet } }));
+                actions$ = of(DropletsActions.openDropletVersionsDialog({ request: { droplet } }));
 
-            effects.openDropletVersionsDialog$.subscribe((action) => {
-                expect(dialog.open).toHaveBeenCalledWith(
-                    DropletVersionsDialogComponent,
-                    expect.objectContaining({
-                        autoFocus: false,
-                        data: { droplet, versions }
-                    })
-                );
-                expect(action).toEqual(DropletsActions.noOp());
-                done();
-            });
-        });
+                effects.openDropletVersionsDialog$.subscribe((action) => {
+                    expect(dialog.open).toHaveBeenCalledWith(
+                        DropletVersionsDialogComponent,
+                        expect.objectContaining({
+                            autoFocus: false,
+                            data: { droplet, versions }
+                        })
+                    );
+                    expect(action).toEqual(DropletsActions.noOp());
+                    resolve();
+                });
+            }));
 
-        it('should return error action on metadata fetch failure', (done) => {
-            const droplet = createDroplet();
-            const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
-            dropletsService.getDropletSnapshotMetadata.mockReturnValue(throwError(() => error));
-            errorHelper.getErrorString.mockReturnValue('Error fetching versions');
+        it('should return error action on metadata fetch failure', () =>
+            new Promise<void>((resolve) => {
+                const droplet = createDroplet();
+                const error = new HttpErrorResponse({ status: 400, statusText: 'Bad Request' });
+                dropletsService.getDropletSnapshotMetadata.mockReturnValue(throwError(() => error));
+                errorHelper.getErrorString.mockReturnValue('Error fetching versions');
 
-            actions$ = of(DropletsActions.openDropletVersionsDialog({ request: { droplet } }));
+                actions$ = of(DropletsActions.openDropletVersionsDialog({ request: { droplet } }));
 
-            effects.openDropletVersionsDialog$.subscribe((action) => {
-                expect(action).toEqual(
-                    DropletsActions.dropletsBannerError({
-                        errorContext: {
-                            errors: ['Error fetching versions'],
-                            context: ErrorContextKey.GLOBAL
-                        }
-                    })
-                );
-                done();
-            });
-        });
+                effects.openDropletVersionsDialog$.subscribe((action) => {
+                    expect(action).toEqual(
+                        DropletsActions.dropletsBannerError({
+                            errorContext: {
+                                errors: ['Error fetching versions'],
+                                context: ErrorContextKey.GLOBAL
+                            }
+                        })
+                    );
+                    resolve();
+                });
+            }));
     });
 
     describe('dialog closing effects', () => {
-        it('should close dialogs on deleteDropletSuccess', (done) => {
-            actions$ = of(DropletsActions.deleteDropletSuccess({ response: createDroplet() }));
+        it('should close dialogs on deleteDropletSuccess', () =>
+            new Promise<void>((resolve) => {
+                actions$ = of(DropletsActions.deleteDropletSuccess({ response: createDroplet() }));
 
-            effects.deleteDropletSuccess$.subscribe(() => {
-                expect(dialog.closeAll).toHaveBeenCalled();
-                done();
-            });
-        });
+                effects.deleteDropletSuccess$.subscribe(() => {
+                    expect(dialog.closeAll).toHaveBeenCalled();
+                    resolve();
+                });
+            }));
 
-        it('should close dialogs on importNewDropletVersionSuccess', (done) => {
-            actions$ = of(DropletsActions.importNewDropletVersionSuccess({ response: createDroplet() }));
+        it('should close dialogs on importNewDropletVersionSuccess', () =>
+            new Promise<void>((resolve) => {
+                actions$ = of(DropletsActions.importNewDropletVersionSuccess({ response: createDroplet() }));
 
-            effects.importNewDropletSuccess$.subscribe(() => {
-                expect(dialog.closeAll).toHaveBeenCalled();
-                done();
-            });
-        });
+                effects.importNewDropletSuccess$.subscribe(() => {
+                    expect(dialog.closeAll).toHaveBeenCalled();
+                    resolve();
+                });
+            }));
 
-        it('should close dialogs on exportDropletVersionSuccess', (done) => {
-            const headers = new HttpHeaders().set('Filename', 'test.json');
-            const mockResponse = new HttpResponse({
-                body: JSON.stringify({ content: 'test' }),
-                headers
-            });
-            actions$ = of(DropletsActions.exportDropletVersionSuccess({ response: mockResponse }));
+        it('should close dialogs on exportDropletVersionSuccess', () =>
+            new Promise<void>((resolve) => {
+                const headers = new HttpHeaders().set('Filename', 'test.json');
+                const mockResponse = new HttpResponse({
+                    body: JSON.stringify({ content: 'test' }),
+                    headers
+                });
+                actions$ = of(DropletsActions.exportDropletVersionSuccess({ response: mockResponse }));
 
-            effects.exportDropletVersionSuccess$.subscribe(() => {
-                expect(dialog.closeAll).toHaveBeenCalled();
-                done();
-            });
-        });
+                effects.exportDropletVersionSuccess$.subscribe(() => {
+                    expect(dialog.closeAll).toHaveBeenCalled();
+                    resolve();
+                });
+            }));
     });
 });

@@ -69,8 +69,8 @@ describe('SourceRemoteProcessGroup', () => {
         }
 
         // Set up mock callbacks
-        component.onChange = jest.fn();
-        component.onTouched = jest.fn();
+        component.onChange = vi.fn();
+        component.onTouched = vi.fn();
 
         fixture.detectChanges();
 
@@ -78,7 +78,7 @@ describe('SourceRemoteProcessGroup', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -167,8 +167,8 @@ describe('SourceRemoteProcessGroup', () => {
     describe('handleChanged method logic', () => {
         it('should call callbacks when selection changes', async () => {
             const { component } = await setup();
-            const onChangeSpy = jest.fn();
-            const onTouchedSpy = jest.fn();
+            const onChangeSpy = vi.fn();
+            const onTouchedSpy = vi.fn();
 
             component.registerOnChange(onChangeSpy);
             component.registerOnTouched(onTouchedSpy);
@@ -196,7 +196,7 @@ describe('SourceRemoteProcessGroup', () => {
 
         it('should not call onTouched callback when already touched', async () => {
             const { component } = await setup();
-            const onTouchedSpy = jest.fn();
+            const onTouchedSpy = vi.fn();
 
             component.registerOnTouched(onTouchedSpy);
             component.isTouched = true;
@@ -210,14 +210,14 @@ describe('SourceRemoteProcessGroup', () => {
     describe('ControlValueAccessor implementation', () => {
         it('should register onChange callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnChange(callback);
             expect(component.onChange).toBe(callback);
         });
 
         it('should register onTouched callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnTouched(callback);
             expect(component.onTouched).toBe(callback);
         });

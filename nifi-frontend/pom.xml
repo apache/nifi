@@ -386,7 +386,10 @@
                         </configuration>
                     </execution>
                     <!--
-                        Run the unit tests
+                        Run the unit tests.
+                        NOTE: Single-worker mode (maxWorkers=1) is unsupported. Angular's
+                        TestBed lifecycle and vi.mock() module isolation require at least 2
+                        workers. Using 3 for CI throughput.
                     -->
                     <execution>
                         <id>unit-tests</id>
@@ -395,7 +398,7 @@
                         </goals>
                         <phase>test</phase>
                         <configuration>
-                            <arguments>env-cmd -f .build.env nx run-many -t test --maxWorkers=2</arguments>
+                            <arguments>env-cmd -f .build.env nx run-many -t test --maxWorkers=3</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                             <skip>${frontend.skipTests}</skip>
                         </configuration>

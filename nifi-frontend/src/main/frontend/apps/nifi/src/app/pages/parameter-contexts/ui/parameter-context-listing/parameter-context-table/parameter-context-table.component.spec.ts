@@ -44,7 +44,7 @@ describe('ParameterContextTable', () => {
 
     describe('with canRead returning true', () => {
         beforeEach(() => {
-            jest.spyOn(component, 'canRead').mockReturnValue(true);
+            vi.spyOn(component, 'canRead').mockReturnValue(true);
         });
 
         it('should format name correctly', () => {
@@ -234,7 +234,7 @@ describe('ParameterContextTable', () => {
 
     describe('with canRead returning false', () => {
         beforeEach(() => {
-            jest.spyOn(component, 'canRead').mockReturnValue(false);
+            vi.spyOn(component, 'canRead').mockReturnValue(false);
         });
 
         it('should format name correctly', () => {
@@ -317,25 +317,25 @@ describe('ParameterContextTable', () => {
         } as unknown as ParameterContextEntity;
 
         it('should trigger the select action', async () => {
-            jest.spyOn(component.selectParameterContext, 'next');
+            vi.spyOn(component.selectParameterContext, 'next');
             component.select(parameterContext);
             expect(component.selectParameterContext.next).toHaveBeenCalledWith(parameterContext);
         });
 
         it('should trigger the edit action', () => {
-            jest.spyOn(component.editParameterContext, 'next');
+            vi.spyOn(component.editParameterContext, 'next');
             component.editClicked(parameterContext);
             expect(component.editParameterContext.next).toHaveBeenCalledWith(parameterContext);
         });
 
         it('should trigger the delete action', () => {
-            jest.spyOn(component.deleteParameterContext, 'next');
+            vi.spyOn(component.deleteParameterContext, 'next');
             component.deleteClicked(parameterContext);
             expect(component.deleteParameterContext.next).toHaveBeenCalledWith(parameterContext);
         });
 
         it('should trigger the manage access policies action', () => {
-            jest.spyOn(component.manageAccessPolicies, 'next');
+            vi.spyOn(component.manageAccessPolicies, 'next');
             component.manageAccessPoliciesClicked(parameterContext);
             expect(component.manageAccessPolicies.next).toHaveBeenCalledWith(parameterContext);
         });

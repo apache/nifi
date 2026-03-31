@@ -28,6 +28,23 @@ import { initialState as initialErrorState } from '../../../../../../state/error
 import { errorFeatureKey } from '../../../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../../../state/current-user';
+import { initialState as initialTransformState } from '../../../../state/transform/transform.reducer';
+import { transformFeatureKey } from '../../../../state/transform';
+import { controllerServicesFeatureKey } from '../../../../state/controller-services';
+import { initialState as initialControllerServicesState } from '../../../../state/controller-services/controller-services.reducer';
+import { parameterFeatureKey } from '../../../../state/parameter';
+import { initialState as initialParameterState } from '../../../../state/parameter/parameter.reducer';
+import { queueFeatureKey } from '../../../../../queue/state';
+import { initialState as initialQueueState } from '../../../../state/queue/queue.reducer';
+import { flowAnalysisFeatureKey } from '../../../../state/flow-analysis';
+import { initialState as initialFlowAnalysisState } from '../../../../state/flow-analysis/flow-analysis.reducer';
+import { selectFlowState } from '../../../../state/flow/flow.selectors';
+import { selectCurrentUser } from '../../../../../../state/current-user/current-user.selectors';
+import { selectFlowConfiguration } from '../../../../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../../../../state/flow-configuration/flow-configuration.reducer';
+import { flowConfigurationFeatureKey } from '../../../../../../state/flow-configuration';
+import { extensionTypesFeatureKey } from '../../../../../../state/extension-types';
+import { initialExtensionsTypesState } from '../../../../../../state/extension-types/extension-types.reducer';
 
 describe('NavigationControl', () => {
     let component: NavigationControl;
@@ -35,18 +52,42 @@ describe('NavigationControl', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NavigationControl, MockComponent(Birdseye)],
+            imports: [NavigationControl],
             providers: [
                 provideMockStore({
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: fromFlowConfiguration.initialState,
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState,
                         [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialState
+                            [flowFeatureKey]: initialState,
+                            [transformFeatureKey]: initialTransformState,
+                            [controllerServicesFeatureKey]: initialControllerServicesState,
+                            [parameterFeatureKey]: initialParameterState,
+                            [queueFeatureKey]: initialQueueState,
+                            [flowAnalysisFeatureKey]: initialFlowAnalysisState
                         }
-                    }
+                    },
+                    selectors: [
+                        {
+                            selector: selectFlowState,
+                            value: initialState
+                        },
+                        {
+                            selector: selectCurrentUser,
+                            value: initialCurrentUserState.user
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
+                        }
+                    ]
                 })
             ]
+        }).overrideComponent(NavigationControl, {
+            remove: { imports: [Birdseye] },
+            add: { imports: [MockComponent(Birdseye)] }
         });
 
         fixture = TestBed.createComponent(NavigationControl);

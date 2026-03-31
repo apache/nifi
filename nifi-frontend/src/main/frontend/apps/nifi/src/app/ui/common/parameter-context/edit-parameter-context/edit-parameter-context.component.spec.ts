@@ -259,7 +259,7 @@ describe('EditParameterContext', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null }
@@ -281,7 +281,7 @@ describe('EditParameterContext', () => {
     });
 
     it('should emit cancelUpdateRequest when called', () => {
-        const spy = jest.spyOn(component.cancelUpdateRequest, 'emit');
+        const spy = vi.spyOn(component.cancelUpdateRequest, 'emit');
 
         component.cancelUpdateRequest.emit();
 

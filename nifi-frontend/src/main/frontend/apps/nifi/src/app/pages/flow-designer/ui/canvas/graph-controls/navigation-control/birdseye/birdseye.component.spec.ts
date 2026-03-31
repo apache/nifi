@@ -32,9 +32,9 @@ describe('Birdseye', () => {
                 {
                     provide: BirdseyeView,
                     useValue: {
-                        init: jest.fn(),
-                        refresh: jest.fn(),
-                        destroy: jest.fn()
+                        init: vi.fn(),
+                        refresh: vi.fn(),
+                        destroy: vi.fn()
                     }
                 }
             ]
@@ -46,8 +46,8 @@ describe('Birdseye', () => {
     });
 
     it('should create', () => {
-        const initSpy = jest.spyOn(birdseyeView, 'init');
-        const refreshSpy = jest.spyOn(birdseyeView, 'refresh');
+        const initSpy = vi.spyOn(birdseyeView, 'init');
+        const refreshSpy = vi.spyOn(birdseyeView, 'refresh');
         expect(initSpy).toHaveBeenCalled();
         expect(refreshSpy).toHaveBeenCalled();
         expect(component).toBeTruthy();

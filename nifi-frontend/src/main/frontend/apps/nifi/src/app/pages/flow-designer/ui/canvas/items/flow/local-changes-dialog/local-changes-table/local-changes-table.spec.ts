@@ -106,7 +106,7 @@ describe('LocalChangesTable', () => {
                 differenceType: 'Component Added',
                 difference: 'Processor was added.'
             };
-            jest.spyOn(component.goToChange, 'next');
+            vi.spyOn(component.goToChange, 'next');
             component.goToClicked(localChange);
             expect(component.goToChange.next).toHaveBeenCalledWith({
                 id: localChange.componentId,
@@ -124,7 +124,7 @@ describe('LocalChangesTable', () => {
                 differenceType: 'Component Added',
                 difference: 'Controller Service was added.'
             };
-            jest.spyOn(component.goToChange, 'next');
+            vi.spyOn(component.goToChange, 'next');
             component.goToClicked(localChange);
             expect(component.goToChange.next).toHaveBeenCalledWith({
                 id: localChange.componentId,

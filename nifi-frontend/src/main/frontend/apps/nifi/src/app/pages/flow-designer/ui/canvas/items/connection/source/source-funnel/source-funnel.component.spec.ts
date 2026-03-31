@@ -45,7 +45,7 @@ describe('SourceFunnel', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -82,7 +82,7 @@ describe('SourceFunnel', () => {
         it('should update groupName after initialization', async () => {
             const { component, fixture } = await setup({ groupName: 'Initial Group' });
 
-            component.groupName = 'Updated Group';
+            fixture.componentRef.setInput('groupName', 'Updated Group');
             fixture.detectChanges();
 
             expect(component.groupName).toBe('Updated Group');
@@ -125,12 +125,12 @@ describe('SourceFunnel', () => {
         });
 
         it('should update display when groupName changes', async () => {
-            const { component, fixture } = await setup({ groupName: 'Initial Group' });
+            const { fixture } = await setup({ groupName: 'Initial Group' });
 
             const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
             expect(groupNameDisplay.textContent.trim()).toBe('Initial Group');
 
-            component.groupName = 'Updated Group';
+            fixture.componentRef.setInput('groupName', 'Updated Group');
             fixture.detectChanges();
 
             expect(groupNameDisplay.textContent.trim()).toBe('Updated Group');

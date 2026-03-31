@@ -63,7 +63,7 @@ describe('BucketsComponent', () => {
                     }
                 }),
                 NiFiCommon,
-                { provide: Router, useValue: { navigate: jest.fn() } }
+                { provide: Router, useValue: { navigate: vi.fn() } }
             ]
         }).compileComponents();
 

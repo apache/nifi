@@ -75,7 +75,7 @@ describe('CounterListing', () => {
 
         it('should dispatch loadCounters action on ngOnInit', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnInit();
             expect(store.dispatch).toHaveBeenCalledWith(loadCounters());
@@ -85,7 +85,7 @@ describe('CounterListing', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadCounters action when refreshCounterListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.refreshCounterListing();
             expect(store.dispatch).toHaveBeenCalledWith(loadCounters());
@@ -94,7 +94,7 @@ describe('CounterListing', () => {
         it('should dispatch promptCounterReset action when resetCounter is called', async () => {
             const { component, store } = await setup();
             const mockCounters = createMockCounters();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
             const testCounter = mockCounters[0];
 
             component.resetCounter(testCounter);
@@ -110,7 +110,7 @@ describe('CounterListing', () => {
 
         it('should dispatch promptResetAllCounters action when resetAllCounters is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             const counterCount = 6;
             component.resetAllCounters(counterCount);

@@ -29,6 +29,8 @@ import { initialState as initialErrorState } from '../../../../../../../state/er
 import { errorFeatureKey } from '../../../../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { flowConfigurationFeatureKey } from '../../../../../../../state/flow-configuration';
+import { initialState as flowConfigurationInitialState } from '../../../../../../../state/flow-configuration/flow-configuration.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
@@ -126,6 +128,7 @@ describe('ImportFromRegistry', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: flowConfigurationInitialState,
                         [canvasFeatureKey]: {
                             [flowFeatureKey]: initialFlowState
                         }
@@ -134,7 +137,7 @@ describe('ImportFromRegistry', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null }

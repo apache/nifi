@@ -23,7 +23,6 @@ import { initialState } from '../../../state/flow/flow.reducer';
 import { NavigationControl } from './navigation-control/navigation-control.component';
 import { OperationControl } from './operation-control/operation-control.component';
 import { selectBreadcrumbs } from '../../../state/flow/flow.selectors';
-import { Birdseye } from './navigation-control/birdseye/birdseye.component';
 import { BreadcrumbEntity } from '../../../state/shared';
 import { MockComponent } from 'ng-mocks';
 import { canvasFeatureKey } from '../../../state';
@@ -52,12 +51,7 @@ describe('GraphControls', () => {
         };
 
         TestBed.configureTestingModule({
-            imports: [
-                GraphControls,
-                MockComponent(NavigationControl),
-                MockComponent(OperationControl),
-                MockComponent(Birdseye)
-            ],
+            imports: [GraphControls],
             providers: [
                 provideMockStore({
                     initialState: {
@@ -75,6 +69,9 @@ describe('GraphControls', () => {
                     ]
                 })
             ]
+        }).overrideComponent(GraphControls, {
+            remove: { imports: [NavigationControl, OperationControl] },
+            add: { imports: [MockComponent(NavigationControl), MockComponent(OperationControl)] }
         });
 
         fixture = TestBed.createComponent(GraphControls);

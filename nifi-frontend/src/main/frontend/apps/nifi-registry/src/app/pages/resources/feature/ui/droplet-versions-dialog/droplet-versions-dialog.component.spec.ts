@@ -96,7 +96,7 @@ describe('DropletVersionsDialogComponent', () => {
     });
 
     it('should export flow', () => {
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const dispatchSpy = vi.spyOn(store, 'dispatch');
         component.exportVersion(2);
         expect(dispatchSpy).toHaveBeenCalledWith(
             exportDropletVersion({ request: { droplet: mockDroplet, version: 2 } })

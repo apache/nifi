@@ -56,7 +56,7 @@ describe('ProcessGroupStatusTable', () => {
                 } as ProcessGroupStatusSnapshot
             } as ProcessGroupStatusSnapshotEntity;
 
-            const formatDurationSpy = jest.spyOn(nifiCommon, 'formatDuration');
+            const formatDurationSpy = vi.spyOn(nifiCommon, 'formatDuration');
 
             component.formatTasks(mockEntity);
 
@@ -72,7 +72,7 @@ describe('ProcessGroupStatusTable', () => {
                 } as ProcessGroupStatusSnapshot
             } as ProcessGroupStatusSnapshotEntity;
 
-            jest.spyOn(nifiCommon, 'formatDuration').mockReturnValue('00:00:05.000');
+            vi.spyOn(nifiCommon, 'formatDuration').mockReturnValue('00:00:05.000');
 
             const result = component.formatTasks(mockEntity);
 
@@ -86,7 +86,7 @@ describe('ProcessGroupStatusTable', () => {
                 } as ProcessGroupStatusSnapshot
             } as ProcessGroupStatusSnapshotEntity;
 
-            const formatDurationSpy = jest.spyOn(nifiCommon, 'formatDuration');
+            const formatDurationSpy = vi.spyOn(nifiCommon, 'formatDuration');
 
             component.formatTasks(mockEntity);
 
@@ -100,7 +100,7 @@ describe('ProcessGroupStatusTable', () => {
                 } as ProcessGroupStatusSnapshot
             } as ProcessGroupStatusSnapshotEntity;
 
-            const formatDurationSpy = jest.spyOn(nifiCommon, 'formatDuration');
+            const formatDurationSpy = vi.spyOn(nifiCommon, 'formatDuration');
 
             component.formatTasks(mockEntity);
 
@@ -116,7 +116,7 @@ describe('ProcessGroupStatusTable', () => {
                 } as ProcessGroupStatusSnapshot
             } as ProcessGroupStatusSnapshotEntity;
 
-            jest.spyOn(nifiCommon, 'formatDuration').mockReturnValue('00:00:02.500');
+            vi.spyOn(nifiCommon, 'formatDuration').mockReturnValue('00:00:02.500');
 
             const result = component.formatTasks(mockEntity);
 

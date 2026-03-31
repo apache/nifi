@@ -174,7 +174,7 @@ describe('ManagementControllerServices', () => {
 
         it('should dispatch loadManagementControllerServices action on ngOnInit', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnInit();
 
@@ -202,7 +202,7 @@ describe('ManagementControllerServices', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadManagementControllerServices action when refreshControllerServiceListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.refreshControllerServiceListing();
 
@@ -212,7 +212,7 @@ describe('ManagementControllerServices', () => {
         it('should dispatch clearControllerServiceBulletins action when clearBulletinsControllerService is called', async () => {
             const { component, store } = await setup();
             const mockControllerServiceEntity = createMockControllerServiceEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsControllerService(mockControllerServiceEntity);
 

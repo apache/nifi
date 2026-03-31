@@ -35,7 +35,7 @@ describe('LoginFormComponent', () => {
     let component: LoginFormComponent;
     let fixture: ComponentFixture<LoginFormComponent>;
     let store: MockStore<NiFiRegistryState>;
-    let dispatchSpy: jest.SpyInstance;
+    let dispatchSpy: vi.SpyInstance;
     let loginFailureSelector: any;
 
     beforeEach(async () => {
@@ -62,7 +62,7 @@ describe('LoginFormComponent', () => {
         component = fixture.componentInstance;
         store = TestBed.inject(MockStore);
         loginFailureSelector = store.overrideSelector(selectLoginFailure, null);
-        dispatchSpy = jest.spyOn(store, 'dispatch');
+        dispatchSpy = vi.spyOn(store, 'dispatch');
         fixture.detectChanges();
     });
 

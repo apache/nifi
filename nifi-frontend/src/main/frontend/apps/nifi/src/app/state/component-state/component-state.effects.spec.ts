@@ -19,7 +19,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Action } from '@ngrx/store';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, firstValueFrom, of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { ComponentStateEffects } from './component-state.effects';
@@ -27,7 +27,7 @@ import { ComponentStateService } from '../../service/component-state.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import * as ComponentStateActions from './component-state.actions';
 import * as ErrorActions from '../error/error.actions';
-import { ComponentState, ComponentStateEntity, ClearStateEntryRequest } from './index';
+import { ClearStateEntryRequest, ComponentState, ComponentStateEntity, componentStateFeatureKey } from './index';
 import { selectComponentType, selectComponentId, selectComponentState } from './component-state.selectors';
 import { ErrorContextKey } from '../error';
 import { ComponentType } from '@nifi/shared';
@@ -35,13 +35,18 @@ import { initialState as initialErrorState } from '../error/error.reducer';
 import { errorFeatureKey } from '../error';
 import { initialState as initialCurrentUserState } from '../current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../current-user';
+import { loginConfigurationFeatureKey } from '../login-configuration';
+import { initialState as loginConfigInitialState } from '../login-configuration/login-configuration.reducer';
+import { flowConfigurationFeatureKey } from '../flow-configuration';
+import { initialState as flowConfigInitialState } from '../flow-configuration/flow-configuration.reducer';
+import { initialState as componentStateInitialState } from './component-state.reducer';
 
 describe('ComponentStateEffects', () => {
     let actions$: Observable<Action>;
     let effects: ComponentStateEffects;
-    let componentStateService: jest.Mocked<ComponentStateService>;
+    let componentStateService: vi.Mocked<ComponentStateService>;
     let store: MockStore;
-    let errorHelper: jest.Mocked<ErrorHelper>;
+    let errorHelper: vi.Mocked<ErrorHelper>;
 
     const mockComponentState: ComponentState = {
         componentId: 'test-component-id',
@@ -68,12 +73,12 @@ describe('ComponentStateEffects', () => {
 
     beforeEach(() => {
         const componentStateServiceSpy = {
-            getComponentState: jest.fn(),
-            clearComponentState: jest.fn(),
-            clearComponentStateEntry: jest.fn()
+            getComponentState: vi.fn(),
+            clearComponentState: vi.fn(),
+            clearComponentStateEntry: vi.fn()
         };
         const errorHelperSpy = {
-            getErrorString: jest.fn()
+            getErrorString: vi.fn()
         };
 
         TestBed.configureTestingModule({
@@ -83,7 +88,10 @@ describe('ComponentStateEffects', () => {
                 provideMockStore({
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
-                        [currentUserFeatureKey]: initialCurrentUserState
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [loginConfigurationFeatureKey]: loginConfigInitialState,
+                        [flowConfigurationFeatureKey]: flowConfigInitialState,
+                        [componentStateFeatureKey]: componentStateInitialState
                     }
                 }),
                 { provide: ComponentStateService, useValue: componentStateServiceSpy },
@@ -93,12 +101,12 @@ describe('ComponentStateEffects', () => {
 
         effects = TestBed.inject(ComponentStateEffects);
         store = TestBed.inject(MockStore);
-        componentStateService = TestBed.inject(ComponentStateService) as jest.Mocked<ComponentStateService>;
-        errorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        componentStateService = TestBed.inject(ComponentStateService) as vi.Mocked<ComponentStateService>;
+        errorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
     });
 
     describe('getComponentStateAndOpenDialog$', () => {
-        it('should load component state successfully', (done) => {
+        it('should load component state successfully', async () => {
             const request = {
                 componentName: 'Test Component',
                 componentType: ComponentType.Processor,
@@ -110,21 +118,19 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.getComponentStateAndOpenDialog({ request }));
 
-            effects.getComponentStateAndOpenDialog$.subscribe((action) => {
-                expect(action).toEqual(
-                    ComponentStateActions.loadComponentStateSuccess({
-                        response: { componentState: mockComponentState }
-                    })
-                );
-                expect(componentStateService.getComponentState).toHaveBeenCalledWith({
-                    componentType: request.componentType,
-                    componentId: request.componentId
-                });
-                done();
+            const action = await firstValueFrom(effects.getComponentStateAndOpenDialog$);
+            expect(action).toEqual(
+                ComponentStateActions.loadComponentStateSuccess({
+                    response: { componentState: mockComponentState }
+                })
+            );
+            expect(componentStateService.getComponentState).toHaveBeenCalledWith({
+                componentType: request.componentType,
+                componentId: request.componentId
             });
         });
 
-        it('should handle error when loading component state fails', (done) => {
+        it('should handle error when loading component state fails', async () => {
             const request = {
                 componentName: 'Test Component',
                 componentType: ComponentType.Processor,
@@ -143,36 +149,32 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.getComponentStateAndOpenDialog({ request }));
 
-            effects.getComponentStateAndOpenDialog$.subscribe((action) => {
-                expect(action).toEqual(
-                    ErrorActions.snackBarError({
-                        error: 'Failed to get the component state for Test Component.'
-                    })
-                );
-                expect(errorHelper.getErrorString).toHaveBeenCalledWith(
-                    errorResponse,
-                    'Failed to get the component state for Test Component.'
-                );
-                done();
-            });
+            const action = await firstValueFrom(effects.getComponentStateAndOpenDialog$);
+            expect(action).toEqual(
+                ErrorActions.snackBarError({
+                    error: 'Failed to get the component state for Test Component.'
+                })
+            );
+            expect(errorHelper.getErrorString).toHaveBeenCalledWith(
+                errorResponse,
+                'Failed to get the component state for Test Component.'
+            );
         });
     });
 
     describe('loadComponentStateSuccess$', () => {
-        it('should trigger open dialog action', (done) => {
+        it('should trigger open dialog action', async () => {
             const response = { componentState: mockComponentState };
 
             actions$ = of(ComponentStateActions.loadComponentStateSuccess({ response }));
 
-            effects.loadComponentStateSuccess$.subscribe((action) => {
-                expect(action).toEqual(ComponentStateActions.openComponentStateDialog());
-                done();
-            });
+            const action = await firstValueFrom(effects.loadComponentStateSuccess$);
+            expect(action).toEqual(ComponentStateActions.openComponentStateDialog());
         });
     });
 
     describe('clearComponentState$', () => {
-        it('should clear component state successfully', (done) => {
+        it('should clear component state successfully', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
 
@@ -182,14 +184,12 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentState());
 
-            effects.clearComponentState$.subscribe((action) => {
-                expect(action).toEqual(ComponentStateActions.reloadComponentState());
-                expect(componentStateService.clearComponentState).toHaveBeenCalledWith({ componentType, componentId });
-                done();
-            });
+            const action = await firstValueFrom(effects.clearComponentState$);
+            expect(action).toEqual(ComponentStateActions.reloadComponentState());
+            expect(componentStateService.clearComponentState).toHaveBeenCalledWith({ componentType, componentId });
         });
 
-        it('should handle error when clearing component state fails', (done) => {
+        it('should handle error when clearing component state fails', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
             const errorResponse = new HttpErrorResponse({
@@ -205,26 +205,24 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentState());
 
-            effects.clearComponentState$.subscribe((action) => {
-                expect(action).toEqual(
-                    ComponentStateActions.clearComponentStateFailure({
-                        errorContext: {
-                            errors: ['Failed to clear the component state.'],
-                            context: ErrorContextKey.COMPONENT_STATE
-                        }
-                    })
-                );
-                expect(errorHelper.getErrorString).toHaveBeenCalledWith(
-                    errorResponse,
-                    'Failed to clear the component state.'
-                );
-                done();
-            });
+            const action = await firstValueFrom(effects.clearComponentState$);
+            expect(action).toEqual(
+                ComponentStateActions.clearComponentStateFailure({
+                    errorContext: {
+                        errors: ['Failed to clear the component state.'],
+                        context: ErrorContextKey.COMPONENT_STATE
+                    }
+                })
+            );
+            expect(errorHelper.getErrorString).toHaveBeenCalledWith(
+                errorResponse,
+                'Failed to clear the component state.'
+            );
         });
     });
 
     describe('reloadComponentState$', () => {
-        it('should reload component state successfully', (done) => {
+        it('should reload component state successfully', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
 
@@ -234,18 +232,16 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.reloadComponentState());
 
-            effects.reloadComponentState$.subscribe((action) => {
-                expect(action).toEqual(
-                    ComponentStateActions.reloadComponentStateSuccess({
-                        response: { componentState: mockComponentState }
-                    })
-                );
-                expect(componentStateService.getComponentState).toHaveBeenCalledWith({ componentType, componentId });
-                done();
-            });
+            const action = await firstValueFrom(effects.reloadComponentState$);
+            expect(action).toEqual(
+                ComponentStateActions.reloadComponentStateSuccess({
+                    response: { componentState: mockComponentState }
+                })
+            );
+            expect(componentStateService.getComponentState).toHaveBeenCalledWith({ componentType, componentId });
         });
 
-        it('should handle error when reloading component state fails', (done) => {
+        it('should handle error when reloading component state fails', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
             const errorResponse = new HttpErrorResponse({
@@ -261,26 +257,24 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.reloadComponentState());
 
-            effects.reloadComponentState$.subscribe((action) => {
-                expect(action).toEqual(
-                    ErrorActions.addBannerError({
-                        errorContext: {
-                            errors: ['Failed to reload the component state.'],
-                            context: ErrorContextKey.COMPONENT_STATE
-                        }
-                    })
-                );
-                expect(errorHelper.getErrorString).toHaveBeenCalledWith(
-                    errorResponse,
-                    'Failed to reload the component state.'
-                );
-                done();
-            });
+            const action = await firstValueFrom(effects.reloadComponentState$);
+            expect(action).toEqual(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Failed to reload the component state.'],
+                        context: ErrorContextKey.COMPONENT_STATE
+                    }
+                })
+            );
+            expect(errorHelper.getErrorString).toHaveBeenCalledWith(
+                errorResponse,
+                'Failed to reload the component state.'
+            );
         });
     });
 
     describe('clearComponentStateEntry$', () => {
-        it('should clear local state entry successfully', (done) => {
+        it('should clear local state entry successfully', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
@@ -307,18 +301,16 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentStateEntry({ request }));
 
-            effects.clearComponentStateEntry$.subscribe((action) => {
-                expect(action).toEqual(ComponentStateActions.reloadComponentState());
-                expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
-                    componentType,
-                    componentId,
-                    expectedComponentStateEntity
-                );
-                done();
-            });
+            const action = await firstValueFrom(effects.clearComponentStateEntry$);
+            expect(action).toEqual(ComponentStateActions.reloadComponentState());
+            expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
+                componentType,
+                componentId,
+                expectedComponentStateEntity
+            );
         });
 
-        it('should clear cluster state entry successfully', (done) => {
+        it('should clear cluster state entry successfully', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
@@ -345,18 +337,16 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentStateEntry({ request }));
 
-            effects.clearComponentStateEntry$.subscribe((action) => {
-                expect(action).toEqual(ComponentStateActions.reloadComponentState());
-                expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
-                    componentType,
-                    componentId,
-                    expectedComponentStateEntity
-                );
-                done();
-            });
+            const action = await firstValueFrom(effects.clearComponentStateEntry$);
+            expect(action).toEqual(ComponentStateActions.reloadComponentState());
+            expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
+                componentType,
+                componentId,
+                expectedComponentStateEntity
+            );
         });
 
-        it('should handle error when clearing state entry fails', (done) => {
+        it('should handle error when clearing state entry fails', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
@@ -378,24 +368,22 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentStateEntry({ request }));
 
-            effects.clearComponentStateEntry$.subscribe((action) => {
-                expect(action).toEqual(
-                    ComponentStateActions.clearComponentStateFailure({
-                        errorContext: {
-                            errors: ['Failed to clear state entry: local-key1.'],
-                            context: ErrorContextKey.COMPONENT_STATE
-                        }
-                    })
-                );
-                expect(errorHelper.getErrorString).toHaveBeenCalledWith(
-                    errorResponse,
-                    'Failed to clear state entry: local-key1.'
-                );
-                done();
-            });
+            const action = await firstValueFrom(effects.clearComponentStateEntry$);
+            expect(action).toEqual(
+                ComponentStateActions.clearComponentStateFailure({
+                    errorContext: {
+                        errors: ['Failed to clear state entry: local-key1.'],
+                        context: ErrorContextKey.COMPONENT_STATE
+                    }
+                })
+            );
+            expect(errorHelper.getErrorString).toHaveBeenCalledWith(
+                errorResponse,
+                'Failed to clear state entry: local-key1.'
+            );
         });
 
-        it('should handle state without the specified scope', (done) => {
+        it('should handle state without the specified scope', async () => {
             const componentType = ComponentType.Processor;
             const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
@@ -415,22 +403,16 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentStateEntry({ request }));
 
-            effects.clearComponentStateEntry$.subscribe((action) => {
-                expect(action).toEqual(ComponentStateActions.reloadComponentState());
-                expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
-                    componentType,
-                    componentId,
-                    {
-                        componentState: stateWithoutLocal
-                    }
-                );
-                done();
+            const action = await firstValueFrom(effects.clearComponentStateEntry$);
+            expect(action).toEqual(ComponentStateActions.reloadComponentState());
+            expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(componentType, componentId, {
+                componentState: stateWithoutLocal
             });
         });
     });
 
     describe('clearComponentStateFailure$', () => {
-        it('should convert failure to banner error', (done) => {
+        it('should convert failure to banner error', async () => {
             const errorContext = {
                 errors: ['Test error message'],
                 context: ErrorContextKey.COMPONENT_STATE
@@ -438,10 +420,8 @@ describe('ComponentStateEffects', () => {
 
             actions$ = of(ComponentStateActions.clearComponentStateFailure({ errorContext }));
 
-            effects.clearComponentStateFailure$.subscribe((action) => {
-                expect(action).toEqual(ErrorActions.addBannerError({ errorContext }));
-                done();
-            });
+            const action = await firstValueFrom(effects.clearComponentStateFailure$);
+            expect(action).toEqual(ErrorActions.addBannerError({ errorContext }));
         });
     });
 });

@@ -29,13 +29,17 @@ import { initialState as initialErrorState } from '../../../state/error/error.re
 import { errorFeatureKey } from '../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
+import { clusterSummaryFeatureKey } from '../../../state/cluster-summary';
+import { initialState as clusterSummaryInitialState } from '../../../state/cluster-summary/cluster-summary.reducer';
+import { flowConfigurationFeatureKey } from '../../../state/flow-configuration';
+import { initialState as flowConfigInitialState } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 
 describe('ComponentStateDialog', () => {
     let component: ComponentStateDialog;
     let fixture: ComponentFixture<ComponentStateDialog>;
     let store: MockStore;
-    let nifiCommon: jest.Mocked<NiFiCommon>;
+    let nifiCommon: vi.Mocked<NiFiCommon>;
 
     const mockComponentState: ComponentState = {
         componentId: 'test-component-id',
@@ -72,7 +76,7 @@ describe('ComponentStateDialog', () => {
 
     beforeEach(() => {
         const nifiCommonSpy = {
-            compareString: jest.fn()
+            compareString: vi.fn()
         };
 
         TestBed.configureTestingModule({
@@ -82,6 +86,8 @@ describe('ComponentStateDialog', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [clusterSummaryFeatureKey]: clusterSummaryInitialState,
+                        [flowConfigurationFeatureKey]: flowConfigInitialState,
                         [componentStateFeatureKey]: mockInitialState
                     }
                 }),
@@ -94,7 +100,7 @@ describe('ComponentStateDialog', () => {
         fixture = TestBed.createComponent(ComponentStateDialog);
         component = fixture.componentInstance;
         store = TestBed.inject(MockStore);
-        nifiCommon = TestBed.inject(NiFiCommon) as jest.Mocked<NiFiCommon>;
+        nifiCommon = TestBed.inject(NiFiCommon) as vi.Mocked<NiFiCommon>;
 
         // Mock compareString to provide predictable sorting
         nifiCommon.compareString.mockImplementation((a: string | null | undefined, b: string | null | undefined) => {
@@ -104,7 +110,7 @@ describe('ComponentStateDialog', () => {
             return a.localeCompare(b);
         });
 
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
         fixture.detectChanges();
     });
 

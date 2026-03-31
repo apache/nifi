@@ -91,8 +91,8 @@ describe('SourceProcessGroup', () => {
         const component = fixture.componentInstance;
 
         // Set up mock callbacks
-        component.onChange = jest.fn();
-        component.onTouched = jest.fn();
+        component.onChange = vi.fn();
+        component.onTouched = vi.fn();
 
         // Set processGroup if provided
         if (options.processGroup !== undefined) {
@@ -116,7 +116,7 @@ describe('SourceProcessGroup', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -214,14 +214,14 @@ describe('SourceProcessGroup', () => {
     describe('ControlValueAccessor implementation', () => {
         it('should register onChange callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnChange(callback);
             expect(component.onChange).toBe(callback);
         });
 
         it('should register onTouched callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnTouched(callback);
             expect(component.onTouched).toBe(callback);
         });
@@ -240,8 +240,8 @@ describe('SourceProcessGroup', () => {
 
         it('should emit changes when handleChanged is called', async () => {
             const { component } = await setup();
-            const onChangeSpy = jest.fn();
-            const onTouchedSpy = jest.fn();
+            const onChangeSpy = vi.fn();
+            const onTouchedSpy = vi.fn();
             component.registerOnChange(onChangeSpy);
             component.registerOnTouched(onTouchedSpy);
 
@@ -255,8 +255,8 @@ describe('SourceProcessGroup', () => {
 
         it('should not call onTouched again if already touched', async () => {
             const { component } = await setup();
-            const onChangeSpy = jest.fn();
-            const onTouchedSpy = jest.fn();
+            const onChangeSpy = vi.fn();
+            const onTouchedSpy = vi.fn();
             component.registerOnChange(onChangeSpy);
             component.registerOnTouched(onTouchedSpy);
 

@@ -118,13 +118,15 @@ describe('ChangeVersionDialog', () => {
 
         const fixture = TestBed.createComponent(ChangeVersionDialog);
         const component = fixture.componentInstance;
-        fixture.detectChanges();
+        fixture.detectChanges(false);
+        await fixture.whenStable();
+        fixture.detectChanges(false);
 
         return { fixture, component, dialogData };
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should create', async () => {
@@ -353,7 +355,7 @@ describe('ChangeVersionDialog', () => {
     describe('Version Change Event', () => {
         it('should emit changeVersion event when changeFlowVersion is called with selected version', async () => {
             const { component } = await setup();
-            jest.spyOn(component.changeVersion, 'next');
+            vi.spyOn(component.changeVersion, 'next');
             const versionToSelect = component.dataSource.data[1];
             component.select(versionToSelect);
 
@@ -364,7 +366,7 @@ describe('ChangeVersionDialog', () => {
 
         it('should not emit changeVersion event when no version is selected', async () => {
             const { component } = await setup();
-            jest.spyOn(component.changeVersion, 'next');
+            vi.spyOn(component.changeVersion, 'next');
             component.selectedFlowVersion = null;
 
             component.changeFlowVersion();
@@ -434,7 +436,7 @@ describe('ChangeVersionDialog', () => {
     describe('DOM Interactions', () => {
         it('should handle row click for version selection', async () => {
             const { component, fixture } = await setup();
-            jest.spyOn(component, 'select');
+            vi.spyOn(component, 'select');
             const firstDataRow = fixture.debugElement.query(By.css('[data-qa="version-row"]'));
 
             firstDataRow.nativeElement.click();
@@ -444,7 +446,7 @@ describe('ChangeVersionDialog', () => {
 
         it('should handle double click for version change', async () => {
             const { component, fixture } = await setup();
-            jest.spyOn(component, 'changeFlowVersion');
+            vi.spyOn(component, 'changeFlowVersion');
             const firstDataRow = fixture.debugElement.query(By.css('[data-qa="version-row"]'));
 
             firstDataRow.nativeElement.dispatchEvent(new Event('dblclick'));
@@ -456,7 +458,9 @@ describe('ChangeVersionDialog', () => {
             const { component, fixture } = await setup();
             const versionToSelect = component.dataSource.data[1];
             component.select(versionToSelect);
-            fixture.detectChanges();
+            fixture.detectChanges(false);
+            await fixture.whenStable();
+            fixture.detectChanges(false);
 
             const rows = fixture.debugElement.queryAll(By.css('[data-qa="version-row"]'));
             const selectedRow = rows.find((row) => row.classes['selected']);
@@ -467,7 +471,9 @@ describe('ChangeVersionDialog', () => {
         it('should disable change button when no valid selection', async () => {
             const { component, fixture } = await setup();
             component.selectedFlowVersion = null;
-            fixture.detectChanges();
+            fixture.detectChanges(false);
+            await fixture.whenStable();
+            fixture.detectChanges(false);
 
             const changeButton = fixture.debugElement.query(By.css('[data-qa="change-button"]'));
 
@@ -475,10 +481,12 @@ describe('ChangeVersionDialog', () => {
         });
 
         it('should enable change button when valid selection is made', async () => {
-            const { component, fixture } = await setup();
-            const differentVersion = component.dataSource.data.find((v) => v.version === '1');
-            component.select(differentVersion!);
-            fixture.detectChanges();
+            const { fixture } = await setup();
+            const rows = fixture.debugElement.queryAll(By.css('[data-qa="version-row"]'));
+            rows[1].nativeElement.click();
+            fixture.detectChanges(false);
+            await fixture.whenStable();
+            fixture.detectChanges(false);
 
             const changeButton = fixture.debugElement.query(By.css('[data-qa="change-button"]'));
 
