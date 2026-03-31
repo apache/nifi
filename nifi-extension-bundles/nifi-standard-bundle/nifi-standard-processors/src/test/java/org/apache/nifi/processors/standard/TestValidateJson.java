@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.json.schema.SchemaVersion;
@@ -36,13 +35,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestValidateJson {
+    private static final Path RESOURCE_DIR = Paths.get("src/test/resources/TestValidateJson");
     private static final String JSON = getFileContent("simple-example.json");
     private static final String SIMPLE_SCHEMA = getFileContent("schema-simple-example.json");
     private static final String NON_JSON = "Not JSON";
@@ -82,10 +81,7 @@ class TestValidateJson {
 
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -100,10 +96,7 @@ class TestValidateJson {
 
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -117,10 +110,7 @@ class TestValidateJson {
         runner.enqueue(JSON);
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -135,10 +125,7 @@ class TestValidateJson {
         runner.enqueue(JSON);
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -153,10 +140,7 @@ class TestValidateJson {
         runner.enqueue(JSON);
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 1);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID);
         assertValidationErrors(ValidateJson.REL_INVALID, true);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -171,10 +155,7 @@ class TestValidateJson {
         runner.enqueue(JSON);
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 1);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID);
         assertValidationErrors(ValidateJson.REL_INVALID, true);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -188,10 +169,7 @@ class TestValidateJson {
         runner.enqueue(NON_JSON);
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 1);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 0);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_FAILURE);
         assertValidationErrors(ValidateJson.REL_FAILURE, false);
         assertEquals(1, runner.getProvenanceEvents().size());
         assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
@@ -225,10 +203,7 @@ class TestValidateJson {
 
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
-
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
         assertValidationErrors(ValidateJson.REL_VALID, false);
     }
 
@@ -248,9 +223,7 @@ class TestValidateJson {
         runner.enqueue(JSON, attributes);
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
-        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
     }
 
     @ParameterizedTest
@@ -267,13 +240,10 @@ class TestValidateJson {
 
         runner.run();
 
-        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
         if (expectedValid) {
-            runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
-            runner.assertTransferCount(ValidateJson.REL_VALID, 1);
+            runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID);
         } else {
-            runner.assertTransferCount(ValidateJson.REL_INVALID, 1);
-            runner.assertTransferCount(ValidateJson.REL_VALID, 0);
+            runner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID);
 
             assertTrue(runner.getLogger().getWarnMessages().stream()
                     .anyMatch(logMessage -> logMessage.getMsg().contains("JSON at line 2") && logMessage.getMsg().contains("is invalid")));
@@ -308,23 +278,17 @@ class TestValidateJson {
     }
 
     private static String getFilePath(final String filename) {
-        final String path = getRelativeResourcePath(filename);
-        final URL url = Objects.requireNonNull(TestValidateJson.class.getResource(path), "Resource not found");
-        return url.getPath();
+        final Path path = RESOURCE_DIR.resolve(filename);
+        return path.toString();
     }
 
     private static String getFileContent(final String filename) {
-        final String path = getRelativeResourcePath(filename);
-        try (final InputStream inputStream = TestValidateJson.class.getResourceAsStream(path)) {
-            Objects.requireNonNull(inputStream, "Resource not found");
-            return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        final Path path = RESOURCE_DIR.resolve(filename);
+        try {
+            return Files.readString(path);
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private static String getRelativeResourcePath(final String filename) {
-        return String.format("/%s/%s", TestValidateJson.class.getSimpleName(), filename);
     }
 
     private static class SampleJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry {
