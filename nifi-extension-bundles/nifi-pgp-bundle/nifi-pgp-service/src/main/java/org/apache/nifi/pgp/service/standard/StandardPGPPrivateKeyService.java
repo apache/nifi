@@ -114,7 +114,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
 
             privateKeys = extractedPrivateKeys.stream().collect(
                     Collectors.toMap(
-                            privateKey -> privateKey.getKeyID(),
+                            PGPPrivateKey::getKeyID,
                             privateKey -> privateKey
                     )
             );
@@ -263,6 +263,9 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
                 final String keyIdentifier = KeyIdentifierConverter.format(keyId);
                 try {
                     final PGPPrivateKey privateKey = secretKey.extractPrivateKey(keyDecryptor);
+                    if (privateKey == null) {
+                        throw new PGPConfigurationException("Private Key empty for Secret Key [%s]".formatted(keyId));
+                    }
                     extractedPrivateKeys.add(privateKey);
                     getLogger().debug("Extracted Private Key [{}]", keyIdentifier);
                 } catch (final PGPException e) {

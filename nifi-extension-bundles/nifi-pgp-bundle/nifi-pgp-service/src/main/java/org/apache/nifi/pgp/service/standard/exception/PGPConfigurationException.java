@@ -22,6 +22,10 @@ package org.apache.nifi.pgp.service.standard.exception;
 public class PGPConfigurationException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
+    public PGPConfigurationException(final String message) {
+        super(message);
+    }
+
     public PGPConfigurationException(final String message, final Throwable cause) {
         super(message, cause);
     }

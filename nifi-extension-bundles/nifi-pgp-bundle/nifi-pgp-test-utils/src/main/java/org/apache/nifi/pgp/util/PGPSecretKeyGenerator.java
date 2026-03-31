@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.pgp.util;
 
+import org.bouncycastle.bcpg.BCPGOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.bcpg.PublicKeyPacket;
+import org.bouncycastle.bcpg.SecretKeyPacket;
+import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
+import org.bouncycastle.bcpg.UserIDPacket;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
@@ -30,15 +34,18 @@ import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.operator.PBESecretKeyEncryptor;
 import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 
+import java.io.ByteArrayOutputStream;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.Iterator;
 
 /**
  * Pretty Good Privacy Secret Key Generator utilities
@@ -91,6 +98,42 @@ public class PGPSecretKeyGenerator {
         final PBESecretKeyEncryptor encryptor = getSecretKeyEncryptor(keyEncryptionPassword, digestCalculator);
         final PGPContentSignerBuilder signerBuilder = getContentSignerBuilder(pgpKeyPair.getPublicKey().getAlgorithm());
         return new PGPSecretKey(PGPSignature.DEFAULT_CERTIFICATION, pgpKeyPair, KEY_IDENTITY, digestCalculator, null, null, signerBuilder, encryptor);
+    }
+
+    /**
+     * Generate Secret Key Ring with an empty Secret Key
+     *
+     * @return PGP Secret Key Ring
+     * @throws Exception Thrown on key generation failures
+     */
+    public static PGPSecretKeyRing generateEmptySecretKeyRing() throws Exception {
+        final PGPKeyPair pgpKeyPair = getRsaKeyPair();
+
+        final PGPPublicKey publicKey = pgpKeyPair.getPublicKey();
+        final PublicKeyPacket publicKeyPacket = publicKey.getPublicKeyPacket();
+        final SecretKeyPacket secretKeyPacket = new SecretKeyPacket(publicKeyPacket, SymmetricKeyAlgorithmTags.NULL, null, null, null);
+
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final BCPGOutputStream packetOutputStream = new BCPGOutputStream(outputStream);
+        secretKeyPacket.encode(packetOutputStream);
+
+        final Iterator<String> userIds = publicKey.getUserIDs();
+        while (userIds.hasNext()) {
+            final String userId = userIds.next();
+            final UserIDPacket userIdPacket = new UserIDPacket(userId);
+            userIdPacket.encode(packetOutputStream);
+
+            final Iterator<PGPSignature> signatures = publicKey.getSignaturesForID(userId);
+            while (signatures.hasNext()) {
+                final PGPSignature signature = signatures.next();
+                signature.encode(packetOutputStream);
+            }
+        }
+
+        packetOutputStream.close();
+        final byte[] secretKeyPacketEncoded = outputStream.toByteArray();
+
+        return new PGPSecretKeyRing(secretKeyPacketEncoded, new JcaKeyFingerprintCalculator());
     }
 
     private static PGPKeyPair getDsaKeyPair() throws NoSuchAlgorithmException, PGPException {

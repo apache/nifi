@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apche.nifi.pgp.service.standard;
+package org.apache.nifi.pgp.service.standard;
 
-import org.apache.nifi.pgp.service.standard.StandardPGPPrivateKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.util.NoOpProcessor;
@@ -88,6 +87,20 @@ public class StandardPGPPrivateKeyServiceTest {
     public void testEnableInvalidPassword() throws Exception {
         runner.addControllerService(SERVICE_ID, service);
         runner.setProperty(service, StandardPGPPrivateKeyService.KEYRING_FILE, rsaKeyringFileBinary.getAbsolutePath());
+        runner.setProperty(service, StandardPGPPrivateKeyService.KEY_PASSWORD, String.class.getSimpleName());
+
+        runner.assertNotValid(service);
+    }
+
+    @Test
+    public void testEmptySecretKeyNotValid() throws Exception {
+        runner.addControllerService(SERVICE_ID, service);
+
+        final PGPSecretKeyRing secretKeyRing = PGPSecretKeyGenerator.generateEmptySecretKeyRing();
+        final byte[] secretKeyRingEncoded = secretKeyRing.getEncoded();
+        final String keyring = PGPFileUtils.getArmored(secretKeyRingEncoded);
+
+        runner.setProperty(service, StandardPGPPrivateKeyService.KEYRING, keyring);
         runner.setProperty(service, StandardPGPPrivateKeyService.KEY_PASSWORD, String.class.getSimpleName());
 
         runner.assertNotValid(service);
