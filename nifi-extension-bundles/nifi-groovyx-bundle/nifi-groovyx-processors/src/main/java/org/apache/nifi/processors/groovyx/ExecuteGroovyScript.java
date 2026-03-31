@@ -115,7 +115,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    public static final String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
+    static final String ROLLBACK = "rollback";
+    static final String TRANSFER_TO_FAILURE = "transfer to failure";
     public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder()
             .name("Failure Strategy")
             .description("What to do with unhandled exceptions. If you want to manage exception by code then keep the default value `rollback`."
@@ -125,8 +126,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     + " If the processor has no incoming connections then this parameter has no effect."
                 )
             .required(true).expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(VALID_FAIL_STRATEGY)
-            .defaultValue(VALID_FAIL_STRATEGY[0])
+            .allowableValues(ROLLBACK, TRANSFER_TO_FAILURE)
+            .defaultValue(ROLLBACK)
             .build();
 
     public static final PropertyDescriptor ADD_CLASSPATH = new PropertyDescriptor.Builder()
@@ -445,11 +446,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
-        boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
+        boolean toFailureOnError = TRANSFER_TO_FAILURE.equals(context.getProperty(FAIL_STRATEGY).getValue());
         //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(processSession, toFailureOnError);
         if (toFailureOnError) {
+            // FlowFile must be read otherwise if there is a failure before the script is executed, a
+            // never ending loop occurs since the GroovyProcessSessionWrap has nothing to send to the failure relationship.
             FlowFile flowFile = session.get();
             if (flowFile == null) {
                 return;

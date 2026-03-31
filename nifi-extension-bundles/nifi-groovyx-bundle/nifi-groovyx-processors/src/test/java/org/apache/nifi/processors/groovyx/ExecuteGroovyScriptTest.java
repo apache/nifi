@@ -143,7 +143,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "def flowFile = session.get(); if(!flowFile)return; flowFile.testAttr = flowFile.read().getText('UTF-8'); REL_SUCCESS << flowFile;");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -188,7 +187,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTrigger_groovy() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger.groovy");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -201,7 +199,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTriggerX_groovy() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTriggerX.groovy");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -214,7 +211,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTrigger_changeContent_groovy() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContent.groovy");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
         runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
@@ -230,7 +226,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_onTrigger_changeContentX_groovy() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContentX.groovy");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
 
         runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
@@ -246,7 +241,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_no_input_groovy() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_no_input.groovy");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
@@ -370,7 +364,6 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_filter_01() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "def ff = session.get{it.FILTER=='3'}; if(!ff)return; REL_SUCCESS << ff;");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
 
         runner.assertValid();
 
@@ -567,17 +560,19 @@ public class ExecuteGroovyScriptTest {
         runner.run();
     }
 
-    @Test void invalidExpressionLanguageInDynamicProperty() {
+    @Test
+    void invalidExpressionLanguageInDynamicProperty() {
         runner.setProperty("myProperty", "${myparam:isempty()}");
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "assert true == true");
-        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, "transfer to failure");
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, ExecuteGroovyScript.TRANSFER_TO_FAILURE);
         runner.assertNotValid();
     }
 
-    @Test void validExpressionLanguageInDynamicPropertyWithVariableValueWhichCannotBeUsedWithELExpression() {
+    @Test
+    void validExpressionLanguageInDynamicPropertyWithVariableValueWhichCannotBeUsedWithELExpression() {
         runner.setProperty("myProperty", "${test:toDate('yyyy-MM-dd')}");
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "assert true == true");
-        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, "transfer to failure");
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, ExecuteGroovyScript.TRANSFER_TO_FAILURE);
         runner.assertValid();
 
         runner.setEnvironmentVariableValue("test", "cannot be converted to a date");
