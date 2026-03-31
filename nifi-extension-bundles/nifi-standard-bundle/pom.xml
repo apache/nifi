@@ -96,7 +96,7 @@
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
                 <artifactId>brotli4j</artifactId>
-                <version>1.20.0</version>
+                <version>1.22.0</version>
             </dependency>
             <dependency>
                 <groupId>org.tukaani</groupId>
@@ -147,7 +147,7 @@
             <dependency>
                 <groupId>com.github.wnameless.json</groupId>
                 <artifactId>json-flattener</artifactId>
-                <version>0.18.0</version>
+                <version>0.18.1</version>
             </dependency>
             <dependency>
                 <groupId>io.krakens</groupId>

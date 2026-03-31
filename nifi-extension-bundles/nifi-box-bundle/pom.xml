@@ -39,7 +39,7 @@
             <dependency>
                 <groupId>com.box</groupId>
                 <artifactId>box-java-sdk</artifactId>
-                <version>5.5.0</version>
+                <version>5.6.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
