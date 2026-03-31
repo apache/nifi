@@ -818,7 +818,7 @@ export class Canvas implements OnInit, OnDestroy {
 
             // attempting to paste something other than CopyResponseEntity or a flow definition
             return null;
-        } catch (e) {
+        } catch (_e) {
             // attempting to paste something other than CopyResponseEntity or a flow definition
             return null;
         }

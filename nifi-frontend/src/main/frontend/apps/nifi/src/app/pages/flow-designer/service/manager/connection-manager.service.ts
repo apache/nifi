@@ -102,55 +102,53 @@ export class ConnectionManager implements OnDestroy {
     private snapEnabled = true;
 
     constructor() {
-        const self: ConnectionManager = this;
-
         // define the line generator
         this.lineGenerator = d3
             .line()
-            .x(function (d: any) {
-                return d.x;
-            })
-            .y(function (d: any) {
-                return d.y;
-            })
+            .x((d: any) => d.x)
+            .y((d: any) => d.y)
             .curve(d3.curveLinear);
 
         // handle bend point drag events
         this.bendPointDrag = d3
             .drag()
-            .on('start', function (this: any, event) {
+            .subject(function (this: Element) {
+                // Capture DOM element via subject; currentTarget is valid during the initiating mousedown.
+                return { element: this };
+            })
+            .on('start', (event: any) => {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
 
                 // indicate dragging start
-                const connection: any = d3.select(this.parentNode);
+                const connection: any = d3.select(event.subject.element.parentNode as Element);
                 const connectionData: any = connection.datum();
                 connectionData.dragging = true;
             })
-            .on('drag', function (this: any, event, d: any) {
-                const connection: any = d3.select(this.parentNode);
+            .on('drag', (event: any, d: any) => {
+                const connection: any = d3.select(event.subject.element.parentNode as Element);
                 const connectionData: any = connection.datum();
 
                 if (connectionData.dragging) {
-                    self.snapEnabled = !event.sourceEvent.shiftKey;
-                    d.x = self.snapEnabled
+                    this.snapEnabled = !event.sourceEvent.shiftKey;
+                    d.x = this.snapEnabled
                         ? Math.round(event.x / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
                           ConnectionManager.SNAP_ALIGNMENT_PIXELS
                         : event.x;
-                    d.y = self.snapEnabled
+                    d.y = this.snapEnabled
                         ? Math.round(event.y / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
                           ConnectionManager.SNAP_ALIGNMENT_PIXELS
                         : event.y;
 
                     // redraw this connection
-                    self.updateConnections(d3.select(this.parentNode), {
+                    this.updateConnections(d3.select(event.subject.element.parentNode as Element), {
                         updatePath: true,
                         updateLabel: false
                     });
                 }
             })
-            .on('end', function (this: any, event) {
-                const connection: any = d3.select(this.parentNode);
+            .on('end', (event: any) => {
+                const connection: any = d3.select(event.subject.element.parentNode as Element);
                 const connectionData: any = connection.datum();
 
                 if (connectionData.dragging) {
@@ -171,7 +169,7 @@ export class ConnectionManager implements OnDestroy {
 
                         // only save the updated bends if necessary
                         if (different) {
-                            self.save(
+                            this.save(
                                 connectionData,
                                 {
                                     id: connectionData.id,
@@ -195,7 +193,11 @@ export class ConnectionManager implements OnDestroy {
         // handle endpoint drag events
         this.endpointDrag = d3
             .drag()
-            .on('start', function (this: any, event, d: any) {
+            .subject(function (this: Element) {
+                // Capture DOM element via subject; currentTarget is valid during the initiating mousedown.
+                return { element: this };
+            })
+            .on('start', (event: any, d: any) => {
                 // indicate that end point dragging has begun
                 d.endPointDragging = true;
 
@@ -203,12 +205,12 @@ export class ConnectionManager implements OnDestroy {
                 event.sourceEvent.stopPropagation();
 
                 // indicate dragging start
-                const connection: any = d3.select(this.parentNode);
+                const connection: any = d3.select(event.subject.element.parentNode as Element);
                 const connectionData: any = connection.datum();
                 connectionData.dragging = true;
             })
-            .on('drag', function (this: any, event, d: any) {
-                const connection: any = d3.select(this.parentNode);
+            .on('drag', (event: any, d: any) => {
+                const connection: any = d3.select(event.subject.element.parentNode as Element);
                 const connectionData: any = connection.datum();
 
                 if (connectionData.dragging) {
@@ -216,23 +218,23 @@ export class ConnectionManager implements OnDestroy {
                     d.y = event.y - 8;
 
                     // ensure the new destination is valid
-                    d3.select('g.hover').classed('connectable-destination', function () {
-                        return self.canvasUtils.isValidConnectionDestination(d3.select(this));
-                    });
+                    d3.select('g.hover').classed('connectable-destination', (d: any, i: number, nodes: any) =>
+                        this.canvasUtils.isValidConnectionDestination(d3.select(nodes[i]))
+                    );
 
                     // redraw this connection
-                    self.updateConnections(d3.select(this.parentNode), {
+                    this.updateConnections(d3.select(event.subject.element.parentNode as Element), {
                         updatePath: true,
                         updateLabel: false
                     });
                 }
             })
-            .on('end', function (this: any, event, d: any) {
+            .on('end', (event: any, d: any) => {
                 // indicate that end point dragging as stopped
                 d.endPointDragging = false;
 
                 // get the corresponding connection
-                const connection: any = d3.select(this.parentNode);
+                const connection: any = d3.select(event.subject.element.parentNode as Element);
                 const connectionData: any = connection.datum();
 
                 if (connectionData.dragging) {
@@ -241,7 +243,7 @@ export class ConnectionManager implements OnDestroy {
 
                     // resets the connection if we're not over a new destination
                     if (destination.empty()) {
-                        self.updateConnections(connection, {
+                        this.updateConnections(connection, {
                             updatePath: true,
                             updateLabel: false
                         });
@@ -250,12 +252,12 @@ export class ConnectionManager implements OnDestroy {
 
                         // prompt for the new port if appropriate
                         if (
-                            self.canvasUtils.isProcessGroup(destination) ||
-                            self.canvasUtils.isRemoteProcessGroup(destination)
+                            this.canvasUtils.isProcessGroup(destination) ||
+                            this.canvasUtils.isRemoteProcessGroup(destination)
                         ) {
                             // when the new destination is a group, show the edit connection dialog
                             // to allow the user to select the desired port
-                            self.store.dispatch(
+                            this.store.dispatch(
                                 openEditConnectionDialog({
                                     request: {
                                         type: ComponentType.Connection,
@@ -272,19 +274,19 @@ export class ConnectionManager implements OnDestroy {
                                 })
                             );
                         } else {
-                            const destinationType: string = self.canvasUtils.getConnectableTypeForDestination(
+                            const destinationType: string = this.canvasUtils.getConnectableTypeForDestination(
                                 destinationData.type
                             );
 
                             const payload: any = {
-                                revision: self.client.getRevision(connectionData),
+                                revision: this.client.getRevision(connectionData),
                                 disconnectedNodeAcknowledged:
-                                    self.clusterConnectionService.isDisconnectionAcknowledged(),
+                                    this.clusterConnectionService.isDisconnectionAcknowledged(),
                                 component: {
                                     id: connectionData.id,
                                     destination: {
                                         id: destinationData.id,
-                                        groupId: self.currentProcessGroupId,
+                                        groupId: this.currentProcessGroupId,
                                         type: destinationType
                                     }
                                 }
@@ -306,10 +308,10 @@ export class ConnectionManager implements OnDestroy {
                                     x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
                                     y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
                                 });
-                            } else if (self.nifiCommon.isEmpty(connectionData.bends)) {
+                            } else if (this.nifiCommon.isEmpty(connectionData.bends)) {
                                 const sourceComponentId =
-                                    self.canvasUtils.getConnectionSourceComponentId(connectionData);
-                                const collisionBends = self.canvasUtils.calculateBendPointsForCollisionAvoidanceByIds(
+                                    this.canvasUtils.getConnectionSourceComponentId(connectionData);
+                                const collisionBends = this.canvasUtils.calculateBendPointsForCollisionAvoidanceByIds(
                                     sourceComponentId,
                                     destinationData.id,
                                     connectionData.id
@@ -319,7 +321,7 @@ export class ConnectionManager implements OnDestroy {
                                 }
                             }
 
-                            self.store.dispatch(
+                            this.store.dispatch(
                                 updateConnection({
                                     request: {
                                         id: connectionData.id,
@@ -345,23 +347,27 @@ export class ConnectionManager implements OnDestroy {
         // label drag behavior
         this.labelDrag = d3
             .drag()
-            .on('start', function (event, d: any) {
+            .subject(function (this: Element) {
+                // Capture DOM element via subject; currentTarget is valid during the initiating mousedown.
+                return { element: this };
+            })
+            .on('start', (event: any, d: any) => {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
 
                 // indicate dragging start
                 d.dragging = true;
             })
-            .on('drag', function (this: any, event, d: any) {
+            .on('drag', (event: any, d: any) => {
                 if (d.dragging && d.bends.length > 1) {
                     // get the dragged component
                     let drag: any = d3.select('rect.label-drag');
 
                     // lazily create the drag selection box
                     if (drag.empty()) {
-                        const connectionLabel: any = d3.select(this).select('rect.body');
+                        const connectionLabel: any = d3.select(event.subject.element as Element).select('rect.body');
 
-                        const position: Position = self.getLabelPosition(connectionLabel);
+                        const position: Position = this.getLabelPosition(connectionLabel);
                         const width: number = ConnectionManager.DIMENSIONS.width;
                         const height: number = connectionLabel.attr('height');
 
@@ -374,12 +380,8 @@ export class ConnectionManager implements OnDestroy {
                             .attr('class', 'label-drag')
                             .attr('width', width)
                             .attr('height', height)
-                            .attr('stroke-width', function () {
-                                return 1 / self.scale;
-                            })
-                            .attr('stroke-dasharray', function () {
-                                return 4 / self.scale;
-                            })
+                            .attr('stroke-width', () => 1 / this.scale)
+                            .attr('stroke-dasharray', () => 4 / this.scale)
                             .datum({
                                 x: position.x,
                                 y: position.y,
@@ -388,10 +390,10 @@ export class ConnectionManager implements OnDestroy {
                             });
                     } else {
                         // update the position of the drag selection
-                        drag.attr('x', function (d: any) {
+                        drag.attr('x', (d: any) => {
                             d.x += event.dx;
                             return d.x;
-                        }).attr('y', function (d: any) {
+                        }).attr('y', (d: any) => {
                             d.y += event.dy;
                             return d.y;
                         });
@@ -413,7 +415,7 @@ export class ConnectionManager implements OnDestroy {
                         };
 
                         // get the distance
-                        const distance: number = self.distanceBetweenPoints(currentPoint, bendPoint);
+                        const distance: number = this.distanceBetweenPoints(currentPoint, bendPoint);
 
                         // see if its the minimum
                         if (closestBendIndex === -1 || distance < minDistance) {
@@ -426,13 +428,13 @@ export class ConnectionManager implements OnDestroy {
                     d.labelIndex = closestBendIndex;
 
                     // refresh the connection
-                    self.updateConnections(d3.select(this.parentNode), {
+                    this.updateConnections(d3.select(event.subject.element.parentNode as Element), {
                         updatePath: true,
                         updateLabel: false
                     });
                 }
             })
-            .on('end', function (this: any, event, d: any) {
+            .on('end', (event: any, d: any) => {
                 if (d.dragging && d.bends.length > 1) {
                     // get the drag selection
                     const drag: any = d3.select('rect.label-drag');
@@ -445,7 +447,7 @@ export class ConnectionManager implements OnDestroy {
 
                     // only save if necessary
                     if (d.labelIndex !== d.component.labelIndex) {
-                        self.save(
+                        this.save(
                             d,
                             {
                                 id: d.id,
@@ -850,22 +852,17 @@ export class ConnectionManager implements OnDestroy {
     }
 
     private select() {
-        return this.connectionContainer.selectAll('g.connection').data(this.connections, function (d: any) {
-            return d.id;
-        });
+        return this.connectionContainer.selectAll('g.connection').data(this.connections, (d: any) => d.id);
     }
 
     private renderConnections(entered: any) {
         if (entered.empty()) {
             return entered;
         }
-        const self: ConnectionManager = this;
 
         const connection = entered
             .append('g')
-            .attr('id', function (d: any) {
-                return 'id-' + d.id;
-            })
+            .attr('id', (d: any) => 'id-' + d.id)
             .attr('class', 'connection');
 
         // create a connection between the two components
@@ -879,16 +876,19 @@ export class ConnectionManager implements OnDestroy {
             .append('path')
             .attr('class', 'connection-path-selectable')
             .attr('pointer-events', 'stroke')
-            .on('mousedown.selection', function (this: any, event: MouseEvent) {
+            .on('mousedown.selection', (event: MouseEvent) => {
                 // select the connection when clicking the selectable path
-                self.selectableBehavior.select(event, d3.select(this.parentNode));
+                this.selectableBehavior.select(
+                    event,
+                    d3.select((event.currentTarget as Element).parentNode as Element)
+                );
             })
-            .on('dblclick', function (this: any, event: MouseEvent, d: any) {
+            .on('dblclick', (event: MouseEvent, d: any) => {
                 if (d.permissions.canWrite && d.permissions.canRead) {
-                    const position = d3.pointer(event, this.parentNode);
+                    const position = d3.pointer(event, (event.currentTarget as Element).parentNode);
 
                     // find where to put this bend point
-                    const bendIndex = self.getNearestSegment(
+                    const bendIndex = this.getNearestSegment(
                         {
                             x: position[0],
                             y: position[1]
@@ -919,7 +919,7 @@ export class ConnectionManager implements OnDestroy {
                     }
 
                     // save the new state
-                    self.save(d, connectionAddedBend);
+                    this.save(d, connectionAddedBend);
 
                     event.stopPropagation();
                 }
@@ -933,10 +933,9 @@ export class ConnectionManager implements OnDestroy {
             return;
         }
 
-        const self: ConnectionManager = this;
         if (updatePath) {
             updated
-                .classed('grouped', function (d: any) {
+                .classed('grouped', (d: any) => {
                     let grouped = false;
 
                     if (d.permissions.canRead) {
@@ -948,12 +947,12 @@ export class ConnectionManager implements OnDestroy {
 
                     return grouped;
                 })
-                .classed('ghost', function (d: any) {
+                .classed('ghost', (d: any) => {
                     let ghost = false;
 
                     if (d.permissions.canRead) {
                         // if the connection has a relationship that is unavailable, mark it a ghost relationship
-                        if (self.hasUnavailableRelationship(d)) {
+                        if (this.hasUnavailableRelationship(d)) {
                             ghost = true;
                         }
                     }
@@ -962,17 +961,15 @@ export class ConnectionManager implements OnDestroy {
                 });
 
             // update connection path
-            updated.select('path.connection-path').classed('unauthorized', function (d: any) {
-                return d.permissions.canRead === false;
-            });
+            updated.select('path.connection-path').classed('unauthorized', (d: any) => d.permissions.canRead === false);
         }
 
-        updated.each(function (this: any, d: any) {
-            const connection: any = d3.select(this);
+        updated.each((d: any, i: number, nodes: Element[]) => {
+            const connection: any = d3.select(nodes[i]);
 
             if (updatePath) {
                 // calculate the start and end points
-                const sourceComponentId: string = self.canvasUtils.getConnectionSourceComponentId(d);
+                const sourceComponentId: string = this.canvasUtils.getConnectionSourceComponentId(d);
                 const sourceData: any = d3.select('#id-' + sourceComponentId).datum();
                 let end: Position;
 
@@ -999,7 +996,7 @@ export class ConnectionManager implements OnDestroy {
                         const newDestinationData: any = newDestination.datum();
 
                         // get the position on the new destination perimeter
-                        const newEnd: Position = self.canvasUtils.getPerimeterPoint(endAnchor, {
+                        const newEnd: Position = this.canvasUtils.getPerimeterPoint(endAnchor, {
                             x: newDestinationData.position.x,
                             y: newDestinationData.position.y,
                             width: newDestinationData.dimensions.width,
@@ -1011,11 +1008,11 @@ export class ConnectionManager implements OnDestroy {
                         end.y = newEnd.y;
                     }
                 } else {
-                    const destinationComponentId: string = self.canvasUtils.getConnectionDestinationComponentId(d);
+                    const destinationComponentId: string = this.canvasUtils.getConnectionDestinationComponentId(d);
                     const destinationData: any = d3.select('#id-' + destinationComponentId).datum();
 
                     // get the position on the destination perimeter
-                    end = self.canvasUtils.getPerimeterPoint(endAnchor, {
+                    end = this.canvasUtils.getPerimeterPoint(endAnchor, {
                         x: destinationData.position.x,
                         y: destinationData.position.y,
                         width: destinationData.dimensions.width,
@@ -1032,7 +1029,7 @@ export class ConnectionManager implements OnDestroy {
                 }
 
                 // get the position on the source perimeter
-                const start: Position = self.canvasUtils.getPerimeterPoint(startAnchor, {
+                const start: Position = this.canvasUtils.getPerimeterPoint(startAnchor, {
                     x: sourceData.position.x,
                     y: sourceData.position.y,
                     width: sourceData.dimensions.width,
@@ -1044,23 +1041,23 @@ export class ConnectionManager implements OnDestroy {
                 d.end = end;
 
                 // update the connection paths
-                self.transitionBehavior
-                    .transition(connection.select('path.connection-path'), self.transitionRequired)
-                    .attr('d', function () {
+                this.transitionBehavior
+                    .transition(connection.select('path.connection-path'), this.transitionRequired)
+                    .attr('d', () => {
                         const datum: Position[] = [d.start].concat(d.bends, [d.end]);
-                        return self.lineGenerator(datum);
+                        return this.lineGenerator(datum);
                     });
-                self.transitionBehavior
-                    .transition(connection.select('path.connection-selection-path'), self.transitionRequired)
-                    .attr('d', function () {
+                this.transitionBehavior
+                    .transition(connection.select('path.connection-selection-path'), this.transitionRequired)
+                    .attr('d', () => {
                         const datum: Position[] = [d.start].concat(d.bends, [d.end]);
-                        return self.lineGenerator(datum);
+                        return this.lineGenerator(datum);
                     });
-                self.transitionBehavior
-                    .transition(connection.select('path.connection-path-selectable'), self.transitionRequired)
-                    .attr('d', function () {
+                this.transitionBehavior
+                    .transition(connection.select('path.connection-path-selectable'), this.transitionRequired)
+                    .attr('d', () => {
                         const datum: Position[] = [d.start].concat(d.bends, [d.end]);
-                        return self.lineGenerator(datum);
+                        return this.lineGenerator(datum);
                     });
 
                 // -----
@@ -1088,17 +1085,18 @@ export class ConnectionManager implements OnDestroy {
                         .attr('pointer-events', 'all')
                         .attr('width', 8)
                         .attr('height', 8)
-                        .on('mousedown.selection', function (this: any, event: MouseEvent) {
+                        .on('mousedown.selection', (event: MouseEvent) => {
                             // select the connection when clicking the label
-                            self.selectableBehavior.select(event, d3.select(this.parentNode));
+                            this.selectableBehavior.select(
+                                event,
+                                d3.select((event.currentTarget as Element).parentNode as Element)
+                            );
                         });
 
                     // update the start point
-                    self.transitionBehavior
-                        .transition(startpoints.merge(startpointsEntered), self.transitionRequired)
-                        .attr('transform', function (p: any) {
-                            return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
-                        });
+                    this.transitionBehavior
+                        .transition(startpoints.merge(startpointsEntered), this.transitionRequired)
+                        .attr('transform', (p: any) => 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')');
 
                     // remove old items
                     startpoints.exit().remove();
@@ -1117,18 +1115,19 @@ export class ConnectionManager implements OnDestroy {
                         .attr('pointer-events', 'all')
                         .attr('width', 8)
                         .attr('height', 8)
-                        .on('mousedown.selection', function (this: any, event: MouseEvent) {
+                        .on('mousedown.selection', (event: MouseEvent) => {
                             // select the connection when clicking the label
-                            self.selectableBehavior.select(event, d3.select(this.parentNode));
+                            this.selectableBehavior.select(
+                                event,
+                                d3.select((event.currentTarget as Element).parentNode as Element)
+                            );
                         })
-                        .call(self.endpointDrag);
+                        .call(this.endpointDrag);
 
                     // update the end point
-                    self.transitionBehavior
-                        .transition(endpoints.merge(endpointsEntered), self.transitionRequired)
-                        .attr('transform', function (p: any) {
-                            return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
-                        });
+                    this.transitionBehavior
+                        .transition(endpoints.merge(endpointsEntered), this.transitionRequired)
+                        .attr('transform', (p: any) => 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')');
 
                     // remove old items
                     endpoints.exit().remove();
@@ -1147,17 +1146,17 @@ export class ConnectionManager implements OnDestroy {
                         .attr('pointer-events', 'all')
                         .attr('width', 8)
                         .attr('height', 8)
-                        .on('dblclick', function (this: any, event: MouseEvent, p: any) {
+                        .on('dblclick', (event: MouseEvent, p: any) => {
                             // stop even propagation
                             event.stopPropagation();
 
-                            const connection: any = d3.select(this.parentNode);
+                            const connection: any = d3.select((event.currentTarget as Element).parentNode as Element);
                             const connectionData: any = connection.datum();
 
                             // if this is a self loop prevent removing the last two bends
-                            const sourceComponentId = self.canvasUtils.getConnectionSourceComponentId(connectionData);
+                            const sourceComponentId = this.canvasUtils.getConnectionSourceComponentId(connectionData);
                             const destinationComponentId =
-                                self.canvasUtils.getConnectionDestinationComponentId(connectionData);
+                                this.canvasUtils.getConnectionDestinationComponentId(connectionData);
                             if (sourceComponentId === destinationComponentId && d.component.bends.length <= 2) {
                                 this.store.dispatch(
                                     showOkDialog({
@@ -1187,11 +1186,11 @@ export class ConnectionManager implements OnDestroy {
                             if (newBends.length === 0 && sourceComponentId !== destinationComponentId) {
                                 const wouldOverlap = wouldRemovalCauseOverlap(
                                     connectionData.id,
-                                    self.connections,
-                                    self.currentProcessGroupId
+                                    this.connections,
+                                    this.currentProcessGroupId
                                 );
                                 if (wouldOverlap) {
-                                    self.store.dispatch(
+                                    this.store.dispatch(
                                         showOkDialog({
                                             title: 'Connection',
                                             message:
@@ -1216,20 +1215,21 @@ export class ConnectionManager implements OnDestroy {
                             }
 
                             // save the updated connection
-                            self.save(connectionData, connectionRemovedBend);
+                            this.save(connectionData, connectionRemovedBend);
                         })
-                        .on('mousedown.selection', function (this: any, event: MouseEvent) {
+                        .on('mousedown.selection', (event: MouseEvent) => {
                             // select the connection when clicking the label
-                            self.selectableBehavior.select(event, d3.select(this.parentNode));
+                            this.selectableBehavior.select(
+                                event,
+                                d3.select((event.currentTarget as Element).parentNode as Element)
+                            );
                         })
-                        .call(self.bendPointDrag);
+                        .call(this.bendPointDrag);
 
                     // update the midpoints
-                    self.transitionBehavior
-                        .transition(midpoints.merge(midpointsEntered), self.transitionRequired)
-                        .attr('transform', function (p: any) {
-                            return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
-                        });
+                    this.transitionBehavior
+                        .transition(midpoints.merge(midpointsEntered), this.transitionRequired)
+                        .attr('transform', (p: any) => 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')');
 
                     // remove old items
                     midpoints.exit().remove();
@@ -1254,12 +1254,15 @@ export class ConnectionManager implements OnDestroy {
                             .insert('g', 'rect.startpoint')
                             .attr('class', 'connection-label-container')
                             .attr('pointer-events', 'all')
-                            .on('mousedown.selection', function (this: any, event: MouseEvent) {
+                            .on('mousedown.selection', (event: MouseEvent) => {
                                 // select the connection when clicking the label
-                                self.selectableBehavior.select(event, d3.select(this.parentNode));
+                                this.selectableBehavior.select(
+                                    event,
+                                    d3.select((event.currentTarget as Element).parentNode as Element)
+                                );
                             });
 
-                        self.quickSelectBehavior.activate(connectionLabelContainer);
+                        this.quickSelectBehavior.activate(connectionLabelContainer);
 
                         // processor border
                         connectionLabelContainer
@@ -1293,7 +1296,7 @@ export class ConnectionManager implements OnDestroy {
                         // -----------------------
 
                         // determine if the connection require a from label
-                        if (self.isGroup(d.component.source)) {
+                        if (this.isGroup(d.component.source)) {
                             // see if the connection from label is already rendered
                             if (connectionFrom.empty()) {
                                 connectionFrom = connectionLabelContainer
@@ -1343,7 +1346,7 @@ export class ConnectionManager implements OnDestroy {
                             }
 
                             // update the connection from positioning
-                            connectionFrom.attr('transform', function () {
+                            connectionFrom.attr('transform', () => {
                                 const y: number = rowHeight * labelCount++;
                                 return 'translate(0, ' + y + ')';
                             });
@@ -1351,28 +1354,26 @@ export class ConnectionManager implements OnDestroy {
                             // update the label text
                             connectionFrom
                                 .select('text.connection-from')
-                                .each(function (this: any) {
-                                    const connectionFromLabel = d3.select(this);
+                                .each((_d: any, i: number, nodes: Element[]) => {
+                                    const connectionFromLabel = d3.select(nodes[i]);
 
                                     // reset the label name to handle any previous state
                                     connectionFromLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    self.canvasUtils.ellipsis(
+                                    this.canvasUtils.ellipsis(
                                         connectionFromLabel,
                                         d.component.source.name,
                                         'connection-from'
                                     );
                                 })
                                 .append('title')
-                                .text(function () {
-                                    return d.component.source.name;
-                                });
+                                .text(() => d.component.source.name);
 
                             // update the label run status
                             connectionFrom
                                 .select('text.connection-from-run-status')
-                                .text(function () {
+                                .text(() => {
                                     if (d.component.source.exists === false) {
                                         return '\uf071';
                                     } else if (d.component.source.running === true) {
@@ -1381,23 +1382,24 @@ export class ConnectionManager implements OnDestroy {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running success-color-default', function () {
+                                .classed('running success-color-default', () => {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped error-color-variant', function () {
+                                .classed('stopped error-color-variant', () => {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.source.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid caution-color', function () {
-                                    return d.component.source.exists === false;
-                                });
+                                .classed(
+                                    'is-missing-port invalid caution-color',
+                                    () => d.component.source.exists === false
+                                );
                         } else {
                             // there is no connection from, remove the previous if necessary
                             connectionFrom.remove();
@@ -1408,7 +1410,7 @@ export class ConnectionManager implements OnDestroy {
                         // ---------------------
 
                         // determine if the connection require a to label
-                        if (self.isGroup(d.component.destination)) {
+                        if (this.isGroup(d.component.destination)) {
                             // see if the connection to label is already rendered
                             if (connectionTo.empty()) {
                                 connectionTo = connectionLabelContainer
@@ -1458,7 +1460,7 @@ export class ConnectionManager implements OnDestroy {
                             }
 
                             // update the connection to positioning
-                            connectionTo.attr('transform', function () {
+                            connectionTo.attr('transform', () => {
                                 const y: number = rowHeight * labelCount++;
                                 return 'translate(0, ' + y + ')';
                             });
@@ -1466,28 +1468,26 @@ export class ConnectionManager implements OnDestroy {
                             // update the label text
                             connectionTo
                                 .select('text.connection-to')
-                                .each(function (this: any, d: any) {
-                                    const connectionToLabel = d3.select(this);
+                                .each((_d: any, i: number, nodes: Element[]) => {
+                                    const connectionToLabel = d3.select(nodes[i]);
 
                                     // reset the label name to handle any previous state
                                     connectionToLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    self.canvasUtils.ellipsis(
+                                    this.canvasUtils.ellipsis(
                                         connectionToLabel,
                                         d.component.destination.name,
                                         'connection-to'
                                     );
                                 })
                                 .append('title')
-                                .text(function (d: any) {
-                                    return d.component.destination.name;
-                                });
+                                .text(() => d.component.destination.name);
 
                             // update the label run status
                             connectionTo
                                 .select('text.connection-to-run-status')
-                                .text(function () {
+                                .text(() => {
                                     if (d.component.destination.exists === false) {
                                         return '\uf071';
                                     } else if (d.component.destination.running === true) {
@@ -1496,23 +1496,24 @@ export class ConnectionManager implements OnDestroy {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running success-color-default', function () {
+                                .classed('running success-color-default', () => {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped error-color-variant', function () {
+                                .classed('stopped error-color-variant', () => {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return !d.component.destination.running;
                                     }
                                 })
-                                .classed('is-missing-port invalid caution-color', function () {
-                                    return d.component.destination.exists === false;
-                                });
+                                .classed(
+                                    'is-missing-port invalid caution-color',
+                                    () => d.component.destination.exists === false
+                                );
                         } else {
                             // there is no connection to, remove the previous if necessary
                             connectionTo.remove();
@@ -1523,10 +1524,10 @@ export class ConnectionManager implements OnDestroy {
                         // -----------------------
 
                         // get the connection name
-                        const connectionNameValue: string = self.canvasUtils.formatConnectionName(d.component);
+                        const connectionNameValue: string = this.canvasUtils.formatConnectionName(d.component);
 
                         // is there a name to render
-                        if (!self.nifiCommon.isBlank(connectionNameValue)) {
+                        if (!this.nifiCommon.isBlank(connectionNameValue)) {
                             // see if the connection name label is already rendered
                             if (connectionName.empty()) {
                                 connectionName = connectionLabelContainer
@@ -1570,7 +1571,7 @@ export class ConnectionManager implements OnDestroy {
                             }
 
                             // update the connection name positioning
-                            connectionName.attr('transform', function () {
+                            connectionName.attr('transform', () => {
                                 const y: number = rowHeight * labelCount++;
                                 return 'translate(0, ' + y + ')';
                             });
@@ -1578,23 +1579,21 @@ export class ConnectionManager implements OnDestroy {
                             // update the connection name
                             connectionName
                                 .select('text.connection-name')
-                                .each(function (this: any) {
-                                    const connectionToLabel = d3.select(this);
+                                .each((_d: any, i: number, nodes: Element[]) => {
+                                    const connectionNameLabel = d3.select(nodes[i]);
 
                                     // reset the label name to handle any previous state
-                                    connectionToLabel.text(null).selectAll('title').remove();
+                                    connectionNameLabel.text(null).selectAll('title').remove();
 
                                     // apply ellipsis to the label as necessary
-                                    self.canvasUtils.ellipsis(
-                                        connectionToLabel,
+                                    this.canvasUtils.ellipsis(
+                                        connectionNameLabel,
                                         connectionNameValue,
                                         'connection-name'
                                     );
                                 })
                                 .append('title')
-                                .text(function () {
-                                    return connectionNameValue;
-                                });
+                                .text(() => connectionNameValue);
                         } else {
                             // there is no connection name, remove the previous if necessary
                             connectionName.remove();
@@ -1653,9 +1652,7 @@ export class ConnectionManager implements OnDestroy {
                             .append('text')
                             .attr('class', 'load-balance-icon')
                             .attr('y', 14)
-                            .text(function () {
-                                return '\uf042';
-                            })
+                            .text(() => '\uf042')
                             .append('title');
 
                         // retry icon
@@ -1663,9 +1660,7 @@ export class ConnectionManager implements OnDestroy {
                             .append('text')
                             .attr('class', 'retry-icon')
                             .attr('y', 14)
-                            .text(function () {
-                                return '\uf021';
-                            })
+                            .text(() => '\uf021')
                             .append('title');
 
                         // expiration icon
@@ -1674,9 +1669,7 @@ export class ConnectionManager implements OnDestroy {
                             .attr('class', 'expiration-icon primary-color')
                             .attr('x', 224)
                             .attr('y', 14)
-                            .text(function () {
-                                return '\uf017';
-                            })
+                            .text(() => '\uf017')
                             .append('title');
 
                         const yBackpressureOffset: number = rowHeight + ConnectionManager.HEIGHT_FOR_BACKPRESSURE - 4;
@@ -1804,7 +1797,7 @@ export class ConnectionManager implements OnDestroy {
                     }
 
                     // update the queued vertical positioning as necessary
-                    queued.attr('transform', function () {
+                    queued.attr('transform', () => {
                         const y: number = rowHeight * labelCount++;
                         return 'translate(0, ' + y + ')';
                     });
@@ -1812,20 +1805,12 @@ export class ConnectionManager implements OnDestroy {
                     // update the height based on the labels being rendered
                     connectionLabelContainer
                         .select('rect.body')
-                        .attr('height', function () {
-                            return rowHeight * labelCount + ConnectionManager.HEIGHT_FOR_BACKPRESSURE;
-                        })
-                        .classed('unauthorized', function () {
-                            return d.permissions.canRead === false;
-                        });
+                        .attr('height', () => rowHeight * labelCount + ConnectionManager.HEIGHT_FOR_BACKPRESSURE)
+                        .classed('unauthorized', () => d.permissions.canRead === false);
                     connectionLabelContainer
                         .select('rect.border')
-                        .attr('height', function () {
-                            return rowHeight * labelCount + ConnectionManager.HEIGHT_FOR_BACKPRESSURE;
-                        })
-                        .classed('unauthorized', function () {
-                            return d.permissions.canRead === false;
-                        });
+                        .attr('height', () => rowHeight * labelCount + ConnectionManager.HEIGHT_FOR_BACKPRESSURE)
+                        .classed('unauthorized', () => d.permissions.canRead === false);
 
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
@@ -1848,27 +1833,25 @@ export class ConnectionManager implements OnDestroy {
                     // determine whether or not to show the retry icon
                     connectionLabelContainer
                         .select('text.retry-icon')
-                        .classed('hidden', function () {
+                        .classed('hidden', () => {
                             if (d.permissions.canRead) {
-                                return !self.isRetryConfigured(d.component);
+                                return !this.isRetryConfigured(d.component);
                             } else {
                                 return true;
                             }
                         })
-                        .classed('primary-color', function () {
-                            return d.permissions.canRead;
-                        })
-                        .attr('x', function () {
+                        .classed('primary-color', () => d.permissions.canRead)
+                        .attr('x', () => {
                             let offset = 224;
-                            if (d.permissions.canRead && self.isExpirationConfigured(d.component)) {
+                            if (d.permissions.canRead && this.isExpirationConfigured(d.component)) {
                                 offset -= 16;
                             }
                             // retry icon comes before load-balance icon, so no additional offset needed here
                             return offset;
                         })
                         .select('title')
-                        .text(function () {
-                            if (d.permissions.canRead && self.isRetryConfigured(d.component)) {
+                        .text(() => {
+                            if (d.permissions.canRead && this.isRetryConfigured(d.component)) {
                                 return `Relationships configured to be retried: ${d.component.retriedRelationships.join(', ')}`;
                             } else {
                                 return '';
@@ -1878,32 +1861,32 @@ export class ConnectionManager implements OnDestroy {
                     // determine whether or not to show the load-balance icon
                     connectionLabelContainer
                         .select('text.load-balance-icon')
-                        .classed('hidden', function () {
+                        .classed('hidden', () => {
                             if (d.permissions.canRead) {
-                                return !self.isLoadBalanceConfigured(d.component);
+                                return !this.isLoadBalanceConfigured(d.component);
                             } else {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90 success-color-variant', function (d: any) {
+                        .classed('load-balance-icon-active fa-rotate-90 success-color-variant', (d: any) => {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
-                        .classed('primary-color', function (d: any) {
+                        .classed('primary-color', (d: any) => {
                             return d.permissions.canRead && d.component.loadBalanceStatus !== 'LOAD_BALANCE_ACTIVE';
                         })
-                        .attr('x', function () {
+                        .attr('x', () => {
                             let offset = 224;
-                            if (d.permissions.canRead && self.isExpirationConfigured(d.component)) {
+                            if (d.permissions.canRead && this.isExpirationConfigured(d.component)) {
                                 offset -= 16;
                             }
-                            if (d.permissions.canRead && self.isRetryConfigured(d.component)) {
+                            if (d.permissions.canRead && this.isRetryConfigured(d.component)) {
                                 offset -= 16;
                             }
                             // load-balance icon is leftmost, so it gets additional offset
                             return offset;
                         })
                         .select('title')
-                        .text(function () {
+                        .text(() => {
                             if (d.permissions.canRead) {
                                 let loadBalanceStrategyText = '';
 
@@ -1950,15 +1933,15 @@ export class ConnectionManager implements OnDestroy {
                     // determine whether or not to show the expiration icon
                     connectionLabelContainer
                         .select('text.expiration-icon')
-                        .classed('hidden', function () {
+                        .classed('hidden', () => {
                             if (d.permissions.canRead) {
-                                return !self.isExpirationConfigured(d.component);
+                                return !this.isExpirationConfigured(d.component);
                             } else {
                                 return true;
                             }
                         })
                         .select('title')
-                        .text(function () {
+                        .text(() => {
                             if (d.permissions.canRead) {
                                 return 'Expires FlowFiles older than ' + d.component.flowFileExpiration;
                             } else {
@@ -1967,44 +1950,34 @@ export class ConnectionManager implements OnDestroy {
                         });
 
                     // update backpressure object fill
-                    connectionLabelContainer.select('rect.backpressure-object').classed('not-configured', function () {
-                        return d.status.aggregateSnapshot.percentUseCount == null;
-                    });
+                    connectionLabelContainer
+                        .select('rect.backpressure-object')
+                        .classed('not-configured', () => d.status.aggregateSnapshot.percentUseCount == null);
                     connectionLabelContainer
                         .selectAll('rect.backpressure-tick.object')
-                        .classed('not-configured', function () {
-                            return d.status.aggregateSnapshot.percentUseCount == null;
-                        });
+                        .classed('not-configured', () => d.status.aggregateSnapshot.percentUseCount == null);
                     connectionLabelContainer
                         .selectAll('rect.backpressure-tick.object-prediction')
-                        .classed('not-configured', function () {
-                            return d.status.aggregateSnapshot.percentUseCount == null;
-                        });
+                        .classed('not-configured', () => d.status.aggregateSnapshot.percentUseCount == null);
 
                     // update backpressure data size fill
                     connectionLabelContainer
                         .select('rect.backpressure-data-size')
-                        .classed('not-configured', function () {
-                            return d.status.aggregateSnapshot.percentUseBytes == null;
-                        });
+                        .classed('not-configured', () => d.status.aggregateSnapshot.percentUseBytes == null);
                     connectionLabelContainer
                         .selectAll('rect.backpressure-tick.data-size')
-                        .classed('not-configured', function () {
-                            return d.status.aggregateSnapshot.percentUseBytes == null;
-                        });
+                        .classed('not-configured', () => d.status.aggregateSnapshot.percentUseBytes == null);
                     connectionLabelContainer
                         .selectAll('rect.backpressure-tick.data-size-prediction')
-                        .classed('not-configured', function () {
-                            return d.status.aggregateSnapshot.percentUseBytes == null;
-                        });
+                        .classed('not-configured', () => d.status.aggregateSnapshot.percentUseBytes == null);
 
                     if (d.permissions.canWrite) {
                         // only support dragging the label when appropriate
-                        connectionLabelContainer.call(self.labelDrag);
+                        connectionLabelContainer.call(this.labelDrag);
                     }
 
                     // update the connection status
-                    self.updateConnectionStatus(connection);
+                    this.updateConnectionStatus(connection);
                 } else {
                     if (!connectionLabelContainer.empty()) {
                         connectionLabelContainer.remove();
@@ -2013,11 +1986,11 @@ export class ConnectionManager implements OnDestroy {
             }
 
             // update the position of the label if possible
-            self.transitionBehavior
-                .transition(connection.select('g.connection-label-container'), self.transitionRequired)
-                .attr('transform', function (this: any) {
-                    const label: any = d3.select(this).select('rect.body');
-                    const position: Position = self.getLabelPosition(label);
+            this.transitionBehavior
+                .transition(connection.select('g.connection-label-container'), this.transitionRequired)
+                .attr('transform', (d: any, i: number, nodes: Element[]) => {
+                    const label: any = d3.select(nodes[i]).select('rect.body');
+                    const position: Position = this.getLabelPosition(label);
                     return 'translate(' + position.x + ', ' + position.y + ')';
                 });
         });
@@ -2027,7 +2000,6 @@ export class ConnectionManager implements OnDestroy {
         if (updated.empty()) {
             return;
         }
-        const self: ConnectionManager = this;
 
         // penalized icon
         const connectionLabelContainer: any = updated.select('g.connection-label-container');
@@ -2037,21 +2009,19 @@ export class ConnectionManager implements OnDestroy {
                 .append('text')
                 .attr('class', 'penalized-icon primary-color')
                 .attr('y', 14)
-                .text(function () {
-                    return '\uf252';
-                })
+                .text(() => '\uf252')
                 .append('title');
         }
 
         // determine whether or not to show the penalized icon
         connectionLabelContainer
             .select('text.penalized-icon')
-            .classed('hidden', function (d: any) {
+            .classed('hidden', (d: any) => {
                 // TODO - optional chaining
                 const flowFileAvailability: string = d.status.aggregateSnapshot.flowFileAvailability;
                 return flowFileAvailability !== 'HEAD_OF_QUEUE_PENALIZED';
             })
-            .attr('x', function () {
+            .attr('x', () => {
                 let offset = 0;
                 if (!connectionLabelContainer.select('text.expiration-icon').classed('hidden')) {
                     offset += 16;
@@ -2065,26 +2035,22 @@ export class ConnectionManager implements OnDestroy {
                 return 224 - offset;
             })
             .select('title')
-            .text(function () {
-                return 'A FlowFile is currently penalized and data cannot be processed at this time.';
-            });
+            .text(() => 'A FlowFile is currently penalized and data cannot be processed at this time.');
 
         // update connection once progress bars have transitioned
         Promise.all([this.updateDataSize(updated), this.updateObjectCount(updated)]).then(() => {
             // connection stroke
             updated
                 .select('path.connection-path')
-                .classed('full', function (d: any) {
-                    return self.isFullCount(d) || self.isFullBytes(d);
-                })
-                .attr('marker-end', function (d: any) {
+                .classed('full', (d: any) => this.isFullCount(d) || this.isFullBytes(d))
+                .attr('marker-end', (d: any) => {
                     let marker = 'normal';
 
                     if (d.permissions.canRead) {
                         // if the connection has a relationship that is unavailable, mark it a ghost relationship
-                        if (self.isFullBytes(d) || self.isFullCount(d)) {
+                        if (this.isFullBytes(d) || this.isFullCount(d)) {
                             marker = 'full';
-                        } else if (self.hasUnavailableRelationship(d)) {
+                        } else if (this.hasUnavailableRelationship(d)) {
                             marker = 'ghost';
                         }
                     } else {
@@ -2095,13 +2061,13 @@ export class ConnectionManager implements OnDestroy {
                 });
 
             // border
-            updated.select('rect.border').classed('full', function (d: any) {
-                return self.isFullCount(d) || self.isFullBytes(d);
+            updated.select('rect.border').classed('full', (d: any) => {
+                return this.isFullCount(d) || this.isFullBytes(d);
             });
 
             // drop shadow
-            updated.select('rect.body').attr('filter', function (d: any) {
-                if (self.isFullCount(d) || self.isFullBytes(d)) {
+            updated.select('rect.body').attr('filter', (d: any) => {
+                if (this.isFullCount(d) || this.isFullBytes(d)) {
                     return 'url(#connection-full-drop-shadow)';
                 } else {
                     return 'url(#component-drop-shadow)';
@@ -2111,18 +2077,17 @@ export class ConnectionManager implements OnDestroy {
     }
 
     private async updateDataSize(updated: any) {
-        const self: ConnectionManager = this;
-        await new Promise<void>(function (resolve) {
+        await new Promise<void>((resolve) => {
             // queued count value
-            updated.select('text.queued tspan.count').text(function (d: any) {
-                return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+            updated.select('text.queued tspan.count').text((d: any) => {
+                return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
             const backpressurePercentDataSize: any = updated.select('rect.backpressure-percent.data-size');
             backpressurePercentDataSize
                 .transition()
                 .duration(400)
-                .attr('width', function (d: any) {
+                .attr('width', (d: any) => {
                     if (d.status.aggregateSnapshot.percentUseBytes != null) {
                         return (
                             (ConnectionManager.BACKPRESSURE_BAR_WIDTH * d.status.aggregateSnapshot.percentUseBytes) /
@@ -2132,14 +2097,10 @@ export class ConnectionManager implements OnDestroy {
                         return 0;
                     }
                 })
-                .on('end', function () {
+                .on('end', () => {
                     backpressurePercentDataSize
-                        .classed('warning', function (d: any) {
-                            return self.isWarningBytes(d);
-                        })
-                        .classed('error', function (d: any) {
-                            return self.isErrorBytes(d);
-                        });
+                        .classed('warning', (d: any) => this.isWarningBytes(d))
+                        .classed('error', (d: any) => this.isErrorBytes(d));
 
                     resolve();
                 });
@@ -2150,12 +2111,12 @@ export class ConnectionManager implements OnDestroy {
             backpressurePercentDataSizePrediction
                 .transition()
                 .duration(400)
-                .attr('x', function (d: any) {
+                .attr('x', (d: any) => {
                     // clamp the prediction between 0 and 100 percent
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? 0;
                     return (ConnectionManager.BACKPRESSURE_BAR_WIDTH * Math.min(Math.max(predicted, 0), 100)) / 100;
                 })
-                .attr('display', function (d: any) {
+                .attr('display', (d: any) => {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
                         return 'unset neutral-color';
@@ -2164,35 +2125,34 @@ export class ConnectionManager implements OnDestroy {
                         return 'none';
                     }
                 })
-                .on('end', function () {
-                    backpressurePercentDataSizePrediction.classed('prediction-down', function (d: any) {
+                .on('end', () => {
+                    backpressurePercentDataSizePrediction.classed('prediction-down', (d: any) => {
                         const actual: number = d.status.aggregateSnapshot.predictions?.percentUseBytes ?? 0;
                         const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? 0;
                         return predicted < actual;
                     });
                 });
 
-            updated.select('g.backpressure-data-size-container').each(function (this: any, d: any) {
-                self.canvasUtils.canvasTooltip(UnorderedListTip, d3.select(this), {
-                    items: self.getBackPressureSizeTip(d)
+            updated.select('g.backpressure-data-size-container').each((d: any, i: number, nodes: Element[]) => {
+                this.canvasUtils.canvasTooltip(UnorderedListTip, d3.select(nodes[i]), {
+                    items: this.getBackPressureSizeTip(d)
                 });
             });
         });
     }
 
     private async updateObjectCount(updated: any) {
-        const self: ConnectionManager = this;
-        await new Promise<void>(function (resolve) {
+        await new Promise<void>((resolve) => {
             // queued size value
-            updated.select('text.queued tspan.size').text(function (d: any) {
-                return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+            updated.select('text.queued tspan.size').text((d: any) => {
+                return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
             const backpressurePercentObject: any = updated.select('rect.backpressure-percent.object');
             backpressurePercentObject
                 .transition()
                 .duration(400)
-                .attr('width', function (d: any) {
+                .attr('width', (d: any) => {
                     if (d.status.aggregateSnapshot.percentUseCount != null) {
                         return (
                             (ConnectionManager.BACKPRESSURE_BAR_WIDTH * d.status.aggregateSnapshot.percentUseCount) /
@@ -2202,14 +2162,10 @@ export class ConnectionManager implements OnDestroy {
                         return 0;
                     }
                 })
-                .on('end', function () {
+                .on('end', () => {
                     backpressurePercentObject
-                        .classed('warning', function (d: any) {
-                            return self.isWarningCount(d);
-                        })
-                        .classed('error', function (d: any) {
-                            return self.isErrorCount(d);
-                        });
+                        .classed('warning', (d: any) => this.isWarningCount(d))
+                        .classed('error', (d: any) => this.isErrorCount(d));
 
                     resolve();
                 });
@@ -2218,12 +2174,12 @@ export class ConnectionManager implements OnDestroy {
             backpressurePercentObjectPrediction
                 .transition()
                 .duration(400)
-                .attr('x', function (d: any) {
+                .attr('x', (d: any) => {
                     // clamp the prediction between 0 and 100 percent
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? 0;
                     return (ConnectionManager.BACKPRESSURE_BAR_WIDTH * Math.min(Math.max(predicted, 0), 100)) / 100;
                 })
-                .attr('display', function (d: any) {
+                .attr('display', (d: any) => {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
                         return 'unset neutral-color';
@@ -2232,8 +2188,8 @@ export class ConnectionManager implements OnDestroy {
                         return 'none';
                     }
                 })
-                .on('end', function () {
-                    backpressurePercentObjectPrediction.classed('prediction-down', function (d: any) {
+                .on('end', () => {
+                    backpressurePercentObjectPrediction.classed('prediction-down', (d: any) => {
                         // TODO - optional chaining with default ?? 0
                         const actual = d.status.aggregateSnapshot.percentUseCount;
                         const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? 0;
@@ -2241,9 +2197,9 @@ export class ConnectionManager implements OnDestroy {
                     });
                 });
 
-            updated.select('g.backpressure-object-container').each(function (this: any, d: any) {
-                self.canvasUtils.canvasTooltip(UnorderedListTip, d3.select(this), {
-                    items: self.getBackPressureCountTip(d)
+            updated.select('g.backpressure-object-container').each((d: any, i: number, nodes: Element[]) => {
+                this.canvasUtils.canvasTooltip(UnorderedListTip, d3.select(nodes[i]), {
+                    items: this.getBackPressureCountTip(d)
                 });
             });
         });
@@ -2283,9 +2239,9 @@ export class ConnectionManager implements OnDestroy {
                 takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
-                this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
-                    return selected.includes(d.id);
-                });
+                this.connectionContainer
+                    .selectAll('g.connection')
+                    .classed('selected', (d: any) => selected.includes(d.id));
             });
 
         this.store

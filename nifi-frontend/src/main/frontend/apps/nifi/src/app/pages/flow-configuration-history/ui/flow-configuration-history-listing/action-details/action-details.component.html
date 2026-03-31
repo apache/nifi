@@ -142,11 +142,11 @@
             </div>
 
             <ng-template #formatValue let-value let-title="title">
-                @if (value != null) {
+                @if (value !== null && value !== undefined) {
                     @if (value === '') {
                         <div class="unset neutral-color">Empty string set</div>
                     } @else {
-                        @if (title == null) {
+                        @if (title === null || title === undefined) {
                             <div class="tertiary-color font-medium">{{ value }}</div>
                         } @else {
                             <div class="tertiary-color font-medium" [title]="title">

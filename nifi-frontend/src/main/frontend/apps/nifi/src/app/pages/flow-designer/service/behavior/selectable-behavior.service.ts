@@ -70,10 +70,8 @@ export class SelectableBehavior {
     }
 
     public activate(components: any): void {
-        const self = this;
-
-        components.on('mousedown.selection', function (this: any, event: MouseEvent) {
-            self.select(event, d3.select(this));
+        components.on('mousedown.selection', (event: MouseEvent) => {
+            this.select(event, d3.select(event.currentTarget as Element));
         });
     }
 }

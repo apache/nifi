@@ -207,8 +207,8 @@ export class EditConnectionComponent extends TabbedDialog {
 
     editConnectionForm: FormGroup;
     connectionReadonly: boolean;
-    sourceReadonly: boolean = false;
-    destinationReadonly: boolean = false;
+    sourceReadonly = false;
+    destinationReadonly = false;
 
     source: any;
     sourceType: ComponentType | null;

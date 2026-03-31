@@ -22,7 +22,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
-import { PolicySection } from 'apps/nifi-registry/src/app/state/policies';
+import { PolicySection } from '../../../../../state/policies';
 
 export interface EditPolicyDialogData {
     identity: string;

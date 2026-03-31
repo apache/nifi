@@ -138,24 +138,19 @@ export class RemoteProcessGroupManager implements OnDestroy {
         if (updated.empty()) {
             return;
         }
-        const self: RemoteProcessGroupManager = this;
 
         // remote process group border authorization
-        updated.select('rect.border').classed('unauthorized', function (d: any) {
-            return d.permissions.canRead === false;
-        });
+        updated.select('rect.border').classed('unauthorized', (d: any) => d.permissions.canRead === false);
 
         // remote process group body authorization
-        updated.select('rect.body').classed('unauthorized', function (d: any) {
-            return d.permissions.canRead === false;
-        });
+        updated.select('rect.body').classed('unauthorized', (d: any) => d.permissions.canRead === false);
 
-        updated.each(function (this: any, remoteProcessGroupData: any) {
-            const remoteProcessGroup: any = d3.select(this);
+        updated.each((remoteProcessGroupData: any, i: number, nodes: Element[]) => {
+            const remoteProcessGroup: any = d3.select(nodes[i]);
             let details: any = remoteProcessGroup.select('g.remote-process-group-details');
 
             // update the component behavior as appropriate
-            self.editableBehavior.editable(remoteProcessGroup);
+            this.editableBehavior.editable(remoteProcessGroup);
 
             // if this processor is visible, render everything
             if (remoteProcessGroup.classed('visible')) {
@@ -408,14 +403,18 @@ export class RemoteProcessGroupManager implements OnDestroy {
                     // remote process group uri
                     details
                         .select('text.remote-process-group-uri')
-                        .each(function (this: any, d: any) {
-                            const remoteProcessGroupUri = d3.select(this);
+                        .each((_d: any, i: number, nodes: Element[]) => {
+                            const remoteProcessGroupUri = d3.select(nodes[i]);
 
                             // reset the remote process group name to handle any previous state
                             remoteProcessGroupUri.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the remote process group name as necessary
-                            self.canvasUtils.ellipsis(remoteProcessGroupUri, d.component.targetUris, 'rpg-uri');
+                            this.canvasUtils.ellipsis(
+                                remoteProcessGroupUri,
+                                remoteProcessGroupData.component.targetUris,
+                                'rpg-uri'
+                            );
                         })
                         .append('title')
                         .text(function (d: any) {
@@ -425,7 +424,7 @@ export class RemoteProcessGroupManager implements OnDestroy {
                     // update the process groups transmission status
                     details
                         .select('text.remote-process-group-transmission-secure')
-                        .text(function (d: any) {
+                        .text((d: any) => {
                             let icon: string;
                             if (d.component.targetSecure === true) {
                                 icon = '\uf023';
@@ -434,10 +433,10 @@ export class RemoteProcessGroupManager implements OnDestroy {
                             }
                             return icon;
                         })
-                        .each(function (this: any, d: any) {
-                            self.canvasUtils.canvasTooltip(
+                        .each((d: any, i: number, nodes: Element[]) => {
+                            this.canvasUtils.canvasTooltip(
                                 TextTip,
-                                d3.select(this),
+                                d3.select(nodes[i]),
                                 d.component.targetSecure ? 'Site-to-Site is secure.' : 'Site-to-Site is NOT secure.'
                             );
                         });
@@ -451,17 +450,17 @@ export class RemoteProcessGroupManager implements OnDestroy {
                         .select('text.component-comments')
                         .style(
                             'visibility',
-                            self.nifiCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
+                            this.nifiCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function (this: any) {
-                            if (!self.nifiCommon.isBlank(remoteProcessGroupData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(
+                        .each((_d: any, i: number, nodes: Element[]) => {
+                            if (!this.nifiCommon.isBlank(remoteProcessGroupData.component.comments)) {
+                                this.canvasUtils.canvasTooltip(
                                     TextTip,
-                                    d3.select(this),
+                                    d3.select(nodes[i]),
                                     remoteProcessGroupData.component.comments
                                 );
                             } else {
-                                self.canvasUtils.resetCanvasTooltip(d3.select(this));
+                                this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                             }
                         });
 
@@ -480,14 +479,18 @@ export class RemoteProcessGroupManager implements OnDestroy {
                     // update the process group name
                     remoteProcessGroup
                         .select('text.remote-process-group-name')
-                        .each(function (this: any, d: any) {
-                            const remoteProcessGroupName = d3.select(this);
+                        .each((_d: any, i: number, nodes: Element[]) => {
+                            const remoteProcessGroupName = d3.select(nodes[i]);
 
                             // reset the remote process group name to handle any previous state
                             remoteProcessGroupName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the remote process group name as necessary
-                            self.canvasUtils.ellipsis(remoteProcessGroupName, d.component.name, 'rpg-name');
+                            this.canvasUtils.ellipsis(
+                                remoteProcessGroupName,
+                                remoteProcessGroupData.component.name,
+                                'rpg-name'
+                            );
                         })
                         .append('title')
                         .text(function (d: any) {
@@ -511,7 +514,7 @@ export class RemoteProcessGroupManager implements OnDestroy {
                 }
 
                 // populate the stats
-                self.updateRemoteProcessGroupStatus(remoteProcessGroup);
+                this.updateRemoteProcessGroupStatus(remoteProcessGroup);
             } else {
                 if (remoteProcessGroupData.permissions.canRead) {
                     // update the process group name
@@ -543,16 +546,15 @@ export class RemoteProcessGroupManager implements OnDestroy {
         if (updated.empty()) {
             return;
         }
-        const self: RemoteProcessGroupManager = this;
 
         // sent count value
-        updated.select('text.remote-process-group-sent tspan.count').text(function (d: any) {
-            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.sent, ' ');
+        updated.select('text.remote-process-group-sent tspan.count').text((d: any) => {
+            return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.sent, ' ');
         });
 
         // sent size value
-        updated.select('text.remote-process-group-sent tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.sent, ' ');
+        updated.select('text.remote-process-group-sent tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.sent, ' ');
         });
 
         // sent ports value
@@ -566,13 +568,13 @@ export class RemoteProcessGroupManager implements OnDestroy {
         });
 
         // received count value
-        updated.select('text.remote-process-group-received tspan.count').text(function (d: any) {
-            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.received, ' ');
+        updated.select('text.remote-process-group-received tspan.count').text((d: any) => {
+            return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.received, ' ');
         });
 
         // received size value
-        updated.select('text.remote-process-group-received tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.received, ' ');
+        updated.select('text.remote-process-group-received tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.received, ' ');
         });
 
         // --------------------
@@ -582,9 +584,9 @@ export class RemoteProcessGroupManager implements OnDestroy {
         // update the process groups transmission status
         updated
             .select('text.remote-process-group-transmission-status')
-            .text(function (d: any) {
+            .text((d: any) => {
                 let icon: string;
-                if (self.hasIssues(d)) {
+                if (this.hasIssues(d)) {
                     icon = '\uf071';
                 } else if (d.status.transmissionStatus === 'Transmitting') {
                     icon = '\uf140';
@@ -593,51 +595,49 @@ export class RemoteProcessGroupManager implements OnDestroy {
                 }
                 return icon;
             })
-            .attr('font-family', function (d: any) {
+            .attr('font-family', (d: any) => {
                 let family: string;
-                if (self.hasIssues(d) || d.status.transmissionStatus === 'Transmitting') {
+                if (this.hasIssues(d) || d.status.transmissionStatus === 'Transmitting') {
                     family = 'FontAwesome';
                 } else {
                     family = 'flowfont';
                 }
                 return family;
             })
-            .classed('invalid caution-color', function (d: any) {
-                return self.hasIssues(d);
+            .classed('invalid caution-color', (d: any) => this.hasIssues(d))
+            .classed('transmitting success-color-variant', (d: any) => {
+                return !this.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('transmitting success-color-variant', function (d: any) {
-                return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
+            .classed('not-transmitting neutral-color', (d: any) => {
+                return !this.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
-            .classed('not-transmitting neutral-color', function (d: any) {
-                return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
-            })
-            .each(function (this: any, d: any) {
+            .each((d: any, i: number, nodes: Element[]) => {
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && self.hasIssues(d)) {
+                if (d.permissions.canRead && this.hasIssues(d)) {
                     // remote process groups combine validation errors and authorization issues into a single listing
-                    self.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(this), {
+                    this.canvasUtils.canvasTooltip(ValidationErrorsTip, d3.select(nodes[i]), {
                         isValidating: false,
-                        validationErrors: self.getIssues(d)
+                        validationErrors: this.getIssues(d)
                     });
                 } else {
-                    self.canvasUtils.resetCanvasTooltip(d3.select(this));
+                    this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                 }
             });
 
-        updated.each(function (this: any, d: any) {
-            const remoteProcessGroup: any = d3.select(this);
+        updated.each((d: any, i: number, nodes: Element[]) => {
+            const remoteProcessGroup: any = d3.select(nodes[i]);
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(remoteProcessGroup, d);
+            this.canvasUtils.activeThreadCount(remoteProcessGroup, d);
 
             // ---------
             // bulletins
             // ---------
 
-            self.canvasUtils.bulletins(remoteProcessGroup, d.bulletins);
+            this.canvasUtils.bulletins(remoteProcessGroup, d.bulletins);
         });
     }
 

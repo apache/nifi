@@ -81,7 +81,7 @@ export class ComboEditor {
         this.initializeComponent();
     }
     @Input() width!: number;
-    @Input() readonly: boolean = false;
+    @Input() readonly = false;
 
     @Output() ok: EventEmitter<any> = new EventEmitter<any>();
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();

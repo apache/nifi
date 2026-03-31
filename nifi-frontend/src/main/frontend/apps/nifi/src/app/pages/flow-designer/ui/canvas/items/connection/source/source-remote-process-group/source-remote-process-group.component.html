@@ -34,7 +34,7 @@
                     @if (item.description) {
                         <mat-option
                             [value]="item.value"
-                            [disabled]="item.disabled == true || isDisabled"
+                            [disabled]="item.disabled === true || isDisabled"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             [tooltipInputData]="item.description"
@@ -42,7 +42,7 @@
                             >{{ item.text }}</mat-option
                         >
                     } @else {
-                        <mat-option [value]="item.value" [disabled]="item.disabled == true || isDisabled">{{
+                        <mat-option [value]="item.value" [disabled]="item.disabled === true || isDisabled">{{
                             item.text
                         }}</mat-option>
                     }

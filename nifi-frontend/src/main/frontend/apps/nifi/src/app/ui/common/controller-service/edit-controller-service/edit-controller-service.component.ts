@@ -103,7 +103,7 @@ export class EditControllerService extends TabbedDialog {
     @Input() goToService!: (serviceId: string) => void;
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
-    @Input() supportsParameters: boolean = true;
+    @Input() supportsParameters = true;
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
     @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
 

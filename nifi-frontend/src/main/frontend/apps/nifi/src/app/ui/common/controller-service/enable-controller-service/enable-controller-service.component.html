@@ -107,7 +107,7 @@
                                             "></ng-container>
                                     </div>
                                     @if (
-                                        enableRequest.error && enableRequest.error.step == SetEnableStep.EnableService
+                                        enableRequest.error && enableRequest.error.step === SetEnableStep.EnableService
                                     ) {
                                         <div class="text-sm ml-2">
                                             {{ enableRequest.error.error }}
@@ -128,7 +128,7 @@
                                         </div>
                                         @if (
                                             enableRequest.error &&
-                                            enableRequest.error.step == SetEnableStep.EnableReferencingServices
+                                            enableRequest.error.step === SetEnableStep.EnableReferencingServices
                                         ) {
                                             <div class="text-sm ml-2">
                                                 {{ enableRequest.error.error }}
@@ -148,7 +148,7 @@
                                         </div>
                                         @if (
                                             enableRequest.error &&
-                                            enableRequest.error.step == SetEnableStep.StartReferencingComponents
+                                            enableRequest.error.step === SetEnableStep.StartReferencingComponents
                                         ) {
                                             <div class="text-sm ml-2">
                                                 {{ enableRequest.error.error }}

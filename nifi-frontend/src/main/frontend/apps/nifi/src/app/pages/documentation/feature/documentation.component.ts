@@ -93,7 +93,7 @@ export class Documentation implements OnInit, AfterViewInit {
     filter: string | null = null;
 
     private selectedCoordinates: DefinitionCoordinates | null = null;
-    private isOverviewRoute: boolean = false;
+    private isOverviewRoute = false;
     private scrolledIntoView = false;
 
     generalExpanded = true;

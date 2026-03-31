@@ -23,9 +23,9 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { FormsModule } from '@angular/forms';
 import { NiFiCommon } from '@nifi/shared';
-import { PolicySubject } from 'apps/nifi-registry/src/app/service/buckets.service';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
-import { PolicySection } from 'apps/nifi-registry/src/app/state/policies';
+import { PolicySubject } from '../../../../../service/buckets.service';
+import { Bucket } from '../../../../../state/buckets';
+import { PolicySection } from '../../../../../state/policies';
 
 export interface AddPolicyToBucketDialogData {
     bucket: Bucket;

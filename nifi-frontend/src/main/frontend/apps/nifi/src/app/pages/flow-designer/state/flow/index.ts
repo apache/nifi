@@ -454,7 +454,7 @@ export interface SnippetComponentRequest {
     entity: any;
 }
 
-export interface MoveComponentRequest extends SnippetComponentRequest {}
+export type MoveComponentRequest = SnippetComponentRequest;
 
 export interface MoveComponentsRequest {
     components: MoveComponentRequest[];

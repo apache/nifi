@@ -26,7 +26,7 @@ export interface SortableBy {
     pure: true // Set to true to ensure the pipe is only recalculated when inputs change
 })
 export class SortObjectByPropertyPipe implements PipeTransform {
-    transform(items: SortableBy[], property: string = 'name'): any[] {
+    transform(items: SortableBy[], property = 'name'): any[] {
         return items.sort((a, b) =>
             this.getPropertyValue(a, property).localeCompare(this.getPropertyValue(b, property))
         );

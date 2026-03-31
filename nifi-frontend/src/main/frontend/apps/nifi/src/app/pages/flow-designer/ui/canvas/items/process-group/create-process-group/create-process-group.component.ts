@@ -74,7 +74,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         this.parameterContextsOptions = [];
         this._parameterContexts = parameterContexts;
-        let currentParameterContextIdEnabled: boolean = false;
+        let currentParameterContextIdEnabled = false;
 
         if (parameterContexts.length === 0) {
             this.parameterContextsOptions = [];

@@ -19,7 +19,7 @@ import { ConfigurableExtensionDefinition } from '../index';
 
 export const flowRegistryClientDefinitionFeatureKey = 'flowRegistryClientDefinition';
 
-export interface FlowRegistryClientDefinition extends ConfigurableExtensionDefinition {}
+export type FlowRegistryClientDefinition = ConfigurableExtensionDefinition;
 
 export interface FlowRegistryClientDefinitionState {
     flowRegistryClientDefinition: FlowRegistryClientDefinition | null;

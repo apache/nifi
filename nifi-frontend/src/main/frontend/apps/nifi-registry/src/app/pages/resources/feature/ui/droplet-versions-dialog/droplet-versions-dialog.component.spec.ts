@@ -24,7 +24,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
-import { exportDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { exportDropletVersion } from '../../../../../state/droplets/droplets.actions';
 
 describe('DropletVersionsDialogComponent', () => {
     let component: DropletVersionsDialogComponent;

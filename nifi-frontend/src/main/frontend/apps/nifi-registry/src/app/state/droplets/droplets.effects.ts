@@ -40,7 +40,6 @@ import { ErrorHelper } from '../../service/error-helper.service';
 import { ErrorContextKey } from '../error';
 import * as ErrorActions from '../../state/error/error.actions';
 import { Store } from '@ngrx/store';
-import { NiFiState } from '../../../../../nifi/src/app/state';
 import { deleteDroplet } from './droplets.actions';
 
 @Injectable()
@@ -48,7 +47,7 @@ export class DropletsEffects {
     private dropletsService = inject(DropletsService);
     private dialog = inject(MatDialog);
     private errorHelper = inject(ErrorHelper);
-    private store = inject<Store<NiFiState>>(Store);
+    private store = inject(Store);
 
     actions$ = inject(Actions);
 

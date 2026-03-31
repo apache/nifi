@@ -704,7 +704,9 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {});
+            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {
+                // noop
+            });
             component.isDisabled = false;
 
             component.doubleClicked(item);
@@ -843,7 +845,9 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {});
+            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {
+                // noop
+            });
             component.isDisabled = false;
 
             component.doubleClicked(item);

@@ -23,7 +23,7 @@ export interface JoltTransformJsonTransformState {
     transformationFailureResponse?: HttpErrorResponse | null;
 }
 
-export interface TransformJoltSpecSuccess {}
+export type TransformJoltSpecSuccess = Record<string, never>;
 
 export interface TransformJoltSpecRequest {
     customClass: string;

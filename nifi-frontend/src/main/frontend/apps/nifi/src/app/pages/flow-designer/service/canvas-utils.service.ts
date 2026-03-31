@@ -1182,7 +1182,7 @@ export class CanvasUtils {
         let high = length - 1;
         let mid = 0;
 
-        let result = 0;
+        let result: number;
         while (low <= high) {
             mid = ~~((low + high) / 2);
             result = comparator(mid);

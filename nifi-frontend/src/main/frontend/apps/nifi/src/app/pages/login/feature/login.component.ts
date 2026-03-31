@@ -36,7 +36,7 @@ export class Login {
     currentUserState$ = this.store.select(selectCurrentUserState).pipe(take(1));
     loginConfiguration = this.store.selectSignal(selectLoginConfiguration);
 
-    loading: boolean = true;
+    loading = true;
 
     constructor() {
         this.store

@@ -26,7 +26,7 @@ export class ComponentClusterStatusService {
 
     private static readonly API = '../nifi-api';
 
-    getClusterStatus(componentId: string, componentType: ComponentType, nodewise: boolean = true): Observable<any> {
+    getClusterStatus(componentId: string, componentType: ComponentType, nodewise = true): Observable<any> {
         let componentPath: string;
         switch (componentType) {
             case ComponentType.Processor:

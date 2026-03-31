@@ -63,10 +63,9 @@ export class CanvasView {
     private birdseyeTranslateInProgress = false;
     private allowTransition = false;
 
-    private canvasInitialized: boolean = false;
+    private canvasInitialized = false;
 
     constructor() {
-        const self: CanvasView = this;
         let refreshed: Promise<void> | null;
         let panning = false;
 
@@ -74,50 +73,50 @@ export class CanvasView {
         this.behavior = d3
             .zoom()
             .scaleExtent([CanvasView.MIN_SCALE, CanvasView.MAX_SCALE])
-            .on('zoom', function (event) {
+            .on('zoom', (event: any) => {
                 // update the local translation and scale
                 if (!isNaN(event.transform.x)) {
-                    self.x = event.transform.x;
+                    this.x = event.transform.x;
                 }
                 if (!isNaN(event.transform.y)) {
-                    self.y = event.transform.y;
+                    this.y = event.transform.y;
                 }
                 if (!isNaN(event.transform.k)) {
-                    self.k = event.transform.k;
+                    this.k = event.transform.k;
                 }
 
                 // indicate that we are panning to prevent deselection in zoom.end below
                 panning = true;
 
                 // refresh the canvas
-                refreshed = self.refresh({
-                    transition: self.shouldTransition(),
+                refreshed = this.refresh({
+                    transition: this.shouldTransition(),
                     refreshComponents: false,
                     refreshBirdseye: false
                 });
             })
-            .on('end', function () {
-                if (!self.isBirdseyeEvent()) {
+            .on('end', () => {
+                if (!this.isBirdseyeEvent()) {
                     // ensure the canvas was actually refreshed
                     if (refreshed) {
                         // dispatch the current transform
-                        self.store.dispatch(
+                        this.store.dispatch(
                             transformComplete({
                                 transform: {
                                     translate: {
-                                        x: self.x,
-                                        y: self.y
+                                        x: this.x,
+                                        y: this.y
                                     },
-                                    scale: self.k
+                                    scale: this.k
                                 }
                             })
                         );
 
-                        self.updateCanvasVisibility();
+                        this.updateCanvasVisibility();
 
                         // refresh the birdseye
-                        refreshed.then(function () {
-                            self.store.dispatch(refreshBirdseyeView());
+                        refreshed.then(() => {
+                            this.store.dispatch(refreshBirdseyeView());
                         });
 
                         // reset the refreshed deferred
@@ -126,7 +125,7 @@ export class CanvasView {
 
                     if (!panning) {
                         // deselect as necessary if we are not panning
-                        self.store.dispatch(deselectAllComponents());
+                        this.store.dispatch(deselectAllComponents());
                     }
                 }
 
@@ -136,21 +135,19 @@ export class CanvasView {
     }
 
     public init(svg: any, canvas: any): void {
-        const self: CanvasView = this;
-
         // Use document.fonts.ready if available, otherwise fallback to a resolved promise
         const fontsReady = document.fonts?.ready || Promise.resolve();
 
         fontsReady.then(() => {
             // re-render once the fonts have loaded, without the fonts
             // positions of elements on the canvas may be incorrect
-            self.processorManager.render();
-            self.processGroupManager.render();
-            self.remoteProcessGroupManager.render();
-            self.portManager.render();
-            self.labelManager.render();
-            self.funnelManager.render();
-            self.connectionManager.render();
+            this.processorManager.render();
+            this.processGroupManager.render();
+            this.remoteProcessGroupManager.render();
+            this.portManager.render();
+            this.labelManager.render();
+            this.funnelManager.render();
+            this.connectionManager.render();
         });
 
         this.svg = svg;
@@ -300,7 +297,6 @@ export class CanvasView {
     }
 
     public updateCanvasVisibility(): void {
-        const self: CanvasView = this;
         const canvasContainer: any = document.getElementById('canvas-container');
 
         if (canvasContainer == null) {
@@ -324,8 +320,8 @@ export class CanvasView {
         const screenBottom = screenTop + screenHeight * 3;
 
         // detects whether a component is visible and should be rendered
-        const isComponentVisible = function (d: any) {
-            if (!self.shouldRenderPerScale()) {
+        const isComponentVisible = (d: any) => {
+            if (!this.shouldRenderPerScale()) {
                 return false;
             }
 
@@ -339,53 +335,49 @@ export class CanvasView {
         };
 
         // detects whether a connection is visible and should be rendered
-        const isConnectionVisible = function (d: any) {
-            if (!self.shouldRenderPerScale()) {
+        const isConnectionVisible = (d: any) => {
+            if (!this.shouldRenderPerScale()) {
                 return false;
             }
 
-            const { x, y } = self.canvasUtils.getPositionForCenteringConnection(d);
+            const { x, y } = this.canvasUtils.getPositionForCenteringConnection(d);
 
             return screenLeft < x && screenRight > x && screenTop < y && screenBottom > y;
         };
 
         // marks the specific component as visible and determines if its entering or leaving visibility
-        const updateVisibility = function (selection: any, d: any, isVisible: (d: any) => boolean) {
+        const updateVisibility = (selection: any, d: any, isVisible: (d: any) => boolean) => {
             const visible: boolean = isVisible(d);
             const wasVisible: boolean = selection.classed('visible');
 
             // mark the selection as appropriate
             selection
                 .classed('visible', visible)
-                .classed('entering', function () {
-                    return visible && !wasVisible;
-                })
-                .classed('leaving', function () {
-                    return !visible && wasVisible;
-                });
+                .classed('entering', () => visible && !wasVisible)
+                .classed('leaving', () => !visible && wasVisible);
         };
 
         // update the visibility
-        this.processorManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isComponentVisible);
+        this.processorManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isComponentVisible);
         });
-        this.processGroupManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isComponentVisible);
+        this.processGroupManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isComponentVisible);
         });
-        this.remoteProcessGroupManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isComponentVisible);
+        this.remoteProcessGroupManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isComponentVisible);
         });
-        this.portManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isComponentVisible);
+        this.portManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isComponentVisible);
         });
-        this.labelManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isComponentVisible);
+        this.labelManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isComponentVisible);
         });
-        this.funnelManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isComponentVisible);
+        this.funnelManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isComponentVisible);
         });
-        this.connectionManager.selectAll().each(function (this: any, d: any) {
-            updateVisibility(d3.select(this), d, isConnectionVisible);
+        this.connectionManager.selectAll().each((d: any, i: number, nodes: Element[]) => {
+            updateVisibility(d3.select(nodes[i]), d, isConnectionVisible);
         });
 
         // trigger pan
@@ -751,41 +743,35 @@ export class CanvasView {
         refreshComponents?: boolean;
         refreshBirdseye?: boolean;
     } = {}): Promise<void> {
-        const self: CanvasView = this;
-
-        await new Promise<void>(function (resolve) {
+        await new Promise<void>((resolve) => {
             // update component visibility
             if (refreshComponents) {
-                self.updateCanvasVisibility();
+                this.updateCanvasVisibility();
             }
 
-            const t = [self.x, self.y];
-            const s = self.k;
+            const t = [this.x, this.y];
+            const s = this.k;
 
             // update the canvas
             if (transition) {
-                self.canvas
+                this.canvas
                     .transition()
                     .duration(500)
-                    .attr('transform', function () {
-                        return 'translate(' + t + ') scale(' + s + ')';
-                    })
-                    .on('end', function () {
+                    .attr('transform', () => 'translate(' + t + ') scale(' + s + ')')
+                    .on('end', () => {
                         // refresh birdseye if appropriate
                         if (refreshBirdseye) {
-                            self.store.dispatch(refreshBirdseyeView());
+                            this.store.dispatch(refreshBirdseyeView());
                         }
 
                         resolve();
                     });
             } else {
-                self.canvas.attr('transform', function () {
-                    return 'translate(' + t + ') scale(' + s + ')';
-                });
+                this.canvas.attr('transform', () => 'translate(' + t + ') scale(' + s + ')');
 
                 // refresh birdseye if appropriate
                 if (refreshBirdseye) {
-                    self.store.dispatch(refreshBirdseyeView());
+                    this.store.dispatch(refreshBirdseyeView());
                 }
 
                 resolve();

@@ -32,7 +32,9 @@ describe('UaEditor', () => {
                 {
                     provide: CodemirrorNifiLanguageService,
                     useValue: {
-                        setLanguageOptions: () => {},
+                        setLanguageOptions: () => {
+                            // noop
+                        },
                         getLanguageSupport: () => ({})
                     }
                 }

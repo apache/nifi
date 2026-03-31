@@ -116,7 +116,7 @@
                                 (!isDisabled
                                     ? item.descriptor.identifiesControllerService ||
                                       canConvertToParameter(item) ||
-                                      item.type == 'userDefined'
+                                      item.type === 'userDefined'
                                     : false)
                             ) {
                                 <button
@@ -153,7 +153,7 @@
                                             Convert to Parameter
                                         </button>
                                     }
-                                    @if (item.type == 'userDefined') {
+                                    @if (item.type === 'userDefined') {
                                         <button mat-menu-item (click)="deleteProperty(item)">
                                             <i class="fa fa-trash primary-color mr-2"></i>
                                             Delete

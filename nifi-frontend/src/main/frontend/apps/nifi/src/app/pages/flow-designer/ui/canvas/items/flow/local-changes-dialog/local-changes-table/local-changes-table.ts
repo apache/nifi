@@ -185,7 +185,7 @@ export class LocalChangesTable implements AfterViewInit {
         }
         return data.slice().sort((a, b) => {
             const isAsc = sort.direction === 'asc';
-            let retVal = 0;
+            let retVal: number;
             switch (sort.active) {
                 case 'componentName':
                     retVal = this.nifiCommon.compareString(this.formatComponentName(a), this.formatComponentName(b));

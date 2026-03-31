@@ -74,7 +74,6 @@ export class ProcessGroupManager implements OnDestroy {
         if (entered.empty()) {
             return entered;
         }
-        const self: ProcessGroupManager = this;
 
         const processGroup = entered
             .append('g')
@@ -135,9 +134,9 @@ export class ProcessGroupManager implements OnDestroy {
         processGroup.append('text').attr('x', 10).attr('y', 21).attr('class', 'version-control');
 
         // always support selecting and navigation
-        processGroup.on('dblclick', function (event: MouseEvent, d: any) {
+        processGroup.on('dblclick', (event: MouseEvent, d: any) => {
             // enter this group on double click
-            self.store.dispatch(
+            this.store.dispatch(
                 enterProcessGroup({
                     request: {
                         id: d.id
@@ -150,13 +149,11 @@ export class ProcessGroupManager implements OnDestroy {
 
         // only support dragging, connection, and drag and drop if appropriate
         processGroup
-            .filter(function (d: any) {
-                return d.permissions.canWrite && d.permissions.canRead;
-            })
-            .on('mouseover.drop', function (this: any) {
+            .filter((d: any) => d.permissions.canWrite && d.permissions.canRead)
+            .on('mouseover.drop', (event: MouseEvent) => {
                 // Using mouseover/out to workaround chrome issue #122746
                 // get the target and ensure it's not already been marked for drop
-                const target: any = d3.select(this);
+                const target: any = d3.select(event.currentTarget as Element);
                 if (!target.classed('drop')) {
                     const targetData: any = target.datum();
 
@@ -164,24 +161,22 @@ export class ProcessGroupManager implements OnDestroy {
                     const drag = d3.select('rect.drag-selection');
                     if (!drag.empty()) {
                         // filter the current selection by this group
-                        const selection = self.canvasUtils.getSelection().filter(function (d: any) {
-                            return targetData.id === d.id;
-                        });
+                        const selection = this.canvasUtils.getSelection().filter((d: any) => targetData.id === d.id);
 
                         // ensure this group isn't in the selection
                         if (selection.empty()) {
                             // mark that we are hovering over a drop area if appropriate
-                            target.classed('drop', function () {
+                            target.classed('drop', () => {
                                 // get the current selection and ensure its disconnected
-                                return self.canvasUtils.isDisconnected(self.canvasUtils.getSelection());
+                                return this.canvasUtils.isDisconnected(this.canvasUtils.getSelection());
                             });
                         }
                     }
                 }
             })
-            .on('mouseout.drop', function (this: any) {
+            .on('mouseout.drop', (event: MouseEvent) => {
                 // mark that we are no longer hovering over a drop area unconditionally
-                d3.select(this).classed('drop', false);
+                d3.select(event.currentTarget as Element).classed('drop', false);
             });
 
         return processGroup;
@@ -192,24 +187,18 @@ export class ProcessGroupManager implements OnDestroy {
             return;
         }
 
-        const self: ProcessGroupManager = this;
-
         // funnel border authorization
-        updated.select('rect.border').classed('unauthorized', function (d: any) {
-            return d.permissions.canRead === false;
-        });
+        updated.select('rect.border').classed('unauthorized', (d: any) => d.permissions.canRead === false);
 
         // funnel body authorization
-        updated.select('rect.body').classed('unauthorized', function (d: any) {
-            return d.permissions.canRead === false;
-        });
+        updated.select('rect.body').classed('unauthorized', (d: any) => d.permissions.canRead === false);
 
-        updated.each(function (this: any, processGroupData: any) {
-            const processGroup: any = d3.select(this);
+        updated.each((processGroupData: any, i: number, nodes: Element[]) => {
+            const processGroup: any = d3.select(nodes[i]);
             let details: any = processGroup.select('g.process-group-details');
 
             // update the component behavior as appropriate
-            self.editableBehavior.editable(processGroup);
+            this.editableBehavior.editable(processGroup);
 
             // if this processor is visible, render everything
             if (processGroup.classed('visible')) {
@@ -1072,9 +1061,9 @@ export class ProcessGroupManager implements OnDestroy {
                 // update version control information
                 const versionControl = processGroup
                     .select('text.version-control')
-                    .style('visibility', self.isUnderVersionControl(processGroupData) ? 'visible' : 'hidden')
-                    .attr('class', function () {
-                        if (self.isUnderVersionControl(processGroupData)) {
+                    .style('visibility', this.isUnderVersionControl(processGroupData) ? 'visible' : 'hidden')
+                    .attr('class', () => {
+                        if (this.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
                                 return `version-control neutral-color`;
@@ -1092,8 +1081,8 @@ export class ProcessGroupManager implements OnDestroy {
                             return 'version-control neutral-contrast';
                         }
                     })
-                    .text(function () {
-                        if (self.isUnderVersionControl(processGroupData)) {
+                    .text(() => {
+                        if (this.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
                                 return '\uf128';
@@ -1113,14 +1102,14 @@ export class ProcessGroupManager implements OnDestroy {
 
                 if (processGroupData.permissions.canRead) {
                     // version control tooltip
-                    versionControl.each(function (this: any) {
-                        if (self.isUnderVersionControl(processGroupData)) {
-                            self.canvasUtils.canvasTooltip(VersionControlTip, d3.select(this), {
+                    versionControl.each((_d: any, i: number, nodes: Element[]) => {
+                        if (this.isUnderVersionControl(processGroupData)) {
+                            this.canvasUtils.canvasTooltip(VersionControlTip, d3.select(nodes[i]), {
                                 versionControlInformation: processGroupData.component.versionControlInformation,
-                                registryClients: self.registryClients()
+                                registryClients: this.registryClients()
                             });
                         } else {
-                            self.canvasUtils.resetCanvasTooltip(d3.select(this));
+                            this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                         }
                     });
 
@@ -1129,25 +1118,25 @@ export class ProcessGroupManager implements OnDestroy {
                         .select('text.component-comments')
                         .style(
                             'visibility',
-                            self.nifiCommon.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
+                            this.nifiCommon.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible'
                         )
-                        .each(function (this: any) {
-                            if (!self.nifiCommon.isBlank(processGroupData.component.comments)) {
-                                self.canvasUtils.canvasTooltip(
+                        .each((_d: any, i: number, nodes: Element[]) => {
+                            if (!this.nifiCommon.isBlank(processGroupData.component.comments)) {
+                                this.canvasUtils.canvasTooltip(
                                     TextTip,
-                                    d3.select(this),
+                                    d3.select(nodes[i]),
                                     processGroupData.component.comments
                                 );
                             } else {
-                                self.canvasUtils.resetCanvasTooltip(d3.select(this));
+                                this.canvasUtils.resetCanvasTooltip(d3.select(nodes[i]));
                             }
                         });
 
                     // update the process group name
                     processGroup
                         .select('text.process-group-name')
-                        .attr('x', function () {
-                            if (self.isUnderVersionControl(processGroupData)) {
+                        .attr('x', () => {
+                            if (this.isUnderVersionControl(processGroupData)) {
                                 const versionControlX = parseInt(versionControl.attr('x'), 10);
                                 return (
                                     versionControlX +
@@ -1158,23 +1147,23 @@ export class ProcessGroupManager implements OnDestroy {
                                 return 10;
                             }
                         })
-                        .attr('width', function (this: any) {
-                            if (self.isUnderVersionControl(processGroupData)) {
+                        .attr('width', (d: any, i: number, nodes: Element[]) => {
+                            if (this.isUnderVersionControl(processGroupData)) {
                                 const versionControlX = parseInt(versionControl.attr('x'), 10);
-                                const processGroupNameX = parseInt(d3.select(this).attr('x'), 10);
+                                const processGroupNameX = parseInt(d3.select(nodes[i]).attr('x'), 10);
                                 return 300 - (processGroupNameX - versionControlX);
                             } else {
                                 return 300;
                             }
                         })
-                        .each(function (this: any, d: any) {
-                            const processGroupName = d3.select(this);
+                        .each((d: any, i: number, nodes: Element[]) => {
+                            const processGroupName = d3.select(nodes[i]);
 
                             // reset the process group name to handle any previous state
                             processGroupName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the process group name as necessary
-                            self.canvasUtils.ellipsis(processGroupName, d.component.name, 'group-name');
+                            this.canvasUtils.ellipsis(processGroupName, d.component.name, 'group-name');
                         })
                         .append('title')
                         .text(function (d: any) {
@@ -1189,7 +1178,7 @@ export class ProcessGroupManager implements OnDestroy {
                 }
 
                 // populate the stats
-                self.updateProcessGroupStatus(processGroup);
+                this.updateProcessGroupStatus(processGroup);
             } else {
                 if (processGroupData.permissions.canRead) {
                     // update the process group name
@@ -1220,26 +1209,25 @@ export class ProcessGroupManager implements OnDestroy {
         if (updated.empty()) {
             return;
         }
-        const self: ProcessGroupManager = this;
 
         // queued count value
-        updated.select('text.process-group-queued tspan.count').text(function (d: any) {
-            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+        updated.select('text.process-group-queued tspan.count').text((d: any) => {
+            return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
         });
 
         // queued size value
-        updated.select('text.process-group-queued tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+        updated.select('text.process-group-queued tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
         });
 
         // in count value
-        updated.select('text.process-group-in tspan.count').text(function (d: any) {
-            return self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
+        updated.select('text.process-group-in tspan.count').text((d: any) => {
+            return this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // in size value
-        updated.select('text.process-group-in tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
+        updated.select('text.process-group-in tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
         });
 
         // in ports value
@@ -1268,34 +1256,34 @@ export class ProcessGroupManager implements OnDestroy {
         });
 
         // out count value
-        updated.select('text.process-group-out tspan.count').text(function (d: any) {
+        updated.select('text.process-group-out tspan.count').text((d: any) => {
             return (
                 ' ' +
                 String.fromCharCode(8594) +
                 ' ' +
-                self.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ')
+                this.nifiCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ')
             );
         });
 
         // out size value
-        updated.select('text.process-group-out tspan.size').text(function (d: any) {
-            return ' ' + self.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
+        updated.select('text.process-group-out tspan.size').text((d: any) => {
+            return ' ' + this.nifiCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
         });
 
-        updated.each(function (this: any, d: any) {
-            const processGroup = d3.select(this);
+        updated.each((d: any, i: number, nodes: Element[]) => {
+            const processGroup = d3.select(nodes[i]);
 
             // -------------------
             // active thread count
             // -------------------
 
-            self.canvasUtils.activeThreadCount(processGroup, d);
+            this.canvasUtils.activeThreadCount(processGroup, d);
 
             // ---------
             // bulletins
             // ---------
 
-            self.canvasUtils.bulletins(processGroup, d.bulletins);
+            this.canvasUtils.bulletins(processGroup, d.bulletins);
         });
     }
 

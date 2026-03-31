@@ -61,7 +61,9 @@ export class FlowConfigurationHistoryTable {
     ];
     dataSource: MatTableDataSource<ActionEntity> = new MatTableDataSource<ActionEntity>();
 
-    constructor() {}
+    constructor() {
+        // noop
+    }
 
     sortData(sort: Sort) {
         this.sortChanged.next(sort);

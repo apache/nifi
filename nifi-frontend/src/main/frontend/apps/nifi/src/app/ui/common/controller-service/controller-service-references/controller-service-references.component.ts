@@ -48,7 +48,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 export class ControllerServiceReferences {
     private nifiCommon = inject(NiFiCommon);
 
-    @Input() disabledLinks: boolean = false;
+    @Input() disabledLinks = false;
     @Input() serviceReferences!: ControllerServiceReferencingComponentEntity[];
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 

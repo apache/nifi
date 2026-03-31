@@ -44,7 +44,7 @@ export class FlowStatus {
 
     private static readonly FLOW_ANALYSIS_VISIBILITY_KEY: string = 'flow-analysis-visibility';
     private static readonly FLOW_ANALYSIS_KEY: string = 'flow-analysis';
-    public flowAnalysisNotificationClass: string = '';
+    public flowAnalysisNotificationClass = '';
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary | null = null;
@@ -58,9 +58,7 @@ export class FlowStatus {
             const isEnforcedRuleViolated = state.ruleViolations.find((v) => {
                 return v.enforcementPolicy === 'ENFORCE';
             });
-            isEnforcedRuleViolated
-                ? (this.flowAnalysisNotificationClass = 'enforce')
-                : (this.flowAnalysisNotificationClass = 'warn');
+            this.flowAnalysisNotificationClass = isEnforcedRuleViolated ? 'enforce' : 'warn';
         }
     }
 
@@ -85,7 +83,7 @@ export class FlowStatus {
                 const flowAnalysisOpen = item[FlowStatus.FLOW_ANALYSIS_KEY] === true;
                 this.store.dispatch(setFlowAnalysisOpen({ flowAnalysisOpen }));
             }
-        } catch (e) {
+        } catch (_e) {
             // likely could not parse item... ignoring
         }
     }

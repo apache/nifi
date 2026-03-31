@@ -22,7 +22,7 @@ export const TABBED_DIALOG_ID = new InjectionToken<string>('TABBED_DIALOG_ID');
 
 export abstract class TabbedDialog extends CloseOnEscapeDialog {
     private storage: Storage = inject(Storage);
-    private dialogId: string = 'tabbed-dialog-selected-index';
+    private dialogId = 'tabbed-dialog-selected-index';
 
     selectedIndex = 0;
 
@@ -40,7 +40,7 @@ export abstract class TabbedDialog extends CloseOnEscapeDialog {
             if (previousSelectedIndex != null) {
                 this.selectedIndex = previousSelectedIndex;
             }
-        } catch (error) {
+        } catch (_error) {
             // Gracefully handle localStorage errors - use default selectedIndex
         }
     }
@@ -48,7 +48,7 @@ export abstract class TabbedDialog extends CloseOnEscapeDialog {
     tabChanged(selectedTabIndex: number): void {
         try {
             this.storage.setItem<number>(this.dialogId, selectedTabIndex);
-        } catch (error) {
+        } catch (_error) {
             // Gracefully handle localStorage errors
         }
     }

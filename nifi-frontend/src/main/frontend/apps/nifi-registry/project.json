@@ -2,13 +2,13 @@
     "name": "nifi-registry",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "projectType": "application",
+    "prefix": "app",
+    "sourceRoot": "apps/nifi-registry/src",
     "generators": {
         "@schematics/angular:component": {
             "style": "scss"
         }
     },
-    "prefix": "app",
-    "sourceRoot": "apps/nifi-registry/src",
     "targets": {
         "build": {
             "executor": "@nx/angular:application",

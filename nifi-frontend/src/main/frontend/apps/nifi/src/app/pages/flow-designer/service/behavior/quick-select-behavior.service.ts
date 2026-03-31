@@ -53,9 +53,8 @@ export class QuickSelectBehavior {
     }
 
     public activate(components: any): void {
-        const self: QuickSelectBehavior = this;
-        components.on('dblclick', function (event: MouseEvent) {
-            self.quickSelect(event);
+        components.on('dblclick', (event: MouseEvent) => {
+            this.quickSelect(event);
         });
     }
 }

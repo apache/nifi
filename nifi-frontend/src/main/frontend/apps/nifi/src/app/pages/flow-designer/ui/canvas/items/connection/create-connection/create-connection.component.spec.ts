@@ -38,7 +38,7 @@ import { createConnection } from '../../../../../state/flow/flow.actions';
 
 describe('CreateConnection', () => {
     // Mock data factories
-    function createMockInputPort(id: string = 'input-port-id'): any {
+    function createMockInputPort(id = 'input-port-id'): any {
         return {
             id,
             componentType: ComponentType.InputPort,
@@ -57,7 +57,7 @@ describe('CreateConnection', () => {
         };
     }
 
-    function createMockProcessor(id: string = 'processor-id'): any {
+    function createMockProcessor(id = 'processor-id'): any {
         return {
             id,
             componentType: ComponentType.Processor,
@@ -77,7 +77,7 @@ describe('CreateConnection', () => {
         };
     }
 
-    function createMockProcessGroup(id: string = 'process-group-id'): any {
+    function createMockProcessGroup(id = 'process-group-id'): any {
         return {
             id,
             componentType: ComponentType.ProcessGroup,
@@ -93,7 +93,7 @@ describe('CreateConnection', () => {
         };
     }
 
-    function createMockRemoteProcessGroup(id: string = 'remote-group-id'): any {
+    function createMockRemoteProcessGroup(id = 'remote-group-id'): any {
         return {
             id,
             componentType: ComponentType.RemoteProcessGroup,

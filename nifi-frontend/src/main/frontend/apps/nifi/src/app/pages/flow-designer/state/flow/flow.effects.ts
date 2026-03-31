@@ -207,7 +207,7 @@ export class FlowEffects {
     private createProcessGroupDialogRef: MatDialogRef<CreateProcessGroup, any> | undefined;
     private editProcessGroupDialogRef: MatDialogRef<EditProcessGroup, any> | undefined;
     private destroyRef = inject(DestroyRef);
-    private lastReload: number = 0;
+    private lastReload = 0;
 
     constructor() {
         this.store
@@ -1494,7 +1494,7 @@ export class FlowEffects {
                 }),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
-                    let runStatusChanged: boolean = false;
+                    let runStatusChanged = false;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         ...XL_DIALOG,

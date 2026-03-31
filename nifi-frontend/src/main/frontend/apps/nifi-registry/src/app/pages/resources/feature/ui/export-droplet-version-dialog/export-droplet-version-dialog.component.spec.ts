@@ -22,7 +22,7 @@ import { DebugElement } from '@angular/core';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Subject } from 'rxjs';
 import { By } from '@angular/platform-browser';
-import { exportDropletVersion } from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+import { exportDropletVersion } from '../../../../../state/droplets/droplets.actions';
 
 describe('ExportDropletVersionDialogComponent', () => {
     let component: ExportDropletVersionDialogComponent;

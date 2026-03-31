@@ -36,27 +36,27 @@ export class ConnectableBehavior {
     private origin: any;
 
     constructor() {
-        const self: ConnectableBehavior = this;
-
         // dragging behavior for the connector
         this.connect = d3
             .drag()
-            .subject(function (event) {
-                self.origin = d3.pointer(event, d3.select('#canvas'));
+            .subject(function (this: Element, event: any) {
+                const origin = d3.pointer(event, d3.select('#canvas'));
                 return {
-                    x: self.origin[0],
-                    y: self.origin[1]
+                    x: origin[0],
+                    y: origin[1],
+                    element: this,
+                    origin
                 };
             })
-            .on('start', function (this: any, event) {
+            .on('start', (event) => {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
 
-                const source: any = d3.select(this.parentNode);
+                const source: any = d3.select((event.subject.element as Element).parentNode as Element);
                 const sourceData: any = source.datum();
 
                 // mark the source component has selected and unselect the previous components
-                self.store.dispatch(
+                this.store.dispatch(
                     selectComponents({
                         request: {
                             components: [
@@ -70,7 +70,7 @@ export class ConnectableBehavior {
                 );
 
                 // mark this component as dragging and selected
-                d3.select(this).classed('dragging', true);
+                d3.select(event.subject.element as Element).classed('dragging', true);
 
                 const canvas: any = d3.select('#canvas');
                 const position = d3.pointer(event, canvas.node());
@@ -85,27 +85,34 @@ export class ConnectableBehavior {
                         y: sourceData.position.y + sourceData.dimensions.height / 2
                     })
                     .attr('class', 'connector')
-                    .attr('d', function (pathDatum: any) {
-                        return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + pathDatum.x + ' ' + pathDatum.y;
-                    });
+                    .attr(
+                        'd',
+                        (pathDatum: any) =>
+                            'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + pathDatum.x + ' ' + pathDatum.y
+                    );
 
                 // updates the location of the connection img
-                d3.select(this).attr('transform', function () {
-                    return 'translate(' + position[0] + ', ' + (position[1] + 20) + ')';
-                });
+                d3.select(event.subject.element as Element).attr(
+                    'transform',
+                    () => 'translate(' + position[0] + ', ' + (position[1] + 20) + ')'
+                );
 
                 // re-append the image to keep it on top
-                canvas.node().appendChild(this);
+                canvas.node().appendChild(event.subject.element);
             })
-            .on('drag', function (event) {
+            .on('drag', (event) => {
                 const position = d3.pointer(event, d3.select('#canvas').node());
+                const origin = event.subject.origin;
+                const canvasUtils = this.canvasUtils;
 
                 // updates the location of the connection img
-                d3.select(this).attr('transform', function () {
-                    return 'translate(' + position[0] + ', ' + (position[1] + 50) + ')';
-                });
+                d3.select(event.subject.element as Element).attr(
+                    'transform',
+                    () => 'translate(' + position[0] + ', ' + (position[1] + 50) + ')'
+                );
 
                 // mark node's connectable if supported
+                // Uses function() so D3 binds 'this' to the DOM element for isValidConnectionDestination check
                 const destination: any = d3.select('g.hover').classed('connectable-destination', function () {
                     // ensure the mouse has moved at least 10px in any direction, it seems that
                     // when the drag event is trigger is not consistent between browsers. as a result
@@ -114,14 +121,14 @@ export class ConnectableBehavior {
                     // component to itself. requiring the mouse to have actually moved before
                     // checking the eligibility of the destination addresses the issue
                     return (
-                        (Math.abs(self.origin[0] - position[0]) > 10 || Math.abs(self.origin[1] - position[1]) > 10) &&
-                        self.canvasUtils.isValidConnectionDestination(d3.select(this))
+                        (Math.abs(origin[0] - position[0]) > 10 || Math.abs(origin[1] - position[1]) > 10) &&
+                        canvasUtils.isValidConnectionDestination(d3.select(this))
                     );
                 });
 
                 // update the drag line
                 d3.select('path.connector')
-                    .classed('connectable', function () {
+                    .classed('connectable', () => {
                         if (destination.empty()) {
                             return false;
                         }
@@ -129,7 +136,7 @@ export class ConnectableBehavior {
                         // if there is a potential destination, see if its connectable
                         return destination.classed('connectable-destination');
                     })
-                    .attr('d', function (pathDatum: any) {
+                    .attr('d', (pathDatum: any) => {
                         if (!destination.empty() && destination.classed('connectable-destination')) {
                             const destinationData: any = destination.datum();
 
@@ -158,7 +165,7 @@ export class ConnectableBehavior {
                                 );
                             } else {
                                 // get the position on the destination perimeter
-                                const end: Position = self.canvasUtils.getPerimeterPoint(pathDatum, {
+                                const end: Position = this.canvasUtils.getPerimeterPoint(pathDatum, {
                                     x: destinationData.position.x,
                                     y: destinationData.position.y,
                                     width: destinationData.dimensions.width,
@@ -173,12 +180,15 @@ export class ConnectableBehavior {
                         }
                     });
             })
-            .on('end', function (this: any, event, d: any) {
+            .on('end', (event) => {
                 // stop further propagation
                 event.sourceEvent.stopPropagation();
 
+                const subject = event.subject;
+                const addConnectElement = subject.element as Element;
+
                 // get the add connect img
-                const addConnect: any = d3.select(this);
+                const addConnect: any = d3.select(addConnectElement);
 
                 // get the connector, if the current point is not over a new destination
                 // the connector will be removed. otherwise it will be removed after the
@@ -208,10 +218,14 @@ export class ConnectableBehavior {
                         addConnect.remove();
                     } else {
                         // reset the add connect img by restoring the position and place in the DOM
-                        addConnect.classed('dragging', false).attr('transform', function () {
-                            return 'translate(' + d.origX + ', ' + d.origY + ')';
-                        });
-                        source.node().appendChild(this);
+                        const addConnectDatum = addConnect.datum() as { origX: number; origY: number };
+                        addConnect
+                            .classed('dragging', false)
+                            .attr(
+                                'transform',
+                                () => 'translate(' + addConnectDatum.origX + ', ' + addConnectDatum.origY + ')'
+                            );
+                        source.node().appendChild(addConnectElement);
                     }
 
                     // remove the connector
@@ -238,12 +252,12 @@ export class ConnectableBehavior {
                     };
 
                     // add initial bend points if necessary
-                    const bends: Position[] = self.calculateInitialBendPoints(sourceData, destinationData);
+                    const bends: Position[] = this.calculateInitialBendPoints(sourceData, destinationData);
                     if (bends) {
                         request.bends = bends;
                     }
 
-                    self.store.dispatch(
+                    this.store.dispatch(
                         openNewConnectionDialog({
                             request
                         })
@@ -274,16 +288,14 @@ export class ConnectableBehavior {
     }
 
     public activate(components: any): void {
-        const self: ConnectableBehavior = this;
-
         components
             .classed('connectable', true)
-            .on('mouseenter.connectable', function (this: any, event: MouseEvent, d: any) {
-                if (self.allowConnection(event)) {
-                    const selection: any = d3.select(this);
+            .on('mouseenter.connectable', (event: MouseEvent, d: any) => {
+                if (this.allowConnection(event)) {
+                    const selection: any = d3.select(event.currentTarget as Element);
 
                     // ensure the current component supports connection source
-                    if (self.canvasUtils.isValidConnectionSource(selection)) {
+                    if (this.canvasUtils.isValidConnectionSource(selection)) {
                         // see if there's already a connector rendered
                         const addConnect: any = d3.select('text.add-connect');
                         if (addConnect.empty()) {
@@ -299,28 +311,26 @@ export class ConnectableBehavior {
                                     origX: x,
                                     origY: y
                                 })
-                                .call(self.connect);
+                                .call(this.connect);
                         }
                     }
                 }
             })
-            .on('mouseleave.connectable', function (this: any) {
+            .on('mouseleave.connectable', (event: MouseEvent) => {
                 // conditionally remove the connector
-                const addConnect = d3.select(this).select('text.add-connect');
+                const addConnect = d3.select(event.currentTarget as Element).select('text.add-connect');
                 if (!addConnect.empty() && !addConnect.classed('dragging')) {
                     addConnect.remove();
                 }
             })
             // Using mouseover/out to workaround chrome issue #122746
-            .on('mouseover.connectable', function (this: any, event: MouseEvent) {
+            .on('mouseover.connectable', (event: MouseEvent) => {
                 // mark that we are hovering when appropriate
-                d3.select(this).classed('hover', function () {
-                    return self.allowConnection(event);
-                });
+                d3.select(event.currentTarget as Element).classed('hover', () => this.allowConnection(event));
             })
-            .on('mouseout.connection', function (this: any) {
+            .on('mouseout.connection', (event: MouseEvent) => {
                 // remove all hover related classes
-                d3.select(this).classed('hover connectable-destination', false);
+                d3.select(event.currentTarget as Element).classed('hover connectable-destination', false);
             });
     }
 

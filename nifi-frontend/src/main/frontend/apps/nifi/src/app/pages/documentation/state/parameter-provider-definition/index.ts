@@ -19,7 +19,7 @@ import { ConfigurableExtensionDefinition } from '../index';
 
 export const parameterProviderDefinitionFeatureKey = 'parameterProviderDefinition';
 
-export interface ParameterProviderDefinition extends ConfigurableExtensionDefinition {}
+export type ParameterProviderDefinition = ConfigurableExtensionDefinition;
 
 export interface ParameterProviderDefinitionState {
     parameterProviderDefinition: ParameterProviderDefinition | null;

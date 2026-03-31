@@ -157,7 +157,7 @@ export class Navigation implements OnInit, OnDestroy {
         this.themingService.toggleTheme(!!this.darkModeOn, theme);
     }
 
-    toggleAnimations(disableAnimations: string = '') {
+    toggleAnimations(disableAnimations = '') {
         this.disableAnimations = disableAnimations;
         this.storage.setItem('disable-animations', this.disableAnimations.toString());
         window.location.reload();

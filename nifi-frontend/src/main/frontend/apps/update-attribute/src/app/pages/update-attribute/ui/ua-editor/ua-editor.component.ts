@@ -68,7 +68,7 @@ export class UaEditor {
 
         this.initializeCodeMirror();
     }
-    @Input() supportsEl: boolean = false;
+    @Input() supportsEl = false;
     @Input() set required(required: boolean) {
         this.isRequired = required;
 
@@ -84,12 +84,12 @@ export class UaEditor {
     }
 
     @Input() width!: number;
-    @Input() readonly: boolean = false;
+    @Input() readonly = false;
 
     @Output() ok: EventEmitter<string> = new EventEmitter<string>();
     @Output() exit: EventEmitter<void> = new EventEmitter<void>();
 
-    isRequired: boolean = true;
+    isRequired = true;
     valueSet = false;
     requiredSet = false;
 

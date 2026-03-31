@@ -21,11 +21,7 @@ import { DestinationProcessGroup } from './destination-process-group.component';
 
 describe('DestinationProcessGroup Component', () => {
     // Mock data factories
-    function createMockProcessGroup(
-        id: string = 'process-group-id',
-        canRead: boolean = true,
-        name: string = 'Test Process Group'
-    ) {
+    function createMockProcessGroup(id = 'process-group-id', canRead = true, name = 'Test Process Group') {
         return {
             id,
             permissions: { canRead, canWrite: true },
@@ -34,12 +30,12 @@ describe('DestinationProcessGroup Component', () => {
     }
 
     function createMockInputPort(
-        id: string = 'input-port-id',
-        name: string = 'Test Input Port',
-        canRead: boolean = true,
-        canWrite: boolean = true,
-        allowRemoteAccess: boolean = false,
-        comments: string = ''
+        id = 'input-port-id',
+        name = 'Test Input Port',
+        canRead = true,
+        canWrite = true,
+        allowRemoteAccess = false,
+        comments = ''
     ) {
         return {
             id,

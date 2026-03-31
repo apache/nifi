@@ -98,7 +98,7 @@ export class TransformEffects {
                         } else {
                             this.store.dispatch(TransformActions.zoomFit({ transition: false }));
                         }
-                    } catch (e) {
+                    } catch (_e) {
                         // likely could not parse item... ignoring
                     }
                 })

@@ -28,10 +28,10 @@ import { PropertyHintTipInput } from '../../types';
     styleUrl: './property-hint.component.scss'
 })
 export class PropertyHint {
-    @Input() supportsEl: boolean = true;
-    @Input() showParameters: boolean = true;
-    @Input() supportsParameters: boolean = true;
-    @Input() hasParameterContext: boolean = false;
+    @Input() supportsEl = true;
+    @Input() showParameters = true;
+    @Input() supportsParameters = true;
+    @Input() hasParameterContext = false;
 
     preventDrag(event: MouseEvent): void {
         event.stopPropagation();

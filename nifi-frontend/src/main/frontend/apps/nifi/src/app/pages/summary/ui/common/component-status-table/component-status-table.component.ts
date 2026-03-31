@@ -34,7 +34,7 @@ export abstract class ComponentStatusTable<T extends BaseSnapshotEntity> impleme
     private _loadedTimestamp: string | null = null;
     private _initialSortColumn!: string;
     private _initialSortDirection: SortDirection = 'asc';
-    private _connectedToCluster: boolean = false;
+    private _connectedToCluster = false;
     private _clusterNodes: NodeSearchResult[] | null = null;
     private _selectedClusterNode: NodeSearchResult | null = null;
     private _selectedId: string | null = null;

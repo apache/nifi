@@ -72,7 +72,7 @@ export class CopyPasteService {
      * @param pasteIncrement how many times the content has been pasted already. used to determine the overall offset.
      * @private
      */
-    public toOffsetPasteRequest(copyResponse: CopyResponseEntity, pasteIncrement: number = 0): PasteRequest {
+    public toOffsetPasteRequest(copyResponse: CopyResponseEntity, pasteIncrement = 0): PasteRequest {
         const offset = 25;
         const paste: PasteRequest = {
             copyResponse: this.cloneCopyResponseEntity(copyResponse),

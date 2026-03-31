@@ -67,7 +67,7 @@ export class RegistryAuthService {
     setRedirectUrl(url: string): void {
         try {
             window.sessionStorage.setItem(RegistryAuthService.REDIRECT_STORAGE_KEY, url);
-        } catch (error) {
+        } catch (_error) {
             /* empty */
         }
     }
@@ -77,7 +77,7 @@ export class RegistryAuthService {
             const url = window.sessionStorage.getItem(RegistryAuthService.REDIRECT_STORAGE_KEY);
             window.sessionStorage.removeItem(RegistryAuthService.REDIRECT_STORAGE_KEY);
             return url;
-        } catch (error) {
+        } catch (_error) {
             return null;
         }
     }
@@ -96,7 +96,7 @@ export class RegistryAuthService {
             if (matcher && matcher[1]) {
                 return matcher[1];
             }
-        } catch (error) {
+        } catch (_error) {
             /* empty */
         }
         return null;
@@ -122,7 +122,7 @@ export class RegistryAuthService {
             const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
             const payload = window.atob(normalized);
             return JSON.parse(payload);
-        } catch (error) {
+        } catch (_error) {
             return null;
         }
     }

@@ -469,7 +469,7 @@ describe('CodemirrorNifiLanguageService', () => {
                         });
                         if (hasErrors) criticalErrors++;
                     }
-                } catch (error) {
+                } catch (_error) {
                     if (!allowedIncompletePatterns.some((allowed) => key.includes(allowed))) {
                         criticalErrors++;
                     }

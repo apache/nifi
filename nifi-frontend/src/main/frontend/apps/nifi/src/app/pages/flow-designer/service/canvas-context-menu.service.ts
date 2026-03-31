@@ -324,8 +324,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     const connectionUpdates: Map<string, UpdateComponentRequest> = new Map();
 
                     // determine the extent
-                    let minY: number = 0,
-                        maxY: number = 0;
+                    let minY = 0,
+                        maxY = 0;
                     selection.each((d: any) => {
                         if (d.type !== ComponentType.Connection) {
                             if (minY === 0 || d.position.y < minY) {

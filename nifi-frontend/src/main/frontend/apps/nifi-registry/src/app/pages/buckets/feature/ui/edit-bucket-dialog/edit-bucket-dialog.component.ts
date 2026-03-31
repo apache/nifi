@@ -22,7 +22,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
+import { Bucket } from '../../../../../state/buckets';
 import { CopyDirective } from '@nifi/shared';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';

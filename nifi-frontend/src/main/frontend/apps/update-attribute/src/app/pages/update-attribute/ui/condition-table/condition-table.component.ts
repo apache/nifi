@@ -80,7 +80,7 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
     private changeDetector = inject(ChangeDetectorRef);
     private nifiCommon = inject(NiFiCommon);
 
-    @Input() isNew: boolean = false;
+    @Input() isNew = false;
 
     private destroyRef = inject(DestroyRef);
 

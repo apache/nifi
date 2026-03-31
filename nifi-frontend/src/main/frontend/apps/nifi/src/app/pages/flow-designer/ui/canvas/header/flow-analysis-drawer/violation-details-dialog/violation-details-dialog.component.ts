@@ -20,7 +20,7 @@ import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../../state/flow-analysis';
 import { Store } from '@ngrx/store';
-import { navigateToComponentDocumentation } from 'apps/nifi/src/app/state/documentation/documentation.actions';
+import { navigateToComponentDocumentation } from '../../../../../../../state/documentation/documentation.actions';
 import { selectCurrentProcessGroupId } from '../../../../../state/flow/flow.selectors';
 import { MatButton } from '@angular/material/button';
 import { ComponentType } from '@nifi/shared';

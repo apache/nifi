@@ -27,7 +27,7 @@ export function matchesCamelCaseSearch(value: string, filter: string): boolean {
 
     try {
         doesMatch = new RegExp(joinedParts).test(value);
-    } catch (e) {
+    } catch (_e) {
         // ignore
     }
 

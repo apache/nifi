@@ -18,7 +18,7 @@
 <h2 mat-dialog-title>{{ data.bucket.name }}<span class="ml-2">Policies</span></h2>
 <mat-dialog-content class="dialog-content">
     <context-error-banner [context]="ErrorContextKey.MANAGE_ACCESS"></context-error-banner>
-    @if (!(isPolicyError$ | async)) {
+    @if ((isPolicyError$ | async) === false) {
         <div class="policy-table flex flex-col gap-y-3 h-full">
             <div class="flex justify-between items-center">
                 <div class="flex justify-end w-full">

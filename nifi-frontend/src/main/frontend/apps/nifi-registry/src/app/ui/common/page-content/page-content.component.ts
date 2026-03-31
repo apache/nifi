@@ -25,5 +25,5 @@ import { RouterLink } from '@angular/router';
     imports: [RouterLink]
 })
 export class PageContent {
-    @Input() title: string = '';
+    @Input() title = '';
 }

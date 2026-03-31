@@ -17,19 +17,19 @@
 
 import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { Droplet } from 'apps/nifi-registry/src/app/state/droplets';
+import { Droplet } from '../../../../../state/droplets';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon } from '@nifi/shared';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
-import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
+import { Bucket } from '../../../../../state/buckets';
 import { Store } from '@ngrx/store';
 import {
     openDeleteDropletDialog,
     openExportDropletVersionDialog,
     openDropletVersionsDialog,
     openImportNewDropletVersionDialog
-} from 'apps/nifi-registry/src/app/state/droplets/droplets.actions';
+} from '../../../../../state/droplets/droplets.actions';
 
 @Component({
     selector: 'droplet-table',

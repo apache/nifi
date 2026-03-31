@@ -69,8 +69,8 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
     sensitive: FormControl;
     editParameterForm: FormGroup;
     isNew: boolean;
-    showSensitiveHelperText: boolean = false;
-    valueInputTriggered: boolean = false;
+    showSensitiveHelperText = false;
+    valueInputTriggered = false;
 
     private originalParameter: Parameter | undefined = undefined;
 
