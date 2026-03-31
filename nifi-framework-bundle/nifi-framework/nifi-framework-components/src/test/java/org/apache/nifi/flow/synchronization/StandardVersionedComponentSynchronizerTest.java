@@ -1305,6 +1305,54 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processGroup, times(1)).setParameterContext(any(ParameterContext.class));
     }
 
+    @Test
+    public void testNewParameterInInheritedContextAddedDuringSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // Create P2 with paramA
+        final VersionedParameterContext versionedP2 = createVersionedParameterContext("P2", Map.of("paramA", "valueA"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedP2, synchronizationOptions);
+
+        final ParameterContext p2 = parameterContextManager.getParameterContextNameMapping().get("P2");
+
+        // Create P1 with its own parameter, then set up inheritance from P2
+        final VersionedParameterContext versionedP1 = createVersionedParameterContext("P1", Map.of("paramOwn", "ownValue"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedP1, synchronizationOptions);
+
+        final ParameterContext p1 = parameterContextManager.getParameterContextNameMapping().get("P1");
+        p1.setInheritedParameterContexts(List.of(p2));
+        assertEquals(1, p1.getInheritedParameterContexts().size());
+        assertEquals("P2", p1.getInheritedParameterContexts().get(0).getName());
+
+        // Prepare the process group mock bound to P1
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(p1);
+
+        // Build proposed flow for version 2: P2 now has paramA and paramX
+        final VersionedParameterContext proposedP2 = createVersionedParameterContext("P2", Map.of("paramA", "valueA", "paramX", "valueX"), Collections.emptySet());
+        proposedP2.setInheritedParameterContexts(Collections.emptyList());
+
+        final VersionedParameterContext proposedP1 = createVersionedParameterContext("P1", Map.of("paramOwn", "ownValue"), Collections.emptySet());
+        proposedP1.setInheritedParameterContexts(List.of("P2"));
+
+        final Map<String, VersionedParameterContext> parameterContextMap = new HashMap<>();
+        parameterContextMap.put("P1", proposedP1);
+        parameterContextMap.put("P2", proposedP2);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName("P1");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        // Verify P2 now contains paramX
+        assertTrue(p2.getParameter("paramX").isPresent(), "paramX should have been added to inherited context P2");
+        assertEquals("valueX", p2.getParameter("paramX").get().getValue());
+        assertTrue(p2.getParameter("paramA").isPresent(), "paramA should still exist on P2");
+    }
+
     private VersionedParameterContext createVersionedParameterContext(final String name, final Map<String, String> parameters, final Set<String> sensitiveParamNames) {
         final Set<VersionedParameter> versionedParameters = new HashSet<>();
         for (final Map.Entry<String, String> entry : parameters.entrySet()) {

@@ -449,6 +449,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // parameter contexts that inherit from one another and neither the inheriting nor inherited parameter context exists.
         if (versionedParameterContexts != null) {
             versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
+
+            // After ensuring all contexts exist, add any missing parameters to all existing contexts from the proposed definitions.
+            // This is necessary because createParameterContextWithoutReferences skips contexts that already exist, so new parameters
+            // added to inherited contexts (e.g., a parent P2 inherited by the group's bound context P1) would otherwise be missed.
+            final ComponentIdGenerator componentIdGenerator = context.getComponentIdGenerator();
+            for (final Map.Entry<String, VersionedParameterContext> entry : versionedParameterContexts.entrySet()) {
+                final ParameterContext existingContext = getParameterContextByName(entry.getKey());
+                if (existingContext != null) {
+                    addMissingConfiguration(entry.getValue(), existingContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
+                }
+            }
         }
 
         updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
