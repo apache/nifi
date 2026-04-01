@@ -52,8 +52,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.snowflake</groupId>
-            <artifactId>snowflake-ingest-sdk</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -82,6 +82,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver3-junit5</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

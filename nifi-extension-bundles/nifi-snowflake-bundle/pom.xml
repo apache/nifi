@@ -21,12 +21,9 @@
     <packaging>pom</packaging>
 
     <properties>
-        <parquet.version>1.17.0</parquet.version>
         <guava.version>33.5.0-jre</guava.version>
         <protobuf.version>4.34.1</protobuf.version>
         <grpc.version>1.80.0</grpc.version>
-        <!-- Check Ingest SDK and JDBC compatibility when upgrading -->
-        <snowflake-ingest-sdk.version>4.4.2-unshaded</snowflake-ingest-sdk.version>
         <snowflake-jdbc-thin.version>3.28.0</snowflake-jdbc-thin.version>
     </properties>
 
@@ -47,21 +44,6 @@
                 <version>${grpc.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-column</artifactId>
-                <version>${parquet.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-common</artifactId>
-                <version>${parquet.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-hadoop</artifactId>
-                <version>${parquet.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -87,17 +69,6 @@
                 <groupId>com.nimbusds</groupId>
                 <artifactId>oauth2-oidc-sdk</artifactId>
                 <version>${nimbus-oauth2-oidc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.snowflake</groupId>
-                <artifactId>snowflake-ingest-sdk</artifactId>
-                <version>${snowflake-ingest-sdk.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>jsr305</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>net.snowflake</groupId>

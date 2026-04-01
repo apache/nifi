@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.snowflake.service;
 
 import mockwebserver3.MockResponse;
@@ -25,9 +26,7 @@ import org.apache.nifi.processors.snowflake.snowpipe.InsertFile;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertFileStatus;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
-import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
-import org.apache.nifi.util.MockPropertyConfiguration;
-import org.apache.nifi.util.PropertyMigrationResult;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -39,7 +38,6 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -47,17 +45,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Timeout(15)
-public class TestStandardSnowflakeIngestManagerProviderService {
+class SnowpipeIngestClientTest {
 
     private static final String KEY_ALGORITHM = "RSA";
 
-    private static final String ACCOUNT = "ACCOUNT";
+    private static final String ACCOUNT = "TEST-ACCOUNT";
 
-    private static final String USER = "USER";
+    private static final String USER = "TEST-USER";
 
     private static final String PIPE_NAME = "DB.SCHEMA.PIPE";
 
-    private static final String STAGED_FILE_PATH = "staged-file.csv";
+    private static final String STAGED_FILE_PATH = "test-file.csv";
+
+    private static final String BAD_FILE_PATH = "bad-file.csv";
 
     private static final String POST_METHOD = "POST";
 
@@ -79,24 +79,51 @@ public class TestStandardSnowflakeIngestManagerProviderService {
 
     private static final String REQUEST_ID_PARAMETER = "requestId=";
 
-    private static final String PIPE_NOT_RECOGNIZED_BODY = "Pipe not recognized";
+    private static final String FIRST_ERROR_MESSAGE = "Number of columns in file does not match";
+
+    private static final String PIPE_NOT_FOUND_BODY = "Pipe not found";
+
+    private static final String INTERNAL_ERROR_BODY = "Internal error";
 
     private static final String INSERT_FILES_SUCCESS_RESPONSE = """
-            {"requestId":"id","status":"success"}""";
+            {"requestId":"test-id","status":"success"}""";
 
     private static final String INSERT_REPORT_RESPONSE = """
             {
                 "pipe": "DB.SCHEMA.PIPE",
                 "completeResult": true,
+                "nextBeginMark": "1_1",
                 "files": [
                     {
-                        "path": "staged-file.csv",
-                        "complete": true,
+                        "path": "test-file.csv",
+                        "stageLocation": "s3://bucket/",
+                        "fileSize": 100,
+                        "rowsInserted": 5,
+                        "rowsParsed": 5,
                         "errorsSeen": 0,
+                        "errorLimit": 1,
+                        "complete": true,
                         "status": "LOADED"
                     }
                 ]
             }""";
+
+    private static final String INSERT_REPORT_WITH_ERROR_RESPONSE = """
+            {
+                "pipe": "DB.SCHEMA.PIPE",
+                "files": [
+                    {
+                        "path": "bad-file.csv",
+                        "errorsSeen": 3,
+                        "firstError": "Number of columns in file does not match",
+                        "complete": true,
+                        "status": "LOAD_FAILED"
+                    }
+                ]
+            }""";
+
+    private static final String INSERT_REPORT_EMPTY_RESPONSE = """
+            {"pipe": "DB.SCHEMA.PIPE", "files": []}""";
 
     @StartStop
     public final MockWebServer mockWebServer = new MockWebServer();
@@ -104,40 +131,20 @@ public class TestStandardSnowflakeIngestManagerProviderService {
     private SnowpipeIngestClient client;
 
     @BeforeEach
-    void setUp() throws NoSuchAlgorithmException {
-        client = createClient(mockWebServer);
+    void setClient() throws NoSuchAlgorithmException {
+        final URI baseUri = URI.create(HTTP_URI_FORMAT.formatted(mockWebServer.getHostName(), mockWebServer.getPort()));
+        final RSAPrivateCrtKey privateKey = generatePrivateKey();
+        final RSAKeyAuthorizationProvider authProvider = new RSAKeyAuthorizationProvider(ACCOUNT, USER, privateKey);
+        client = new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider);
+    }
+
+    @AfterEach
+    void closeClient() {
+        client.close();
     }
 
     @Test
-    void testMigrateProperties() {
-        final StandardSnowflakeIngestManagerProviderService service = new StandardSnowflakeIngestManagerProviderService();
-        final Map<String, String> expectedRenamed = Map.ofEntries(
-                Map.entry("account-identifier-format", StandardSnowflakeIngestManagerProviderService.ACCOUNT_IDENTIFIER_FORMAT.getName()),
-                Map.entry("host-url", StandardSnowflakeIngestManagerProviderService.HOST_URL.getName()),
-                Map.entry("user-name", StandardSnowflakeIngestManagerProviderService.USER_NAME.getName()),
-                Map.entry("private-key-service", StandardSnowflakeIngestManagerProviderService.PRIVATE_KEY_SERVICE.getName()),
-                Map.entry("pipe", StandardSnowflakeIngestManagerProviderService.PIPE.getName()),
-                Map.entry(SnowflakeProperties.OLD_ACCOUNT_LOCATOR_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_LOCATOR.getName()),
-                Map.entry(SnowflakeProperties.OLD_CLOUD_REGION_PROPERTY_NAME, SnowflakeProperties.CLOUD_REGION.getName()),
-                Map.entry(SnowflakeProperties.OLD_CLOUD_TYPE_PROPERTY_NAME, SnowflakeProperties.CLOUD_TYPE.getName()),
-                Map.entry(SnowflakeProperties.OLD_ORGANIZATION_NAME_PROPERTY_NAME, SnowflakeProperties.ORGANIZATION_NAME.getName()),
-                Map.entry(SnowflakeProperties.OLD_ACCOUNT_NAME_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_NAME.getName()),
-                Map.entry(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName()),
-                Map.entry(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName())
-        );
-
-        final Map<String, String> propertyValues = Map.of();
-        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
-        service.migrateProperties(configuration);
-
-        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
-        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
-
-        assertEquals(expectedRenamed, propertiesRenamed);
-    }
-
-    @Test
-    void testInsertFilesRequest() throws Exception {
+    void testInsertFiles() throws InterruptedException {
         mockWebServer.enqueue(new MockResponse.Builder()
                 .code(HttpURLConnection.HTTP_OK)
                 .addHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
@@ -154,10 +161,10 @@ public class TestStandardSnowflakeIngestManagerProviderService {
         assertTrue(target.startsWith(INSERT_FILES_PATH_PREFIX));
         assertTrue(target.contains(REQUEST_ID_PARAMETER));
 
-        final ByteString requestBody = request.getBody();
-        assertNotNull(requestBody);
-        final String body = requestBody.utf8();
-        assertTrue(body.contains(STAGED_FILE_PATH));
+        final ByteString requestBodyEncoded = request.getBody();
+        assertNotNull(requestBodyEncoded);
+        final String requestBody = requestBodyEncoded.utf8();
+        assertTrue(requestBody.contains(STAGED_FILE_PATH));
 
         final String authHeader = request.getHeaders().get(AUTHORIZATION_HEADER);
         assertNotNull(authHeader);
@@ -165,7 +172,22 @@ public class TestStandardSnowflakeIngestManagerProviderService {
     }
 
     @Test
-    void testGetInsertReportRequest() throws Exception {
+    void testInsertFilesErrorResponse() {
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(HttpURLConnection.HTTP_NOT_FOUND)
+                .body(PIPE_NOT_FOUND_BODY)
+                .build());
+
+        final InsertFiles insertFiles = new InsertFiles(List.of(new InsertFile(STAGED_FILE_PATH)));
+        final SnowpipeResponseException exception = assertThrows(
+                SnowpipeResponseException.class,
+                () -> client.insertFiles(insertFiles)
+        );
+        assertTrue(exception.getMessage().contains(String.valueOf(HttpURLConnection.HTTP_NOT_FOUND)));
+    }
+
+    @Test
+    void testGetInsertReport() throws InterruptedException {
         mockWebServer.enqueue(new MockResponse.Builder()
                 .code(HttpURLConnection.HTTP_OK)
                 .addHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
@@ -174,40 +196,77 @@ public class TestStandardSnowflakeIngestManagerProviderService {
 
         final InsertReport response = client.getInsertReport();
 
+        assertNotNull(response);
+        final List<InsertFileStatus> files = response.files();
+        assertEquals(1, files.size());
+
+        final InsertFileStatus entry = files.getFirst();
+        assertEquals(STAGED_FILE_PATH, entry.path());
+        assertTrue(entry.complete());
+        assertEquals(0, entry.errorsSeen());
+
         final RecordedRequest request = mockWebServer.takeRequest();
         assertEquals(GET_METHOD, request.getMethod());
         final String target = request.getTarget();
         assertNotNull(target);
         assertTrue(target.startsWith(INSERT_REPORT_PATH_PREFIX));
 
-        assertNotNull(response);
-        final List<InsertFileStatus> files = response.files();
-        assertEquals(1, files.size());
-        assertEquals(STAGED_FILE_PATH, files.getFirst().path());
-        assertTrue(files.getFirst().complete());
+        final String authHeader = request.getHeaders().get(AUTHORIZATION_HEADER);
+        assertNotNull(authHeader);
+        assertTrue(authHeader.startsWith(BEARER_PREFIX));
     }
 
     @Test
-    void testInsertFilesErrorResponse() {
+    void testGetInsertReportWithErrors() {
         mockWebServer.enqueue(new MockResponse.Builder()
-                .code(HttpURLConnection.HTTP_NOT_FOUND)
-                .body(PIPE_NOT_RECOGNIZED_BODY)
+                .code(HttpURLConnection.HTTP_OK)
+                .addHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+                .body(INSERT_REPORT_WITH_ERROR_RESPONSE)
                 .build());
 
-        final InsertFiles insertFiles = new InsertFiles(List.of(new InsertFile(STAGED_FILE_PATH)));
-        final RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> client.insertFiles(insertFiles)
-        );
-        assertTrue(exception.getMessage().contains(String.valueOf(HttpURLConnection.HTTP_NOT_FOUND)));
+        final InsertReport response = client.getInsertReport();
+
+        final List<InsertFileStatus> files = response.files();
+        assertEquals(1, files.size());
+
+        final InsertFileStatus entry = files.getFirst();
+        assertEquals(BAD_FILE_PATH, entry.path());
+        assertTrue(entry.complete());
+        assertEquals(3, entry.errorsSeen());
+        assertEquals(FIRST_ERROR_MESSAGE, entry.firstError());
     }
 
-    private static SnowpipeIngestClient createClient(final MockWebServer mockWebServer) throws NoSuchAlgorithmException {
-        final URI baseUri = URI.create(HTTP_URI_FORMAT.formatted(mockWebServer.getHostName(), mockWebServer.getPort()));
+    @Test
+    void testGetInsertReportEmpty() {
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(HttpURLConnection.HTTP_OK)
+                .addHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+                .body(INSERT_REPORT_EMPTY_RESPONSE)
+                .build());
+
+        final InsertReport response = client.getInsertReport();
+
+        assertNotNull(response);
+        assertTrue(response.files().isEmpty());
+    }
+
+    @Test
+    void testGetInsertReportErrorResponse() {
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(HttpURLConnection.HTTP_INTERNAL_ERROR)
+                .body(INTERNAL_ERROR_BODY)
+                .build());
+
+        final SnowpipeResponseException exception = assertThrows(
+                SnowpipeResponseException.class,
+                () -> client.getInsertReport()
+        );
+        assertTrue(exception.getMessage().contains(String.valueOf(HttpURLConnection.HTTP_INTERNAL_ERROR)));
+    }
+
+    private static RSAPrivateCrtKey generatePrivateKey() throws NoSuchAlgorithmException {
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
         final KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        final RSAPrivateCrtKey privateKey = (RSAPrivateCrtKey) keyPair.getPrivate();
-        final RSAKeyAuthorizationProvider authProvider = new RSAKeyAuthorizationProvider(ACCOUNT, USER, privateKey);
-        return new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider);
+        return (RSAPrivateCrtKey) keyPair.getPrivate();
     }
 }
