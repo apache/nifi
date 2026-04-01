@@ -1058,6 +1058,7 @@
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
+                        <exclude>.cursor/rules/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>

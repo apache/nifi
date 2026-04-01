@@ -21,4 +21,3 @@ alwaysApply: true
 
 - Reuse expensive, thread-safe helpers instead of constructing them ad hoc in methods or tests.
 - For example, when a class needs an `ObjectMapper`, prefer a shared field such as `private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();` unless a special configuration requires a dedicated instance.
-- Every file in the repository must include the Apache License 2.0 header. This applies to Java source files, XML files, properties files, and Cursor rule files (`.mdc`). Use the appropriate comment syntax for the file type (e.g., `<!-- ... -->` for `.mdc` and XML files, `/* ... */` for Java files).
