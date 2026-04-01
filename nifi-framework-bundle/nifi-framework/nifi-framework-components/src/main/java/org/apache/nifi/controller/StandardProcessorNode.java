@@ -1500,11 +1500,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         LOG.debug("Starting {}", this);
 
         ScheduledState currentState;
+        ValidationStatus currentValidationStatus;
         boolean starting;
         synchronized (this) {
             currentState = this.scheduledState.get();
 
-            if (currentState == ScheduledState.STOPPED) {
+            // Ensure the processor is valid before attempting to start
+            currentValidationStatus = this.getValidationStatus();
+            if (currentState == ScheduledState.STOPPED && currentValidationStatus == ValidationStatus.VALID) {
                 starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
                 if (starting) {
                     setDesiredState(desiredState);
@@ -1521,7 +1524,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, new AtomicLong(0), processContextFactory, schedulingAgentCallback, triggerLifecycleMethods);
         } else {
             final String procName = processorRef.get().getProcessor().toString();
-            procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
+            if (currentValidationStatus == ValidationStatus.VALID) {
+                procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
+            } else {
+                // log as debug to suppress warning bulletins on invalid processors
+                procLog.debug("Cannot start {} because it is not currently valid. Current validation status is {}", procName, currentValidationStatus);
+            }
         }
     }
 
@@ -1668,7 +1676,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     return null;
                 }
 
-                LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 5 seconds", StandardProcessorNode.this);
+                LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 500 ms", StandardProcessorNode.this);
 
                 final long attempt = startupAttemptCount.getAndIncrement();
                 if (attempt % 7200 == 0) {
