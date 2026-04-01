@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -61,6 +62,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -717,5 +719,41 @@ public class DtoFactoryTest {
 
         final DifferenceDTO dto = dtoFactory.createBundleDifferenceDto(difference);
         assertTrue(dto.getEnvironmental());
+    }
+
+    @Test
+    void testCreateAssetReferenceDtoWhenContentFileExists() {
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn("asset-id-1");
+        when(asset.getName()).thenReturn("asset-name-1");
+        final File contentFile = mock(File.class);
+        when(contentFile.exists()).thenReturn(true);
+        when(asset.getFile()).thenReturn(contentFile);
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        final AssetReferenceDTO dto = dtoFactory.createAssetReferenceDto(asset);
+
+        assertEquals("asset-id-1", dto.getId());
+        assertEquals("asset-name-1", dto.getName());
+        assertNotNull(dto.getMissingContent());
+        assertFalse(dto.getMissingContent());
+    }
+
+    @Test
+    void testCreateAssetReferenceDtoWhenContentFileMissing() {
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn("asset-id-2");
+        when(asset.getName()).thenReturn("asset-name-2");
+        final File contentFile = mock(File.class);
+        when(contentFile.exists()).thenReturn(false);
+        when(asset.getFile()).thenReturn(contentFile);
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        final AssetReferenceDTO dto = dtoFactory.createAssetReferenceDto(asset);
+
+        assertEquals("asset-id-2", dto.getId());
+        assertEquals("asset-name-2", dto.getName());
+        assertNotNull(dto.getMissingContent());
+        assertTrue(dto.getMissingContent());
     }
 }
