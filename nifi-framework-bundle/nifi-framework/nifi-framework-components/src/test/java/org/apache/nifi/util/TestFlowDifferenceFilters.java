@@ -779,6 +779,18 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(propertyDiff, null, flowManager));
     }
 
+    @Test
+    public void testIsComponentUpdateRequiredForLocalScheduleStateChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final VersionedProcessor processorA = new VersionedProcessor();
+        final VersionedProcessor processorB = new VersionedProcessor();
+
+        final StandardFlowDifference scheduledStateDiff = new StandardFlowDifference(
+                DifferenceType.SCHEDULED_STATE_CHANGED, processorA, processorB, "STOPPED", "RUNNING", "");
+
+        assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(scheduledStateDiff, null, flowManager));
+    }
+
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
     private static class DynamicAnnotationProcessor extends AbstractProcessor {
         @Override

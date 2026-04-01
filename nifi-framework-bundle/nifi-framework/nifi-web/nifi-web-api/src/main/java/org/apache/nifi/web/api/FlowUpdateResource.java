@@ -399,10 +399,13 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
             final FlowSnapshotContainer originalFlowSnapshotContainer = serviceFacade.getVersionedFlowSnapshot(vciEntity.getVersionControlInformation(), true);
             originalFlowSnapshot = originalFlowSnapshotContainer.getFlowSnapshot();
 
-            // Resolve compatible bundles for the rollback snapshot before any replication occurs,
-            // ensuring that all nodes in the cluster receive the same resolved bundle versions.
+            // Resolve compatible bundles, inherited controller services, and parameter providers for the rollback snapshot before any
+            // replication occurs, ensuring that all nodes in the cluster receive the same resolved references.
             serviceFacade.discoverCompatibleBundles(originalFlowSnapshot.getFlowContents());
             serviceFacade.discoverCompatibleBundles(originalFlowSnapshot.getParameterProviders());
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            serviceFacade.resolveInheritedControllerServices(originalFlowSnapshotContainer, groupId, user);
+            serviceFacade.resolveParameterProviders(originalFlowSnapshot, user);
         }
 
         try {

@@ -111,8 +111,15 @@ public class FlowDifferenceFilters {
      * Determines whether a Flow Difference represents a change that requires stopping and updating the affected component. Returns false for differences
      * that are benign with respect to the running state of a component -- for example, a new property added with a default value, or a position change.
      *
-     * This method must be used consistently in both the "affected components" calculation (which determines what to stop) and the synchronizer
-     * (which determines what to update). If these two paths use different filter sets, a component may be updated without first being stopped, causing failures.
+     * This method is used by the synchronizer to decide which components to update and by the affected-components calculation to decide which components
+     * to stop. Both callers must agree; otherwise a component may be updated without being stopped first, causing failures.
+     *
+     * Note: {@link #isLocalScheduleStateChange} is intentionally not included here. During a versioned flow update the
+     * {@code RetainExistingStateComponentScheduler} already preserves local scheduled-state, so including it would be harmless but redundant. During
+     * cluster reconnection, however, scheduled-state differences must be applied so the reconnecting node matches the cluster, and filtering them out
+     * would prevent the synchronizer from starting or stopping components as needed. Callers that build an "affected components" set for version
+     * changes should apply {@link #isLocalScheduleStateChange} as a separate filter to avoid flagging components whose only difference is a
+     * user-initiated state change.
      *
      * @param difference the Flow Difference to evaluate
      * @param proposedContents the proposed VersionedProcessGroup from the target flow snapshot
@@ -128,7 +135,6 @@ public class FlowDifferenceFilters {
             && !isScheduledStateNew(difference)
             && !isNewPropertyWithDefaultValue(difference, flowManager)
             && !isNewRelationshipAutoTerminatedAndDefaulted(difference, proposedContents, flowManager)
-            && !isLocalScheduleStateChange(difference)
             && !isStaticPropertyRemoved(difference, flowManager);
     }
 

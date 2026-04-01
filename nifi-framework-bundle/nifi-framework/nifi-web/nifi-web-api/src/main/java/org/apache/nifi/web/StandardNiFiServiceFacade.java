@@ -6351,6 +6351,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(difference -> difference.getComponentA() != null) // a difference that would not affect a local component
                 .filter(diff -> FlowDifferenceFilters.isComponentUpdateRequired(diff, proposedFlow.getContents(), flowManager))
+                .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
                 .map(difference -> {
                     final VersionedComponent localComponent = difference.getComponentA();
 
