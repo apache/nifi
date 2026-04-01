@@ -659,6 +659,87 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
     }
 
+    @Test
+    public void testPropertyAddedFromMigrationOnProcessor() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Table";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name(propertyName).build(),
+                new PropertyDescriptor.Builder().name("Other Property").build()));
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, "someValue", "Property added");
+
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testPropertyAddedFromMigrationOnControllerService() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ControllerServiceNode controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "New Service Property";
+        final String instanceId = "service-instance";
+
+        Mockito.when(flowManager.getControllerServiceNode(instanceId)).thenReturn(controllerServiceNode);
+        Mockito.when(controllerServiceNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name(propertyName).build()));
+
+        final VersionedControllerService registryService = new VersionedControllerService();
+        final InstantiatedVersionedControllerService localService = new InstantiatedVersionedControllerService(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryService, localService, propertyName, null, "value", "Property added on service");
+
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testDynamicPropertyAddedIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name("Static Property").build()));
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, "User Dynamic Property", null, "value", "Dynamic property added");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testPropertyAddedFromMigrationReturnsFalseWhenProcessorNotFound() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
+        final String instanceId = "missing-processor";
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(null);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, "Table", null, "value", "Property added");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
     private static class DynamicAnnotationProcessor extends AbstractProcessor {
         @Override

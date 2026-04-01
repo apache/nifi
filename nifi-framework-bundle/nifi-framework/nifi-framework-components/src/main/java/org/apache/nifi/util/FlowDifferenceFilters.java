@@ -103,7 +103,8 @@ public class FlowDifferenceFilters {
             || isControllerServiceCreatedForNewProperty(difference, evaluatedContext)
             || isPropertyParameterizationRename(difference, evaluatedContext)
             || isPropertyRenameWithMatchingValue(difference, evaluatedContext)
-            || isSelectedRelationshipChangeForNewRelationship(difference, flowManager);
+            || isSelectedRelationshipChangeForNewRelationship(difference, flowManager)
+            || isPropertyAddedFromMigration(difference, flowManager);
     }
 
     public static boolean isBundleChange(final FlowDifference difference) {
@@ -907,6 +908,55 @@ public class FlowDifferenceFilters {
     public static boolean isPropertyRenameWithMatchingValue(final FlowDifference difference, final EnvironmentalChangeContext context) {
         final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
         return evaluatedContext.propertyRenamesWithMatchingValues().isEmpty() ? false : evaluatedContext.propertyRenamesWithMatchingValues().contains(difference);
+    }
+
+    /**
+     * Determines whether a PROPERTY_ADDED difference is an environmental change because the added property is a
+     * non-dynamic property defined in the component code. Non-dynamic properties are declared through
+     * {@link ConfigurableComponent#getPropertyDescriptors()} and cannot be added by users. When a PROPERTY_ADDED
+     * diff exists for such a property, it means the component's code was updated (e.g., via NiFi upgrade or bundle
+     * version change) and migration added the property. This is an environmental change regardless of whether a
+     * corresponding BUNDLE_CHANGED diff is present, because the VCI baseline may already have resolved bundles
+     * (e.g., after {@code discoverCompatibleBundles} during import).
+     *
+     * <p>Only Processors and Controller Services are considered because these are the component types that carry
+     * properties within versioned process groups.</p>
+     *
+     * <p>Trade-off: if a user subsequently edits a migration-added property, that edit will also be classified as
+     * environmental because the diff relative to the registry is still PROPERTY_ADDED (the registry version predates
+     * the migration). This means such edits will not make the flow dirty. However, the change remains visible in the
+     * "Show Local Changes" environmental view, and when the user commits for any other reason, the full flow
+     * (including the edited property) is saved to the registry.</p>
+     */
+    private static boolean isPropertyAddedFromMigration(final FlowDifference difference, final FlowManager flowManager) {
+        if (difference.getDifferenceType() != DifferenceType.PROPERTY_ADDED) {
+            return false;
+        }
+
+        final Optional<String> fieldName = difference.getFieldName();
+        if (fieldName.isEmpty()) {
+            return false;
+        }
+
+        final VersionedComponent componentB = difference.getComponentB();
+        final ComponentNode componentNode;
+        if (componentB instanceof InstantiatedVersionedProcessor) {
+            componentNode = flowManager.getProcessorNode(componentB.getInstanceIdentifier());
+        } else if (componentB instanceof InstantiatedVersionedControllerService) {
+            componentNode = flowManager.getControllerServiceNode(componentB.getInstanceIdentifier());
+        } else {
+            componentNode = null;
+        }
+
+        return isNotDynamicProperty(fieldName.get(), componentNode);
+    }
+
+    private static boolean isNotDynamicProperty(final String propertyName, final ComponentNode componentNode) {
+        final ConfigurableComponent component = componentNode == null ? null : componentNode.getComponent();
+        final List<PropertyDescriptor> descriptors = component == null ? List.of() : component.getPropertyDescriptors();
+        return descriptors.stream()
+                .map(PropertyDescriptor::getName)
+                .anyMatch(propertyName::equals);
     }
 
     private static Optional<String> getComponentInstanceIdentifier(final FlowDifference difference) {
