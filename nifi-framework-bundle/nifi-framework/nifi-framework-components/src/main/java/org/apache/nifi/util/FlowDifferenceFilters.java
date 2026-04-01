@@ -104,7 +104,7 @@ public class FlowDifferenceFilters {
             || isPropertyParameterizationRename(difference, evaluatedContext)
             || isPropertyRenameWithMatchingValue(difference, evaluatedContext)
             || isSelectedRelationshipChangeForNewRelationship(difference, flowManager)
-            || isNewStaticPropertyOnComponent(difference, flowManager);
+            || isPropertyAddedFromMigration(difference, flowManager);
     }
 
     public static boolean isBundleChange(final FlowDifference difference) {
@@ -912,11 +912,15 @@ public class FlowDifferenceFilters {
 
     /**
      * Determines whether a PROPERTY_ADDED difference is an environmental change because the added property is a
-     * statically-defined property on the component. Static properties are defined in component code and cannot be
-     * added by users. When a PROPERTY_ADDED diff exists for a static property, it means the component's code was
-     * updated (e.g., via NiFi upgrade or bundle version change) and migration added the property. This is an
-     * environmental change regardless of whether a corresponding BUNDLE_CHANGED diff is present, because the
-     * VCI baseline may already have resolved bundles (e.g., after {@code discoverCompatibleBundles} during import).
+     * non-dynamic property defined in the component code. Non-dynamic properties are declared through
+     * {@link ConfigurableComponent#getPropertyDescriptors()} and cannot be added by users. When a PROPERTY_ADDED
+     * diff exists for such a property, it means the component's code was updated (e.g., via NiFi upgrade or bundle
+     * version change) and migration added the property. This is an environmental change regardless of whether a
+     * corresponding BUNDLE_CHANGED diff is present, because the VCI baseline may already have resolved bundles
+     * (e.g., after {@code discoverCompatibleBundles} during import).
+     *
+     * <p>Only Processors and Controller Services are considered because these are the component types that carry
+     * properties within versioned process groups.</p>
      *
      * <p>Trade-off: if a user subsequently edits a migration-added property, that edit will also be classified as
      * environmental because the diff relative to the registry is still PROPERTY_ADDED (the registry version predates
@@ -924,7 +928,7 @@ public class FlowDifferenceFilters {
      * "Show Local Changes" environmental view, and when the user commits for any other reason, the full flow
      * (including the edited property) is saved to the registry.</p>
      */
-    public static boolean isNewStaticPropertyOnComponent(final FlowDifference difference, final FlowManager flowManager) {
+    private static boolean isPropertyAddedFromMigration(final FlowDifference difference, final FlowManager flowManager) {
         if (difference.getDifferenceType() != DifferenceType.PROPERTY_ADDED) {
             return false;
         }
@@ -935,28 +939,22 @@ public class FlowDifferenceFilters {
         }
 
         final VersionedComponent componentB = difference.getComponentB();
+        final ComponentNode componentNode;
         if (componentB instanceof InstantiatedVersionedProcessor) {
-            final ProcessorNode processorNode = flowManager.getProcessorNode(componentB.getInstanceIdentifier());
-            return isStaticProperty(fieldName.get(), processorNode);
+            componentNode = flowManager.getProcessorNode(componentB.getInstanceIdentifier());
         } else if (componentB instanceof InstantiatedVersionedControllerService) {
-            final ControllerServiceNode controllerService = flowManager.getControllerServiceNode(componentB.getInstanceIdentifier());
-            return isStaticProperty(fieldName.get(), controllerService);
+            componentNode = flowManager.getControllerServiceNode(componentB.getInstanceIdentifier());
+        } else {
+            componentNode = null;
         }
 
-        return false;
+        return isNotDynamicProperty(fieldName.get(), componentNode);
     }
 
-    private static boolean isStaticProperty(final String propertyName, final ComponentNode componentNode) {
-        if (componentNode == null) {
-            return false;
-        }
-
-        final ConfigurableComponent configurableComponent = componentNode.getComponent();
-        if (configurableComponent == null) {
-            return false;
-        }
-
-        return configurableComponent.getPropertyDescriptors().stream()
+    private static boolean isNotDynamicProperty(final String propertyName, final ComponentNode componentNode) {
+        final ConfigurableComponent component = componentNode == null ? null : componentNode.getComponent();
+        final List<PropertyDescriptor> descriptors = component == null ? List.of() : component.getPropertyDescriptors();
+        return descriptors.stream()
                 .map(PropertyDescriptor::getName)
                 .anyMatch(propertyName::equals);
     }
