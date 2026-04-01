@@ -27,6 +27,7 @@ public class AssetReferenceDTO {
 
     private String id;
     private String name;
+    private Boolean missingContent;
 
     public AssetReferenceDTO() {
     }
@@ -56,6 +57,15 @@ public class AssetReferenceDTO {
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    @Schema(description = "Indicates if the content of the asset is missing.", accessMode = Schema.AccessMode.READ_ONLY)
+    public Boolean getMissingContent() {
+        return missingContent;
+    }
+
+    public void setMissingContent(final Boolean missingContent) {
+        this.missingContent = missingContent;
     }
 
     @Override

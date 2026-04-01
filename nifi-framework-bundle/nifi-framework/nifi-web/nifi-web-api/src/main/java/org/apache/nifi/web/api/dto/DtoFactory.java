@@ -1581,7 +1581,9 @@ public final class DtoFactory {
     }
 
     public AssetReferenceDTO createAssetReferenceDto(final Asset asset) {
-        return new AssetReferenceDTO(asset.getIdentifier(), asset.getName());
+        final AssetReferenceDTO dto = new AssetReferenceDTO(asset.getIdentifier(), asset.getName());
+        dto.setMissingContent(!asset.getFile().exists());
+        return dto;
     }
 
     public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
@@ -5501,8 +5503,15 @@ public final class DtoFactory {
     }
 
     private AssetReferenceDTO createConnectorAssetReferenceDto(final String assetId) {
-        final String assetName = connectorRepository.getAsset(assetId).map(Asset::getName).orElse(assetId);
-        return new AssetReferenceDTO(assetId, assetName);
+        final Optional<Asset> asset = connectorRepository.getAsset(assetId);
+        final String assetName = asset.map(Asset::getName).orElse(assetId);
+        final AssetReferenceDTO dto = new AssetReferenceDTO(assetId, assetName);
+        if (asset.isPresent()) {
+            dto.setMissingContent(!asset.get().getFile().exists());
+        } else {
+            dto.setMissingContent(true);
+        }
+        return dto;
     }
 
     private ConnectorPropertyDescriptorDTO createConnectorPropertyDescriptorDto(final ConnectorPropertyDescriptor propertyDescriptor) {
