@@ -102,6 +102,9 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
     @Override
     boolean hasPendingFetches() {
+        if (fetchExecutor.isShutdown()) {
+            return false;
+        }
         if (hasQueuedResults()) {
             return true;
         }
@@ -328,7 +331,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
 
     private boolean enqueueIfActive(final String shardId, final PollingShardState state, final ShardFetchResult result) {
         synchronized (getShardLock(shardId)) {
-            if (state.isResetRequested()) {
+            if (state.isResetRequested() || state.isStopped()) {
                 return false;
             }
             enqueueResult(result);

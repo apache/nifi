@@ -246,9 +246,8 @@ class PollingKinesisClientTest {
         while (System.nanoTime() < replayQueuedDeadline && (getShardIteratorCallCount.get() < 2 || getRecordsCallCount.get() < 4)) {
             Thread.sleep(20);
         }
-        Thread.sleep(100);
 
-        final ShardFetchResult firstAfterRecovery = consumer.pollShardResult("shard-1");
+        final ShardFetchResult firstAfterRecovery = consumer.pollAnyResult(5, TimeUnit.SECONDS);
         assertNotNull(firstAfterRecovery, "Queue must contain results after iterator recovery");
         assertEquals(new BigInteger("200"), firstAfterRecovery.firstSequenceNumber(),
                 "Replayed checkpoint data must be delivered before any stale newer batch from the same shard");
@@ -408,9 +407,8 @@ class PollingKinesisClientTest {
         while (getShardIteratorCallCount.get() < 2 && System.nanoTime() < resetDeadline) {
             Thread.sleep(20);
         }
-        Thread.sleep(100);
 
-        final ShardFetchResult firstAfterRollback = consumer.pollShardResult("shard-1");
+        final ShardFetchResult firstAfterRollback = consumer.pollAnyResult(5, TimeUnit.SECONDS);
         assertNotNull(firstAfterRollback, "Queue must contain results after rollback and re-fetch");
         assertEquals(new BigInteger("500"), firstAfterRollback.firstSequenceNumber(),
                 "First result after rollback must be re-fetched data, not a stale pre-rollback result");
@@ -552,9 +550,8 @@ class PollingKinesisClientTest {
         while (getShardIteratorCallCount.get() < 2 && System.nanoTime() < resetDeadline) {
             Thread.sleep(20);
         }
-        Thread.sleep(100);
 
-        final ShardFetchResult firstAfterRollback = consumer.pollShardResult("shard-1");
+        final ShardFetchResult firstAfterRollback = consumer.pollAnyResult(5, TimeUnit.SECONDS);
         assertNotNull(firstAfterRollback, "Queue must contain results after rollback and re-fetch");
         assertEquals(new BigInteger("800"), firstAfterRollback.firstSequenceNumber(),
                 "First result after rollback must be re-fetched data (800), not the stale data (500) that was returned from GetRecords during the rollback");
