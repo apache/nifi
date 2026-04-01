@@ -17,6 +17,8 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.flow.ScheduledState;
+
 import java.io.InputStream;
 import java.util.Optional;
 
@@ -98,6 +100,35 @@ public interface ConnectorConfigurationProvider {
      * @param connectorId the identifier of the connector to be created
      */
     void verifyCreate(String connectorId);
+
+    /**
+     * Determines how the connector repository should handle synchronization for the given
+     * connector during flow inheritance (cluster join). The provider examines the external
+     * state of the connector and returns a {@link ConnectorSyncDirective} indicating whether
+     * to allow, reject, or remove the connector.
+     *
+     * <p>When the directive action is {@link ConnectorSyncDirective.Action#ALLOW}, the
+     * directive may optionally include:</p>
+     * <ul>
+     *   <li>A {@link ConnectorWorkingConfiguration} with the provider's working config and name
+     *       (overriding the potentially stale values from the versioned flow)</li>
+     *   <li>A {@link ScheduledState} override (correcting stale run intent from the versioned flow)</li>
+     * </ul>
+     *
+     * <p>This method combines the verify and load operations into a single call to avoid
+     * redundant round-trips to the external store.</p>
+     *
+     * <p>The default implementation returns {@link ConnectorSyncDirective#allow()} with no
+     * overrides, meaning the versioned flow's values are used for everything. This is the
+     * behavior for Apache NiFi when no provider is configured.</p>
+     *
+     * @param connectorId the identifier of the connector to check
+     * @param proposedScheduledState the ScheduledState from the versioned flow
+     * @return a directive indicating how to handle this connector during sync
+     */
+    default ConnectorSyncDirective verifySyncable(final String connectorId, final ScheduledState proposedScheduledState) {
+        return ConnectorSyncDirective.allow();
+    }
 
     /**
      * Stores an asset to the local {@link org.apache.nifi.asset.AssetManager} and to the external

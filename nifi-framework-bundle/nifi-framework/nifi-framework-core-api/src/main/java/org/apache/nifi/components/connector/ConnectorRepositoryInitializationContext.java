@@ -23,6 +23,8 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionManager;
 
+import java.time.Duration;
+
 public interface ConnectorRepositoryInitializationContext {
 
     FlowManager getFlowManager();
@@ -45,6 +47,16 @@ public interface ConnectorRepositoryInitializationContext {
      */
     default ConnectorConfigurationProvider getConnectorConfigurationProvider() {
         return null;
+    }
+
+    /**
+     * Returns the maximum time to wait for a connector in a transient state (STARTING, STOPPING, PURGING)
+     * to reach a stable state during flow synchronization.
+     *
+     * @return the sync timeout duration, defaults to 15 minutes
+     */
+    default Duration getConnectorSyncTimeout() {
+        return Duration.ofMinutes(15);
     }
 
 }
