@@ -24,7 +24,7 @@
         <guava.version>33.5.0-jre</guava.version>
         <protobuf.version>4.34.1</protobuf.version>
         <grpc.version>1.80.0</grpc.version>
-        <snowflake-jdbc-thin.version>3.28.0</snowflake-jdbc-thin.version>
+        <snowflake-jdbc-thin.version>4.0.2</snowflake-jdbc-thin.version>
     </properties>
 
     <modules>
@@ -88,6 +88,16 @@
                     <exclusion>
                         <groupId>com.google.code.findbugs</groupId>
                         <artifactId>jsr305</artifactId>
+                    </exclusion>
+                    <!-- Conscrypt Security Provider not required for Google Cloud Storage -->
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <!-- grpc-netty-shaded excluded in favor of grpc-netty -->
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
