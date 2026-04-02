@@ -125,7 +125,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         fileList.sort(DirectoryUtils.LARGEST_ID_FIRST);
         for (final File file : fileList) {
             try {
-                final RecordReader reader = recordReaderFactory.newRecordReader(file, Collections.emptyList(), Integer.MAX_VALUE);
+                final RecordReader reader = recordReaderFactory.newRecordReader(file, Collections.emptyList(), config.getMaxAttributeChars());
                 final long eventId = reader.getMaxEventId();
                 if (eventId > maxEventId) {
                     maxEventId = eventId;
@@ -619,7 +619,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
             final Runnable reindexTask = () -> {
                 final Map<ProvenanceEventRecord, StorageSummary> storageMap = new HashMap<>(1000);
 
-                try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), Integer.MAX_VALUE)) {
+                try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), config.getMaxAttributeChars())) {
                     if (skipToEvent) {
                         final Optional<ProvenanceEventRecord> eventOption = recordReader.skipToEvent(minEventIdToReindex);
                         if (!eventOption.isPresent()) {
@@ -719,12 +719,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
             }
         }
 
-        final EventIterator rawEventIterator = new SequentialRecordReaderEventIterator(relevantEventFiles, recordReaderFactory, 0, Integer.MAX_VALUE);
+        final EventIterator rawEventIterator = new SequentialRecordReaderEventIterator(relevantEventFiles, recordReaderFactory, 0, config.getMaxAttributeChars());
         return rawEventIterator.filter(event -> event.getEventTime() >= minTimestmap && event.getEventTime() <= maxTimestamp);
     }
 
     private ProvenanceEventRecord getFirstEvent(final File eventFile) throws IOException {
-        try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), Integer.MAX_VALUE)) {
+        try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), config.getMaxAttributeChars())) {
             return recordReader.nextRecord();
         }
     }
