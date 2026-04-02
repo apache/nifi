@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snowflake.service;
 
-import net.snowflake.client.core.SFSessionProperty;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.key.service.api.PrivateKeyService;
@@ -113,10 +112,10 @@ class SnowflakeComputingConnectionPoolTest {
         assertNotNull(connectionProperties);
         assertFalse(connectionProperties.isEmpty());
 
-        final String authenticator = connectionProperties.get(SFSessionProperty.AUTHENTICATOR.getPropertyKey());
+        final String authenticator = connectionProperties.get(SnowflakeComputingConnectionPool.DriverProperty.AUTHENTICATOR.getPropertyKey());
         assertEquals(SNOWFLAKE_JWT, authenticator);
 
-        final String privateKeyBase64 = connectionProperties.get(SFSessionProperty.PRIVATE_KEY_BASE64.getPropertyKey());
+        final String privateKeyBase64 = connectionProperties.get(SnowflakeComputingConnectionPool.DriverProperty.PRIVATE_KEY_BASE64.getPropertyKey());
         assertNotNull(privateKeyBase64);
 
         assertTrue(privateKeyBase64.startsWith(PEM_HEADER_BASE64), "PEM Header encoded with Bas64 not found");

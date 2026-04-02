@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.snowflake.service;
 
-import net.snowflake.client.core.SFSessionProperty;
-import net.snowflake.client.jdbc.SnowflakeDriver;
+import net.snowflake.client.api.driver.SnowflakeDriver;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
@@ -61,9 +60,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static net.snowflake.client.core.SFSessionProperty.AUTHENTICATOR;
-import static net.snowflake.client.core.SFSessionProperty.PRIVATE_KEY_BASE64;
-import static net.snowflake.client.core.SFSessionProperty.TOKEN;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
@@ -257,7 +253,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
 
     private void refreshAccessToken() {
         if (accessTokenProvider != null) {
-            dataSource.addConnectionProperty(TOKEN.getPropertyKey(), accessTokenProvider.getAccessDetails().getAccessToken());
+            dataSource.addConnectionProperty(DriverProperty.TOKEN.getPropertyKey(), accessTokenProvider.getAccessDetails().getAccessToken());
         }
     }
 
@@ -325,8 +321,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             connectionProperties.put("warehouse", warehouse);
         }
         if (tokenProvider != null) {
-            connectionProperties.put(AUTHENTICATOR.getPropertyKey(), "oauth");
-            connectionProperties.put(TOKEN.getPropertyKey(), tokenProvider.getAccessDetails().getAccessToken());
+            connectionProperties.put(DriverProperty.AUTHENTICATOR.getPropertyKey(), "oauth");
+            connectionProperties.put(DriverProperty.TOKEN.getPropertyKey(), tokenProvider.getAccessDetails().getAccessToken());
         }
 
         final PropertyValue privateKeyServiceProperty = context.getProperty(PRIVATE_KEY_SERVICE);
@@ -334,8 +330,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             final PrivateKeyService privateKeyService = privateKeyServiceProperty.asControllerService(PrivateKeyService.class);
             final PrivateKey privateKey = privateKeyService.getPrivateKey();
             final String privateKeyBase64 = getPrivateKeyBase64(privateKey);
-            connectionProperties.put(PRIVATE_KEY_BASE64.getPropertyKey(), privateKeyBase64);
-            connectionProperties.put(AUTHENTICATOR.getPropertyKey(), AUTHENTICATOR_SNOWFLAKE_JWT);
+            connectionProperties.put(DriverProperty.PRIVATE_KEY_BASE64.getPropertyKey(), privateKeyBase64);
+            connectionProperties.put(DriverProperty.AUTHENTICATOR.getPropertyKey(), AUTHENTICATOR_SNOWFLAKE_JWT);
         }
 
         final ProxyConfigurationService proxyConfigurationService = context
@@ -343,21 +339,21 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
                 .asControllerService(ProxyConfigurationService.class);
         if (proxyConfigurationService != null) {
             final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
-            connectionProperties.put(SFSessionProperty.USE_PROXY.getPropertyKey(), "true");
+            connectionProperties.put(DriverProperty.USE_PROXY.getPropertyKey(), Boolean.TRUE.toString());
             if (proxyConfiguration.getProxyServerHost() != null) {
-                connectionProperties.put(SFSessionProperty.PROXY_HOST.getPropertyKey(), proxyConfiguration.getProxyServerHost());
+                connectionProperties.put(DriverProperty.PROXY_HOST.getPropertyKey(), proxyConfiguration.getProxyServerHost());
             }
             if (proxyConfiguration.getProxyServerPort() != null) {
-                connectionProperties.put(SFSessionProperty.PROXY_PORT.getPropertyKey(), proxyConfiguration.getProxyServerPort().toString());
+                connectionProperties.put(DriverProperty.PROXY_PORT.getPropertyKey(), proxyConfiguration.getProxyServerPort().toString());
             }
             if (proxyConfiguration.getProxyUserName() != null) {
-                connectionProperties.put(SFSessionProperty.PROXY_USER.getPropertyKey(), proxyConfiguration.getProxyUserName());
+                connectionProperties.put(DriverProperty.PROXY_USER.getPropertyKey(), proxyConfiguration.getProxyUserName());
             }
             if (proxyConfiguration.getProxyUserPassword() != null) {
-                connectionProperties.put(SFSessionProperty.PROXY_PASSWORD.getPropertyKey(), proxyConfiguration.getProxyUserPassword());
+                connectionProperties.put(DriverProperty.PROXY_PASSWORD.getPropertyKey(), proxyConfiguration.getProxyUserPassword());
             }
             if (proxyConfiguration.getProxyType() != null) {
-                connectionProperties.put(SFSessionProperty.PROXY_PROTOCOL.getPropertyKey(), proxyConfiguration.getProxyType().name().toLowerCase());
+                connectionProperties.put(DriverProperty.PROXY_PROTOCOL.getPropertyKey(), proxyConfiguration.getProxyType().name().toLowerCase());
             }
         }
         return connectionProperties;
@@ -392,5 +388,38 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         final String pemPrivateKey = PEM_CONTENT_FORMAT.formatted(privateKeyEncodedBase64);
         final byte[] pemPrivateKeyBinary = pemPrivateKey.getBytes(StandardCharsets.UTF_8);
         return encoder.encodeToString(pemPrivateKeyBinary);
+    }
+
+    /**
+     * Snowflake JDBC Driver Properties derived from net.snowflake.client.internal.core.SFSessionProperty
+     */
+    enum DriverProperty {
+        AUTHENTICATOR("authenticator"),
+
+        PRIVATE_KEY_BASE64("private_key_base64"),
+
+        PROXY_HOST("proxyHost"),
+
+        PROXY_PORT("proxyPort"),
+
+        PROXY_USER("proxyUser"),
+
+        PROXY_PASSWORD("proxyPassword"),
+
+        PROXY_PROTOCOL("proxyProtocol"),
+
+        TOKEN("token"),
+
+        USE_PROXY("useProxy");
+
+        private final String propertyKey;
+
+        DriverProperty(final String propertyKey) {
+            this.propertyKey = propertyKey;
+        }
+
+        String getPropertyKey() {
+            return propertyKey;
+        }
     }
 }

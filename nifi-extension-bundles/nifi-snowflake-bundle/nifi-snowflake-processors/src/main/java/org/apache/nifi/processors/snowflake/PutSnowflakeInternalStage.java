@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.snowflake;
 
+import net.snowflake.client.api.connection.SnowflakeConnection;
+import net.snowflake.client.api.connection.UploadStreamConfig;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -153,8 +155,10 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         final String stagedFileName = UUID.randomUUID().toString();
         try (final InputStream inputStream = session.read(flowFile);
                 final SnowflakeConnectionWrapper snowflakeConnection = connectionProviderService.getSnowflakeConnection()) {
-            snowflakeConnection.unwrap()
-                    .uploadStream(internalStageName, "", inputStream, stagedFileName, false);
+            final SnowflakeConnection unwrappedConnection = snowflakeConnection.unwrap();
+            // Disable compression to avoid mismatched filenames when polling for status
+            final UploadStreamConfig uploadStreamConfig = UploadStreamConfig.builder().setCompressData(false).build();
+            unwrappedConnection.uploadStream(internalStageName, stagedFileName, inputStream, uploadStreamConfig);
         } catch (SQLException e) {
             getLogger().error("Failed to upload FlowFile content to internal Snowflake stage [{}]. Staged file path [{}]", internalStageName, stagedFileName, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);

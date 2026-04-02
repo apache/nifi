@@ -30,7 +30,11 @@
             <groupId>net.snowflake</groupId>
             <artifactId>snowflake-jdbc-thin</artifactId>
         </dependency>
-
+        <!-- grpc-netty included instead of grpc-netty-shaded -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
