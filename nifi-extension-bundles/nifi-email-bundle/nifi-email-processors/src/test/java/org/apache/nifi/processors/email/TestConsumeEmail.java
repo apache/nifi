@@ -25,6 +25,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -37,54 +38,51 @@ import org.springframework.integration.mail.inbound.AbstractMailReceiver;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestConsumeEmail {
+class TestConsumeEmail {
 
-    private GreenMail mockIMAP4Server;
-    private GreenMail mockPOP3Server;
+    private static final String SENDER_ADDRESS = "sender@nifi.apache.org";
+    private static final String RECIPIENT_ADDRESS = "test@nifi.apache.org";
+    private static final String RECIPIENT_USER = "recipient-user";
+    private static final String RECIPIENT_PASSWORD = UUID.randomUUID().toString();
+    private static final String INBOX_FOLDER = "INBOX";
+
+    private GreenMail imapServer;
+    private GreenMail popServer;
     private GreenMailUser imapUser;
     private GreenMailUser popUser;
 
     @BeforeEach
-    public void setUp() {
-        mockIMAP4Server = new GreenMail(ServerSetupTest.IMAP);
-        mockIMAP4Server.start();
-        mockPOP3Server = new GreenMail(ServerSetupTest.POP3);
-        mockPOP3Server.start();
+    void setUp() {
+        imapServer = new GreenMail(ServerSetupTest.IMAP);
+        imapServer.start();
+        popServer = new GreenMail(ServerSetupTest.POP3);
+        popServer.start();
 
-        imapUser = mockIMAP4Server.setUser("test@nifi.org", "nifiUserImap", "nifiPassword");
-        popUser = mockPOP3Server.setUser("test@nifi.org", "nifiUserPop", "nifiPassword");
+        setUsers();
     }
 
     @AfterEach
-    public void cleanUp() {
-        mockIMAP4Server.stop();
-        mockPOP3Server.stop();
-    }
-
-    public void addMessage(String testName, GreenMailUser user) throws MessagingException {
-        Properties prop = new Properties();
-        Session session = Session.getDefaultInstance(prop);
-        MimeMessage message = new MimeMessage(session);
-        message.setFrom(new InternetAddress("alice@nifi.org"));
-        message.addRecipient(Message.RecipientType.TO, new InternetAddress("test@nifi.org"));
-        message.setSubject("Test email" + testName);
-        message.setText("test test test chocolate");
-        user.deliver(message);
+    void cleanUp() {
+        imapServer.stop();
+        popServer.stop();
     }
 
     @Test
-    public void testConsumeIMAP4() throws Exception {
+    void testConsumeIMAP4() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ConsumeIMAP());
         runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.IMAP.getBindAddress());
         runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.IMAP.getPort()));
-        runner.setProperty(ConsumeIMAP.USER, "nifiUserImap");
-        runner.setProperty(ConsumeIMAP.PASSWORD, "nifiPassword");
-        runner.setProperty(ConsumeIMAP.FOLDER, "INBOX");
-        runner.setProperty(ConsumeIMAP.USE_SSL, "false");
+        runner.setProperty(ConsumeIMAP.USER, RECIPIENT_USER);
+        runner.setProperty(ConsumeIMAP.PASSWORD, RECIPIENT_PASSWORD);
+        runner.setProperty(ConsumeIMAP.FOLDER, INBOX_FOLDER);
+        runner.setProperty(ConsumeIMAP.USE_SSL, Boolean.FALSE.toString());
 
         addMessage("testConsumeImap1", imapUser);
         addMessage("testConsumeImap2", imapUser);
@@ -95,26 +93,19 @@ public class TestConsumeEmail {
         final List<MockFlowFile> messages = runner.getFlowFilesForRelationship(ConsumeIMAP.REL_SUCCESS);
         String result = new String(runner.getContentAsByteArray(messages.getFirst()));
 
-        // Verify body
         assertTrue(result.contains("test test test chocolate"));
-
-        // Verify sender
-        assertTrue(result.contains("alice@nifi.org"));
-
-        // Verify subject
+        assertTrue(result.contains(SENDER_ADDRESS));
         assertTrue(result.contains("testConsumeImap1"));
-
     }
 
     @Test
-    public void testConsumePOP3() throws Exception {
+    void testConsumePOP3() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ConsumePOP3());
-        runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.POP3.getBindAddress());
-        runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.POP3.getPort()));
-        runner.setProperty(ConsumeIMAP.USER, "nifiUserPop");
-        runner.setProperty(ConsumeIMAP.PASSWORD, "nifiPassword");
-        runner.setProperty(ConsumeIMAP.FOLDER, "INBOX");
-        runner.setProperty(ConsumeIMAP.USE_SSL, "false");
+        runner.setProperty(ConsumePOP3.HOST, ServerSetupTest.POP3.getBindAddress());
+        runner.setProperty(ConsumePOP3.PORT, String.valueOf(ServerSetupTest.POP3.getPort()));
+        runner.setProperty(ConsumePOP3.USER, RECIPIENT_USER);
+        runner.setProperty(ConsumePOP3.PASSWORD, RECIPIENT_PASSWORD);
+        runner.setProperty(ConsumePOP3.FOLDER, INBOX_FOLDER);
 
         addMessage("testConsumePop1", popUser);
         addMessage("testConsumePop2", popUser);
@@ -125,19 +116,13 @@ public class TestConsumeEmail {
         final List<MockFlowFile> messages = runner.getFlowFilesForRelationship(ConsumePOP3.REL_SUCCESS);
         String result = new String(runner.getContentAsByteArray(messages.getFirst()));
 
-        // Verify body
         assertTrue(result.contains("test test test chocolate"));
-
-        // Verify sender
-        assertTrue(result.contains("alice@nifi.org"));
-
-        // Verify subject
+        assertTrue(result.contains(SENDER_ADDRESS));
         assertTrue(result.contains("Pop1"));
-
     }
 
     @Test
-    public void validateProtocol() {
+    void testValidProtocols() {
         AbstractEmailProcessor<? extends AbstractMailReceiver> consume = new ConsumeIMAP();
         TestRunner runner = TestRunners.newTestRunner(consume);
         runner.setProperty(ConsumeIMAP.USE_SSL, "false");
@@ -152,6 +137,42 @@ public class TestConsumeEmail {
         consume = new ConsumePOP3();
 
         assertEquals("pop3", consume.getProtocol(runner.getProcessContext()));
+    }
+
+    @Test
+    void testServerReconnected() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new ConsumeIMAP());
+        setImapServerProperties(runner);
+
+        addMessage("testServerReconnected-1", imapUser);
+
+        runner.run(1, false, true);
+        runner.assertTransferCount(ConsumeIMAP.REL_SUCCESS, 1);
+
+        imapServer.stop();
+
+        final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run(1, false, false));
+        final Throwable cause = assertionError.getCause();
+        assertInstanceOf(ProcessException.class, cause);
+        final Throwable processExceptionCause = cause.getCause();
+        assertInstanceOf(MessagingException.class, processExceptionCause);
+
+        // Configure replacement server on different port for verified reconnection
+        final GreenMail replacementServer = new GreenMail(ServerSetupTest.IMAP.port(0));
+        try {
+            replacementServer.start();
+            final GreenMailUser replacementUser = replacementServer.setUser(RECIPIENT_ADDRESS, RECIPIENT_USER, RECIPIENT_PASSWORD);
+            final int replacementPort = replacementServer.getImap().getPort();
+            runner.setProperty(ConsumeIMAP.PORT, Integer.toString(replacementPort));
+
+            addMessage("testServerReconnected-2", replacementUser);
+
+            runner.clearTransferState();
+            runner.run(1, false, false);
+            runner.assertTransferCount(ConsumeIMAP.REL_SUCCESS, 1);
+        } finally {
+            replacementServer.stop();
+        }
     }
 
     @Test
@@ -172,5 +193,30 @@ public class TestConsumeEmail {
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    private void setImapServerProperties(final TestRunner runner) {
+        runner.setProperty(ConsumeIMAP.HOST, ServerSetupTest.IMAP.getBindAddress());
+        runner.setProperty(ConsumeIMAP.PORT, String.valueOf(ServerSetupTest.IMAP.getPort()));
+        runner.setProperty(ConsumeIMAP.USER, RECIPIENT_USER);
+        runner.setProperty(ConsumeIMAP.PASSWORD, RECIPIENT_PASSWORD);
+        runner.setProperty(ConsumeIMAP.FOLDER, INBOX_FOLDER);
+        runner.setProperty(ConsumeIMAP.USE_SSL, Boolean.FALSE.toString());
+    }
+
+    private void setUsers() {
+        imapUser = imapServer.setUser(RECIPIENT_ADDRESS, RECIPIENT_USER, RECIPIENT_PASSWORD);
+        popUser = popServer.setUser(RECIPIENT_ADDRESS, RECIPIENT_USER, RECIPIENT_PASSWORD);
+    }
+
+    void addMessage(final String testName, final GreenMailUser user) throws MessagingException {
+        Properties prop = new Properties();
+        Session session = Session.getDefaultInstance(prop);
+        MimeMessage message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(SENDER_ADDRESS));
+        message.addRecipient(Message.RecipientType.TO, new InternetAddress(RECIPIENT_ADDRESS));
+        message.setSubject("Test email" + testName);
+        message.setText("test test test chocolate");
+        user.deliver(message);
     }
 }

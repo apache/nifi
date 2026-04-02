@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.email;
 
 import jakarta.mail.Address;
+import jakarta.mail.FolderClosedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.StoreClosedException;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -305,9 +307,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         int passwordEndIndex = urlBuilder.indexOf("@");
         urlBuilder.replace(passwordStartIndex, passwordEndIndex, "[password]");
         this.displayUrl = protocol + "://" + urlBuilder;
-        if (this.logger.isInfoEnabled()) {
-            this.logger.info("Connecting to Email server at the following URL: {}", this.displayUrl);
-        }
+        this.logger.info("Connecting to server [{}]", this.displayUrl);
 
         return finalUrl;
     }
@@ -384,11 +384,13 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             Object[] messages;
             try {
                 messages = this.messageReceiver.receive();
-            } catch (MessagingException e) {
-                String errorMsg = "Failed to receive messages from Email server: [" + e.getClass().getName()
-                        + " - " + e.getMessage();
-                this.getLogger().error(errorMsg);
-                throw new ProcessException(errorMsg, e);
+            } catch (final MessagingException e) {
+                if (isClosedException(e)) {
+                    // Destroy Receiver to force reinitialization on subsequent Processor.onTrigger()
+                    messageReceiver.destroy();
+                    messageReceiver = null;
+                }
+                throw new ProcessException("Failed to receive messages from server [%s]".formatted(displayUrl), e);
             }
 
             if (messages != null) {
@@ -397,6 +399,20 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
                 }
             }
         }
+    }
+
+    private boolean isClosedException(final MessagingException exception) {
+        final boolean closedException;
+
+        final Exception nextException = exception.getNextException();
+        if (exception instanceof FolderClosedException || exception instanceof StoreClosedException) {
+            closedException = true;
+        } else {
+            // Handle IOException and subclasses as closed exceptions
+            closedException = nextException instanceof IOException;
+        }
+
+        return closedException;
     }
 
     /**
