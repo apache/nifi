@@ -21,6 +21,7 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +59,28 @@ public interface ConnectorRepository {
      * @param connector the Connector to restore
      */
     void restoreConnector(ConnectorNode connector);
+
+    /**
+     * Synchronizes a connector during flow inheritance. This method handles the full lifecycle:
+     * looking up or creating the local {@link ConnectorNode}, consulting the
+     * {@link ConnectorConfigurationProvider} for external state and configuration, checking
+     * the current {@link ConnectorState}, waiting for transient states to resolve, comparing
+     * configuration, applying changes via {@link #inheritConfiguration}, and updating the
+     * run state.
+     *
+     * <p>The repository owns connector creation — if the connector does not exist locally,
+     * the repository will create it (unless the provider directive indicates the connector
+     * should be removed or rejected).</p>
+     *
+     * <p>When a {@link ConnectorConfigurationProvider} is configured, the provider's
+     * {@link ConnectorConfigurationProvider#getSyncDirective(String, org.apache.nifi.flow.ScheduledState)}
+     * method is called to obtain a {@link ConnectorSyncDirective} that may override the
+     * working configuration, name, or ScheduledState from the versioned flow.</p>
+     *
+     * @param versionedConnector the proposed connector from the versioned flow
+     * @return a {@link ConnectorSyncResult} indicating the outcome
+     */
+    ConnectorSyncResult syncConnector(VersionedConnector versionedConnector);
 
     /**
      * Removes the given Connector from the Repository

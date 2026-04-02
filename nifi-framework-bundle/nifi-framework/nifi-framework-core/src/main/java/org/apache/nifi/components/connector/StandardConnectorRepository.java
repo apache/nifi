@@ -20,14 +20,20 @@ package org.apache.nifi.components.connector;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,34 +45,43 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class StandardConnectorRepository implements ConnectorRepository {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorRepository.class);
+    private static final Duration SYNC_POLL_INTERVAL = Duration.ofSeconds(2);
 
     private final Map<String, ConnectorNode> connectors = new ConcurrentHashMap<>();
     private final FlowEngine lifecycleExecutor = new FlowEngine(8, "NiFi Connector Lifecycle");
 
+    private volatile FlowManager flowManager;
     private volatile ExtensionManager extensionManager;
     private volatile ConnectorRequestReplicator requestReplicator;
     private volatile SecretsManager secretsManager;
     private volatile AssetManager assetManager;
     private volatile ConnectorConfigurationProvider configurationProvider;
+    private volatile Duration syncTimeout;
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
         logger.debug("Initializing ConnectorRepository");
+        this.flowManager = context.getFlowManager();
         this.extensionManager = context.getExtensionManager();
         this.requestReplicator = context.getRequestReplicator();
         this.secretsManager = context.getSecretsManager();
         this.assetManager = context.getAssetManager();
         this.configurationProvider = context.getConnectorConfigurationProvider();
-        logger.debug("Successfully initialized ConnectorRepository with configurationProvider={}", configurationProvider != null ? configurationProvider.getClass().getSimpleName() : "null");
+        this.syncTimeout = context.getConnectorSyncTimeout();
+        logger.debug("Successfully initialized ConnectorRepository with configurationProvider={}, syncTimeout={}",
+                configurationProvider != null ? configurationProvider.getClass().getSimpleName() : "null", syncTimeout);
     }
 
     @Override
@@ -92,15 +107,297 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
+    public ConnectorSyncResult syncConnector(final VersionedConnector versionedConnector) {
+        final String connectorId = versionedConnector.getInstanceIdentifier();
+        final ScheduledState proposedScheduledState = versionedConnector.getScheduledState();
+        logger.debug("syncConnector called for connector [{}]", connectorId);
+
+        // Consult the provider for external state checks and working config
+        final ConnectorSyncDirective directive;
+        if (configurationProvider != null) {
+            try {
+                directive = configurationProvider.getSyncDirective(connectorId, proposedScheduledState);
+            } catch (final Exception e) {
+                logger.error("Configuration provider threw exception during getSyncDirective for connector [{}]: {}", connectorId, e.getMessage(), e);
+                final ConnectorNode existingNode = ensureConnectorNodeExists(versionedConnector);
+                existingNode.markInvalid("Flow Synchronization Failure",
+                        "Configuration provider error during synchronization: " + e.getMessage());
+                return ConnectorSyncResult.failed(existingNode);
+            }
+        } else {
+            directive = ConnectorSyncDirective.allow();
+        }
+
+        logger.debug("Connector [{}] sync directive: {}", connectorId, directive);
+
+        // Handle REMOVE: connector should not exist on this node
+        if (directive.getAction() == ConnectorSyncDirective.Action.REMOVE) {
+            final ConnectorNode existingNode = connectors.get(connectorId);
+            if (existingNode != null) {
+                logger.info("Removing connector [{}] (state={}) from local repository per provider REMOVE directive",
+                        connectorId, existingNode.getCurrentState());
+                stopConnectorAndAwait(existingNode);
+                purgeConnectorAndAwait(existingNode);
+                logger.debug("Connector [{}] stopped and purged (state={}); calling removeConnector", connectorId, existingNode.getCurrentState());
+                removeConnector(connectorId);
+                logger.info("Successfully removed connector [{}] per REMOVE directive", connectorId);
+            } else {
+                logger.debug("Connector [{}] not present locally; REMOVE directive is a no-op", connectorId);
+            }
+            return ConnectorSyncResult.removed();
+        }
+
+        // Handle REJECT: create if needed (for background repair), mark invalid
+        if (directive.getAction() == ConnectorSyncDirective.Action.REJECT) {
+            final ConnectorNode node = ensureConnectorNodeExists(versionedConnector);
+            logger.warn("Connector [{}] rejected by provider during sync; marking invalid", connectorId);
+            node.markInvalid("Flow Synchronization Failure",
+                    "Configuration provider rejected synchronization for this connector");
+            return ConnectorSyncResult.rejected(node);
+        }
+
+        // ALLOW: proceed with sync
+        // Look up or create the connector node
+        ConnectorNode connector = connectors.get(connectorId);
+        final boolean isNewConnector = connector == null;
+        if (isNewConnector) {
+            connector = createConnectorNode(versionedConnector);
+            connectors.put(connectorId, connector);
+            logger.info("Created new connector node [{}] of type [{}]", connectorId, versionedConnector.getType());
+        }
+
+        // Check local ConnectorState and handle per the agreed behavior matrix
+        ConnectorState currentState = connector.getCurrentState();
+
+        if (isWaitableState(currentState)) {
+            logger.info("{} is in transient state {}; waiting for stable state (timeout={})", connector, currentState, syncTimeout);
+            currentState = waitForStableState(connector, currentState);
+            if (isWaitableState(currentState)) {
+                logger.error("{} timed out waiting for transient state {} to resolve", connector, currentState);
+                connector.markInvalid("Flow Synchronization Failure",
+                        "Timed out waiting for connector to leave transient state " + currentState);
+                return ConnectorSyncResult.rejected(connector);
+            }
+        }
+
+        if (isRejectableState(currentState)) {
+            logger.warn("{} is in state {} which cannot be synchronized; marking invalid", connector, currentState);
+            connector.markInvalid("Flow Synchronization Failure",
+                    "Connector cannot be synchronized while in state " + currentState);
+            return ConnectorSyncResult.rejected(connector);
+        }
+
+        // Determine effective name, working config, and ScheduledState
+        final ConnectorWorkingConfiguration providerConfig = directive.getWorkingConfiguration();
+
+        final String effectiveName = (providerConfig != null && providerConfig.getName() != null)
+                ? providerConfig.getName()
+                : versionedConnector.getName();
+
+        final List<VersionedConfigurationStep> effectiveWorkingConfig = (providerConfig != null && providerConfig.getWorkingFlowConfiguration() != null)
+                ? providerConfig.getWorkingFlowConfiguration()
+                : versionedConnector.getWorkingFlowConfiguration();
+
+        final List<VersionedConfigurationStep> effectiveActiveConfig = versionedConnector.getActiveFlowConfiguration();
+
+        final ScheduledState effectiveScheduledState = (directive.getScheduledStateOverride() != null)
+                ? directive.getScheduledStateOverride()
+                : proposedScheduledState;
+
+        // Set name locally (no provider.save())
+        connector.setName(effectiveName);
+
+        // Compare config and sync if changed
+        final boolean wasRunning = currentState == ConnectorState.RUNNING;
+        final boolean configChanged = isNewConnector || isConfigurationUpdated(connector, effectiveActiveConfig, effectiveWorkingConfig);
+
+        if (configChanged) {
+            logger.info("{} configuration needs synchronization", connector);
+            try {
+                inheritConfiguration(connector, effectiveActiveConfig, effectiveWorkingConfig, versionedConnector.getBundle());
+            } catch (final Exception e) {
+                logger.error("{} failed to inherit configuration", connector, e);
+                if (wasRunning) {
+                    try {
+                        stopConnector(connector);
+                    } catch (final Exception stopEx) {
+                        logger.error("{} also failed to stop after sync failure", connector, stopEx);
+                    }
+                }
+                return ConnectorSyncResult.failed(connector);
+            }
+        } else {
+            logger.debug("{} configuration is up to date, no update necessary", connector);
+        }
+
+        return configChanged
+                ? ConnectorSyncResult.synced(connector, effectiveScheduledState)
+                : ConnectorSyncResult.syncedConfigUnchanged(connector, effectiveScheduledState);
+    }
+
+    private ConnectorNode ensureConnectorNodeExists(final VersionedConnector versionedConnector) {
+        final String connectorId = versionedConnector.getInstanceIdentifier();
+        ConnectorNode node = connectors.get(connectorId);
+        if (node == null) {
+            node = createConnectorNode(versionedConnector);
+            connectors.put(connectorId, node);
+            logger.info("Created connector node [{}] for reject/error handling", connectorId);
+        }
+        return node;
+    }
+
+    private ConnectorNode createConnectorNode(final VersionedConnector versionedConnector) {
+        final BundleCoordinate coordinate = resolveBundleCoordinate(versionedConnector.getBundle(), versionedConnector.getType());
+        return flowManager.createConnector(versionedConnector.getType(), versionedConnector.getInstanceIdentifier(), coordinate, false, true);
+    }
+
+    private BundleCoordinate resolveBundleCoordinate(final Bundle bundle, final String componentType) {
+        try {
+            final BundleDTO bundleDto = new BundleDTO(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+            return BundleUtils.getCompatibleBundle(extensionManager, componentType, bundleDto);
+        } catch (final IllegalStateException e) {
+            return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+        }
+    }
+
+    private boolean isWaitableState(final ConnectorState state) {
+        return state == ConnectorState.STARTING
+                || state == ConnectorState.STOPPING
+                || state == ConnectorState.PURGING;
+    }
+
+    private boolean isRejectableState(final ConnectorState state) {
+        return state == ConnectorState.DRAINING
+                || state == ConnectorState.PREPARING_FOR_UPDATE
+                || state == ConnectorState.UPDATING;
+    }
+
+    private ConnectorState waitForStableState(final ConnectorNode connector, final ConnectorState initialState) {
+        final long deadlineNanos = System.nanoTime() + syncTimeout.toNanos();
+        int iterations = 0;
+        ConnectorState current = initialState;
+
+        while (isWaitableState(current) && System.nanoTime() < deadlineNanos) {
+            try {
+                Thread.sleep(SYNC_POLL_INTERVAL.toMillis());
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("{} interrupted while waiting for stable state", connector);
+                return current;
+            }
+
+            current = connector.getCurrentState();
+            iterations++;
+            if (iterations % 10 == 0) {
+                final long elapsedSeconds = Duration.ofNanos(System.nanoTime() - (deadlineNanos - syncTimeout.toNanos())).toSeconds();
+                logger.info("Still waiting for {} to leave state {}; current state is {}; elapsed={}s",
+                        connector, initialState, current, elapsedSeconds);
+            }
+        }
+
+        return current;
+    }
+
+    // --- Configuration comparison ---
+
+    private boolean isConfigurationUpdated(final ConnectorNode existingConnector,
+                                           final List<VersionedConfigurationStep> effectiveActiveConfig,
+                                           final List<VersionedConfigurationStep> effectiveWorkingConfig) {
+        final ConnectorConfiguration activeConfig = existingConnector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final boolean activeContextChanged = isConfigurationUpdated(activeConfig, effectiveActiveConfig);
+
+        final ConnectorConfiguration workingConfig = existingConnector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final boolean workingContextChanged = isConfigurationUpdated(workingConfig, effectiveWorkingConfig);
+
+        return activeContextChanged || workingContextChanged;
+    }
+
+    private boolean isConfigurationUpdated(final ConnectorConfiguration existingConfiguration, final List<VersionedConfigurationStep> versionedConfigurationSteps) {
+        if (versionedConfigurationSteps == null || versionedConfigurationSteps.isEmpty()) {
+            return existingConfiguration != null && !existingConfiguration.getNamedStepConfigurations().isEmpty();
+        }
+
+        final Set<NamedStepConfiguration> existingStepConfigurations = existingConfiguration.getNamedStepConfigurations();
+        if (existingStepConfigurations.size() != versionedConfigurationSteps.size()) {
+            return true;
+        }
+
+        final Map<String, NamedStepConfiguration> existingStepsByName = existingStepConfigurations.stream()
+                .collect(Collectors.toMap(NamedStepConfiguration::stepName, Function.identity()));
+
+        for (final VersionedConfigurationStep versionedStep : versionedConfigurationSteps) {
+            final NamedStepConfiguration existingStep = existingStepsByName.get(versionedStep.getName());
+            if (existingStep == null) {
+                return true;
+            }
+
+            if (isConfigurationStepUpdated(existingStep, versionedStep)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isConfigurationStepUpdated(final NamedStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
+        final Map<String, ConnectorValueReference> existingProperties = existingStep.configuration().getPropertyValues();
+
+        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedStep.getProperties();
+        if (versionedProperties == null || versionedProperties.isEmpty()) {
+            return existingProperties != null && !existingProperties.isEmpty();
+        }
+
+        if (existingProperties == null || existingProperties.size() != versionedProperties.size()) {
+            return true;
+        }
+
+        for (final Map.Entry<String, VersionedConnectorValueReference> versionedEntry : versionedProperties.entrySet()) {
+            final String propertyName = versionedEntry.getKey();
+            final VersionedConnectorValueReference versionedRef = versionedEntry.getValue();
+            final ConnectorValueReference existingRef = existingProperties.get(propertyName);
+
+            if (!valueReferencesEqual(versionedRef, existingRef)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean valueReferencesEqual(final VersionedConnectorValueReference versionedReference, final ConnectorValueReference existingReference) {
+        if (versionedReference == null && existingReference == null) {
+            return true;
+        }
+        if (versionedReference == null || existingReference == null) {
+            return false;
+        }
+
+        final String versionedValueType = versionedReference.getValueType();
+        final String existingValueType = existingReference.getValueType().name();
+        if (!Objects.equals(versionedValueType, existingValueType)) {
+            return false;
+        }
+
+        return switch (existingReference) {
+            case StringLiteralValue stringLiteral -> Objects.equals(stringLiteral.getValue(), versionedReference.getValue());
+            case AssetReference assetRef -> Objects.equals(assetRef.getAssetIdentifiers(), versionedReference.getAssetIds());
+            case SecretReference secretRef -> Objects.equals(secretRef.getProviderId(), versionedReference.getProviderId())
+                    && Objects.equals(secretRef.getSecretName(), versionedReference.getSecretName());
+        };
+    }
+
+    @Override
     public void removeConnector(final String connectorId) {
-        logger.debug("Removing {}", connectorId);
+        logger.debug("Removing connector [{}]", connectorId);
         final ConnectorNode connectorNode = connectors.get(connectorId);
         if (connectorNode == null) {
             throw new IllegalStateException("No connector found with ID " + connectorId);
         }
 
+        logger.debug("Verifying connector [{}] (state={}) can be deleted", connectorId, connectorNode.getCurrentState());
         connectorNode.verifyCanDelete();
         if (configurationProvider != null) {
+            logger.debug("Notifying configuration provider of connector [{}] deletion", connectorId);
             configurationProvider.delete(connectorId);
         }
         connectors.remove(connectorId);
@@ -111,6 +408,47 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         extensionManager.removeInstanceClassLoader(connectorId);
+        logger.info("Connector [{}] removed from repository", connectorId);
+    }
+
+    private void stopConnectorAndAwait(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+        final ConnectorState currentState = connector.getCurrentState();
+        if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.UPDATE_FAILED || currentState == ConnectorState.UPDATED) {
+            logger.debug("Connector [{}] is already in state {}; no stop needed", connectorId, currentState);
+            return;
+        }
+
+        logger.info("Stopping connector [{}] (current state: {}) and awaiting completion", connectorId, currentState);
+        try {
+            final Future<Void> stopFuture = stopConnector(connector);
+            stopFuture.get(syncTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            logger.debug("Connector [{}] stopped successfully", connectorId);
+        } catch (final java.util.concurrent.TimeoutException e) {
+            logger.warn("Timed out waiting for connector [{}] to stop", connectorId);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while waiting for connector [{}] to stop", connectorId);
+        } catch (final Exception e) {
+            logger.warn("Failed to stop connector [{}]: {}", connectorId, e.getMessage(), e);
+        }
+    }
+
+    private void purgeConnectorAndAwait(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+        try {
+            logger.debug("Purging FlowFiles for connector [{}] before removal", connectorId);
+            final Future<Void> purgeFuture = connector.purgeFlowFiles("Flow Synchronization");
+            purgeFuture.get(syncTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            logger.debug("Connector [{}] purged successfully", connectorId);
+        } catch (final java.util.concurrent.TimeoutException e) {
+            logger.warn("Timed out waiting for connector [{}] to purge FlowFiles", connectorId);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while waiting for connector [{}] to purge FlowFiles", connectorId);
+        } catch (final Exception e) {
+            logger.warn("Failed to purge FlowFiles for connector [{}]: {}", connectorId, e.getMessage(), e);
+        }
     }
 
     @Override

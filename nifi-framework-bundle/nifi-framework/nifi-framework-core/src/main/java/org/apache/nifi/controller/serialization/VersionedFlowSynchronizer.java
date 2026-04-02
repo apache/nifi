@@ -26,15 +26,9 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
-import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
-import org.apache.nifi.components.connector.ConnectorValueReference;
-import org.apache.nifi.components.connector.FlowUpdateException;
-import org.apache.nifi.components.connector.NamedStepConfiguration;
-import org.apache.nifi.components.connector.SecretReference;
-import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
@@ -64,9 +58,7 @@ import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
-import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnector;
-import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -1042,9 +1034,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void inheritConnectors(final FlowController flowController, final VersionedDataflow dataflow) {
-        // TODO: We need to delete any Connectors that are no longer part of the flow.
-        //       This means we need to drain the Connector first, then stop it, then delete it. If unable to drain, we must fail...
-        //              perhaps we need a DRAINING state? Or do we just delete it and drop the data?
         final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
 
         final Set<String> proposedConnectorIds = new HashSet<>();
@@ -1052,145 +1041,39 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             for (final VersionedConnector versionedConnector : dataflow.getConnectors()) {
                 proposedConnectorIds.add(versionedConnector.getInstanceIdentifier());
 
-                final ConnectorNode existingConnector = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
-                if (existingConnector == null) {
-                    logger.info("Connector {} of type {} with name {} is not in the current flow. Will add Connector.",
-                        versionedConnector.getInstanceIdentifier(), versionedConnector.getType(), versionedConnector.getName());
+                final ConnectorSyncResult result = connectorRepository.syncConnector(versionedConnector);
+                logger.info("Connector [{}] sync result: {}", versionedConnector.getInstanceIdentifier(), result);
 
-                    addConnector(versionedConnector, flowController);
-                } else if (isConnectorConfigurationUpdated(existingConnector, versionedConnector)) {
-                    logger.info("{} configuration has changed, updating configuration", existingConnector);
-                    updateConnector(versionedConnector, flowController);
-                } else {
-                    logger.debug("{} configuration is up to date, no update necessary", existingConnector);
+                if (result.getEffectiveScheduledState() != null && result.getConnectorNode() != null) {
+                    if (result.getEffectiveScheduledState() == ScheduledState.RUNNING) {
+                        flowController.startConnector(result.getConnectorNode());
+                    } else if (result.getEffectiveScheduledState() == ScheduledState.ENABLED) {
+                        connectorRepository.stopConnector(result.getConnectorNode());
+                    }
                 }
             }
         }
 
         for (final ConnectorNode existingConnector : connectorRepository.getConnectors()) {
             if (!proposedConnectorIds.contains(existingConnector.getIdentifier())) {
-                logger.info("Connector {} is no longer part of the proposed flow. Will remove Connector.", existingConnector);
-                connectorRepository.stopConnector(existingConnector);
-                connectorRepository.removeConnector(existingConnector.getIdentifier());
+                logger.info("Connector [{}] (state={}) is no longer part of the proposed flow. Stopping and removing.",
+                        existingConnector.getIdentifier(), existingConnector.getCurrentState());
+                try {
+                    logger.debug("Stopping orphan connector [{}] before removal", existingConnector.getIdentifier());
+                    connectorRepository.stopConnector(existingConnector).get();
+                    logger.debug("Orphan connector [{}] stopped (state={}); purging data before removal",
+                            existingConnector.getIdentifier(), existingConnector.getCurrentState());
+                    existingConnector.purgeFlowFiles("Flow Synchronization").get();
+                    logger.debug("Orphan connector [{}] purged; proceeding with removal", existingConnector.getIdentifier());
+                    connectorRepository.removeConnector(existingConnector.getIdentifier());
+                    logger.info("Successfully removed orphan connector [{}]", existingConnector.getIdentifier());
+                } catch (final Exception e) {
+                    logger.error("Failed to remove Connector [{}] during flow inheritance. Connector will be marked invalid.",
+                            existingConnector.getIdentifier(), e);
+                    existingConnector.markInvalid("Flow Synchronization Failure",
+                            "Connector could not be removed during flow sync: " + e.getMessage());
+                }
             }
-        }
-    }
-
-    private boolean isConnectorConfigurationUpdated(final ConnectorNode existingConnector, final VersionedConnector versionedConnector) {
-        final ConnectorConfiguration activeConfig = existingConnector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
-        final List<VersionedConfigurationStep> versionedActiveConfig = versionedConnector.getActiveFlowConfiguration();
-        final boolean activeContextChanged = isConnectorConfigurationUpdated(activeConfig, versionedActiveConfig);
-
-        final ConnectorConfiguration workingConfig = existingConnector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
-        final List<VersionedConfigurationStep> versionedWorkingConfig = versionedConnector.getWorkingFlowConfiguration();
-        final boolean workingContextChanged = isConnectorConfigurationUpdated(workingConfig, versionedWorkingConfig);
-
-        return activeContextChanged || workingContextChanged;
-    }
-
-    private boolean isConnectorConfigurationUpdated(final ConnectorConfiguration existingConfiguration, final List<VersionedConfigurationStep> versionedConfigurationSteps) {
-        if (versionedConfigurationSteps == null || versionedConfigurationSteps.isEmpty()) {
-            return existingConfiguration != null && !existingConfiguration.getNamedStepConfigurations().isEmpty();
-        }
-
-        final Set<NamedStepConfiguration> existingStepConfigurations = existingConfiguration.getNamedStepConfigurations();
-        if (existingStepConfigurations.size() != versionedConfigurationSteps.size()) {
-            return true;
-        }
-
-        final Map<String, NamedStepConfiguration> existingStepsByName = existingStepConfigurations.stream()
-            .collect(Collectors.toMap(NamedStepConfiguration::stepName, Function.identity()));
-
-        for (final VersionedConfigurationStep versionedStep : versionedConfigurationSteps) {
-            final NamedStepConfiguration existingStep = existingStepsByName.get(versionedStep.getName());
-            if (existingStep == null) {
-                return true;
-            }
-
-            if (isConfigurationStepUpdated(existingStep, versionedStep)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean isConfigurationStepUpdated(final NamedStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
-        final Map<String, ConnectorValueReference> existingProperties = existingStep.configuration().getPropertyValues();
-
-        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedStep.getProperties();
-        if (versionedProperties == null || versionedProperties.isEmpty()) {
-            return existingProperties != null && !existingProperties.isEmpty();
-        }
-
-        if (existingProperties == null || existingProperties.size() != versionedProperties.size()) {
-            return true;
-        }
-
-        for (final Map.Entry<String, VersionedConnectorValueReference> versionedEntry : versionedProperties.entrySet()) {
-            final String propertyName = versionedEntry.getKey();
-            final VersionedConnectorValueReference versionedRef = versionedEntry.getValue();
-            final ConnectorValueReference existingRef = existingProperties.get(propertyName);
-
-            if (!equals(versionedRef, existingRef)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean equals(final VersionedConnectorValueReference versionedReference, final ConnectorValueReference existingReference) {
-        if (versionedReference == null && existingReference == null) {
-            return true;
-        }
-        if (versionedReference == null || existingReference == null) {
-            return false;
-        }
-
-        final String versionedValueType = versionedReference.getValueType();
-        final String existingValueType = existingReference.getValueType().name();
-        if (!Objects.equals(versionedValueType, existingValueType)) {
-            return false;
-        }
-
-        return switch (existingReference) {
-            case StringLiteralValue stringLiteral -> Objects.equals(stringLiteral.getValue(), versionedReference.getValue());
-            case AssetReference assetRef -> Objects.equals(assetRef.getAssetIdentifiers(), versionedReference.getAssetIds());
-            case SecretReference secretRef -> Objects.equals(secretRef.getProviderId(), versionedReference.getProviderId())
-                                              && Objects.equals(secretRef.getSecretName(), versionedReference.getSecretName());
-        };
-    }
-
-    private void addConnector(final VersionedConnector versionedConnector, final FlowController flowController) {
-        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
-        final FlowManager flowManager = flowController.getFlowManager();
-        final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedConnector.getBundle(), versionedConnector.getType());
-        final ConnectorNode connectorNode = flowManager.createConnector(versionedConnector.getType(), versionedConnector.getInstanceIdentifier(), coordinate, false, true);
-        connectorRepository.restoreConnector(connectorNode);
-        updateConnector(versionedConnector, flowController);
-    }
-
-
-    private void updateConnector(final VersionedConnector versionedConnector, final FlowController flowController) {
-        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
-        final ConnectorNode connectorNode = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
-
-        connectorRepository.updateConnector(connectorNode, versionedConnector.getName());
-
-        try {
-            final List<VersionedConfigurationStep> activeFlowConfig = versionedConnector.getActiveFlowConfiguration();
-            final List<VersionedConfigurationStep> workingFlowConfig = versionedConnector.getWorkingFlowConfiguration();
-            connectorRepository.inheritConfiguration(connectorNode, activeFlowConfig, workingFlowConfig, versionedConnector.getBundle());
-
-            final ScheduledState desiredState = versionedConnector.getScheduledState();
-            if (desiredState == ScheduledState.RUNNING) {
-                flowController.startConnector(connectorNode);
-            } else if (desiredState == ScheduledState.ENABLED) {
-                connectorRepository.stopConnector(connectorNode);
-            }
-        } catch (final FlowUpdateException e) {
-            logger.error("{} failed to inherit configuration", connectorNode, e);
         }
     }
 

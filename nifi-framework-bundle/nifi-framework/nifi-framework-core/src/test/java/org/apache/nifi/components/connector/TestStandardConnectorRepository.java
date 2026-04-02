@@ -19,7 +19,11 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.nar.ExtensionManager;
 import org.junit.jupiter.api.Test;
@@ -28,12 +32,14 @@ import org.mockito.ArgumentCaptor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -42,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -797,12 +804,379 @@ public class TestStandardConnectorRepository {
         verify(connector, never()).markInvalid(anyString(), anyString());
     }
 
+    // --- syncConnector tests ---
+
+    @Test
+    public void testSyncConnectorStoppedWithConfigChange() throws Exception {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(null, flowManager);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(flowManager.createConnector(anyString(), eq("connector-1"), any(), anyBoolean(), anyBoolean())).thenReturn(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING,
+                List.of(createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("value1")))));
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorStoppedNoConfigChange() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorRunningWithConfigChange() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.RUNNING);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING,
+                List.of(createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("new-value")))));
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorDrainingIsRejected() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.DRAINING);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REJECTED, result.getOutcome());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorPreparingForUpdateIsRejected() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.PREPARING_FOR_UPDATE);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REJECTED, result.getOutcome());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+    }
+
+    @Test
+    public void testSyncConnectorUpdatingIsRejected() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.UPDATING);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REJECTED, result.getOutcome());
+    }
+
+    @Test
+    public void testSyncConnectorUpdateFailedRecovery() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.UPDATE_FAILED);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED,
+                List.of(createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("recovery-value")))));
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorUpdatedState() throws Exception {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(null, flowManager);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(flowManager.createConnector(anyString(), eq("connector-1"), any(), anyBoolean(), anyBoolean())).thenReturn(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING,
+                List.of(createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("value1")))));
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+    }
+
+    @Test
+    public void testSyncConnectorInheritConfigurationFailureWhenRunning() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.RUNNING);
+        doThrow(new FlowUpdateException("Simulated failure"))
+                .when(connector).inheritConfiguration(any(), any(), any());
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING,
+                List.of(createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("value1")))));
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.FAILED, result.getOutcome());
+        verify(connector).stop(any());
+    }
+
+    @Test
+    public void testSyncConnectorInheritConfigurationFailureWhenStopped() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        doThrow(new FlowUpdateException("Simulated failure"))
+                .when(connector).inheritConfiguration(any(), any(), any());
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING,
+                List.of(createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("value1")))));
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.FAILED, result.getOutcome());
+        verify(connector, never()).stop(any());
+    }
+
+    @Test
+    public void testSyncConnectorProviderRejectsSync() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REJECTED, result.getOutcome());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorProviderThrowsException() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any()))
+                .thenThrow(new ConnectorConfigurationProviderException("Provider error"));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.FAILED, result.getOutcome());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+    }
+
+    @Test
+    public void testSyncConnectorStartingWaitsForRunning() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState())
+                .thenReturn(ConnectorState.STARTING)
+                .thenReturn(ConnectorState.STARTING)
+                .thenReturn(ConnectorState.RUNNING);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+    }
+
+    @Test
+    public void testSyncConnectorStartingTimesOut() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STARTING);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REJECTED, result.getOutcome());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+    }
+
+    @Test
+    public void testSyncConnectorProviderReturnsRemoveStopsAndRemoves() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final Connector mockExtension = mock(Connector.class);
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState())
+                .thenReturn(ConnectorState.RUNNING)
+                .thenReturn(ConnectorState.RUNNING)
+                .thenReturn(ConnectorState.STOPPED);
+        when(connector.getConnector()).thenReturn(mockExtension);
+        when(connector.stop(any())).thenReturn(CompletableFuture.completedFuture(null));
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REMOVED, result.getOutcome());
+        verify(connector).stop(any());
+        verify(connector).verifyCanDelete();
+    }
+
+    @Test
+    public void testSyncConnectorProviderReturnsRemoveStoppedConnector() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final Connector mockExtension = mock(Connector.class);
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getConnector()).thenReturn(mockExtension);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REMOVED, result.getOutcome());
+        verify(connector, never()).stop(any());
+        verify(connector).verifyCanDelete();
+    }
+
+    @Test
+    public void testSyncConnectorProviderReturnsRemoveForNonExistent() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REMOVED, result.getOutcome());
+    }
+
+    @Test
+    public void testSyncConnectorProviderReturnsRejectCreatesNodeForNewConnector() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
+
+        final FlowManager flowManager = mock(FlowManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithFlowManagerAndProvider(provider, flowManager);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(flowManager.createConnector(anyString(), eq("connector-1"), any(), anyBoolean(), anyBoolean())).thenReturn(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.REJECTED, result.getOutcome());
+        verify(flowManager).createConnector(anyString(), eq("connector-1"), any(), anyBoolean(), anyBoolean());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+    }
+
+    @Test
+    public void testSyncConnectorProviderAllowWithScheduledStateOverride() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getSyncDirective(eq("connector-1"), any()))
+                .thenReturn(ConnectorSyncDirective.allow(null, ScheduledState.ENABLED));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.RUNNING, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        assertEquals(ScheduledState.ENABLED, result.getEffectiveScheduledState());
+    }
+
+    @Test
+    public void testSyncConnectorProviderAllowWithWorkingConfig() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setName("Provider Name");
+        providerConfig.setWorkingFlowConfiguration(List.of(
+                createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("provider-value")))));
+        when(provider.getSyncDirective(eq("connector-1"), any()))
+                .thenReturn(ConnectorSyncDirective.allow(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector).setName("Provider Name");
+        verify(connector).inheritConfiguration(any(), any(), any());
+    }
+
     // --- Helper Methods ---
 
     private StandardConnectorRepository createRepositoryWithProviderAndAssetManager(
             final ConnectorConfigurationProvider provider, final AssetManager assetManager) {
         final StandardConnectorRepository repository = new StandardConnectorRepository();
         final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(mock(FlowManager.class));
         when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
         when(initContext.getAssetManager()).thenReturn(assetManager);
         when(initContext.getConnectorConfigurationProvider()).thenReturn(provider);
@@ -811,13 +1185,23 @@ public class TestStandardConnectorRepository {
     }
 
     private StandardConnectorRepository createRepositoryWithProvider(final ConnectorConfigurationProvider provider) {
+        return createRepositoryWithFlowManager(provider, mock(FlowManager.class));
+    }
+
+    private StandardConnectorRepository createRepositoryWithFlowManager(final ConnectorConfigurationProvider provider, final FlowManager flowManager) {
         final StandardConnectorRepository repository = new StandardConnectorRepository();
         final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(flowManager);
         when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
         when(initContext.getAssetManager()).thenReturn(mock(AssetManager.class));
         when(initContext.getConnectorConfigurationProvider()).thenReturn(provider);
         repository.initialize(initContext);
         return repository;
+    }
+
+    private StandardConnectorRepository createRepositoryWithFlowManagerAndProvider(
+            final ConnectorConfigurationProvider provider, final FlowManager flowManager) {
+        return createRepositoryWithFlowManager(provider, flowManager);
     }
 
     private ConnectorNode createSimpleConnectorNode(final String id, final String name) {
@@ -873,5 +1257,34 @@ public class TestStandardConnectorRepository {
         ref.setValueType("STRING_LITERAL");
         ref.setValue(value);
         return ref;
+    }
+
+    private VersionedConnector createVersionedConnector(final String id, final String name, final ScheduledState scheduledState,
+                                                        final List<VersionedConfigurationStep> activeConfig) {
+        final VersionedConnector vc = new VersionedConnector();
+        vc.setInstanceIdentifier(id);
+        vc.setName(name);
+        vc.setScheduledState(scheduledState);
+        vc.setActiveFlowConfiguration(activeConfig);
+        vc.setWorkingFlowConfiguration(activeConfig);
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("nifi-test-connector-nar");
+        bundle.setVersion("2.0.0");
+        vc.setBundle(bundle);
+        vc.setType("org.apache.nifi.test.TestConnector");
+        return vc;
+    }
+
+    private StandardConnectorRepository createRepositoryWithShortTimeout(final ConnectorConfigurationProvider provider) {
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(mock(FlowManager.class));
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getAssetManager()).thenReturn(mock(AssetManager.class));
+        when(initContext.getConnectorConfigurationProvider()).thenReturn(provider);
+        when(initContext.getConnectorSyncTimeout()).thenReturn(Duration.ofSeconds(5));
+        repository.initialize(initContext);
+        return repository;
     }
 }

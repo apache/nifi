@@ -23,6 +23,8 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionManager;
 
+import java.time.Duration;
+
 public class StandardConnectorRepoInitializationContext implements ConnectorRepositoryInitializationContext {
     private final FlowManager flowManager;
     private final ExtensionManager extensionManager;
@@ -31,6 +33,7 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     private final NodeTypeProvider nodeTypeProvider;
     private final ConnectorRequestReplicator requestReplicator;
     private final ConnectorConfigurationProvider connectorConfigurationProvider;
+    private final Duration connectorSyncTimeout;
 
     public StandardConnectorRepoInitializationContext(final FlowManager flowManager,
                                                      final ExtensionManager extensionManager,
@@ -38,7 +41,8 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
                                                      final AssetManager assetManager,
                                                      final NodeTypeProvider nodeTypeProvider,
                                                      final ConnectorRequestReplicator requestReplicator,
-                                                     final ConnectorConfigurationProvider connectorConfigurationProvider) {
+                                                     final ConnectorConfigurationProvider connectorConfigurationProvider,
+                                                     final Duration connectorSyncTimeout) {
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
         this.secretsManager = secretsManager;
@@ -46,6 +50,7 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
         this.nodeTypeProvider = nodeTypeProvider;
         this.requestReplicator = requestReplicator;
         this.connectorConfigurationProvider = connectorConfigurationProvider;
+        this.connectorSyncTimeout = connectorSyncTimeout;
     }
 
     @Override
@@ -81,5 +86,10 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     @Override
     public ConnectorConfigurationProvider getConnectorConfigurationProvider() {
         return connectorConfigurationProvider;
+    }
+
+    @Override
+    public Duration getConnectorSyncTimeout() {
+        return connectorSyncTimeout;
     }
 }
