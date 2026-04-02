@@ -57,7 +57,6 @@ import java.util.stream.Collectors;
 
 public class StandardConnectorRepository implements ConnectorRepository {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorRepository.class);
-    private static final Duration DEFAULT_SYNC_TIMEOUT = Duration.ofMinutes(15);
     private static final Duration SYNC_POLL_INTERVAL = Duration.ofSeconds(2);
 
     private final Map<String, ConnectorNode> connectors = new ConcurrentHashMap<>();
@@ -69,7 +68,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private volatile SecretsManager secretsManager;
     private volatile AssetManager assetManager;
     private volatile ConnectorConfigurationProvider configurationProvider;
-    private volatile Duration syncTimeout = DEFAULT_SYNC_TIMEOUT;
+    private volatile Duration syncTimeout;
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
@@ -117,9 +116,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         final ConnectorSyncDirective directive;
         if (configurationProvider != null) {
             try {
-                directive = configurationProvider.verifySyncable(connectorId, proposedScheduledState);
+                directive = configurationProvider.getSyncDirective(connectorId, proposedScheduledState);
             } catch (final Exception e) {
-                logger.error("Configuration provider threw exception during verifySyncable for connector [{}]: {}", connectorId, e.getMessage(), e);
+                logger.error("Configuration provider threw exception during getSyncDirective for connector [{}]: {}", connectorId, e.getMessage(), e);
                 final ConnectorNode existingNode = ensureConnectorNodeExists(versionedConnector);
                 existingNode.markInvalid("Flow Synchronization Failure",
                         "Configuration provider error during synchronization: " + e.getMessage());
@@ -138,7 +137,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 logger.info("Removing connector [{}] (state={}) from local repository per provider REMOVE directive",
                         connectorId, existingNode.getCurrentState());
                 stopConnectorAndAwait(existingNode);
-                logger.debug("Connector [{}] stopped (state={}); calling removeConnector", connectorId, existingNode.getCurrentState());
+                purgeConnectorAndAwait(existingNode);
+                logger.debug("Connector [{}] stopped and purged (state={}); calling removeConnector", connectorId, existingNode.getCurrentState());
                 removeConnector(connectorId);
                 logger.info("Successfully removed connector [{}] per REMOVE directive", connectorId);
             } else {
@@ -232,7 +232,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         return configChanged
                 ? ConnectorSyncResult.synced(connector, effectiveScheduledState)
-                : ConnectorSyncResult.syncedNoChanges(connector, effectiveScheduledState);
+                : ConnectorSyncResult.syncedConfigUnchanged(connector, effectiveScheduledState);
     }
 
     private ConnectorNode ensureConnectorNodeExists(final VersionedConnector versionedConnector) {
@@ -431,6 +431,23 @@ public class StandardConnectorRepository implements ConnectorRepository {
             logger.warn("Interrupted while waiting for connector [{}] to stop", connectorId);
         } catch (final Exception e) {
             logger.warn("Failed to stop connector [{}]: {}", connectorId, e.getMessage(), e);
+        }
+    }
+
+    private void purgeConnectorAndAwait(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+        try {
+            logger.debug("Purging FlowFiles for connector [{}] before removal", connectorId);
+            final Future<Void> purgeFuture = connector.purgeFlowFiles("Flow Synchronization");
+            purgeFuture.get(syncTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            logger.debug("Connector [{}] purged successfully", connectorId);
+        } catch (final java.util.concurrent.TimeoutException e) {
+            logger.warn("Timed out waiting for connector [{}] to purge FlowFiles", connectorId);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while waiting for connector [{}] to purge FlowFiles", connectorId);
+        } catch (final Exception e) {
+            logger.warn("Failed to purge FlowFiles for connector [{}]: {}", connectorId, e.getMessage(), e);
         }
     }
 

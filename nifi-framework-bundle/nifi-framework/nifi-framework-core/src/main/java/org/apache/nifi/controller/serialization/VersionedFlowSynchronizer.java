@@ -1061,8 +1061,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 try {
                     logger.debug("Stopping orphan connector [{}] before removal", existingConnector.getIdentifier());
                     connectorRepository.stopConnector(existingConnector).get();
-                    logger.debug("Orphan connector [{}] stopped (state={}); proceeding with removal",
+                    logger.debug("Orphan connector [{}] stopped (state={}); purging data before removal",
                             existingConnector.getIdentifier(), existingConnector.getCurrentState());
+                    existingConnector.purgeFlowFiles("Flow Synchronization").get();
+                    logger.debug("Orphan connector [{}] purged; proceeding with removal", existingConnector.getIdentifier());
                     connectorRepository.removeConnector(existingConnector.getIdentifier());
                     logger.info("Successfully removed orphan connector [{}]", existingConnector.getIdentifier());
                 } catch (final Exception e) {

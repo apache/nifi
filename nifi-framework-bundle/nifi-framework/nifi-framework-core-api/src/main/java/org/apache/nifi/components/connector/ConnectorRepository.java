@@ -73,7 +73,7 @@ public interface ConnectorRepository {
      * should be removed or rejected).</p>
      *
      * <p>When a {@link ConnectorConfigurationProvider} is configured, the provider's
-     * {@link ConnectorConfigurationProvider#verifySyncable(String, org.apache.nifi.flow.ScheduledState)}
+     * {@link ConnectorConfigurationProvider#getSyncDirective(String, org.apache.nifi.flow.ScheduledState)}
      * method is called to obtain a {@link ConnectorSyncDirective} that may override the
      * working configuration, name, or ScheduledState from the versioned flow.</p>
      *

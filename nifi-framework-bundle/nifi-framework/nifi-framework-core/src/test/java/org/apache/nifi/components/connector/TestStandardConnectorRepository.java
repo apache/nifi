@@ -835,7 +835,7 @@ public class TestStandardConnectorRepository {
 
         final ConnectorSyncResult result = repository.syncConnector(versioned);
 
-        assertEquals(ConnectorSyncResult.Outcome.SYNCED_NO_CHANGES, result.getOutcome());
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
         verify(connector, never()).inheritConfiguration(any(), any(), any());
     }
 
@@ -978,7 +978,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderRejectsSync() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -997,7 +997,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderThrowsException() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any()))
+        when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenThrow(new ConnectorConfigurationProviderException("Provider error"));
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -1028,7 +1028,7 @@ public class TestStandardConnectorRepository {
 
         final ConnectorSyncResult result = repository.syncConnector(versioned);
 
-        assertEquals(ConnectorSyncResult.Outcome.SYNCED_NO_CHANGES, result.getOutcome());
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
     }
 
     @Test
@@ -1050,7 +1050,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderReturnsRemoveStopsAndRemoves() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final Connector mockExtension = mock(Connector.class);
@@ -1075,7 +1075,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderReturnsRemoveStoppedConnector() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final Connector mockExtension = mock(Connector.class);
@@ -1096,7 +1096,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderReturnsRemoveForNonExistent() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", ScheduledState.ENABLED, List.of());
@@ -1109,7 +1109,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderReturnsRejectCreatesNodeForNewConnector() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
 
         final FlowManager flowManager = mock(FlowManager.class);
         final StandardConnectorRepository repository = createRepositoryWithFlowManagerAndProvider(provider, flowManager);
@@ -1129,7 +1129,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testSyncConnectorProviderAllowWithScheduledStateOverride() throws Exception {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
-        when(provider.verifySyncable(eq("connector-1"), any()))
+        when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenReturn(ConnectorSyncDirective.allow(null, ScheduledState.ENABLED));
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -1141,7 +1141,7 @@ public class TestStandardConnectorRepository {
 
         final ConnectorSyncResult result = repository.syncConnector(versioned);
 
-        assertEquals(ConnectorSyncResult.Outcome.SYNCED_NO_CHANGES, result.getOutcome());
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
         assertEquals(ScheduledState.ENABLED, result.getEffectiveScheduledState());
     }
 
@@ -1153,7 +1153,7 @@ public class TestStandardConnectorRepository {
         providerConfig.setName("Provider Name");
         providerConfig.setWorkingFlowConfiguration(List.of(
                 createVersionedStep("step1", Map.of("prop1", createStringLiteralRef("provider-value")))));
-        when(provider.verifySyncable(eq("connector-1"), any()))
+        when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenReturn(ConnectorSyncDirective.allow(providerConfig));
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 

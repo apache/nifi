@@ -20,7 +20,7 @@ package org.apache.nifi.components.connector;
 import org.apache.nifi.flow.ScheduledState;
 
 /**
- * Directive returned by {@link ConnectorConfigurationProvider#verifySyncable(String, ScheduledState)}
+ * Directive returned by {@link ConnectorConfigurationProvider#getSyncDirective(String, ScheduledState)}
  * indicating how the connector repository should handle synchronization for a connector during
  * flow inheritance.
  */
@@ -136,14 +136,9 @@ public class ConnectorSyncDirective {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("ConnectorSyncDirective[action=").append(action);
-        if (scheduledStateOverride != null) {
-            sb.append(", scheduledStateOverride=").append(scheduledStateOverride);
-        }
-        if (workingConfiguration != null) {
-            sb.append(", hasWorkingConfig=true");
-        }
-        sb.append(']');
-        return sb.toString();
+        return "ConnectorSyncDirective[action=" + action
+                + (scheduledStateOverride != null ? ", scheduledStateOverride=" + scheduledStateOverride : "")
+                + (workingConfiguration != null ? ", hasWorkingConfig=true" : "")
+                + "]";
     }
 }

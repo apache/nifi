@@ -338,7 +338,7 @@ class VersionedFlowSynchronizerTest {
         final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(versionedConnector))
-                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
 
         setFlowController(connectorRepository);
         when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
@@ -371,7 +371,7 @@ class VersionedFlowSynchronizerTest {
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(proposedConnector))
-                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
@@ -405,7 +405,7 @@ class VersionedFlowSynchronizerTest {
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(versionedConnector))
-                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
@@ -442,7 +442,7 @@ class VersionedFlowSynchronizerTest {
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(proposedConnector))
-                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 

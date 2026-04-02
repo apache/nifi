@@ -31,7 +31,7 @@ public final class ConnectorSyncResult {
      */
     public enum Outcome {
         SYNCED,
-        SYNCED_NO_CHANGES,
+        SYNCED_CONFIG_UNCHANGED,
         REJECTED,
         FAILED,
         REMOVED
@@ -56,11 +56,12 @@ public final class ConnectorSyncResult {
     }
 
     /**
-     * Configuration was already up to date; the connector's run state should be
-     * updated if it differs from the effective ScheduledState.
+     * Connector configuration was unchanged relative to the proposed versioned configuration;
+     * no configuration update was applied. The connector's run state should still be updated
+     * if it differs from the effective ScheduledState.
      */
-    public static ConnectorSyncResult syncedNoChanges(final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
-        return new ConnectorSyncResult(Outcome.SYNCED_NO_CHANGES, connectorNode, effectiveScheduledState);
+    public static ConnectorSyncResult syncedConfigUnchanged(final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+        return new ConnectorSyncResult(Outcome.SYNCED_CONFIG_UNCHANGED, connectorNode, effectiveScheduledState);
     }
 
     /**

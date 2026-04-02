@@ -126,7 +126,7 @@ public interface ConnectorConfigurationProvider {
      * @param proposedScheduledState the ScheduledState from the versioned flow
      * @return a directive indicating how to handle this connector during sync
      */
-    default ConnectorSyncDirective verifySyncable(final String connectorId, final ScheduledState proposedScheduledState) {
+    default ConnectorSyncDirective getSyncDirective(final String connectorId, final ScheduledState proposedScheduledState) {
         return ConnectorSyncDirective.allow();
     }
 

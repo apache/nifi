@@ -53,10 +53,10 @@ public interface ConnectorRepositoryInitializationContext {
      * Returns the maximum time to wait for a connector in a transient state (STARTING, STOPPING, PURGING)
      * to reach a stable state during flow synchronization.
      *
-     * @return the sync timeout duration, defaults to 15 minutes
+     * @return the sync timeout duration, defaults to 5 minutes
      */
     default Duration getConnectorSyncTimeout() {
-        return Duration.ofMinutes(15);
+        return Duration.ofMinutes(5);
     }
 
 }
