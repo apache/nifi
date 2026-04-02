@@ -404,7 +404,7 @@ describe('RegistryClientTable', () => {
         it('should emit selectRegistryClient when select is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockRegistryClientEntity();
-            jest.spyOn(component.selectRegistryClient, 'next');
+            vi.spyOn(component.selectRegistryClient, 'next');
 
             component.select(mockEntity as any);
 
@@ -414,7 +414,7 @@ describe('RegistryClientTable', () => {
         it('should emit configureRegistryClient when configureClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockRegistryClientEntity();
-            jest.spyOn(component.configureRegistryClient, 'next');
+            vi.spyOn(component.configureRegistryClient, 'next');
 
             component.configureClicked(mockEntity);
 
@@ -424,7 +424,7 @@ describe('RegistryClientTable', () => {
         it('should emit deleteRegistryClient when deleteClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockRegistryClientEntity();
-            jest.spyOn(component.deleteRegistryClient, 'next');
+            vi.spyOn(component.deleteRegistryClient, 'next');
 
             component.deleteClicked(mockEntity);
 
@@ -434,7 +434,7 @@ describe('RegistryClientTable', () => {
         it('should emit clearBulletinsRegistryClient when clearBulletinsClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockRegistryClientEntity();
-            jest.spyOn(component.clearBulletinsRegistryClient, 'next');
+            vi.spyOn(component.clearBulletinsRegistryClient, 'next');
 
             component.clearBulletinsClicked(mockEntity);
 
@@ -444,7 +444,7 @@ describe('RegistryClientTable', () => {
         it('should emit viewRegistryClientDocumentation when viewDocumentationClicked is called', async () => {
             const { component } = await setup();
             const mockEntity = createMockRegistryClientEntity();
-            jest.spyOn(component.viewRegistryClientDocumentation, 'next');
+            vi.spyOn(component.viewRegistryClientDocumentation, 'next');
 
             component.viewDocumentationClicked(mockEntity);
 

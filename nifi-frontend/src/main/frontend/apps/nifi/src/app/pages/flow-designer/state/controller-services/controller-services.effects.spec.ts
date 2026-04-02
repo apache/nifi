@@ -69,14 +69,14 @@ describe('ControllerServicesEffects', () => {
 
     async function setup({ controllerServicesState = initialState }: SetupOptions = {}) {
         const controllerServiceServiceSpy = {
-            getControllerServices: jest.fn(),
-            getControllerService: jest.fn(),
-            getFlow: jest.fn(),
-            createControllerService: jest.fn(),
-            updateControllerService: jest.fn(),
-            deleteControllerService: jest.fn(),
-            clearBulletins: jest.fn()
-        } as unknown as jest.Mocked<ControllerServiceService>;
+            getControllerServices: vi.fn(),
+            getControllerService: vi.fn(),
+            getFlow: vi.fn(),
+            createControllerService: vi.fn(),
+            updateControllerService: vi.fn(),
+            deleteControllerService: vi.fn(),
+            clearBulletins: vi.fn()
+        } as unknown as vi.Mocked<ControllerServiceService>;
 
         await TestBed.configureTestingModule({
             providers: [
@@ -99,62 +99,62 @@ describe('ControllerServicesEffects', () => {
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        handleLoadingError: jest.fn(),
-                        getErrorString: jest.fn(),
-                        showErrorInContext: jest.fn(),
-                        fullScreenError: jest.fn()
+                        handleLoadingError: vi.fn(),
+                        getErrorString: vi.fn(),
+                        showErrorInContext: vi.fn(),
+                        fullScreenError: vi.fn()
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn(),
-                        closeAll: jest.fn()
+                        open: vi.fn(),
+                        closeAll: vi.fn()
                     }
                 },
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: PropertyTableHelperService,
                     useValue: {
-                        getComponentHistory: jest.fn(),
-                        createNewProperty: jest.fn(),
-                        createNewService: jest.fn()
+                        getComponentHistory: vi.fn(),
+                        createNewProperty: vi.fn(),
+                        createNewService: vi.fn()
                     }
                 },
                 {
                     provide: ParameterHelperService,
                     useValue: {
-                        convertToParameter: jest.fn()
+                        convertToParameter: vi.fn()
                     }
                 },
                 {
                     provide: ExtensionTypesService,
                     useValue: {
-                        getControllerServiceVersionsForType: jest.fn()
+                        getControllerServiceVersionsForType: vi.fn()
                     }
                 },
                 {
                     provide: Client,
                     useValue: {
-                        getClientId: jest.fn().mockReturnValue('test-client-id')
+                        getClientId: vi.fn().mockReturnValue('test-client-id')
                     }
                 },
                 {
                     provide: Storage,
                     useValue: {
-                        setItem: jest.fn(),
-                        getItem: jest.fn()
+                        setItem: vi.fn(),
+                        getItem: vi.fn()
                     }
                 },
                 {
                     provide: ParameterContextService,
                     useValue: {
-                        getParameterContext: jest.fn()
+                        getParameterContext: vi.fn()
                     }
                 }
             ]
@@ -164,7 +164,7 @@ describe('ControllerServicesEffects', () => {
         const effects = TestBed.inject(ControllerServicesEffects);
         const controllerServiceService = TestBed.inject(
             ControllerServiceService
-        ) as jest.Mocked<ControllerServiceService>;
+        ) as vi.Mocked<ControllerServiceService>;
         const errorHelper = TestBed.inject(ErrorHelper);
 
         return { effects, store, controllerServiceService, errorHelper };
@@ -185,10 +185,10 @@ describe('ControllerServicesEffects', () => {
             const { effects, controllerServiceService } = await setup();
 
             action$.next(ControllerServicesActions.loadControllerServices({ request: { processGroupId: 'pg-1' } }));
-            jest.spyOn(controllerServiceService, 'getControllerServices').mockReturnValueOnce(
+            vi.spyOn(controllerServiceService, 'getControllerServices').mockReturnValueOnce(
                 of(mockControllerServicesResponse) as never
             );
-            jest.spyOn(controllerServiceService, 'getFlow').mockReturnValueOnce(of(mockFlowResponse) as never);
+            vi.spyOn(controllerServiceService, 'getFlow').mockReturnValueOnce(of(mockFlowResponse) as never);
 
             const result = await new Promise((resolve) =>
                 effects.loadControllerServices$.pipe(take(1)).subscribe(resolve)
@@ -212,10 +212,10 @@ describe('ControllerServicesEffects', () => {
 
             action$.next(ControllerServicesActions.loadControllerServices({ request: { processGroupId: 'pg-1' } }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(controllerServiceService, 'getControllerServices').mockImplementationOnce(() =>
+            vi.spyOn(controllerServiceService, 'getControllerServices').mockImplementationOnce(() =>
                 throwError(() => error)
             );
-            jest.spyOn(controllerServiceService, 'getFlow').mockReturnValueOnce(of(mockFlowResponse) as never);
+            vi.spyOn(controllerServiceService, 'getFlow').mockReturnValueOnce(of(mockFlowResponse) as never);
 
             const result = await new Promise((resolve) =>
                 effects.loadControllerServices$.pipe(take(1)).subscribe(resolve)
@@ -238,10 +238,10 @@ describe('ControllerServicesEffects', () => {
 
             action$.next(ControllerServicesActions.loadControllerServices({ request: { processGroupId: 'pg-1' } }));
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(controllerServiceService, 'getControllerServices').mockImplementationOnce(() =>
+            vi.spyOn(controllerServiceService, 'getControllerServices').mockImplementationOnce(() =>
                 throwError(() => error)
             );
-            jest.spyOn(controllerServiceService, 'getFlow').mockReturnValueOnce(of(mockFlowResponse) as never);
+            vi.spyOn(controllerServiceService, 'getFlow').mockReturnValueOnce(of(mockFlowResponse) as never);
 
             const result = await new Promise((resolve) =>
                 effects.loadControllerServices$.pipe(take(1)).subscribe(resolve)
@@ -270,7 +270,7 @@ describe('ControllerServicesEffects', () => {
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.controllerServicesListingError$.pipe(take(1)).subscribe(resolve)
@@ -292,7 +292,7 @@ describe('ControllerServicesEffects', () => {
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.controllerServicesListingError$.pipe(take(1)).subscribe(resolve)
@@ -326,7 +326,7 @@ describe('ControllerServicesEffects', () => {
                 componentType: request.componentType
             };
 
-            jest.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
             action$.next(clearControllerServiceBulletins({ request }));
 
             const result = await new Promise((resolve) =>
@@ -362,7 +362,7 @@ describe('ControllerServicesEffects', () => {
                 componentType: request.componentType
             };
 
-            jest.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
             action$.next(clearControllerServiceBulletins({ request }));
 
             const result = await new Promise((resolve) =>
@@ -387,7 +387,7 @@ describe('ControllerServicesEffects', () => {
                 bulletins: []
             };
 
-            jest.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
             action$.next(clearControllerServiceBulletins({ request }));
 
             const result = await new Promise<any>((resolve) =>
@@ -415,7 +415,7 @@ describe('ControllerServicesEffects', () => {
                 bulletins: []
             };
 
-            jest.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
             action$.next(clearControllerServiceBulletins({ request }));
 
             await new Promise<void>((resolve) =>
@@ -452,7 +452,7 @@ describe('ControllerServicesEffects', () => {
                 componentType: request.componentType
             };
 
-            jest.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
             action$.next(clearControllerServiceBulletins({ request }));
 
             const result = await new Promise((resolve) =>
@@ -484,7 +484,7 @@ describe('ControllerServicesEffects', () => {
                 componentType: request.componentType
             };
 
-            jest.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'clearBulletins').mockReturnValue(of(serviceResponse));
             action$.next(clearControllerServiceBulletins({ request }));
 
             const result = await new Promise((resolve) =>
@@ -510,7 +510,7 @@ describe('ControllerServicesEffects', () => {
                 component: { name: 'New Test Service' }
             } as any;
 
-            jest.spyOn(controllerServiceService, 'createControllerService').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'createControllerService').mockReturnValue(of(serviceResponse));
             action$.next(createControllerService({ request }));
 
             const result = await new Promise((resolve) =>
@@ -541,9 +541,9 @@ describe('ControllerServicesEffects', () => {
             });
 
             const mockDialog = TestBed.inject(MatDialog);
-            jest.spyOn(mockDialog, 'closeAll');
-            jest.spyOn(errorHelper as any, 'getErrorString').mockReturnValue('Creation failed');
-            jest.spyOn(controllerServiceService, 'createControllerService').mockReturnValue(
+            vi.spyOn(mockDialog, 'closeAll');
+            vi.spyOn(errorHelper as any, 'getErrorString').mockReturnValue('Creation failed');
+            vi.spyOn(controllerServiceService, 'createControllerService').mockReturnValue(
                 throwError(() => errorResponse)
             );
 
@@ -573,7 +573,7 @@ describe('ControllerServicesEffects', () => {
                 component: { name: 'Service to Delete' }
             } as any;
 
-            jest.spyOn(controllerServiceService, 'deleteControllerService').mockReturnValue(of(serviceResponse));
+            vi.spyOn(controllerServiceService, 'deleteControllerService').mockReturnValue(of(serviceResponse));
             action$.next(deleteControllerService({ request }));
 
             const result = await new Promise((resolve) =>
@@ -603,8 +603,8 @@ describe('ControllerServicesEffects', () => {
                 statusText: 'Internal Server Error'
             });
 
-            jest.spyOn(errorHelper as any, 'getErrorString').mockReturnValue('Deletion failed');
-            jest.spyOn(controllerServiceService, 'deleteControllerService').mockReturnValue(
+            vi.spyOn(errorHelper as any, 'getErrorString').mockReturnValue('Deletion failed');
+            vi.spyOn(controllerServiceService, 'deleteControllerService').mockReturnValue(
                 throwError(() => errorResponse)
             );
 

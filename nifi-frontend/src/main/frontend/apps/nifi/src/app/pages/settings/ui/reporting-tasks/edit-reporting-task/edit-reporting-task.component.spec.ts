@@ -25,6 +25,9 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
 
 describe('EditReportingTask', () => {
     let component: EditReportingTask;
@@ -390,11 +393,16 @@ describe('EditReportingTask', () => {
         TestBed.configureTestingModule({
             imports: [EditReportingTask, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                }),
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null }

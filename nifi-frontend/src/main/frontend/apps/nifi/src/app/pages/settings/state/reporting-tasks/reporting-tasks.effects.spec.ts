@@ -40,46 +40,46 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 describe('ReportingTasksEffects', () => {
     let actions$: ReplaySubject<Action>;
     let effects: ReportingTasksEffects;
-    let mockReportingTaskService: jest.Mocked<ReportingTaskService>;
-    let mockErrorHelper: jest.Mocked<ErrorHelper>;
-    let mockDialog: jest.Mocked<MatDialog>;
+    let mockReportingTaskService: vi.Mocked<ReportingTaskService>;
+    let mockErrorHelper: vi.Mocked<ErrorHelper>;
+    let mockDialog: vi.Mocked<MatDialog>;
 
     beforeEach(() => {
         const reportingTaskServiceSpy = {
-            getReportingTasks: jest.fn(),
-            createReportingTask: jest.fn(),
-            updateReportingTask: jest.fn(),
-            deleteReportingTask: jest.fn(),
-            startReportingTask: jest.fn(),
-            stopReportingTask: jest.fn(),
-            clearBulletins: jest.fn()
-        } as unknown as jest.Mocked<ReportingTaskService>;
+            getReportingTasks: vi.fn(),
+            createReportingTask: vi.fn(),
+            updateReportingTask: vi.fn(),
+            deleteReportingTask: vi.fn(),
+            startReportingTask: vi.fn(),
+            stopReportingTask: vi.fn(),
+            clearBulletins: vi.fn()
+        } as unknown as vi.Mocked<ReportingTaskService>;
 
         const errorHelperSpy = {
-            handleLoadingError: jest.fn().mockReturnValue({ type: '[Error] Loading Error' }),
-            getErrorString: jest.fn().mockReturnValue('Test error message'),
-            showErrorInContext: jest.fn(),
-            fullScreenError: jest.fn().mockReturnValue({ type: 'FULL_SCREEN_ERROR' })
-        } as unknown as jest.Mocked<ErrorHelper>;
+            handleLoadingError: vi.fn().mockReturnValue({ type: '[Error] Loading Error' }),
+            getErrorString: vi.fn().mockReturnValue('Test error message'),
+            showErrorInContext: vi.fn(),
+            fullScreenError: vi.fn().mockReturnValue({ type: 'FULL_SCREEN_ERROR' })
+        } as unknown as vi.Mocked<ErrorHelper>;
 
         const dialogSpy = {
-            open: jest.fn(),
-            closeAll: jest.fn()
-        } as unknown as jest.Mocked<MatDialog>;
+            open: vi.fn(),
+            closeAll: vi.fn()
+        } as unknown as vi.Mocked<MatDialog>;
 
         const routerSpy = {
-            navigate: jest.fn()
-        } as unknown as jest.Mocked<Router>;
+            navigate: vi.fn()
+        } as unknown as vi.Mocked<Router>;
 
         const propertyTableHelperServiceSpy = {
-            getComponentHistory: jest.fn(),
-            createNewProperty: jest.fn(),
-            createNewService: jest.fn()
-        } as unknown as jest.Mocked<PropertyTableHelperService>;
+            getComponentHistory: vi.fn(),
+            createNewProperty: vi.fn(),
+            createNewService: vi.fn()
+        } as unknown as vi.Mocked<PropertyTableHelperService>;
 
         const extensionTypesServiceSpy = {
-            getReportingTaskVersionsForType: jest.fn()
-        } as unknown as jest.Mocked<ExtensionTypesService>;
+            getReportingTaskVersionsForType: vi.fn()
+        } as unknown as vi.Mocked<ExtensionTypesService>;
 
         TestBed.configureTestingModule({
             providers: [
@@ -103,9 +103,9 @@ describe('ReportingTasksEffects', () => {
         });
 
         effects = TestBed.inject(ReportingTasksEffects);
-        mockReportingTaskService = TestBed.inject(ReportingTaskService) as jest.Mocked<ReportingTaskService>;
-        mockErrorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
-        mockDialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+        mockReportingTaskService = TestBed.inject(ReportingTaskService) as vi.Mocked<ReportingTaskService>;
+        mockErrorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
+        mockDialog = TestBed.inject(MatDialog) as vi.Mocked<MatDialog>;
         actions$ = new ReplaySubject(1);
     });
 

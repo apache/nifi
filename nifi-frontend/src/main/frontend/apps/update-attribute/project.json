@@ -95,15 +95,12 @@
             "continuous": true
         },
         "test": {
-            "executor": "@nx/jest:jest",
+            "executor": "@analogjs/vitest-angular:test",
             "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
-            "options": {
-                "jestConfig": "apps/update-attribute/jest.config.ts"
-            },
+            "options": {},
             "configurations": {
                 "ci": {
-                    "ci": true,
-                    "codeCoverage": true
+                    "coverage": true
                 }
             }
         },

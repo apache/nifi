@@ -55,7 +55,7 @@ describe('BucketTableFilterComponent', () => {
     });
 
     it('should emit filter changes when term changes', fakeAsync(() => {
-        jest.spyOn(component.filterChanged, 'emit');
+        vi.spyOn(component.filterChanged, 'emit');
         component.filterForm.get('filterTerm')?.setValue('test');
         fixture.detectChanges();
         tick(500); // Wait for debounceTime
@@ -67,7 +67,7 @@ describe('BucketTableFilterComponent', () => {
     }));
 
     it('should emit filter changes when column changes', fakeAsync(() => {
-        jest.spyOn(component.filterChanged, 'emit');
+        vi.spyOn(component.filterChanged, 'emit');
         component.filterForm.get('filterColumn')?.setValue('description');
         fixture.detectChanges();
         expect(component.filterChanged.emit).toHaveBeenCalledWith({

@@ -15,8 +15,17 @@
  * limitations under the License.
  */
 
-const { getJestProjectsAsync } = require('@nx/jest');
+import { defineConfig, mergeConfig } from 'vitest/config';
+import sharedConfig from '../../vitest.shared.mts';
 
-module.exports = async () => ({
-    projects: await getJestProjectsAsync()
-});
+export default mergeConfig(
+    sharedConfig,
+    defineConfig({
+        test: {
+            setupFiles: ['src/test-setup.ts'],
+            coverage: {
+                reportsDirectory: '../../coverage/apps/update-attribute'
+            }
+        }
+    })
+);

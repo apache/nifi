@@ -136,7 +136,7 @@ describe('FlowAnalysisRules', () => {
     describe('Component Initialization', () => {
         it('should dispatch loadFlowAnalysisRules on ngOnInit', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnInit();
 
@@ -145,7 +145,7 @@ describe('FlowAnalysisRules', () => {
 
         it('should dispatch resetFlowAnalysisRulesState on ngOnDestroy', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnDestroy();
 
@@ -173,7 +173,7 @@ describe('FlowAnalysisRules', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadFlowAnalysisRules action when refreshFlowAnalysisRuleListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.refreshFlowAnalysisRuleListing();
 
@@ -182,7 +182,7 @@ describe('FlowAnalysisRules', () => {
 
         it('should dispatch openNewFlowAnalysisRuleDialog action when openNewFlowAnalysisRuleDialog is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openNewFlowAnalysisRuleDialog();
 
@@ -192,7 +192,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch selectFlowAnalysisRule action when selectFlowAnalysisRule is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.selectFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -208,7 +208,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch navigateToComponentDocumentation action when viewFlowAnalysisRuleDocumentation is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewFlowAnalysisRuleDocumentation(mockFlowAnalysisRuleEntity);
 
@@ -235,7 +235,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch enableFlowAnalysisRule action when enableFlowAnalysisRule is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.enableFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -252,7 +252,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch disableFlowAnalysisRule action when disableFlowAnalysisRule is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.disableFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -270,7 +270,7 @@ describe('FlowAnalysisRules', () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
             mockFlowAnalysisRuleEntity.status.runStatus = 'DISABLED';
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewStateFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -290,7 +290,7 @@ describe('FlowAnalysisRules', () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
             mockFlowAnalysisRuleEntity.status.runStatus = 'ENABLED';
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewStateFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -309,7 +309,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch openChangeFlowAnalysisRuleVersionDialog action when changeFlowAnalysisRuleVersion is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.changeFlowAnalysisRuleVersion(mockFlowAnalysisRuleEntity);
 
@@ -329,7 +329,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch promptFlowAnalysisRuleDeletion action when deleteFlowAnalysisRule is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.deleteFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -345,7 +345,7 @@ describe('FlowAnalysisRules', () => {
         it('should dispatch navigateToEditFlowAnalysisRule action when configureFlowAnalysisRule is called', async () => {
             const { component, store } = await setup();
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.configureFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -361,7 +361,7 @@ describe('FlowAnalysisRules', () => {
 
             const mockFlowAnalysisRuleEntity = createMockFlowAnalysisRuleEntity();
 
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 
@@ -384,7 +384,7 @@ describe('FlowAnalysisRules', () => {
                 ...createMockFlowAnalysisRuleEntity(),
                 bulletins: [] // No bulletins
             };
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsFlowAnalysisRule(mockFlowAnalysisRuleEntity);
 

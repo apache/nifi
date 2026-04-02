@@ -70,34 +70,34 @@ describe('ClusterListingEffects', () => {
                 {
                     provide: ClusterService,
                     useValue: {
-                        getClusterListing: jest.fn()
+                        getClusterListing: vi.fn()
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn()
+                        open: vi.fn()
                     }
                 },
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        handleLoadingError: jest.fn(),
-                        getErrorString: jest.fn()
+                        handleLoadingError: vi.fn(),
+                        getErrorString: vi.fn()
                     }
                 }
             ]
         }).compileComponents();
 
         const store = TestBed.inject(MockStore);
-        const clusterService = TestBed.inject(ClusterService) as jest.Mocked<ClusterService>;
-        const errorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        const clusterService = TestBed.inject(ClusterService) as vi.Mocked<ClusterService>;
+        const errorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
         const effects = TestBed.inject(ClusterListingEffects);
 
         return { store, clusterService, errorHelper, effects };
@@ -121,7 +121,7 @@ describe('ClusterListingEffects', () => {
             const { effects, clusterService } = await setup();
 
             action$.next(ClusterListingActions.loadClusterListing());
-            jest.spyOn(clusterService, 'getClusterListing').mockReturnValueOnce(of(mockClusterResponse) as never);
+            vi.spyOn(clusterService, 'getClusterListing').mockReturnValueOnce(of(mockClusterResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadClusterListing$.pipe(take(1)).subscribe(resolve));
 
@@ -137,7 +137,7 @@ describe('ClusterListingEffects', () => {
 
             action$.next(ClusterListingActions.loadClusterListing());
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(clusterService, 'getClusterListing').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(clusterService, 'getClusterListing').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadClusterListing$.pipe(take(1)).subscribe(resolve));
 
@@ -159,7 +159,7 @@ describe('ClusterListingEffects', () => {
 
             action$.next(ClusterListingActions.loadClusterListing());
             const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(clusterService, 'getClusterListing').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(clusterService, 'getClusterListing').mockImplementationOnce(() => throwError(() => error));
 
             const result = await new Promise((resolve) => effects.loadClusterListing$.pipe(take(1)).subscribe(resolve));
 
@@ -181,7 +181,7 @@ describe('ClusterListingEffects', () => {
             const errorAction = ClusterListingActions.loadClusterListingSuccess({
                 response: mockClusterResponse.cluster
             });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             action$.next(
                 ClusterListingActions.loadClusterListingError({
@@ -206,7 +206,7 @@ describe('ClusterListingEffects', () => {
             const errorAction = ClusterListingActions.loadClusterListingSuccess({
                 response: mockClusterResponse.cluster
             });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             action$.next(
                 ClusterListingActions.loadClusterListingError({

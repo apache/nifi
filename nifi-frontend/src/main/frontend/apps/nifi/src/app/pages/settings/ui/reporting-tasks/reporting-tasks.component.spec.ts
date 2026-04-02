@@ -141,7 +141,7 @@ describe('ReportingTasks', () => {
     describe('Component Initialization', () => {
         it('should dispatch loadReportingTasks on ngOnInit', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnInit();
 
@@ -150,7 +150,7 @@ describe('ReportingTasks', () => {
 
         it('should dispatch resetReportingTasksState on ngOnDestroy', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnDestroy();
 
@@ -178,7 +178,7 @@ describe('ReportingTasks', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadReportingTasks action when refreshReportingTaskListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.refreshReportingTaskListing();
 
@@ -187,7 +187,7 @@ describe('ReportingTasks', () => {
 
         it('should dispatch openNewReportingTaskDialog action when openNewReportingTaskDialog is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openNewReportingTaskDialog();
 
@@ -197,7 +197,7 @@ describe('ReportingTasks', () => {
         it('should dispatch selectReportingTask action when selectReportingTask is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.selectReportingTask(mockReportingTaskEntity);
 
@@ -213,7 +213,7 @@ describe('ReportingTasks', () => {
         it('should dispatch navigateToAdvancedReportingTaskUi action when openAdvancedUi is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openAdvancedUi(mockReportingTaskEntity);
 
@@ -227,7 +227,7 @@ describe('ReportingTasks', () => {
         it('should dispatch navigateToManageAccessPolicies action when navigateToManageAccessPolicies is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.navigateToManageAccessPolicies(mockReportingTaskEntity);
 
@@ -241,7 +241,7 @@ describe('ReportingTasks', () => {
         it('should dispatch navigateToComponentDocumentation action when viewReportingTaskDocumentation is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewReportingTaskDocumentation(mockReportingTaskEntity);
 
@@ -268,7 +268,7 @@ describe('ReportingTasks', () => {
         it('should dispatch promptReportingTaskDeletion action when deleteReportingTask is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.deleteReportingTask(mockReportingTaskEntity);
 
@@ -284,7 +284,7 @@ describe('ReportingTasks', () => {
         it('should dispatch navigateToEditReportingTask action when configureReportingTask is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.configureReportingTask(mockReportingTaskEntity);
 
@@ -300,7 +300,7 @@ describe('ReportingTasks', () => {
             const mockReportingTaskEntity = createMockReportingTaskEntity();
             mockReportingTaskEntity.status.runStatus = 'STOPPED';
             mockReportingTaskEntity.status.activeThreadCount = 0;
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewStateReportingTask(mockReportingTaskEntity);
 
@@ -321,7 +321,7 @@ describe('ReportingTasks', () => {
             const mockReportingTaskEntity = createMockReportingTaskEntity();
             mockReportingTaskEntity.status.runStatus = 'RUNNING';
             mockReportingTaskEntity.status.activeThreadCount = 1;
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewStateReportingTask(mockReportingTaskEntity);
 
@@ -340,7 +340,7 @@ describe('ReportingTasks', () => {
         it('should dispatch startReportingTask action when startReportingTask is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.startReportingTask(mockReportingTaskEntity);
 
@@ -356,7 +356,7 @@ describe('ReportingTasks', () => {
         it('should dispatch stopReportingTask action when stopReportingTask is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.stopReportingTask(mockReportingTaskEntity);
 
@@ -372,7 +372,7 @@ describe('ReportingTasks', () => {
         it('should dispatch openChangeReportingTaskVersionDialog action when changeReportingTaskVersion is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.changeReportingTaskVersion(mockReportingTaskEntity);
 
@@ -392,7 +392,7 @@ describe('ReportingTasks', () => {
         it('should dispatch clearReportingTaskBulletins action when clearBulletinsReportingTask is called', async () => {
             const { component, store } = await setup();
             const mockReportingTaskEntity = createMockReportingTaskEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsReportingTask(mockReportingTaskEntity);
 

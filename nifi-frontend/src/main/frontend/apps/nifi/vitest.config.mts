@@ -15,27 +15,17 @@
  * limitations under the License.
  */
 
-module.exports = {
-    displayName: 'NiFi Registry',
-    clearMocks: true,
-    coverageDirectory: '../../coverage/apps/nifi-registry',
-    extensionsToTreatAsEsm: ['.ts'],
+import { defineConfig, mergeConfig } from 'vitest/config';
+import sharedConfig from '../../vitest.shared.mts';
 
-    preset: '../../jest.preset.js',
-
-    // The test environment that will be used for testing
-    testEnvironment: '@happy-dom/jest-environment',
-
-    setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
-
-    transform: {
-        '^.+\\.(ts|mjs|js|html)$': [
-            'jest-preset-angular',
-            {
-                tsconfig: '<rootDir>/tsconfig.spec.json',
-                stringifyContentPathRegex: '\\.(html|svg)$'
+export default mergeConfig(
+    sharedConfig,
+    defineConfig({
+        test: {
+            setupFiles: ['src/test-setup.ts'],
+            coverage: {
+                reportsDirectory: '../../coverage/apps/nifi'
             }
-        ]
-    },
-    transformIgnorePatterns: []
-};
+        }
+    })
+);

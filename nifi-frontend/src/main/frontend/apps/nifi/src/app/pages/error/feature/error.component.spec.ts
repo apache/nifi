@@ -19,10 +19,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Error } from './error.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/current-user/current-user.reducer';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 import { MockComponent } from 'ng-mocks';
 import { PageContent } from '../../../ui/common/page-content/page-content.component';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('Error', () => {
     let component: Error;
@@ -30,11 +33,12 @@ describe('Error', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [Error, MockComponent(PageContent)],
+            imports: [Error, MockComponent(PageContent), RouterTestingModule],
             providers: [
                 provideMockStore({
                     initialState: {
-                        [errorFeatureKey]: initialState
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState
                     }
                 })
             ]

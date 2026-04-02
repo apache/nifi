@@ -35,6 +35,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
+import { selectCurrentRoute } from '@nifi/shared';
 
 describe('Documentation', () => {
     let component: Documentation;
@@ -62,7 +63,17 @@ describe('Documentation', () => {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
                         [extensionTypesFeatureKey]: initialExtensionsTypesState
-                    }
+                    },
+                    selectors: [
+                        {
+                            selector: selectCurrentRoute,
+                            value: {
+                                params: {},
+                                routeConfig: { path: 'overview' },
+                                url: [{ path: 'overview' }]
+                            }
+                        }
+                    ]
                 })
             ]
         });

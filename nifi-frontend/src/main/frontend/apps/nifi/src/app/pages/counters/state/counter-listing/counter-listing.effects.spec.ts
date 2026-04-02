@@ -78,29 +78,29 @@ describe('CounterListingEffects', () => {
                 {
                     provide: CountersService,
                     useValue: {
-                        getCounters: jest.fn(),
-                        resetCounter: jest.fn(),
-                        resetAllCounters: jest.fn()
+                        getCounters: vi.fn(),
+                        resetCounter: vi.fn(),
+                        resetAllCounters: vi.fn()
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn()
+                        open: vi.fn()
                     }
                 },
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        handleLoadingError: jest.fn(),
-                        getErrorString: jest.fn()
+                        handleLoadingError: vi.fn(),
+                        getErrorString: vi.fn()
                     }
                 }
             ]
         }).compileComponents();
 
         const store = TestBed.inject(MockStore);
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const dispatchSpy = vi.spyOn(store, 'dispatch');
 
         const effects = TestBed.inject(CounterListingEffects);
         action$ = new ReplaySubject<Action>();
@@ -129,7 +129,7 @@ describe('CounterListingEffects', () => {
 
             action$.next(CounterListingActions.loadCounters());
 
-            jest.spyOn(countersService, 'getCounters').mockReturnValueOnce(of(mockCountersResponse) as never);
+            vi.spyOn(countersService, 'getCounters').mockReturnValueOnce(of(mockCountersResponse) as never);
 
             const result = await new Promise((resolve) => effects.loadCounters$.pipe(take(1)).subscribe(resolve));
 
@@ -150,7 +150,7 @@ describe('CounterListingEffects', () => {
 
             const error = new HttpErrorResponse({ status: 500 });
 
-            jest.spyOn(countersService, 'getCounters').mockImplementationOnce(() => {
+            vi.spyOn(countersService, 'getCounters').mockImplementationOnce(() => {
                 return throwError(() => error);
             });
 
@@ -178,7 +178,7 @@ describe('CounterListingEffects', () => {
 
             const error = new HttpErrorResponse({ status: 500 });
 
-            jest.spyOn(countersService, 'getCounters').mockImplementationOnce(() => {
+            vi.spyOn(countersService, 'getCounters').mockImplementationOnce(() => {
                 return throwError(() => error);
             });
 
@@ -207,7 +207,7 @@ describe('CounterListingEffects', () => {
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.counterListingError$.pipe(take(1)).subscribe(resolve)
@@ -229,7 +229,7 @@ describe('CounterListingEffects', () => {
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.counterListingError$.pipe(take(1)).subscribe(resolve)
@@ -258,7 +258,7 @@ describe('CounterListingEffects', () => {
                 })
             );
 
-            jest.spyOn(dialog, 'open').mockReturnValueOnce(dialogRef as any);
+            vi.spyOn(dialog, 'open').mockReturnValueOnce(dialogRef as any);
 
             await new Promise((resolve) => effects.promptResetAllCounters$.pipe(take(1)).subscribe(resolve));
 
@@ -273,7 +273,7 @@ describe('CounterListingEffects', () => {
 
             action$.next(CounterListingActions.resetAllCounters());
 
-            jest.spyOn(countersService, 'resetAllCounters').mockReturnValueOnce(of(mockCountersResponse) as never);
+            vi.spyOn(countersService, 'resetAllCounters').mockReturnValueOnce(of(mockCountersResponse) as never);
 
             const result = await new Promise((resolve) => effects.resetAllCounters$.pipe(take(1)).subscribe(resolve));
 
@@ -294,7 +294,7 @@ describe('CounterListingEffects', () => {
 
             const error = new HttpErrorResponse({ status: 500 });
 
-            jest.spyOn(countersService, 'resetAllCounters').mockImplementationOnce(() => {
+            vi.spyOn(countersService, 'resetAllCounters').mockImplementationOnce(() => {
                 return throwError(() => error);
             });
 
@@ -313,7 +313,7 @@ describe('CounterListingEffects', () => {
 
             action$.next(CounterListingActions.resetCounter({ request }));
 
-            jest.spyOn(countersService, 'resetCounter').mockReturnValueOnce(of(response) as never);
+            vi.spyOn(countersService, 'resetCounter').mockReturnValueOnce(of(response) as never);
 
             const result = await new Promise((resolve) => effects.resetCounter$.pipe(take(1)).subscribe(resolve));
 
@@ -328,7 +328,7 @@ describe('CounterListingEffects', () => {
 
             action$.next(CounterListingActions.resetCounter({ request }));
 
-            jest.spyOn(countersService, 'resetCounter').mockImplementationOnce(() => {
+            vi.spyOn(countersService, 'resetCounter').mockImplementationOnce(() => {
                 return throwError(() => error);
             });
 

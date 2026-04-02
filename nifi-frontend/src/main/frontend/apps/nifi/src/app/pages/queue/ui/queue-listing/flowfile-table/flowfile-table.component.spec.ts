@@ -22,6 +22,12 @@ import { MatTableModule } from '@angular/material/table';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as errorInitialState } from '../../../../../state/error/error.reducer';
+import { clusterSummaryFeatureKey } from '../../../../../state/cluster-summary';
+import { initialState as clusterSummaryInitialState } from '../../../../../state/cluster-summary/cluster-summary.reducer';
 
 describe('FlowFileTable', () => {
     let component: FlowFileTable;
@@ -29,7 +35,21 @@ describe('FlowFileTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [FlowFileTable, MockComponent(ContextErrorBanner), MatTableModule, NoopAnimationsModule]
+            imports: [
+                FlowFileTable,
+                MockComponent(ContextErrorBanner),
+                MatTableModule,
+                NoopAnimationsModule,
+                RouterTestingModule
+            ],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: errorInitialState,
+                        [clusterSummaryFeatureKey]: clusterSummaryInitialState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(FlowFileTable);
         component = fixture.componentInstance;

@@ -53,11 +53,11 @@ describe('Prioritizers', () => {
     }
 
     const mockNiFiCommon = {
-        getComponentTypeLabel: jest.fn((type: string) => {
+        getComponentTypeLabel: vi.fn((type: string) => {
             const parts = type.split('.');
             return parts[parts.length - 1];
         }),
-        isBlank: jest.fn((value: string) => !value || value.trim() === '')
+        isBlank: vi.fn((value: string) => !value || value.trim() === '')
     };
 
     // Setup function for component configuration
@@ -77,8 +77,8 @@ describe('Prioritizers', () => {
         const component = fixture.componentInstance;
 
         // Set up mock callbacks
-        component.onChange = jest.fn();
-        component.onTouched = jest.fn();
+        component.onChange = vi.fn();
+        component.onTouched = vi.fn();
 
         // Initialize with empty value first
         component.writeValue(options.selectedPrioritizers || []);
@@ -100,7 +100,7 @@ describe('Prioritizers', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -154,14 +154,14 @@ describe('Prioritizers', () => {
     describe('ControlValueAccessor implementation', () => {
         it('should register onChange callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnChange(callback);
             expect(component.onChange).toBe(callback);
         });
 
         it('should register onTouched callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnTouched(callback);
             expect(component.onTouched).toBe(callback);
         });
@@ -183,7 +183,7 @@ describe('Prioritizers', () => {
             const allPrioritizers = createAllPrioritizers();
             const { component } = await setup({ allPrioritizers });
 
-            const onChangeSpy = jest.fn();
+            const onChangeSpy = vi.fn();
             component.registerOnChange(onChangeSpy);
 
             // Set up selected prioritizers
@@ -202,7 +202,7 @@ describe('Prioritizers', () => {
             const selectedTypes = ['org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer'];
             const { component } = await setup({ allPrioritizers, selectedPrioritizers: selectedTypes });
 
-            const onChangeSpy = jest.fn();
+            const onChangeSpy = vi.fn();
             component.registerOnChange(onChangeSpy);
 
             component.removeSelected(component.selectedPrioritizers[0], 0);
@@ -217,8 +217,8 @@ describe('Prioritizers', () => {
             const selectedTypes = ['org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer'];
             const { component } = await setup({ allPrioritizers, selectedPrioritizers: selectedTypes });
 
-            const onChangeSpy = jest.fn();
-            const onTouchedSpy = jest.fn();
+            const onChangeSpy = vi.fn();
+            const onTouchedSpy = vi.fn();
             component.registerOnChange(onChangeSpy);
             component.registerOnTouched(onTouchedSpy);
 

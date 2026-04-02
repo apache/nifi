@@ -43,7 +43,7 @@ describe('DestinationFunnel Component', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -72,11 +72,11 @@ describe('DestinationFunnel Component', () => {
         });
 
         it('should update groupName when input changes', async () => {
-            const { component } = await setup({ groupName: 'Initial Group' });
+            const { component, fixture } = await setup({ groupName: 'Initial Group' });
 
             expect(component.groupName).toBe('Initial Group');
 
-            component.groupName = 'Updated Group';
+            fixture.componentRef.setInput('groupName', 'Updated Group');
             expect(component.groupName).toBe('Updated Group');
         });
 
@@ -123,14 +123,14 @@ describe('DestinationFunnel Component', () => {
         });
 
         it('should update groupName display when input changes', async () => {
-            const { fixture, component } = await setup({ groupName: 'Initial Group' });
+            const { fixture } = await setup({ groupName: 'Initial Group' });
 
             // Verify initial display
             let groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
             expect(groupNameDisplay.textContent.trim()).toBe('Initial Group');
 
             // Change the input
-            component.groupName = 'Updated Group';
+            fixture.componentRef.setInput('groupName', 'Updated Group');
             fixture.detectChanges();
 
             // Verify updated display

@@ -38,7 +38,7 @@ describe('SourceProcessor Component', () => {
     }
 
     const mockNiFiCommon = {
-        isEmpty: jest.fn((value: any) => !value || (Array.isArray(value) && value.length === 0))
+        isEmpty: vi.fn((value: any) => !value || (Array.isArray(value) && value.length === 0))
     };
 
     // Setup function for component configuration
@@ -66,8 +66,8 @@ describe('SourceProcessor Component', () => {
         }
 
         // Set up mock callbacks
-        component.onChange = jest.fn();
-        component.onTouched = jest.fn();
+        component.onChange = vi.fn();
+        component.onTouched = vi.fn();
 
         // Initial detection to trigger lifecycle hooks
         fixture.detectChanges();
@@ -76,7 +76,7 @@ describe('SourceProcessor Component', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -163,7 +163,7 @@ describe('SourceProcessor Component', () => {
             mockNiFiCommon.isEmpty.mockReturnValue(true);
             const { component } = await setup({ processor });
 
-            const onChangeSpy = jest.fn();
+            const onChangeSpy = vi.fn();
             component.registerOnChange(onChangeSpy);
 
             // This test checks that considerDefaultSelection calls handleChanged for auto-selected single relationships
@@ -176,14 +176,14 @@ describe('SourceProcessor Component', () => {
     describe('ControlValueAccessor implementation', () => {
         it('should register onChange callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnChange(callback);
             expect(component.onChange).toBe(callback);
         });
 
         it('should register onTouched callback', async () => {
             const { component } = await setup();
-            const callback = jest.fn();
+            const callback = vi.fn();
             component.registerOnTouched(callback);
             expect(component.onTouched).toBe(callback);
         });
@@ -260,9 +260,9 @@ describe('SourceProcessor Component', () => {
 
         it('should display group name when available', async () => {
             const processor = createMockProcessor('Test');
-            const { component, fixture } = await setup({ processor });
+            const { fixture } = await setup({ processor });
 
-            component.groupName = 'Test Group';
+            fixture.componentRef.setInput('groupName', 'Test Group');
             fixture.detectChanges();
 
             const groupDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');

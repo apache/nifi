@@ -56,7 +56,7 @@ describe('DestinationProcessor Component', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {

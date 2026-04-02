@@ -33,8 +33,14 @@ describe('Counters', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Counters, CounterListing],
-            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)],
+            declarations: [Counters],
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(CounterListing),
+                MockComponent(BannerText),
+                MockComponent(Navigation)
+            ],
             providers: [
                 provideMockStore({
                     initialState: {

@@ -48,7 +48,7 @@ describe('CopyDirective', () => {
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('should not create a copy button on mouse enter if the clipboard is not available', () => {
@@ -80,7 +80,7 @@ describe('CopyDirective', () => {
     it('should copy text to clipboard and change button appearance on click', async () => {
         // Mock the clipboard object with a writable property
         const mockClipboard = {
-            writeText: jest.fn().mockResolvedValue(undefined)
+            writeText: vi.fn().mockResolvedValue(undefined)
         };
 
         // Use Object.defineProperty to define a writable property
@@ -105,7 +105,7 @@ describe('CopyDirective', () => {
         directiveDebugEl.triggerEventHandler('mouseenter', null);
         fixture.detectChanges();
         const directiveInstance = directiveDebugEl.injector.get(CopyDirective);
-        const unsubscribeSpy = jest.spyOn(directiveInstance.subscription!, 'unsubscribe');
+        const unsubscribeSpy = vi.spyOn(directiveInstance.subscription!, 'unsubscribe');
         directiveDebugEl.triggerEventHandler('mouseleave', null);
         fixture.detectChanges();
         expect(unsubscribeSpy).toHaveBeenCalled();

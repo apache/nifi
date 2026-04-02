@@ -28,6 +28,9 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { HarnessLoader } from '@angular/cdk/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
 
 describe('EditFlowAnalysisRule', () => {
     let component: EditFlowAnalysisRule;
@@ -101,11 +104,16 @@ describe('EditFlowAnalysisRule', () => {
         TestBed.configureTestingModule({
             imports: [EditFlowAnalysisRule, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                }),
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 { provide: MatDialogRef, useValue: null }
@@ -122,12 +130,10 @@ describe('EditFlowAnalysisRule', () => {
     });
 
     describe('Settings Tab', () => {
-        it('should default to selecting enforcementPolicy value passed in as data', () => {
-            loader.getAllHarnesses(MatSelectHarness).then((selectHarnesses) => {
-                selectHarnesses[0].getValueText().then((option) => {
-                    expect(option).toBe('Enforce');
-                });
-            });
+        it('should default to selecting enforcementPolicy value passed in as data', async () => {
+            const selectHarnesses = await loader.getAllHarnesses(MatSelectHarness);
+            const option = await selectHarnesses[0].getValueText();
+            expect(option).toBe('Enforce');
         });
     });
 });

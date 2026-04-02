@@ -43,6 +43,9 @@ import { canvasFeatureKey } from '../../../state';
 import { MockComponent } from 'ng-mocks';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { Navigation } from '../../../../../ui/common/navigation/navigation.component';
+import { selectFlowAnalysisState } from '../../../state/flow-analysis/flow-analysis.selectors';
+import { selectFlowAnalysisOpen } from '../../../state/flow/flow.selectors';
+import { initialState as initialFlowAnalysisState } from '../../../state/flow-analysis/flow-analysis.reducer';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
@@ -80,15 +83,13 @@ describe('HeaderComponent', () => {
                 HeaderComponent,
                 MockComponent(NewCanvasItem),
                 HttpClientTestingModule,
-                MockComponent(FlowStatus),
                 MatMenuModule,
                 MatDividerModule,
                 RouterTestingModule,
                 CdkOverlayOrigin,
                 CdkConnectedOverlay,
                 FormsModule,
-                ReactiveFormsModule,
-                MockComponent(Navigation)
+                ReactiveFormsModule
             ],
             providers: [
                 provideMockStore({
@@ -122,10 +123,21 @@ describe('HeaderComponent', () => {
                         {
                             selector: selectLoginConfiguration,
                             value: fromLoginConfiguration.initialState.loginConfiguration
+                        },
+                        {
+                            selector: selectFlowAnalysisState,
+                            value: initialFlowAnalysisState
+                        },
+                        {
+                            selector: selectFlowAnalysisOpen,
+                            value: false
                         }
                     ]
                 })
             ]
+        }).overrideComponent(HeaderComponent, {
+            remove: { imports: [FlowStatus, Navigation, NewCanvasItem] },
+            add: { imports: [MockComponent(FlowStatus), MockComponent(Navigation), MockComponent(NewCanvasItem)] }
         });
         fixture = TestBed.createComponent(HeaderComponent);
         component = fixture.componentInstance;

@@ -89,7 +89,7 @@ describe('ImportNewDropletVersionDialogComponent', () => {
     });
 
     it('should import a new flow version to the correct bucket', () => {
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const dispatchSpy = vi.spyOn(store, 'dispatch');
         const file = new File([''], 'testFile');
         component.fileToUpload = file;
         component.name = 'testName';

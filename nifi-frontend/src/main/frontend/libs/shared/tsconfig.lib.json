@@ -8,6 +8,6 @@
         "types": [],
         "moduleResolution": "bundler"
     },
-    "exclude": ["src/**/*.spec.ts", "src/test-setup.ts", "jest.config.ts", "src/**/*.test.ts"],
+    "exclude": ["src/**/*.spec.ts", "src/test-setup.ts", "vitest.config.mts", "src/**/*.test.ts"],
     "include": ["src/**/*.ts"]
 }

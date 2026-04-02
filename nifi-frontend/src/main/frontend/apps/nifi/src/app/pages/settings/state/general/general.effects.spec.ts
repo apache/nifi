@@ -44,15 +44,15 @@ describe('GeneralEffects', () => {
                 {
                     provide: ControllerService,
                     useValue: {
-                        getControllerConfig: jest.fn(),
-                        updateControllerConfig: jest.fn()
+                        getControllerConfig: vi.fn(),
+                        updateControllerConfig: vi.fn()
                     }
                 },
                 {
                     provide: ErrorHelper,
                     useValue: {
-                        fullScreenError: jest.fn(),
-                        getErrorString: jest.fn()
+                        fullScreenError: vi.fn(),
+                        getErrorString: vi.fn()
                     }
                 }
             ]
@@ -85,7 +85,7 @@ describe('GeneralEffects', () => {
                 revision: { version: 1, clientId: 'c1' },
                 component: { maxTimerDrivenThreadCount: 10 }
             } as any;
-            jest.spyOn(controllerService, 'getControllerConfig').mockReturnValueOnce(of(controllerEntity) as never);
+            vi.spyOn(controllerService, 'getControllerConfig').mockReturnValueOnce(of(controllerEntity) as never);
 
             const result = await new Promise((resolve) =>
                 effects.loadControllerConfig$.pipe(take(1)).subscribe(resolve)
@@ -108,8 +108,8 @@ describe('GeneralEffects', () => {
             const error = new HttpErrorResponse({ status: 500 });
             const errorAction = GeneralActions.controllerConfigApiError({ error: 'e' });
 
-            jest.spyOn(controllerService, 'getControllerConfig').mockImplementationOnce(() => throwError(() => error));
-            jest.spyOn(errorHelper, 'fullScreenError').mockReturnValueOnce(errorAction);
+            vi.spyOn(controllerService, 'getControllerConfig').mockImplementationOnce(() => throwError(() => error));
+            vi.spyOn(errorHelper, 'fullScreenError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadControllerConfig$.pipe(take(1)).subscribe(resolve)

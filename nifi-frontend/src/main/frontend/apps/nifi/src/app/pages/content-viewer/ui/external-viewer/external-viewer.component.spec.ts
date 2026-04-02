@@ -22,6 +22,10 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { contentViewersFeatureKey } from '../../state';
 import { contentFeatureKey } from '../../state/content';
 import { initialState } from '../../state/content/content.reducer';
+import { externalViewerFeatureKey } from '../../state/external-viewer';
+import { initialState as initialExternalViewerState } from '../../state/external-viewer/external-viewer.reducer';
+import { viewerOptionsFeatureKey } from '../../state/viewer-options';
+import { initialState as initialViewerOptionsState } from '../../state/viewer-options/viewer-options.reducer';
 
 describe('ImageViewer', () => {
     let component: ExternalViewer;
@@ -34,7 +38,9 @@ describe('ImageViewer', () => {
                 provideMockStore({
                     initialState: {
                         [contentViewersFeatureKey]: {
-                            [contentFeatureKey]: initialState
+                            [contentFeatureKey]: initialState,
+                            [externalViewerFeatureKey]: initialExternalViewerState,
+                            [viewerOptionsFeatureKey]: initialViewerOptionsState
                         }
                     }
                 })

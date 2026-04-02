@@ -79,7 +79,7 @@ describe('LabelManager', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 }
             ]

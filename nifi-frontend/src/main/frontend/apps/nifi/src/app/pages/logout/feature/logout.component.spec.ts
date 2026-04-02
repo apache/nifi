@@ -21,6 +21,12 @@ import { Logout } from './logout.component';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MockComponent } from 'ng-mocks';
 import { PageContent } from '../../../ui/common/page-content/page-content.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 
 describe('Login', () => {
     let component: Logout;
@@ -28,7 +34,15 @@ describe('Login', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [Logout, MatProgressSpinner, MockComponent(PageContent)]
+            imports: [Logout, MatProgressSpinner, MockComponent(PageContent), RouterTestingModule],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(Logout);
         component = fixture.componentInstance;

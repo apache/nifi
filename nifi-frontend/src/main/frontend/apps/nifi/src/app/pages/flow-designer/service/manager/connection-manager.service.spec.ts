@@ -79,7 +79,7 @@ describe('ConnectionManager', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 }
             ]

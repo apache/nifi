@@ -40,45 +40,45 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 describe('FlowAnalysisRulesEffects', () => {
     let actions$: ReplaySubject<Action>;
     let effects: FlowAnalysisRulesEffects;
-    let mockFlowAnalysisRuleService: jest.Mocked<FlowAnalysisRuleService>;
-    let mockErrorHelper: jest.Mocked<ErrorHelper>;
-    let mockDialog: jest.Mocked<MatDialog>;
+    let mockFlowAnalysisRuleService: vi.Mocked<FlowAnalysisRuleService>;
+    let mockErrorHelper: vi.Mocked<ErrorHelper>;
+    let mockDialog: vi.Mocked<MatDialog>;
 
     beforeEach(() => {
         const flowAnalysisRuleServiceSpy = {
-            getFlowAnalysisRule: jest.fn(),
-            createFlowAnalysisRule: jest.fn(),
-            updateFlowAnalysisRule: jest.fn(),
-            deleteFlowAnalysisRule: jest.fn(),
-            setEnable: jest.fn(),
-            clearBulletins: jest.fn()
-        } as unknown as jest.Mocked<FlowAnalysisRuleService>;
+            getFlowAnalysisRule: vi.fn(),
+            createFlowAnalysisRule: vi.fn(),
+            updateFlowAnalysisRule: vi.fn(),
+            deleteFlowAnalysisRule: vi.fn(),
+            setEnable: vi.fn(),
+            clearBulletins: vi.fn()
+        } as unknown as vi.Mocked<FlowAnalysisRuleService>;
 
         const errorHelperSpy = {
-            handleLoadingError: jest.fn().mockReturnValue({ type: '[Error] Loading Error' }),
-            getErrorString: jest.fn().mockReturnValue('Test error message'),
-            showErrorInContext: jest.fn(),
-            fullScreenError: jest.fn().mockReturnValue({ type: 'FULL_SCREEN_ERROR' })
-        } as unknown as jest.Mocked<ErrorHelper>;
+            handleLoadingError: vi.fn().mockReturnValue({ type: '[Error] Loading Error' }),
+            getErrorString: vi.fn().mockReturnValue('Test error message'),
+            showErrorInContext: vi.fn(),
+            fullScreenError: vi.fn().mockReturnValue({ type: 'FULL_SCREEN_ERROR' })
+        } as unknown as vi.Mocked<ErrorHelper>;
 
         const dialogSpy = {
-            open: jest.fn(),
-            closeAll: jest.fn()
-        } as unknown as jest.Mocked<MatDialog>;
+            open: vi.fn(),
+            closeAll: vi.fn()
+        } as unknown as vi.Mocked<MatDialog>;
 
         const routerSpy = {
-            navigate: jest.fn()
-        } as unknown as jest.Mocked<Router>;
+            navigate: vi.fn()
+        } as unknown as vi.Mocked<Router>;
 
         const propertyTableHelperServiceSpy = {
-            getComponentHistory: jest.fn(),
-            createNewProperty: jest.fn(),
-            createNewService: jest.fn()
-        } as unknown as jest.Mocked<PropertyTableHelperService>;
+            getComponentHistory: vi.fn(),
+            createNewProperty: vi.fn(),
+            createNewService: vi.fn()
+        } as unknown as vi.Mocked<PropertyTableHelperService>;
 
         const extensionTypesServiceSpy = {
-            getFlowAnalysisRuleVersionsForType: jest.fn()
-        } as unknown as jest.Mocked<ExtensionTypesService>;
+            getFlowAnalysisRuleVersionsForType: vi.fn()
+        } as unknown as vi.Mocked<ExtensionTypesService>;
 
         TestBed.configureTestingModule({
             providers: [
@@ -102,9 +102,9 @@ describe('FlowAnalysisRulesEffects', () => {
         });
 
         effects = TestBed.inject(FlowAnalysisRulesEffects);
-        mockFlowAnalysisRuleService = TestBed.inject(FlowAnalysisRuleService) as jest.Mocked<FlowAnalysisRuleService>;
-        mockErrorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
-        mockDialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+        mockFlowAnalysisRuleService = TestBed.inject(FlowAnalysisRuleService) as vi.Mocked<FlowAnalysisRuleService>;
+        mockErrorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
+        mockDialog = TestBed.inject(MatDialog) as vi.Mocked<MatDialog>;
         actions$ = new ReplaySubject(1);
     });
 

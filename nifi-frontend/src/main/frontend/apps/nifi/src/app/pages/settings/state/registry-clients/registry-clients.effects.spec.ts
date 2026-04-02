@@ -40,34 +40,34 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 describe('RegistryClientsEffects', () => {
     let actions$: ReplaySubject<Action>;
     let effects: RegistryClientsEffects;
-    let mockRegistryClientService: jest.Mocked<RegistryClientService>;
-    let mockErrorHelper: jest.Mocked<ErrorHelper>;
-    let mockDialog: jest.Mocked<MatDialog>;
+    let mockRegistryClientService: vi.Mocked<RegistryClientService>;
+    let mockErrorHelper: vi.Mocked<ErrorHelper>;
+    let mockDialog: vi.Mocked<MatDialog>;
 
     beforeEach(() => {
         const registryClientServiceSpy = {
-            getRegistryClients: jest.fn(),
-            createRegistryClient: jest.fn(),
-            updateRegistryClient: jest.fn(),
-            deleteRegistryClient: jest.fn(),
-            clearBulletins: jest.fn()
-        } as unknown as jest.Mocked<RegistryClientService>;
+            getRegistryClients: vi.fn(),
+            createRegistryClient: vi.fn(),
+            updateRegistryClient: vi.fn(),
+            deleteRegistryClient: vi.fn(),
+            clearBulletins: vi.fn()
+        } as unknown as vi.Mocked<RegistryClientService>;
 
         const errorHelperSpy = {
-            handleLoadingError: jest.fn().mockReturnValue({ type: '[Error] Loading Error' }),
-            getErrorString: jest.fn().mockReturnValue('Test error message'),
-            showErrorInContext: jest.fn(),
-            fullScreenError: jest.fn().mockReturnValue({ type: 'FULL_SCREEN_ERROR' })
-        } as unknown as jest.Mocked<ErrorHelper>;
+            handleLoadingError: vi.fn().mockReturnValue({ type: '[Error] Loading Error' }),
+            getErrorString: vi.fn().mockReturnValue('Test error message'),
+            showErrorInContext: vi.fn(),
+            fullScreenError: vi.fn().mockReturnValue({ type: 'FULL_SCREEN_ERROR' })
+        } as unknown as vi.Mocked<ErrorHelper>;
 
         const dialogSpy = {
-            open: jest.fn(),
-            closeAll: jest.fn()
-        } as unknown as jest.Mocked<MatDialog>;
+            open: vi.fn(),
+            closeAll: vi.fn()
+        } as unknown as vi.Mocked<MatDialog>;
 
         const routerSpy = {
-            navigate: jest.fn()
-        } as unknown as jest.Mocked<Router>;
+            navigate: vi.fn()
+        } as unknown as vi.Mocked<Router>;
 
         TestBed.configureTestingModule({
             providers: [
@@ -90,9 +90,9 @@ describe('RegistryClientsEffects', () => {
         });
 
         effects = TestBed.inject(RegistryClientsEffects);
-        mockRegistryClientService = TestBed.inject(RegistryClientService) as jest.Mocked<RegistryClientService>;
-        mockErrorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
-        mockDialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+        mockRegistryClientService = TestBed.inject(RegistryClientService) as vi.Mocked<RegistryClientService>;
+        mockErrorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
+        mockDialog = TestBed.inject(MatDialog) as vi.Mocked<MatDialog>;
         actions$ = new ReplaySubject(1);
     });
 

@@ -15,16 +15,21 @@
  * limitations under the License.
  */
 
-const nxPreset = require('@nx/jest/preset').default;
+import '@angular/compiler';
+import '@analogjs/vitest-angular/setup-zone';
 
-module.exports = {
-    ...nxPreset,
-    // Include several code coverage reporting formats by default
-    coverageReporters: ['html', 'lcov', 'json', 'cobertura'],
+import { TestBed } from '@angular/core/testing';
+import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
 
-    // Workaround for import issues with jest and d3. See https://github.com/jestjs/jest/issues/14911
-    moduleNameMapper: {
-        '^d3$': '<rootDir>/../../node_modules/d3/dist/d3.js',
-        '^d3-(.+)$': '<rootDir>/../../node_modules/d3-$1/dist/d3-$1.js'
-    }
-};
+try {
+    TestBed.initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+        errorOnUnknownElements: true,
+        errorOnUnknownProperties: true
+    });
+} catch (_e) {
+    // Already initialized
+}
+
+afterEach(() => {
+    TestBed.resetTestingModule();
+});

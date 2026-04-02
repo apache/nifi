@@ -84,23 +84,23 @@ describe('ParameterContextListingEffects', () => {
                 {
                     provide: ParameterContextService,
                     useValue: {
-                        deleteParameterContextUpdate: jest.fn(),
-                        pollParameterContextUpdate: jest.fn(),
-                        getParameterContexts: jest.fn()
+                        deleteParameterContextUpdate: vi.fn(),
+                        pollParameterContextUpdate: vi.fn(),
+                        getParameterContexts: vi.fn()
                     }
                 },
-                { provide: MatDialog, useValue: { open: jest.fn() } },
-                { provide: Router, useValue: { navigate: jest.fn() } },
+                { provide: MatDialog, useValue: { open: vi.fn() } },
+                { provide: Router, useValue: { navigate: vi.fn() } },
                 {
                     provide: ErrorHelper,
-                    useValue: { getErrorString: jest.fn(), handleLoadingError: jest.fn(), fullScreenError: jest.fn() }
+                    useValue: { getErrorString: vi.fn(), handleLoadingError: vi.fn(), fullScreenError: vi.fn() }
                 },
-                { provide: Storage, useValue: { setItem: jest.fn() } }
+                { provide: Storage, useValue: { setItem: vi.fn() } }
             ]
         }).compileComponents();
 
         const effects = TestBed.inject(ParameterContextListingEffects);
-        const parameterContextService = TestBed.inject(ParameterContextService) as jest.Mocked<ParameterContextService>;
+        const parameterContextService = TestBed.inject(ParameterContextService) as vi.Mocked<ParameterContextService>;
         action$ = new ReplaySubject<Action>();
 
         const errorHelper = TestBed.inject(ErrorHelper);
@@ -108,7 +108,7 @@ describe('ParameterContextListingEffects', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     afterEach(() => {
@@ -128,7 +128,7 @@ describe('ParameterContextListingEffects', () => {
 
             action$.next(ParameterContextListingActions.loadParameterContexts());
 
-            (parameterContextService.getParameterContexts as jest.Mock).mockReturnValueOnce(
+            (parameterContextService.getParameterContexts as vi.Mock).mockReturnValueOnce(
                 of({ parameterContexts: [], currentTime: 't' })
             );
 
@@ -149,7 +149,7 @@ describe('ParameterContextListingEffects', () => {
             action$.next(ParameterContextListingActions.loadParameterContexts());
 
             const error = new HttpErrorResponse({ status: 500 });
-            (parameterContextService.getParameterContexts as jest.Mock).mockImplementationOnce(() =>
+            (parameterContextService.getParameterContexts as vi.Mock).mockImplementationOnce(() =>
                 throwError(() => error)
             );
 
@@ -173,7 +173,7 @@ describe('ParameterContextListingEffects', () => {
             action$.next(ParameterContextListingActions.loadParameterContexts());
 
             const error = new HttpErrorResponse({ status: 500 });
-            (parameterContextService.getParameterContexts as jest.Mock).mockImplementationOnce(() =>
+            (parameterContextService.getParameterContexts as vi.Mock).mockImplementationOnce(() =>
                 throwError(() => error)
             );
 
@@ -206,7 +206,7 @@ describe('ParameterContextListingEffects', () => {
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadParameterContextsError$.pipe(take(1)).subscribe(resolve)
@@ -230,7 +230,7 @@ describe('ParameterContextListingEffects', () => {
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
             const result = await new Promise((resolve) =>
                 effects.loadParameterContextsError$.pipe(take(1)).subscribe(resolve)

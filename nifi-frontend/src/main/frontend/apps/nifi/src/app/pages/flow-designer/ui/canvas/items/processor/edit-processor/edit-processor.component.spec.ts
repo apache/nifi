@@ -16,6 +16,9 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
 
 import { EditProcessor } from './edit-processor.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
@@ -730,20 +733,26 @@ describe('EditProcessor', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 {
                     provide: CanvasUtils,
                     useValue: {
-                        runnableSupportsModification: jest.fn()
+                        runnableSupportsModification: vi.fn()
                     }
                 },
-                { provide: MatDialogRef, useValue: null }
+                { provide: MatDialogRef, useValue: null },
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                })
             ]
         });
         fixture = TestBed.createComponent(EditProcessor);
         component = fixture.componentInstance;
+        fixture.detectChanges();
         fixture.detectChanges();
     });
 
@@ -778,20 +787,26 @@ describe('EditProcessor with TriggerSerially', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: vi.fn()
                     }
                 },
                 {
                     provide: CanvasUtils,
                     useValue: {
-                        runnableSupportsModification: jest.fn()
+                        runnableSupportsModification: vi.fn()
                     }
                 },
-                { provide: MatDialogRef, useValue: null }
+                { provide: MatDialogRef, useValue: null },
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                })
             ]
         });
         fixture = TestBed.createComponent(EditProcessor);
         component = fixture.componentInstance;
+        fixture.detectChanges();
         fixture.detectChanges();
     });
 
@@ -804,8 +819,10 @@ describe('EditProcessor with TriggerSerially', () => {
         expect(component.concurrentTasksTooltip()).toBe('This processor does not support parallel processing.');
     });
 
-    it('should keep concurrent tasks disabled after processRunStateUpdates', () => {
-        component.processorUpdates = serialData.entity;
+    it('should keep concurrent tasks disabled after processRunStateUpdates', async () => {
+        fixture.componentRef.setInput('processorUpdates', serialData.entity);
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         const concurrentTasks = component.editProcessorForm.get('concurrentTasks');

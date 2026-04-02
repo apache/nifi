@@ -40,26 +40,26 @@ import { settingsFeatureKey } from '../index';
 describe('ManagementControllerServicesEffects', () => {
     let actions$: ReplaySubject<Action>;
     let effects: ManagementControllerServicesEffects;
-    let mockManagementControllerServiceService: jest.Mocked<ManagementControllerServiceService>;
-    let mockErrorHelper: jest.Mocked<ErrorHelper>;
+    let mockManagementControllerServiceService: vi.Mocked<ManagementControllerServiceService>;
+    let mockErrorHelper: vi.Mocked<ErrorHelper>;
 
     beforeEach(() => {
         const managementControllerServiceServiceSpy = {
-            getControllerServices: jest.fn(),
-            createControllerService: jest.fn(),
-            getControllerService: jest.fn(),
-            getPropertyDescriptor: jest.fn(),
-            updateControllerService: jest.fn(),
-            deleteControllerService: jest.fn(),
-            clearBulletins: jest.fn()
-        } as unknown as jest.Mocked<ManagementControllerServiceService>;
+            getControllerServices: vi.fn(),
+            createControllerService: vi.fn(),
+            getControllerService: vi.fn(),
+            getPropertyDescriptor: vi.fn(),
+            updateControllerService: vi.fn(),
+            deleteControllerService: vi.fn(),
+            clearBulletins: vi.fn()
+        } as unknown as vi.Mocked<ManagementControllerServiceService>;
 
         const errorHelperSpy = {
-            handleLoadingError: jest.fn().mockReturnValue({ type: '[Error] Loading Error' }),
-            getErrorString: jest.fn(),
-            showErrorInContext: jest.fn(),
-            fullScreenError: jest.fn()
-        } as unknown as jest.Mocked<ErrorHelper>;
+            handleLoadingError: vi.fn().mockReturnValue({ type: '[Error] Loading Error' }),
+            getErrorString: vi.fn(),
+            showErrorInContext: vi.fn(),
+            fullScreenError: vi.fn()
+        } as unknown as vi.Mocked<ErrorHelper>;
 
         TestBed.configureTestingModule({
             providers: [
@@ -79,7 +79,7 @@ describe('ManagementControllerServicesEffects', () => {
                 {
                     provide: Client,
                     useValue: {
-                        getClientId: jest.fn().mockReturnValue('test-client-id')
+                        getClientId: vi.fn().mockReturnValue('test-client-id')
                     }
                 },
                 {
@@ -89,28 +89,28 @@ describe('ManagementControllerServicesEffects', () => {
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn(),
-                        closeAll: jest.fn()
+                        open: vi.fn(),
+                        closeAll: vi.fn()
                     }
                 },
                 {
                     provide: PropertyTableHelperService,
                     useValue: {
-                        getComponentHistory: jest.fn(),
-                        createNewProperty: jest.fn(),
-                        createNewService: jest.fn()
+                        getComponentHistory: vi.fn(),
+                        createNewProperty: vi.fn(),
+                        createNewService: vi.fn()
                     }
                 },
                 {
                     provide: ExtensionTypesService,
                     useValue: {
-                        getControllerServiceVersionsForType: jest.fn()
+                        getControllerServiceVersionsForType: vi.fn()
                     }
                 }
             ]
@@ -119,8 +119,8 @@ describe('ManagementControllerServicesEffects', () => {
         effects = TestBed.inject(ManagementControllerServicesEffects);
         mockManagementControllerServiceService = TestBed.inject(
             ManagementControllerServiceService
-        ) as jest.Mocked<ManagementControllerServiceService>;
-        mockErrorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        ) as vi.Mocked<ManagementControllerServiceService>;
+        mockErrorHelper = TestBed.inject(ErrorHelper) as vi.Mocked<ErrorHelper>;
         actions$ = new ReplaySubject(1);
     });
 

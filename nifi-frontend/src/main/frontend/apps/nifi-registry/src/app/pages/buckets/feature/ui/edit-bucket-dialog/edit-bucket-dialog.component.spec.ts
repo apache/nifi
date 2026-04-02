@@ -72,7 +72,7 @@ describe('EditBucketDialogComponent', () => {
         fixture = TestBed.createComponent(EditBucketDialogComponent);
         component = fixture.componentInstance;
         store = TestBed.inject(Store);
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
 
         fixture.detectChanges();
     });

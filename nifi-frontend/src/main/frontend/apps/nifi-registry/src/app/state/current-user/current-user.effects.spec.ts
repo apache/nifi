@@ -32,29 +32,29 @@ import * as ErrorActions from '../error/error.actions';
 describe('CurrentUserEffects', () => {
     let actions$: Observable<unknown>;
     let effects: CurrentUserEffects;
-    let authService: jest.Mocked<RegistryAuthService>;
-    let errorHelper: jest.Mocked<ErrorHelper>;
+    let authService: vi.Mocked<RegistryAuthService>;
+    let errorHelper: vi.Mocked<ErrorHelper>;
     let store: Store<any>;
 
     beforeEach(() => {
         const registryApiServiceMock = {
-            getCurrentUser: jest.fn()
+            getCurrentUser: vi.fn()
         } as unknown as RegistryApiService;
 
         authService = {
-            ticketExchange: jest.fn(),
-            clearToken: jest.fn(),
-            getStoredToken: jest.fn(),
-            logout: jest.fn()
-        } as unknown as jest.Mocked<RegistryAuthService>;
+            ticketExchange: vi.fn(),
+            clearToken: vi.fn(),
+            getStoredToken: vi.fn(),
+            logout: vi.fn()
+        } as unknown as vi.Mocked<RegistryAuthService>;
 
         errorHelper = {
-            getErrorString: jest.fn().mockReturnValue('error')
-        } as unknown as jest.Mocked<ErrorHelper>;
+            getErrorString: vi.fn().mockReturnValue('error')
+        } as unknown as vi.Mocked<ErrorHelper>;
 
         store = {
-            dispatch: jest.fn(),
-            select: jest.fn().mockReturnValue(of(null))
+            dispatch: vi.fn(),
+            select: vi.fn().mockReturnValue(of(null))
         } as unknown as Store<any>;
 
         TestBed.configureTestingModule({
@@ -72,29 +72,31 @@ describe('CurrentUserEffects', () => {
     });
 
     describe('logout$', () => {
-        it('should emit navigateToLogout when logout succeeds', (done) => {
-            authService.logout.mockReturnValue(of(undefined));
-            actions$ = of(CurrentUserActions.logout());
-            effects.logout$.subscribe((result) => {
-                expect(result).toEqual(CurrentUserActions.navigateToLogout());
-                expect(authService.logout).toHaveBeenCalled();
-                done();
-            });
-        });
+        it('should emit navigateToLogout when logout succeeds', () =>
+            new Promise<void>((resolve) => {
+                authService.logout.mockReturnValue(of(undefined));
+                actions$ = of(CurrentUserActions.logout());
+                effects.logout$.subscribe((result) => {
+                    expect(result).toEqual(CurrentUserActions.navigateToLogout());
+                    expect(authService.logout).toHaveBeenCalled();
+                    resolve();
+                });
+            }));
 
-        it('should emit logoutFailure when logout fails', (done) => {
-            const error = new HttpErrorResponse({ status: 500, statusText: 'Server Error' });
-            authService.logout.mockReturnValue(throwError(() => error));
-            const subject = new ReplaySubject(1);
-            subject.next(CurrentUserActions.logout());
-            actions$ = subject.asObservable();
+        it('should emit logoutFailure when logout fails', () =>
+            new Promise<void>((resolve) => {
+                const error = new HttpErrorResponse({ status: 500, statusText: 'Server Error' });
+                authService.logout.mockReturnValue(throwError(() => error));
+                const subject = new ReplaySubject(1);
+                subject.next(CurrentUserActions.logout());
+                actions$ = subject.asObservable();
 
-            effects.logout$.subscribe((result) => {
-                expect(result).toEqual(CurrentUserActions.logoutFailure({ error }));
-                expect(authService.logout).toHaveBeenCalled();
-                done();
-            });
-        });
+                effects.logout$.subscribe((result) => {
+                    expect(result).toEqual(CurrentUserActions.logoutFailure({ error }));
+                    expect(authService.logout).toHaveBeenCalled();
+                    resolve();
+                });
+            }));
     });
 
     describe('navigateToLogout$', () => {
@@ -117,29 +119,31 @@ describe('CurrentUserEffects', () => {
             });
         });
 
-        it('should clear token and redirect to backend logout endpoint', (done) => {
+        it('should clear token and redirect to backend logout endpoint', () =>
+            new Promise<void>((resolve) => {
+                const subject = new ReplaySubject(1);
+                subject.next(CurrentUserActions.navigateToLogout());
+                actions$ = subject.asObservable();
+
+                effects.navigateToLogout$.subscribe(() => {
+                    expect(authService.clearToken).toHaveBeenCalled();
+                    expect(window.location.href).toEqual('https://localhost/nifi-registry/logout');
+                    resolve();
+                });
+            }));
+    });
+
+    it('should emit snack bar and reset actions when logout fails', () =>
+        new Promise<void>((resolve) => {
+            const error = new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' });
             const subject = new ReplaySubject(1);
-            subject.next(CurrentUserActions.navigateToLogout());
+            subject.next(CurrentUserActions.logoutFailure({ error }));
             actions$ = subject.asObservable();
 
-            effects.navigateToLogout$.subscribe(() => {
-                expect(authService.clearToken).toHaveBeenCalled();
-                expect(window.location.href).toEqual('https://localhost/nifi-registry/logout');
-                done();
+            effects.logoutFailure$.pipe(take(2), toArray()).subscribe((actions) => {
+                expect(actions[0]).toEqual(ErrorActions.snackBarError({ error: 'error' }));
+                expect(actions[1]).toEqual(resetLoginFailure());
+                resolve();
             });
-        });
-    });
-
-    it('should emit snack bar and reset actions when logout fails', (done) => {
-        const error = new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' });
-        const subject = new ReplaySubject(1);
-        subject.next(CurrentUserActions.logoutFailure({ error }));
-        actions$ = subject.asObservable();
-
-        effects.logoutFailure$.pipe(take(2), toArray()).subscribe((actions) => {
-            expect(actions[0]).toEqual(ErrorActions.snackBarError({ error: 'error' }));
-            expect(actions[1]).toEqual(resetLoginFailure());
-            done();
-        });
-    });
+        }));
 });

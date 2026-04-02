@@ -78,7 +78,7 @@ describe('ExportDropletVersionDialogComponent', () => {
     });
 
     it('should export flow', () => {
-        const exportFlowSpy = jest.spyOn(store, 'dispatch');
+        const exportFlowSpy = vi.spyOn(store, 'dispatch');
         const exportBtn = debug.query(By.css('[data-test-id=export-btn]')).nativeElement;
         exportBtn.click();
         expect(exportFlowSpy).toHaveBeenCalledWith(

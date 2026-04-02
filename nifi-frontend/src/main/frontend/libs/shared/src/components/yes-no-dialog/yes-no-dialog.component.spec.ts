@@ -48,7 +48,7 @@ describe('YesNoDialog', () => {
     });
 
     it('should emit when yes clicked', () => {
-        jest.spyOn(component.yes, 'next');
+        vi.spyOn(component.yes, 'next');
         component.yesClicked();
         expect(component.yes.next).toHaveBeenCalled();
     });

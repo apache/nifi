@@ -23,11 +23,11 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 describe('EditPolicyDialogComponent', () => {
     let component: EditPolicyDialogComponent;
     let fixture: ComponentFixture<EditPolicyDialogComponent>;
-    let dialogRef: jest.Mocked<MatDialogRef<EditPolicyDialogComponent>>;
+    let dialogRef: vi.Mocked<MatDialogRef<EditPolicyDialogComponent>>;
 
     beforeEach(async () => {
         const mockDialogRef = {
-            close: jest.fn()
+            close: vi.fn()
         };
 
         await TestBed.configureTestingModule({
@@ -47,7 +47,7 @@ describe('EditPolicyDialogComponent', () => {
 
         fixture = TestBed.createComponent(EditPolicyDialogComponent);
         component = fixture.componentInstance;
-        dialogRef = TestBed.inject(MatDialogRef) as jest.Mocked<MatDialogRef<EditPolicyDialogComponent>>;
+        dialogRef = TestBed.inject(MatDialogRef) as vi.Mocked<MatDialogRef<EditPolicyDialogComponent>>;
         fixture.detectChanges();
     });
 

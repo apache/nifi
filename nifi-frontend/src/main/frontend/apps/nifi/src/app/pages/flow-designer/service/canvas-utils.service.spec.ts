@@ -18,7 +18,7 @@
 import { TestBed } from '@angular/core/testing';
 
 import { CanvasUtils } from './canvas-utils.service';
-import { CanvasState } from '../state';
+import { canvasFeatureKey, CanvasState } from '../state';
 import { flowFeatureKey } from '../state/flow';
 import * as fromFlow from '../state/flow/flow.reducer';
 import { transformFeatureKey } from '../state/transform';
@@ -44,7 +44,7 @@ describe('CanvasUtils', () => {
     let service: CanvasUtils;
 
     beforeEach(() => {
-        const initialState: CanvasState = {
+        const canvasInitialState: CanvasState = {
             [flowFeatureKey]: fromFlow.initialState,
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
@@ -56,11 +56,13 @@ describe('CanvasUtils', () => {
         TestBed.configureTestingModule({
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [canvasFeatureKey]: canvasInitialState
+                    },
                     selectors: [
                         {
                             selector: selectFlowState,
-                            value: initialState[flowFeatureKey]
+                            value: canvasInitialState[flowFeatureKey]
                         },
                         {
                             selector: selectCurrentUser,
@@ -1000,7 +1002,7 @@ describe('CanvasUtils', () => {
             createDomComponent('proc-a', { x: 0, y: 0 }, { width: 200, height: 100 });
             createDomComponent('proc-b', { x: 400, y: 0 }, { width: 200, height: 100 });
 
-            const spy = jest.spyOn(service, 'calculateBendPointsForCollisionAvoidance');
+            const spy = vi.spyOn(service, 'calculateBendPointsForCollisionAvoidance');
 
             service.calculateBendPointsForCollisionAvoidanceByIds('proc-a', 'proc-b', 'conn-exclude');
 

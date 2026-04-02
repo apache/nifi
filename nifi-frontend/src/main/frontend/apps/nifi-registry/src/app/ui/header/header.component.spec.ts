@@ -34,11 +34,11 @@ describe('HeaderComponent', () => {
     let component: HeaderComponent;
     let fixture: ComponentFixture<HeaderComponent>;
     let store: MockStore<NiFiRegistryState>;
-    let dialogOpenSpy: jest.Mock;
+    let dialogOpenSpy: vi.Mock;
 
     beforeEach(() => {
         const matDialogMock = {
-            open: jest.fn().mockReturnValue({ afterClosed: () => of(true) })
+            open: vi.fn().mockReturnValue({ afterClosed: () => of(true) })
         };
 
         TestBed.configureTestingModule({
@@ -69,7 +69,7 @@ describe('HeaderComponent', () => {
         store.overrideSelector(selectLogoutSupported, currentUserInitialState.currentUser.canLogout);
         store.overrideSelector(selectAbout, aboutInitialState.about);
 
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
         store.refreshState();
         fixture.detectChanges();
     });

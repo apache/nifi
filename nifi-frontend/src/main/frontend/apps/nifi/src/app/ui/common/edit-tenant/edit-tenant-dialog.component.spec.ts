@@ -23,6 +23,9 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
 
 describe('EditTenantDialog', () => {
     let component: EditTenantDialog;
@@ -788,6 +791,11 @@ describe('EditTenantDialog', () => {
         TestBed.configureTestingModule({
             imports: [EditTenantDialog, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                }),
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 { provide: MatDialogRef, useValue: null }
             ]

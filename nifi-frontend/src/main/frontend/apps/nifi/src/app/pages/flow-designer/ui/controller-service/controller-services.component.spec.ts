@@ -290,7 +290,7 @@ describe('ControllerServices', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -320,7 +320,7 @@ describe('ControllerServices', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadControllerServices action when refreshControllerServiceListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             // Set the current process group ID
             (component as any).currentProcessGroupId = 'test-process-group-id';
@@ -339,7 +339,7 @@ describe('ControllerServices', () => {
         it('should dispatch clearControllerServiceBulletins action when clearBulletinsControllerService is called', async () => {
             const { component, store } = await setup();
             const mockControllerServiceEntity = createMockControllerServiceEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsControllerService(mockControllerServiceEntity);
 

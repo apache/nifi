@@ -52,6 +52,12 @@ describe('ParameterTable', () => {
         });
         fixture = TestBed.createComponent(ParameterTable);
         component = fixture.componentInstance;
+        component.registerOnTouched(() => {
+            // noop: ControlValueAccessor host may call handleChanged before Angular registers callbacks
+        });
+        component.registerOnChange(() => {
+            // noop
+        });
         fixture.detectChanges();
     });
 
@@ -704,7 +710,7 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {
+            const editClickedSpy = vi.spyOn(component, 'editClicked').mockImplementation(() => {
                 // noop
             });
             component.isDisabled = false;
@@ -732,7 +738,7 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            const editClickedSpy = vi.spyOn(component, 'editClicked');
             component.isDisabled = false;
 
             component.doubleClicked(item);
@@ -758,7 +764,7 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            const editClickedSpy = vi.spyOn(component, 'editClicked');
             component.isDisabled = true;
 
             component.doubleClicked(item);
@@ -784,7 +790,7 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            const editClickedSpy = vi.spyOn(component, 'editClicked');
             component.isDisabled = false;
 
             component.doubleClicked(item);
@@ -810,7 +816,7 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            const editClickedSpy = vi.spyOn(component, 'editClicked');
             component.isDisabled = false;
 
             component.doubleClicked(item);
@@ -845,7 +851,7 @@ describe('ParameterTable', () => {
                 }
             };
 
-            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {
+            const editClickedSpy = vi.spyOn(component, 'editClicked').mockImplementation(() => {
                 // noop
             });
             component.isDisabled = false;

@@ -29,7 +29,19 @@ import { flowFeatureKey } from '../../../../../state/flow';
 import { EditConnectionComponent } from './edit-connection.component';
 import { EditConnectionDialogRequest } from '../../../../../state/flow';
 import { ComponentType } from '@nifi/shared';
-import { initialState } from '../../../../../state/flow/flow.reducer';
+import { initialState as flowInitialState } from '../../../../../state/flow/flow.reducer';
+import { transformFeatureKey } from '../../../../../state/transform';
+import { initialState as initialTransformState } from '../../../../../state/transform/transform.reducer';
+import { controllerServicesFeatureKey } from '../../../../../state/controller-services';
+import { initialState as initialControllerServicesState } from '../../../../../state/controller-services/controller-services.reducer';
+import { parameterFeatureKey } from '../../../../../state/parameter';
+import { initialState as initialParameterState } from '../../../../../state/parameter/parameter.reducer';
+import { queueFeatureKey } from '../../../../../../queue/state';
+import { initialState as initialQueueState } from '../../../../../state/queue/queue.reducer';
+import { flowAnalysisFeatureKey } from '../../../../../state/flow-analysis';
+import { initialState as initialFlowAnalysisState } from '../../../../../state/flow-analysis/flow-analysis.reducer';
+import { flowConfigurationFeatureKey } from '../../../../../../../state/flow-configuration';
+import { initialState as initialFlowConfigurationState } from '../../../../../../../state/flow-configuration/flow-configuration.reducer';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
 import { selectBreadcrumbs, selectSaving } from '../../../../../state/flow/flow.selectors';
 import { updateConnection } from '../../../../../state/flow/flow.actions';
@@ -113,7 +125,7 @@ describe('EditConnectionComponent', () => {
         const defaultDialogRequest = options.dialogRequest || createMockDialogRequest(defaultConnection);
 
         const storeState = {
-            ...initialState,
+            ...flowInitialState,
             ...options.mockStore
         };
 
@@ -125,8 +137,14 @@ describe('EditConnectionComponent', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: initialFlowConfigurationState,
                         [canvasFeatureKey]: {
-                            [flowFeatureKey]: storeState
+                            [flowFeatureKey]: storeState,
+                            [transformFeatureKey]: initialTransformState,
+                            [controllerServicesFeatureKey]: initialControllerServicesState,
+                            [parameterFeatureKey]: initialParameterState,
+                            [queueFeatureKey]: initialQueueState,
+                            [flowAnalysisFeatureKey]: initialFlowAnalysisState
                         }
                     }
                 }),
@@ -150,7 +168,7 @@ describe('EditConnectionComponent', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -370,7 +388,7 @@ describe('EditConnectionComponent', () => {
             const dialogRequest = createMockDialogRequest(connection);
             const { component, store } = await setup({ dialogRequest });
 
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
 
             component.editConnection();
 
@@ -396,7 +414,7 @@ describe('EditConnectionComponent', () => {
             const dialogRequest = createMockDialogRequest(connection);
             const { component, store } = await setup({ dialogRequest });
 
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
 
             component.editConnection();
 

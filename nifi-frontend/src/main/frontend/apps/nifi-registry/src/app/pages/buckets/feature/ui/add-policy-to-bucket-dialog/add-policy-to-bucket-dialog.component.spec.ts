@@ -58,11 +58,11 @@ const group1: PolicySubject = {
 describe('AddPolicyToBucketDialogComponent', () => {
     let component: AddPolicyToBucketDialogComponent;
     let fixture: ComponentFixture<AddPolicyToBucketDialogComponent>;
-    let dialogRef: jest.Mocked<MatDialogRef<AddPolicyToBucketDialogComponent>>;
+    let dialogRef: vi.Mocked<MatDialogRef<AddPolicyToBucketDialogComponent>>;
 
     beforeEach(async () => {
         const mockDialogRef = {
-            close: jest.fn()
+            close: vi.fn()
         };
 
         await TestBed.configureTestingModule({
@@ -84,7 +84,7 @@ describe('AddPolicyToBucketDialogComponent', () => {
 
         fixture = TestBed.createComponent(AddPolicyToBucketDialogComponent);
         component = fixture.componentInstance;
-        dialogRef = TestBed.inject(MatDialogRef) as jest.Mocked<MatDialogRef<AddPolicyToBucketDialogComponent>>;
+        dialogRef = TestBed.inject(MatDialogRef) as vi.Mocked<MatDialogRef<AddPolicyToBucketDialogComponent>>;
         fixture.detectChanges();
     });
 

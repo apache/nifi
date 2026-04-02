@@ -35,6 +35,7 @@ import {
     CreateConnection,
     DisableComponentRequest,
     EnableComponentRequest,
+    flowFeatureKey,
     MoveToFrontRequest,
     StartComponentRequest,
     StopComponentRequest,
@@ -64,6 +65,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { canvasFeatureKey } from '../index';
+import * as fromFlow from './flow.reducer';
+import { transformFeatureKey } from '../transform';
+import * as fromTransform from '../transform/transform.reducer';
+import { controllerServicesFeatureKey } from '../controller-services';
+import * as fromControllerServices from '../controller-services/controller-services.reducer';
+import { parameterFeatureKey } from '../parameter';
+import * as fromParameter from '../parameter/parameter.reducer';
+import { queueFeatureKey } from '../../../queue/state';
+import * as fromQueue from '../queue/queue.reducer';
+import { flowAnalysisFeatureKey } from '../flow-analysis';
+import * as fromFlowAnalysis from '../flow-analysis/flow-analysis.reducer';
 
 describe('FlowEffects', () => {
     let action$: ReplaySubject<Action>;
@@ -780,6 +793,16 @@ describe('FlowEffects', () => {
                 provideRouter([]),
                 provideMockActions(() => action$),
                 provideMockStore({
+                    initialState: {
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: fromFlow.initialState,
+                            [transformFeatureKey]: fromTransform.initialState,
+                            [controllerServicesFeatureKey]: fromControllerServices.initialState,
+                            [parameterFeatureKey]: fromParameter.initialState,
+                            [queueFeatureKey]: fromQueue.initialState,
+                            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
+                        }
+                    },
                     selectors: [
                         {
                             selector: selectCurrentUser,
@@ -802,49 +825,49 @@ describe('FlowEffects', () => {
                 {
                     provide: FlowService,
                     useValue: {
-                        getProcessor: jest.fn(),
-                        updateComponent: jest.fn(),
-                        createConnection: jest.fn(),
-                        createLabel: jest.fn(),
-                        clearBulletinsForProcessGroup: jest.fn()
+                        getProcessor: vi.fn(),
+                        updateComponent: vi.fn(),
+                        createConnection: vi.fn(),
+                        createLabel: vi.fn(),
+                        clearBulletinsForProcessGroup: vi.fn()
                     }
                 },
                 {
                     provide: PropertyTableHelperService,
                     useValue: {
-                        getComponentHistory: jest.fn(),
-                        createNewProperty: jest.fn(),
-                        createNewService: jest.fn()
+                        getComponentHistory: vi.fn(),
+                        createNewProperty: vi.fn(),
+                        createNewService: vi.fn()
                     }
                 },
                 {
                     provide: ControllerServiceService,
                     useValue: {
-                        getControllerService: jest.fn()
+                        getControllerService: vi.fn()
                     }
                 },
                 {
                     provide: ParameterHelperService,
                     useValue: {
-                        getParameterContext: jest.fn()
+                        getParameterContext: vi.fn()
                     }
                 },
                 {
                     provide: ExtensionTypesService,
                     useValue: {
-                        getParameterContext: jest.fn()
+                        getParameterContext: vi.fn()
                     }
                 },
                 {
                     provide: ParameterContextService,
                     useValue: {
-                        getParameterContext: jest.fn()
+                        getParameterContext: vi.fn()
                     }
                 },
                 {
                     provide: RegistryService,
                     useValue: {
-                        getRegistryClients: jest.fn()
+                        getRegistryClients: vi.fn()
                     }
                 },
                 {
@@ -854,24 +877,24 @@ describe('FlowEffects', () => {
                 {
                     provide: CopyPasteService,
                     useValue: {
-                        isCopiedContentInView: jest.fn(),
-                        toOffsetPasteRequest: jest.fn(),
-                        toCenteredPasteRequest: jest.fn(),
-                        paste: jest.fn()
+                        isCopiedContentInView: vi.fn(),
+                        toOffsetPasteRequest: vi.fn(),
+                        toCenteredPasteRequest: vi.fn(),
+                        paste: vi.fn()
                     }
                 },
                 {
                     provide: CanvasView,
                     useValue: {
-                        updateCanvasVisibility: jest.fn(),
-                        centerBoundingBox: jest.fn(),
-                        isCanvasInitialized: jest.fn().mockReturnValue(false)
+                        updateCanvasVisibility: vi.fn(),
+                        centerBoundingBox: vi.fn(),
+                        isCanvasInitialized: vi.fn().mockReturnValue(false)
                     }
                 },
                 {
                     provide: BirdseyeView,
                     useValue: {
-                        refresh: jest.fn()
+                        refresh: vi.fn()
                     }
                 }
             ]
@@ -890,8 +913,8 @@ describe('FlowEffects', () => {
         enableRequest = new EventEmitter<EnableComponentRequest>();
         disableRequest = new EventEmitter<DisableComponentRequest>();
 
-        jest.spyOn(dialog, 'open').mockReturnValue({
-            close: jest.fn(),
+        vi.spyOn(dialog, 'open').mockReturnValue({
+            close: vi.fn(),
             afterClosed: () => {
                 return of();
             },
@@ -906,13 +929,13 @@ describe('FlowEffects', () => {
             }
         } as unknown as MatDialogRef<EditProcessor>);
 
-        jest.spyOn(flowService, 'getProcessor').mockReturnValue(of(mockData.entity));
+        vi.spyOn(flowService, 'getProcessor').mockReturnValue(of(mockData.entity));
 
-        jest.spyOn(propertyTableHelperService, 'getComponentHistory').mockReturnValue(
+        vi.spyOn(propertyTableHelperService, 'getComponentHistory').mockReturnValue(
             of({ componentHistory: {} } as ComponentHistoryEntity)
         );
 
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
     });
 
     afterEach(() => {
@@ -928,10 +951,10 @@ describe('FlowEffects', () => {
             store.overrideSelector(selectConnectedStateChanged, false);
 
             // Arrange service methods
-            (flowService as any).getFlow = jest.fn(() => throwError(() => new HttpErrorResponse({ status: 500 })));
-            (flowService as any).getFlowStatus = jest.fn(() => of({}));
-            (flowService as any).getControllerBulletins = jest.fn(() => of({}));
-            jest.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValueOnce(
+            (flowService as any).getFlow = vi.fn(() => throwError(() => new HttpErrorResponse({ status: 500 })));
+            (flowService as any).getFlowStatus = vi.fn(() => of({}));
+            (flowService as any).getControllerBulletins = vi.fn(() => of({}));
+            vi.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValueOnce(
                 of({ registries: [] }) as any
             );
 
@@ -940,7 +963,7 @@ describe('FlowEffects', () => {
             const errorAction = FlowActions.flowBannerError({
                 errorContext: { context: 'FLOW', errors: ['e'] } as any
             });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction as any);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction as any);
 
             // Act
             action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
@@ -957,10 +980,10 @@ describe('FlowEffects', () => {
             store.overrideSelector(selectConnectedStateChanged, false);
 
             // Arrange service methods
-            (flowService as any).getFlow = jest.fn(() => throwError(() => new HttpErrorResponse({ status: 500 })));
-            (flowService as any).getFlowStatus = jest.fn(() => of({}));
-            (flowService as any).getControllerBulletins = jest.fn(() => of({}));
-            jest.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValueOnce(
+            (flowService as any).getFlow = vi.fn(() => throwError(() => new HttpErrorResponse({ status: 500 })));
+            (flowService as any).getFlowStatus = vi.fn(() => of({}));
+            (flowService as any).getControllerBulletins = vi.fn(() => of({}));
+            vi.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValueOnce(
                 of({ registries: [] }) as any
             );
 
@@ -969,7 +992,7 @@ describe('FlowEffects', () => {
             const errorAction = FlowActions.flowBannerError({
                 errorContext: { context: 'FLOW', errors: ['e'] } as any
             });
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction as any);
+            vi.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction as any);
 
             // Act
             action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
@@ -993,8 +1016,8 @@ describe('FlowEffects', () => {
                 }
             };
 
-            jest.spyOn(flowService, 'updateComponent').mockReturnValue(of({}));
-            jest.spyOn(flowSelectors, 'selectMaxZIndex').mockReturnValue(createSelector(() => 0));
+            vi.spyOn(flowService, 'updateComponent').mockReturnValue(of({}));
+            vi.spyOn(flowSelectors, 'selectMaxZIndex').mockReturnValue(createSelector(() => 0));
 
             action$.next(FlowActions.moveToFront({ request: REQUEST }));
 
@@ -1029,8 +1052,8 @@ describe('FlowEffects', () => {
 
             const MAX_Z_INDEX = 10;
 
-            jest.spyOn(flowService, 'createConnection').mockReturnValue(of({}));
-            jest.spyOn(flowSelectors, 'selectMaxZIndex').mockReturnValue(createSelector(() => MAX_Z_INDEX));
+            vi.spyOn(flowService, 'createConnection').mockReturnValue(of({}));
+            vi.spyOn(flowSelectors, 'selectMaxZIndex').mockReturnValue(createSelector(() => MAX_Z_INDEX));
             store.overrideSelector(selectCurrentProcessGroupId, 'some group id');
 
             action$.next(FlowActions.createConnection({ request: REQUEST }));
@@ -1074,8 +1097,8 @@ describe('FlowEffects', () => {
                 payload: {} // irrelevant
             } satisfies CreateComponentResponse;
 
-            jest.spyOn(flowService, 'createLabel').mockReturnValue(of(CREATE_COMPONENT_RESPONSE));
-            jest.spyOn(flowSelectors, 'selectMaxZIndex').mockReturnValue(createSelector(() => MAX_Z_INDEX));
+            vi.spyOn(flowService, 'createLabel').mockReturnValue(of(CREATE_COMPONENT_RESPONSE));
+            vi.spyOn(flowSelectors, 'selectMaxZIndex').mockReturnValue(createSelector(() => MAX_Z_INDEX));
             store.overrideSelector(selectCurrentProcessGroupId, 'some group id');
 
             action$.next(FlowActions.createLabel({ request: REQUEST }));
@@ -1114,7 +1137,7 @@ describe('FlowEffects', () => {
                 bulletinsCleared: 10
             };
 
-            jest.spyOn(flowService, 'clearBulletinsForProcessGroup').mockReturnValue(of(mockResponse));
+            vi.spyOn(flowService, 'clearBulletinsForProcessGroup').mockReturnValue(of(mockResponse));
 
             const action = FlowActions.clearBulletinsForProcessGroup({ request });
             action$.next(action);
@@ -1191,7 +1214,7 @@ describe('FlowEffects', () => {
 
         beforeEach(() => {
             router = TestBed.inject(Router);
-            jest.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+            vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
             store.overrideSelector(selectCurrentProcessGroupId, 'pg-123');
             store.refreshState();
         });

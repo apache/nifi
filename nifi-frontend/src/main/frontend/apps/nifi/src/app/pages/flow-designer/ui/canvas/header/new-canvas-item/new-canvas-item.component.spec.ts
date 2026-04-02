@@ -24,8 +24,12 @@ import { initialState as initialErrorState } from '../../../../../../state/error
 import { errorFeatureKey } from '../../../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../../../state/current-user';
+import { flowConfigurationFeatureKey } from '../../../../../../state/flow-configuration';
+import { initialState as flowConfigurationInitialState } from '../../../../../../state/flow-configuration/flow-configuration.reducer';
 import { canvasFeatureKey } from '../../../../state';
 import { flowFeatureKey } from '../../../../state/flow';
+import { transformFeatureKey } from '../../../../state/transform';
+import { initialState as transformInitialState } from '../../../../state/transform/transform.reducer';
 
 describe('NewCanvasItem', () => {
     let component: NewCanvasItem;
@@ -39,8 +43,10 @@ describe('NewCanvasItem', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: flowConfigurationInitialState,
                         [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialState
+                            [flowFeatureKey]: initialState,
+                            [transformFeatureKey]: transformInitialState
                         }
                     }
                 })

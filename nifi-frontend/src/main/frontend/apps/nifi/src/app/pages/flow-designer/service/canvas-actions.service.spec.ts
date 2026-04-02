@@ -43,14 +43,14 @@ import * as FlowActions from '../state/flow/flow.actions';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 
 // Mock d3 module
-jest.mock('d3', () => ({
-    selectAll: jest.fn()
+vi.mock('d3', () => ({
+    selectAll: vi.fn()
 }));
 
 describe('CanvasActionsService', () => {
     let service: CanvasActionsService;
     let store: MockStore;
-    let mockNiFiCommon: jest.Mocked<NiFiCommon>;
+    let mockNiFiCommon: vi.Mocked<NiFiCommon>;
 
     const initialState: CanvasState = {
         [flowFeatureKey]: fromFlow.initialState,
@@ -64,7 +64,7 @@ describe('CanvasActionsService', () => {
     beforeEach(() => {
         // Create mock NiFiCommon - only mock the methods we actually use in tests
         mockNiFiCommon = {
-            getMostRecentBulletinTimestamp: jest.fn()
+            getMostRecentBulletinTimestamp: vi.fn()
         } as any;
 
         TestBed.configureTestingModule({
@@ -78,54 +78,54 @@ describe('CanvasActionsService', () => {
                 {
                     provide: Router,
                     useValue: {
-                        navigate: jest.fn()
+                        navigate: vi.fn()
                     }
                 },
                 {
                     provide: CanvasUtils,
                     useValue: {
-                        isProcessor: jest.fn().mockReturnValue(false),
-                        isRemoteProcessGroup: jest.fn().mockReturnValue(false),
-                        isLabel: jest.fn().mockReturnValue(false),
-                        isConnection: jest.fn().mockReturnValue(false),
-                        canRead: jest.fn().mockReturnValue(true),
-                        canWrite: jest.fn().mockReturnValue(true),
-                        canCopy: jest.fn().mockReturnValue(true),
-                        canModify: jest.fn().mockReturnValue(true),
-                        canDelete: jest.fn().mockReturnValue(true),
-                        getComponentByType: jest.fn(),
-                        moveToFront: jest.fn(),
-                        moveToBack: jest.fn(),
-                        getSelectionByComponentType: jest.fn()
+                        isProcessor: vi.fn().mockReturnValue(false),
+                        isRemoteProcessGroup: vi.fn().mockReturnValue(false),
+                        isLabel: vi.fn().mockReturnValue(false),
+                        isConnection: vi.fn().mockReturnValue(false),
+                        canRead: vi.fn().mockReturnValue(true),
+                        canWrite: vi.fn().mockReturnValue(true),
+                        canCopy: vi.fn().mockReturnValue(true),
+                        canModify: vi.fn().mockReturnValue(true),
+                        canDelete: vi.fn().mockReturnValue(true),
+                        getComponentByType: vi.fn(),
+                        moveToFront: vi.fn(),
+                        moveToBack: vi.fn(),
+                        getSelectionByComponentType: vi.fn()
                     }
                 },
                 {
                     provide: CanvasView,
                     useValue: {
-                        updateCanvasVisibility: jest.fn(),
-                        centerBoundingBox: jest.fn(),
-                        isCanvasInitialized: jest.fn().mockReturnValue(false)
+                        updateCanvasVisibility: vi.fn(),
+                        centerBoundingBox: vi.fn(),
+                        isCanvasInitialized: vi.fn().mockReturnValue(false)
                     }
                 },
                 {
                     provide: MatDialog,
                     useValue: {
-                        open: jest.fn()
+                        open: vi.fn()
                     }
                 },
                 {
                     provide: Client,
                     useValue: {
-                        isSecure: jest.fn().mockReturnValue(false)
+                        isSecure: vi.fn().mockReturnValue(false)
                     }
                 },
                 {
                     provide: CopyPasteService,
                     useValue: {
-                        isCopiedContentInView: jest.fn(),
-                        toOffsetPasteRequest: jest.fn(),
-                        toCenteredPasteRequest: jest.fn(),
-                        paste: jest.fn()
+                        isCopiedContentInView: vi.fn(),
+                        toOffsetPasteRequest: vi.fn(),
+                        toCenteredPasteRequest: vi.fn(),
+                        paste: vi.fn()
                     }
                 }
             ]
@@ -133,7 +133,7 @@ describe('CanvasActionsService', () => {
         service = TestBed.inject(CanvasActionsService);
         store = TestBed.inject(MockStore);
 
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
     });
 
     describe('clearBulletins action', () => {
@@ -142,32 +142,32 @@ describe('CanvasActionsService', () => {
 
         beforeEach(() => {
             mockProcessGroupId = 'test-process-group-id';
-            jest.spyOn(service, 'currentProcessGroupId').mockReturnValue(mockProcessGroupId);
+            vi.spyOn(service, 'currentProcessGroupId').mockReturnValue(mockProcessGroupId);
             clearBulletinsAction = service.getAction('clearBulletins');
         });
 
         describe('condition', () => {
             let clearBulletinsCondition: any;
-            let mockD3SelectAll: jest.MockedFunction<typeof d3.selectAll>;
+            let mockD3SelectAll: vi.MockedFunction<typeof d3.selectAll>;
 
             beforeEach(() => {
                 clearBulletinsCondition = service.getConditionFunction('clearBulletins');
-                mockD3SelectAll = d3.selectAll as jest.MockedFunction<typeof d3.selectAll>;
+                mockD3SelectAll = d3.selectAll as vi.MockedFunction<typeof d3.selectAll>;
             });
 
             afterEach(() => {
-                jest.clearAllMocks();
+                vi.clearAllMocks();
             });
 
             it('should return true when selection is empty and components with bulletins exist', () => {
                 // Create a mock empty selection
                 const mockEmptySelection = {
-                    empty: jest.fn().mockReturnValue(true)
+                    empty: vi.fn().mockReturnValue(true)
                 };
 
                 // Mock d3.selectAll to return non-empty selection for components with bulletins
                 mockD3SelectAll.mockReturnValue({
-                    empty: jest.fn().mockReturnValue(false)
+                    empty: vi.fn().mockReturnValue(false)
                 } as any);
 
                 const result = clearBulletinsCondition(mockEmptySelection);
@@ -178,12 +178,12 @@ describe('CanvasActionsService', () => {
 
             it('should return false when selection is empty and no components with bulletins exist', () => {
                 const mockEmptySelection = {
-                    empty: jest.fn().mockReturnValue(true)
+                    empty: vi.fn().mockReturnValue(true)
                 };
 
                 // Mock d3.selectAll to return empty selection (no components with bulletins)
                 mockD3SelectAll.mockReturnValue({
-                    empty: jest.fn().mockReturnValue(true)
+                    empty: vi.fn().mockReturnValue(true)
                 } as any);
 
                 const result = clearBulletinsCondition(mockEmptySelection);
@@ -193,13 +193,13 @@ describe('CanvasActionsService', () => {
 
             it('should return true for single component with bulletins and write permissions', () => {
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue({
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue({
                         type: ComponentType.Processor,
                         permissions: { canWrite: true }
                     }),
-                    classed: jest.fn().mockReturnValue(true)
+                    classed: vi.fn().mockReturnValue(true)
                 };
 
                 const result = clearBulletinsCondition(mockSelection);
@@ -210,13 +210,13 @@ describe('CanvasActionsService', () => {
 
             it('should return false for single component without write permissions', () => {
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue({
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue({
                         type: ComponentType.Processor,
                         permissions: { canWrite: false }
                     }),
-                    classed: jest.fn().mockReturnValue(true)
+                    classed: vi.fn().mockReturnValue(true)
                 };
 
                 const result = clearBulletinsCondition(mockSelection);
@@ -226,12 +226,12 @@ describe('CanvasActionsService', () => {
 
             it('should return true for process group with bulletins (permissions not required)', () => {
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue({
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue({
                         type: ComponentType.ProcessGroup
                     }),
-                    classed: jest.fn().mockReturnValue(true)
+                    classed: vi.fn().mockReturnValue(true)
                 };
 
                 const result = clearBulletinsCondition(mockSelection);
@@ -242,13 +242,13 @@ describe('CanvasActionsService', () => {
 
             it('should return false for single component without bulletins', () => {
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue({
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue({
                         type: ComponentType.Processor,
                         permissions: { canWrite: true }
                     }),
-                    classed: jest.fn().mockReturnValue(false)
+                    classed: vi.fn().mockReturnValue(false)
                 };
 
                 const result = clearBulletinsCondition(mockSelection);
@@ -258,8 +258,8 @@ describe('CanvasActionsService', () => {
 
             it('should return false for multiple component selection', () => {
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(2)
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(2)
                 };
 
                 const result = clearBulletinsCondition(mockSelection);
@@ -269,20 +269,20 @@ describe('CanvasActionsService', () => {
         });
 
         describe('action', () => {
-            let mockD3SelectAll: jest.SpyInstance;
+            let mockD3SelectAll: vi.SpyInstance;
 
             beforeEach(() => {
-                mockD3SelectAll = jest.spyOn(d3, 'selectAll');
+                mockD3SelectAll = vi.spyOn(d3, 'selectAll');
             });
 
             it('should dispatch clearBulletinsForProcessGroup for empty selection when bulletins exist', () => {
                 const mockTimestamp = '2023-10-07T12:00:00.000Z';
                 const mockEmptySelection = {
-                    empty: jest.fn().mockReturnValue(true)
+                    empty: vi.fn().mockReturnValue(true)
                 };
 
                 // Mock d3.selectAll to return components with bulletins
-                const mockEach = jest.fn((callback: (d: any) => void) => {
+                const mockEach = vi.fn((callback: (d: any) => void) => {
                     // Simulate calling the callback with mock data that has bulletins
                     callback({
                         bulletins: [
@@ -314,11 +314,11 @@ describe('CanvasActionsService', () => {
 
             it('should not dispatch for empty selection if no bulletins are found', () => {
                 const mockEmptySelection = {
-                    empty: jest.fn().mockReturnValue(true)
+                    empty: vi.fn().mockReturnValue(true)
                 };
 
                 // Mock d3.selectAll to return components without bulletins
-                const mockEach = jest.fn((callback: (d: any) => void) => {
+                const mockEach = vi.fn((callback: (d: any) => void) => {
                     // Simulate calling the callback with mock data that has no bulletins
                     callback({ bulletins: null });
                 });
@@ -347,9 +347,9 @@ describe('CanvasActionsService', () => {
                 };
 
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue(mockProcessGroupData)
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue(mockProcessGroupData)
                 };
 
                 mockNiFiCommon.getMostRecentBulletinTimestamp.mockReturnValue(mockTimestamp);
@@ -380,9 +380,9 @@ describe('CanvasActionsService', () => {
                 };
 
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue(mockProcessorData)
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue(mockProcessorData)
                 };
 
                 mockNiFiCommon.getMostRecentBulletinTimestamp.mockReturnValue(mockTimestamp);
@@ -415,9 +415,9 @@ describe('CanvasActionsService', () => {
                 };
 
                 const mockSelection = {
-                    empty: jest.fn().mockReturnValue(false),
-                    size: jest.fn().mockReturnValue(1),
-                    datum: jest.fn().mockReturnValue(mockInputPortData)
+                    empty: vi.fn().mockReturnValue(false),
+                    size: vi.fn().mockReturnValue(1),
+                    datum: vi.fn().mockReturnValue(mockInputPortData)
                 };
 
                 mockNiFiCommon.getMostRecentBulletinTimestamp.mockReturnValue(mockTimestamp);

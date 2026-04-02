@@ -27,6 +27,11 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { NifiTooltipDirective } from '@nifi/shared';
+import { aboutFeatureKey } from '../../../state/about';
+import { initialState as aboutInitialState } from '../../../state/about/about.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
+import { initialState as currentUserInitialState } from '../../../state/current-user/current-user.reducer';
+import { DEFAULT_ROUTER_FEATURENAME } from '@ngrx/router-store';
 
 describe('ContentViewerComponent', () => {
     let component: ContentViewerComponent;
@@ -41,6 +46,13 @@ describe('ContentViewerComponent', () => {
                     initialState: {
                         [contentViewersFeatureKey]: {
                             [viewerOptionsFeatureKey]: initialState
+                        },
+                        [aboutFeatureKey]: aboutInitialState,
+                        [currentUserFeatureKey]: currentUserInitialState,
+                        [DEFAULT_ROUTER_FEATURENAME]: {
+                            state: {
+                                queryParams: {}
+                            }
                         }
                     }
                 })

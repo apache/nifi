@@ -44,60 +44,68 @@ describe('ElService', () => {
         expect(service).toBeTruthy();
     });
 
-    it('should fetch EL guide content', (done) => {
+    it('should fetch EL guide content', () => {
         const mockContent = '<div class="function"><h3>test</h3></div>';
 
-        service.getElGuide().subscribe({
-            next: (result) => {
-                expect(result).toBe(mockContent);
-                expect(result).toContain('<div class="function">');
-                done();
-            }
-        });
+        return new Promise<void>((resolve) => {
+            service.getElGuide().subscribe({
+                next: (result) => {
+                    expect(result).toBe(mockContent);
+                    expect(result).toContain('<div class="function">');
+                    resolve();
+                }
+            });
 
-        const req = httpMock.expectOne(expectedUrl);
-        expect(req.request.method).toBe('GET');
-        expect(req.request.responseType).toBe('text');
-        req.flush(mockContent);
+            const req = httpMock.expectOne(expectedUrl);
+            expect(req.request.method).toBe('GET');
+            expect(req.request.responseType).toBe('text');
+            req.flush(mockContent);
+        });
     });
 
-    it('should handle 404 error', (done) => {
-        service.getElGuide().subscribe({
-            next: () => fail('Should have failed'),
-            error: (error: HttpErrorResponse) => {
-                expect(error.status).toBe(404);
-                done();
-            }
-        });
+    it('should handle 404 error', () => {
+        return new Promise<void>((resolve) => {
+            service.getElGuide().subscribe({
+                next: () => fail('Should have failed'),
+                error: (error: HttpErrorResponse) => {
+                    expect(error.status).toBe(404);
+                    resolve();
+                }
+            });
 
-        const req = httpMock.expectOne(expectedUrl);
-        req.flush('Not Found', { status: 404, statusText: 'Not Found' });
+            const req = httpMock.expectOne(expectedUrl);
+            req.flush('Not Found', { status: 404, statusText: 'Not Found' });
+        });
     });
 
-    it('should handle network error', (done) => {
-        service.getElGuide().subscribe({
-            next: () => fail('Should have failed'),
-            error: (error) => {
-                expect(error).toBeInstanceOf(HttpErrorResponse);
-                expect(error.error).toBeInstanceOf(ProgressEvent);
-                done();
-            }
-        });
+    it('should handle network error', () => {
+        return new Promise<void>((resolve) => {
+            service.getElGuide().subscribe({
+                next: () => fail('Should have failed'),
+                error: (error) => {
+                    expect(error).toBeInstanceOf(HttpErrorResponse);
+                    expect(error.error).toBeInstanceOf(ProgressEvent);
+                    resolve();
+                }
+            });
 
-        const req = httpMock.expectOne(expectedUrl);
-        req.error(new ProgressEvent('error'));
+            const req = httpMock.expectOne(expectedUrl);
+            req.error(new ProgressEvent('error'));
+        });
     });
 
-    it('should handle empty response', (done) => {
-        service.getElGuide().subscribe({
-            next: (result) => {
-                expect(result).toBe('');
-                done();
-            }
-        });
+    it('should handle empty response', () => {
+        return new Promise<void>((resolve) => {
+            service.getElGuide().subscribe({
+                next: (result) => {
+                    expect(result).toBe('');
+                    resolve();
+                }
+            });
 
-        const req = httpMock.expectOne(expectedUrl);
-        req.flush('');
+            const req = httpMock.expectOne(expectedUrl);
+            req.flush('');
+        });
     });
 
     it('should be singleton service', () => {

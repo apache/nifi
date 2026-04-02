@@ -51,7 +51,7 @@ describe('SourceInputPort', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Component initialization', () => {
@@ -175,12 +175,12 @@ describe('SourceInputPort', () => {
         });
 
         it('should update display when inputPortName changes', async () => {
-            const { component, fixture } = await setup({ inputPortName: 'Initial Input', groupName: 'Test Group' });
+            const { fixture } = await setup({ inputPortName: 'Initial Input', groupName: 'Test Group' });
 
             const inputPortNameDisplay = fixture.nativeElement.querySelector('[data-qa="input-port-name-display"]');
             expect(inputPortNameDisplay.textContent.trim()).toBe('Initial Input');
 
-            component.inputPortName = 'Updated Input';
+            fixture.componentRef.setInput('inputPortName', 'Updated Input');
             fixture.detectChanges();
 
             expect(inputPortNameDisplay.textContent.trim()).toBe('Updated Input');
@@ -188,12 +188,12 @@ describe('SourceInputPort', () => {
         });
 
         it('should update display when groupName changes', async () => {
-            const { component, fixture } = await setup({ inputPortName: 'Test Input', groupName: 'Initial Group' });
+            const { fixture } = await setup({ inputPortName: 'Test Input', groupName: 'Initial Group' });
 
             const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
             expect(groupNameDisplay.textContent.trim()).toBe('Initial Group');
 
-            component.groupName = 'Updated Group';
+            fixture.componentRef.setInput('groupName', 'Updated Group');
             fixture.detectChanges();
 
             expect(groupNameDisplay.textContent.trim()).toBe('Updated Group');

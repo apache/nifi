@@ -20,12 +20,15 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ParameterProviderDefinition } from './parameter-provider-definition.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { documentationFeatureKey } from '../../state';
-import { parameterContextListingFeatureKey } from '../../../parameter-contexts/state/parameter-context-listing';
+import { parameterProviderDefinitionFeatureKey } from '../../state/parameter-provider-definition';
 import { initialState } from '../../state/parameter-provider-definition/parameter-provider-definition.reducer';
 import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../state/current-user';
+import { flowConfigurationFeatureKey } from '../../../../state/flow-configuration';
+import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
+import { selectCurrentRoute } from '@nifi/shared';
 
 describe('ParameterProviderDefinition', () => {
     let component: ParameterProviderDefinition;
@@ -39,10 +42,26 @@ describe('ParameterProviderDefinition', () => {
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationFeatureKey]: fromFlowConfiguration.initialState,
                         [documentationFeatureKey]: {
-                            [parameterContextListingFeatureKey]: initialState
+                            [parameterProviderDefinitionFeatureKey]: initialState
                         }
-                    }
+                    },
+                    selectors: [
+                        {
+                            selector: selectCurrentRoute,
+                            value: {
+                                params: {
+                                    group: 'g',
+                                    artifact: 'a',
+                                    version: '1',
+                                    type: 't'
+                                },
+                                routeConfig: { path: 'ParameterProvider' },
+                                url: [{ path: 'ParameterProvider' }]
+                            }
+                        }
+                    ]
                 })
             ]
         }).compileComponents();

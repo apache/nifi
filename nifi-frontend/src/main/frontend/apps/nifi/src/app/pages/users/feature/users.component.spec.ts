@@ -37,8 +37,14 @@ describe('Users', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [Users, UserListing],
-            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)],
+            declarations: [Users],
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(UserListing),
+                MockComponent(BannerText),
+                MockComponent(Navigation)
+            ],
             providers: [
                 provideMockStore({
                     initialState: {

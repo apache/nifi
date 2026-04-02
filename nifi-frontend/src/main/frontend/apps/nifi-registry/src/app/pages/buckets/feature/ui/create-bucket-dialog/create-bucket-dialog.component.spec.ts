@@ -41,14 +41,14 @@ describe('CreateBucketDialogComponent', () => {
                         }
                     }
                 }),
-                { provide: MatDialogRef, useValue: { close: jest.fn() } }
+                { provide: MatDialogRef, useValue: { close: vi.fn() } }
             ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(CreateBucketDialogComponent);
         component = fixture.componentInstance;
         store = TestBed.inject(Store);
-        jest.spyOn(store, 'dispatch');
+        vi.spyOn(store, 'dispatch');
         fixture.detectChanges();
     });
 

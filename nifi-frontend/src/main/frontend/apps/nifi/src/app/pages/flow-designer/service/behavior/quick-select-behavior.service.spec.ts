@@ -20,7 +20,7 @@ import { TestBed } from '@angular/core/testing';
 import { QuickSelectBehavior } from './quick-select-behavior.service';
 import { provideMockStore } from '@ngrx/store/testing';
 import { selectFlowState } from '../../state/flow/flow.selectors';
-import { CanvasState } from '../../state';
+import { canvasFeatureKey, CanvasState } from '../../state';
 import { flowFeatureKey } from '../../state/flow';
 import * as fromFlow from '../../state/flow/flow.reducer';
 import { transformFeatureKey } from '../../state/transform';
@@ -42,7 +42,7 @@ describe('QuickSelectBehavior', () => {
     let service: QuickSelectBehavior;
 
     beforeEach(() => {
-        const initialState: CanvasState = {
+        const canvasInitialState: CanvasState = {
             [flowFeatureKey]: fromFlow.initialState,
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
@@ -54,11 +54,13 @@ describe('QuickSelectBehavior', () => {
         TestBed.configureTestingModule({
             providers: [
                 provideMockStore({
-                    initialState,
+                    initialState: {
+                        [canvasFeatureKey]: canvasInitialState
+                    },
                     selectors: [
                         {
                             selector: selectFlowState,
-                            value: initialState[flowFeatureKey]
+                            value: canvasInitialState[flowFeatureKey]
                         },
                         {
                             selector: selectCurrentUser,

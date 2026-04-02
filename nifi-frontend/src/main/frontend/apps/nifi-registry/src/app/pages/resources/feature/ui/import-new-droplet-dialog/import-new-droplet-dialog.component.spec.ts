@@ -128,7 +128,7 @@ describe('ImportNewDropletDialogComponent', () => {
     });
 
     it('should import a new flow', () => {
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const dispatchSpy = vi.spyOn(store, 'dispatch');
         const file = new File([''], 'testFile');
         form.get('name')?.setValue('Flow Import 1');
         form.get('description')?.setValue('test description');

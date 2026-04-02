@@ -94,7 +94,7 @@ describe('CounterTable', () => {
         it('should next resetCounter event when reset button is clicked', async () => {
             const { component } = await setup();
             const mockCounters = createMockCounters();
-            jest.spyOn(component.resetCounter, 'next');
+            vi.spyOn(component.resetCounter, 'next');
 
             component.resetClicked(mockCounters[0], new MouseEvent('click'));
             expect(component.resetCounter.next).toHaveBeenCalledWith(mockCounters[0]);
@@ -102,7 +102,7 @@ describe('CounterTable', () => {
 
         it('should next resetAllCounters event when reset all button is clicked', async () => {
             const { component } = await setup();
-            jest.spyOn(component.resetAllCounters, 'next');
+            vi.spyOn(component.resetAllCounters, 'next');
 
             component.resetAllClicked();
             expect(component.resetAllCounters.next).toHaveBeenCalled();

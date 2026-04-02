@@ -18,8 +18,13 @@
 import { UpdateAttribute } from './update-attribute.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../state/rules/rules.reducer';
+import { initialState as rulesInitialState } from '../state/rules/rules.reducer';
+import { initialState as evaluationContextInitialState } from '../state/evaluation-context/evaluation-context.reducer';
+import { initialState as advancedUiParametersInitialState } from '../state/advanced-ui-parameters/advanced-ui-parameters.reducer';
 import { updateAttributeFeatureKey } from '../state';
+import { advancedUiParametersFeatureKey } from '../state/advanced-ui-parameters';
+import { evaluationContextFeatureKey } from '../state/evaluation-context';
+import { rulesFeatureKey } from '../state/rules';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('UpdateAttribute', () => {
@@ -34,7 +39,9 @@ describe('UpdateAttribute', () => {
                 provideMockStore({
                     initialState: {
                         [updateAttributeFeatureKey]: {
-                            [updateAttributeFeatureKey]: initialState
+                            [rulesFeatureKey]: rulesInitialState,
+                            [evaluationContextFeatureKey]: evaluationContextInitialState,
+                            [advancedUiParametersFeatureKey]: advancedUiParametersInitialState
                         }
                     }
                 })

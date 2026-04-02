@@ -87,7 +87,7 @@ describe('Navigation', () => {
     });
 
     it('should pop back navigation', () => {
-        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const dispatchSpy = vi.spyOn(store, 'dispatch');
 
         component.popBackNavigation();
 

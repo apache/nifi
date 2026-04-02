@@ -44,7 +44,7 @@ async function setup(options: SetupOptions = {}) {
 
 describe('OverlappingConnectionsBannerComponent', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('rendering', () => {
@@ -93,7 +93,7 @@ describe('OverlappingConnectionsBannerComponent', () => {
             ];
             const { fixture, component } = await setup({ overlappingGroups: groups });
 
-            const emitSpy = jest.spyOn(component.navigateToGroup, 'emit');
+            const emitSpy = vi.spyOn(component.navigateToGroup, 'emit');
             const link = fixture.nativeElement.querySelector('.overlap-link');
             link.click();
 

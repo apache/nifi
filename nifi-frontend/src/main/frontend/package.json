@@ -71,16 +71,15 @@
         "@angular/compiler-cli": "21.2.4",
         "@eslint/eslintrc": "^3.3.5",
         "@eslint/js": "^10.0.1",
-        "@happy-dom/jest-environment": "^20.0.0",
+        "@analogjs/vite-plugin-angular": "^2.3.1",
+        "@analogjs/vitest-angular": "^2.3.1",
         "@nx/angular": "22.5.4",
         "@nx/eslint": "22.5.4",
         "@nx/eslint-plugin": "22.5.4",
-        "@nx/jest": "22.5.4",
         "@nx/workspace": "22.5.4",
         "@schematics/angular": "21.1.5",
         "@types/d3": "^7.4.3",
         "@types/humanize-duration": "^3.27.3",
-        "@types/jest": "30.0.0",
         "@types/uuid": "^10.0.0",
         "@typescript-eslint/eslint-plugin": "8.57.1",
         "@typescript-eslint/parser": "8.57.1",
@@ -92,9 +91,6 @@
         "eslint-plugin-prettier": "5.5.5",
         "globals": "^17.4.0",
         "happy-dom": "^20.0.2",
-        "jest": "30.3.0",
-        "jest-preset-angular": "16.0.0",
-        "jest-util": "30.3.0",
         "ng-mocks": "^14.12.2",
         "ng-packagr": "21.1.0",
         "nx": "22.5.4",
@@ -103,7 +99,10 @@
         "tailwindcss": "^3.3.6",
         "ts-node": "^10.9.2",
         "typescript": "5.9.3",
-        "typescript-eslint": "^8.40.0"
+        "typescript-eslint": "^8.40.0",
+        "vite-tsconfig-paths": "^6.1.1",
+        "vitest": "^4.1.1",
+        "@vitest/coverage-v8": "^4.1.1"
     },
     "engines": {
         "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
@@ -126,9 +125,6 @@
             "minimatch": "9.0.9"
         },
         "@nx/devkit": {
-            "minimatch": "9.0.9"
-        },
-        "@nx/jest": {
             "minimatch": "9.0.9"
         },
         "undici": ">=7.24.0",

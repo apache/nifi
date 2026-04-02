@@ -123,7 +123,7 @@ describe('ParameterProviders', () => {
     describe('Component Initialization', () => {
         it('should dispatch loadParameterProviders on ngOnInit', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnInit();
 
@@ -132,7 +132,7 @@ describe('ParameterProviders', () => {
 
         it('should dispatch resetParameterProvidersState on ngOnDestroy', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.ngOnDestroy();
 
@@ -158,7 +158,7 @@ describe('ParameterProviders', () => {
     describe('Action dispatching', () => {
         it('should dispatch loadParameterProviders action when refreshParameterProvidersListing is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.refreshParameterProvidersListing();
 
@@ -167,7 +167,7 @@ describe('ParameterProviders', () => {
 
         it('should dispatch openNewParameterProviderDialog action when openNewParameterProviderDialog is called', async () => {
             const { component, store } = await setup();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openNewParameterProviderDialog();
 
@@ -177,7 +177,7 @@ describe('ParameterProviders', () => {
         it('should dispatch navigateToEditParameterProvider action when openConfigureParameterProviderDialog is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openConfigureParameterProviderDialog(mockParameterProviderEntity);
 
@@ -191,7 +191,7 @@ describe('ParameterProviders', () => {
         it('should dispatch selectParameterProvider action when selectParameterProvider is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.selectParameterProvider(mockParameterProviderEntity);
 
@@ -207,7 +207,7 @@ describe('ParameterProviders', () => {
         it('should dispatch navigateToAdvancedParameterProviderUi action when openAdvancedUi is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.openAdvancedUi(mockParameterProviderEntity);
 
@@ -221,7 +221,7 @@ describe('ParameterProviders', () => {
         it('should dispatch navigateToManageAccessPolicies action when navigateToManageAccessPolicies is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.navigateToManageAccessPolicies(mockParameterProviderEntity);
 
@@ -235,7 +235,7 @@ describe('ParameterProviders', () => {
         it('should dispatch promptParameterProviderDeletion action when deleteParameterProvider is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.deleteParameterProvider(mockParameterProviderEntity);
 
@@ -251,7 +251,7 @@ describe('ParameterProviders', () => {
         it('should dispatch navigateToFetchParameterProvider action when fetchParameterProviderParameters is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.fetchParameterProviderParameters(mockParameterProviderEntity);
 
@@ -265,7 +265,7 @@ describe('ParameterProviders', () => {
         it('should dispatch clearParameterProviderBulletins action when clearBulletinsParameterProvider is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.clearBulletinsParameterProvider(mockParameterProviderEntity);
 
@@ -284,7 +284,7 @@ describe('ParameterProviders', () => {
         it('should dispatch navigateToComponentDocumentation action when viewParameterProviderDocumentation is called', async () => {
             const { component, store } = await setup();
             const mockParameterProviderEntity = createMockParameterProviderEntity();
-            jest.spyOn(store, 'dispatch');
+            vi.spyOn(store, 'dispatch');
 
             component.viewParameterProviderDocumentation(mockParameterProviderEntity);
 
