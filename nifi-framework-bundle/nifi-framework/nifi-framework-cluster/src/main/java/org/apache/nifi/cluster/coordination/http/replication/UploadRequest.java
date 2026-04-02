@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -37,6 +38,7 @@ public class UploadRequest<T> {
     private final String identifier;
     private final InputStream contents;
     private final Map<String, String> headers;
+    private final Map<String, String> forwardedRequestHeaders;
     private final URI exampleRequestUri;
     private final Class<T> responseClass;
     private final int successfulResponseStatus;
@@ -47,6 +49,8 @@ public class UploadRequest<T> {
         this.identifier = Objects.requireNonNull(builder.identifier);
         this.contents = Objects.requireNonNull(builder.contents);
         this.headers = Map.copyOf(builder.headers);
+        this.forwardedRequestHeaders = builder.forwardedRequestHeaders == null
+                ? Collections.emptyMap() : Map.copyOf(builder.forwardedRequestHeaders);
         this.exampleRequestUri = Objects.requireNonNull(builder.exampleRequestUri);
         this.responseClass = Objects.requireNonNull(builder.responseClass);
         this.successfulResponseStatus = builder.successfulResponseStatus;
@@ -75,6 +79,15 @@ public class UploadRequest<T> {
         return headers;
     }
 
+    /**
+     * Returns the inbound servlet request headers that should be forwarded during replication.
+     * These are sanitised by the replicator before being sent to target nodes. Empty if the
+     * caller did not supply forwarded headers.
+     */
+    public Map<String, String> getForwardedRequestHeaders() {
+        return forwardedRequestHeaders;
+    }
+
     public URI getExampleRequestUri() {
         return exampleRequestUri;
     }
@@ -96,6 +109,7 @@ public class UploadRequest<T> {
         private Class<T> responseClass;
         private int successfulResponseStatus;
         private final Map<String, String> headers = new HashMap<>();
+        private Map<String, String> forwardedRequestHeaders;
 
         public Builder<T> user(NiFiUser user) {
             this.user = user;
@@ -129,6 +143,18 @@ public class UploadRequest<T> {
 
         public Builder<T> successfulResponseStatus(int successResponseStatus) {
             this.successfulResponseStatus = successResponseStatus;
+            return this;
+        }
+
+        /**
+         * Sets the inbound servlet request headers that should be forwarded during replication.
+         * The replicator sanitises these (strips credentials, replication protocol headers,
+         * hop-by-hop headers) before sending to target nodes.
+         *
+         * @param forwardedRequestHeaders the original inbound headers, or {@code null} for none
+         */
+        public Builder<T> forwardRequestHeaders(Map<String, String> forwardedRequestHeaders) {
+            this.forwardedRequestHeaders = forwardedRequestHeaders == null ? null : new HashMap<>(forwardedRequestHeaders);
             return this;
         }
 

@@ -443,6 +443,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     .filename(sanitizedAssetName)
                     .identifier(UUID.randomUUID().toString())
                     .contents(maxLengthInputStream)
+                    .forwardRequestHeaders(getHeaders())
                     .header(FILENAME_HEADER, sanitizedAssetName)
                     .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
                     .exampleRequestUri(getAbsolutePath())

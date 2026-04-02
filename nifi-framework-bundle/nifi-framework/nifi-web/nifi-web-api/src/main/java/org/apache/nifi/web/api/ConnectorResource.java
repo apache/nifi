@@ -2032,6 +2032,7 @@ public class ConnectorResource extends ApplicationResource {
                 .filename(sanitizedAssetName)
                 .identifier(uploadRequestId)
                 .contents(maxLengthInputStream)
+                .forwardRequestHeaders(getHeaders())  // Necessary for ConnectorRequestContext when using a ConnectorConfigurationProvider
                 .header(FILENAME_HEADER, sanitizedAssetName)
                 .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
                 .header(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), uploadRequestId)
