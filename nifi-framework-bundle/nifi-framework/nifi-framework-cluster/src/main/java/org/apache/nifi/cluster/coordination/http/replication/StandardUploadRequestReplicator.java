@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.coordination.http.replication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
@@ -28,7 +27,6 @@ import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.WebClientService;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,27 +143,20 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
                 .encodedPath(exampleRequestUri.getPath())
                 .build();
 
-        final NiFiUser user = uploadRequest.getUser();
         final String filename = uploadRequest.getFilename();
 
-        try (final InputStream inputStream = new FileInputStream(contents)) {
-            final HttpRequestBodySpec request = webClientService.post()
-                    .uri(requestUri)
-                    .body(inputStream, OptionalLong.of(inputStream.available()))
-                    // Special NiFi-specific headers to indicate that the request should be performed and not replicated to the nodes
-                    .header(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), Boolean.TRUE.toString())
-                    .header(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString())
-                    .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user))
-                    .header(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups()));
+        final Map<String, String> outboundHeaders = buildOutboundHeaders(uploadRequest);
 
-            final Map<String, String> additionalHeaders = uploadRequest.getHeaders();
-            for (Map.Entry<String, String> headerEntry : additionalHeaders.entrySet()) {
-                request.header(headerEntry.getKey(), headerEntry.getValue());
+        try (final InputStream inputStream = new FileInputStream(contents)) {
+            HttpRequestBodySpec request = webClientService.post().uri(requestUri);
+
+            for (final Map.Entry<String, String> entry : outboundHeaders.entrySet()) {
+                request = request.header(entry.getKey(), entry.getValue());
             }
 
             logger.debug("Replicating upload request for {} to {}", filename, nodeId);
 
-            try (final HttpResponseEntity response = request.retrieve()) {
+            try (final HttpResponseEntity response = request.body(inputStream, OptionalLong.of(contents.length())).retrieve()) {
                 final int statusCode = response.statusCode();
                 if (uploadRequest.getSuccessfulResponseStatus() != statusCode) {
                     final String responseMessage = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
@@ -175,6 +166,33 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
                 return objectMapper.readValue(responseBody, uploadRequest.getResponseClass());
             }
         }
+    }
 
+    /**
+     * Builds the complete set of outbound headers for a replicated upload request, following the
+     * same trust model as {@link ThreadPoolRequestReplicator}:
+     * <ol>
+     *   <li>Start with any forwarded inbound servlet headers.</li>
+     *   <li>Strip all {@link RequestReplicationHeader} names (prevent spoofing).</li>
+     *   <li>Strip hop-by-hop / transport-framing headers.</li>
+     *   <li>Apply explicit builder headers (filename, content-type, seed) so upload metadata wins.</li>
+     *   <li>Apply user proxy headers and strip credentials (Authorization, auth cookies, Host).</li>
+     *   <li>Force-set {@code request-replicated} and {@code execution-continue}.</li>
+     * </ol>
+     */
+    <T> Map<String, String> buildOutboundHeaders(final UploadRequest<T> uploadRequest) {
+        final Map<String, String> headers = new HashMap<>(uploadRequest.getForwardedRequestHeaders());
+
+        ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
+        ReplicationHeaderUtils.stripHopByHopHeaders(headers);
+
+        headers.putAll(uploadRequest.getHeaders());
+
+        ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, uploadRequest.getUser());
+
+        headers.put(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), Boolean.TRUE.toString());
+        headers.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
+
+        return headers;
     }
 }

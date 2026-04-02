@@ -20,7 +20,6 @@ package org.apache.nifi.cluster.coordination.http.replication;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -53,9 +52,6 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.http.SecurityCookieName;
-import org.apache.nifi.web.security.http.SecurityHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +68,6 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,15 +85,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(ThreadPoolRequestReplicator.class);
     private static final Pattern SNIPPET_URI_PATTERN = Pattern.compile("/nifi-api/snippets/[a-f0-9\\-]{36}");
 
-    private static final String COOKIE_HEADER = "Cookie";
-    private static final String HOST_HEADER = "Host";
     private static final String NODE_CONTINUE = "202-Accepted";
 
     private final int maxConcurrentRequests; // maximum number of concurrent requests
@@ -248,30 +240,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
      * @param user the user on whose behalf the request is being made, or {@code null} for direct node requests
      */
     void updateRequestHeaders(final Map<String, String> headers, final NiFiUser user) {
-        if (user == null) {
-            // Background tasks where the node itself is the identity making the request, not a proxied user
-            logger.debug("No user provided: omitting proxied entities header from request");
-        } else {
-            logger.debug("NiFi User provided: adding proxied entities header to request");
-            // Add the user as a proxied entity so that when the receiving NiFi receives the request,
-            // it knows that we are acting as a proxy on behalf of the current user.
-            final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
-            headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
-
-            // Add the header containing the group information for the end user in the proxied entity chain, these groups would
-            // only be populated if the end user authenticated against an external identity provider like SAML or OIDC
-            final String proxiedEntityGroups = ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups());
-            headers.put(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, proxiedEntityGroups);
-        }
-
-        // remove the access token if present, since the user is already authenticated... authorization
-        // will happen when the request is replicated using the proxy chain above
-        removeHeader(headers, SecurityHeader.AUTHORIZATION.getHeader());
-        removeCookie(headers, SecurityCookieName.AUTHORIZATION_BEARER.getName());
-        removeCookie(headers, SecurityCookieName.REQUEST_TOKEN.getName());
-
-        // remove the host header
-        removeHeader(headers, HOST_HEADER);
+        ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, user);
     }
 
     @Override
@@ -890,49 +859,4 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         return responseMap.size();
     }
 
-    private void removeCookie(final Map<String, String> headers, final String cookieName) {
-        final Optional<String> cookieHeaderNameFound = findHeaderName(headers, COOKIE_HEADER);
-
-        if (cookieHeaderNameFound.isPresent()) {
-            final String cookieHeaderName = cookieHeaderNameFound.get();
-
-            final String rawCookies = headers.get(cookieHeaderName);
-            final String[] rawCookieParts = rawCookies.split(";");
-            final Set<String> filteredCookieParts = Stream.of(rawCookieParts).map(String::trim).filter(cookie -> !cookie.startsWith(cookieName + "=")).collect(Collectors.toSet());
-
-            if (filteredCookieParts.isEmpty()) {
-                headers.remove(cookieHeaderName);
-            } else {
-                final String filteredCookies = StringUtils.join(filteredCookieParts, "; ");
-                headers.put(cookieHeaderName, filteredCookies);
-            }
-        }
-    }
-
-    private void removeHeader(final Map<String, String> headers, final String headerNameSearch) {
-        final Optional<String> headerNameFound = findHeaderName(headers, headerNameSearch);
-        headerNameFound.ifPresent(headers::remove);
-    }
-
-    /**
-     * Find HTTP Header name in map regardless of case since HTTP/1.1 capitalizes headers but HTTP/2 returns lowercased headers
-     *
-     * @param headers Map of header name to value
-     * @param headerName Header name to be found
-     * @return Optional match with header name from map of headers
-     */
-    private Optional<String> findHeaderName(final Map<String, String> headers, final String headerName) {
-        final Optional<String> headerNameFound;
-
-        if (headerName == null || headerName.isBlank()) {
-            headerNameFound = Optional.empty();
-        } else {
-            headerNameFound = headers.keySet()
-                    .stream()
-                    .filter(headerName::equalsIgnoreCase)
-                    .findFirst();
-        }
-
-        return headerNameFound;
-    }
 }
