@@ -1353,6 +1353,125 @@ public class StandardVersionedComponentSynchronizerTest {
         assertTrue(p2.getParameter("paramA").isPresent(), "paramA should still exist on P2");
     }
 
+    @Test
+    public void testParameterDescriptionUpdatedDuringSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions("Context 1",
+            Map.of("abc", "xyz"), Map.of("abc", "Original description"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext context = parameterContextManager.getParameterContextNameMapping().get("Context 1");
+        assertEquals("Original description", context.getParameter("abc").get().getDescriptor().getDescription());
+
+        // Propose updated description while keeping the same value
+        final VersionedParameterContext proposed = createVersionedParameterContextWithDescriptions("Context 1",
+            Map.of("abc", "xyz"), Map.of("abc", "Updated description"), Collections.emptySet());
+
+        synchronizer.synchronize(context, proposed, synchronizationOptions);
+
+        assertEquals("Updated description", context.getParameter("abc").get().getDescriptor().getDescription());
+        assertEquals("xyz", context.getParameter("abc").get().getValue());
+    }
+
+    @Test
+    public void testParameterDescriptionUpdatedDuringProcessGroupSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions("Params",
+            Map.of("param1", "value1"), Map.of("param1", "Original description"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext paramContext = parameterContextManager.getParameterContextNameMapping().get("Params");
+        assertEquals("Original description", paramContext.getParameter("param1").get().getDescriptor().getDescription());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(paramContext);
+
+        final VersionedParameterContext proposedParams = createVersionedParameterContextWithDescriptions("Params",
+            Map.of("param1", "value1"), Map.of("param1", "New description for param1"), Collections.emptySet());
+
+        final Map<String, VersionedParameterContext> parameterContextMap = Map.of("Params", proposedParams);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName("Params");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals("New description for param1", paramContext.getParameter("param1").get().getDescriptor().getDescription());
+        assertEquals("value1", paramContext.getParameter("param1").get().getValue());
+    }
+
+    @Test
+    public void testParameterContextDescriptionUpdatedDuringProcessGroupSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContext("Params", Map.of("param1", "value1"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext paramContext = parameterContextManager.getParameterContextNameMapping().get("Params");
+        assertEquals("Generated for unit test", paramContext.getDescription());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(paramContext);
+
+        final VersionedParameterContext proposedParams = createVersionedParameterContext("Params", Map.of("param1", "value1"), Collections.emptySet());
+        proposedParams.setDescription("Updated context description");
+
+        final Map<String, VersionedParameterContext> parameterContextMap = Map.of("Params", proposedParams);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName("Params");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals("Updated context description", paramContext.getDescription());
+    }
+
+    @Test
+    public void testParameterDescriptionUnchangedWhenValueSame() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions("Context 1",
+            Map.of("abc", "xyz"), Map.of("abc", "Original description"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext context = parameterContextManager.getParameterContextNameMapping().get("Context 1");
+        assertEquals("Original description", context.getParameter("abc").get().getDescriptor().getDescription());
+
+        // Propose identical description and value -- nothing should change
+        final VersionedParameterContext proposed = createVersionedParameterContextWithDescriptions("Context 1",
+            Map.of("abc", "xyz"), Map.of("abc", "Original description"), Collections.emptySet());
+
+        synchronizer.synchronize(context, proposed, synchronizationOptions);
+
+        assertEquals("Original description", context.getParameter("abc").get().getDescriptor().getDescription());
+        assertEquals("xyz", context.getParameter("abc").get().getValue());
+    }
+
+    private VersionedParameterContext createVersionedParameterContextWithDescriptions(final String name, final Map<String, String> parameters,
+                                                                                      final Map<String, String> descriptions, final Set<String> sensitiveParamNames) {
+        final Set<VersionedParameter> versionedParameters = new HashSet<>();
+        for (final Map.Entry<String, String> entry : parameters.entrySet()) {
+            final VersionedParameter param = new VersionedParameter();
+            param.setName(entry.getKey());
+            param.setValue(entry.getValue());
+            param.setSensitive(sensitiveParamNames.contains(entry.getKey()));
+            param.setDescription(descriptions.get(entry.getKey()));
+            versionedParameters.add(param);
+        }
+
+        final VersionedParameterContext context = new VersionedParameterContext();
+        context.setName(name);
+        context.setDescription("Generated for unit test");
+        context.setParameters(versionedParameters);
+        context.setIdentifier(UUID.randomUUID().toString());
+
+        return context;
+    }
+
     private VersionedParameterContext createVersionedParameterContext(final String name, final Map<String, String> parameters, final Set<String> sensitiveParamNames) {
         final Set<VersionedParameter> versionedParameters = new HashSet<>();
         for (final Map.Entry<String, String> entry : parameters.entrySet()) {

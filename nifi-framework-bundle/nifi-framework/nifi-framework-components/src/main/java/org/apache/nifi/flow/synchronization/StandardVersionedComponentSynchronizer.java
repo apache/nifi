@@ -2375,7 +2375,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
             if (parameterOption.isPresent()) {
-                // Skip this parameter, since it is already defined. We only want to add missing parameters
+                final Parameter existingParameter = parameterOption.get();
+                if (!Objects.equals(existingParameter.getDescriptor().getDescription(), versionedParameter.getDescription())) {
+                    final Parameter updatedParameter = new Parameter.Builder()
+                        .fromParameter(existingParameter)
+                        .description(versionedParameter.getDescription())
+                        .build();
+                    parameters.put(versionedParameter.getName(), updatedParameter);
+                }
                 continue;
             }
 
@@ -2384,6 +2391,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         currentParameterContext.setParameters(parameters);
+
+        if (!Objects.equals(currentParameterContext.getDescription(), versionedParameterContext.getDescription())) {
+            currentParameterContext.setDescription(versionedParameterContext.getDescription());
+        }
 
         // If the current parameter context doesn't have any inherited param contexts but the versioned one does,
         // add the versioned ones.
