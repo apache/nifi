@@ -161,7 +161,7 @@ class SnowpipeIngestClient implements AutoCloseable {
     private String serializeInsertFiles(final InsertFiles insertFiles) {
         try {
             return objectMapper.writeValueAsString(insertFiles);
-        } catch (final JsonProcessingException   e) {
+        } catch (final JsonProcessingException e) {
             throw new SnowpipeResponseException("Failed to serialize Snowpipe insertFiles request", e);
         }
     }
