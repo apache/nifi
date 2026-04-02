@@ -43,14 +43,20 @@ public final class ReplicationHeaderUtils {
     private static final String HOST_HEADER = "Host";
 
     /**
-     * Headers that must not be forwarded because they are hop-by-hop or describe the original
-     * transport framing rather than the replicated request.
+     * Headers that must not be forwarded because they are hop-by-hop, describe the original
+     * transport framing, or negotiate content/transfer encodings that the upload replication
+     * path cannot handle transparently.
      *
-     * <p>Must stay in sync with
-     * {@link org.apache.nifi.cluster.coordination.http.replication.client.StandardHttpReplicationClient#DISALLOWED_HEADERS StandardHttpReplicationClient.DISALLOWED_HEADERS}.
+     * <p>This is intentionally a superset of
+     * {@link org.apache.nifi.cluster.coordination.http.replication.client.StandardHttpReplicationClient#DISALLOWED_HEADERS
+     * StandardHttpReplicationClient.DISALLOWED_HEADERS}, which omits encoding-negotiation
+     * headers because {@code StandardHttpReplicationClient} manages its own gzip pipeline.
+     * {@code StandardUploadRequestReplicator} reads responses raw, so encoding headers must
+     * also be stripped here.
      */
     static final Set<String> HOP_BY_HOP_HEADERS = Set.of(
-            "connection", "content-length", "transfer-encoding", "expect", "host", "upgrade"
+            "accept-encoding", "connection", "content-encoding", "content-length",
+            "expect", "host", "te", "transfer-encoding", "upgrade"
     );
 
     private ReplicationHeaderUtils() {

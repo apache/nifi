@@ -66,8 +66,11 @@ class TestStandardUploadRequestReplicatorHeaders {
     private static final String CUSTOM_HEADER = "X-Custom-Header";
     private static final String CUSTOM_HEADER_VALUE = "custom-value";
 
+    private static final String ACCEPT_ENCODING_HEADER = "Accept-Encoding";
+    private static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
     private static final String CONTENT_LENGTH_HEADER = "Content-Length";
     private static final String HOST_HEADER = "Host";
+    private static final String TE_HEADER = "TE";
     private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
     private static final String CONNECTION_HEADER = "Connection";
 
@@ -136,15 +139,21 @@ class TestStandardUploadRequestReplicatorHeaders {
     @Test
     void testHopByHopHeadersStripped() {
         final Map<String, String> forwarded = new HashMap<>();
+        forwarded.put(ACCEPT_ENCODING_HEADER, "gzip, deflate");
+        forwarded.put(CONTENT_ENCODING_HEADER, "gzip");
         forwarded.put(CONTENT_LENGTH_HEADER, "99999");
         forwarded.put(HOST_HEADER, "original-host:443");
+        forwarded.put(TE_HEADER, "trailers, deflate");
         forwarded.put(TRANSFER_ENCODING_HEADER, "chunked");
         forwarded.put(CONNECTION_HEADER, "keep-alive");
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
+        assertNull(result.get(ACCEPT_ENCODING_HEADER));
+        assertNull(result.get(CONTENT_ENCODING_HEADER));
         assertNull(result.get(CONTENT_LENGTH_HEADER));
+        assertNull(result.get(TE_HEADER));
         assertNull(result.get(TRANSFER_ENCODING_HEADER));
         assertNull(result.get(CONNECTION_HEADER));
         assertNull(result.get(HOST_HEADER));

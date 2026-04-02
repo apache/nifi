@@ -43,7 +43,10 @@ class TestReplicationHeaderUtils {
     private static final String HOST_HEADER = "Host";
     private static final String HOST_VALUE = "original-host:8080";
 
+    private static final String ACCEPT_ENCODING_HEADER = "Accept-Encoding";
+    private static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
     private static final String CONTENT_LENGTH_HEADER = "Content-Length";
+    private static final String TE_HEADER = "TE";
     private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
     private static final String CONNECTION_HEADER = "Connection";
 
@@ -109,16 +112,22 @@ class TestReplicationHeaderUtils {
     @Test
     void testStripHopByHopHeaders() {
         final Map<String, String> headers = new HashMap<>();
+        headers.put(ACCEPT_ENCODING_HEADER, "gzip, deflate");
+        headers.put(CONTENT_ENCODING_HEADER, "gzip");
         headers.put(CONTENT_LENGTH_HEADER, "12345");
         headers.put(HOST_HEADER, HOST_VALUE);
+        headers.put(TE_HEADER, "trailers, deflate");
         headers.put(TRANSFER_ENCODING_HEADER, "chunked");
         headers.put(CONNECTION_HEADER, "keep-alive");
         headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.stripHopByHopHeaders(headers);
 
+        assertNull(headers.get(ACCEPT_ENCODING_HEADER));
+        assertNull(headers.get(CONTENT_ENCODING_HEADER));
         assertNull(headers.get(CONTENT_LENGTH_HEADER));
         assertNull(headers.get(HOST_HEADER));
+        assertNull(headers.get(TE_HEADER));
         assertNull(headers.get(TRANSFER_ENCODING_HEADER));
         assertNull(headers.get(CONNECTION_HEADER));
         assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
