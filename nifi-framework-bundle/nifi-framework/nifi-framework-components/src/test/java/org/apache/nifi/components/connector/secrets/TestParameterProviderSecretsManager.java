@@ -24,14 +24,21 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -40,6 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestParameterProviderSecretsManager {
@@ -369,6 +378,200 @@ public class TestParameterProviderSecretsManager {
 
         assertEquals(1, secretProviders.size());
         assertEquals("valid-id", secretProviders.iterator().next().getProviderId());
+    }
+
+    @Test
+    public void testZeroDurationDisablesCaching() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("0 sec", providerNode);
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+
+        manager.getSecret(reference);
+        manager.getSecret(reference);
+
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testSecretCacheReturnsFromCacheWithinDuration() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+
+        final Optional<Secret> first = manager.getSecret(reference);
+        final Optional<Secret> second = manager.getSecret(reference);
+
+        assertTrue(first.isPresent());
+        assertTrue(second.isPresent());
+        assertEquals(SECRET_1_VALUE, first.get().getValue());
+        assertEquals(SECRET_1_VALUE, second.get().getValue());
+
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testSecretCacheRefreshesAfterDurationExpiry() throws InterruptedException {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("100 ms", providerNode);
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+
+        manager.getSecret(reference);
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+
+        Thread.sleep(200);
+
+        manager.getSecret(reference);
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testInvalidateCacheForcesSecretRefresh() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+
+        manager.getSecret(reference);
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+
+        manager.invalidateCache();
+
+        manager.getSecret(reference);
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testGetSecretsBatchWithMixedCacheHitsAndMisses() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE),
+            createParameter(SECRET_2_NAME, SECRET_2_DESCRIPTION, SECRET_2_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference reference1 = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+        final SecretReference reference2 = createSecretReference(PROVIDER_1_ID, null, SECRET_2_NAME);
+
+        manager.getSecret(reference1);
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+
+        final Map<SecretReference, Secret> batch = manager.getSecrets(Set.of(reference1, reference2));
+        assertEquals(2, batch.size());
+        assertNotNull(batch.get(reference1));
+        assertNotNull(batch.get(reference2));
+        assertEquals(SECRET_1_VALUE, batch.get(reference1).getValue());
+        assertEquals(SECRET_2_VALUE, batch.get(reference2).getValue());
+
+        // reference1 was cached, so only one additional fetch for reference2
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testGetSecretsBatchCachesAllFetchedValues() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE),
+            createParameter(SECRET_2_NAME, SECRET_2_DESCRIPTION, SECRET_2_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference reference1 = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+        final SecretReference reference2 = createSecretReference(PROVIDER_1_ID, null, SECRET_2_NAME);
+
+        manager.getSecrets(Set.of(reference1, reference2));
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+
+        final Optional<Secret> cached = manager.getSecret(reference2);
+        assertTrue(cached.isPresent());
+        assertEquals(SECRET_2_VALUE, cached.get().getValue());
+
+        // No additional fetch -- served from cache populated by the batch call
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testNullFqnReturnsEmpty() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference referenceWithNullFqn = new SecretReference(PROVIDER_1_ID, PROVIDER_1_NAME, SECRET_1_NAME, null);
+
+        final Optional<Secret> result = manager.getSecret(referenceWithNullFqn);
+        assertFalse(result.isPresent());
+
+        verify(providerNode, times(0)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testNegativeResultNotCached() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference nonExistent = createSecretReference(PROVIDER_1_ID, null, "does-not-exist");
+
+        final Optional<Secret> first = manager.getSecret(nonExistent);
+        final Optional<Secret> second = manager.getSecret(nonExistent);
+
+        assertFalse(first.isPresent());
+        assertFalse(second.isPresent());
+
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testConcurrentAccessDoesNotCorruptCache() throws Exception {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+
+        final int threadCount = 10;
+        final CyclicBarrier barrier = new CyclicBarrier(threadCount);
+        final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        final List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            futures.add(executor.submit(() -> {
+                try {
+                    barrier.await(5, TimeUnit.SECONDS);
+                } catch (final Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                if (index % 3 == 0) {
+                    manager.invalidateCache();
+                }
+                final Optional<Secret> result = manager.getSecret(reference);
+                assertTrue(result.isPresent());
+                assertEquals(SECRET_1_VALUE, result.get().getValue());
+            }));
+        }
+
+        for (final Future<?> future : futures) {
+            future.get(10, TimeUnit.SECONDS);
+        }
+
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+    }
+
+    private ParameterProviderSecretsManager createManagerWithCacheDuration(final String cacheDuration, final ParameterProviderNode... providerNodes) {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final Set<ParameterProviderNode> providers = new HashSet<>(Set.of(providerNodes));
+        when(flowManager.getAllParameterProviders()).thenReturn(providers);
+
+        final ParameterProviderSecretsManager manager = new ParameterProviderSecretsManager();
+        final SecretsManagerInitializationContext initContext = new StandardSecretsManagerInitializationContext(
+            flowManager, Map.of(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION, cacheDuration));
+        manager.initialize(initContext);
+        return manager;
     }
 }
 

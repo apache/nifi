@@ -23,4 +23,12 @@ public interface SecretsManagerInitializationContext {
 
     FlowManager getFlowManager();
 
+    /**
+     * Returns the value of the given configuration property, or {@code null} if the property is not set.
+     *
+     * @param key the property key
+     * @return the property value, or {@code null}
+     */
+    String getProperty(String key);
+
 }
