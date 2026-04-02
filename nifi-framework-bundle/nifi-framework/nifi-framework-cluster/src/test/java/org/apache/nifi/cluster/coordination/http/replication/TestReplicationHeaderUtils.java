@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,7 @@ class TestReplicationHeaderUtils {
 
     @Test
     void testApplyUserProxyAndStripCredentialsSetsProxiedEntities() {
-        final var user = new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build();
+        final NiFiUser user = new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build();
         final Map<String, String> headers = new HashMap<>();
         headers.put(AUTHORIZATION_HEADER, AUTHORIZATION_VALUE);
         headers.put(CUSTOM_HEADER, CUSTOM_HEADER_VALUE);
