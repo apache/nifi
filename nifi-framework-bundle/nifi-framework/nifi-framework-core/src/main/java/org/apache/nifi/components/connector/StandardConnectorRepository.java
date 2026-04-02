@@ -123,7 +123,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 final ConnectorNode existingNode = ensureConnectorNodeExists(versionedConnector);
                 existingNode.markInvalid("Flow Synchronization Failure",
                         "Configuration provider error during synchronization: " + e.getMessage());
-                return ConnectorSyncResult.FAILED;
+                return ConnectorSyncResult.failed(existingNode);
             }
         } else {
             directive = ConnectorSyncDirective.allow();
@@ -133,13 +133,18 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         // Handle REMOVE: connector should not exist on this node
         if (directive.getAction() == ConnectorSyncDirective.Action.REMOVE) {
-            final ConnectorNode existingNode = connectors.remove(connectorId);
+            final ConnectorNode existingNode = connectors.get(connectorId);
             if (existingNode != null) {
-                logger.info("Removing connector [{}] from local repository per provider REMOVE directive", connectorId);
+                logger.info("Removing connector [{}] (state={}) from local repository per provider REMOVE directive",
+                        connectorId, existingNode.getCurrentState());
+                stopConnectorAndAwait(existingNode);
+                logger.debug("Connector [{}] stopped (state={}); calling removeConnector", connectorId, existingNode.getCurrentState());
+                removeConnector(connectorId);
+                logger.info("Successfully removed connector [{}] per REMOVE directive", connectorId);
             } else {
                 logger.debug("Connector [{}] not present locally; REMOVE directive is a no-op", connectorId);
             }
-            return ConnectorSyncResult.REMOVED;
+            return ConnectorSyncResult.removed();
         }
 
         // Handle REJECT: create if needed (for background repair), mark invalid
@@ -148,7 +153,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
             logger.warn("Connector [{}] rejected by provider during sync; marking invalid", connectorId);
             node.markInvalid("Flow Synchronization Failure",
                     "Configuration provider rejected synchronization for this connector");
-            return ConnectorSyncResult.REJECTED;
+            return ConnectorSyncResult.rejected(node);
         }
 
         // ALLOW: proceed with sync
@@ -171,7 +176,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 logger.error("{} timed out waiting for transient state {} to resolve", connector, currentState);
                 connector.markInvalid("Flow Synchronization Failure",
                         "Timed out waiting for connector to leave transient state " + currentState);
-                return ConnectorSyncResult.REJECTED;
+                return ConnectorSyncResult.rejected(connector);
             }
         }
 
@@ -179,7 +184,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
             logger.warn("{} is in state {} which cannot be synchronized; marking invalid", connector, currentState);
             connector.markInvalid("Flow Synchronization Failure",
                     "Connector cannot be synchronized while in state " + currentState);
-            return ConnectorSyncResult.REJECTED;
+            return ConnectorSyncResult.rejected(connector);
         }
 
         // Determine effective name, working config, and ScheduledState
@@ -219,15 +224,15 @@ public class StandardConnectorRepository implements ConnectorRepository {
                         logger.error("{} also failed to stop after sync failure", connector, stopEx);
                     }
                 }
-                return ConnectorSyncResult.FAILED;
+                return ConnectorSyncResult.failed(connector);
             }
         } else {
             logger.debug("{} configuration is up to date, no update necessary", connector);
         }
 
-        applyScheduledState(connector, effectiveScheduledState);
-
-        return configChanged ? ConnectorSyncResult.SYNCED : ConnectorSyncResult.SYNCED_NO_CHANGES;
+        return configChanged
+                ? ConnectorSyncResult.synced(connector, effectiveScheduledState)
+                : ConnectorSyncResult.syncedNoChanges(connector, effectiveScheduledState);
     }
 
     private ConnectorNode ensureConnectorNodeExists(final VersionedConnector versionedConnector) {
@@ -291,14 +296,6 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         return current;
-    }
-
-    private void applyScheduledState(final ConnectorNode connector, final ScheduledState desiredState) {
-        if (desiredState == ScheduledState.RUNNING) {
-            startConnector(connector);
-        } else if (desiredState == ScheduledState.ENABLED) {
-            stopConnector(connector);
-        }
     }
 
     // --- Configuration comparison ---
@@ -391,14 +388,16 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void removeConnector(final String connectorId) {
-        logger.debug("Removing {}", connectorId);
+        logger.debug("Removing connector [{}]", connectorId);
         final ConnectorNode connectorNode = connectors.get(connectorId);
         if (connectorNode == null) {
             throw new IllegalStateException("No connector found with ID " + connectorId);
         }
 
+        logger.debug("Verifying connector [{}] (state={}) can be deleted", connectorId, connectorNode.getCurrentState());
         connectorNode.verifyCanDelete();
         if (configurationProvider != null) {
+            logger.debug("Notifying configuration provider of connector [{}] deletion", connectorId);
             configurationProvider.delete(connectorId);
         }
         connectors.remove(connectorId);
@@ -409,6 +408,30 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         extensionManager.removeInstanceClassLoader(connectorId);
+        logger.info("Connector [{}] removed from repository", connectorId);
+    }
+
+    private void stopConnectorAndAwait(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+        final ConnectorState currentState = connector.getCurrentState();
+        if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.UPDATE_FAILED || currentState == ConnectorState.UPDATED) {
+            logger.debug("Connector [{}] is already in state {}; no stop needed", connectorId, currentState);
+            return;
+        }
+
+        logger.info("Stopping connector [{}] (current state: {}) and awaiting completion", connectorId, currentState);
+        try {
+            final Future<Void> stopFuture = stopConnector(connector);
+            stopFuture.get(syncTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            logger.debug("Connector [{}] stopped successfully", connectorId);
+        } catch (final java.util.concurrent.TimeoutException e) {
+            logger.warn("Timed out waiting for connector [{}] to stop", connectorId);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while waiting for connector [{}] to stop", connectorId);
+        } catch (final Exception e) {
+            logger.warn("Failed to stop connector [{}]: {}", connectorId, e.getMessage(), e);
+        }
     }
 
     @Override

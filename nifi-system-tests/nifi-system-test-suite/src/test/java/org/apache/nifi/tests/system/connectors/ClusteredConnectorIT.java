@@ -201,6 +201,88 @@ public class ClusteredConnectorIT extends ConnectorCrudIT {
     }
 
 
+    @Test
+    public void testRunningConnectorSyncedOnReconnect() throws NiFiClientException, IOException, InterruptedException {
+        // Create and start a connector
+        final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
+        assertNotNull(connector);
+        getClientUtil().configureConnector(connector, "Ignored Step", Map.of("Ignored Property", "Test Value"));
+        getClientUtil().applyConnectorUpdate(connector);
+        getClientUtil().startConnector(connector);
+        logger.info("Created and started connector [{}]", connector.getId());
+
+        // Verify running on both nodes
+        switchClientToNode(1);
+        ConnectorEntity node1Connector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connector.getId());
+        assertEquals("RUNNING", node1Connector.getComponent().getState());
+
+        switchClientToNode(2);
+        ConnectorEntity node2Connector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connector.getId());
+        assertEquals("RUNNING", node2Connector.getComponent().getState());
+        logger.info("Verified connector is RUNNING on both nodes");
+
+        // Disconnect node 2
+        switchClientToNode(1);
+        disconnectNode(2);
+        logger.info("Disconnected Node 2");
+
+        // Reconnect node 2
+        reconnectNode(2);
+        waitForAllNodesConnected();
+        logger.info("Reconnected Node 2");
+
+        // Verify the connector is running on node 2 after rejoin
+        switchClientToNode(2);
+        waitFor(() -> {
+            try {
+                final ConnectorEntity rejoinedConnector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connector.getId());
+                return "RUNNING".equals(rejoinedConnector.getComponent().getState());
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+
+        final ConnectorEntity finalNode2Connector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connector.getId());
+        assertEquals("RUNNING", finalNode2Connector.getComponent().getState());
+        assertActiveConfigurationValue(finalNode2Connector, "Ignored Property", "Test Value");
+        logger.info("Verified connector is RUNNING on Node 2 after rejoin with correct configuration");
+    }
+
+    @Test
+    public void testNewConnectorSyncedOnReconnect() throws NiFiClientException, IOException, InterruptedException {
+        // Disconnect node 2
+        disconnectNode(2);
+        logger.info("Disconnected Node 2");
+
+        // Create a connector on node 1 while node 2 is disconnected
+        final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
+        assertNotNull(connector);
+        getClientUtil().configureConnector(connector, "Ignored Step", Map.of("Ignored Property", "Created While Disconnected"));
+        getClientUtil().applyConnectorUpdate(connector);
+        logger.info("Created connector [{}] on Node 1 while Node 2 is disconnected", connector.getId());
+
+        // Reconnect node 2
+        reconnectNode(2);
+        waitForAllNodesConnected();
+        logger.info("Reconnected Node 2");
+
+        // Verify the connector exists on node 2 after rejoin
+        switchClientToNode(2);
+        waitFor(() -> {
+            try {
+                getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connector.getId());
+                return true;
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+
+        final ConnectorEntity node2Connector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connector.getId());
+        assertNotNull(node2Connector);
+        assertActiveConfigurationValue(node2Connector, "Ignored Property", "Created While Disconnected");
+        logger.info("Verified new connector exists on Node 2 after rejoin with correct configuration");
+    }
+
     private void assertActiveConfigurationValue(final ConnectorEntity connector, final String propertyName, final String expectedValue) {
         final String actualValue = getConfigurationValue(connector.getComponent().getActiveConfiguration(), propertyName);
         assertEquals(expectedValue, actualValue, "Active configuration property '" + propertyName + "' did not match expected value");

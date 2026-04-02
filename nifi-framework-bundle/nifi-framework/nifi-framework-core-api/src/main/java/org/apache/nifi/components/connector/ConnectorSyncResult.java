@@ -17,40 +17,102 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.flow.ScheduledState;
+
 /**
  * Result of a connector synchronization attempt during flow inheritance.
+ * Contains the outcome, the connector node (if applicable), and the effective
+ * ScheduledState that the caller should apply.
  */
-public enum ConnectorSyncResult {
+public final class ConnectorSyncResult {
 
     /**
-     * Configuration was applied and the connector's run state was updated
-     * to match the proposed ScheduledState.
+     * The outcome of the sync attempt.
      */
-    SYNCED,
+    public enum Outcome {
+        SYNCED,
+        SYNCED_NO_CHANGES,
+        REJECTED,
+        FAILED,
+        REMOVED
+    }
+
+    private final Outcome outcome;
+    private final ConnectorNode connectorNode;
+    private final ScheduledState effectiveScheduledState;
+
+    private ConnectorSyncResult(final Outcome outcome, final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+        this.outcome = outcome;
+        this.connectorNode = connectorNode;
+        this.effectiveScheduledState = effectiveScheduledState;
+    }
 
     /**
-     * Configuration was already up to date; the connector's run state was
-     * updated if it differed from the proposed ScheduledState.
+     * Configuration was applied and the connector's run state should be updated
+     * to match the effective ScheduledState.
      */
-    SYNCED_NO_CHANGES,
+    public static ConnectorSyncResult synced(final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+        return new ConnectorSyncResult(Outcome.SYNCED, connectorNode, effectiveScheduledState);
+    }
 
     /**
-     * The connector was in a state that prevents synchronization (e.g.,
-     * DRAINING, PREPARING_FOR_UPDATE, UPDATING) or a wait for a transient
-     * state timed out. The connector has been marked invalid.
+     * Configuration was already up to date; the connector's run state should be
+     * updated if it differs from the effective ScheduledState.
      */
-    REJECTED,
+    public static ConnectorSyncResult syncedNoChanges(final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+        return new ConnectorSyncResult(Outcome.SYNCED_NO_CHANGES, connectorNode, effectiveScheduledState);
+    }
 
     /**
-     * Synchronization was attempted but failed due to an unrecoverable
-     * error. The connector has been marked invalid.
+     * The connector was in a state that prevents synchronization. The connector
+     * has been marked invalid.
      */
-    FAILED,
+    public static ConnectorSyncResult rejected(final ConnectorNode connectorNode) {
+        return new ConnectorSyncResult(Outcome.REJECTED, connectorNode, null);
+    }
 
     /**
-     * The connector was removed from this node because the external
-     * provider indicated it should not exist (e.g., connector is being
-     * deleted or has been deleted in the external system).
+     * Synchronization was attempted but failed. The connector has been marked invalid.
      */
-    REMOVED
+    public static ConnectorSyncResult failed(final ConnectorNode connectorNode) {
+        return new ConnectorSyncResult(Outcome.FAILED, connectorNode, null);
+    }
+
+    /**
+     * The connector was removed from this node because the external provider
+     * indicated it should not exist.
+     */
+    public static ConnectorSyncResult removed() {
+        return new ConnectorSyncResult(Outcome.REMOVED, null, null);
+    }
+
+    public Outcome getOutcome() {
+        return outcome;
+    }
+
+    /**
+     * Returns the connector node, or {@code null} if the connector was removed.
+     */
+    public ConnectorNode getConnectorNode() {
+        return connectorNode;
+    }
+
+    /**
+     * Returns the effective ScheduledState that should be applied to the connector,
+     * or {@code null} if the connector was rejected, failed, or removed.
+     * The caller is responsible for applying this state using the appropriate
+     * mechanism (e.g., {@code FlowController.startConnector()} which respects
+     * deferred-start semantics).
+     */
+    public ScheduledState getEffectiveScheduledState() {
+        return effectiveScheduledState;
+    }
+
+    @Override
+    public String toString() {
+        return "ConnectorSyncResult[outcome=" + outcome
+                + (connectorNode != null ? ", connector=" + connectorNode.getIdentifier() : "")
+                + (effectiveScheduledState != null ? ", effectiveState=" + effectiveScheduledState : "")
+                + "]";
+    }
 }

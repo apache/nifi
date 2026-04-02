@@ -1043,15 +1043,28 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
                 final ConnectorSyncResult result = connectorRepository.syncConnector(versionedConnector);
                 logger.info("Connector [{}] sync result: {}", versionedConnector.getInstanceIdentifier(), result);
+
+                if (result.getEffectiveScheduledState() != null && result.getConnectorNode() != null) {
+                    if (result.getEffectiveScheduledState() == ScheduledState.RUNNING) {
+                        flowController.startConnector(result.getConnectorNode());
+                    } else if (result.getEffectiveScheduledState() == ScheduledState.ENABLED) {
+                        connectorRepository.stopConnector(result.getConnectorNode());
+                    }
+                }
             }
         }
 
         for (final ConnectorNode existingConnector : connectorRepository.getConnectors()) {
             if (!proposedConnectorIds.contains(existingConnector.getIdentifier())) {
-                logger.info("Connector {} is no longer part of the proposed flow. Will remove Connector.", existingConnector);
+                logger.info("Connector [{}] (state={}) is no longer part of the proposed flow. Stopping and removing.",
+                        existingConnector.getIdentifier(), existingConnector.getCurrentState());
                 try {
-                    connectorRepository.stopConnector(existingConnector);
+                    logger.debug("Stopping orphan connector [{}] before removal", existingConnector.getIdentifier());
+                    connectorRepository.stopConnector(existingConnector).get();
+                    logger.debug("Orphan connector [{}] stopped (state={}); proceeding with removal",
+                            existingConnector.getIdentifier(), existingConnector.getCurrentState());
                     connectorRepository.removeConnector(existingConnector.getIdentifier());
+                    logger.info("Successfully removed orphan connector [{}]", existingConnector.getIdentifier());
                 } catch (final Exception e) {
                     logger.error("Failed to remove Connector [{}] during flow inheritance. Connector will be marked invalid.",
                             existingConnector.getIdentifier(), e);

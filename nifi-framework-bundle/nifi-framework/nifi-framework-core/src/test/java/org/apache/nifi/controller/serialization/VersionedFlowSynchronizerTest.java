@@ -20,6 +20,7 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
@@ -293,7 +294,7 @@ class VersionedFlowSynchronizerTest {
     }
 
     @Test
-    void testSyncInheritConnectorStartRoutedThroughFlowController() {
+    void testSyncInheritConnectorDelegatesSyncToConnectorRepository() {
         setRootGroup();
 
         final String connectorId = UUID.randomUUID().toString();
@@ -307,16 +308,17 @@ class VersionedFlowSynchronizerTest {
         versionedConnector.setScheduledState(ScheduledState.RUNNING);
 
         final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
-        final ConnectorNode connectorNode = mock(ConnectorNode.class);
-        when(connectorRepository.getConnector(eq(connectorId))).thenReturn(null).thenReturn(connectorNode);
-        when(flowManager.createConnector(eq(connectorType), eq(connectorId), any(), eq(false), eq(true))).thenReturn(connectorNode);
+        final ConnectorNode syncedNode = mock(ConnectorNode.class);
+        when(connectorRepository.syncConnector(versionedConnector))
+                .thenReturn(ConnectorSyncResult.synced(syncedNode, ScheduledState.RUNNING));
 
         setFlowController(connectorRepository);
         when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
 
         versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
 
-        verify(flowController).startConnector(connectorNode);
+        verify(connectorRepository).syncConnector(versionedConnector);
+        verify(flowController).startConnector(syncedNode);
     }
 
     @Test
@@ -334,16 +336,123 @@ class VersionedFlowSynchronizerTest {
         versionedConnector.setScheduledState(ScheduledState.ENABLED);
 
         final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
-        final ConnectorNode connectorNode = mock(ConnectorNode.class);
-        when(connectorRepository.getConnector(eq(connectorId))).thenReturn(null).thenReturn(connectorNode);
-        when(flowManager.createConnector(eq(connectorType), eq(connectorId), any(), eq(false), eq(true))).thenReturn(connectorNode);
+        final ConnectorNode syncedNode = mock(ConnectorNode.class);
+        when(connectorRepository.syncConnector(versionedConnector))
+                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
 
         setFlowController(connectorRepository);
         when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
 
         versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
 
+        verify(connectorRepository).syncConnector(versionedConnector);
         verify(flowController, never()).startConnector(any());
-        verify(connectorRepository).stopConnector(connectorNode);
+        verify(connectorRepository).stopConnector(syncedNode);
+    }
+
+    @Test
+    void testSyncOrphanConnectorIsRemoved() {
+        setRootGroup();
+
+        final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
+
+        // The proposed flow has one connector, but the local repo has a different one (orphan)
+        final VersionedConnector proposedConnector = new VersionedConnector();
+        proposedConnector.setInstanceIdentifier("proposed-connector-id");
+        proposedConnector.setName("Proposed Connector");
+        proposedConnector.setType("org.apache.nifi.connectors.TestConnector");
+        proposedConnector.setBundle(CORE_BUNDLE);
+        proposedConnector.setScheduledState(ScheduledState.ENABLED);
+
+        final ConnectorNode orphanConnector = mock(ConnectorNode.class);
+        org.mockito.Mockito.lenient().when(orphanConnector.getIdentifier()).thenReturn("orphan-connector-id");
+        when(connectorRepository.stopConnector(orphanConnector))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        final ConnectorNode syncedNode = mock(ConnectorNode.class);
+        when(connectorRepository.syncConnector(proposedConnector))
+                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+        when(connectorRepository.stopConnector(syncedNode))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        setFlowController(connectorRepository);
+        when(connectorRepository.getConnectors()).thenReturn(List.of(orphanConnector));
+        when(versionedDataflow.getConnectors()).thenReturn(List.of(proposedConnector));
+
+        versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
+
+        verify(connectorRepository).syncConnector(proposedConnector);
+        verify(connectorRepository).stopConnector(orphanConnector);
+        verify(connectorRepository).removeConnector("orphan-connector-id");
+    }
+
+    @Test
+    void testSyncOrphanConnectorNotRemovedWhenInProposedFlow() {
+        setRootGroup();
+
+        final String connectorId = UUID.randomUUID().toString();
+        final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
+
+        final ConnectorNode existingConnector = mock(ConnectorNode.class);
+        org.mockito.Mockito.lenient().when(existingConnector.getIdentifier()).thenReturn(connectorId);
+
+        final VersionedConnector versionedConnector = new VersionedConnector();
+        versionedConnector.setInstanceIdentifier(connectorId);
+        versionedConnector.setName("Test Connector");
+        versionedConnector.setType("org.apache.nifi.connectors.TestConnector");
+        versionedConnector.setBundle(CORE_BUNDLE);
+        versionedConnector.setScheduledState(ScheduledState.ENABLED);
+
+        final ConnectorNode syncedNode = mock(ConnectorNode.class);
+        when(connectorRepository.syncConnector(versionedConnector))
+                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+        when(connectorRepository.stopConnector(syncedNode))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        setFlowController(connectorRepository);
+        when(connectorRepository.getConnectors()).thenReturn(List.of(existingConnector));
+        when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
+
+        versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
+
+        verify(connectorRepository, never()).removeConnector(any());
+        verify(connectorRepository).syncConnector(versionedConnector);
+    }
+
+    @Test
+    void testSyncOrphanRemovalFailureMarksInvalid() {
+        setRootGroup();
+
+        final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
+
+        // The proposed flow has one connector; the orphan is a different one
+        final VersionedConnector proposedConnector = new VersionedConnector();
+        proposedConnector.setInstanceIdentifier("proposed-connector-id");
+        proposedConnector.setName("Proposed Connector");
+        proposedConnector.setType("org.apache.nifi.connectors.TestConnector");
+        proposedConnector.setBundle(CORE_BUNDLE);
+        proposedConnector.setScheduledState(ScheduledState.ENABLED);
+
+        final ConnectorNode orphanConnector = mock(ConnectorNode.class);
+        org.mockito.Mockito.lenient().when(orphanConnector.getIdentifier()).thenReturn("orphan-connector-id");
+
+        final java.util.concurrent.CompletableFuture<Void> failedFuture = new java.util.concurrent.CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("Stop failed"));
+        when(connectorRepository.stopConnector(orphanConnector)).thenReturn(failedFuture);
+
+        final ConnectorNode syncedNode = mock(ConnectorNode.class);
+        when(connectorRepository.syncConnector(proposedConnector))
+                .thenReturn(ConnectorSyncResult.syncedNoChanges(syncedNode, ScheduledState.ENABLED));
+        when(connectorRepository.stopConnector(syncedNode))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        setFlowController(connectorRepository);
+        when(connectorRepository.getConnectors()).thenReturn(List.of(orphanConnector));
+        when(versionedDataflow.getConnectors()).thenReturn(List.of(proposedConnector));
+
+        versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
+
+        verify(connectorRepository).syncConnector(proposedConnector);
+        verify(orphanConnector).markInvalid(eq("Flow Synchronization Failure"), any());
     }
 }
