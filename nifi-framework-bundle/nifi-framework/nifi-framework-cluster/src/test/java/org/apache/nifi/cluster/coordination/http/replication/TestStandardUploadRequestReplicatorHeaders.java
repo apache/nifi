@@ -42,6 +42,42 @@ import static org.mockito.Mockito.mock;
 
 class TestStandardUploadRequestReplicatorHeaders {
 
+    private static final String TEST_USER_IDENTITY = "test-user";
+    private static final String REAL_USER_IDENTITY = "real-user";
+    private static final String EVIL_USER_IDENTITY = "evil-user";
+
+    private static final String TEST_FILENAME = "test.txt";
+    private static final String TEST_IDENTIFIER = "id-1";
+    private static final URI TEST_REQUEST_URI = URI.create("https://localhost:8443/nifi-api/test");
+    private static final int SUCCESS_STATUS = 200;
+
+    private static final String FILENAME_HEADER = "Filename";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String CONTENT_TYPE_VALUE = "application/octet-stream";
+
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String AUTHORIZATION_VALUE = "Bearer secret-token";
+
+    private static final String CUSTOM_TOKEN_HEADER = "X-Custom-Token";
+    private static final String CUSTOM_TOKEN_VALUE = "custom-token-abc";
+    private static final String CUSTOM_TOKEN_VALUE_ALT = "keep-this";
+    private static final String CUSTOM_TOKEN_VALUE_SURVIVE = "keep-me";
+
+    private static final String CUSTOM_HEADER = "X-Custom-Header";
+    private static final String CUSTOM_HEADER_VALUE = "custom-value";
+
+    private static final String CONTENT_LENGTH_HEADER = "Content-Length";
+    private static final String HOST_HEADER = "Host";
+    private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
+    private static final String CONNECTION_HEADER = "Connection";
+
+    private static final String COOKIE_HEADER = "Cookie";
+    private static final String COOKIE_VALUE_WITH_AUTH = "__Secure-Authorization-Bearer=token123; __Secure-Request-Token=rt456; custom=value";
+    private static final String COOKIE_CUSTOM_SEGMENT = "custom=value";
+
+    private static final String SPOOFED_VALUE = "spoofed";
+    private static final String SPOOFED_TX_VALUE = "spoofed-tx";
+
     private StandardUploadRequestReplicator replicator;
 
     @BeforeEach
@@ -59,22 +95,22 @@ class TestStandardUploadRequestReplicatorHeaders {
     @Test
     void testCustomHeaderPreservedFromForwardedHeaders() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put("Snowflake-Authorization-Token", "sf-token-abc");
-        forwarded.put("X-Custom-Header", "custom-value");
+        forwarded.put(CUSTOM_TOKEN_HEADER, CUSTOM_TOKEN_VALUE);
+        forwarded.put(CUSTOM_HEADER, CUSTOM_HEADER_VALUE);
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertEquals("sf-token-abc", result.get("Snowflake-Authorization-Token"));
-        assertEquals("custom-value", result.get("X-Custom-Header"));
+        assertEquals(CUSTOM_TOKEN_VALUE, result.get(CUSTOM_TOKEN_HEADER));
+        assertEquals(CUSTOM_HEADER_VALUE, result.get(CUSTOM_HEADER));
     }
 
     @Test
     void testReplicationHeadersFromForwardedInputAreStripped() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), "spoofed");
-        forwarded.put(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), "spoofed");
-        forwarded.put(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader(), "spoofed-tx");
+        forwarded.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), SPOOFED_VALUE);
+        forwarded.put(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), SPOOFED_VALUE);
+        forwarded.put(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader(), SPOOFED_TX_VALUE);
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
@@ -87,64 +123,64 @@ class TestStandardUploadRequestReplicatorHeaders {
     @Test
     void testAuthorizationHeaderStripped() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put("Authorization", "Bearer secret-token");
-        forwarded.put("Snowflake-Authorization-Token", "keep-this");
+        forwarded.put(AUTHORIZATION_HEADER, AUTHORIZATION_VALUE);
+        forwarded.put(CUSTOM_TOKEN_HEADER, CUSTOM_TOKEN_VALUE_ALT);
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertNull(result.get("Authorization"));
-        assertEquals("keep-this", result.get("Snowflake-Authorization-Token"));
+        assertNull(result.get(AUTHORIZATION_HEADER));
+        assertEquals(CUSTOM_TOKEN_VALUE_ALT, result.get(CUSTOM_TOKEN_HEADER));
     }
 
     @Test
     void testHopByHopHeadersStripped() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put("Content-Length", "99999");
-        forwarded.put("Host", "original-host:443");
-        forwarded.put("Transfer-Encoding", "chunked");
-        forwarded.put("Connection", "keep-alive");
+        forwarded.put(CONTENT_LENGTH_HEADER, "99999");
+        forwarded.put(HOST_HEADER, "original-host:443");
+        forwarded.put(TRANSFER_ENCODING_HEADER, "chunked");
+        forwarded.put(CONNECTION_HEADER, "keep-alive");
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertNull(result.get("Content-Length"));
-        assertNull(result.get("Transfer-Encoding"));
-        assertNull(result.get("Connection"));
-        assertNull(result.get("Host"));
+        assertNull(result.get(CONTENT_LENGTH_HEADER));
+        assertNull(result.get(TRANSFER_ENCODING_HEADER));
+        assertNull(result.get(CONNECTION_HEADER));
+        assertNull(result.get(HOST_HEADER));
     }
 
     @Test
     void testExplicitBuilderHeadersWinOverForwarded() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put("Filename", "forwarded-name.txt");
+        forwarded.put(FILENAME_HEADER, "forwarded-name.txt");
 
         final UploadRequest<String> request = new UploadRequest.Builder<String>()
-                .user(new StandardNiFiUser.Builder().identity("test-user").build())
-                .filename("test.txt")
-                .identifier("id-1")
+                .user(new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build())
+                .filename(TEST_FILENAME)
+                .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
                 .forwardRequestHeaders(forwarded)
-                .header("Filename", "explicit-name.txt")
-                .exampleRequestUri(URI.create("https://localhost:8443/nifi-api/test"))
+                .header(FILENAME_HEADER, "explicit-name.txt")
+                .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
-                .successfulResponseStatus(200)
+                .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
 
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
-        assertEquals("explicit-name.txt", result.get("Filename"));
+        assertEquals("explicit-name.txt", result.get(FILENAME_HEADER));
     }
 
     @Test
     void testProxiedEntitiesSetFromUser() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put("Snowflake-Authorization-Token", "token");
+        forwarded.put(CUSTOM_TOKEN_HEADER, CUSTOM_TOKEN_VALUE);
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
         assertNotNull(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
-        assertTrue(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains("test-user"));
+        assertTrue(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(TEST_USER_IDENTITY));
         assertNotNull(result.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS));
     }
 
@@ -160,19 +196,19 @@ class TestStandardUploadRequestReplicatorHeaders {
     @Test
     void testNoForwardedHeadersStillWorks() {
         final UploadRequest<String> request = new UploadRequest.Builder<String>()
-                .user(new StandardNiFiUser.Builder().identity("test-user").build())
-                .filename("test.txt")
-                .identifier("id-1")
+                .user(new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build())
+                .filename(TEST_FILENAME)
+                .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
-                .header("Filename", "test.txt")
-                .exampleRequestUri(URI.create("https://localhost:8443/nifi-api/test"))
+                .header(FILENAME_HEADER, TEST_FILENAME)
+                .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
-                .successfulResponseStatus(200)
+                .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
 
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertEquals("test.txt", result.get("Filename"));
+        assertEquals(TEST_FILENAME, result.get(FILENAME_HEADER));
         assertEquals(Boolean.TRUE.toString(), result.get(RequestReplicationHeader.REQUEST_REPLICATED.getHeader()));
         assertNotNull(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
     }
@@ -180,62 +216,62 @@ class TestStandardUploadRequestReplicatorHeaders {
     @Test
     void testBuilderCannotOverrideProxiedEntities() {
         final UploadRequest<String> request = new UploadRequest.Builder<String>()
-                .user(new StandardNiFiUser.Builder().identity("real-user").build())
-                .filename("test.txt")
-                .identifier("id-1")
+                .user(new StandardNiFiUser.Builder().identity(REAL_USER_IDENTITY).build())
+                .filename(TEST_FILENAME)
+                .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
-                .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, "<evil-user>")
-                .exampleRequestUri(URI.create("https://localhost:8443/nifi-api/test"))
+                .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, "<" + EVIL_USER_IDENTITY + ">")
+                .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
-                .successfulResponseStatus(200)
+                .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
 
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertFalse(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains("evil-user"));
-        assertTrue(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains("real-user"));
+        assertFalse(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(EVIL_USER_IDENTITY));
+        assertTrue(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(REAL_USER_IDENTITY));
     }
 
     @Test
     void testAuthCookiesStrippedFromForwardedHeaders() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put("Cookie", "__Secure-Authorization-Bearer=token123; __Secure-Request-Token=rt456; custom=value");
-        forwarded.put("Snowflake-Authorization-Token", "keep-me");
+        forwarded.put(COOKIE_HEADER, COOKIE_VALUE_WITH_AUTH);
+        forwarded.put(CUSTOM_TOKEN_HEADER, CUSTOM_TOKEN_VALUE_SURVIVE);
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        final String cookies = result.get("Cookie");
+        final String cookies = result.get(COOKIE_HEADER);
         assertNotNull(cookies);
         assertFalse(cookies.contains("__Secure-Authorization-Bearer"));
         assertFalse(cookies.contains("__Secure-Request-Token"));
-        assertTrue(cookies.contains("custom=value"));
-        assertEquals("keep-me", result.get("Snowflake-Authorization-Token"));
+        assertTrue(cookies.contains(COOKIE_CUSTOM_SEGMENT));
+        assertEquals(CUSTOM_TOKEN_VALUE_SURVIVE, result.get(CUSTOM_TOKEN_HEADER));
     }
 
     @Test
     void testForwardRequestHeadersNullProducesSameAsOmitted() {
         final UploadRequest<String> withNull = new UploadRequest.Builder<String>()
-                .user(new StandardNiFiUser.Builder().identity("test-user").build())
-                .filename("test.txt")
-                .identifier("id-1")
+                .user(new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build())
+                .filename(TEST_FILENAME)
+                .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
                 .forwardRequestHeaders(null)
-                .header("Filename", "test.txt")
-                .exampleRequestUri(URI.create("https://localhost:8443/nifi-api/test"))
+                .header(FILENAME_HEADER, TEST_FILENAME)
+                .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
-                .successfulResponseStatus(200)
+                .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
 
         final UploadRequest<String> withoutCall = new UploadRequest.Builder<String>()
-                .user(new StandardNiFiUser.Builder().identity("test-user").build())
-                .filename("test.txt")
-                .identifier("id-1")
+                .user(new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build())
+                .filename(TEST_FILENAME)
+                .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
-                .header("Filename", "test.txt")
-                .exampleRequestUri(URI.create("https://localhost:8443/nifi-api/test"))
+                .header(FILENAME_HEADER, TEST_FILENAME)
+                .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
-                .successfulResponseStatus(200)
+                .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
 
         final Map<String, String> resultNull = replicator.buildOutboundHeaders(withNull);
@@ -246,16 +282,16 @@ class TestStandardUploadRequestReplicatorHeaders {
 
     private UploadRequest<String> buildUploadRequest(final Map<String, String> forwardedHeaders) {
         return new UploadRequest.Builder<String>()
-                .user(new StandardNiFiUser.Builder().identity("test-user").build())
-                .filename("test.txt")
-                .identifier("id-1")
+                .user(new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build())
+                .filename(TEST_FILENAME)
+                .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
                 .forwardRequestHeaders(forwardedHeaders)
-                .header("Filename", "test.txt")
-                .header("Content-Type", "application/octet-stream")
-                .exampleRequestUri(URI.create("https://localhost:8443/nifi-api/test"))
+                .header(FILENAME_HEADER, TEST_FILENAME)
+                .header(CONTENT_TYPE_HEADER, CONTENT_TYPE_VALUE)
+                .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
-                .successfulResponseStatus(200)
+                .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
     }
 }

@@ -31,48 +31,67 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestReplicationHeaderUtils {
 
+    private static final String TEST_USER_IDENTITY = "alice";
+
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String AUTHORIZATION_VALUE = "Bearer secret";
+
+    private static final String CUSTOM_HEADER = "X-Custom-Token";
+    private static final String CUSTOM_HEADER_VALUE = "custom-token-123";
+
+    private static final String COOKIE_HEADER = "Cookie";
+    private static final String HOST_HEADER = "Host";
+    private static final String HOST_VALUE = "original-host:8080";
+
+    private static final String CONTENT_LENGTH_HEADER = "Content-Length";
+    private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
+    private static final String CONNECTION_HEADER = "Connection";
+
+    private static final String SPOOFED_VALUE = "spoofed";
+    private static final String SHOULD_SURVIVE_VALUE = "should-survive";
+
     @Test
     void testApplyUserProxyAndStripCredentialsSetsProxiedEntities() {
-        final var user = new StandardNiFiUser.Builder().identity("alice").build();
+        final var user = new StandardNiFiUser.Builder().identity(TEST_USER_IDENTITY).build();
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", "Bearer secret");
-        headers.put("Snowflake-Authorization-Token", "sf-token-123");
+        headers.put(AUTHORIZATION_HEADER, AUTHORIZATION_VALUE);
+        headers.put(CUSTOM_HEADER, CUSTOM_HEADER_VALUE);
 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, user);
 
         assertNotNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
-        assertTrue(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains("alice"));
+        assertTrue(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(TEST_USER_IDENTITY));
         assertNotNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS));
-        assertNull(headers.get("Authorization"));
-        assertEquals("sf-token-123", headers.get("Snowflake-Authorization-Token"));
+        assertNull(headers.get(AUTHORIZATION_HEADER));
+        assertEquals(CUSTOM_HEADER_VALUE, headers.get(CUSTOM_HEADER));
     }
 
     @Test
     void testApplyUserProxyWithNullUserOmitsProxiedEntities() {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", "Bearer secret");
+        headers.put(AUTHORIZATION_HEADER, AUTHORIZATION_VALUE);
 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, null);
 
         assertNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
         assertNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS));
-        assertNull(headers.get("Authorization"));
+        assertNull(headers.get(AUTHORIZATION_HEADER));
     }
 
     @Test
     void testStripRequestReplicationHeadersRemovesAllProtocolHeaders() {
         final Map<String, String> headers = new HashMap<>();
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
-            headers.put(rh.getHeader(), "spoofed");
+            headers.put(rh.getHeader(), SPOOFED_VALUE);
         }
-        headers.put("Snowflake-Authorization-Token", "should-survive");
+        headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
 
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
             assertNull(headers.get(rh.getHeader()), "Replication header should have been stripped: " + rh.getHeader());
         }
-        assertEquals("should-survive", headers.get("Snowflake-Authorization-Token"));
+        assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
     }
 
     @Test
@@ -90,29 +109,29 @@ class TestReplicationHeaderUtils {
     @Test
     void testStripHopByHopHeaders() {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Length", "12345");
-        headers.put("Host", "original-host:8080");
-        headers.put("Transfer-Encoding", "chunked");
-        headers.put("Connection", "keep-alive");
-        headers.put("Snowflake-Authorization-Token", "keep-me");
+        headers.put(CONTENT_LENGTH_HEADER, "12345");
+        headers.put(HOST_HEADER, HOST_VALUE);
+        headers.put(TRANSFER_ENCODING_HEADER, "chunked");
+        headers.put(CONNECTION_HEADER, "keep-alive");
+        headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.stripHopByHopHeaders(headers);
 
-        assertNull(headers.get("Content-Length"));
-        assertNull(headers.get("Host"));
-        assertNull(headers.get("Transfer-Encoding"));
-        assertNull(headers.get("Connection"));
-        assertEquals("keep-me", headers.get("Snowflake-Authorization-Token"));
+        assertNull(headers.get(CONTENT_LENGTH_HEADER));
+        assertNull(headers.get(HOST_HEADER));
+        assertNull(headers.get(TRANSFER_ENCODING_HEADER));
+        assertNull(headers.get(CONNECTION_HEADER));
+        assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
     }
 
     @Test
     void testStripAuthCookies() {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Cookie", "__Secure-Authorization-Bearer=token123; __Secure-Request-Token=rt456; other=value");
+        headers.put(COOKIE_HEADER, "__Secure-Authorization-Bearer=token123; __Secure-Request-Token=rt456; other=value");
 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, null);
 
-        final String remaining = headers.get("Cookie");
+        final String remaining = headers.get(COOKIE_HEADER);
         assertNotNull(remaining);
         assertFalse(remaining.contains("__Secure-Authorization-Bearer"));
         assertFalse(remaining.contains("__Secure-Request-Token"));
@@ -122,12 +141,12 @@ class TestReplicationHeaderUtils {
     @Test
     void testRemoveHostHeader() {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Host", "original-host:8080");
-        headers.put("X-Custom", "keep");
+        headers.put(HOST_HEADER, HOST_VALUE);
+        headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, null);
 
-        assertNull(headers.get("Host"));
-        assertEquals("keep", headers.get("X-Custom"));
+        assertNull(headers.get(HOST_HEADER));
+        assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
     }
 }
