@@ -90,7 +90,7 @@ class SnowflakeIngestIT {
         assumeTrue(validationResult.environment().isPresent(), validationResult.message());
         environment = validationResult.environment().get();
 
-        Class.forName("net.snowflake.client.jdbc.SnowflakeDriver");
+        Class.forName("net.snowflake.client.api.driver.SnowflakeDriver");
         initializeSnowflakeObjects();
     }
 
