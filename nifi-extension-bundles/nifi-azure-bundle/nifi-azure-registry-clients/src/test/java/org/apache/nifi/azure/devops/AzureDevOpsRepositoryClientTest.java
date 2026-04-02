@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -302,5 +303,51 @@ class AzureDevOpsRepositoryClientTest {
             final String body = new String(result.readAllBytes(), StandardCharsets.UTF_8);
             assertTrue(body.contains("delete-commit"));
         }
+    }
+
+    @Test
+    void testCreateBranchSuccess() throws FlowRegistryException, IOException {
+        final HttpResponseEntity emptyRefsResponse = mockResponse(HttpURLConnection.HTTP_OK, "{\"value\":[]}");
+        stubGetChain(repoInfoResponse(), permissionsResponse(), emptyRefsResponse, branchHeadResponse(BRANCH_HEAD_SHA));
+        stubPostChain(mockResponse(HttpURLConnection.HTTP_OK, "{\"value\":[{\"name\":\"refs/heads/feature\"}]}"));
+
+        final AzureDevOpsRepositoryClient client = buildClient();
+        client.createBranch("feature", "main", Optional.empty());
+    }
+
+    @Test
+    void testCreateBranchWithSourceCommitSha() throws FlowRegistryException, IOException {
+        final HttpResponseEntity emptyRefsResponse = mockResponse(HttpURLConnection.HTTP_OK, "{\"value\":[]}");
+        stubGetChain(repoInfoResponse(), permissionsResponse(), emptyRefsResponse);
+        stubPostChain(mockResponse(HttpURLConnection.HTTP_OK, "{\"value\":[{\"name\":\"refs/heads/feature\"}]}"));
+
+        final AzureDevOpsRepositoryClient client = buildClient();
+        client.createBranch("feature", "main", Optional.of("abc123"));
+    }
+
+    @Test
+    void testCreateBranchAlreadyExists() throws FlowRegistryException {
+        final HttpResponseEntity existingBranchResponse = mockResponse(HttpURLConnection.HTTP_OK,
+                "{\"value\":[{\"name\":\"refs/heads/feature\",\"objectId\":\"abc123\"}]}");
+        stubGetChain(repoInfoResponse(), permissionsResponse(), existingBranchResponse);
+
+        final AzureDevOpsRepositoryClient client = buildClient();
+        final FlowRegistryException exception = assertThrows(FlowRegistryException.class,
+                () -> client.createBranch("feature", "main", Optional.empty()));
+        assertTrue(exception.getMessage().contains("already exists"));
+    }
+
+    @Test
+    void testCreateBranchBlankNameRejected() throws FlowRegistryException {
+        stubGetChain(repoInfoResponse(), permissionsResponse());
+        final AzureDevOpsRepositoryClient client = buildClient();
+        assertThrows(IllegalArgumentException.class, () -> client.createBranch("  ", "main", Optional.empty()));
+    }
+
+    @Test
+    void testCreateBranchBlankSourceRejected() throws FlowRegistryException {
+        stubGetChain(repoInfoResponse(), permissionsResponse());
+        final AzureDevOpsRepositoryClient client = buildClient();
+        assertThrows(IllegalArgumentException.class, () -> client.createBranch("feature", "  ", Optional.empty()));
     }
 }

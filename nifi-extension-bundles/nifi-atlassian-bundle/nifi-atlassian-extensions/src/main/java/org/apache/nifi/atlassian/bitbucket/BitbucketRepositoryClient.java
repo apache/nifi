@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -536,6 +537,85 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
 
         return getRequiredLatestCommit(branch, resolvedPath);
+    }
+
+    @Override
+    public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
+            throws IOException, FlowRegistryException {
+        if (newBranchName == null || newBranchName.isBlank()) {
+            throw new IllegalArgumentException("Branch name must be specified");
+        }
+        if (sourceBranch == null || sourceBranch.isBlank()) {
+            throw new IllegalArgumentException("Source branch must be specified");
+        }
+
+        final String trimmedNewBranch = newBranchName.trim();
+        final String trimmedSourceBranch = sourceBranch.trim();
+
+        if (getBranches().contains(trimmedNewBranch)) {
+            throw new FlowRegistryException("Branch [%s] already exists".formatted(trimmedNewBranch));
+        }
+
+        logger.info("Creating branch [{}] from [{}] in repository [{}]", trimmedNewBranch, trimmedSourceBranch, repoName);
+
+        if (formFactor == BitbucketFormFactor.DATA_CENTER) {
+            createBranchDataCenter(trimmedNewBranch, trimmedSourceBranch, sourceCommitSha);
+        } else {
+            createBranchCloud(trimmedNewBranch, trimmedSourceBranch, sourceCommitSha);
+        }
+    }
+
+    private void createBranchCloud(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha) throws FlowRegistryException {
+        final String targetHash;
+        if (sourceCommitSha.isPresent() && !sourceCommitSha.get().isBlank()) {
+            targetHash = sourceCommitSha.get();
+        } else {
+            targetHash = getBranchHeadCloud(sourceBranch);
+        }
+
+        final URI uri = getRepositoryUriBuilder().addPathSegment("refs").addPathSegment("branches").build();
+        final String json;
+        try {
+            json = objectMapper.writeValueAsString(Map.of(FIELD_NAME, newBranchName, FIELD_TARGET, Map.of(FIELD_HASH, targetHash)));
+        } catch (final Exception e) {
+            throw new FlowRegistryException("Failed to serialize branch creation request", e);
+        }
+
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                .post()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .header(CONTENT_TYPE_HEADER, "application/json")
+                .body(json)
+                .retrieve()) {
+            verifyStatusCode(response, "Error creating branch [%s] in repository [%s]".formatted(newBranchName, repoName), HttpURLConnection.HTTP_CREATED);
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket create branch response", e);
+        }
+    }
+
+    private void createBranchDataCenter(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha) throws FlowRegistryException {
+        final String startPoint = sourceCommitSha.filter(sha -> !sha.isBlank()).orElse("refs/heads/" + sourceBranch);
+        final URI uri = getRepositoryUriBuilder().addPathSegment("branches").build();
+
+        final String json;
+        try {
+            json = objectMapper.writeValueAsString(Map.of(FIELD_NAME, newBranchName, "startPoint", startPoint));
+        } catch (final Exception e) {
+            throw new FlowRegistryException("Failed to serialize branch creation request", e);
+        }
+
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                .post()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .header(CONTENT_TYPE_HEADER, "application/json")
+                .body(json)
+                .retrieve()) {
+            verifyStatusCode(response, "Error creating branch [%s] in repository [%s]".formatted(newBranchName, repoName), HttpURLConnection.HTTP_OK);
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket create branch response", e);
+        }
     }
 
     @Override
