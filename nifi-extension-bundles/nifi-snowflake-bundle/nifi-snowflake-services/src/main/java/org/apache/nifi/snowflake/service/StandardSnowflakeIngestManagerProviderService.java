@@ -181,10 +181,9 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
 
     @OnDisabled
     public void onDisabled() {
-        if (ingestClient == null) {
-            getLogger().info("Ingest Client not initialized");
-        } else {
+        if (ingestClient != null) {
             ingestClient.close();
+            ingestClient = null;
         }
     }
 
