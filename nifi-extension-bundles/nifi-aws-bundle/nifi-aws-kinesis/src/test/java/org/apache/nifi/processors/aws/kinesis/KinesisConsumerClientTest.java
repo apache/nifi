@@ -205,6 +205,35 @@ class KinesisConsumerClientTest {
     }
 
     /**
+     * Verifies that polling a result from the per-shard queue resumes a paused EFO consumer.
+     * Without this, single-threaded environments (such as Stateless) starve: the consumer
+     * pauses after delivering one event, and no other thread calls startFetches or
+     * acknowledgeResults to resume it during the consumeRecords loop.
+     */
+    @Test
+    void testPollingResultResumesPausedEfoConsumer() throws Exception {
+        final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
+        when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
+
+        final List<SubscribeToShardRequest> capturedRequests = new ArrayList<>();
+        final EnhancedFanOutClient client = createEfoClient(capturedRequests);
+        final List<Shard> shards = List.of(Shard.builder().shardId("shardId-000000000001").build());
+        client.startFetches(shards, "test-stream", 100, "TRIM_HORIZON", mockShardManager);
+
+        final EnhancedFanOutClient.ShardConsumer consumer = client.getShardConsumer("shardId-000000000001");
+        final Subscription subscription = mock(Subscription.class);
+        consumer.setSubscription(subscription);
+        consumer.pause();
+
+        client.enqueueResult(shardFetchResult("shardId-000000000001", "60000"));
+
+        final ShardFetchResult polled = client.pollShardResult("shardId-000000000001");
+        assertNotNull(polled, "Expected queued result to be polled");
+
+        verify(subscription, times(1)).request(1);
+    }
+
+    /**
      * Verifies that acknowledging multiple fetched results from the same shard requests only one
      * additional EFO event for that shard.
      */
