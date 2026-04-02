@@ -231,7 +231,7 @@ export class UserListingEffects {
                     if (userGroupUpdates.length === 0) {
                         return of(UserListingActions.createUserComplete({ response }));
                     } else {
-                        return userGroupUpdates;
+                        return from(userGroupUpdates);
                     }
                 } else {
                     return of(UserListingActions.createUserComplete({ response }));
@@ -263,17 +263,22 @@ export class UserListingEffects {
             ofType(UserListingActions.createUserSuccess),
             map((action) => action.response),
             filter((response) => response.userGroupUpdate != null),
-            mergeMap((createUserResponse) =>
-                this.actions$.pipe(
+            mergeMap((createUserResponse) => {
+                const expectedCount = createUserResponse.userGroupUpdate?.userGroups?.length ?? 0;
+                if (expectedCount === 0) {
+                    return of(UserListingActions.createUserComplete({ response: createUserResponse }));
+                }
+                return this.actions$.pipe(
                     ofType(UserListingActions.updateUserGroupSuccess),
                     filter(
                         (updateSuccess) =>
                             // @ts-ignore
                             createUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
                     ),
+                    take(expectedCount),
                     map(() => UserListingActions.createUserComplete({ response: createUserResponse }))
-                )
-            )
+                );
+            })
         )
     );
 
@@ -525,7 +530,7 @@ export class UserListingEffects {
                     if (userGroupUpdates.length === 0) {
                         return of(UserListingActions.updateUserComplete());
                     } else {
-                        return userGroupUpdates;
+                        return from(userGroupUpdates);
                     }
                 } else {
                     return of(UserListingActions.updateUserComplete());
@@ -539,17 +544,26 @@ export class UserListingEffects {
             ofType(UserListingActions.updateUserSuccess),
             map((action) => action.response),
             filter((response) => response.userGroupUpdate != null),
-            mergeMap((updateUserResponse) =>
-                this.actions$.pipe(
+            mergeMap((updateUserResponse) => {
+                const addedCount = updateUserResponse.userGroupUpdate?.userGroupsAdded?.length ?? 0;
+                const removedCount = updateUserResponse.userGroupUpdate?.userGroupsRemoved?.length ?? 0;
+                const expectedCount = addedCount + removedCount;
+
+                if (expectedCount === 0) {
+                    return of(UserListingActions.updateUserComplete());
+                }
+
+                return this.actions$.pipe(
                     ofType(UserListingActions.updateUserGroupSuccess),
                     filter(
                         (updateSuccess) =>
                             // @ts-ignore
                             updateUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
                     ),
+                    take(expectedCount),
                     map(() => UserListingActions.updateUserComplete())
-                )
-            )
+                );
+            })
         )
     );
 
@@ -622,7 +636,7 @@ export class UserListingEffects {
         this.actions$.pipe(
             ofType(UserListingActions.updateUserGroup),
             map((action) => action.request),
-            switchMap((request) =>
+            mergeMap((request) =>
                 from(this.usersService.updateUserGroup(request)).pipe(
                     map((response) =>
                         UserListingActions.updateUserGroupSuccess({
