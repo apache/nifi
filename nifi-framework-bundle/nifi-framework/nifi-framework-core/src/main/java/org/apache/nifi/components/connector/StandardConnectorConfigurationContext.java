@@ -19,18 +19,14 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -176,28 +172,36 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     }
 
     private StepConfiguration resolvePropertyValues(final Map<String, ConnectorValueReference> propertyValues) {
-        final Map<String, ConnectorValueReference> resolvedProperties = new HashMap<>();
-        for (final Map.Entry<String, ConnectorValueReference> entry : propertyValues.entrySet()) {
-            final ConnectorValueReference resolved = resolve(entry.getValue());
-            resolvedProperties.put(entry.getKey(), resolved);
+        final Set<SecretReference> secretReferences = new HashSet<>();
+        for (final ConnectorValueReference ref : propertyValues.values()) {
+            if (ref instanceof SecretReference secretRef) {
+                secretReferences.add(secretRef);
+            }
         }
-        return new StepConfiguration(resolvedProperties);
+
+        final Map<SecretReference, Secret> resolvedSecrets = secretReferences.isEmpty() ? Map.of() : secretsManager.getSecrets(secretReferences);
+        return resolvePropertyValues(propertyValues, resolvedSecrets);
     }
 
-    private ConnectorValueReference resolve(final ConnectorValueReference reference) {
-        if (reference == null) {
-            return null;
+    private StepConfiguration resolvePropertyValues(final Map<String, ConnectorValueReference> propertyValues, final Map<SecretReference, Secret> resolvedSecrets) {
+        final Map<String, ConnectorValueReference> resolvedProperties = new HashMap<>();
+        for (final Map.Entry<String, ConnectorValueReference> entry : propertyValues.entrySet()) {
+            final ConnectorValueReference reference = entry.getValue();
+            if (reference == null) {
+                resolvedProperties.put(entry.getKey(), null);
+            } else {
+                final ConnectorValueReference resolved = switch (reference) {
+                    case StringLiteralValue stringLiteral -> stringLiteral;
+                    case AssetReference assetReference -> resolveAssetReferences(assetReference);
+                    case SecretReference secretReference -> {
+                        final Secret secret = resolvedSecrets.get(secretReference);
+                        yield new StringLiteralValue(secret == null ? null : secret.getValue());
+                    }
+                };
+                resolvedProperties.put(entry.getKey(), resolved);
+            }
         }
-
-        try {
-            return switch (reference) {
-                case StringLiteralValue stringLiteral -> stringLiteral;
-                case AssetReference assetReference -> resolveAssetReferences(assetReference);
-                case SecretReference secretReference -> new StringLiteralValue(getSecretValue(secretReference));
-            };
-        } catch (final IOException ioe) {
-            throw new UncheckedIOException("Unable to obtain Secrets from Secret Manager", ioe);
-        }
+        return new StepConfiguration(resolvedProperties);
     }
 
     private StringLiteralValue resolveAssetReferences(final AssetReference assetReference) {
@@ -211,43 +215,6 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
 
         logger.debug("Resolved {} to {}", assetReference, resolvedAssetValues);
         return new StringLiteralValue(String.join(",", resolvedAssetValues));
-    }
-
-    private String getSecretValue(final SecretReference secretReference) throws IOException {
-        final SecretProvider provider = getSecretProvider(secretReference);
-        if (provider == null) {
-            return null;
-        }
-
-        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getFullyQualifiedName()));
-        return secrets.isEmpty() ? null : secrets.getFirst().getValue();
-    }
-
-    private SecretProvider getSecretProvider(final SecretReference secretReference) {
-        final Set<SecretProvider> providers = secretsManager.getSecretProviders();
-        for (final SecretProvider provider : providers) {
-            if (Objects.equals(provider.getProviderId(), secretReference.getProviderId())) {
-                return provider;
-            }
-        }
-
-        for (final SecretProvider provider : providers) {
-            if (Objects.equals(provider.getProviderName(), secretReference.getProviderName())) {
-                return provider;
-            }
-        }
-
-        // Try to find by Fully Qualified Name prefix
-        final String fqn = secretReference.getFullyQualifiedName();
-        if (fqn != null) {
-            for (final SecretProvider provider : providers) {
-                if (fqn.startsWith(provider.getProviderName() + ".")) {
-                    return provider;
-                }
-            }
-        }
-
-        return null;
     }
 
     @Override
@@ -274,13 +241,20 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     public void resolvePropertyValues() {
         writeLock.lock();
         try {
-            for (final Map.Entry<String, StepConfiguration> entry : propertyConfigurations.entrySet()) {
-                final String stepName = entry.getKey();
-                final StepConfiguration stepConfig = entry.getValue();
-                final Map<String, ConnectorValueReference> stepProperties = stepConfig.getPropertyValues();
+            final Set<SecretReference> allSecretReferences = new HashSet<>();
+            for (final StepConfiguration stepConfig : propertyConfigurations.values()) {
+                for (final ConnectorValueReference ref : stepConfig.getPropertyValues().values()) {
+                    if (ref instanceof SecretReference secretRef) {
+                        allSecretReferences.add(secretRef);
+                    }
+                }
+            }
 
-                final StepConfiguration resolvedConfig = resolvePropertyValues(stepProperties);
-                this.resolvedPropertyConfigurations.put(stepName, resolvedConfig);
+            final Map<SecretReference, Secret> resolvedSecrets = allSecretReferences.isEmpty() ? Map.of() : secretsManager.getSecrets(allSecretReferences);
+
+            for (final Map.Entry<String, StepConfiguration> entry : propertyConfigurations.entrySet()) {
+                final StepConfiguration resolvedConfig = resolvePropertyValues(entry.getValue().getPropertyValues(), resolvedSecrets);
+                this.resolvedPropertyConfigurations.put(entry.getKey(), resolvedConfig);
             }
         } finally {
             writeLock.unlock();
