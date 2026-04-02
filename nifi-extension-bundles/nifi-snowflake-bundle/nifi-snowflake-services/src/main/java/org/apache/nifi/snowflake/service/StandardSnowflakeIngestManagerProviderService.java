@@ -17,7 +17,6 @@
 
 package org.apache.nifi.snowflake.service;
 
-import net.snowflake.ingest.SimpleIngestManager;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -30,18 +29,20 @@ import org.apache.nifi.key.service.api.PrivateKeyService;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.SnowflakeIngestManagerProviderService;
+import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
+import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
 import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormat;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormatParameters;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 
-import java.security.NoSuchAlgorithmException;
+import java.net.URI;
 import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.List;
 
-@Tags({"snowflake", "jdbc", "database", "connection"})
+@Tags({"snowflake", "snowpipe", "database", "connection"})
 @CapabilityDescription("Provides a Snowflake Ingest Manager for Snowflake pipe processors")
 public class StandardSnowflakeIngestManagerProviderService extends AbstractControllerService
         implements SnowflakeIngestManagerProviderService {
@@ -99,7 +100,8 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
 
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
             .name("Private Key Service")
-            .description("Specifies the Controller Service that will provide the private key. The public key needs to be added to the user account in the Snowflake account beforehand.")
+            .description("Specifies the Controller Service that will provide the private key."
+                    + " The public key needs to be added to the user account in the Snowflake account beforehand.")
             .identifiesControllerService(PrivateKeyService.class)
             .required(true)
             .build();
@@ -137,13 +139,20 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             PIPE
     );
 
+    private static final String HTTPS_URI_FORMAT = "https://%s";
+
+    private static final String QUALIFIED_PIPE_FORMAT = "%s.%s.%s";
+
+    private static final char UNDERSCORE = '_';
+
+    private static final char HYPHEN = '-';
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
     }
 
-    private volatile String fullyQualifiedPipeName;
-    private volatile SimpleIngestManager ingestManager;
+    private volatile SnowpipeIngestClient ingestClient;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
@@ -151,39 +160,41 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         final String database = context.getProperty(DATABASE).evaluateAttributeExpressions().getValue();
         final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
         final String pipe = context.getProperty(PIPE).evaluateAttributeExpressions().getValue();
-        fullyQualifiedPipeName = database + "." + schema + "." + pipe;
-        final PrivateKeyService privateKeyService = context.getProperty(PRIVATE_KEY_SERVICE)
-                .asControllerService(PrivateKeyService.class);
+        final String qualifiedPipeName = QUALIFIED_PIPE_FORMAT.formatted(database, schema, pipe);
+        final PrivateKeyService privateKeyService = context.getProperty(PRIVATE_KEY_SERVICE).asControllerService(PrivateKeyService.class);
         final PrivateKey privateKey = privateKeyService.getPrivateKey();
 
-        final AccountIdentifierFormat accountIdentifierFormat = context.getProperty(ACCOUNT_IDENTIFIER_FORMAT)
-                .asAllowableValue(AccountIdentifierFormat.class);
-        final AccountIdentifierFormatParameters parameters = getAccountIdentifierFormatParameters(context);
-        final String account = accountIdentifierFormat.getAccount(parameters);
-        final String host = accountIdentifierFormat.getHostname(parameters);
-        try {
-            ingestManager = new SimpleIngestManager(account, user, fullyQualifiedPipeName, privateKey, "https", host, 443);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new InitializationException("Failed create Snowflake ingest manager", e);
+        if (privateKey instanceof RSAPrivateCrtKey rsaPrivateKey) {
+            final AccountIdentifierFormat accountIdentifierFormat = context.getProperty(ACCOUNT_IDENTIFIER_FORMAT).asAllowableValue(AccountIdentifierFormat.class);
+            final AccountIdentifierFormatParameters parameters = getAccountIdentifierFormatParameters(context);
+            final String account = accountIdentifierFormat.getAccount(parameters);
+            final String host = accountIdentifierFormat.getHostname(parameters);
+            final String hostNormalized = host.replace(UNDERSCORE, HYPHEN);
+
+            final URI baseUri = URI.create(HTTPS_URI_FORMAT.formatted(hostNormalized));
+            final RSAKeyAuthorizationProvider authorizationProvider = new RSAKeyAuthorizationProvider(account, user, rsaPrivateKey);
+            ingestClient = new SnowpipeIngestClient(baseUri, qualifiedPipeName, authorizationProvider);
+        } else {
+            throw new InitializationException("RSA Private Key not provided");
         }
     }
 
     @OnDisabled
     public void onDisabled() {
-        if (ingestManager != null) {
-            ingestManager.close();
-            ingestManager = null;
+        if (ingestClient != null) {
+            ingestClient.close();
+            ingestClient = null;
         }
     }
 
     @Override
-    public String getPipeName() {
-        return fullyQualifiedPipeName;
+    public void insertFiles(final InsertFiles insertFiles) {
+        ingestClient.insertFiles(insertFiles);
     }
 
     @Override
-    public SimpleIngestManager getIngestManager() {
-        return ingestManager;
+    public InsertReport getInsertReport() {
+        return ingestClient.getInsertReport();
     }
 
     @Override

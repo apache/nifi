@@ -28,10 +28,6 @@
     <dependencies>
         <dependency>
             <groupId>net.snowflake</groupId>
-            <artifactId>snowflake-ingest-sdk</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.snowflake</groupId>
             <artifactId>snowflake-jdbc-thin</artifactId>
         </dependency>
 

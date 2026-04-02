@@ -15,27 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.snowflake;
-
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
-import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
+package org.apache.nifi.snowflake.service;
 
 /**
- * Controller Service for interacting with Snowflake Snowpipe REST API
+ * Exception for Snowpipe REST API failures including HTTP error responses and communication failures
  */
-public interface SnowflakeIngestManagerProviderService extends ControllerService {
-    /**
-     * Submit staged files for ingestion using the Snowpipe insertFiles REST API
-     *
-     * @param insertFiles Files to be ingested
-     */
-    void insertFiles(InsertFiles insertFiles);
+class SnowpipeResponseException extends RuntimeException {
 
     /**
-     * Retrieve the insert report for recently ingested files using the Snowpipe insertReport REST API
+     * Snowpipe Response Exception with message describing the failure
      *
-     * @return Insert report containing file entries with ingestion status
+     * @param message Failure description including HTTP status code when applicable
      */
-    InsertReport getInsertReport();
+    public SnowpipeResponseException(final String message) {
+        super(message);
+    }
+
+    /**
+     * Snowpipe Response Exception with message and underlying cause
+     *
+     * @param message Failure description
+     * @param cause Underlying exception such as IOException for transport failures
+     */
+    public SnowpipeResponseException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import net.snowflake.ingest.SimpleIngestManager;
-import net.snowflake.ingest.connection.HistoryResponse;
-import net.snowflake.ingest.connection.HistoryResponse.FileEntry;
-import net.snowflake.ingest.connection.IngestResponseException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -37,9 +33,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.snowflake.snowpipe.InsertFileStatus;
+import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -76,7 +72,8 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
 
     static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
-            .description("For FlowFiles whose file is still not ingested. These FlowFiles should be routed back to this processor to try again later")
+            .description("For FlowFiles whose file is still not ingested."
+                    + " These FlowFiles should be routed back to this processor to try again later")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -113,37 +110,37 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
             return;
         }
 
-        final SnowflakeIngestManagerProviderService ingestManagerProviderService =
-                context.getProperty(INGEST_MANAGER_PROVIDER)
-                        .asControllerService(SnowflakeIngestManagerProviderService.class);
-        final HistoryResponse historyResponse;
+        final SnowflakeIngestManagerProviderService ingestManagerProviderService = context.getProperty(INGEST_MANAGER_PROVIDER).asControllerService(SnowflakeIngestManagerProviderService.class);
+        final InsertReport insertReport;
         try {
-            final SimpleIngestManager snowflakeIngestManager = ingestManagerProviderService.getIngestManager();
-            historyResponse = snowflakeIngestManager.getHistory(null, null, null);
-        } catch (URISyntaxException | IOException e) {
-            throw new ProcessException("Failed to get Snowflake ingest history for staged file [" + stagedFilePath + "]", e);
-        } catch (IngestResponseException e) {
-            getLogger().error("Failed to get Snowflake ingest history for staged file [{}]", stagedFilePath, e);
+            insertReport = ingestManagerProviderService.getInsertReport();
+        } catch (final RuntimeException e) {
+            getLogger().error("Staged File [{}] insert report retrieval failed", stagedFilePath, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
 
-        final Optional<FileEntry> fileEntry = Optional.ofNullable(historyResponse.files)
+        final Optional<InsertFileStatus> insertFileStatusFound = Optional.ofNullable(insertReport.files())
                 .flatMap(files -> files.stream()
-                        .filter(entry -> entry.getPath().equals(stagedFilePath) && entry.isComplete())
+                        .filter(entry -> entry.path().equals(stagedFilePath) && entry.complete())
                         .findFirst());
 
-        if (fileEntry.isEmpty()) {
-            session.transfer(session.penalize(flowFile), REL_RETRY);
-            return;
-        }
+        if (insertFileStatusFound.isPresent()) {
+            final InsertFileStatus insertFileStatus = insertFileStatusFound.get();
+            final String pipe = insertReport.pipe();
+            final String status = insertFileStatus.status();
+            if (insertFileStatus.errorsSeen() > 0) {
+                final String firstError = insertFileStatus.firstError();
 
-        if (fileEntry.get().getErrorsSeen() > 0) {
-            getLogger().error("Failed to ingest file [{}] in Snowflake stage via pipe [{}]. Error: {}", stagedFilePath, ingestManagerProviderService.getPipeName(), fileEntry.get().getFirstError());
-            session.transfer(session.penalize(flowFile), REL_FAILURE);
-            return;
+                getLogger().error("Staged File [{}] for Snowflake Pipe [{}] Status [{}] insert failed [{}]", stagedFilePath, pipe, status, firstError);
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+            } else {
+                getLogger().info("Staged File [{}] for Snowflake Pipe [{}] Status [{}] insert completed", stagedFilePath, pipe, status);
+                session.transfer(flowFile, REL_SUCCESS);
+            }
+        } else {
+            session.transfer(session.penalize(flowFile), REL_RETRY);
         }
-        session.transfer(flowFile, REL_SUCCESS);
     }
 
     @Override
