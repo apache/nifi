@@ -59,7 +59,16 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
     def resolve_dependencies(self, node: ast.AST):
         resolved_dependencies = []
         for dependency in node.elts:
-            variable_name = dependency.args[0].id
+            arg = dependency.args[0]
+            if isinstance(arg, ast.Name):
+                # Simple local reference: PropertyDependency(MY_PROP, ...)
+                variable_name = arg.id
+            elif isinstance(arg, ast.Attribute):
+                # Parent-class attribute reference: PropertyDependency(ParentClass.MY_PROP, ...)
+                variable_name = arg.attr
+            else:
+                self.logger.warning(f"Unable to resolve dependency variable name in {self.processor_name}, skipping.")
+                continue
             # First check locally discovered descriptors, then check imported ones
             actual_property = self.discovered_property_descriptors.get(variable_name)
             if actual_property is None:
@@ -268,6 +277,14 @@ def get_imported_property_descriptors_from_ast(root_node: ast.AST, module_file: 
         if imported_name in source_descriptors:
             imported_descriptors[imported_name] = source_descriptors[imported_name]
             logger.debug(f"Resolved imported PropertyDescriptor '{imported_name}' from {source_file}")
+        else:
+            # The imported name is not itself a PropertyDescriptor (e.g. it is a class).
+            # Expose all PropertyDescriptors found in that source module so that
+            # attribute-style references like ParentClass.MY_PROP can be resolved.
+            for desc_name, desc in source_descriptors.items():
+                if desc_name not in imported_descriptors:
+                    imported_descriptors[desc_name] = desc
+                    logger.debug(f"Resolved PropertyDescriptor '{desc_name}' from class '{imported_name}' in {source_file}")
 
     return imported_descriptors
 
@@ -459,8 +476,13 @@ def get_property_descriptions(class_node, module_string_constants, module_file, 
 
     visitor = CollectPropertyDescriptorVisitors(module_string_constants, class_node.name, imported_property_descriptors)
     visitor.visit(class_node)
-    return visitor.discovered_property_descriptors.values()
+    # Merge parent/imported descriptors that are not already defined in the child class.
+    merged = dict(visitor.discovered_property_descriptors)
+    for name, desc in imported_property_descriptors.items():
+        if name not in merged:
+            merged[name] = desc
 
+    return merged.values()
 
 def replace_null(val: any, replacement: any):
     return val if val else replacement

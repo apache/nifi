@@ -44,6 +44,11 @@ _TEST_RESOURCES_DIR = os.path.join(
 IMPORTED_DEPENDENCY_TEST_DIR = os.path.join(_TEST_RESOURCES_DIR, 'imported_property_dependency')
 IMPORTED_DEPENDENCY_TEST_FILE = os.path.join(IMPORTED_DEPENDENCY_TEST_DIR, 'ProcessorWithImportedDependency.py')
 
+# Path to the test processor that uses a parent class property as a PropertyDependency
+# via the attribute-style reference: PropertyDependency(ParentClass.MY_PROP, ...)
+PARENT_CLASS_DEPENDENCY_TEST_DIR = os.path.join(_TEST_RESOURCES_DIR, 'parent_class_property_dependency')
+PARENT_CLASS_DEPENDENCY_TEST_FILE = os.path.join(PARENT_CLASS_DEPENDENCY_TEST_DIR, 'ChildProcessor.py')
+
 # Path to the existing ConditionalProcessor which uses local dependencies (should work)
 # Navigate from test/python/framework up to nifi root
 # _SCRIPT_DIR is .../nifi-python-framework/src/test/python/framework
@@ -218,6 +223,129 @@ class TestPropertyDependencyResolution(unittest.TestCase):
         # The result should be an empty list since the property couldn't be resolved
         self.assertEqual(result, [])
 
+
+class TestParentClassPropertyDependency(unittest.TestCase):
+    """
+    Tests for the pattern where a processor uses multiple inheritance with a Python
+    parent class and references a parent class PropertyDescriptor as a PropertyDependency
+    using the attribute-style syntax: PropertyDependency(ParentClass.MY_PROP, ...).
+
+    This covers two bugs that affected NiFi 2.1.0+:
+      1. AttributeError crash: 'Attribute' object has no attribute 'id'
+         (ast.Attribute was not handled in resolve_dependencies)
+      2. Silent dependency drop: property found by attr name but not in imported_descriptors
+         because the import was of the class, not the property directly
+    """
+
+    def setUp(self):
+        set_up_env()
+
+    def test_child_processor_class_nodes_found(self):
+        """Verify the child processor fixture is correctly identified as a processor."""
+        class_nodes = ProcessorInspection.get_processor_class_nodes(PARENT_CLASS_DEPENDENCY_TEST_FILE)
+        self.assertIsNotNone(class_nodes)
+        self.assertEqual(len(class_nodes), 1)
+        self.assertEqual(class_nodes[0].name, 'ChildProcessor')
+
+    def test_parent_class_attribute_dependency_does_not_crash(self):
+        """
+        Using PropertyDependency(ParentClass.MY_PROP, ...) must NOT raise
+        AttributeError ('Attribute' object has no attribute 'id').
+
+        This was the crash introduced in NiFi 2.1.0 when the AST node for the
+        first argument of PropertyDependency is ast.Attribute instead of ast.Name.
+        """
+        details = get_processor_details(
+            self,
+            'ChildProcessor',
+            PARENT_CLASS_DEPENDENCY_TEST_FILE,
+            PARENT_CLASS_DEPENDENCY_TEST_DIR
+        )
+        self.assertIsNotNone(details)
+
+    def test_parent_class_attribute_dependency_resolves_correctly(self):
+        """
+        When PropertyDependency(ParentClass.MY_PROP, ...) is used, the dependency
+        must be resolved to the correct PropertyDescription (not silently dropped).
+
+        This covers the warning: 'Not able to find actual property descriptor for
+        MY_PROP, so not able to resolve property dependencies'.
+        """
+        details = get_processor_details(
+            self,
+            'ChildProcessor',
+            PARENT_CLASS_DEPENDENCY_TEST_FILE,
+            PARENT_CLASS_DEPENDENCY_TEST_DIR
+        )
+
+        property_descriptions = list(details.property_descriptions)
+        self.assertTrue(len(property_descriptions) > 0)
+
+        property_map = {p.name: p for p in property_descriptions}
+        self.assertIn('Child Only Setting', property_map)
+
+        child_prop = property_map['Child Only Setting']
+        self.assertIsNotNone(child_prop.dependencies)
+        self.assertEqual(len(child_prop.dependencies), 1)
+
+        dep = child_prop.dependencies[0]
+        self.assertEqual(dep.name, 'Enable Feature')
+        self.assertEqual(dep.dependent_values, ['true'])
+
+    def test_parent_class_property_is_included_in_descriptions(self):
+        """
+        The parent class PropertyDescriptor itself must appear in the processor's
+        property descriptions so that it can be used as a dependency target.
+        """
+        details = get_processor_details(
+            self,
+            'ChildProcessor',
+            PARENT_CLASS_DEPENDENCY_TEST_FILE,
+            PARENT_CLASS_DEPENDENCY_TEST_DIR
+        )
+
+        property_names = [p.name for p in details.property_descriptions]
+        self.assertIn('Child Only Setting', property_names)
+        self.assertIn('Enable Feature', property_names)
+
+    def test_ast_attribute_node_extracted_correctly_in_resolve_dependencies(self):
+        """
+        Unit test for resolve_dependencies: verifies that an ast.Attribute node
+        (ParentClass.MY_PROP) correctly extracts the attribute name (MY_PROP)
+        without crashing, and matches against discovered_property_descriptors.
+        """
+        import ast
+        from nifiapi.documentation import PropertyDescription
+
+        # Simulate: [PropertyDependency(ParentClass.PARENT_ENABLE_FEATURE, "true")]
+        code = '[PropertyDependency(ParentClass.PARENT_ENABLE_FEATURE, "true")]'
+        tree = ast.parse(code, mode='eval')
+        dependency_list_node = tree.body
+
+        visitor = ProcessorInspection.CollectPropertyDescriptorVisitors(
+            module_string_constants={},
+            processor_name='ChildProcessor'
+        )
+
+        # Manually inject the parent property so resolution can succeed
+        visitor.discovered_property_descriptors['PARENT_ENABLE_FEATURE'] = PropertyDescription(
+            name='Enable Feature',
+            description='Whether to enable the optional feature',
+            display_name='Enable Feature',
+            required=True,
+            sensitive=False,
+            default_value='false',
+            expression_language_scope='NONE',
+            controller_service_definition=None,
+            allowable_values=['true', 'false'],
+            dependencies=None
+        )
+
+        result = visitor.resolve_dependencies(dependency_list_node)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].name, 'Enable Feature')
+        self.assertEqual(result[0].dependent_values, ['true'])
 
 if __name__ == '__main__':
     unittest.main()
