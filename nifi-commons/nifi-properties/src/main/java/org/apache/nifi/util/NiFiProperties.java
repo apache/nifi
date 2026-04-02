@@ -90,6 +90,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
     public static final String CONTENT_REPOSITORY_IMPLEMENTATION = "nifi.content.repository.implementation";
     public static final String MAX_APPENDABLE_CLAIM_SIZE = "nifi.content.claim.max.appendable.size";
+    public static final String CONTENT_CLAIM_TRUNCATION_ENABLED = "nifi.content.claim.truncation.enabled";
     public static final String CONTENT_ARCHIVE_MAX_RETENTION_PERIOD = "nifi.content.repository.archive.max.retention.period";
     public static final String CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE = "nifi.content.repository.archive.max.usage.percentage";
     public static final String CONTENT_ARCHIVE_BACK_PRESSURE_PERCENTAGE = "nifi.content.repository.archive.backpressure.percentage";
@@ -362,6 +363,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "20 secs";
     public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "50 KB";
+    public static final String DEFAULT_CONTENT_CLAIM_TRUNCATION_ENABLED = "true";
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
@@ -1429,6 +1431,10 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public String getMaxAppendableClaimSize() {
         return getProperty(MAX_APPENDABLE_CLAIM_SIZE, DEFAULT_MAX_APPENDABLE_CLAIM_SIZE);
+    }
+
+    public boolean isContentClaimTruncationEnabled() {
+        return Boolean.parseBoolean(getProperty(CONTENT_CLAIM_TRUNCATION_ENABLED, DEFAULT_CONTENT_CLAIM_TRUNCATION_ENABLED));
     }
 
     @Override
