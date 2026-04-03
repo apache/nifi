@@ -18,6 +18,7 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.controller.NodeTypeProvider;
 
 import java.util.Map;
 
@@ -47,4 +48,13 @@ public interface ConnectorConfigurationProviderInitializationContext {
      * @return the AssetManager for connector assets
      */
     AssetManager getAssetManager();
+
+    /**
+     * Returns the {@link NodeTypeProvider} for this NiFi instance.
+     * Providers can use this to determine cluster membership and primary-node status,
+     * for example to gate external writes so that only one node persists to a shared store.
+     *
+     * @return the NodeTypeProvider for this NiFi instance
+     */
+    NodeTypeProvider getNodeTypeProvider();
 }
