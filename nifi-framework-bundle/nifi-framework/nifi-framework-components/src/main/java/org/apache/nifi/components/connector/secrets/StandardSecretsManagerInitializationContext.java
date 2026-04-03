@@ -19,15 +19,29 @@ package org.apache.nifi.components.connector.secrets;
 
 import org.apache.nifi.controller.flow.FlowManager;
 
+import java.util.Collections;
+import java.util.Map;
+
 public class StandardSecretsManagerInitializationContext implements SecretsManagerInitializationContext {
     private final FlowManager flowManager;
+    private final Map<String, String> properties;
 
     public StandardSecretsManagerInitializationContext(final FlowManager flowManager) {
+        this(flowManager, Collections.emptyMap());
+    }
+
+    public StandardSecretsManagerInitializationContext(final FlowManager flowManager, final Map<String, String> properties) {
         this.flowManager = flowManager;
+        this.properties = properties == null ? Collections.emptyMap() : Map.copyOf(properties);
     }
 
     @Override
     public FlowManager getFlowManager() {
         return flowManager;
+    }
+
+    @Override
+    public String getApplicationProperty(final String key) {
+        return properties.get(key);
     }
 }
