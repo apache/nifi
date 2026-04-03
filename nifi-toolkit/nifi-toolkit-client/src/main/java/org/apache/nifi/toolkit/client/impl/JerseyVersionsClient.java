@@ -24,6 +24,8 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.toolkit.client.VersionsClient;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
+import org.apache.nifi.web.api.entity.RebaseRequestEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
@@ -212,6 +214,85 @@ public class JerseyVersionsClient extends AbstractJerseyClient implements Versio
         return executeAction("Error deleting revert request", () -> {
             final WebTarget target = versionsTarget
                     .path("revert-requests/{id}")
+                    .resolveTemplate("id", requestId);
+
+            return getRequestBuilder(target).delete(VersionedFlowUpdateRequestEntity.class);
+        });
+    }
+
+    // GET /versions/rebase-analysis/process-groups/id
+
+    @Override
+    public RebaseAnalysisEntity getRebaseAnalysis(final String processGroupId, final String targetVersion) throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(targetVersion)) {
+            throw new IllegalArgumentException("Target version cannot be null or blank");
+        }
+
+        return executeAction("Error getting rebase analysis", () -> {
+            final WebTarget target = versionsTarget
+                    .path("rebase-analysis/process-groups/{id}")
+                    .resolveTemplate("id", processGroupId)
+                    .queryParam("targetVersion", targetVersion);
+
+            return getRequestBuilder(target).get(RebaseAnalysisEntity.class);
+        });
+    }
+
+    // POST /versions/rebase-requests/process-groups/id
+
+    @Override
+    public VersionedFlowUpdateRequestEntity initiateRebase(final String processGroupId, final RebaseRequestEntity entity) throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (entity == null) {
+            throw new IllegalArgumentException("Rebase request entity cannot be null");
+        }
+
+        return executeAction("Error initiating rebase", () -> {
+            final WebTarget target = versionsTarget
+                    .path("rebase-requests/process-groups/{id}")
+                    .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(entity, MediaType.APPLICATION_JSON_TYPE),
+                    VersionedFlowUpdateRequestEntity.class);
+        });
+    }
+
+    // GET /versions/rebase-requests/id
+
+    @Override
+    public VersionedFlowUpdateRequestEntity getRebaseRequest(final String requestId) throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Rebase request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting rebase request", () -> {
+            final WebTarget target = versionsTarget
+                    .path("rebase-requests/{id}")
+                    .resolveTemplate("id", requestId);
+
+            return getRequestBuilder(target).get(VersionedFlowUpdateRequestEntity.class);
+        });
+    }
+
+    // DELETE /versions/rebase-requests/id
+
+    @Override
+    public VersionedFlowUpdateRequestEntity deleteRebaseRequest(final String requestId) throws IOException, NiFiClientException {
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Rebase request id cannot be null or blank");
+        }
+
+        return executeAction("Error deleting rebase request", () -> {
+            final WebTarget target = versionsTarget
+                    .path("rebase-requests/{id}")
                     .resolveTemplate("id", requestId);
 
             return getRequestBuilder(target).delete(VersionedFlowUpdateRequestEntity.class);

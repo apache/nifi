@@ -178,6 +178,7 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.RebaseAnalysis;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
@@ -272,6 +273,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -2948,6 +2950,78 @@ public final class DtoFactory {
             dto.setComponentId(component.getIdentifier());
             dto.setProcessGroupId(dto.getProcessGroupId());
         }
+
+        return dto;
+    }
+
+    public RebaseAnalysisEntity createRebaseAnalysisEntity(final RebaseAnalysis analysis, final String processGroupId,
+                                                             final String currentVersion, final String targetVersion,
+                                                             final Set<FlowDifference> upstreamDifferences,
+                                                             final String failureReasonOverride) {
+        final RebaseAnalysisEntity entity = new RebaseAnalysisEntity();
+        entity.setProcessGroupId(processGroupId);
+        entity.setCurrentVersion(currentVersion);
+        entity.setTargetVersion(targetVersion);
+        entity.setRebaseAllowed(analysis.isRebaseAllowed());
+        entity.setAnalysisFingerprint(analysis.getAnalysisFingerprint());
+
+        final List<RebaseChangeDTO> localChangeDtos = new ArrayList<>();
+        for (final RebaseAnalysis.ClassifiedDifference classified : analysis.getClassifiedLocalChanges()) {
+            localChangeDtos.add(createRebaseChangeDto(classified));
+        }
+        entity.setLocalChanges(localChangeDtos);
+
+        final Set<ComponentDifferenceDTO> upstreamChangeDtos = new HashSet<>();
+        final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
+        for (final FlowDifference difference : upstreamDifferences) {
+            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
+            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+            differences.add(createDifferenceDto(difference));
+        }
+        for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
+            entry.getKey().setDifferences(entry.getValue());
+            upstreamChangeDtos.add(entry.getKey());
+        }
+        entity.setUpstreamChanges(upstreamChangeDtos);
+
+        if (!analysis.isRebaseAllowed()) {
+            if (failureReasonOverride != null) {
+                entity.setFailureReason(failureReasonOverride);
+            } else {
+                final StringBuilder failureReason = new StringBuilder();
+                for (final RebaseAnalysis.ClassifiedDifference classified : analysis.getClassifiedLocalChanges()) {
+                    if (classified.getConflictCode() != null) {
+                        if (!failureReason.isEmpty()) {
+                            failureReason.append("; ");
+                        }
+                        failureReason.append(classified.getConflictDetail());
+                    }
+                }
+                entity.setFailureReason(failureReason.toString());
+            }
+        }
+
+        return entity;
+    }
+
+    private RebaseChangeDTO createRebaseChangeDto(final RebaseAnalysis.ClassifiedDifference classified) {
+        final FlowDifference difference = classified.getDifference();
+        final RebaseChangeDTO dto = new RebaseChangeDTO();
+
+        final VersionedComponent component = difference.getComponentB() != null ? difference.getComponentB() : difference.getComponentA();
+        if (component != null) {
+            dto.setComponentId(component.getIdentifier());
+            dto.setComponentName(component.getName());
+            dto.setComponentType(component.getComponentType().toString());
+        }
+
+        dto.setDifferenceType(difference.getDifferenceType().getDescription());
+        dto.setFieldName(difference.getFieldName().orElse(null));
+        dto.setLocalValue(difference.getValueB() == null ? null : difference.getValueB().toString());
+        dto.setRegistryValue(difference.getValueA() == null ? null : difference.getValueA().toString());
+        dto.setClassification(classified.getClassification().name());
+        dto.setConflictCode(classified.getConflictCode());
+        dto.setConflictDetail(classified.getConflictDetail());
 
         return dto;
     }
