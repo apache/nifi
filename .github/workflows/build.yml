@@ -105,7 +105,16 @@ jobs:
         continue-on-error: true
         env:
           COMMIT_COUNT: ${{ github.event.pull_request.commits }}
+          GITHUB_EVENT_ACTION: ${{ github.event.action }}
         run: .github/scripts/build/validate-single-commit.sh
+      - name: Evaluate Validation Results
+        env:
+          VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
+        run: |
+          if [[ "${VALIDATION_FAILED}" == "true" ]]; then
+            echo "::error::Pull request validation failed"
+            exit 1
+          fi
 
   ubuntu-build-en:
     timeout-minutes: 120

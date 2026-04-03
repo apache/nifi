@@ -21,7 +21,7 @@ set -e
 
 if [ "${COMMIT_COUNT}" -eq 1 ]; then
   echo "Pull request contains a single commit"
-else
+else if [ "${GITHUB_EVENT_ACTION}" == "opened" ]; then
   echo "::error::Pull request contains ${COMMIT_COUNT} commits. Squash commits into a single commit for initial review."
   exit 1
 fi
