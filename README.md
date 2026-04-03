@@ -19,7 +19,7 @@
 
 ### Status
 
-[![ci-workflow](https://github.com/apache/nifi/workflows/ci-workflow/badge.svg)](https://github.com/apache/nifi/actions/workflows/ci-workflow.yml)
+[![build](https://github.com/apache/nifi/workflows/build/badge.svg)](https://github.com/apache/nifi/actions/workflows/build.yml)
 [![system-tests](https://github.com/apache/nifi/workflows/system-tests/badge.svg)](https://github.com/apache/nifi/actions/workflows/system-tests.yml)
 [![integration-tests](https://github.com/apache/nifi/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/integration-tests.yml)
 [![docker-tests](https://github.com/apache/nifi/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/docker-tests.yml)
