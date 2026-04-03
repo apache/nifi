@@ -36,8 +36,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -51,13 +49,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -181,7 +179,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             REL_SUCCESS
     );
 
-    protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private ScheduledExecutorService scheduledExecutorService;
 
     protected volatile T messageReceiver;
 
@@ -191,8 +189,8 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     private volatile ProcessSession processSession;
 
-    protected volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
-    protected volatile AccessToken oauth2AccessDetails;
+    private volatile OAuth2AccessTokenProvider accessTokenProvider;
+    private volatile AccessToken currentAccessToken;
 
     protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -200,25 +198,35 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        final ThreadFactory threadFactory = Thread.ofPlatform()
+                .name("%s[%s]-MailReceiver".formatted(getClass().getSimpleName(), getIdentifier()))
+                .factory();
+        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
+
         if (context.getProperty(AUTHORIZATION_MODE).getValue().equals(OAUTH_AUTHORIZATION_MODE.getValue())) {
             OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
-            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
-            oauth2AccessDetails = oauth2AccessTokenProvider.getAccessDetails();
+            accessTokenProvider = oauth2AccessTokenProvider;
+            currentAccessToken = oauth2AccessTokenProvider.getAccessDetails();
         } else {
-            oauth2AccessTokenProviderOptional = Optional.empty();
-            oauth2AccessDetails = null;
+            accessTokenProvider = null;
+            currentAccessToken = null;
         }
     }
 
     @OnStopped
-    public void stop(ProcessContext processContext) {
-        this.flushRemainingMessages(processContext);
+    public void onStopped() {
+        flushRemainingMessages();
         try {
-            this.messageReceiver.destroy();
-            this.messageReceiver = null;
-        } catch (Exception e) {
-            this.logger.warn("Failure while closing processor", e);
+            messageReceiver.destroy();
+            messageReceiver = null;
+        } catch (final Exception e) {
+            getLogger().warn("Failed to close Mail Receiver", e);
+        }
+
+        if (scheduledExecutorService != null) {
+            scheduledExecutorService.shutdownNow();
+            scheduledExecutorService = null;
         }
     }
 
@@ -228,12 +236,12 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        this.initializeIfNecessary(context, processSession);
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        initializeIfNecessary(context, session);
 
-        Message emailMessage = this.receiveMessage();
+        final Message emailMessage = receiveMessage();
         if (emailMessage != null) {
-            this.transfer(emailMessage, context, processSession);
+            transfer(emailMessage, session);
         }
     }
 
@@ -273,17 +281,18 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      */
     protected abstract String getProtocol(ProcessContext processContext);
 
-    /**
-     * Builds the url used to connect to the email server.
-     */
-    String buildUrl(ProcessContext processContext) {
+    String buildUrl(final ProcessContext processContext) {
         String host = processContext.getProperty(HOST).evaluateAttributeExpressions().getValue();
         String port = processContext.getProperty(PORT).evaluateAttributeExpressions().getValue();
         String user = processContext.getProperty(USER).evaluateAttributeExpressions().getValue();
 
-        String password = oauth2AccessTokenProviderOptional.map(oauth2AccessTokenProvider ->
-            oauth2AccessTokenProvider.getAccessDetails().getAccessToken()
-        ).orElse(processContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue());
+        final String password;
+        if (accessTokenProvider == null) {
+            password = processContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        } else {
+            final AccessToken accessDetails = accessTokenProvider.getAccessDetails();
+            password = accessDetails.getAccessToken();
+        }
 
         String folder = processContext.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
 
@@ -307,7 +316,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         int passwordEndIndex = urlBuilder.indexOf("@");
         urlBuilder.replace(passwordStartIndex, passwordEndIndex, "[password]");
         this.displayUrl = protocol + "://" + urlBuilder;
-        this.logger.info("Connecting to server [{}]", this.displayUrl);
+        getLogger().info("Connecting to server [{}]", this.displayUrl);
 
         return finalUrl;
     }
@@ -318,7 +327,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * and is ready to receive messages.
      */
     private synchronized void initializeIfNecessary(ProcessContext context, ProcessSession processSession) {
-        if (this.messageReceiver == null || isOauth2AccessDetailsRefreshed()) {
+        if (this.messageReceiver == null || isAccessTokenRefreshRequired()) {
             this.processSession = processSession;
             this.messageReceiver = this.buildMessageReceiver(context);
 
@@ -329,10 +338,9 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             // Spring Integration 7 expects an evaluation context bean; register a lightweight one for the receiver
             final StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
             final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
-            final ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
             evaluationContext.setBeanResolver(new BeanFactoryResolver(beanFactory));
             beanFactory.addBean(IntegrationContextUtils.INTEGRATION_EVALUATION_CONTEXT_BEAN_NAME, evaluationContext);
-            beanFactory.addBean(IntegrationContextUtils.TASK_SCHEDULER_BEAN_NAME, new ConcurrentTaskScheduler(scheduledExecutor));
+            beanFactory.addBean(IntegrationContextUtils.TASK_SCHEDULER_BEAN_NAME, new ConcurrentTaskScheduler(scheduledExecutorService));
             this.messageReceiver.setBeanFactory(beanFactory);
             this.messageReceiver.afterPropertiesSet();
 
@@ -340,12 +348,16 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         }
     }
 
-    private boolean isOauth2AccessDetailsRefreshed() {
-        boolean oauthDetailsRefreshed = this.oauth2AccessTokenProviderOptional.isPresent()
-                &&
-                (this.oauth2AccessDetails == null || !oauth2AccessDetails.equals(this.oauth2AccessTokenProviderOptional.get().getAccessDetails()));
+    private boolean isAccessTokenRefreshRequired() {
+        final boolean refreshRequired;
 
-        return oauthDetailsRefreshed;
+        if (accessTokenProvider == null) {
+            refreshRequired = false;
+        } else {
+            refreshRequired = currentAccessToken == null || !currentAccessToken.equals(accessTokenProvider.getAccessDetails());
+        }
+
+        return refreshRequired;
     }
 
     /**
@@ -369,7 +381,10 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         final String timeoutInMillis = String.valueOf(context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS));
         javaMailProperties.setProperty(propertyName, timeoutInMillis);
 
-        oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider -> javaMailProperties.put("mail." + protocol + ".auth.mechanisms", "XOAUTH2"));
+        if (accessTokenProvider != null) {
+            final String authMechanismsProperty = "mail.%s.auth.mechanisms".formatted(protocol);
+            javaMailProperties.put(authMechanismsProperty, "XOAUTH2");
+        }
 
         return javaMailProperties;
     }
@@ -415,37 +430,33 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         return closedException;
     }
 
-    /**
-     * Disposes the message by converting it to a {@link FlowFile} transferring
-     * it to the REL_SUCCESS relationship.
-     */
-    private void transfer(Message emailMessage, ProcessContext context, ProcessSession processSession) {
-        long start = System.nanoTime();
-        FlowFile flowFile = processSession.create();
+    private void transfer(final Message message, final ProcessSession session) {
+        final long started = System.nanoTime();
+        FlowFile flowFile = session.create();
 
-        flowFile = processSession.append(flowFile, out -> {
+        flowFile = session.write(flowFile, out -> {
             try {
-                emailMessage.writeTo(out);
-            } catch (MessagingException e) {
-                throw new IOException(e);
+                message.writeTo(out);
+            } catch (final MessagingException e) {
+                throw new IOException("Message [%d] serialization failed".formatted(message.getMessageNumber()), e);
             }
         });
 
-        long executionDuration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        final long executionDuration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
 
-        String fromAddressesString = "";
+        String fromAddresses = "";
         try {
-            Address[] fromAddresses = emailMessage.getFrom();
-            if (fromAddresses != null) {
-                fromAddressesString = Arrays.asList(fromAddresses).toString();
+            final Address[] from = message.getFrom();
+            if (from != null) {
+                fromAddresses = Arrays.asList(from).toString();
             }
-        } catch (MessagingException e) {
-            this.logger.warn("Failed to retrieve 'From' attribute from Message.");
+        } catch (final MessagingException e) {
+            getLogger().warn("Failed to retrieve [From] address from Message [{}]", message.getMessageNumber());
         }
 
-        processSession.getProvenanceReporter().receive(flowFile, this.displayUrl, "Received message from " + fromAddressesString, executionDuration);
-        this.getLogger().info("Successfully received {} from {} in {} millis", flowFile, fromAddressesString, executionDuration);
-        processSession.transfer(flowFile, REL_SUCCESS);
+        session.getProvenanceReporter().receive(flowFile, displayUrl, "Received message from " + fromAddresses, executionDuration);
+        getLogger().info("Received {} from {} in {} millis", flowFile, fromAddresses, executionDuration);
+        session.transfer(flowFile, REL_SUCCESS);
 
     }
 
@@ -458,26 +469,23 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         try {
             this.fillMessageQueueIfNecessary();
             emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            this.logger.debug("Current thread is interrupted");
+            getLogger().debug("Interrupted while receiving messages");
         }
         return emailMessage;
     }
 
-    /**
-     * Will flush the remaining messages when this processor is stopped.
-     */
-    private void flushRemainingMessages(ProcessContext processContext) {
+    private void flushRemainingMessages() {
         Message emailMessage;
         try {
             while ((emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS)) != null) {
-                this.transfer(emailMessage, processContext, this.processSession);
-                this.processSession.commitAsync();
+                transfer(emailMessage, processSession);
+                processSession.commitAsync();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            this.logger.debug("Current thread is interrupted");
+            getLogger().debug("Interrupted while processing remaining messages");
         }
     }
 }
