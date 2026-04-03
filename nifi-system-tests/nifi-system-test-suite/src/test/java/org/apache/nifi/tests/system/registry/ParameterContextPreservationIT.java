@@ -65,6 +65,11 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
     private static final String RELATIONSHIP_SUCCESS = "success";
     private static final String VERSION_1 = "1";
     private static final String VERSION_2 = "2";
+    private static final String DESCRIPTION_UPDATE_FLOW_NAME = "DescriptionUpdateFlow";
+    private static final String PARAMETER_DESCRIPTION_V1 = "Description for version 1";
+    private static final String PARAMETER_DESCRIPTION_V2 = "Description for version 2";
+    private static final String CONTEXT_DESCRIPTION_V1 = "Context description v1";
+    private static final String CONTEXT_DESCRIPTION_V2 = "Context description v2";
 
     @Test
     void testNewProcessGroupUsesCorrectParameterContextDuringUpgrade() throws NiFiClientException, IOException, InterruptedException {
@@ -238,9 +243,9 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
-        final Set<ParameterEntity> parameterEntitiesV1 = Set.of(util.createParameterEntity(PARAMETER_NAME, "Description for version 1", false, PARAMETER_VALUE));
+        final Set<ParameterEntity> parameterEntitiesV1 = Set.of(util.createParameterEntity(PARAMETER_NAME, PARAMETER_DESCRIPTION_V1, false, PARAMETER_VALUE));
         final ParameterContextEntity paramContext = getNifiClient().getParamContextClient().createParamContext(
-            util.createParameterContextEntity(PARAMETER_CONTEXT_NAME, "Context description v1", parameterEntitiesV1));
+            util.createParameterContextEntity(PARAMETER_CONTEXT_NAME, CONTEXT_DESCRIPTION_V1, parameterEntitiesV1));
 
         final ProcessGroupEntity groupA = util.createProcessGroup(GROUP_A_NAME, "root");
         util.setParameterContext(groupA.getId(), paramContext);
@@ -249,13 +254,13 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         util.updateProcessorProperties(processor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
         util.setAutoTerminatedRelationships(processor, RELATIONSHIP_SUCCESS);
 
-        final VersionControlInformationEntity vciV1 = util.startVersionControl(groupA, clientEntity, TEST_FLOWS_BUCKET, "DescriptionUpdateFlow");
+        final VersionControlInformationEntity vciV1 = util.startVersionControl(groupA, clientEntity, TEST_FLOWS_BUCKET, DESCRIPTION_UPDATE_FLOW_NAME);
         final String flowId = vciV1.getVersionControlInformation().getFlowId();
 
         // Update the parameter description (keeping the same value) and context description, then save as version 2
         final ParameterContextEntity currentContext = getNifiClient().getParamContextClient().getParamContext(paramContext.getId(), false);
-        final Set<ParameterEntity> parameterEntitiesV2 = Set.of(util.createParameterEntity(PARAMETER_NAME, "Description for version 2", false, PARAMETER_VALUE));
-        final ParameterContextEntity entityUpdate = util.createParameterContextEntity(PARAMETER_CONTEXT_NAME, "Context description v2", parameterEntitiesV2);
+        final Set<ParameterEntity> parameterEntitiesV2 = Set.of(util.createParameterEntity(PARAMETER_NAME, PARAMETER_DESCRIPTION_V2, false, PARAMETER_VALUE));
+        final ParameterContextEntity entityUpdate = util.createParameterContextEntity(PARAMETER_CONTEXT_NAME, CONTEXT_DESCRIPTION_V2, parameterEntitiesV2);
         entityUpdate.setId(currentContext.getId());
         entityUpdate.setRevision(currentContext.getRevision());
         entityUpdate.getComponent().setId(currentContext.getComponent().getId());
@@ -284,8 +289,8 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         // Verify version 1 descriptions
         final ParameterContextEntity importedContext = getNifiClient().getParamContextClient().getParamContext(importedContextId, false);
         final String descriptionAfterV1 = getParameterDescription(importedContext, PARAMETER_NAME);
-        assertEquals("Description for version 1", descriptionAfterV1);
-        assertEquals("Context description v1", importedContext.getComponent().getDescription());
+        assertEquals(PARAMETER_DESCRIPTION_V1, descriptionAfterV1);
+        assertEquals(CONTEXT_DESCRIPTION_V1, importedContext.getComponent().getDescription());
 
         // Upgrade from version 1 to version 2
         util.changeFlowVersion(importedGroup.getId(), VERSION_2);
@@ -293,8 +298,8 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         // Verify descriptions were updated to version 2
         final ParameterContextEntity contextAfterUpgrade = getNifiClient().getParamContextClient().getParamContext(importedContextId, false);
         final String descriptionAfterV2 = getParameterDescription(contextAfterUpgrade, PARAMETER_NAME);
-        assertEquals("Description for version 2", descriptionAfterV2);
-        assertEquals("Context description v2", contextAfterUpgrade.getComponent().getDescription());
+        assertEquals(PARAMETER_DESCRIPTION_V2, descriptionAfterV2);
+        assertEquals(CONTEXT_DESCRIPTION_V2, contextAfterUpgrade.getComponent().getDescription());
 
         // Verify the value was not changed
         final String valueAfterUpgrade = getParameterValue(contextAfterUpgrade, PARAMETER_NAME);
