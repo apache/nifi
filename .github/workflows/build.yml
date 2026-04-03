@@ -60,9 +60,6 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     name: Validate Pull Request
-    permissions:
-      contents: read
-      pull-requests: write
     if: github.event_name == 'pull_request' && github.repository == 'apache/nifi'
     steps:
       - name: Checkout Code
@@ -109,27 +106,6 @@ jobs:
         env:
           COMMIT_COUNT: ${{ github.event.pull_request.commits }}
         run: .github/scripts/build/validate-single-commit.sh
-      - name: Label Pull Request
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
-          VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
-        run: .github/scripts/build/label-pull-request.sh
-      - name: Evaluate Validation Results
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
-          VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
-        run: |
-          if [[ "${VALIDATION_FAILED}" == "true" ]]; then
-            gh pr comment "${PR_NUMBER}" \
-              --repo "${REPOSITORY}" \
-              --body "Pull Request validation failed. Review the build workflow checks for changes required."
-            echo "::error::Pull request validation failed"
-            exit 1
-          fi
 
   ubuntu-build-en:
     timeout-minutes: 120
