@@ -114,7 +114,7 @@ public class PropertiesFileEngineConfigurationParser {
 
         final String statusTaskInterval = properties.getProperty(STATUS_TASK_INTERVAL, "1 min");
 
-        final String processorStartTimeout = properties.getProperty(PROCESSOR_START_TIMEOUT, "10 secs");
+        final String processorStartTimeout = properties.getProperty(PROCESSOR_START_TIMEOUT, "1 min");
         final String componentEnableTimeout = properties.getProperty(COMPONENT_ENABLE_TIMEOUT, "10 secs");
 
         return new StatelessEngineConfiguration() {

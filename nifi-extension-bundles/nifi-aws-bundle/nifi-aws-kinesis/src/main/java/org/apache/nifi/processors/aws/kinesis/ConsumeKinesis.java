@@ -708,7 +708,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final long startNanos = System.nanoTime();
         long estimatedBytes = 0;
 
-        while (System.nanoTime() < startNanos + maxBatchNanos && estimatedBytes < maxBatchBytes) {
+        while (isScheduled() && System.nanoTime() < startNanos + maxBatchNanos && estimatedBytes < maxBatchBytes) {
             final List<String> readyShards = consumerClient.getShardIdsWithResults();
             if (readyShards.isEmpty()) {
                 if (!consumerClient.hasPendingFetches()) {

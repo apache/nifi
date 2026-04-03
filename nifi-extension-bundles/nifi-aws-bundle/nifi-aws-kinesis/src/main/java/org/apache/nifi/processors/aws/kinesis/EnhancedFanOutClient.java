@@ -147,6 +147,11 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
     }
 
     @Override
+    protected void onResultPolled() {
+        resumePausedConsumers();
+    }
+
+    @Override
     void acknowledgeResults(final List<ShardFetchResult> results) {
         resumePausedConsumers();
     }
@@ -355,6 +360,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
         private volatile long lastSubscribeAttemptNanos;
         private volatile BigInteger lastQueuedSequenceNumber;
         private volatile boolean shardNotFound;
+
         ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink,
                       final Queue<ShardConsumer> pausedConsumers, final ComponentLog consumerLogger) {
             this.shardId = shardId;
