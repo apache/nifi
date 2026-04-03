@@ -71,7 +71,7 @@ jobs:
           fetch-depth: 0
       - name: Validate Title
         id: validate-title
-        continue-on-error: false
+        continue-on-error: true
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: .github/scripts/build/validate-title.sh
@@ -117,8 +117,16 @@ jobs:
           VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
         run: .github/scripts/build/label-pull-request.sh
       - name: Evaluate Validation Results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
         run: |
-          if [[ "${{ contains(steps.*.outcome, 'failure') }}" == "true" ]]; then
+          if [[ "${VALIDATION_FAILED}" == "true" ]]; then
+            gh pr comment "${PR_NUMBER}" \
+              --repo "${REPOSITORY}" \
+              --body "Pull Request validation failed. Review the build workflow checks for changes required."
             echo "::error::Pull request validation failed"
             exit 1
           fi
