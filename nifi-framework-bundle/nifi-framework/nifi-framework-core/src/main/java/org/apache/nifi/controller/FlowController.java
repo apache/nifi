@@ -644,7 +644,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
 
         final SecretsManager secretsManager = createSecretsManager(nifiProperties, extensionManager, flowManager);
-        final ConnectorConfigurationProvider connectorConfigurationProvider = createConnectorConfigurationProvider(nifiProperties, extensionManager, connectorAssetManager);
+        final ConnectorConfigurationProvider connectorConfigurationProvider = createConnectorConfigurationProvider(nifiProperties, extensionManager, connectorAssetManager, this);
         connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, connectorAssetManager, secretsManager, this, connectorRequestReplicator,
             connectorConfigurationProvider);
 
@@ -992,7 +992,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     private static ConnectorConfigurationProvider createConnectorConfigurationProvider(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager,
-                final AssetManager connectorAssetManager) {
+                final AssetManager connectorAssetManager, final NodeTypeProvider nodeTypeProvider) {
         final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION);
         if (implementationClassName == null || implementationClassName.isBlank()) {
             LOG.info("No Connector Configuration Provider implementation configured; external connector configuration management is disabled");
@@ -1012,7 +1012,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 ));
 
             final ConnectorConfigurationProviderInitializationContext initializationContext =
-                new StandardConnectorConfigurationProviderInitializationContext(initializationProperties, connectorAssetManager);
+                new StandardConnectorConfigurationProviderInitializationContext(initializationProperties, connectorAssetManager, nodeTypeProvider);
 
             synchronized (created) {
                 try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "connector-configuration-provider")) {
