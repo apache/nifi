@@ -56,8 +56,8 @@ public class ParameterProviderSecretsManager implements SecretsManager {
     public void initialize(final SecretsManagerInitializationContext initializationContext) {
         this.flowManager = initializationContext.getFlowManager();
 
-        final String cacheDurationValue = initializationContext.getProperty(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION);
-        final String effectiveDuration = cacheDurationValue != null ? cacheDurationValue : DEFAULT_CACHE_DURATION;
+        final String cacheDurationValue = initializationContext.getApplicationProperty(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION);
+        final String effectiveDuration = cacheDurationValue == null ? DEFAULT_CACHE_DURATION : cacheDurationValue;
         this.cacheDuration = Duration.ofNanos(FormatUtils.getTimeDuration(effectiveDuration.trim(), TimeUnit.NANOSECONDS));
     }
 
@@ -238,7 +238,9 @@ public class ParameterProviderSecretsManager implements SecretsManager {
     }
 
     private boolean isExpired(final CachedSecret cached) {
-        return Duration.ofNanos(System.nanoTime() - cached.timestampNanos()).compareTo(cacheDuration) >= 0;
+        final long elapsedNanos = System.nanoTime() - cached.timestampNanos();
+        final Duration elapsed = Duration.ofNanos(elapsedNanos);
+        return elapsed.compareTo(cacheDuration) >= 0;
     }
 
     private void cacheSecret(final String fqn, final Secret secret) {

@@ -41,7 +41,7 @@ public class StandardSecretsManagerInitializationContext implements SecretsManag
     }
 
     @Override
-    public String getProperty(final String key) {
+    public String getApplicationProperty(final String key) {
         return properties.get(key);
     }
 }

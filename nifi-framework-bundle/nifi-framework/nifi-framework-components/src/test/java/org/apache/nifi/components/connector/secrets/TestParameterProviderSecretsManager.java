@@ -73,6 +73,8 @@ public class TestParameterProviderSecretsManager {
     private static final String SECRET_3_DESCRIPTION = "Third secret";
     private static final String SECRET_3_VALUE = "secret-value-three";
 
+    private static final String DEFAULT_CACHE_DURATION = "5 mins";
+
     private ParameterProviderSecretsManager secretsManager;
 
     @BeforeEach
@@ -398,7 +400,7 @@ public class TestParameterProviderSecretsManager {
     public void testSecretCacheReturnsFromCacheWithinDuration() {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
 
@@ -434,7 +436,7 @@ public class TestParameterProviderSecretsManager {
     public void testInvalidateCacheForcesSecretRefresh() {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
 
@@ -452,7 +454,7 @@ public class TestParameterProviderSecretsManager {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE),
             createParameter(SECRET_2_NAME, SECRET_2_DESCRIPTION, SECRET_2_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference reference1 = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
         final SecretReference reference2 = createSecretReference(PROVIDER_1_ID, null, SECRET_2_NAME);
@@ -476,7 +478,7 @@ public class TestParameterProviderSecretsManager {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE),
             createParameter(SECRET_2_NAME, SECRET_2_DESCRIPTION, SECRET_2_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference reference1 = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
         final SecretReference reference2 = createSecretReference(PROVIDER_1_ID, null, SECRET_2_NAME);
@@ -496,7 +498,7 @@ public class TestParameterProviderSecretsManager {
     public void testNullFqnReturnsEmpty() {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference referenceWithNullFqn = new SecretReference(PROVIDER_1_ID, PROVIDER_1_NAME, SECRET_1_NAME, null);
 
@@ -510,7 +512,7 @@ public class TestParameterProviderSecretsManager {
     public void testNegativeResultNotCached() {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference nonExistent = createSecretReference(PROVIDER_1_ID, null, "does-not-exist");
 
@@ -527,7 +529,7 @@ public class TestParameterProviderSecretsManager {
     public void testConcurrentAccessDoesNotCorruptCache() throws Exception {
         final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
             createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
-        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration("5 mins", providerNode);
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
 
         final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
 
