@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-name: ci-workflow
+name: build
 
 on: [push, pull_request]
 
@@ -56,10 +56,72 @@ permissions:
   pull-requests: read
 
 jobs:
+  validate-pull-request:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    name: Validate Pull Request
+    if: github.event_name == 'pull_request' && github.repository == 'apache/nifi'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Validate Title
+        id: validate-title
+        continue-on-error: true
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: .github/scripts/build/validate-title.sh
+      - name: Validate Jira Issue
+        id: validate-jira-issue
+        continue-on-error: true
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: .github/scripts/build/validate-jira-issue.sh
+      - name: Validate Commit Messages
+        id: validate-commit-messages
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: .github/scripts/build/validate-commit-messages.sh
+      - name: Validate Signed Commits
+        id: validate-signed-commits
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: .github/scripts/build/validate-signed-commits.sh
+      - name: Validate Branch Status
+        id: validate-branch-status
+        continue-on-error: true
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: .github/scripts/build/validate-branch-status.sh
+      - name: Validate Single Commit
+        id: validate-single-commit
+        continue-on-error: true
+        env:
+          COMMIT_COUNT: ${{ github.event.pull_request.commits }}
+          GITHUB_EVENT_ACTION: ${{ github.event.action }}
+        run: .github/scripts/build/validate-single-commit.sh
+      - name: Evaluate Validation Results
+        env:
+          VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
+        run: |
+          if [[ "${VALIDATION_FAILED}" == "true" ]]; then
+            echo "::error::Pull request validation failed"
+            exit 1
+          fi
+
   ubuntu-build-en:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
     name: Ubuntu Corretto JDK 21 EN
+    needs: validate-pull-request
+    if: ${{ !cancelled() && (needs.validate-pull-request.result == 'success' || needs.validate-pull-request.result == 'skipped') }}
     steps:
       - name: Clear Disk Space
         run: |
@@ -133,6 +195,8 @@ jobs:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
     name: Ubuntu Corretto JDK 25 EN
+    needs: validate-pull-request
+    if: ${{ !cancelled() && (needs.validate-pull-request.result == 'success' || needs.validate-pull-request.result == 'skipped') }}
     steps:
       - name: Clear Disk Space
         run: |
@@ -206,6 +270,8 @@ jobs:
     timeout-minutes: 150
     runs-on: macos-15
     name: MacOS Zulu JDK 21 JP
+    needs: validate-pull-request
+    if: ${{ !cancelled() && (needs.validate-pull-request.result == 'success' || needs.validate-pull-request.result == 'skipped') }}
     steps:
       - name: System Information
         run: |
@@ -281,6 +347,8 @@ jobs:
     timeout-minutes: 150
     runs-on: windows-2025
     name: Windows Zulu JDK 21 FR
+    needs: validate-pull-request
+    if: ${{ !cancelled() && (needs.validate-pull-request.result == 'success' || needs.validate-pull-request.result == 'skipped') }}
     steps:
       - name: System Information
         run: |

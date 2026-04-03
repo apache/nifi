@@ -27,12 +27,12 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Testing of the test suite environment {@link java.util.Locale}.  The locales specified
- * in ".github/workflows/ci-workflow.yml" are exercised.  This test is inert when run in alternate locales.
+ * in ".github/workflows/build.yml" are exercised.  This test is inert when run in alternate locales.
  */
 public class TestLocaleOfTestSuite {
 
     /**
-     * Test behaviors associated with non-standard ".github/workflows/ci-workflow.yml" {@link java.util.Locale} "en-AU".
+     * Test behaviors associated with non-standard ".github/workflows/build.yml" {@link java.util.Locale} "en-AU".
      */
     @Test
     public void testLocaleCI_EN_AU() {
@@ -44,7 +44,7 @@ public class TestLocaleOfTestSuite {
     }
 
     /**
-     * Test behaviors associated with ".github/workflows/ci-workflow.yml" {@link java.util.Locale#JAPAN}.
+     * Test behaviors associated with ".github/workflows/build.yml" {@link java.util.Locale#JAPAN}.
      */
     @Test
     public void testLocaleCI_JA_JP() {
@@ -56,7 +56,7 @@ public class TestLocaleOfTestSuite {
     }
 
     /**
-     * Test behaviors associated with ".github/workflows/ci-workflow.yml" {@link java.util.Locale#FRANCE}.
+     * Test behaviors associated with ".github/workflows/build.yml" {@link java.util.Locale#FRANCE}.
      */
     @Test
     public void testLocaleCI_FR_FR() {
