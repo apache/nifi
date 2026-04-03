@@ -144,6 +144,44 @@ public class StandardVersionedComponentSynchronizerTest {
 
     private static final String SENSITIVE_PROPERTY_NAME = "Access Token";
 
+    private static final String PARAM_ABC = "abc";
+
+    private static final String PARAM_SECRET = "secret";
+
+    private static final String VALUE_XYZ = "xyz";
+
+    private static final String VALUE_YES = "yes";
+
+    private static final String VALUE_123 = "123";
+
+    private static final String VALUE_MAYBE = "maybe";
+
+    private static final String CONTEXT_NAME_1 = "Context 1";
+
+    private static final String CONTEXT_NAME_2 = "Context 2";
+
+    private static final String CONTEXT_NAME_PARAMS = "Params";
+
+    private static final Set<String> SENSITIVE_PARAM_NAMES = Set.of(PARAM_SECRET);
+
+    private static final Map<String, String> SINGLE_PARAMETER = Map.of(PARAM_ABC, VALUE_XYZ);
+
+    private static final Map<String, String> INITIAL_PARAMETERS = Map.of(PARAM_ABC, VALUE_XYZ, PARAM_SECRET, VALUE_YES);
+
+    private static final Map<String, String> UPDATED_PARAMETERS = Map.of(PARAM_ABC, VALUE_123, PARAM_SECRET, VALUE_MAYBE);
+
+    private static final String ORIGINAL_PARAMETER_DESCRIPTION = "Original description";
+
+    private static final String UPDATED_PARAMETER_DESCRIPTION = "Updated description";
+
+    private static final Map<String, String> ORIGINAL_DESCRIPTION_MAP = Map.of(PARAM_ABC, ORIGINAL_PARAMETER_DESCRIPTION);
+
+    private static final Map<String, String> UPDATED_DESCRIPTION_MAP = Map.of(PARAM_ABC, UPDATED_PARAMETER_DESCRIPTION);
+
+    private static final String ORIGINAL_CONTEXT_DESCRIPTION = "Generated for unit test";
+
+    private static final String UPDATED_CONTEXT_DESCRIPTION = "Updated context description";
+
     private ProcessorNode processorA;
     private ProcessorNode processorB;
     private Connection connectionAB;
@@ -1010,10 +1048,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @Test
     public void testCreatingParameterContext() throws FlowSynchronizationException, InterruptedException, TimeoutException {
-        final Map<String, String> parameterMap = new HashMap<>();
-        parameterMap.put("abc", "xyz");
-        parameterMap.put("secret", "yes");
-        final VersionedParameterContext proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
+        final VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_1, INITIAL_PARAMETERS, SENSITIVE_PARAM_NAMES);
 
         synchronizer.synchronize(null, proposed, synchronizationOptions);
 
@@ -1026,75 +1061,56 @@ public class StandardVersionedComponentSynchronizerTest {
         final Map<ParameterDescriptor, Parameter> createdParameters = created.getParameters();
         assertEquals(2, createdParameters.size());
 
-        final Parameter abc = created.getParameter("abc").get();
-        assertEquals("abc", abc.getDescriptor().getName());
+        final Parameter abc = created.getParameter(PARAM_ABC).get();
+        assertEquals(PARAM_ABC, abc.getDescriptor().getName());
         assertFalse(abc.getDescriptor().isSensitive());
-        assertEquals("xyz", abc.getValue());
+        assertEquals(VALUE_XYZ, abc.getValue());
 
-        final Parameter secret = created.getParameter("secret").get();
-        assertEquals("secret", secret.getDescriptor().getName());
+        final Parameter secret = created.getParameter(PARAM_SECRET).get();
+        assertEquals(PARAM_SECRET, secret.getDescriptor().getName());
         assertTrue(secret.getDescriptor().isSensitive());
-        assertEquals("yes", secret.getValue());
+        assertEquals(VALUE_YES, secret.getValue());
     }
 
     @Test
     public void testUpdateParametersNoReferences() throws FlowSynchronizationException, InterruptedException, TimeoutException {
-        // Create the initial context
         testCreatingParameterContext();
 
         final ParameterContext existing = parameterContextManager.getParameterContexts().iterator().next();
-
-        final Map<String, String> parameterMap = new HashMap<>();
-        parameterMap.put("abc", "123");
-        parameterMap.put("secret", "maybe");
-
-        final VersionedParameterContext proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        final VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_2, UPDATED_PARAMETERS, SENSITIVE_PARAM_NAMES);
 
         synchronizer.synchronize(existing, proposed, synchronizationOptions);
 
-        assertEquals("123", existing.getParameter("abc").get().getValue());
-        assertEquals("maybe", existing.getParameter("secret").get().getValue());
-        assertEquals("Context 2", existing.getName());
+        assertEquals(VALUE_123, existing.getParameter(PARAM_ABC).get().getValue());
+        assertEquals(VALUE_MAYBE, existing.getParameter(PARAM_SECRET).get().getValue());
+        assertEquals(CONTEXT_NAME_2, existing.getName());
     }
 
     @Test
     public void testUpdateParametersReferenceProcessorNotStopping() throws FlowSynchronizationException, InterruptedException, TimeoutException {
-        // Create the initial context
         testCreatingParameterContext();
 
         final ParameterContext existing = parameterContextManager.getParameterContexts().iterator().next();
-
-        final Map<String, String> parameterMap = new HashMap<>();
-        parameterMap.put("abc", "123");
-        parameterMap.put("secret", "maybe");
-
-        final VersionedParameterContext proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        final VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_2, UPDATED_PARAMETERS, SENSITIVE_PARAM_NAMES);
 
         final ProcessorNode processorA = createMockProcessor();
         startProcessor(processorA, false);
         synchronizationOptions = createQuickFailSynchronizationOptions(FlowSynchronizationOptions.ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION);
-        when(parameterReferenceManager.getProcessorsReferencing(existing, "abc")).thenReturn(Collections.singleton(processorA));
+        when(parameterReferenceManager.getProcessorsReferencing(existing, PARAM_ABC)).thenReturn(Collections.singleton(processorA));
 
         assertThrows(TimeoutException.class, () -> synchronizer.synchronize(existing, proposed, synchronizationOptions));
 
-        // Updates should not occur.
-        assertEquals("xyz", existing.getParameter("abc").get().getValue());
-        assertEquals("yes", existing.getParameter("secret").get().getValue());
-        assertEquals("Context 1", existing.getName());
+        assertEquals(VALUE_XYZ, existing.getParameter(PARAM_ABC).get().getValue());
+        assertEquals(VALUE_YES, existing.getParameter(PARAM_SECRET).get().getValue());
+        assertEquals(CONTEXT_NAME_1, existing.getName());
     }
 
     @Test
     public void testUpdateParametersReferenceStopping() throws FlowSynchronizationException, InterruptedException, TimeoutException {
-        // Create the initial context
         testCreatingParameterContext();
 
         final ParameterContext existing = parameterContextManager.getParameterContexts().iterator().next();
-
-        final Map<String, String> parameterMap = new HashMap<>();
-        parameterMap.put("abc", "123");
-        parameterMap.put("secret", "maybe");
-
-        final VersionedParameterContext proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        final VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_2, UPDATED_PARAMETERS, SENSITIVE_PARAM_NAMES);
 
         final ProcessorNode processorA = createMockProcessor();
         startProcessor(processorA, true);
@@ -1107,7 +1123,6 @@ public class StandardVersionedComponentSynchronizerTest {
         when(service.isActive()).thenAnswer(invocation -> serviceActive.get());
         when(service.getState()).thenAnswer(invocation -> serviceActive.get() ? ControllerServiceState.ENABLED : ControllerServiceState.DISABLED);
 
-        // Make Processors A and B reference the controller service and start them
         setReferences(service, processorA, processorB);
         startProcessor(processorB);
 
@@ -1117,17 +1132,15 @@ public class StandardVersionedComponentSynchronizerTest {
             return CompletableFuture.completedFuture(null);
         });
 
-        when(parameterReferenceManager.getProcessorsReferencing(existing, "abc")).thenReturn(Collections.emptySet());
-        when(parameterReferenceManager.getControllerServicesReferencing(existing, "abc")).thenReturn(Collections.singleton(service));
+        when(parameterReferenceManager.getProcessorsReferencing(existing, PARAM_ABC)).thenReturn(Collections.emptySet());
+        when(parameterReferenceManager.getControllerServicesReferencing(existing, PARAM_ABC)).thenReturn(Collections.singleton(service));
 
         synchronizer.synchronize(existing, proposed, synchronizationOptions);
 
-        // Updates should occur.
-        assertEquals("123", existing.getParameter("abc").get().getValue());
-        assertEquals("maybe", existing.getParameter("secret").get().getValue());
-        assertEquals("Context 2", existing.getName());
+        assertEquals(VALUE_123, existing.getParameter(PARAM_ABC).get().getValue());
+        assertEquals(VALUE_MAYBE, existing.getParameter(PARAM_SECRET).get().getValue());
+        assertEquals(CONTEXT_NAME_2, existing.getName());
 
-        // Verify controller service/reference lifecycles
         verify(controllerServiceProvider).unscheduleReferencingComponents(service);
         verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
         verify(controllerServiceProvider).enableControllerServicesAsync(Collections.singleton(service));
@@ -1136,16 +1149,10 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @Test
     public void testUpdateParametersControllerServiceNotDisabling() throws FlowSynchronizationException, InterruptedException, TimeoutException {
-        // Create the initial context
         testCreatingParameterContext();
 
         final ParameterContext existing = parameterContextManager.getParameterContexts().iterator().next();
-
-        final Map<String, String> parameterMap = new HashMap<>();
-        parameterMap.put("abc", "123");
-        parameterMap.put("secret", "maybe");
-
-        final VersionedParameterContext proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        final VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_2, UPDATED_PARAMETERS, SENSITIVE_PARAM_NAMES);
 
         final ProcessorNode processorA = createMockProcessor();
         final ProcessorNode processorB = createMockProcessor();
@@ -1154,7 +1161,6 @@ public class StandardVersionedComponentSynchronizerTest {
         when(service.isActive()).thenReturn(true);
         when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
 
-        // Make Processors A and B reference the controller service and start them
         setReferences(service, processorA, processorB);
         startProcessor(processorA, true);
         startProcessor(processorB);
@@ -1164,21 +1170,19 @@ public class StandardVersionedComponentSynchronizerTest {
         completedFutureMap.put(processorB, CompletableFuture.completedFuture(null));
 
         when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(completedFutureMap);
-        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(new CompletableFuture<>()); // Never complete future = never disable service
+        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(new CompletableFuture<>());
 
         synchronizationOptions = createQuickFailSynchronizationOptions(FlowSynchronizationOptions.ComponentStopTimeoutAction.TERMINATE);
 
-        when(parameterReferenceManager.getProcessorsReferencing(existing, "abc")).thenReturn(Collections.emptySet());
-        when(parameterReferenceManager.getControllerServicesReferencing(existing, "abc")).thenReturn(Collections.singleton(service));
+        when(parameterReferenceManager.getProcessorsReferencing(existing, PARAM_ABC)).thenReturn(Collections.emptySet());
+        when(parameterReferenceManager.getControllerServicesReferencing(existing, PARAM_ABC)).thenReturn(Collections.singleton(service));
 
         assertThrows(TimeoutException.class, () -> synchronizer.synchronize(existing, proposed, synchronizationOptions));
 
-        // Updates should not occur.
-        assertEquals("xyz", existing.getParameter("abc").get().getValue());
-        assertEquals("yes", existing.getParameter("secret").get().getValue());
-        assertEquals("Context 1", existing.getName());
+        assertEquals(VALUE_XYZ, existing.getParameter(PARAM_ABC).get().getValue());
+        assertEquals(VALUE_YES, existing.getParameter(PARAM_SECRET).get().getValue());
+        assertEquals(CONTEXT_NAME_1, existing.getName());
 
-        // Verify controller service/reference lifecycles
         verify(controllerServiceProvider).unscheduleReferencingComponents(service);
         verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
         verify(controllerServiceProvider, times(0)).enableControllerServicesAsync(Collections.singleton(service));
@@ -1191,68 +1195,54 @@ public class StandardVersionedComponentSynchronizerTest {
         testCreatingParameterContext();
         final ParameterContext existing = parameterContextManager.getParameterContexts().iterator().next();
 
-        final Map<String, String> originalParams = new HashMap<>();
-        originalParams.put("abc", "xyz");
-        originalParams.put("secret", "yes");
-
-        // Test no changes
-        Map<String, String> parameterMap = new HashMap<>(originalParams);
-        VersionedParameterContext proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
+        Map<String, String> parameterMap = new HashMap<>(INITIAL_PARAMETERS);
+        VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_1, parameterMap, SENSITIVE_PARAM_NAMES);
         assertEquals(Collections.emptySet(), synchronizer.getUpdatedParameterNames(existing, proposed));
 
-        // Test non-sensitive param change
-        parameterMap = new HashMap<>(originalParams);
-        parameterMap.put("abc", "hello");
-        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
-        assertEquals(Collections.singleton("abc"), synchronizer.getUpdatedParameterNames(existing, proposed));
+        parameterMap = new HashMap<>(INITIAL_PARAMETERS);
+        parameterMap.put(PARAM_ABC, "hello");
+        proposed = createVersionedParameterContext(CONTEXT_NAME_1, parameterMap, SENSITIVE_PARAM_NAMES);
+        assertEquals(Collections.singleton(PARAM_ABC), synchronizer.getUpdatedParameterNames(existing, proposed));
 
-        // Test sensitive param change
-        parameterMap = new HashMap<>(originalParams);
-        parameterMap.put("secret", "secret");
-        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
-        assertEquals(Collections.singleton("secret"), synchronizer.getUpdatedParameterNames(existing, proposed));
+        parameterMap = new HashMap<>(INITIAL_PARAMETERS);
+        parameterMap.put(PARAM_SECRET, PARAM_SECRET);
+        proposed = createVersionedParameterContext(CONTEXT_NAME_1, parameterMap, SENSITIVE_PARAM_NAMES);
+        assertEquals(Collections.singleton(PARAM_SECRET), synchronizer.getUpdatedParameterNames(existing, proposed));
 
-        // Test removed parameters
         parameterMap.clear();
-        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
-        assertEquals(new HashSet<>(Arrays.asList("abc", "secret")), synchronizer.getUpdatedParameterNames(existing, proposed));
+        proposed = createVersionedParameterContext(CONTEXT_NAME_1, parameterMap, SENSITIVE_PARAM_NAMES);
+        assertEquals(new HashSet<>(Arrays.asList(PARAM_ABC, PARAM_SECRET)), synchronizer.getUpdatedParameterNames(existing, proposed));
 
-        // Test added parameter
-        parameterMap = new HashMap<>(originalParams);
+        parameterMap = new HashMap<>(INITIAL_PARAMETERS);
         parameterMap.put("Added", "Added");
-        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
+        proposed = createVersionedParameterContext(CONTEXT_NAME_1, parameterMap, SENSITIVE_PARAM_NAMES);
         assertEquals(Collections.singleton("Added"), synchronizer.getUpdatedParameterNames(existing, proposed));
 
-        // Test added, removed, and updated parameters
-        parameterMap = new HashMap<>(originalParams);
+        parameterMap = new HashMap<>(INITIAL_PARAMETERS);
         parameterMap.put("Added", "Added");
         parameterMap.put("Added 2", "Added");
-        parameterMap.remove("secret");
-        parameterMap.put("abc", "hello");
-        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
-        assertEquals(new HashSet<>(Arrays.asList("abc", "secret", "Added", "Added 2")), synchronizer.getUpdatedParameterNames(existing, proposed));
+        parameterMap.remove(PARAM_SECRET);
+        parameterMap.put(PARAM_ABC, "hello");
+        proposed = createVersionedParameterContext(CONTEXT_NAME_1, parameterMap, SENSITIVE_PARAM_NAMES);
+        assertEquals(new HashSet<>(Arrays.asList(PARAM_ABC, PARAM_SECRET, "Added", "Added 2")), synchronizer.getUpdatedParameterNames(existing, proposed));
 
-        // Test change value due to inherited parameter context reordering
         final Map<String, String> inheritedParameters = new HashMap<>();
-        // Context 1: abc = xyz
-        // Context 3: abc = def
-        inheritedParameters.put("abc", "def");
+        inheritedParameters.put(PARAM_ABC, "def");
         final VersionedParameterContext context3 = createVersionedParameterContext("Context 3", inheritedParameters, Collections.emptySet());
 
         synchronizer.synchronize(null, context3, synchronizationOptions);
 
         parameterMap = new HashMap<>();
-        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.emptySet());
+        proposed = createVersionedParameterContext(CONTEXT_NAME_2, parameterMap, Collections.emptySet());
         synchronizer.synchronize(null, proposed, synchronizationOptions);
 
-        ParameterContext context2 = parameterContextManager.getParameterContextNameMapping().get("Context 2");
-        proposed.setInheritedParameterContexts(List.of("Context 1", "Context 3"));
+        ParameterContext context2 = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_2);
+        proposed.setInheritedParameterContexts(List.of(CONTEXT_NAME_1, "Context 3"));
         synchronizer.synchronize(context2, proposed, synchronizationOptions);
 
-        proposed.setInheritedParameterContexts(List.of("Context 3", "Context 1"));
-        context2 = parameterContextManager.getParameterContextNameMapping().get("Context 2");
-        // The effective value of abc should change here due to the reordering
-        assertEquals(Collections.singleton("abc"), synchronizer.getUpdatedParameterNames(context2, proposed));
+        proposed.setInheritedParameterContexts(List.of("Context 3", CONTEXT_NAME_1));
+        context2 = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_2);
+        assertEquals(Collections.singleton(PARAM_ABC), synchronizer.getUpdatedParameterNames(context2, proposed));
     }
 
     @Test
@@ -1353,6 +1343,123 @@ public class StandardVersionedComponentSynchronizerTest {
         assertTrue(p2.getParameter("paramA").isPresent(), "paramA should still exist on P2");
     }
 
+    @Test
+    public void testParameterDescriptionUpdatedDuringSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_1,
+            SINGLE_PARAMETER, ORIGINAL_DESCRIPTION_MAP, Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext context = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_1);
+        assertEquals(ORIGINAL_PARAMETER_DESCRIPTION, context.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+
+        final VersionedParameterContext proposed = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_1,
+            SINGLE_PARAMETER, UPDATED_DESCRIPTION_MAP, Collections.emptySet());
+
+        synchronizer.synchronize(context, proposed, synchronizationOptions);
+
+        assertEquals(UPDATED_PARAMETER_DESCRIPTION, context.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+        assertEquals(VALUE_XYZ, context.getParameter(PARAM_ABC).get().getValue());
+    }
+
+    @Test
+    public void testParameterDescriptionUpdatedDuringProcessGroupSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_PARAMS,
+            SINGLE_PARAMETER, ORIGINAL_DESCRIPTION_MAP, Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext paramContext = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_PARAMS);
+        assertEquals(ORIGINAL_PARAMETER_DESCRIPTION, paramContext.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(paramContext);
+
+        final VersionedParameterContext proposedParams = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_PARAMS,
+            SINGLE_PARAMETER, UPDATED_DESCRIPTION_MAP, Collections.emptySet());
+
+        final Map<String, VersionedParameterContext> parameterContextMap = Map.of(CONTEXT_NAME_PARAMS, proposedParams);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName(CONTEXT_NAME_PARAMS);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals(UPDATED_PARAMETER_DESCRIPTION, paramContext.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+        assertEquals(VALUE_XYZ, paramContext.getParameter(PARAM_ABC).get().getValue());
+    }
+
+    @Test
+    public void testParameterContextDescriptionUpdatedDuringProcessGroupSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContext(CONTEXT_NAME_PARAMS, SINGLE_PARAMETER, Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext paramContext = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_PARAMS);
+        assertEquals(ORIGINAL_CONTEXT_DESCRIPTION, paramContext.getDescription());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(paramContext);
+
+        final VersionedParameterContext proposedParams = createVersionedParameterContext(CONTEXT_NAME_PARAMS, SINGLE_PARAMETER, Collections.emptySet());
+        proposedParams.setDescription(UPDATED_CONTEXT_DESCRIPTION);
+
+        final Map<String, VersionedParameterContext> parameterContextMap = Map.of(CONTEXT_NAME_PARAMS, proposedParams);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName(CONTEXT_NAME_PARAMS);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(parameterContextMap);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals(UPDATED_CONTEXT_DESCRIPTION, paramContext.getDescription());
+    }
+
+    @Test
+    public void testParameterDescriptionUnchangedWhenValueSame() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_1,
+            SINGLE_PARAMETER, ORIGINAL_DESCRIPTION_MAP, Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext context = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_1);
+        assertEquals(ORIGINAL_PARAMETER_DESCRIPTION, context.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+
+        final VersionedParameterContext proposed = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_1,
+            SINGLE_PARAMETER, ORIGINAL_DESCRIPTION_MAP, Collections.emptySet());
+
+        synchronizer.synchronize(context, proposed, synchronizationOptions);
+
+        assertEquals(ORIGINAL_PARAMETER_DESCRIPTION, context.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+        assertEquals(VALUE_XYZ, context.getParameter(PARAM_ABC).get().getValue());
+    }
+
+    private VersionedParameterContext createVersionedParameterContextWithDescriptions(final String name, final Map<String, String> parameters,
+                                                                                      final Map<String, String> descriptions, final Set<String> sensitiveParamNames) {
+        final Set<VersionedParameter> versionedParameters = new HashSet<>();
+        for (final Map.Entry<String, String> entry : parameters.entrySet()) {
+            final VersionedParameter param = new VersionedParameter();
+            param.setName(entry.getKey());
+            param.setValue(entry.getValue());
+            param.setSensitive(sensitiveParamNames.contains(entry.getKey()));
+            param.setDescription(descriptions.get(entry.getKey()));
+            versionedParameters.add(param);
+        }
+
+        final VersionedParameterContext context = new VersionedParameterContext();
+        context.setName(name);
+        context.setDescription(ORIGINAL_CONTEXT_DESCRIPTION);
+        context.setParameters(versionedParameters);
+        context.setIdentifier(UUID.randomUUID().toString());
+
+        return context;
+    }
+
     private VersionedParameterContext createVersionedParameterContext(final String name, final Map<String, String> parameters, final Set<String> sensitiveParamNames) {
         final Set<VersionedParameter> versionedParameters = new HashSet<>();
         for (final Map.Entry<String, String> entry : parameters.entrySet()) {
@@ -1365,7 +1472,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         final VersionedParameterContext context = new VersionedParameterContext();
         context.setName(name);
-        context.setDescription("Generated for unit test");
+        context.setDescription(ORIGINAL_CONTEXT_DESCRIPTION);
         context.setParameters(versionedParameters);
         context.setIdentifier(UUID.randomUUID().toString());
 

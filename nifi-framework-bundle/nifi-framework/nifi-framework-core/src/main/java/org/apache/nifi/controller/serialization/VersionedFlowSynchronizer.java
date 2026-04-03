@@ -982,9 +982,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final Map<String, String> currentValues = new HashMap<>();
         final Map<String, Set<String>> currentAssetReferences = new HashMap<>();
+        final Map<String, String> currentDescriptions = new HashMap<>();
         parameterContext.getParameters().values().forEach(param -> {
             currentValues.put(param.getDescriptor().getName(), param.getValue());
             currentAssetReferences.put(param.getDescriptor().getName(), getAssetIds(param));
+            currentDescriptions.put(param.getDescriptor().getName(), param.getDescriptor().getDescription());
         });
 
         final Map<String, Parameter> updatedParameters = new HashMap<>();
@@ -993,11 +995,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final String parameterName = parameter.getName();
             final String currentValue = currentValues.get(parameterName);
             final Set<String> currentAssetIds = currentAssetReferences.getOrDefault(parameterName, Collections.emptySet());
+            final String currentDescription = currentDescriptions.get(parameterName);
 
             final Parameter updatedParameterObject = parameters.get(parameterName);
             final String updatedValue = updatedParameterObject.getValue();
             final Set<String> updatedAssetIds = getAssetIds(updatedParameterObject);
-            if (!Objects.equals(currentValue, updatedValue) || !currentAssetIds.equals(updatedAssetIds)) {
+            final String updatedDescription = updatedParameterObject.getDescriptor().getDescription();
+            if (!Objects.equals(currentValue, updatedValue) || !currentAssetIds.equals(updatedAssetIds) || !Objects.equals(currentDescription, updatedDescription)) {
                 updatedParameters.put(parameterName, updatedParameterObject);
             }
             proposedParameterNames.add(parameterName);
