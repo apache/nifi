@@ -18,7 +18,9 @@
 package org.apache.nifi.graph;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.util.Tuple;
 
+import java.util.List;
 import java.util.Map;
 
 public interface GraphClientService extends ControllerService {
@@ -30,6 +32,28 @@ public interface GraphClientService extends ControllerService {
     String PROPERTIES_SET = "graph.properties.set";
     String ROWS_RETURNED = "graph.rows.returned";
 
-    Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler);
+    String NODES_TYPE = "Nodes";
+    String EDGES_TYPE = "Edges";
+
+    /**
+     * Executes the given query using the parameters provided and returns a map of results.
+     * @param query The query to execute
+     * @param parameters The parameter values to be used in the query
+     * @param handler A callback handler to process the results of the query
+     * @return A map containing the results of the query execution, where the keys are column names and the values are the corresponding data.
+     */
+    Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler);
     String getTransitUrl();
+
+    /**
+     * Generates a query/statement for setting properties on matched node(s) in the language associated with the Graph Database
+     * @param componentType The type of component that is executing the query, e.g. "Nodes", "Edges", etc.
+     * @param identifiersAndValues A tuple containing the name of and value for the property to match on,
+     * @param nodeType The type of node to match on, e.g. "Person", "Organization", etc.
+     * @param propertyMap A map of key/value pairs of property names and values to set on the matched node(s)
+     * @return A query/statement that can be executed against the Graph Database to set the properties on the matched node(s)
+     */
+    default String generateSetPropertiesStatement(final String componentType, final List<Tuple<String, String>> identifiersAndValues, final String nodeType, final Map<String, Object> propertyMap) {
+        throw new UnsupportedOperationException("This capability is not implemented for this GraphClientService");
+    }
 }
