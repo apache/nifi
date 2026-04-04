@@ -604,13 +604,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     Funnel findFunnel(String id);
 
     /**
-     * Gets a collection of identifiers representing all ancestor controller services
-     *
-     * @return collection of ancestor controller service identifiers
-     */
-    Set<String> getAncestorServiceIds();
-
-    /**
      * @param id of the Controller Service
      * @param includeDescendantGroups whether or not to include descendant process groups
      * @param includeAncestorGroups whether or not to include ancestor process groups
