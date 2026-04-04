@@ -77,6 +77,14 @@
                             <i class="icon icon-provenance primary-color mr-2"></i>
                             Data Provenance
                         </button>
+                        <button
+                            mat-menu-item
+                            class="global-menu-item"
+                            [disabled]="!user.provenancePermissions.canRead"
+                            [routerLink]="['/bulk-replay-status']">
+                            <i class="fa fa-retweet primary-color mr-2"></i>
+                            Bulk Replay Status
+                        </button>
                         <mat-divider></mat-divider>
                         <button
                             mat-menu-item

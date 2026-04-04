@@ -306,6 +306,7 @@ NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it i
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *Replay last event*: This option will replay the last Provenance event, effectively requeuing the last FlowFile that was processed by the Processor (see <<replay_flowfile>>).
+- *Bulk Replay*: This option opens a provenance search dialog scoped to the selected Processor, allowing the user to select multiple events and replay them all at once (see <<bulk_replay>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
 - *View usage*: This option takes the user to the Processor's usage documentation.
 - *View connections->Upstream*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
@@ -2962,6 +2963,68 @@ same FlowFile through again to verify the results. In order to ease this process
 item. From here, the user can choose to either replay the last event from just the Primary Node or from all nodes.
 
 image:event-content.png["Event Content", width=700]
+
+[[bulk_replay]]
+=== Bulk Replay
+
+Bulk Replay allows a user to replay multiple provenance events for a Processor in a single operation. This is useful when a configuration error or downstream failure has caused a batch of FlowFiles to be processed incorrectly, and those FlowFiles need to be requeued for reprocessing.
+
+==== Starting a Bulk Replay
+
+To start a Bulk Replay, right-click on a Processor and select *Bulk Replay* from the context menu.
+
+image:bulkReplayProcessorMenu.png["Bulk Replay context menu option"]
+
+This opens a provenance search dialog scoped to the selected Processor. Use the date range, FlowFile attribute, and other search filters to locate the events to be replayed, then select the desired events and confirm. You can also provide a job name to help identify the replay later; if left blank, the name defaults to the processor name and submission timestamp.
+
+image:bulkReplaySelectWindow.png["Bulk Replay event selection dialog", width=900]
+
+Once submitted, the replay job is created on the server and appears in the *Bulk Replay Status* page, accessible from the Global Menu.
+
+==== Bulk Replay Status Page
+
+The Bulk Replay Status page shows a table of all replay jobs known to the NiFi instance.
+
+image:bulkReplayStatusWindow.png["Bulk Replay Status page", width=900]
+
+For each job the table displays:
+
+- *Job Name* — the name of the job (defaults to the processor name and timestamp if not specified).
+- *Submitted* — the time the job was submitted.
+- *Submitted By* — the user who submitted the job.
+- *Processor Name* — the name of the Processor whose events are being replayed.
+- *Processor Type* — the type of the Processor (e.g., `GenerateFlowFile`).
+- *Status* — the current job status (`QUEUED`, `RUNNING`, `COMPLETED`, `PARTIAL_SUCCESS`, `CANCELLED`, `FAILED`, or `INTERRUPTED`).
+- *Progress* — a progress bar shown while the job is running.
+- *Total* — total number of events in the job.
+- *Replayed* — number of events successfully replayed.
+- *Failed* — number of events that could not be replayed.
+
+The table supports filtering by job name, processor name, processor type, status, or submitted by, and all columns are sortable. An auto-refresh toggle (default on, 5-second interval) keeps the counts and progress current while jobs are running.
+
+The *View Details* button opens a dialog showing per-event results, including the event ID, FlowFile UUID, event time, replay status, and any failure reason. This dialog also supports filtering and auto-refresh. The *Go to Processor* button navigates directly to the Processor on the canvas.
+
+image:bulkReplayViewDetails.png["Bulk Replay job detail dialog", width=900]
+
+Running or queued jobs can be cancelled using the cancel button in the actions column. Completed jobs can be removed from the list using the eraser icon, which offers the option to clear successful jobs only, all finished jobs, or all jobs.
+
+==== Cluster Behavior
+
+In a clustered environment, bulk replay jobs execute on the primary node. When a job is submitted, it is replicated to all nodes so every node has a local copy, but only the primary node starts the worker thread. Requests for job listings, details, and item-level status are forwarded to the primary node. Cancel and delete operations are replicated to all nodes.
+
+If the primary node is lost while a job is running, the worker detects the loss of primary role and sets the job status to `INTERRUPTED`. When the new primary node is elected, interrupted jobs are automatically detected and restarted. Because replay creates new FlowFiles, restarting a job from scratch is safe.
+
+If a replay item's content resides on a cluster node that is currently disconnected, the worker waits for the node to reconnect (up to the timeout configured by `nifi.bulk.replay.node.disconnect.timeout`, default 5 minutes). If the node does not reconnect in time, items on that node are marked as failed. See the link:administration-guide.html#bulk_replay_properties[Bulk Replay Properties] section for details.
+
+==== Concurrency
+
+The number of jobs that can execute at the same time is controlled by the `nifi.bulk.replay.max.concurrent` property in `nifi.properties` (default 5). Each worker thread processes one job at a time, replaying items sequentially within the job. See the link:administration-guide.html#bulk_replay_properties[Bulk Replay Properties] section of the System Administrator's Guide for details.
+
+==== Persistence
+
+Bulk replay jobs are held in memory by default and are lost when NiFi is restarted. The maximum number of jobs retained is controlled by the `nifi.bulk.replay.max.jobs` property (default 50). When the limit is reached, the oldest terminal (completed, partial success, failed, or cancelled) job is automatically removed. Active jobs (queued, running, or interrupted) are never evicted.
+
+If the entire cluster is restarted, any in-progress replay will not complete and pending items will not be dispatched. Completed job results should be noted before restarting if they are needed. However, if only the primary node is lost and a new primary is elected, interrupted jobs are automatically resumed (see Cluster Behavior above).
 
 === Viewing FlowFile Lineage
 

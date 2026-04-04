@@ -20,6 +20,7 @@ import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialogModule } from '@angular/material/dialog';
 import { getNodeStatusHistoryAndOpenDialog } from '../../../state/status-history/status-history.actions';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { Store } from '@ngrx/store';
@@ -56,6 +57,7 @@ import { selectAbout } from '../../../state/about/about.selectors';
         NgOptimizedImage,
         MatDividerModule,
         MatMenuModule,
+        MatDialogModule,
         RouterLink,
         MatButtonModule,
         FormsModule,

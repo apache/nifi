@@ -19,6 +19,14 @@ import { Injectable, inject } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
+import { MatDialog } from '@angular/material/dialog';
+import {
+    BulkReplaySearchDialog,
+    BulkReplaySearchDialogData
+} from '../../../pages/bulk-replay-status/ui/bulk-replay-search-dialog/bulk-replay-search-dialog.component';
+import { submitBulkReplay } from '../../../pages/bulk-replay-status/state/bulk-replay-status.actions';
+import { ProvenanceEventSummary } from '../../../state/shared';
+import { XL_DIALOG } from '@nifi/shared';
 import * as FlowActions from '../state/flow/flow.actions';
 import {
     centerSelectedComponents,
@@ -82,6 +90,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
     private canvasView = inject(CanvasView);
     private canvasActionsService = inject(CanvasActionsService);
     private draggableBehavior = inject(DraggableBehavior);
+    private dialog = inject(MatDialog);
 
     private updatePositionRequestId = 0;
 
@@ -891,6 +900,47 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             componentType: selectionData.type
                         })
                     );
+                }
+            },
+            {
+                condition: (selection: any) => {
+                    return this.canvasUtils.canAccessComponentProvenance(selection);
+                },
+                clazz: 'fa fa-history',
+                text: 'Bulk Replay',
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    const data: BulkReplaySearchDialogData = {
+                        processorId: selectionData.id,
+                        processorName: selectionData.component?.name ?? selectionData.id,
+                        groupId: selectionData.component?.parentGroupId ?? ''
+                    };
+                    const dialogRef = this.dialog.open(BulkReplaySearchDialog, {
+                        ...XL_DIALOG,
+                        minWidth: 1200,
+                        maxWidth: 1200,
+                        data
+                    });
+                    dialogRef
+                        .afterClosed()
+                        .subscribe((result: { events: ProvenanceEventSummary[]; jobName: string } | undefined) => {
+                            if (result?.events?.length) {
+                                const fqType: string = selectionData.component?.type ?? '';
+                                const shortType = fqType.includes('.')
+                                    ? fqType.substring(fqType.lastIndexOf('.') + 1)
+                                    : fqType;
+                                this.store.dispatch(
+                                    submitBulkReplay({
+                                        events: result.events,
+                                        processorId: data.processorId,
+                                        processorName: data.processorName,
+                                        processorType: shortType,
+                                        groupId: data.groupId,
+                                        jobName: result.jobName
+                                    })
+                                );
+                            }
+                        });
                 }
             },
             {
