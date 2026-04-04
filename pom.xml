@@ -159,7 +159,12 @@
         <jackson.bom.version>2.21.2</jackson.bom.version>
         <jackson3.bom.version>3.1.1</jackson3.bom.version>
         <json.smart.version>2.6.0</json.smart.version>
+        <lz4-java.version>1.8.1</lz4-java.version>
+        <snappy-java.version>1.1.10.8</snappy-java.version>
         <snakeyaml.version>2.6</snakeyaml.version>
+
+        <!-- DataStax Driver -->
+        <datastax.driver.version>4.19.0</datastax.driver.version>
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
@@ -499,7 +504,17 @@
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
-                <version>1.1.10.8</version>
+                <version>${snappy-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.cassandra</groupId>
+                <artifactId>java-driver-core</artifactId>
+                <version>${datastax.driver.version}</version>
             </dependency>
             <!-- Override Log4j 2 libraries for transitive dependencies -->
             <dependency>
