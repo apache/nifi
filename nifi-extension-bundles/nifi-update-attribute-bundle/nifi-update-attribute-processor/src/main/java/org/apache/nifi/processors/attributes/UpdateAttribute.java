@@ -509,9 +509,20 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
         Map<String, Action> defaultActions = this.defaultActions;
         List<FlowFile> flowFilesToTransfer = new LinkedList<>();
+        boolean sequential = false;
 
         // if there is update criteria specified, evaluate it
-        if (criteria != null && evaluateCriteria(session, context, criteria, incomingFlowFile, matchedRules, stateInitialAttributes)) {
+        if (criteria != null && FlowFilePolicy.SEQUENTIAL.equals(criteria.getFlowFilePolicy())) {
+            // sequential mode: evaluate and apply each matching rule immediately so subsequent rules see updated attributes
+            incomingFlowFile = evaluateSequential(session, context, criteria, incomingFlowFile, defaultActions, stateInitialAttributes, stateWorkingAttributes);
+
+            if (debugEnabled) {
+                logger.debug("Updated attributes for {}; transferring to '{}'", incomingFlowFile, REL_SUCCESS.getName());
+            }
+
+            sequential = true;
+            flowFilesToTransfer.add(incomingFlowFile);
+        } else if (criteria != null && evaluateCriteria(session, context, criteria, incomingFlowFile, matchedRules, stateInitialAttributes)) {
             // apply the actions for each rule and transfer the flowfile
             for (final Map.Entry<FlowFile, List<Rule>> entry : matchedRules.entrySet()) {
                 FlowFile match = entry.getKey();
@@ -579,7 +590,10 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
 
         for (FlowFile toTransfer: flowFilesToTransfer) {
-            session.getProvenanceReporter().modifyAttributes(toTransfer);
+            // sequential FlowFiles already have per-rule provenance events recorded during evaluation
+            if (!sequential) {
+                session.getProvenanceReporter().modifyAttributes(toTransfer);
+            }
         }
         session.transfer(flowFilesToTransfer, REL_SUCCESS);
     }
@@ -622,6 +636,45 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
 
         return !matchedRules.isEmpty();
+    }
+
+    // Evaluates rules sequentially, applying each matching rule's actions immediately so that subsequent rules
+    // evaluate conditions against the progressively updated FlowFile. A single provenance event is emitted
+    // listing all matched rules.
+    private FlowFile evaluateSequential(final ProcessSession session, final ProcessContext context, final Criteria criteria, FlowFile flowfile,
+            final Map<String, Action> defaultActions, final Map<String, String> stateInitialAttributes, final Map<String, String> stateWorkingAttributes) {
+        Map<String, String> sequentialStateAttributes = stateInitialAttributes;
+
+        // apply defaults as the baseline (consistent with the no-match path in other modes)
+        FlowFile currentFlowFile = executeActions(session, context, null, defaultActions, flowfile, sequentialStateAttributes, stateWorkingAttributes);
+        if (stateWorkingAttributes != null) {
+            sequentialStateAttributes = new HashMap<>(stateWorkingAttributes);
+        }
+
+        final List<String> matchedRuleNames = new ArrayList<>();
+        for (final Rule rule : criteria.getRules()) {
+            if (evaluateRule(context, rule, currentFlowFile, sequentialStateAttributes)) {
+                if (debugEnabled) {
+                    getLogger().debug("{} sequential rule '{}' matched; applying actions immediately.", this, rule.getName());
+                }
+                currentFlowFile = executeActions(session, context, List.of(rule), Map.of(), currentFlowFile, sequentialStateAttributes, stateWorkingAttributes);
+                matchedRuleNames.add(rule.getName());
+
+                if (stateWorkingAttributes != null) {
+                    sequentialStateAttributes = new HashMap<>(stateWorkingAttributes);
+                }
+            }
+        }
+
+        if (!matchedRuleNames.isEmpty()) {
+            final String joinedNames = String.join(", ", matchedRuleNames);
+            currentFlowFile = session.putAttribute(currentFlowFile, getClass().getSimpleName() + ".matchedRules", joinedNames);
+            session.getProvenanceReporter().modifyAttributes(currentFlowFile, "Applied sequential rules: " + joinedNames);
+        } else if (!defaultActions.isEmpty()) {
+            session.getProvenanceReporter().modifyAttributes(currentFlowFile);
+        }
+
+        return currentFlowFile;
     }
 
     //Evaluates the specified rule on the specified flowfile.
