@@ -18,6 +18,7 @@
 package org.apache.nifi.reporting;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
@@ -164,6 +165,49 @@ public class TestSiteToSiteBulletinReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
         assertEquals(JsonValue.NULL, bulletinJson.get("bulletinSourceType"));
+    }
+
+    @Test
+    public void testBulletinLevelFilter() throws IOException, InitializationException {
+        final List<Bulletin> bulletins = new ArrayList<>();
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", Severity.INFO.name(), "info message"));
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", Severity.WARNING.name(), "warning message"));
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", Severity.ERROR.name(), "error message"));
+
+        final ReportingContext context = Mockito.mock(ReportingContext.class);
+        final BulletinRepository repository = Mockito.mock(BulletinRepository.class);
+        Mockito.when(context.getBulletinRepository()).thenReturn(repository);
+        Mockito.when(repository.findBulletins(Mockito.any(BulletinQuery.class))).thenReturn(bulletins);
+
+        final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
+        properties.put(SiteToSiteBulletinReportingTask.BULLETIN_LEVEL, Severity.WARNING.name());
+
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
+        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
+        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        Mockito.when(initContext.getLogger()).thenReturn(logger);
+
+        task.initialize(initContext);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonArray sentArray = jsonReader.readArray();
+        assertEquals(2, sentArray.size());
+        assertEquals(Severity.WARNING.name(), sentArray.getJsonObject(0).getString("bulletinLevel"));
+        assertEquals(Severity.ERROR.name(), sentArray.getJsonObject(1).getString("bulletinLevel"));
     }
 
     private static final class MockSiteToSiteBulletinReportingTask extends SiteToSiteBulletinReportingTask {
