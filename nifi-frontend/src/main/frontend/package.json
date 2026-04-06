@@ -105,7 +105,7 @@
         "@vitest/coverage-v8": "^4.1.1"
     },
     "engines": {
-        "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+        "node": "^24.0.0"
     },
     "overrides": {
         "koa": "^3.0.3",
@@ -128,7 +128,9 @@
             "minimatch": "9.0.9"
         },
         "undici": ">=7.24.0",
-        "flatted": "3.4.2"
+        "flatted": "3.4.2",
+        "picomatch": "^4.0.4",
+        "lodash-es": "^4.18.0"
     },
     "browser": {
         "fs": false,
