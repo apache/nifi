@@ -432,7 +432,10 @@
                         <exclude>src/main/frontend/README.md</exclude>
                         <exclude>src/main/frontend/.prettierrc</exclude>
                         <exclude>src/main/frontend/.prettierignore</exclude>
+                        <exclude>src/main/frontend/.npmrc</exclude>
+                        <exclude>src/main/frontend/.nvmrc</exclude>
                         <exclude>src/main/frontend/.nxignore</exclude>
+                        <exclude>src/main/frontend/.tool-versions</exclude>
                         <exclude>src/main/frontend/dist/**/*</exclude>
                         <exclude>src/main/frontend/.angular/**/*</exclude>
                         <exclude>src/main/frontend/.nx/**/*</exclude>
