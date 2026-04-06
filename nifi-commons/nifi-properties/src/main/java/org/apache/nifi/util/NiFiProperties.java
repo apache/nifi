@@ -140,13 +140,13 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STATUS_REPOSITORY_QUESTDB_PERSIST_FREQUENCY = "nifi.status.repository.questdb.persist.frequency";
 
     // Connector Repository properties
-    public static final String CONNECTOR_REPOSITORY_IMPLEMENTATION = "nifi.components.connectors.repository.implementation";
-    public static final String CONNECTOR_SYNC_TIMEOUT = "nifi.components.connectors.sync.timeout";
+    public static final String CONNECTOR_REPOSITORY_IMPLEMENTATION = "nifi.connector.repository.implementation";
+    public static final String CONNECTOR_SYNC_TIMEOUT = "nifi.connector.sync.timeout";
     public static final String DEFAULT_CONNECTOR_SYNC_TIMEOUT = "5 mins";
 
     // Connector Configuration Provider properties
-    public static final String CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION = "nifi.components.connectors.configuration.provider.implementation";
-    public static final String CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX = "nifi.components.connectors.configuration.provider.";
+    public static final String CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION = "nifi.connector.configuration.provider.implementation";
+    public static final String CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX = "nifi.connector.configuration.provider.properties.";
 
     // Secrets Manager properties
     public static final String SECRETS_MANAGER_IMPLEMENTATION = "nifi.secrets.manager.implementation";
