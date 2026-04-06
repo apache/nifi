@@ -53,6 +53,7 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
         self.module_string_constants = module_string_constants
         self.discovered_property_descriptors = {}
         self.imported_property_descriptors = imported_property_descriptors if imported_property_descriptors else {}
+        self.used_imported_descriptors = set()
         self.processor_name = processor_name
         self.logger = logging.getLogger("python.CollectPropertyDescriptorVisitors")
 
@@ -73,6 +74,8 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
             actual_property = self.discovered_property_descriptors.get(variable_name)
             if actual_property is None:
                 actual_property = self.imported_property_descriptors.get(variable_name)
+                if actual_property is not None:
+                    self.used_imported_descriptors.add(variable_name)
 
             if actual_property is None:
                 self.logger.warning(f"Not able to find actual property descriptor for {variable_name}, so not able to resolve property dependencies in {self.processor_name}.")
@@ -267,20 +270,24 @@ def get_imported_property_descriptors_from_ast(root_node: ast.AST, module_file: 
             try:
                 source_ast = parse_module_file(source_file)
                 source_constants = get_module_string_constants_from_ast(source_ast)
-                parsed_modules[source_file] = get_property_descriptors_from_ast(source_ast, source_constants, source_file)
+                parsed_modules[source_file] = {
+                    "ast": source_ast,
+                    "descriptors": get_property_descriptors_from_ast(source_ast, source_constants, source_file),
+                    "classes": {n.name for n in ast.walk(source_ast) if isinstance(n, ast.ClassDef)}
+                }
             except Exception as e:
                 logger.warning(f"Failed to parse module {source_file} for PropertyDescriptors: {e}")
-                parsed_modules[source_file] = {}
+                parsed_modules[source_file] = {"ast": None, "descriptors": {}, "classes": set()}
 
         # Check if the imported name is a PropertyDescriptor in the source module
-        source_descriptors = parsed_modules[source_file]
+        source_descriptors = parsed_modules[source_file]["descriptors"]
+        source_classes = parsed_modules[source_file]["classes"]
         if imported_name in source_descriptors:
             imported_descriptors[imported_name] = source_descriptors[imported_name]
             logger.debug(f"Resolved imported PropertyDescriptor '{imported_name}' from {source_file}")
-        else:
-            # The imported name is not itself a PropertyDescriptor (e.g. it is a class).
-            # Expose all PropertyDescriptors found in that source module so that
-            # attribute-style references like ParentClass.MY_PROP can be resolved.
+        elif imported_name in source_classes:
+            # The imported name is a class in the source module. Expose its PropertyDescriptors so that
+            # attribute-style references like ParentClass.MY_PROP can be resolved without pulling unrelated symbols.
             for desc_name, desc in source_descriptors.items():
                 if desc_name not in imported_descriptors:
                     imported_descriptors[desc_name] = desc
@@ -476,10 +483,11 @@ def get_property_descriptions(class_node, module_string_constants, module_file, 
 
     visitor = CollectPropertyDescriptorVisitors(module_string_constants, class_node.name, imported_property_descriptors)
     visitor.visit(class_node)
-    # Merge parent/imported descriptors that are not already defined in the child class.
+    # Merge only imported descriptors actually referenced (e.g., via dependencies) and not already defined locally.
     merged = dict(visitor.discovered_property_descriptors)
-    for name, desc in imported_property_descriptors.items():
-        if name not in merged:
+    for name in visitor.used_imported_descriptors:
+        desc = imported_property_descriptors.get(name)
+        if desc and name not in merged:
             merged[name] = desc
 
     return merged.values()
