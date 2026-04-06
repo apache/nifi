@@ -516,7 +516,17 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             contentMap.putIfAbsent("@timestamp", atTimestamp);
         }
 
-        operationList.add(new IndexOperationRequest(index, type, id, contentMap, indexOp, script, scriptedUpsert, dynamicTemplates, bulkHeaderFields));
+        operationList.add(IndexOperationRequest.builder()
+                .index(index)
+                .type(type)
+                .id(id)
+                .fields(contentMap)
+                .operation(indexOp)
+                .script(script)
+                .scriptedUpsert(scriptedUpsert)
+                .dynamicTemplates(dynamicTemplates)
+                .headerFields(bulkHeaderFields)
+                .build());
     }
 
     private void operate(final List<IndexOperationRequest> operationList, final List<Record> processedRecords, final List<Record> originalRecords,

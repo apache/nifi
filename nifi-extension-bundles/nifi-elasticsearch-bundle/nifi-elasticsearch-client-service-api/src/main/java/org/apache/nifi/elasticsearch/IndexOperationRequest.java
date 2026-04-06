@@ -17,8 +17,10 @@
 
 package org.apache.nifi.elasticsearch;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A POJO that represents an "operation on an index". It should not be confused with just indexing documents, as it
@@ -30,25 +32,102 @@ public class IndexOperationRequest {
     private final String type;
     private final String id;
     private final Map<String, Object> fields;
+    private final byte[] rawJsonBytes;
     private final Operation operation;
     private final Map<String, Object> script;
-
     private final boolean scriptedUpsert;
     private final Map<String, Object> dynamicTemplates;
     private final Map<String, String> headerFields;
 
-    public IndexOperationRequest(final String index, final String type, final String id, final Map<String, Object> fields,
-                                 final Operation operation, final Map<String, Object> script, final boolean scriptedUpsert,
-                                 final Map<String, Object> dynamicTemplates, final Map<String, String> headerFields) {
-        this.index = index;
-        this.type = type;
-        this.id = id;
-        this.fields = fields;
-        this.operation = operation;
-        this.script = script;
-        this.scriptedUpsert = scriptedUpsert;
-        this.dynamicTemplates = dynamicTemplates;
-        this.headerFields = headerFields;
+    private IndexOperationRequest(final Builder builder) {
+        this.index = builder.index;
+        this.type = builder.type;
+        this.id = builder.id;
+        this.fields = builder.fields;
+        this.rawJsonBytes = builder.rawJsonBytes;
+        this.operation = builder.operation;
+        this.script = builder.script;
+        this.scriptedUpsert = builder.scriptedUpsert;
+        this.dynamicTemplates = builder.dynamicTemplates;
+        this.headerFields = builder.headerFields;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String index;
+        private String type;
+        private String id;
+        private Map<String, Object> fields;
+        private byte[] rawJsonBytes;
+        private Operation operation;
+        private Map<String, Object> script;
+        private boolean scriptedUpsert;
+        private Map<String, Object> dynamicTemplates;
+        private Map<String, String> headerFields;
+
+        public Builder index(final String index) {
+            this.index = index;
+            return this;
+        }
+
+        public Builder type(final String type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder id(final String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder fields(final Map<String, Object> fields) {
+            this.fields = fields;
+            return this;
+        }
+
+        public Builder rawJson(final String rawJson) {
+            this.rawJsonBytes = rawJson != null ? rawJson.getBytes(StandardCharsets.UTF_8) : null;
+            return this;
+        }
+
+        public Builder rawJsonBytes(final byte[] rawJsonBytes) {
+            this.rawJsonBytes = rawJsonBytes;
+            return this;
+        }
+
+        public Builder operation(final Operation operation) {
+            this.operation = operation;
+            return this;
+        }
+
+        public Builder script(final Map<String, Object> script) {
+            this.script = script;
+            return this;
+        }
+
+        public Builder scriptedUpsert(final boolean scriptedUpsert) {
+            this.scriptedUpsert = scriptedUpsert;
+            return this;
+        }
+
+        public Builder dynamicTemplates(final Map<String, Object> dynamicTemplates) {
+            this.dynamicTemplates = dynamicTemplates;
+            return this;
+        }
+
+        public Builder headerFields(final Map<String, String> headerFields) {
+            this.headerFields = headerFields;
+            return this;
+        }
+
+        public IndexOperationRequest build() {
+            Objects.requireNonNull(index, "Index required");
+            Objects.requireNonNull(operation, "Operation required");
+            return new IndexOperationRequest(this);
+        }
     }
 
     public String getIndex() {
@@ -65,6 +144,10 @@ public class IndexOperationRequest {
 
     public Map<String, Object> getFields() {
         return fields;
+    }
+
+    public byte[] getRawJsonBytes() {
+        return rawJsonBytes;
     }
 
     public Operation getOperation() {
