@@ -1195,19 +1195,37 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                                        final ProcessGroup topLevelGroup)
                 throws ProcessorInstantiationException {
 
-        for (final VersionedProcessor proposedProcessor : proposed.getProcessors()) {
-            final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
-            if (processor == null) {
-                final ProcessorNode added = addProcessor(group, proposedProcessor, context.getComponentIdGenerator(), topLevelGroup);
-                LOG.info("Added {} to {}", added, group);
-            } else if (updatedVersionedComponentIds.contains(proposedProcessor.getIdentifier())) {
-                updateProcessor(processor, proposedProcessor, topLevelGroup);
-                // Any existing component that is modified during synchronization may have its properties reverted to a pre-migration state,
-                // so we then add it to the set to allow migrateProperties to be called again to get it back to the migrated state
-                createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(processor, getPropertyValues(processor)));
-                LOG.info("Updated {}", processor);
-            } else {
-                processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
+        final Set<ProcessorNode> stoppedProcessors = new HashSet<>();
+
+        try {
+            for (final VersionedProcessor proposedProcessor : proposed.getProcessors()) {
+                final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
+                if (processor == null) {
+                    final ProcessorNode added = addProcessor(group, proposedProcessor, context.getComponentIdGenerator(), topLevelGroup);
+                    LOG.info("Added {} to {}", added, group);
+                } else if (updatedVersionedComponentIds.contains(proposedProcessor.getIdentifier())) {
+                    final long processorStopDeadline = System.currentTimeMillis() + syncOptions.getComponentStopTimeout().toMillis();
+                    try {
+                        final boolean stopped = stopOrTerminate(processor, processorStopDeadline, syncOptions);
+                        if (stopped && proposedProcessor.getScheduledState() == org.apache.nifi.flow.ScheduledState.RUNNING) {
+                            stoppedProcessors.add(processor);
+                        }
+                    } catch (final TimeoutException | FlowSynchronizationException e) {
+                        throw new ProcessorInstantiationException(processor.getIdentifier(), e);
+                    }
+                    updateProcessor(processor, proposedProcessor, topLevelGroup);
+                    // Any existing component that is modified during synchronization may have its properties reverted to a pre-migration state,
+                    // so we then add it to the set to allow migrateProperties to be called again to get it back to the migrated state
+                    createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(processor, getPropertyValues(processor)));
+                    LOG.info("Updated {}", processor);
+                } else {
+                    processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
+                }
+            }
+        } finally {
+            for (final ProcessorNode processor : stoppedProcessors) {
+                processor.getProcessGroup().startProcessor(processor, false);
+                notifyScheduledStateChange((ComponentNode) processor, syncOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
             }
         }
     }
