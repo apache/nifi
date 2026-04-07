@@ -601,8 +601,11 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNdjsonFormatInvalidLineRoutesToFailure() {
-        // A malformed JSON line should route the whole FlowFile to failure
+        // A malformed JSON line should route the whole FlowFile to failure.
+        // IDENTIFIER_FIELD forces JSON parsing per line (via streaming parser), which catches malformed input.
+        // Without it, lines are passed as raw bytes and validation happens server-side.
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "id");
         runner.assertValid();
 
         runner.enqueue("{\"id\":\"1\"}\nnot-json\n{\"id\":\"3\"}");

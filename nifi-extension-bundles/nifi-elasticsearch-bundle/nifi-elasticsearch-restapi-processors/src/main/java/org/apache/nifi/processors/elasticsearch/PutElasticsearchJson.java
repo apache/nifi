@@ -372,7 +372,6 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         if (inputFormat != InputFormat.SINGLE_JSON
                 && ElasticSearchClientService.ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
             final ObjectMapper suppressingMapper = mapper.copy()
-                    .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
                     .setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY);
             this.suppressingWriter = suppressingMapper.writer();
         } else {
@@ -395,7 +394,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 ? context.getProperty(ID_ATTRIBUTE).getValue()
                 : null;
         final String documentIdField = inputFormat != InputFormat.SINGLE_JSON
-                ? context.getProperty(IDENTIFIER_FIELD).getValue()
+                ? context.getProperty(IDENTIFIER_FIELD).evaluateAttributeExpressions().getValue()
                 : null;
         final int batchSize = InputFormat.SINGLE_JSON == inputFormat
                 ? context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger()
@@ -486,7 +485,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         .dynamicTemplates(dynamicTemplatesMap)
                                         .headerFields(bulkHeaderFields)
                                         .build();
-                                docBytes = trimmedLine.getBytes(StandardCharsets.UTF_8).length;
+                                docBytes = trimmedLine.length();
                             }
                             operations.add(opRequest);
                             operationFlowFiles.add(flowFile);
@@ -990,6 +989,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                     final byte[] successBytes = successBaos.toByteArray();
                     FlowFile successFf = session.clone(ff);
                     successFf = session.write(successFf, out -> out.write(successBytes));
+                    successFf = session.removeAttribute(successFf, "elasticsearch.bulk.error");
                     successfulDocuments.add(successFf);
                 }
             }
