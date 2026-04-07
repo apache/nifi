@@ -15,7 +15,25 @@
  * limitations under the License.
  */
 
-export const environment = {
-    production: true,
-    enableConnectors: false
-};
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { Connectors } from './connectors.component';
+
+const routes: Routes = [
+    {
+        path: '',
+        component: Connectors,
+        children: [
+            {
+                path: ':id',
+                component: Connectors
+            }
+        ]
+    }
+];
+
+@NgModule({
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
+})
+export class ConnectorsRoutingModule {}

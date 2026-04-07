@@ -15,7 +15,12 @@
  * limitations under the License.
  */
 
-export const environment = {
-    production: true,
-    enableConnectors: false
-};
+.connector-table {
+    .listing-table {
+        table {
+            .mat-column-moreDetails {
+                width: 74px;
+            }
+        }
+    }
+}

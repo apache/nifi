@@ -15,7 +15,21 @@
  * limitations under the License.
  */
 
-export const environment = {
-    production: true,
-    enableConnectors: false
-};
+import { createSelector } from '@ngrx/store';
+import { purgeConnectorFeatureKey, PurgeConnectorState } from './index';
+import { selectConnectorsState } from '../index';
+
+export const selectPurgeConnectorState = createSelector(
+    selectConnectorsState,
+    (state) => state[purgeConnectorFeatureKey]
+);
+
+export const selectPurgeDropRequestEntity = createSelector(
+    selectPurgeConnectorState,
+    (state: PurgeConnectorState) => state.dropEntity
+);
+
+export const selectPurgeConnectorId = createSelector(
+    selectPurgeConnectorState,
+    (state: PurgeConnectorState) => state.connectorId
+);

@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
-export const environment = {
-    production: true,
-    enableConnectors: false
+import { CanMatchFn } from '@angular/router';
+import { environment } from '../../../environments/environment';
+
+// Uses a build-time environment flag. Feature availability is determined at
+// build time via environment configuration rather than a runtime store check.
+export const connectorsFeatureGuard: CanMatchFn = () => {
+    return environment.enableConnectors;
 };

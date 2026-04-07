@@ -15,7 +15,20 @@
  * limitations under the License.
  */
 
-export const environment = {
-    production: true,
-    enableConnectors: false
-};
+import { Component, OnDestroy, inject } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { resetConnectorsListingState } from '../state/connectors-listing/connectors-listing.actions';
+
+@Component({
+    selector: 'connectors',
+    templateUrl: './connectors.component.html',
+    styleUrls: ['./connectors.component.scss'],
+    standalone: false
+})
+export class Connectors implements OnDestroy {
+    private store = inject(Store);
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetConnectorsListingState());
+    }
+}

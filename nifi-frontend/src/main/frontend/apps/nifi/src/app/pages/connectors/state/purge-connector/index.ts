@@ -15,7 +15,25 @@
  * limitations under the License.
  */
 
-export const environment = {
-    production: true,
-    enableConnectors: false
-};
+import { DropRequestEntity } from '../../../flow-designer/state/queue';
+import { ConnectorEntity } from '@nifi/shared';
+
+export const purgeConnectorFeatureKey = 'purgeConnector';
+
+export interface PurgeConnectorState {
+    connectorId: string | null;
+    dropEntity: DropRequestEntity | null;
+    status: 'pending' | 'loading' | 'success';
+}
+
+export interface PurgeConnectorRequest {
+    connector: ConnectorEntity;
+}
+
+export interface PollPurgeConnectorSuccess {
+    dropEntity: DropRequestEntity;
+}
+
+export interface ShowPurgeConnectorResults {
+    dropEntity: DropRequestEntity;
+}

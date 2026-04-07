@@ -1,0 +1,224 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="connector-table relative h-full">
+    <div class="listing-table absolute inset-0 overflow-y-auto">
+        <table
+            mat-table
+            [dataSource]="dataSource"
+            matSort
+            matSortDisableClear
+            (matSortChange)="sortData($event)"
+            [matSortActive]="initialSortColumn"
+            [matSortDirection]="initialSortDirection">
+            <!-- More Details Column -->
+            <ng-container matColumnDef="moreDetails">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let item">
+                    @if (canRead(item)) {
+                        <div class="flex items-center gap-x-2">
+                            @if (hasErrors(item)) {
+                                <div
+                                    class="pointer fa fa-warning has-errors caution-color"
+                                    nifiTooltip
+                                    [delayClose]="false"
+                                    [tooltipComponentType]="ValidationErrorsTip"
+                                    [tooltipInputData]="getValidationErrorsTipData(item)"
+                                    data-qa="connector-validation-errors"></div>
+                            }
+                        </div>
+                    }
+                </td>
+            </ng-container>
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                <td mat-cell *matCellDef="let item" [title]="formatName(item)" data-qa="connector-name-cell">
+                    {{ formatName(item) }}
+                </td>
+            </ng-container>
+
+            <!-- Type Column -->
+            <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                <td mat-cell *matCellDef="let item" [title]="formatType(item)" data-qa="connector-type-cell">
+                    {{ formatType(item) }}
+                </td>
+            </ng-container>
+
+            <!-- Bundle Column -->
+            <ng-container matColumnDef="bundle">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Bundle</th>
+                <td mat-cell *matCellDef="let item" [title]="formatBundle(item)" data-qa="connector-bundle-cell">
+                    {{ formatBundle(item) }}
+                </td>
+            </ng-container>
+
+            <!-- State Column -->
+            <ng-container matColumnDef="state">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
+                <td mat-cell *matCellDef="let item" data-qa="connector-state-cell">
+                    <div class="inline-flex items-center gap-x-2">
+                        <span [title]="formatState(item)">{{ formatState(item) }}</span>
+                        @if (canRead(item) && canDiscardConfig(item)) {
+                            <span class="caution-color text-xs font-medium" data-qa="edits-not-applied-badge"
+                                >(Edits not applied)</span
+                            >
+                        }
+                    </div>
+                </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let item" data-qa="connector-actions-cell">
+                    <div class="flex items-center justify-end gap-x-2">
+                        <button
+                            mat-icon-button
+                            type="button"
+                            data-qa="connector-actions-button"
+                            [matMenuTriggerFor]="actionMenu">
+                            <i class="fa fa-ellipsis-v"></i>
+                        </button>
+                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                            @if (canRead(item)) {
+                                <button mat-menu-item data-qa="view-details-action" (click)="viewDetailsClicked(item)">
+                                    <i class="fa fa-info-circle mr-2"></i>
+                                    View details
+                                </button>
+                            }
+                            @if (canRead(item) && canModify(item)) {
+                                @let configureAllowed = canConfigure(item);
+                                <button
+                                    mat-menu-item
+                                    [disabled]="!configureAllowed"
+                                    [matTooltip]="getActionDisabledReason(item, 'CONFIGURE')"
+                                    [matTooltipDisabled]="configureAllowed"
+                                    matTooltipPosition="left"
+                                    data-qa="configure-action"
+                                    (click)="configureClicked(item)">
+                                    <i class="fa fa-cog mr-2"></i>
+                                    Configure
+                                </button>
+                            }
+                            @if (canModify(item)) {
+                                <button mat-menu-item data-qa="rename-action" (click)="renameClicked(item)">
+                                    <i class="fa fa-pencil mr-2"></i>
+                                    Rename
+                                </button>
+                            }
+                            @if (canOperate(item)) {
+                                @if (canStart(item)) {
+                                    <button mat-menu-item data-qa="start-action" (click)="startClicked(item)">
+                                        <i class="fa fa-play mr-2"></i>
+                                        Start
+                                    </button>
+                                }
+                                @if (canStop(item)) {
+                                    <button mat-menu-item data-qa="stop-action" (click)="stopClicked(item)">
+                                        <i class="fa fa-stop mr-2"></i>
+                                        Stop
+                                    </button>
+                                }
+                                @if (canDrain(item)) {
+                                    <button mat-menu-item data-qa="drain-action" (click)="drainClicked(item)">
+                                        <i class="fa mr-2"></i>
+                                        Drain
+                                    </button>
+                                }
+                                @if (canCancelDrain(item)) {
+                                    <button
+                                        mat-menu-item
+                                        data-qa="cancel-drain-action"
+                                        (click)="cancelDrainClicked(item)">
+                                        <i class="fa mr-2"></i>
+                                        Cancel drain
+                                    </button>
+                                }
+                                @if (canPurge(item)) {
+                                    <button mat-menu-item data-qa="purge-action" (click)="purgeClicked(item)">
+                                        <i class="fa fa-minus-circle mr-2"></i>
+                                        Purge
+                                    </button>
+                                }
+                            }
+                            @if (canModify(item)) {
+                                @let discardAllowed = canDiscardConfig(item);
+                                <button
+                                    mat-menu-item
+                                    [disabled]="!discardAllowed"
+                                    [matTooltip]="getActionDisabledReason(item, 'DISCARD_WORKING_CONFIGURATION')"
+                                    [matTooltipDisabled]="discardAllowed"
+                                    matTooltipPosition="left"
+                                    data-qa="discard-config-action"
+                                    (click)="discardConfigClicked(item)">
+                                    <i class="fa fa-undo mr-2"></i>
+                                    Discard changes
+                                </button>
+                                @let deleteAllowed = canDelete(item);
+                                <button
+                                    mat-menu-item
+                                    [disabled]="!deleteAllowed"
+                                    [matTooltip]="getActionDisabledReason(item, 'DELETE')"
+                                    [matTooltipDisabled]="deleteAllowed"
+                                    matTooltipPosition="left"
+                                    data-qa="delete-action"
+                                    (click)="deleteClicked(item)">
+                                    <i class="fa fa-trash mr-2"></i>
+                                    Delete
+                                </button>
+                            }
+                            @if (canRead(item)) {
+                                <button mat-menu-item data-qa="view-action" (click)="viewClicked(item)">
+                                    <i class="icon icon-drop mr-2"></i>
+                                    View canvas
+                                </button>
+                                <button
+                                    mat-menu-item
+                                    data-qa="view-documentation-action"
+                                    (click)="viewDocumentationClicked(item)">
+                                    <i class="fa fa-book mr-2"></i>
+                                    View documentation
+                                </button>
+                            }
+                            @if (canManageAccessPolicies()) {
+                                <button
+                                    mat-menu-item
+                                    data-qa="manage-access-policies-action"
+                                    (click)="manageAccessPoliciesClicked(item)">
+                                    <i class="fa fa-key mr-2"></i>
+                                    Manage access policies
+                                </button>
+                            }
+                        </mat-menu>
+                    </div>
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; let even = even; columns: displayedColumns"
+                [class.selected]="isSelected(row)"
+                (click)="select(row)"
+                [class.even]="even"
+                data-qa="connector-table-row"></tr>
+        </table>
+    </div>
+</div>

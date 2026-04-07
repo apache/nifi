@@ -53,6 +53,10 @@ export interface LoadExtensionTypesForDocumentationResponse {
     connectorTypes: DocumentedType[];
 }
 
+export interface LoadExtensionTypesForConnectorsResponse {
+    connectorTypes: DocumentedType[];
+}
+
 export interface ExtensionTypesState {
     processorTypes: DocumentedType[];
     controllerServiceTypes: DocumentedType[];
