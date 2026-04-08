@@ -1264,8 +1264,13 @@ public class TestRecordPath {
 
                 record.setValue("id", Instant.parse(instantFormatted).toEpochMilli());
 
-                assertEquals(localDate, evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record).getValue());
-                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
+                final FieldValue dateResult = evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record);
+                assertEquals(localDate, dateResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateResult.getField().getDataType());
+
+                final FieldValue dateTimeResult = evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record);
+                assertEquals(instantFormatted, dateTimeResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateTimeResult.getField().getDataType());
             }
 
             @Test
@@ -1275,8 +1280,13 @@ public class TestRecordPath {
 
                 record.setValue("id", new Date(Instant.parse(instantFormatted).toEpochMilli()));
 
-                assertEquals(localDate, evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record).getValue());
-                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
+                final FieldValue dateResult = evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record);
+                assertEquals(localDate, dateResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateResult.getField().getDataType());
+
+                final FieldValue dateTimeResult = evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record);
+                assertEquals(instantFormatted, dateTimeResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateTimeResult.getField().getDataType());
             }
 
             @Test
@@ -1284,7 +1294,9 @@ public class TestRecordPath {
                 record.setValue("id", Date.valueOf("2024-08-18"));
                 record.setValue("name", "yyyy-MM-dd");
 
-                assertEquals("2024-08-18", evaluateSingleFieldValue("format(/id, /name)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("format(/id, /name)", record);
+                assertEquals("2024-08-18", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
@@ -1293,7 +1305,9 @@ public class TestRecordPath {
                 record.setValue("id", new Date(Instant.parse(instantFormatted).toEpochMilli()));
                 record.setValue("name", "GMT");
 
-                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", /name)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", /name)", record);
+                assertEquals(instantFormatted, result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
@@ -1301,7 +1315,11 @@ public class TestRecordPath {
                 final Date originalValue = Date.valueOf("2024-08-18");
                 record.setValue("id", originalValue);
 
-                assertEquals(originalValue, evaluateSingleFieldValue("format(/id, 'INVALID')", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("format(/id, 'INVALID')", record);
+                final DataType originalDataType = record.getSchema().getField("id").orElseThrow().getDataType();
+
+                assertEquals(originalValue, result.getValue());
+                assertEquals(originalDataType, result.getField().getDataType());
             }
 
             @Test
@@ -1310,7 +1328,10 @@ public class TestRecordPath {
 
                 assertAll(nonLongOrDateFields.stream().map(fieldName -> () -> {
                     final FieldValue fieldValue = evaluateSingleFieldValue("format(/%s, 'yyyy-MM-dd')".formatted(fieldName), record);
+                    final DataType originalDataType = record.getSchema().getField(fieldName).orElseThrow().getDataType();
+
                     assertEquals(record.getValue(fieldName), fieldValue.getValue());
+                    assertEquals(originalDataType, fieldValue.getField().getDataType());
                 }));
             }
         }
