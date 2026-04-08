@@ -17,7 +17,7 @@
 
 import { TestBed } from '@angular/core/testing';
 import { ConnectorTable } from './connector-table.component';
-import { ConnectorAction, ConnectorActionName, ConnectorEntity, NiFiCommon } from '@nifi/shared';
+import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorStatus, NiFiCommon } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
@@ -84,7 +84,7 @@ describe('ConnectorTable', () => {
             },
             status: {
                 runStatus: options.state || 'STOPPED'
-            }
+            } as ConnectorStatus
         };
 
         if (options.canOperate !== undefined) {
@@ -445,9 +445,9 @@ describe('ConnectorTable', () => {
             expect(component.formatState(createMockConnector({ state: 'RUNNING', canRead: true }))).toBe('RUNNING');
         });
 
-        it('should return default STOPPED state', async () => {
+        it('should return empty string for state when not readable', async () => {
             const { component } = await setup();
-            expect(component.formatState(createMockConnector({ canRead: true }))).toBe('STOPPED');
+            expect(component.formatState(createMockConnector({ canRead: false }))).toBe('');
         });
     });
 

@@ -17,7 +17,6 @@
 
 import { BreadcrumbEntity, Position } from '../shared';
 import {
-    Bundle,
     ComponentHistory,
     ParameterContextEntity,
     RegistryClientEntity,
@@ -28,6 +27,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { BackNavigation } from '../../../../state/navigation';
 import {
     BulletinEntity,
+    Bundle,
     ComponentType,
     ParameterContextReferenceEntity,
     Permissions,

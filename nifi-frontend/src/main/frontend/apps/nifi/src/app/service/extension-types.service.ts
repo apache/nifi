@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { Bundle } from '../state/shared';
+import { Bundle } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ExtensionTypesService {

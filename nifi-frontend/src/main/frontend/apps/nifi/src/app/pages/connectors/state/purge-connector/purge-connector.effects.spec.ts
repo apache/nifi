@@ -25,7 +25,7 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { MatDialog } from '@angular/material/dialog';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ConnectorAction, ConnectorActionName, ConnectorEntity } from '@nifi/shared';
+import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorStatus } from '@nifi/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { selectPurgeConnectorId, selectPurgeDropRequestEntity } from './purge-connector.selectors';
@@ -83,7 +83,7 @@ describe('PurgeConnectorEffects', () => {
                 managedProcessGroupId: 'pg-root-default',
                 availableActions: defaultActions
             },
-            status: { runStatus: 'STOPPED' }
+            status: { runStatus: 'STOPPED' } as ConnectorStatus
         };
     }
 

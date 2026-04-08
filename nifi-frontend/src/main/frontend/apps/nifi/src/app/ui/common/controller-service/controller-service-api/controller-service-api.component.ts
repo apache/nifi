@@ -16,8 +16,7 @@
  */
 
 import { Component, Input, inject } from '@angular/core';
-import { Bundle } from '../../../../state/shared';
-import { NiFiCommon } from '@nifi/shared';
+import { Bundle, NiFiCommon } from '@nifi/shared';
 
 @Component({
     selector: 'controller-service-api',

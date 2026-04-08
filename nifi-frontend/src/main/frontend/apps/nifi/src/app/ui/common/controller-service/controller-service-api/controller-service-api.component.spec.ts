@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ControllerServiceApi } from './controller-service-api.component';
-import { Bundle } from '../../../../state/shared';
+import { Bundle } from '@nifi/shared';
 
 describe('ControllerServiceApi', () => {
     let component: ControllerServiceApi;

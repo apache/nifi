@@ -28,7 +28,7 @@ import { Router } from '@angular/router';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CreateConnector } from '../../ui/create-connector/create-connector.component';
-import { ConnectorAction, ConnectorActionName, ConnectorEntity, YesNoDialog } from '@nifi/shared';
+import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorStatus, YesNoDialog } from '@nifi/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { selectLoadedTimestamp, selectSaving } from './connectors-listing.selectors';
@@ -105,7 +105,7 @@ describe('ConnectorsListingEffects', () => {
                 managedProcessGroupId: 'pg-root-default',
                 availableActions: defaultActions
             },
-            status: { runStatus: 'STOPPED' }
+            status: { runStatus: 'STOPPED' } as ConnectorStatus
         };
     }
 

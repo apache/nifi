@@ -414,8 +414,6 @@ export interface DocumentedType {
     deprecationReason?: string;
 }
 
-export type { Bundle } from '@nifi/shared';
-
 export interface AllowableValue {
     displayName: string;
     value: string | null;

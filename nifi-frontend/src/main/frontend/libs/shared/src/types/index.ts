@@ -268,6 +268,52 @@ export interface ConnectorComponent {
     managedProcessGroupId: string;
 }
 
+export interface ConnectorStatusSnapshot {
+    id: string;
+    groupId: string;
+    name: string;
+    type: string;
+    runStatus: string;
+    flowFilesSent: number;
+    bytesSent: number;
+    flowFilesReceived: number;
+    bytesReceived: number;
+    bytesRead: number;
+    bytesWritten: number;
+    sent: string;
+    received: string;
+    read: string;
+    written: string;
+    flowFilesQueued: number;
+    bytesQueued: number;
+    queued: string;
+    queuedCount: string;
+    queuedSize: string;
+    activeThreadCount: number;
+    idle?: boolean;
+    idleDurationMillis?: number;
+    idleDuration?: string;
+}
+
+export interface NodeConnectorStatusSnapshot {
+    nodeId: string;
+    address: string;
+    apiPort: number;
+    statusSnapshot: ConnectorStatusSnapshot;
+}
+
+export interface ConnectorStatus {
+    id: string;
+    groupId: string;
+    name: string;
+    type: string;
+    runStatus: string;
+    validationStatus: string;
+    statsLastRefreshed: string;
+    aggregateSnapshot: ConnectorStatusSnapshot;
+    nodeSnapshots?: NodeConnectorStatusSnapshot[];
+}
+
 export interface ConnectorEntity {
     permissions: Permissions;
     operatePermissions?: Permissions;
@@ -275,6 +321,6 @@ export interface ConnectorEntity {
     bulletins: BulletinEntity[];
     id: string;
     uri: string;
-    status: any;
+    status: ConnectorStatus;
     component: ConnectorComponent;
 }
