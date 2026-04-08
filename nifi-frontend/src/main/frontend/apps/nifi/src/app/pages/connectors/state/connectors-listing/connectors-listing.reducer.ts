@@ -30,6 +30,7 @@ import {
     drainConnector,
     drainConnectorSuccess,
     loadConnectorsListing,
+    loadConnectorsListingError,
     loadConnectorsListingSuccess,
     renameConnector,
     renameConnectorApiError,
@@ -127,10 +128,14 @@ export const connectorsListingReducer = createReducer(
         saving: false
     })),
 
+    on(loadConnectorsListingError, (state, { status }) => ({
+        ...state,
+        status
+    })),
+
     on(connectorsListingBannerApiError, (state) => ({
         ...state,
-        saving: false,
-        status: 'success' as const
+        saving: false
     })),
 
     on(discardConnectorConfig, (state) => ({

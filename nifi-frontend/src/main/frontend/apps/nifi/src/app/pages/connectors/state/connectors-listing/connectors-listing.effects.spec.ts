@@ -17,7 +17,8 @@
 
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
+import { Action } from '@ngrx/store';
 import { ConnectorsListingEffects } from './connectors-listing.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -30,7 +31,7 @@ import { CreateConnector } from '../../ui/create-connector/create-connector.comp
 import { ConnectorAction, ConnectorActionName, ConnectorEntity, YesNoDialog } from '@nifi/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
-import { selectSaving } from './connectors-listing.selectors';
+import { selectLoadedTimestamp, selectSaving } from './connectors-listing.selectors';
 import {
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
@@ -44,6 +45,7 @@ import {
     drainConnector,
     drainConnectorSuccess,
     loadConnectorsListing,
+    loadConnectorsListingError,
     loadConnectorsListingSuccess,
     openNewConnectorDialog,
     promptConnectorDeletion,
@@ -107,16 +109,17 @@ describe('ConnectorsListingEffects', () => {
         };
     }
 
-    function createMockDialogRef(data: any = {}) {
-        return { componentInstance: data };
+    function createMockDialogRef(data: Record<string, Observable<unknown> | Subject<unknown>> = {}) {
+        return { componentInstance: data, afterClosed: () => new Subject<void>() };
     }
 
     async function setup(
         options: {
             saving?: boolean;
+            loadedTimestamp?: string;
         } = {}
     ) {
-        let actions$: Observable<any>;
+        let actions$: Observable<Action>;
 
         const mockConnectorService = {
             getConnectors: vi.fn(),
@@ -130,7 +133,8 @@ describe('ConnectorsListingEffects', () => {
         };
 
         const mockErrorHelper = {
-            getErrorString: vi.fn().mockReturnValue('Error message')
+            getErrorString: vi.fn().mockReturnValue('Error message'),
+            handleLoadingError: vi.fn()
         };
 
         const mockClient = {
@@ -152,7 +156,10 @@ describe('ConnectorsListingEffects', () => {
                 provideMockActions(() => actions$),
                 provideMockStore({
                     initialState: {},
-                    selectors: [{ selector: selectSaving, value: options.saving ?? false }]
+                    selectors: [
+                        { selector: selectSaving, value: options.saving ?? false },
+                        { selector: selectLoadedTimestamp, value: options.loadedTimestamp ?? '' }
+                    ]
                 }),
                 { provide: ConnectorService, useValue: mockConnectorService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
@@ -168,7 +175,7 @@ describe('ConnectorsListingEffects', () => {
         return {
             effects,
             store,
-            actions$: (action: any) => {
+            actions$: (action: Observable<Action>) => {
                 actions$ = action;
             },
             mockConnectorService,
@@ -222,19 +229,50 @@ describe('ConnectorsListingEffects', () => {
                 });
             }));
 
-        it('should handle error when loading connectors', () =>
+        it('should handle error on initial load', () =>
             new Promise<void>((resolve) => {
-                setup().then(({ effects, actions$, mockConnectorService, mockErrorHelper }) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
                     const errorResponse = new HttpErrorResponse({ error: 'Error', status: 500, statusText: 'ISE' });
                     (mockConnectorService.getConnectors as Mock).mockReturnValue(throwError(() => errorResponse));
                     actions$(of(loadConnectorsListing()));
 
                     effects.loadConnectorsListing$.subscribe((action) => {
-                        expect(action).toEqual(connectorsListingBannerApiError({ error: 'Error message' }));
-                        expect(mockErrorHelper.getErrorString).toHaveBeenCalledWith(errorResponse);
+                        expect(action).toEqual(
+                            loadConnectorsListingError({
+                                errorResponse,
+                                loadedTimestamp: '',
+                                status: 'pending'
+                            })
+                        );
                         resolve();
                     });
                 });
+            }));
+
+        it('should handle error on reload with existing data', () =>
+            new Promise<void>((resolve) => {
+                setup({ loadedTimestamp: '2024-01-01 12:00:00 EST' }).then(
+                    ({ effects, actions$, mockConnectorService }) => {
+                        const errorResponse = new HttpErrorResponse({
+                            error: 'Error',
+                            status: 500,
+                            statusText: 'ISE'
+                        });
+                        (mockConnectorService.getConnectors as Mock).mockReturnValue(throwError(() => errorResponse));
+                        actions$(of(loadConnectorsListing()));
+
+                        effects.loadConnectorsListing$.subscribe((action) => {
+                            expect(action).toEqual(
+                                loadConnectorsListingError({
+                                    errorResponse,
+                                    loadedTimestamp: '2024-01-01 12:00:00 EST',
+                                    status: 'success'
+                                })
+                            );
+                            resolve();
+                        });
+                    }
+                );
             }));
     });
 

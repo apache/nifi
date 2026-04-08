@@ -161,7 +161,7 @@ export class ConnectorTable {
         if (!this.canRead(entity)) {
             return '';
         }
-        return entity.component.state || 'STOPPED';
+        return entity.component.state;
     }
 
     isSelected(entity: ConnectorEntity): boolean {

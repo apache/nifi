@@ -20,6 +20,7 @@ import { GarbageCollection } from '../system-diagnostics';
 import {
     AffectedComponentEntity,
     BulletinEntity,
+    Bundle,
     ComponentType,
     Parameter,
     ParameterContextReferenceEntity,
@@ -413,11 +414,7 @@ export interface DocumentedType {
     deprecationReason?: string;
 }
 
-export interface Bundle {
-    artifact: string;
-    group: string;
-    version: string;
-}
+export type { Bundle } from '@nifi/shared';
 
 export interface AllowableValue {
     displayName: string;

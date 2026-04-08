@@ -16,6 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
     CancelDrainConnectorRequest,
     ConfigureConnectorRequest,
@@ -45,6 +46,11 @@ export const loadConnectorsListing = createAction('[Connectors Listing] Load Con
 export const loadConnectorsListingSuccess = createAction(
     '[Connectors Listing] Load Connectors Listing Success',
     props<{ response: LoadConnectorsListingResponse }>()
+);
+
+export const loadConnectorsListingError = createAction(
+    '[Connectors Listing] Load Connectors Listing Error',
+    props<{ errorResponse: HttpErrorResponse; loadedTimestamp: string; status: 'pending' | 'success' }>()
 );
 
 export const connectorsListingBannerApiError = createAction(

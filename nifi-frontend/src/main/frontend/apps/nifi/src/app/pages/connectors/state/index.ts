@@ -58,6 +58,11 @@ export interface ConfigureConnectorRequest {
     connector: ConnectorEntity;
 }
 
+export interface ConnectorsResponse {
+    connectors: ConnectorEntity[];
+    currentTime: string;
+}
+
 export interface LoadConnectorsListingResponse {
     connectors: ConnectorEntity[];
     loadedTimestamp: string;

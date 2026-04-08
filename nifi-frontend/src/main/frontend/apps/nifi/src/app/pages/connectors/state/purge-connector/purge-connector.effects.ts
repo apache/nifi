@@ -203,13 +203,18 @@ export class PurgeConnectorEffects {
                             request: { dropEntity: response }
                         })
                     ),
-                    catchError(() =>
-                        of(
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.store.dispatch(
+                            purgeConnectorApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        );
+                        return of(
                             showPurgeConnectorResults({
                                 request: { dropEntity }
                             })
-                        )
-                    )
+                        );
+                    })
                 );
             })
         )

@@ -20,7 +20,7 @@ import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
-import { CreateConnectorRequest } from '../state';
+import { ConnectorsResponse, CreateConnectorRequest } from '../state';
 import { ConnectorEntity } from '@nifi/shared';
 import { DropRequestEntity } from '../../flow-designer/state/queue';
 
@@ -32,12 +32,12 @@ export class ConnectorService {
 
     private static readonly API: string = '../nifi-api';
 
-    getConnectors(): Observable<any> {
-        return this.httpClient.get(`${ConnectorService.API}/flow/connectors`);
+    getConnectors(): Observable<ConnectorsResponse> {
+        return this.httpClient.get<ConnectorsResponse>(`${ConnectorService.API}/flow/connectors`);
     }
 
-    createConnector(createConnectorRequest: CreateConnectorRequest): Observable<any> {
-        return this.httpClient.post(`${ConnectorService.API}/connectors`, {
+    createConnector(createConnectorRequest: CreateConnectorRequest): Observable<ConnectorEntity> {
+        return this.httpClient.post<ConnectorEntity>(`${ConnectorService.API}/connectors`, {
             revision: createConnectorRequest.revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
@@ -47,8 +47,8 @@ export class ConnectorService {
         });
     }
 
-    updateConnector(connector: ConnectorEntity): Observable<any> {
-        return this.httpClient.put(`${ConnectorService.API}/connectors/${connector.id}`, {
+    updateConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
+        return this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}`, {
             revision: this.client.getRevision(connector),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: connector.component,
@@ -56,49 +56,54 @@ export class ConnectorService {
         });
     }
 
-    deleteConnector(connector: ConnectorEntity): Observable<any> {
+    deleteConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
         const revision = this.client.getRevision(connector);
-        const params: any = {
+        const params: Record<string, string | number | boolean> = {
             ...revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
         };
-        return this.httpClient.delete(`${ConnectorService.API}/connectors/${connector.id}`, { params });
+        return this.httpClient.delete<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}`, {
+            params
+        });
     }
 
-    updateConnectorRunStatus(connector: ConnectorEntity, runStatus: string): Observable<any> {
+    updateConnectorRunStatus(connector: ConnectorEntity, runStatus: string): Observable<ConnectorEntity> {
         const revision = this.client.getRevision(connector);
-        return this.httpClient.put(`${ConnectorService.API}/connectors/${connector.id}/run-status`, {
+        return this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}/run-status`, {
             revision,
             state: runStatus,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
         });
     }
 
-    discardConnectorWorkingConfiguration(connector: ConnectorEntity): Observable<any> {
+    discardConnectorWorkingConfiguration(connector: ConnectorEntity): Observable<ConnectorEntity> {
         const revision = this.client.getRevision(connector);
-        const params: any = {
+        const params: Record<string, string | number | boolean> = {
             ...revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
         };
-        return this.httpClient.delete(`${ConnectorService.API}/connectors/${connector.id}/working-configuration`, {
-            params
-        });
+        return this.httpClient.delete<ConnectorEntity>(
+            `${ConnectorService.API}/connectors/${connector.id}/working-configuration`,
+            { params }
+        );
     }
 
-    drainConnector(connector: ConnectorEntity): Observable<any> {
-        return this.httpClient.post(`${ConnectorService.API}/connectors/${connector.id}/drain`, {
+    drainConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
+        return this.httpClient.post<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}/drain`, {
             revision: this.client.getRevision(connector),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
         });
     }
 
-    cancelConnectorDrain(connector: ConnectorEntity): Observable<any> {
+    cancelConnectorDrain(connector: ConnectorEntity): Observable<ConnectorEntity> {
         const revision = this.client.getRevision(connector);
-        const params: any = {
+        const params: Record<string, string | number | boolean> = {
             ...revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
         };
-        return this.httpClient.delete(`${ConnectorService.API}/connectors/${connector.id}/drain`, { params });
+        return this.httpClient.delete<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}/drain`, {
+            params
+        });
     }
 
     createPurgeRequest(connectorId: string): Observable<DropRequestEntity> {

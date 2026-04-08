@@ -20,7 +20,8 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
+import { concatLatestFrom } from '@ngrx/operators';
+import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { NiFiState } from '../../../../state';
@@ -29,7 +30,8 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { Client } from '../../../../service/client.service';
 import { CreateConnector } from '../../ui/create-connector/create-connector.component';
 import { RenameConnectorDialog } from '../../ui/rename-connector-dialog/rename-connector-dialog.component';
-import { selectSaving } from './connectors-listing.selectors';
+import { selectLoadedTimestamp, selectSaving } from './connectors-listing.selectors';
+import { initialState } from './connectors-listing.reducer';
 import { DocumentedType } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
@@ -46,6 +48,7 @@ import {
     drainConnector,
     drainConnectorSuccess,
     loadConnectorsListing,
+    loadConnectorsListingError,
     loadConnectorsListingSuccess,
     navigateToConfigureConnector,
     navigateToManageAccessPolicies,
@@ -81,7 +84,8 @@ export class ConnectorsListingEffects {
     loadConnectorsListing$ = createEffect(() =>
         this.actions$.pipe(
             ofType(loadConnectorsListing),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.connectorService.getConnectors()).pipe(
                     map((response) =>
                         loadConnectorsListingSuccess({
@@ -93,8 +97,10 @@ export class ConnectorsListingEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            connectorsListingBannerApiError({
-                                error: this.errorHelper.getErrorString(errorResponse)
+                            loadConnectorsListingError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
                             })
                         )
                     )
@@ -225,6 +231,18 @@ export class ConnectorsListingEffects {
         )
     );
 
+    connectorsListingError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(loadConnectorsListingError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
+                )
+            )
+        )
+    );
+
     connectorsListingBannerApiError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(connectorsListingBannerApiError),
@@ -344,11 +362,13 @@ export class ConnectorsListingEffects {
 
                     dialogRef.componentInstance.saving$ = this.store.select(selectSaving);
 
-                    dialogRef.componentInstance.rename.pipe(take(1)).subscribe((request: RenameConnectorRequest) => {
-                        this.store.dispatch(renameConnector({ request }));
-                    });
+                    dialogRef.componentInstance.rename
+                        .pipe(takeUntil(dialogRef.afterClosed()))
+                        .subscribe((request: RenameConnectorRequest) => {
+                            this.store.dispatch(renameConnector({ request }));
+                        });
 
-                    dialogRef.componentInstance.exit.pipe(take(1)).subscribe(() => {
+                    dialogRef.componentInstance.exit.pipe(takeUntil(dialogRef.afterClosed())).subscribe(() => {
                         dialogRef.close();
                     });
                 })

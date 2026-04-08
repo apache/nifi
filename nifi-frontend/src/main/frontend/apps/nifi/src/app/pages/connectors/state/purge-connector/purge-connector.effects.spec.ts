@@ -18,6 +18,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Observable, of, throwError, Subject } from 'rxjs';
+import { Action } from '@ngrx/store';
 import { PurgeConnectorEffects } from './purge-connector.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -125,7 +126,7 @@ describe('PurgeConnectorEffects', () => {
             purgeDropEntity?: DropRequestEntity | null;
         } = {}
     ) {
-        let actions$: Observable<any>;
+        let actions$: Observable<Action>;
 
         const mockConnectorService = {
             createPurgeRequest: vi.fn(),
@@ -134,7 +135,8 @@ describe('PurgeConnectorEffects', () => {
         };
 
         const mockErrorHelper = {
-            getErrorString: vi.fn().mockReturnValue('Error message')
+            getErrorString: vi.fn().mockReturnValue('Error message'),
+            handleLoadingError: vi.fn()
         };
 
         const mockDialog = {
@@ -165,7 +167,7 @@ describe('PurgeConnectorEffects', () => {
         return {
             effects,
             store,
-            actions$: (action: any) => {
+            actions$: (action: Observable<Action>) => {
                 actions$ = action;
             },
             mockConnectorService,
