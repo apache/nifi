@@ -66,8 +66,13 @@ public class ToString extends RecordPathSegment {
                         stringValue = DataTypeUtils.toString(fv.getValue(), (String) null, charset);
                     }
                     final RecordField originalField = fv.getField();
-                    final RecordField stringField = new RecordField(originalField.getFieldName(), RecordFieldType.STRING.getDataType(),
-                        null, originalField.getAliases(), false);
+                    final RecordField stringField;
+                    if (originalField != null) {
+                        stringField = new RecordField(originalField.getFieldName(), RecordFieldType.STRING.getDataType(),
+                            null, originalField.getAliases(), false);
+                    } else {
+                        stringField = new RecordField("toString", RecordFieldType.STRING.getDataType());
+                    }
                     return new StandardFieldValue(stringValue, stringField, fv.getParent().orElse(null));
                 });
     }

@@ -2148,6 +2148,13 @@ public class TestRecordPath {
             public void throwsExceptionWhenPassedAnNonExistingCharset() {
                 assertThrows(IllegalCharsetNameException.class, () -> evaluateSingleFieldValue("toString(/bytes, 'NOT A REAL CHARSET')", record));
             }
+
+            @Test
+            public void handlesLiteralValue() {
+                final FieldValue result = evaluateSingleFieldValue("toString('literalValue', 'UTF-8')", record);
+                assertEquals("literalValue", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
+            }
         }
 
         @Nested
