@@ -1993,7 +1993,9 @@ public class TestRecordPath {
                 final String originalValue = "Hello World!";
                 record.setValue("name", originalValue);
 
-                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_16LE), (byte[]) evaluateSingleFieldValue("toBytes(/name, 'UTF-16LE')", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toBytes(/name, 'UTF-16LE')", record);
+                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_16LE), (byte[]) result.getValue());
+                assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), result.getField().getDataType());
             }
 
             @Test
@@ -2002,7 +2004,9 @@ public class TestRecordPath {
                 record.setValue("name", originalValue);
                 record.setValue("firstName", "UTF-8");
 
-                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_8), (byte[]) evaluateSingleFieldValue("toBytes(/name, /firstName)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toBytes(/name, /firstName)", record);
+                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_8), (byte[]) result.getValue());
+                assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), result.getField().getDataType());
             }
 
             @Test

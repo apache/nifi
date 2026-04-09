@@ -21,6 +21,7 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -57,7 +58,11 @@ public class ToBytes extends RecordPathSegment {
                         bytesValue[i] = src[i];
                     }
 
-                    return new StandardFieldValue(bytesValue, fv.getField(), fv.getParent().orElse(null));
+                    final RecordField originalField = fv.getField();
+                    final RecordField bytesField = new RecordField(originalField.getFieldName(),
+                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),
+                        null, originalField.getAliases(), false);
+                    return new StandardFieldValue(bytesValue, bytesField, fv.getParent().orElse(null));
                 });
     }
 
