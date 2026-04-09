@@ -2129,7 +2129,9 @@ public class TestRecordPath {
             public void decodesBytesAsStringUsingTheDefinedCharset() {
                 record.setValue("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
 
-                assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, 'UTF-16')", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toString(/bytes, 'UTF-16')", record);
+                assertEquals("Hello World!", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
@@ -2137,7 +2139,9 @@ public class TestRecordPath {
                 record.setValue("bytes", "Hello World!".getBytes(StandardCharsets.UTF_8));
                 record.setValue("name", "UTF-8");
 
-                assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, /name)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toString(/bytes, /name)", record);
+                assertEquals("Hello World!", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
