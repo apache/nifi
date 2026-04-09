@@ -120,8 +120,13 @@ public class ToDate extends RecordPathSegment {
                     }
 
                     final RecordField originalField = fv.getField();
-                    final RecordField timestampField = new RecordField(originalField.getFieldName(), RecordFieldType.TIMESTAMP.getDataType(),
-                        null, originalField.getAliases(), false);
+                    final RecordField timestampField;
+                    if (originalField != null) {
+                        timestampField = new RecordField(originalField.getFieldName(), RecordFieldType.TIMESTAMP.getDataType(),
+                            null, originalField.getAliases(), false);
+                    } else {
+                        timestampField = new RecordField("toDate", RecordFieldType.TIMESTAMP.getDataType());
+                    }
                     return new StandardFieldValue(dateValue, timestampField, fv.getParent().orElse(null));
                 });
     }
