@@ -2022,6 +2022,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\")", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2035,6 +2036,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\", 'GMT+8:00')", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2047,6 +2049,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, /name)", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2062,6 +2065,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\", /name)", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
