@@ -85,8 +85,13 @@ public class Format extends RecordPathSegment {
                     final ZonedDateTime dateTime = instant.atZone(zoneId);
                     final String formatted = dateTimeFormatter.format(dateTime);
                     final RecordField originalField = fv.getField();
-                    final RecordField stringField = new RecordField(originalField.getFieldName(), RecordFieldType.STRING.getDataType(),
-                        null, originalField.getAliases(), false);
+                    final RecordField stringField;
+                    if (originalField != null) {
+                        stringField = new RecordField(originalField.getFieldName(), RecordFieldType.STRING.getDataType(),
+                            null, originalField.getAliases(), false);
+                    } else {
+                        stringField = new RecordField("format", RecordFieldType.STRING.getDataType());
+                    }
                     return new StandardFieldValue(formatted, stringField, fv.getParent().orElse(null));
                 });
     }

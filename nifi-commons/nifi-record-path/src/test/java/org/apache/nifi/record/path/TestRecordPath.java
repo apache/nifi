@@ -1334,6 +1334,13 @@ public class TestRecordPath {
                     assertEquals(originalDataType, fieldValue.getField().getDataType());
                 }));
             }
+
+            @Test
+            public void handlesLiteralValue() {
+                final FieldValue result = evaluateSingleFieldValue("format(0, 'yyyy-MM-dd', 'GMT')", record);
+                assertEquals("1970-01-01", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
+            }
         }
 
         @Nested
