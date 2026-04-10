@@ -1,0 +1,65 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="flex flex-col h-full">
+    <header class="nifi-header">
+        <navigation></navigation>
+    </header>
+    <context-error-banner class="wizard-context-banner" [context]="ErrorContextKey.CONNECTORS"></context-error-banner>
+    <div class="flex flex-1 overflow-hidden">
+        @if (loading) {
+            <!-- Loading state -->
+            <div class="flex-1 flex items-center justify-center">
+                <span *nifiSpinner="loading" data-qa="loading-spinner"></span>
+            </div>
+        } @else if (errorMessage) {
+            <!-- Error State (Permission Error, API Error, Not Found, etc.) -->
+            <div class="flex-1 flex items-center justify-center" data-qa="error-container">
+                <div class="flex flex-col items-center gap-y-4">
+                    <i class="fa fa-warning error-color text-4xl" data-qa="error-icon" aria-hidden="true"></i>
+                    <p class="text-base" data-qa="error-message">{{ errorMessage }}</p>
+                    <button mat-flat-button (click)="returnToConnectorListing()" data-qa="return-button">
+                        Return to Connectors
+                    </button>
+                </div>
+            </div>
+        } @else if (frameSource) {
+            <!-- Custom configuration UI in iframe -->
+            <!--
+                Sandbox flags:
+                  allow-scripts        — run the embedded connector app
+                  allow-forms          — submit configuration forms
+                  allow-same-origin    — postMessage, style injection, API calls
+                  allow-popups         — open external doc links via target="_blank"
+                  allow-popups-to-escape-sandbox — opened tabs run without sandbox restrictions
+            -->
+            <iframe
+                #iframeRef
+                class="flex-1 border-none"
+                [src]="frameSource"
+                [title]="'Custom configuration for ' + (connector?.component?.name || 'connector')"
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                referrerpolicy="strict-origin-when-cross-origin"
+                (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
+        } @else if (connector) {
+            <!-- Generic configuration wizard -->
+            <connector-wizard [connector]="connector" (navigateBack)="returnToConnectorListing()">
+                <div wizardHeaderContent>{{ connector.component.name }}</div>
+            </connector-wizard>
+        }
+    </div>
+</div>

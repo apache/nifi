@@ -34,14 +34,20 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective, ComponentType } from '@nifi/shared';
+import {
+    NiFiCommon,
+    TextTip,
+    NifiTooltipDirective,
+    CopyDirective,
+    ComponentType,
+    NifiSpinnerDirective
+} from '@nifi/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { Observable, of } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
-import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
 import { PropertyVerification } from '../../property-verification/property-verification.component';

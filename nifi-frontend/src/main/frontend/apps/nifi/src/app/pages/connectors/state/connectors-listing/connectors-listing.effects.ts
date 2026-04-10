@@ -319,10 +319,9 @@ export class ConnectorsListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(navigateToConfigureConnector),
-                tap(() => {
-                    window.alert(
-                        'TODO: Configure connector is not yet implemented. This feature will be ported in a future iteration.'
-                    );
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/connectors', request.id, 'configure']);
                 })
             ),
         { dispatch: false }

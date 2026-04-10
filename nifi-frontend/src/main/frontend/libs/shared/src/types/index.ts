@@ -261,9 +261,13 @@ export interface ConnectorComponent {
     type: string;
     state: string;
     bundle: Bundle;
+    activeConfiguration?: ConnectorConfiguration;
+    workingConfiguration?: ConnectorConfiguration;
     validationErrors?: string[];
     validationStatus?: string;
     multipleVersionsAvailable?: boolean;
+    configurationUrl?: string;
+    detailsUrl?: string;
     availableActions: ConnectorAction[];
     managedProcessGroupId: string;
 }
@@ -324,3 +328,234 @@ export interface ConnectorEntity {
     status: ConnectorStatus;
     component: ConnectorComponent;
 }
+
+// ========================================================================================
+// Connector Configuration Wizard Types
+// ========================================================================================
+
+/** Variant for status-style banners and inline messaging */
+export type StatusVariant = 'neutral' | 'active' | 'critical' | 'caution' | 'success' | 'info';
+
+export type PropertyType =
+    | 'STRING'
+    | 'INTEGER'
+    | 'BOOLEAN'
+    | 'DOUBLE'
+    | 'FLOAT'
+    | 'STRING_LIST'
+    | 'SECRET'
+    | 'ASSET'
+    | 'ASSET_LIST';
+
+export interface ConnectorPropertyDescriptor {
+    name: string;
+    description?: string;
+    type: PropertyType;
+    required: boolean;
+    defaultValue?: any;
+    allowableValues?: AllowableValue[];
+    allowableValuesFetchable?: boolean;
+    dependencies?: ConnectorPropertyDependency[];
+}
+
+export type ConnectorValueType = 'STRING_LITERAL' | 'ASSET_REFERENCE' | 'SECRET_REFERENCE';
+
+export interface AssetReference {
+    id: string;
+    name?: string;
+    missingContent?: boolean;
+}
+
+export interface AssetInfo {
+    id: string;
+    name: string;
+    digest?: string;
+    missingContent?: boolean;
+}
+
+/** Upload progress information for connector asset uploads */
+export interface UploadProgressInfo {
+    filename: string;
+    percentComplete: number;
+    status: 'active' | 'complete' | 'error';
+    error?: string;
+}
+
+export interface ConnectorValueReference {
+    value?: string | null;
+    valueType: ConnectorValueType;
+    assetReferences?: AssetReference[];
+    secretName?: string;
+    secretProviderId?: string;
+    secretProviderName?: string;
+    fullyQualifiedSecretName?: string;
+}
+
+export interface PropertyGroupConfiguration {
+    propertyGroupName: string;
+    propertyGroupDescription?: string;
+    propertyDescriptors: { [propertyName: string]: ConnectorPropertyDescriptor };
+    propertyValues: { [propertyName: string]: ConnectorValueReference };
+}
+
+export interface Secret {
+    name: string;
+    fullyQualifiedName: string;
+    providerId: string;
+    providerName: string;
+    groupName: string;
+    description?: string;
+}
+
+export interface SecretsEntity {
+    secrets: Secret[];
+}
+
+export interface AllowableValue {
+    allowableValue: {
+        displayName: string;
+        value: string;
+    };
+    canRead: boolean;
+}
+
+export interface PropertyAllowableValuesState {
+    loading: boolean;
+    error: string | null;
+    values: AllowableValue[] | null;
+}
+
+export interface StepDocumentationEntity {
+    stepDocumentation: string;
+}
+
+export interface StepDocumentationState {
+    loading: boolean;
+    error: string | null;
+    stepDocumentation: string | null;
+    loaded?: boolean;
+}
+
+export interface ConnectorConfiguration {
+    configurationStepConfigurations: ConfigurationStepConfiguration[];
+}
+
+export interface ConfigurationStepDependency {
+    stepName: string;
+    propertyName: string;
+    dependentValues?: string[];
+}
+
+export interface ConfigurationStepConfiguration {
+    configurationStepName: string;
+    configurationStepDescription?: string;
+    documented?: boolean;
+    propertyGroupConfigurations: PropertyGroupConfiguration[];
+    dependencies: ConfigurationStepDependency[];
+}
+
+export interface ConfigurationStepNamesEntity {
+    configurationStepNames: string[];
+}
+
+export interface ConfigurationStepEntity {
+    configurationStep: ConfigurationStepConfiguration;
+    parentConnectorId: string;
+    parentConnectorRevision: Revision;
+    disconnectedNodeAcknowledged?: boolean;
+}
+
+export interface ConfigVerificationResult {
+    outcome: 'SUCCESSFUL' | 'FAILED' | 'SKIPPED';
+    verificationStepName: string;
+    subject?: string;
+    explanation: string;
+}
+
+export interface ConnectorConfigStepVerificationRequest {
+    requestId: string;
+    uri: string;
+    connectorId: string;
+    configurationStepName: string;
+    configurationStep: ConfigurationStepConfiguration;
+    complete: boolean;
+    percentCompleted: number;
+    state: string;
+    failureReason: string | null;
+    results: ConfigVerificationResult[] | null;
+    submissionTime?: string;
+    lastUpdated?: string;
+}
+
+export interface ConnectorConfigStepVerificationRequestEntity {
+    request: ConnectorConfigStepVerificationRequest;
+}
+
+export interface ConnectorPropertyAllowableValuesEntity {
+    allowableValues: AllowableValue[];
+}
+
+export interface ConnectorPropertyDependency {
+    propertyName: string;
+    dependentValues?: string[];
+}
+
+export enum UploadContextKey {
+    CUSTOM_NAR = 'custom-nar',
+    ASSET = 'asset',
+    CONNECTOR_ASSET = 'connector-asset'
+}
+
+export enum UploadStatus {
+    ACTIVE = 'active',
+    COMPLETE = 'complete',
+    ERROR = 'ERROR'
+}
+
+export interface UploadRequest {
+    context: UploadContextKey;
+    url: string;
+    file: File;
+    monitorGlobally: boolean;
+    metadata?: Record<string, any>;
+}
+
+export interface UploadSubmission {
+    id: number;
+    request: UploadRequest;
+}
+
+export interface UploadProgress {
+    id: number;
+    context: UploadContextKey;
+    filename: string;
+    percentComplete: number;
+    status: UploadStatus;
+    error: string | null;
+    monitorGlobally: boolean;
+    completedResponseObject?: any;
+    metadata?: Record<string, any>;
+}
+
+export function buildSecretKey(
+    providerId: string | undefined,
+    providerName: string | undefined,
+    fullyQualifiedName: string | undefined
+): string {
+    return [providerId ?? '', providerName ?? '', fullyQualifiedName ?? ''].join('::');
+}
+
+export function parseSecretKey(key: string): {
+    providerId: string;
+    providerName: string;
+    fullyQualifiedName: string;
+} {
+    const parts = key.split('::');
+    return {
+        providerId: parts[0] ?? '',
+        providerName: parts[1] ?? '',
+        fullyQualifiedName: parts.slice(2).join('::')
+    };
+}
+
+export * from './connector-message.types';

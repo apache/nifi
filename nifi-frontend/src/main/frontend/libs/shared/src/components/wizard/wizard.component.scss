@@ -1,0 +1,68 @@
+/*!
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.wizard-stepper {
+    .wizard-stepper-header-wrapper {
+        width: 280px;
+        background-color: var(--mat-sys-surface-container-low);
+        border-right: 1px solid var(--mat-sys-outline-variant);
+        overflow-y: auto;
+    }
+
+    .mat-step-header {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 16px;
+
+        .mat-icon.step-icon {
+            color: var(--mat-sys-on-surface-variant);
+            height: 20px;
+            width: 20px;
+        }
+    }
+
+    // There are no available overrides in mat.stepper-overrides for the selected step bg or radius.
+    // As such, they are set here and rely on the wizard adding the step-active class.
+    .step-active .mat-step-header {
+        background-color: var(--mat-sys-secondary-container);
+        border-radius: 8px;
+        color: var(--mat-sys-on-secondary-container);
+
+        .mat-icon.step-icon,
+        .mat-step-label {
+            color: var(--mat-sys-on-secondary-container);
+        }
+    }
+
+    .step-disabled .mat-step-header {
+        color: var(--mat-sys-outline);
+
+        .mat-icon.step-icon,
+        .mat-step-label {
+            color: var(--mat-sys-outline);
+        }
+    }
+
+    .mat-step-icon-selected {
+        background: unset;
+    }
+
+    .step-buttons {
+        background-color: var(--mat-sys-surface-container-low);
+    }
+}

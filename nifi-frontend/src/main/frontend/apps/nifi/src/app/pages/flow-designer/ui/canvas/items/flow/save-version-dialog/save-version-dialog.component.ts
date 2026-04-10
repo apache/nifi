@@ -25,14 +25,20 @@ import {
 } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { Observable, of, take } from 'rxjs';
 import { BranchEntity, BucketEntity, RegistryClientEntity } from '../../../../../../../state/shared';
 import { SaveVersionDialogRequest, SaveVersionRequest } from '../../../../../state/flow';
 import { VersionControlInformation } from '../../../../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
-import { TextTip, NiFiCommon, NifiTooltipDirective, CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
+import {
+    TextTip,
+    NiFiCommon,
+    NifiSpinnerDirective,
+    NifiTooltipDirective,
+    CloseOnEscapeDialog,
+    SelectOption
+} from '@nifi/shared';
 
 import { MatInput } from '@angular/material/input';
 import { ErrorContextKey } from '../../../../../../../state/error';

@@ -23,3 +23,7 @@ export * from './theming.service';
 export * from './map-table-helper.service';
 export * from './el.service';
 export * from './codemirror-nifi-language/codemirror-nifi-language.service';
+export * from './connector-configuration.service';
+export * from './active-step.service';
+export * from './connector-message-client.service';
+export * from './upload.service';

@@ -30,8 +30,7 @@ import { MatListModule } from '@angular/material/list';
 import { TenantEntity, UserEntity, UserGroupEntity } from '../../../../../state/shared';
 import { AddTenantsToPolicyRequest, AddTenantToPolicyDialogRequest } from '../../../state/access-policy';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, NifiSpinnerDirective } from '@nifi/shared';
 
 @Component({
     selector: 'add-tenant-to-policy-dialog',

@@ -34,9 +34,8 @@ import {
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
 import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../../state/flow/flow.selectors';
 import { RouterLink } from '@angular/router';
-import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatIconButton } from '@angular/material/button';
-import { ComponentContext, ComponentType } from '@nifi/shared';
+import { ComponentContext, ComponentType, NifiSpinnerDirective } from '@nifi/shared';
 import { BreadcrumbEntity } from '../../../../state/shared';
 
 @Component({

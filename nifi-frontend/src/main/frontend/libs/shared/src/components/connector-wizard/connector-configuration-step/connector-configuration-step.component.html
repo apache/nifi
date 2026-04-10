@@ -1,0 +1,182 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<div class="connector-configuration-step flex flex-col h-full">
+    <shared-side-panel-container
+        #sidePanelContainer
+        class="flex-1 min-h-0"
+        [isOpen]="documentationPanelOpen()"
+        [showDockedStrip]="hasDocumentation()"
+        panelWidth="515px">
+        <!-- Main Content Area -->
+        <div mainContent class="flex-1 flex w-full p-8 justify-center">
+            <div class="flex flex-col w-full max-w-[800px]">
+                <!-- Banner errors from store (save failures, etc.) -->
+                <wizard-context-banner
+                    [panelClass]="'mb-6'"
+                    [persistOnDestroy]="true"
+                    variant="critical"
+                    data-qa="verification-error-banner">
+                </wizard-context-banner>
+
+                <!-- Step-specific general errors (from verify-all on summary page) -->
+                <error-banner
+                    [messages]="generalVerificationErrors()"
+                    [allowDismiss]="true"
+                    (dismiss)="onDismissGeneralVerificationErrors()"
+                    data-qa="step-general-verification-errors">
+                </error-banner>
+
+                <div class="font-bold text-xl leading-6 mb-2" data-qa="step-name">
+                    {{ stepName() }}
+                </div>
+
+                @if (isLoading() || !formReady) {
+                    <!-- Loading State -->
+                    <div class="flex flex-col h-full items-center justify-center gap-y-4" data-qa="step-loading">
+                        <mat-progress-spinner
+                            mode="indeterminate"
+                            diameter="40"
+                            data-qa="step-spinner"></mat-progress-spinner>
+                        <p class="text-base" data-qa="step-loading-message">Loading step configuration...</p>
+                    </div>
+                } @else {
+                    @let config = stepConfiguration();
+                    @if (config) {
+                        <!-- Step Description -->
+                        @if (config.configurationStepDescription) {
+                            <p class="tertiary-color mb-6" data-qa="step-description">
+                                {{ config.configurationStepDescription }}
+                            </p>
+                        }
+
+                        <!-- Property Groups -->
+                        <form [formGroup]="stepForm" class="flex flex-col gap-y-6">
+                            @for (group of config.propertyGroupConfigurations; track group.propertyGroupName) {
+                                <section class="property-group flex flex-col gap-y-4">
+                                    @if (config.propertyGroupConfigurations.length > 1) {
+                                        <!-- Group Header -->
+                                        <div class="property-group-title text-lg font-semibold">
+                                            {{ group.propertyGroupName }}
+                                        </div>
+                                        <!-- Group Description -->
+                                        @if (group.propertyGroupDescription) {
+                                            <p class="property-group-description tertiary-color">
+                                                {{ group.propertyGroupDescription }}
+                                            </p>
+                                        }
+                                    }
+
+                                    <!-- Properties -->
+                                    <div class="properties-container flex flex-col gap-y-4">
+                                        @for (
+                                            propertyName of getPropertyNames(group.propertyDescriptors);
+                                            track propertyName
+                                        ) {
+                                            @let property = group.propertyDescriptors[propertyName];
+                                            @if (isPropertyVisible(property)) {
+                                                <connector-property-input
+                                                    [property]="property"
+                                                    [formControlName]="property.name"
+                                                    [dynamicAllowableValuesState]="
+                                                        getDynamicAllowableValuesState(
+                                                            group.propertyGroupName,
+                                                            property.name
+                                                        )
+                                                    "
+                                                    [currentAssets]="getAssetsForProperty(property.name)"
+                                                    [assetUploadProgress]="getUploadProgressForProperty(property.name)"
+                                                    [availableSecrets]="availableSecrets()"
+                                                    [secretsLoading]="secretsLoading()"
+                                                    [secretsError]="secretsError()"
+                                                    (requestAllowableValues)="
+                                                        onRequestAllowableValues(group.propertyGroupName, property.name)
+                                                    "
+                                                    (assetFilesSelected)="onAssetFilesSelected(property.name, $event)"
+                                                    (assetDeleteRequested)="
+                                                        onAssetDeleteRequested(property.name, $event)
+                                                    "
+                                                    (dismissFailedUploadRequested)="
+                                                        onDismissFailedUpload(property.name, $event)
+                                                    ">
+                                                </connector-property-input>
+                                            }
+                                        }
+                                    </div>
+                                </section>
+                            }
+
+                            <!-- Verify Button -->
+                            <div class="flex justify-start">
+                                <button
+                                    mat-button
+                                    type="button"
+                                    class="w-full"
+                                    (click)="onVerify()"
+                                    [disabled]="!canVerify"
+                                    data-qa="verify-button"
+                                    data-action-name="connector-wizard-verify">
+                                    <span *nifiSpinner="isVerifying()"> Verify </span>
+                                </button>
+                            </div>
+                        </form>
+                    } @else {
+                        <!-- No Data State -->
+                        <div class="flex items-center justify-center p-8">
+                            <p class="text-base opacity-70">No configuration data available for this step.</p>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Docked Strip Content (expand button) -->
+        <button
+            dockedContent
+            mat-icon-button
+            class="mt-4"
+            (click)="toggleDocumentationPanel()"
+            aria-label="Show Documentation"
+            data-qa="documentation-expand-button">
+            <i class="fa fa-angle-double-left" aria-hidden="true"></i>
+        </button>
+
+        <!-- Side Panel Content -->
+        <wizard-step-documentation-panel
+            panelContent
+            [stepName]="stepName()"
+            [isOpen]="documentationPanelOpen()"
+            (closePanel)="closeDocumentationPanel()">
+        </wizard-step-documentation-panel>
+    </shared-side-panel-container>
+
+    <!-- Action Buttons -->
+    @if (!isLoading() && formReady) {
+        <connector-step-actions
+            [isSaving]="isStepSaving()"
+            [showBack]="!isFirstStep()"
+            [nextDisabled]="isVerifying()"
+            [saveAndCloseDisabled]="isVerifying()"
+            nextActionName="connector-wizard-next"
+            backActionName="connector-wizard-back"
+            saveAndCloseActionName="connector-wizard-save-close"
+            (next)="onSave()"
+            (back)="onBack()"
+            (saveAndClose)="onSaveAndClose()">
+        </connector-step-actions>
+    }
+</div>

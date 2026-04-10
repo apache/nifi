@@ -20,7 +20,6 @@ import { AsyncPipe, NgClass } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import {
     FetchedParameterMapping,
     FetchParameterProviderDialogRequest,
@@ -33,7 +32,15 @@ import {
     ParameterStatusEntity
 } from '../../../state/parameter-providers';
 import { debounceTime, Observable, Subject } from 'rxjs';
-import { TextTip, NiFiCommon, NifiTooltipDirective, AffectedComponentEntity, SortPipe, JoinPipe } from '@nifi/shared';
+import {
+    TextTip,
+    NiFiCommon,
+    NifiTooltipDirective,
+    AffectedComponentEntity,
+    SortPipe,
+    JoinPipe,
+    NifiSpinnerDirective
+} from '@nifi/shared';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ParameterGroupsTable } from './parameter-groups-table/parameter-groups-table.component';

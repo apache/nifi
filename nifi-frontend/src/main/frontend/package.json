@@ -41,6 +41,7 @@
         "@ngrx/effects": "21.0.1",
         "@ngrx/operators": "21.0.1",
         "@ngrx/router-store": "21.0.1",
+        "@ngrx/signals": "21.0.1",
         "@ngrx/store": "21.0.1",
         "@ngrx/store-devtools": "21.0.1",
         "@types/js-beautify": "^1.14.3",
@@ -60,6 +61,8 @@
         "zone.js": "0.16.1"
     },
     "devDependencies": {
+        "@analogjs/vite-plugin-angular": "^2.3.1",
+        "@analogjs/vitest-angular": "^2.3.1",
         "@angular-devkit/build-angular": "21.1.5",
         "@angular-devkit/core": "21.1.5",
         "@angular-devkit/schematics": "21.1.5",
@@ -71,8 +74,6 @@
         "@angular/compiler-cli": "21.2.4",
         "@eslint/eslintrc": "^3.3.5",
         "@eslint/js": "^10.0.1",
-        "@analogjs/vite-plugin-angular": "^2.3.1",
-        "@analogjs/vitest-angular": "^2.3.1",
         "@nx/angular": "22.5.4",
         "@nx/eslint": "22.5.4",
         "@nx/eslint-plugin": "22.5.4",
@@ -84,6 +85,7 @@
         "@typescript-eslint/eslint-plugin": "8.57.1",
         "@typescript-eslint/parser": "8.57.1",
         "@typescript-eslint/utils": "8.57.1",
+        "@vitest/coverage-v8": "^4.1.1",
         "autoprefixer": "^10.4.16",
         "env-cmd": "^10.1.0",
         "eslint": "^10.0.3",
@@ -101,8 +103,7 @@
         "typescript": "5.9.3",
         "typescript-eslint": "^8.40.0",
         "vite-tsconfig-paths": "^6.1.1",
-        "vitest": "^4.1.1",
-        "@vitest/coverage-v8": "^4.1.1"
+        "vitest": "^4.1.1"
     },
     "engines": {
         "node": "^24.0.0"

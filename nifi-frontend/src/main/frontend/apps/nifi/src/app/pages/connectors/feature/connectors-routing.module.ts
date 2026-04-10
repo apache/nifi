@@ -18,12 +18,17 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Connectors } from './connectors.component';
+import { ConnectorConfigure } from '../ui/connector-configure/connector-configure.component';
 
 const routes: Routes = [
     {
         path: ':id/canvas',
         loadChildren: () =>
             import('../ui/connector-canvas/connector-canvas.module').then((m) => m.ConnectorCanvasModule)
+    },
+    {
+        path: ':id/configure',
+        component: ConnectorConfigure
     },
     {
         path: '',

@@ -34,10 +34,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
-import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter } from '@nifi/shared';
+import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter, NifiSpinnerDirective } from '@nifi/shared';
 
 @Component({
     selector: 'edit-parameter-dialog',

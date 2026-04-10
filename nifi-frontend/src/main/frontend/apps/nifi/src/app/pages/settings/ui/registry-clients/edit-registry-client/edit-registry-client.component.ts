@@ -30,10 +30,9 @@ import {
     RegistryClientEntity
 } from '../../../../../state/shared';
 import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../../../state/registry-clients';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { TextTip, NiFiCommon, CopyDirective, ComponentType } from '@nifi/shared';
+import { TextTip, NiFiCommon, CopyDirective, ComponentType, NifiSpinnerDirective } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';

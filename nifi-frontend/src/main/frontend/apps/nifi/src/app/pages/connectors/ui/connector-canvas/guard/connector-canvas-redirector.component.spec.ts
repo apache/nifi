@@ -25,7 +25,7 @@ import {
     selectConnectorCanvasEntityError,
     selectConnectorCanvasEntityLoadingStatus
 } from '../../../state/connector-canvas-entity/connector-canvas-entity.selectors';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
+import { NifiSpinnerDirective } from '@nifi/shared';
 
 interface SetupOptions {
     loadingStatus?: 'pending' | 'loading' | 'success' | 'error';

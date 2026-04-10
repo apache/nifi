@@ -1,0 +1,118 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<div class="connector-wizard h-full flex flex-col">
+    <div class="connector-wizard-header flex flex-row justify-between p-4 border-b">
+        <div class="flex gap-x-4 items-center">
+            <div class="h-8 text-lg font-bold leading-8" data-qa="connector-name">
+                <ng-content select="[wizardHeaderContent]"></ng-content>
+            </div>
+        </div>
+    </div>
+
+    @if (wizardStore.status(); as status) {
+        @if (status === 'error') {
+            <div class="flex-1 flex items-center justify-center" data-qa="error-container">
+                <div class="flex flex-col items-center gap-y-4">
+                    <i class="fa fa-warning error-color text-4xl" data-qa="error-icon" aria-hidden="true"></i>
+                    <p class="text-base" data-qa="error-message">{{ wizardStore.error() }}</p>
+                    <button mat-flat-button (click)="navigateBack.emit()" data-qa="return-button">
+                        <ng-content select="[returnButtonLabel]">Return to Connectors</ng-content>
+                    </button>
+                </div>
+            </div>
+        } @else {
+            <ng-container *ngTemplateOutlet="preWizardContent()"></ng-container>
+
+            @if (wizardStore.visibleStepNames(); as stepNames) {
+                @if (stepNames.length > 0) {
+                    <wizard
+                        [linear]="true"
+                        #wizard
+                        class="flex flex-1 min-h-0"
+                        (selectionChange)="onStepChange($event, stepNames)"
+                        (beforeStepChange)="onBeforeStepChange($event)"
+                        data-qa="configuration-wizard">
+                        @for (stepName of stepNames; track stepName; let stepIndex = $index) {
+                            <mat-step [completed]="wizardStore.completedSteps()[stepName]">
+                                <ng-template matStepLabel>{{ stepName }}</ng-template>
+                                <ng-template matStepContent>
+                                    @if (getCustomStepTemplate(stepName); as tmpl) {
+                                        <ng-container
+                                            *ngTemplateOutlet="tmpl; context: { $implicit: stepName }"></ng-container>
+                                    } @else {
+                                        <shared-connector-configuration-step
+                                            [stepName]="stepName"
+                                            [isFirstStep]="stepIndex === 0"
+                                            (back)="onBackStep($event)">
+                                        </shared-connector-configuration-step>
+                                    }
+                                </ng-template>
+                            </mat-step>
+                        }
+
+                        <mat-step [completed]="false">
+                            <ng-template matStepLabel>{{ summaryLabel() }}</ng-template>
+                            <ng-template matStepContent>
+                                <connector-configuration-summary-step
+                                    [workingConfiguration]="
+                                        summaryConfiguration() || wizardStore.workingConfiguration()
+                                    "
+                                    [visibleStepNames]="summaryVisibleStepNames()"
+                                    [loading]="wizardStore.loading()"
+                                    [applying]="wizardStore.applying()"
+                                    [verifying]="wizardStore.allStepsVerifying()"
+                                    [verificationPassed]="wizardStore.verificationPassed()"
+                                    [currentVerifyingStepName]="wizardStore.currentVerifyingStepName()"
+                                    [stepVerificationResults]="wizardStore.stepVerificationResults()"
+                                    [verifyAllError]="wizardStore.verifyAllError()"
+                                    [stepNameMapping]="stepNameMapping()"
+                                    (confirm)="onApplyConfiguration()"
+                                    (dismiss)="navigateBack.emit()"
+                                    (previous)="onPreviousStep()"
+                                    (verify)="onVerifyAllSteps()">
+                                </connector-configuration-summary-step>
+                            </ng-template>
+                        </mat-step>
+
+                        <ng-template matStepperIcon="number">
+                            <i class="fa fa-circle-o step-icon" aria-hidden="true"></i>
+                        </ng-template>
+                        <ng-template matStepperIcon="edit">
+                            <i class="fa fa-circle-o step-icon" aria-hidden="true"></i>
+                        </ng-template>
+                        <ng-template matStepperIcon="done">
+                            <i class="fa fa-check-circle step-icon" aria-hidden="true"></i>
+                        </ng-template>
+                        <ng-template matStepperIcon="error">
+                            <i class="fa fa-warning step-icon" aria-hidden="true"></i>
+                        </ng-template>
+                    </wizard>
+                } @else {
+                    <div class="flex-1 flex items-center justify-center" data-qa="no-steps-container">
+                        <div class="flex flex-col items-center gap-4">
+                            <i class="fa fa-info-circle text-4xl" data-qa="no-steps-icon" aria-hidden="true"></i>
+                            <p class="text-base" data-qa="no-steps-message">
+                                No configuration steps are available for this connector.
+                            </p>
+                        </div>
+                    </div>
+                }
+            }
+        }
+    }
+</div>
