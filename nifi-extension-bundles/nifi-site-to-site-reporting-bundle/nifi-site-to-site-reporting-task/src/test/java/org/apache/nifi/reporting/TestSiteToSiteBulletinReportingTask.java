@@ -55,6 +55,12 @@ import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteBulletinReportingTask {
 
+    private static final String GROUP_ID = "group-id";
+    private static final String GROUP_NAME = "group-name";
+    private static final String SOURCE_ID = "source-id";
+    private static final String SOURCE_NAME = "source-name";
+    private static final String CATEGORY = "category";
+
     @Test
     public void testUrls() {
         final ValidationContext context = Mockito.mock(ValidationContext.class);
@@ -170,9 +176,9 @@ public class TestSiteToSiteBulletinReportingTask {
     @Test
     public void testBulletinLevelFilter() throws IOException, InitializationException {
         final List<Bulletin> bulletins = new ArrayList<>();
-        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", Severity.INFO.name(), "info message"));
-        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", Severity.WARNING.name(), "warning message"));
-        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", Severity.ERROR.name(), "error message"));
+        bulletins.add(BulletinFactory.createBulletin(GROUP_ID, GROUP_NAME, SOURCE_ID, SOURCE_NAME, CATEGORY, Severity.INFO.name(), "info message"));
+        bulletins.add(BulletinFactory.createBulletin(GROUP_ID, GROUP_NAME, SOURCE_ID, SOURCE_NAME, CATEGORY, Severity.WARNING.name(), "warning message"));
+        bulletins.add(BulletinFactory.createBulletin(GROUP_ID, GROUP_NAME, SOURCE_ID, SOURCE_NAME, CATEGORY, Severity.ERROR.name(), "error message"));
 
         final ReportingContext context = Mockito.mock(ReportingContext.class);
         final BulletinRepository repository = Mockito.mock(BulletinRepository.class);
@@ -186,7 +192,7 @@ public class TestSiteToSiteBulletinReportingTask {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
         properties.put(SiteToSiteUtils.PLATFORM, "nifi");
-        properties.put(SiteToSiteBulletinReportingTask.BULLETIN_LEVEL, Severity.WARNING.name());
+        properties.put(SiteToSiteBulletinReportingTask.MINIMUM_BULLETIN_LEVEL, Severity.WARNING.name());
 
         Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);

@@ -50,8 +50,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"bulletin", "site", "site to site"})
-@CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Bulletins can be filtered by a configurable minimum severity level. "
-        + "Note: only up to 5 bulletins are stored per component and up to "
+@CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Note: only up to 5 bulletins are stored per component and up to "
         + "10 bulletins at controller level for a duration of up to 5 minutes. If this reporting task is not scheduled frequently enough some bulletins "
         + "may not be sent.")
 @Restricted(
@@ -64,13 +63,14 @@ import java.util.concurrent.TimeUnit;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final PropertyDescriptor BULLETIN_LEVEL = new PropertyDescriptor.Builder()
-            .name("Bulletin Level")
-            .description("The minimum level of bulletins to report. Bulletins at this level and above will be "
-                    + "sent. For example, selecting WARNING will send WARNING and ERROR bulletins, but not INFO.")
+    static final PropertyDescriptor MINIMUM_BULLETIN_LEVEL = new PropertyDescriptor.Builder()
+            .name("Minimum Bulletin Level")
+            .description("""
+                    The minimum level of bulletins to report. Bulletins at this level and above will be \
+                    sent. For example, selecting WARNING will send WARNING and ERROR bulletins, but not INFO.""")
             .required(true)
             .allowableValues(Severity.INFO.name(), Severity.WARNING.name(), Severity.ERROR.name())
-            .defaultValue(Severity.WARNING.name())
+            .defaultValue(Severity.INFO.name())
             .build();
 
     private volatile long lastSentBulletinId = -1L;
@@ -84,7 +84,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(SiteToSiteUtils.PLATFORM);
-        properties.add(BULLETIN_LEVEL);
+        properties.add(MINIMUM_BULLETIN_LEVEL);
         properties.remove(SiteToSiteUtils.BATCH_SIZE);
         return properties;
     }
@@ -124,7 +124,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
         final String platform = context.getProperty(SiteToSiteUtils.PLATFORM).evaluateAttributeExpressions().getValue();
         final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
-        final String configuredLevel = context.getProperty(BULLETIN_LEVEL).getValue();
+        final String configuredLevel = context.getProperty(MINIMUM_BULLETIN_LEVEL).getValue();
         final Severity minimumSeverity = Severity.valueOf(configuredLevel);
 
         final Map<String, ?> config = Collections.emptyMap();
@@ -136,14 +136,14 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         // Create a JSON array of bulletins that meet the minimum severity level
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
         for (final Bulletin bulletin : bulletins) {
-            if (bulletin.getId() > lastSentBulletinId && meetsMinimumSeverity(bulletin, minimumSeverity)) {
+            if (isBulletinReportable(bulletin, minimumSeverity)) {
                 arrayBuilder.add(serialize(builder, bulletin, platform, nodeId, allowNullValues));
             }
         }
         final JsonArray jsonArray = arrayBuilder.build();
 
         if (jsonArray.isEmpty()) {
-            getLogger().debug("No bulletins to send after filtering by minimum level [{}].", configuredLevel);
+            getLogger().debug("No bulletins to send after filtering by minimum level [{}]", configuredLevel);
             lastSentBulletinId = currMaxId;
             return;
         }
@@ -189,9 +189,13 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         lastSentBulletinId = currMaxId;
     }
 
-    private boolean meetsMinimumSeverity(final Bulletin bulletin, final Severity minimumSeverity) {
+    private boolean isBulletinReportable(final Bulletin bulletin, final Severity minimumSeverity) {
+        if (bulletin.getId() <= lastSentBulletinId) {
+            return false;
+        }
         try {
-            return Severity.valueOf(bulletin.getLevel()).ordinal() >= minimumSeverity.ordinal();
+            final Severity bulletinSeverity = Severity.valueOf(bulletin.getLevel());
+            return bulletinSeverity.ordinal() >= minimumSeverity.ordinal();
         } catch (final IllegalArgumentException e) {
             return true;
         }
