@@ -186,7 +186,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             try (final InputStream inputStream = resourceReference.read()) {
                 setConfigurationState(inputStream);
             } catch (IOException ioe) {
-                getLogger().error("Error reading mapping file", ioe);
+                getLogger().error("Error reading mapping content", ioe);
             }
         }
     }
