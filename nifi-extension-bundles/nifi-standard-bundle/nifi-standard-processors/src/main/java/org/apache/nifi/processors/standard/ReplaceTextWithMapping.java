@@ -182,9 +182,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         final ResourceReference resourceReference = context.getProperty(MAPPING_FILE).asResource();
         if (resourceReference.getResourceType() == ResourceType.TEXT) {
-            try {
-                getLogger().info("Reloading mapping file contents");
-                final InputStream inputStream = resourceReference.read();
+            getLogger().info("Loading mapping content");
+            try (final InputStream inputStream = resourceReference.read()) {
                 setConfigurationState(inputStream);
             } catch (IOException ioe) {
                 getLogger().error("Error reading mapping file", ioe);
@@ -251,10 +250,10 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                 try {
                     // if not queried mapping file lastUpdate time in
                     // mappingRefreshPeriodSecs, do so.
-                    long currentTimeSecs = System.currentTimeMillis() / 1000;
-                    long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
+                    final long currentTimeSecs = System.currentTimeMillis() / 1000;
+                    final long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
 
-                    boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
+                    final boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
                     if (retry) {
                         mappingTestTime.set(System.currentTimeMillis() / 1000);
                         // see if the mapping file needs to be reloaded

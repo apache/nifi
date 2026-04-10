@@ -239,7 +239,7 @@ public class TestReplaceTextWithMapping {
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
         final String outputString = out.getContent();
-        String expected = """
+        final String expected = """
                 roses are red$d apple
                 violets are blue$d blueberry
                 something else is green$d grape
@@ -295,7 +295,7 @@ public class TestReplaceTextWithMapping {
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).getFirst();
         final String outputString = out.getContent();
-        String expected = """
+        final String expected = """
                 roses are\s
                 violets are\s
                 something else is\s
