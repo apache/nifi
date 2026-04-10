@@ -15,30 +15,21 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Connectors } from './connectors.component';
+import { createAction, props } from '@ngrx/store';
+import { ConnectorEntity } from '@nifi/shared';
 
-const routes: Routes = [
-    {
-        path: ':id/canvas',
-        loadChildren: () =>
-            import('../ui/connector-canvas/connector-canvas.module').then((m) => m.ConnectorCanvasModule)
-    },
-    {
-        path: '',
-        component: Connectors,
-        children: [
-            {
-                path: ':id',
-                component: Connectors
-            }
-        ]
-    }
-];
+const PREFIX = '[Connector Canvas Entity]';
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ConnectorsRoutingModule {}
+export const loadConnectorEntity = createAction(`${PREFIX} Load Connector Entity`, props<{ connectorId: string }>());
+
+export const loadConnectorEntitySuccess = createAction(
+    `${PREFIX} Load Connector Entity Success`,
+    props<{ connectorEntity: ConnectorEntity }>()
+);
+
+export const loadConnectorEntityFailure = createAction(
+    `${PREFIX} Load Connector Entity Failure`,
+    props<{ error: string }>()
+);
+
+export const resetConnectorCanvasEntityState = createAction(`${PREFIX} Reset State`);

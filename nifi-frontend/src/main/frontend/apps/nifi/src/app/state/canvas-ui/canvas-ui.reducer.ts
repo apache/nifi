@@ -15,30 +15,23 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Connectors } from './connectors.component';
+import { createReducer, on } from '@ngrx/store';
+import { initialCanvasUiState } from './index';
+import * as CanvasUiActions from './canvas-ui.actions';
 
-const routes: Routes = [
-    {
-        path: ':id/canvas',
-        loadChildren: () =>
-            import('../ui/connector-canvas/connector-canvas.module').then((m) => m.ConnectorCanvasModule)
-    },
-    {
-        path: '',
-        component: Connectors,
-        children: [
-            {
-                path: ':id',
-                component: Connectors
-            }
-        ]
-    }
-];
+export const canvasUiReducer = createReducer(
+    initialCanvasUiState,
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ConnectorsRoutingModule {}
+    on(CanvasUiActions.setConfiguration, (state, { configuration }) => ({
+        ...state,
+        configuration
+    })),
+
+    on(CanvasUiActions.setTransform, (state, { transform }) => ({
+        ...state,
+        transform: {
+            ...state.transform,
+            ...transform
+        }
+    }))
+);

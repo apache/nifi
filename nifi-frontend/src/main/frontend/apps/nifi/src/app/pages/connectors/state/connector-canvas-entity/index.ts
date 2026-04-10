@@ -15,30 +15,20 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Connectors } from './connectors.component';
+import { ConnectorEntity } from '@nifi/shared';
 
-const routes: Routes = [
-    {
-        path: ':id/canvas',
-        loadChildren: () =>
-            import('../ui/connector-canvas/connector-canvas.module').then((m) => m.ConnectorCanvasModule)
-    },
-    {
-        path: '',
-        component: Connectors,
-        children: [
-            {
-                path: ':id',
-                component: Connectors
-            }
-        ]
-    }
-];
+export const connectorCanvasEntityFeatureKey = 'connectorCanvasEntity';
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ConnectorsRoutingModule {}
+export interface ConnectorCanvasEntityState {
+    connectorEntity: ConnectorEntity | null;
+    loadingStatus: 'pending' | 'loading' | 'success' | 'error';
+    saving: boolean;
+    error: string | null;
+}
+
+export const initialConnectorCanvasEntityState: ConnectorCanvasEntityState = {
+    connectorEntity: null,
+    loadingStatus: 'pending',
+    saving: false,
+    error: null
+};

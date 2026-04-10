@@ -34,6 +34,7 @@ import {
     Revision,
     SelectOption
 } from '@nifi/shared';
+import { VersionControlInformation } from '../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { CopyResponseEntity, PasteRequestStrategy } from '../../../../state/copy';
 
 export const flowFeatureKey = 'flowState';
@@ -246,22 +247,6 @@ export interface SaveVersionRequest {
     flowDescription?: string;
     comments?: string;
     existingFlowId?: string;
-    branch?: string;
-}
-
-export interface VersionControlInformation {
-    groupId: string;
-    registryId: string;
-    registryName: string;
-    bucketId: string;
-    bucketName: string;
-    flowId: string;
-    flowName: string;
-    flowDescription: string;
-    version: string;
-    storageLocation?: string;
-    state: string;
-    stateExplanation: string;
     branch?: string;
 }
 
@@ -557,15 +542,6 @@ export interface CopiedSnippet {
     snippet: Snippet;
     origin: Position;
     dimensions: any;
-}
-
-/*
-    Tooltips
- */
-
-export interface VersionControlTipInput {
-    versionControlInformation: VersionControlInformation;
-    registryClients?: RegistryClientEntity[];
 }
 
 /*

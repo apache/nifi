@@ -16,8 +16,28 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { VersionControlInformation, VersionControlTipInput } from '../../../../state/flow';
-import { RegistryClientEntity } from '../../../../../../state/shared';
+import { RegistryClientEntity } from '../../../../state/shared';
+
+export interface VersionControlInformation {
+    groupId: string;
+    registryId: string;
+    registryName: string;
+    bucketId: string;
+    bucketName: string;
+    flowId: string;
+    flowName: string;
+    flowDescription: string;
+    version: string;
+    storageLocation?: string;
+    state: string;
+    stateExplanation: string;
+    branch?: string;
+}
+
+export interface VersionControlTipInput {
+    versionControlInformation: VersionControlInformation;
+    registryClients?: RegistryClientEntity[];
+}
 
 @Component({
     selector: 'version-control-tip',

@@ -36,6 +36,10 @@ export class ConnectorService {
         return this.httpClient.get<ConnectorsResponse>(`${ConnectorService.API}/flow/connectors`);
     }
 
+    getConnector(connectorId: string): Observable<ConnectorEntity> {
+        return this.httpClient.get<ConnectorEntity>(`${ConnectorService.API}/connectors/${connectorId}`);
+    }
+
     createConnector(createConnectorRequest: CreateConnectorRequest): Observable<ConnectorEntity> {
         return this.httpClient.post<ConnectorEntity>(`${ConnectorService.API}/connectors`, {
             revision: createConnectorRequest.revision,
@@ -105,6 +109,16 @@ export class ConnectorService {
             params
         });
     }
+
+    getConnectorFlow(connectorId: string, processGroupId: string): Observable<any> {
+        return this.httpClient.get(
+            `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}`
+        );
+    }
+
+    // ========================================================================================
+    // Purge Methods
+    // ========================================================================================
 
     createPurgeRequest(connectorId: string): Observable<DropRequestEntity> {
         return this.httpClient.post<DropRequestEntity>(

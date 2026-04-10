@@ -15,30 +15,12 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Connectors } from './connectors.component';
+import { createAction, props } from '@ngrx/store';
+import { CanvasConfiguration, CanvasTransform } from './index';
 
-const routes: Routes = [
-    {
-        path: ':id/canvas',
-        loadChildren: () =>
-            import('../ui/connector-canvas/connector-canvas.module').then((m) => m.ConnectorCanvasModule)
-    },
-    {
-        path: '',
-        component: Connectors,
-        children: [
-            {
-                path: ':id',
-                component: Connectors
-            }
-        ]
-    }
-];
+export const setConfiguration = createAction(
+    '[Canvas UI] Set Configuration',
+    props<{ configuration: CanvasConfiguration }>()
+);
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ConnectorsRoutingModule {}
+export const setTransform = createAction('[Canvas UI] Set Transform', props<{ transform: CanvasTransform }>());

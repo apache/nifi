@@ -20,6 +20,8 @@ import { Bundle, ConnectorEntity, Revision } from '@nifi/shared';
 import { connectorsListingReducer } from './connectors-listing/connectors-listing.reducer';
 import { purgeConnectorFeatureKey, PurgeConnectorState } from './purge-connector';
 import { purgeConnectorReducer } from './purge-connector/purge-connector.reducer';
+import { connectorCanvasEntityFeatureKey, ConnectorCanvasEntityState } from './connector-canvas-entity';
+import { connectorCanvasEntityReducer } from './connector-canvas-entity/connector-canvas-entity.reducer';
 
 export const connectorsFeatureKey = 'connectors';
 export const connectorsListingFeatureKey = 'connectorsListing';
@@ -117,12 +119,14 @@ export interface ViewConnectorRequest {
 export interface ConnectorsState {
     [connectorsListingFeatureKey]: ConnectorsListingState;
     [purgeConnectorFeatureKey]: PurgeConnectorState;
+    [connectorCanvasEntityFeatureKey]: ConnectorCanvasEntityState;
 }
 
 export function reducers(state: ConnectorsState | undefined, action: Action) {
     return combineReducers({
         [connectorsListingFeatureKey]: connectorsListingReducer,
-        [purgeConnectorFeatureKey]: purgeConnectorReducer
+        [purgeConnectorFeatureKey]: purgeConnectorReducer,
+        [connectorCanvasEntityFeatureKey]: connectorCanvasEntityReducer
     })(state, action);
 }
 

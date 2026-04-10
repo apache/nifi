@@ -16,7 +16,7 @@
  */
 
 import { Permissions } from '@nifi/shared';
-import { VersionControlInformation } from '../flow';
+import { VersionControlInformation } from '../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 
 export interface Dimension {
     width: number;

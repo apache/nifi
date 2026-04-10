@@ -15,30 +15,17 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Connectors } from './connectors.component';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { CanvasUiState, canvasUiFeatureKey } from './index';
 
-const routes: Routes = [
-    {
-        path: ':id/canvas',
-        loadChildren: () =>
-            import('../ui/connector-canvas/connector-canvas.module').then((m) => m.ConnectorCanvasModule)
-    },
-    {
-        path: '',
-        component: Connectors,
-        children: [
-            {
-                path: ':id',
-                component: Connectors
-            }
-        ]
-    }
-];
+export const selectCanvasUiState = createFeatureSelector<CanvasUiState>(canvasUiFeatureKey);
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ConnectorsRoutingModule {}
+export const selectTransform = createSelector(selectCanvasUiState, (state) => state.transform);
+
+export const selectScale = createSelector(selectTransform, (transform) => transform.scale);
+
+export const selectTranslate = createSelector(selectTransform, (transform) => transform.translate);
+
+export const selectConfiguration = createSelector(selectCanvasUiState, (state) => state.configuration);
+
+export const selectCanvasFeatures = createSelector(selectConfiguration, (config) => config.features);
