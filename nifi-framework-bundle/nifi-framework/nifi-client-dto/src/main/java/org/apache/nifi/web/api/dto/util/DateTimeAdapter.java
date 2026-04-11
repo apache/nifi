@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto.util;
 
 import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -29,7 +30,7 @@ import java.util.Date;
 public class DateTimeAdapter extends XmlAdapter<String, Date> {
 
     private static final String DEFAULT_DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss z";
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT);
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT).withZone(ZoneId.systemDefault());
 
     @Override
     public String marshal(Date date) throws Exception {
@@ -39,7 +40,7 @@ public class DateTimeAdapter extends XmlAdapter<String, Date> {
 
     @Override
     public Date unmarshal(String date) throws Exception {
-        final ZonedDateTime zonedDateTime = ZonedDateTime.parse(date, DATE_TIME_FORMATTER);
+        final ZonedDateTime zonedDateTime = LocalDateTime.parse(date, DATE_TIME_FORMATTER).atZone(ZoneId.systemDefault());
         return Date.from(zonedDateTime.toInstant());
     }
 
