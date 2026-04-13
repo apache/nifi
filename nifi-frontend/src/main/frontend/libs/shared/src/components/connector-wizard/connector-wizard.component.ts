@@ -99,7 +99,13 @@ export class ConnectorWizard implements OnInit, OnDestroy {
     readonly wizard = viewChild<Wizard>('wizard');
     readonly customStepDirectives = contentChildren(WizardCustomStepDirective);
 
-    private customStepMap = new Map<string, TemplateRef<{ $implicit: string }>>();
+    private customStepMap = computed(() => {
+        const map = new Map<string, TemplateRef<{ $implicit: string }>>();
+        for (const dir of this.customStepDirectives()) {
+            map.set(dir.stepName(), dir.templateRef);
+        }
+        return map;
+    });
 
     ngOnInit(): void {
         const connector = this.connector();
@@ -144,13 +150,7 @@ export class ConnectorWizard implements OnInit, OnDestroy {
     }
 
     getCustomStepTemplate(stepName: string): TemplateRef<{ $implicit: string }> | null {
-        const directives = this.customStepDirectives();
-        if (this.customStepMap.size === 0 && directives.length > 0) {
-            directives.forEach((dir) => {
-                this.customStepMap.set(dir.stepName(), dir.templateRef);
-            });
-        }
-        return this.customStepMap.get(stepName) ?? null;
+        return this.customStepMap().get(stepName) ?? null;
     }
 
     onStepChange(event: StepperSelectionEvent, stepNames: string[]): void {
