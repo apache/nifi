@@ -64,7 +64,7 @@ public class TestTransformXml {
 
     @Test
     public void testNonXmlContent() {
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/math.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/math.xsl");
 
         final Map<String, String> attributes = new HashMap<>();
         runner.enqueue("not xml".getBytes(), attributes);
@@ -79,7 +79,7 @@ public class TestTransformXml {
     @Test
     public void testTransformMath() throws IOException {
         runner.setProperty("header", "Test for mod");
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/math.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/math.xsl");
 
         final Map<String, String> attributes = new HashMap<>();
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
@@ -94,7 +94,7 @@ public class TestTransformXml {
 
     @Test
     public void testTransformCsv() throws IOException {
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/tokens.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/tokens.xsl");
         runner.setProperty("uuid_0", "${uuid_0}");
         runner.setProperty("uuid_1", "${uuid_1}");
 
@@ -128,7 +128,7 @@ public class TestTransformXml {
     @Test
     public void testTransformExpressionLanguage() throws IOException {
         runner.setProperty("header", "Test for mod");
-        runner.setProperty(TransformXml.XSLT_CONTENT, "${xslt.path}");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "${xslt.path}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("xslt.path", "src/test/resources/TestTransformXml/math.xsl");
@@ -146,7 +146,7 @@ public class TestTransformXml {
     public void testTransformNoCache() throws IOException {
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.CACHE_SIZE, "0");
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/math.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/math.xsl");
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
         runner.run();
 
@@ -159,7 +159,7 @@ public class TestTransformXml {
 
     @Test
     public void testTransformBothControllerFileNotValid() throws InitializationException {
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/math.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/math.xsl");
 
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
         runner.addControllerService("simple-key-value-lookup-service", service);
@@ -273,7 +273,7 @@ public class TestTransformXml {
 
     @Test
     public void testTransformSecureProcessingEnabledXmlWithDocumentTypeDefinition() {
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/doc-node.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/doc-node.xsl");
         runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
         runner.setProperty(TransformXml.SECURE_PROCESSING, Boolean.TRUE.toString());
 
@@ -290,7 +290,7 @@ public class TestTransformXml {
 
     @Test
     public void testTransformSecureProcessingEnabledXmlWithEntity() {
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/doc-node.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/doc-node.xsl");
         runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
 
         final String input = "<!DOCTYPE doc [<!ENTITY uri SYSTEM \"http://127.0.0.1\" >]><doc>&uri;</doc>";
@@ -302,7 +302,7 @@ public class TestTransformXml {
 
     @Test
     public void testTransformSecureProcessingEnabledXslWithEntity() throws IOException {
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/doctype-entity-file-uri.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/doctype-entity-file-uri.xsl");
         runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
 
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/doctype-entity-file-uri.xsl"));
@@ -317,7 +317,7 @@ public class TestTransformXml {
     @Test
     public void testNonMatchingTemplateTag() throws IOException {
         runner.setProperty("header", "Test for mod");
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/nonMatchingEndTag.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/nonMatchingEndTag.xsl");
 
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
         runner.run();
@@ -332,7 +332,7 @@ public class TestTransformXml {
     @Test
     public void testMessageTerminate() throws IOException {
         runner.setProperty("header", "Test message terminate");
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/employeeMessageTerminate.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/employeeMessageTerminate.xsl");
 
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"));
         runner.run();
@@ -347,7 +347,7 @@ public class TestTransformXml {
     @Test
     public void testMessageNonTerminate() throws IOException {
         runner.setProperty("header", "Test message non terminate");
-        runner.setProperty(TransformXml.XSLT_CONTENT, "src/test/resources/TestTransformXml/employeeMessageNonTerminate.xsl");
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, "src/test/resources/TestTransformXml/employeeMessageNonTerminate.xsl");
 
         runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"));
         runner.run();
@@ -378,7 +378,7 @@ public class TestTransformXml {
                 </xsl:stylesheet>
                 """;
 
-        runner.setProperty(TransformXml.XSLT_CONTENT, xslt);
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, xslt);
         runner.setProperty("customParam", "From NIFI");
         runner.enqueue(XML_FOR_TESTING_PARAMETERS);
 
@@ -410,7 +410,7 @@ public class TestTransformXml {
                 </xsl:stylesheet>
                 """;
 
-        runner.setProperty(TransformXml.XSLT_CONTENT, xslt);
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, xslt);
         runner.setProperty("customParam", "From NIFI");
         runner.enqueue(XML_FOR_TESTING_PARAMETERS);
 
@@ -444,7 +444,7 @@ public class TestTransformXml {
                 </xsl:stylesheet>
                 """;
 
-        runner.setProperty(TransformXml.XSLT_CONTENT, xslt);
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, xslt);
         runner.setProperty("customParam", "From NIFI");
         runner.enqueue(XML_FOR_TESTING_PARAMETERS);
 
@@ -461,7 +461,7 @@ public class TestTransformXml {
     void testParameterAsSpecificType(String paramType, String parameterValue, String defaultValue, Relationship expectedRelationship, String expectedTransform) {
         final String parameterName = "customParam";
         final String xslt = getXSLTWithParameterDefinedWithType(paramType, defaultValue);
-        runner.setProperty(TransformXml.XSLT_CONTENT, xslt);
+        runner.setProperty(TransformXml.XSLT_DOCUMENT, xslt);
         runner.setProperty(parameterName, parameterValue);
         runner.enqueue(XML_FOR_TESTING_PARAMETERS);
 
@@ -564,8 +564,8 @@ public class TestTransformXml {
                 Map.entry("secure-processing", TransformXml.SECURE_PROCESSING.getName()),
                 Map.entry("cache-size", TransformXml.CACHE_SIZE.getName()),
                 Map.entry("cache-ttl-after-last-access", TransformXml.CACHE_TTL_AFTER_LAST_ACCESS.getName()),
-                Map.entry("XSLT file name", TransformXml.XSLT_CONTENT.getName()),
-                Map.entry("XSLT File Name", TransformXml.XSLT_CONTENT.getName())
+                Map.entry("XSLT file name", TransformXml.XSLT_DOCUMENT.getName()),
+                Map.entry("XSLT File Name", TransformXml.XSLT_DOCUMENT.getName())
         );
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();

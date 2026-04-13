@@ -105,8 +105,8 @@ public class TransformXml extends AbstractProcessor {
             "XSLT File Name"
     );
 
-    public static final PropertyDescriptor XSLT_CONTENT = new PropertyDescriptor.Builder()
-            .name("XSLT Content")
+    public static final PropertyDescriptor XSLT_DOCUMENT = new PropertyDescriptor.Builder()
+            .name("XSLT Document")
             .description("""
                     Provides either the name (including full path) of the XSLT file or the actual XSLT to apply to the FlowFile XML content.
                     One of the 'XSLT Content' and 'XSLT Lookup' properties must be defined.""")
@@ -170,7 +170,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            XSLT_CONTENT,
+            XSLT_DOCUMENT,
             XSLT_CONTROLLER,
             XSLT_CONTROLLER_KEY,
             INDENT_OUTPUT,
@@ -214,12 +214,12 @@ public class TransformXml extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        PropertyValue content = validationContext.getProperty(XSLT_CONTENT);
+        PropertyValue document = validationContext.getProperty(XSLT_DOCUMENT);
         PropertyValue controller = validationContext.getProperty(XSLT_CONTROLLER);
         PropertyValue key = validationContext.getProperty(XSLT_CONTROLLER_KEY);
 
-        if ((content.isSet() && controller.isSet())
-                || (!content.isSet() && !controller.isSet())) {
+        if ((document.isSet() && controller.isSet())
+                || (!document.isSet() && !controller.isSet())) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(this.getClass().getSimpleName())
@@ -291,8 +291,8 @@ public class TransformXml extends AbstractProcessor {
         }
 
         final StopWatch stopWatch = new StopWatch(true);
-        final ResourceReference resourceReference = context.getProperty(XSLT_CONTENT).isSet()
-                ? context.getProperty(XSLT_CONTENT).evaluateAttributeExpressions(original).asResource()
+        final ResourceReference resourceReference = context.getProperty(XSLT_DOCUMENT).isSet()
+                ? context.getProperty(XSLT_DOCUMENT).evaluateAttributeExpressions(original).asResource()
                 : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).asResource();
 
         try {
@@ -324,7 +324,7 @@ public class TransformXml extends AbstractProcessor {
                 } catch (final Exception e) {
                     final String message;
                     if (resourceReference.getResourceType() == ResourceType.TEXT) {
-                        message = context.getProperty(XSLT_CONTENT).isSet()
+                        message = context.getProperty(XSLT_DOCUMENT).isSet()
                                 ? "XSLT Transform Failed" : String.format("XSLT Source Path [%s] Transform Failed", getResourceReferenceText(resourceReference));
                     } else {
                         message = String.format("XSLT Source Path [%s] Transform Failed", resourceReference.getLocation());
@@ -349,7 +349,7 @@ public class TransformXml extends AbstractProcessor {
         config.renameProperty("secure-processing", SECURE_PROCESSING.getName());
         config.renameProperty("cache-size", CACHE_SIZE.getName());
         config.renameProperty("cache-ttl-after-last-access", CACHE_TTL_AFTER_LAST_ACCESS.getName());
-        OBSOLETE_XSLT_FILE_NAME.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, XSLT_CONTENT.getName()));
+        OBSOLETE_XSLT_FILE_NAME.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, XSLT_DOCUMENT.getName()));
     }
 
     private ErrorListenerLogger getErrorListenerLogger() {
@@ -360,8 +360,8 @@ public class TransformXml extends AbstractProcessor {
     private Templates newTemplates(final ProcessContext context, final ResourceReference resourceReference) throws TransformerConfigurationException, LookupFailureException, IOException {
         final TransformerFactory transformerFactory = getTransformerFactory();
         final LookupService<String> lookupService = context.getProperty(XSLT_CONTROLLER).asControllerService(LookupService.class);
-        final boolean xsltContent = context.getProperty(XSLT_CONTENT).isSet();
-        final StreamSource templateSource = getTemplateSource(lookupService, resourceReference, xsltContent);
+        final boolean xsltDocument = context.getProperty(XSLT_DOCUMENT).isSet();
+        final StreamSource templateSource = getTemplateSource(lookupService, resourceReference, xsltDocument);
         final Source configuredTemplateSource = secureProcessingEnabled ? getSecureSource(templateSource) : templateSource;
         return transformerFactory.newTemplates(configuredTemplateSource);
     }
@@ -378,9 +378,9 @@ public class TransformXml extends AbstractProcessor {
         return factory;
     }
 
-    private StreamSource getTemplateSource(final LookupService<String> lookupService, final ResourceReference resourceReference, final boolean xsltContent) throws LookupFailureException, IOException {
+    private StreamSource getTemplateSource(final LookupService<String> lookupService, final ResourceReference resourceReference, final boolean xsltDocument) throws LookupFailureException, IOException {
         final StreamSource streamSource;
-        if (xsltContent) {
+        if (xsltDocument) {
             streamSource = new StreamSource(resourceReference.read());
         } else {
             final String coordinateKey = lookupService.getRequiredKeys().iterator().next();
