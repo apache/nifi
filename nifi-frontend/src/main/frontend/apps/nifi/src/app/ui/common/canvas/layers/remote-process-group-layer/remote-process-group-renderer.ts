@@ -108,7 +108,7 @@ export class RemoteProcessGroupRenderer {
         // Remote process group name
         rpgGroups
             .append('text')
-            .attr('class', 'remote-process-group-name secondary-contrast font-semibold')
+            .attr('class', 'remote-process-group-name secondary-contrast')
             .attr('x', 40)
             .attr('y', 22)
             .attr('width', 300)

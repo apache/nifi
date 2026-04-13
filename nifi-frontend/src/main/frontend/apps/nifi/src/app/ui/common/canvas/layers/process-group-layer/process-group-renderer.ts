@@ -133,7 +133,7 @@ export class ProcessGroupRenderer {
         // Process group name
         pgGroups
             .append('text')
-            .attr('class', 'process-group-name secondary-contrast font-semibold')
+            .attr('class', 'process-group-name secondary-contrast')
             .attr('x', 10)
             .attr('y', 21)
             .attr('width', 300)
