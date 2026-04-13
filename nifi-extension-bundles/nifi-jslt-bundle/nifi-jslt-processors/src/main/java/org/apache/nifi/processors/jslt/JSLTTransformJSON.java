@@ -22,8 +22,10 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SequenceWriter;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.schibsted.spt.data.jslt.Expression;
@@ -63,17 +65,18 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.LineNumberReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationStrategy.EACH_OBJECT;
-import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationStrategy.ENTIRE_FLOWFILE;
 
 @SideEffectFree
 @SupportsBatching
@@ -85,6 +88,92 @@ import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationSt
         + "with transformed content and is routed to the 'success' relationship. If the JSLT transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
 public class JSLTTransformJSON extends AbstractProcessor {
+
+    enum InputFormat implements DescribedValue {
+        FLOW_FILE("FlowFile", "Transformation applied to FlowFile content containing JSON"),
+        JSON_LINES("JSON Lines", "Transformation applied to each line of FlowFile content containing JSON Lines or NDJSON");
+
+        private final String displayName;
+        private final String description;
+
+        InputFormat(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    enum TransformationStrategy implements DescribedValue {
+        ENTIRE_FLOWFILE("Entire FlowFile", "Apply transformation to entire FlowFile content JSON"),
+        EACH_OBJECT("Each JSON Object", "Apply transformation to each JSON object in an array");
+
+        private final String displayName;
+
+        private final String description;
+
+        TransformationStrategy(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    enum MultiLineTransformationStrategy implements DescribedValue {
+        ENTIRE_LINE("Entire Line", "Apply transformation to entire content on JSON line"),
+        EACH_OBJECT("Each JSON Object", "Apply transformation to each JSON Object in top level array on JSON line");
+
+        private final String displayName;
+
+        private final String description;
+
+        MultiLineTransformationStrategy(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
 
     public static final String JSLT_FILTER_DEFAULT = ". != null and . != {} and . != []";
 
@@ -98,12 +187,30 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor INPUT_FORMAT = new PropertyDescriptor.Builder()
+            .name("Input Format")
+            .description("Specifies the expected format of FlowFile content containing one or more JSON elements")
+            .allowableValues(InputFormat.class)
+            .defaultValue(InputFormat.FLOW_FILE)
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor TRANSFORMATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Transformation Strategy")
             .description("Whether to apply the JSLT transformation to the entire FlowFile contents or each JSON object in the root-level array")
             .required(true)
             .allowableValues(TransformationStrategy.class)
-            .defaultValue(EACH_OBJECT.getValue())
+            .defaultValue(TransformationStrategy.EACH_OBJECT)
+            .dependsOn(INPUT_FORMAT, InputFormat.FLOW_FILE)
+            .build();
+
+    public static final PropertyDescriptor MULTILINE_TRANSFORMATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Multiline Transformation Strategy")
+            .description("Whether to apply the JSLT transformation to the entire JSON line or each JSON object in the root-level array on the JSON line")
+            .required(true)
+            .allowableValues(MultiLineTransformationStrategy.class)
+            .defaultValue(MultiLineTransformationStrategy.ENTIRE_LINE)
+            .dependsOn(INPUT_FORMAT, InputFormat.JSON_LINES)
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
@@ -112,6 +219,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
+            .dependsOn(INPUT_FORMAT, InputFormat.FLOW_FILE)
             .build();
 
     public static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -146,7 +254,9 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             JSLT_TRANSFORM,
+            INPUT_FORMAT,
             TRANSFORMATION_STRATEGY,
+            MULTILINE_TRANSFORMATION_STRATEGY,
             PRETTY_PRINT,
             TRANSFORM_CACHE_SIZE,
             RESULT_FILTER
@@ -237,71 +347,19 @@ public class JSLTTransformJSON extends AbstractProcessor {
             return;
         }
 
-        final TransformationStrategy transformationStrategy = TransformationStrategy.valueOf(context.getProperty(TRANSFORMATION_STRATEGY).getValue());
+        final PropertyValue transformProperty = context.getProperty(JSLT_TRANSFORM);
+        final String transform = readTransform(transformProperty, original);
+        final PropertyValue filterProperty = context.getProperty(RESULT_FILTER);
+        final Expression jsltExpression = transformCache.get(transform, currString -> getJstlExpression(transform, filterProperty.getValue()));
+        final InputFormat inputFormat = context.getProperty(INPUT_FORMAT).asAllowableValue(InputFormat.class);
         final StopWatch stopWatch = new StopWatch(true);
 
-        final PropertyValue transformProperty = context.getProperty(JSLT_TRANSFORM);
-        final PropertyValue filterProperty = context.getProperty(RESULT_FILTER);
-        FlowFile transformed;
-        final JsonFactory jsonFactory = new JsonFactory();
-
         try {
-            final String transform = readTransform(transformProperty, original);
-            final Expression jsltExpression = transformCache.get(transform, currString -> getJstlExpression(transform, filterProperty.getValue()));
-            final boolean prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
+            final FlowFile transformed = switch (inputFormat) {
+                case FLOW_FILE -> transformFlowFile(jsltExpression, original, context, session);
+                case JSON_LINES -> transformJsonLines(jsltExpression, original, context, session);
+            };
 
-            transformed = session.write(original, (inputStream, outputStream) -> {
-                boolean topLevelArray = false;
-                JsonParser jsonParser;
-                JsonNode firstJsonNode;
-                if (EACH_OBJECT.equals(transformationStrategy)) {
-                    jsonParser = jsonFactory.createParser(inputStream);
-                    jsonParser.setCodec(JSON_OBJECT_MAPPER);
-
-                    JsonToken token = jsonParser.nextToken();
-                    if (token == JsonToken.START_ARRAY) {
-                        token = jsonParser.nextToken(); // advance to START_OBJECT token
-                        topLevelArray = true;
-                    }
-                    if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
-                        firstJsonNode = jsonParser.readValueAsTree();
-                    } else {
-                        firstJsonNode = null;
-                    }
-                } else {
-                    firstJsonNode = readJson(inputStream);
-                    jsonParser = null; // This will not be used when applying the transform to the entire FlowFile
-                }
-
-                final ObjectWriter writer = prettyPrint ? JSON_OBJECT_MAPPER.writerWithDefaultPrettyPrinter() : JSON_OBJECT_MAPPER.writer();
-                final JsonGenerator jsonGenerator = writer.createGenerator(outputStream);
-
-                Object outputObject;
-                JsonNode nextNode;
-
-                if (topLevelArray) {
-                    jsonGenerator.writeStartArray();
-                }
-                nextNode = firstJsonNode;
-                do {
-                    final JsonNode transformedJson = jsltExpression.apply(nextNode);
-                    if (transformedJson == null || transformedJson.isNull()) {
-                        getLogger().warn("JSLT Transform resulted in no data {}", original);
-                        outputObject = null;
-                    } else {
-                        outputObject = transformedJson;
-                    }
-                    if (outputObject != null) {
-                        jsonGenerator.writeObject(outputObject);
-                    }
-                } while ((nextNode = getNextJsonNode(transformationStrategy, jsonParser)) != null);
-                if (topLevelArray) {
-                    jsonGenerator.writeEndArray();
-                }
-                jsonGenerator.flush();
-            });
-
-            transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
             session.transfer(transformed, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transform, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             stopWatch.stop();
@@ -310,6 +368,66 @@ public class JSLTTransformJSON extends AbstractProcessor {
             getLogger().error("JSLT Transform failed {}", original, e);
             session.transfer(original, REL_FAILURE);
         }
+    }
+
+    private FlowFile transformFlowFile(final Expression jsltExpression, final FlowFile original, final ProcessContext context, final ProcessSession session) {
+        final TransformationStrategy transformationStrategy = TransformationStrategy.valueOf(context.getProperty(TRANSFORMATION_STRATEGY).getValue());
+        final boolean prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
+        final JsonFactory jsonFactory = new JsonFactory();
+
+        FlowFile transformed = session.write(original, (inputStream, outputStream) -> {
+            boolean topLevelArray = false;
+            JsonParser jsonParser;
+            JsonNode firstJsonNode;
+            if (TransformationStrategy.EACH_OBJECT.equals(transformationStrategy)) {
+                jsonParser = jsonFactory.createParser(inputStream);
+                jsonParser.setCodec(JSON_OBJECT_MAPPER);
+
+                JsonToken token = jsonParser.nextToken();
+                if (token == JsonToken.START_ARRAY) {
+                    token = jsonParser.nextToken(); // advance to START_OBJECT token
+                    topLevelArray = true;
+                }
+                if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
+                    firstJsonNode = jsonParser.readValueAsTree();
+                } else {
+                    firstJsonNode = null;
+                }
+            } else {
+                firstJsonNode = readJson(inputStream);
+                jsonParser = null; // This will not be used when applying the transform to the entire FlowFile
+            }
+
+            final ObjectWriter writer = prettyPrint ? JSON_OBJECT_MAPPER.writerWithDefaultPrettyPrinter() : JSON_OBJECT_MAPPER.writer();
+            final JsonGenerator jsonGenerator = writer.createGenerator(outputStream);
+
+            Object outputObject;
+            JsonNode nextNode;
+
+            if (topLevelArray) {
+                jsonGenerator.writeStartArray();
+            }
+            nextNode = firstJsonNode;
+            do {
+                final JsonNode transformedJson = jsltExpression.apply(nextNode);
+                if (transformedJson == null || transformedJson.isNull()) {
+                    getLogger().warn("JSLT Transform resulted in no data {}", original);
+                    outputObject = null;
+                } else {
+                    outputObject = transformedJson;
+                }
+                if (outputObject != null) {
+                    jsonGenerator.writeObject(outputObject);
+                }
+            } while ((nextNode = getNextJsonNode(transformationStrategy, jsonParser)) != null);
+            if (topLevelArray) {
+                jsonGenerator.writeEndArray();
+            }
+            jsonGenerator.flush();
+        });
+
+        transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
+        return transformed;
     }
 
     @OnStopped
@@ -361,9 +479,9 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
     }
 
-    protected JsonNode getNextJsonNode(final TransformationStrategy transformationStrategy, final JsonParser jsonParser) throws IOException {
+    private JsonNode getNextJsonNode(final TransformationStrategy transformationStrategy, final JsonParser jsonParser) throws IOException {
 
-        if (ENTIRE_FLOWFILE.equals(transformationStrategy)) {
+        if (TransformationStrategy.ENTIRE_FLOWFILE.equals(transformationStrategy)) {
             return null;
         }
         return getJsonNode(jsonParser);
@@ -389,32 +507,61 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
     }
 
-    enum TransformationStrategy implements DescribedValue {
-        ENTIRE_FLOWFILE("Entire FlowFile", "Apply transformation to entire FlowFile content JSON"),
-        EACH_OBJECT("Each JSON Object", "Apply transformation each JSON Object in an array");
+    private FlowFile transformJsonLines(final Expression jsltExpression, final FlowFile original, final ProcessContext context, final ProcessSession session) {
+        final MultiLineTransformationStrategy multiLineTransformationStrategy = MultiLineTransformationStrategy.valueOf(context.getProperty(MULTILINE_TRANSFORMATION_STRATEGY).getValue());
+        final ObjectWriter writer = JSON_OBJECT_MAPPER.writer().withRootValueSeparator("\n");
+        FlowFile transformed;
 
-        private final String displayName;
+        if (MultiLineTransformationStrategy.EACH_OBJECT.equals(multiLineTransformationStrategy)) {
+            transformed = session.write(original, (inputStream, outputStream) -> {
+                try (final LineNumberReader reader = new LineNumberReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+                     SequenceWriter sequenceWriter = writer.writeValues(outputStream)) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.isBlank()) {
+                            continue;
+                        }
 
-        private final String description;
+                        JsonNode jsonNode = JSON_OBJECT_MAPPER.readTree(line);
+                        if (!jsonNode.isArray()) {
+                            final String errMsg = "Expected JSON to be an array with multiline strategy %s, but JSON at line %s is not an array".formatted(MultiLineTransformationStrategy.EACH_OBJECT,
+                                    reader.getLineNumber());
+                            throw new IllegalArgumentException(errMsg);
+                        }
 
-        TransformationStrategy(final String displayName, final String description) {
-            this.displayName = displayName;
-            this.description = description;
+                        final Iterator<JsonNode> elementsIterator = jsonNode.elements();
+                        final List<JsonNode> transformedArray = new ArrayList<>();
+                        int index = 0;
+                        while (elementsIterator.hasNext()) {
+                            final JsonNode nextElement = elementsIterator.next();
+                            final JsonNode transformedElement = jsltExpression.apply(nextElement);
+                            if (transformedElement == null || transformedElement.isNull()) {
+                                getLogger().debug("JSLT Transform resulted in no data in array on line number {} at element %s", reader.getLineNumber(), index);
+                            }
+                            transformedArray.add(transformedElement);
+                            index++;
+                        }
+                        sequenceWriter.write(transformedArray);
+                    }
+                }
+            });
+        } else {
+            transformed = session.write(original, (inputStream, outputStream) -> {
+                try (MappingIterator<JsonNode> mappingIterator = JSON_OBJECT_MAPPER.readerFor(JsonNode.class).readValues(inputStream);
+                     JsonGenerator jsonGenerator = writer.createGenerator(outputStream)) {
+                    while (mappingIterator.hasNextValue()) {
+                        final JsonNode nextValue = mappingIterator.nextValue();
+                        final JsonNode transformedJson = jsltExpression.apply(nextValue);
+                        if (transformedJson == null || transformedJson.isNull()) {
+                            getLogger().debug("JSLT Transform resulted in no data on line number {}", mappingIterator.getCurrentLocation().getLineNr());
+                        }
+                        jsonGenerator.writeObject(transformedJson);
+                    }
+                }
+            });
         }
 
-        @Override
-        public String getValue() {
-            return name();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        @Override
-        public String getDescription() {
-            return description;
-        }
+        transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/jsonl");
+        return transformed;
     }
 }
