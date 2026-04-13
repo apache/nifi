@@ -117,7 +117,11 @@ export class ConnectorCanvasEffects {
                 this.store.select(selectProcessGroupIdFromRoute)
             ]),
             switchMap(([request, connectorId, processGroupId]) => {
-                let commands: string[] = [];
+                if (request.components.length === 0) {
+                    return of(ConnectorCanvasActions.deselectAllComponents());
+                }
+
+                let commands: string[];
                 if (request.components.length === 1) {
                     commands = [
                         '/connectors',
@@ -127,7 +131,7 @@ export class ConnectorCanvasEffects {
                         request.components[0].componentType,
                         request.components[0].id
                     ];
-                } else if (request.components.length > 1) {
+                } else {
                     const ids: string[] = request.components.map(
                         (selectedComponent: SelectedComponent) => selectedComponent.id
                     );
