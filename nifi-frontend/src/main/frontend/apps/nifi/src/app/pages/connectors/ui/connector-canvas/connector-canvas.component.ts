@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit, DestroyRef, inject, HostListener } from '@angular/core';
+import { Component, OnDestroy, OnInit, DestroyRef, inject, HostListener, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
-import { selectUrl } from '@nifi/shared';
+import { ComponentType, selectUrl } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
 import { combineLatest, distinctUntilChanged, filter, map, Observable, of } from 'rxjs';
 import { NiFiState } from '../../../../state';
@@ -33,6 +33,7 @@ import { Navigation } from '../../../../ui/common/navigation/navigation.componen
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import { selectRouteParams } from '../../state/connector-canvas/connector-canvas.selectors';
 
 @Component({
     selector: 'connector-canvas',
@@ -46,10 +47,13 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private router = inject(Router);
     private dialog = inject(MatDialog);
 
+    canvasComponent = viewChild.required(CanvasComponent);
+
     currentConnectorId = '';
     currentProcessGroupId: string | null = null;
     selectedComponentIds: string[] = [];
     canNavigateToParent = false;
+    skipTransform = this.store.selectSignal(ConnectorCanvasSelectors.selectSkipTransform);
 
     // Subscribe to connector canvas state (flow data)
     labels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectLabels);
@@ -73,8 +77,6 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     hasError$: Observable<boolean> = this.store
         .select(ConnectorCanvasSelectors.selectLoadingStatus)
         .pipe(map((status) => status === 'error'));
-
-    skipTransform$ = this.store.select(ConnectorCanvasSelectors.selectSkipTransform);
 
     ngOnInit(): void {
         // Configure global canvas UI state - read-only view (no editing)
@@ -115,6 +117,20 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 );
             });
 
+        // Subscribe to route params for selection tracking
+        this.store
+            .select(selectRouteParams)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((params) => {
+                if (params?.['type'] && params?.['componentId']) {
+                    this.selectedComponentIds = [params['componentId']];
+                } else if (params?.['ids']) {
+                    this.selectedComponentIds = params['ids'].split(',');
+                } else {
+                    this.selectedComponentIds = [];
+                }
+            });
+
         // Subscribe to parent process group ID for navigation
         this.store
             .select(ConnectorCanvasSelectors.selectParentProcessGroupId)
@@ -135,6 +151,33 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     onProcessGroupDoubleClick(event: { processGroupId: string }): void {
         this.store.dispatch(ConnectorCanvasActions.enterProcessGroup({ request: { id: event.processGroupId } }));
+    }
+
+    onSelectComponents(components: Array<{ id: string; type: ComponentType }>): void {
+        this.store.dispatch(
+            ConnectorCanvasActions.selectComponents({
+                request: {
+                    components: components.map((c) => ({
+                        id: c.id,
+                        componentType: c.type
+                    }))
+                }
+            })
+        );
+    }
+
+    onDeselectAll(): void {
+        this.store.dispatch(ConnectorCanvasActions.deselectAllComponents());
+    }
+
+    onCanvasInitialized(): void {
+        if (this.selectedComponentIds.length > 0) {
+            if (this.skipTransform()) {
+                this.store.dispatch(ConnectorCanvasActions.setSkipTransform({ skipTransform: false }));
+            } else {
+                this.canvasComponent().centerOnSelection(false, 1);
+            }
+        }
     }
 
     leaveGroupAction(): void {

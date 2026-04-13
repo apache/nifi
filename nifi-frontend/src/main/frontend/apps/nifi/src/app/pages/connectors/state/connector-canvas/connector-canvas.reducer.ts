@@ -88,6 +88,11 @@ export const connectorCanvasReducer = createReducer(
         error: errorContext.errors.join(', ')
     })),
 
+    on(ConnectorCanvasActions.navigateWithoutTransform, (state) => ({
+        ...state,
+        skipTransform: true
+    })),
+
     on(ConnectorCanvasActions.setSkipTransform, (state, { skipTransform }) => ({
         ...state,
         skipTransform

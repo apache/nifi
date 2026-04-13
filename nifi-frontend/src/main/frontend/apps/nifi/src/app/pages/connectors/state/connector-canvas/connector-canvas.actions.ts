@@ -16,8 +16,24 @@
  */
 
 import { createAction, props } from '@ngrx/store';
+import { ComponentType } from '@nifi/shared';
 import { BreadcrumbEntity } from '../../../flow-designer/state/shared';
 import { ErrorContext } from '../../../../state/error';
+
+/**
+ * Selected component for route-based selection
+ */
+export interface SelectedComponent {
+    id: string;
+    componentType: ComponentType;
+}
+
+/**
+ * Request for selecting components
+ */
+export interface SelectComponentsRequest {
+    components: SelectedComponent[];
+}
 
 export const loadConnectorFlow = createAction(
     '[Connector Canvas] Load Connector Flow',
@@ -56,6 +72,31 @@ export const enterProcessGroup = createAction(
 
 export const leaveProcessGroup = createAction('[Connector Canvas] Leave Process Group');
 
+/**
+ * Selection actions (trigger route updates)
+ */
+export const selectComponents = createAction(
+    '[Connector Canvas] Select Components',
+    props<{ request: SelectComponentsRequest }>()
+);
+
+export const deselectAllComponents = createAction('[Connector Canvas] Deselect All Components');
+
+/**
+ * Navigation action (internal - updates router)
+ */
+export const navigateWithoutTransform = createAction(
+    '[Connector Canvas] Navigate Without Transform',
+    props<{ url: string[] }>()
+);
+
+/**
+ * skipTransform is used when handling URL events for component selection. Since the
+ * URL is the source of truth, we set skipTransform when the URL changes due to user
+ * selection on the canvas. However, we do not want the transform skipped when using
+ * a deep link or leaving a process group -- in those cases the viewport should center
+ * on the selected component(s).
+ */
 export const setSkipTransform = createAction(
     '[Connector Canvas] Set Skip Transform',
     props<{ skipTransform: boolean }>()

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -24,19 +24,22 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { selectUrl } from '@nifi/shared';
+import { ComponentType, selectUrl } from '@nifi/shared';
 
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
-import { selectParentProcessGroupId } from '../../state/connector-canvas/connector-canvas.selectors';
+import { selectParentProcessGroupId, selectRouteParams } from '../../state/connector-canvas/connector-canvas.selectors';
 import {
+    deselectAllComponents,
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
-    resetConnectorCanvasState
+    resetConnectorCanvasState,
+    selectComponents,
+    setSkipTransform
 } from '../../state/connector-canvas/connector-canvas.actions';
 import { resetConnectorCanvasEntityState } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
 
@@ -61,6 +64,10 @@ class MockReusableCanvasComponent {
     selectedComponentIds = input<string[]>([]);
     dataReady = input(false);
     skipInitialCenter = input(false);
+    selectComponents = output<Array<{ id: string; type: ComponentType }>>();
+    deselectAll = output<void>();
+    initialized = output<void>();
+    centerOnSelection = vi.fn();
 }
 
 @Component({
@@ -86,6 +93,8 @@ interface SetupOptions {
     processGroupId?: string | null;
     url?: string;
     parentProcessGroupId?: string | null;
+    skipTransform?: boolean;
+    routeParams?: Record<string, string>;
 }
 
 const DEFAULT_CONNECTOR_ID = 'connector-1';
@@ -97,6 +106,8 @@ function buildMockSelectors(options: SetupOptions = {}) {
     const processGroupId = options.processGroupId !== undefined ? options.processGroupId : DEFAULT_PROCESS_GROUP_ID;
     const url = options.url ?? `/connectors/${connectorId}/canvas/${processGroupId}`;
     const parentProcessGroupId = options.parentProcessGroupId !== undefined ? options.parentProcessGroupId : null;
+    const skipTransform = options.skipTransform ?? false;
+    const routeParamsValue = options.routeParams ?? { id: connectorId, processGroupId };
 
     return [
         { selector: ConnectorCanvasSelectors.selectLabels, value: [] },
@@ -108,11 +119,12 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectConnections, value: [] },
         { selector: ConnectorCanvasSelectors.selectRegistryClients, value: [] },
         { selector: ConnectorCanvasSelectors.selectLoadingStatus, value: loadingStatus },
-        { selector: ConnectorCanvasSelectors.selectSkipTransform, value: false },
+        { selector: ConnectorCanvasSelectors.selectSkipTransform, value: skipTransform },
         { selector: ConnectorCanvasSelectors.selectConnectorIdFromRoute, value: connectorId },
         { selector: ConnectorCanvasSelectors.selectProcessGroupIdFromRoute, value: processGroupId },
         { selector: selectParentProcessGroupId, value: parentProcessGroupId },
-        { selector: selectUrl, value: url }
+        { selector: selectUrl, value: url },
+        { selector: selectRouteParams, value: routeParamsValue }
     ];
 }
 
@@ -430,6 +442,106 @@ describe('ConnectorCanvasComponent', () => {
             ).toHaveLength(0);
 
             document.body.removeChild(inputEl);
+        }));
+    });
+
+    describe('Selection routing', () => {
+        it('should populate selectedComponentIds from route params with single selection', fakeAsync(() => {
+            const { fixture, component } = setup({
+                routeParams: {
+                    id: DEFAULT_CONNECTOR_ID,
+                    processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                    type: ComponentType.Processor,
+                    componentId: 'proc-1'
+                }
+            });
+            fixture.detectChanges();
+            tick();
+
+            expect(component.selectedComponentIds).toEqual(['proc-1']);
+        }));
+
+        it('should populate selectedComponentIds from route params with bulk selection', fakeAsync(() => {
+            const { fixture, component } = setup({
+                routeParams: {
+                    id: DEFAULT_CONNECTOR_ID,
+                    processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                    ids: 'proc-1,conn-2,pg-3'
+                }
+            });
+            fixture.detectChanges();
+            tick();
+
+            expect(component.selectedComponentIds).toEqual(['proc-1', 'conn-2', 'pg-3']);
+        }));
+
+        it('should clear selectedComponentIds when no selection route params', fakeAsync(() => {
+            const { fixture, component } = setup({
+                routeParams: {
+                    id: DEFAULT_CONNECTOR_ID,
+                    processGroupId: DEFAULT_PROCESS_GROUP_ID
+                }
+            });
+            fixture.detectChanges();
+            tick();
+
+            expect(component.selectedComponentIds).toEqual([]);
+        }));
+
+        it('should dispatch selectComponents when onSelectComponents is called', () => {
+            const { component, dispatchSpy } = setup();
+            dispatchSpy.mockClear();
+
+            component.onSelectComponents([{ id: 'proc-1', type: ComponentType.Processor }]);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                selectComponents({
+                    request: {
+                        components: [{ id: 'proc-1', componentType: ComponentType.Processor }]
+                    }
+                })
+            );
+        });
+
+        it('should dispatch deselectAllComponents when onDeselectAll is called', () => {
+            const { component, dispatchSpy } = setup();
+            dispatchSpy.mockClear();
+
+            component.onDeselectAll();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(deselectAllComponents());
+        });
+    });
+
+    describe('Canvas initialized', () => {
+        it('should clear skipTransform without centering when skipTransform is true and components are selected', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({
+                skipTransform: true,
+                routeParams: {
+                    id: DEFAULT_CONNECTOR_ID,
+                    processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                    type: ComponentType.Processor,
+                    componentId: 'proc-1'
+                }
+            });
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onCanvasInitialized();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(setSkipTransform({ skipTransform: false }));
+        }));
+
+        it('should not dispatch anything when no components are selected', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onCanvasInitialized();
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
         }));
     });
 });

@@ -19,7 +19,7 @@ import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { getRouterSelectors } from '@ngrx/router-store';
 import { ConnectorCanvasState, connectorCanvasFeatureKey } from './index';
 
-const { selectRouteParams } = getRouterSelectors();
+export const { selectRouteParams } = getRouterSelectors();
 
 export const selectConnectorCanvasState = createFeatureSelector<ConnectorCanvasState>(connectorCanvasFeatureKey);
 

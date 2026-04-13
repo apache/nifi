@@ -27,10 +27,12 @@ import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
+import { SelectedComponent } from './connector-canvas.actions';
 import {
     selectConnectorIdFromRoute,
     selectParentProcessGroupId,
-    selectProcessGroupId
+    selectProcessGroupId,
+    selectProcessGroupIdFromRoute
 } from './connector-canvas.selectors';
 
 @Injectable()
@@ -102,6 +104,76 @@ export class ConnectorCanvasEffects {
         )
     );
 
+    /**
+     * Select components - updates route with selection
+     * Routes to /connectors/:id/canvas/:processGroupId/:type/:componentId
+     */
+    selectComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.selectComponents),
+            map((action) => action.request),
+            concatLatestFrom(() => [
+                this.store.select(selectConnectorIdFromRoute),
+                this.store.select(selectProcessGroupIdFromRoute)
+            ]),
+            switchMap(([request, connectorId, processGroupId]) => {
+                let commands: string[] = [];
+                if (request.components.length === 1) {
+                    commands = [
+                        '/connectors',
+                        connectorId,
+                        'canvas',
+                        processGroupId,
+                        request.components[0].componentType,
+                        request.components[0].id
+                    ];
+                } else if (request.components.length > 1) {
+                    const ids: string[] = request.components.map(
+                        (selectedComponent: SelectedComponent) => selectedComponent.id
+                    );
+                    commands = ['/connectors', connectorId, 'canvas', processGroupId, 'bulk', ids.join(',')];
+                }
+                return of(ConnectorCanvasActions.navigateWithoutTransform({ url: commands }));
+            })
+        )
+    );
+
+    /**
+     * Deselect all components - returns to base canvas route
+     */
+    deselectAllComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.deselectAllComponents),
+            concatLatestFrom(() => [
+                this.store.select(selectConnectorIdFromRoute),
+                this.store.select(selectProcessGroupIdFromRoute)
+            ]),
+            switchMap(([, connectorId, processGroupId]) => {
+                return of(
+                    ConnectorCanvasActions.navigateWithoutTransform({
+                        url: ['/connectors', connectorId, 'canvas', processGroupId]
+                    })
+                );
+            })
+        )
+    );
+
+    /**
+     * Navigate without transform - updates router
+     */
+    navigateWithoutTransform$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.navigateWithoutTransform),
+                tap((action) => {
+                    this.router.navigate(action.url, {
+                        replaceUrl: true
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
     enterProcessGroup$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -115,41 +187,38 @@ export class ConnectorCanvasEffects {
         { dispatch: false }
     );
 
-    leaveProcessGroup$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ConnectorCanvasActions.leaveProcessGroup),
-                concatLatestFrom(() => [
-                    this.store.select(selectConnectorIdFromRoute),
-                    this.store.select(selectParentProcessGroupId),
-                    this.store.select(selectProcessGroupId)
-                ]),
-                filter(
-                    ([, , parentProcessGroupId, currentProcessGroupId]) =>
-                        parentProcessGroupId != null && currentProcessGroupId != null
-                ),
-                switchMap(([, connectorId, parentProcessGroupId, childProcessGroupId]) => {
-                    this.router.navigate(['/connectors', connectorId, 'canvas', parentProcessGroupId]);
-                    return this.actions$.pipe(
-                        ofType(ConnectorCanvasActions.loadConnectorFlowComplete),
-                        take(1),
-                        tap(() => {
-                            this.store.dispatch(ConnectorCanvasActions.setSkipTransform({ skipTransform: true }));
-                            this.router.navigate(
-                                [
-                                    '/connectors',
-                                    connectorId!,
-                                    'canvas',
-                                    parentProcessGroupId!,
-                                    ComponentType.ProcessGroup,
-                                    childProcessGroupId!
-                                ],
-                                { replaceUrl: true }
-                            );
-                        })
-                    );
-                })
+    leaveProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.leaveProcessGroup),
+            concatLatestFrom(() => [
+                this.store.select(selectConnectorIdFromRoute),
+                this.store.select(selectParentProcessGroupId),
+                this.store.select(selectProcessGroupId)
+            ]),
+            filter(
+                ([, , parentProcessGroupId, currentProcessGroupId]) =>
+                    parentProcessGroupId != null && currentProcessGroupId != null
             ),
-        { dispatch: false }
+            switchMap(([, connectorId, parentProcessGroupId, childProcessGroupId]) => {
+                this.router.navigate(['/connectors', connectorId, 'canvas', parentProcessGroupId]);
+
+                return this.actions$.pipe(
+                    ofType(ConnectorCanvasActions.loadConnectorFlowComplete),
+                    take(1),
+                    map(() =>
+                        ConnectorCanvasActions.navigateWithoutTransform({
+                            url: [
+                                '/connectors',
+                                connectorId,
+                                'canvas',
+                                parentProcessGroupId!,
+                                ComponentType.ProcessGroup,
+                                childProcessGroupId!
+                            ]
+                        })
+                    )
+                );
+            })
+        )
     );
 }

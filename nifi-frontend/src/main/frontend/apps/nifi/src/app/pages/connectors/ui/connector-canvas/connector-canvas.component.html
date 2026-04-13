@@ -33,7 +33,10 @@
                 [processGroupId]="currentProcessGroupId"
                 [selectedComponentIds]="selectedComponentIds"
                 [dataReady]="(dataReady$ | async) ?? false"
-                [skipInitialCenter]="(skipTransform$ | async) ?? false"
+                [skipInitialCenter]="skipTransform()"
+                (selectComponents)="onSelectComponents($event)"
+                (deselectAll)="onDeselectAll()"
+                (initialized)="onCanvasInitialized()"
                 (transformChange)="onTransformChange($event)"
                 (processGroupDoubleClick)="onProcessGroupDoubleClick($event)">
             </reusable-canvas>

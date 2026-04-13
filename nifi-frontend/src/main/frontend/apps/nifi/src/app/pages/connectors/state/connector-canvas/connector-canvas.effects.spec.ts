@@ -28,18 +28,21 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import {
+    deselectAllComponents,
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
     loadConnectorFlowComplete,
     loadConnectorFlowFailure,
     loadConnectorFlowSuccess,
-    setSkipTransform
+    navigateWithoutTransform,
+    selectComponents
 } from './connector-canvas.actions';
 import {
     selectConnectorIdFromRoute,
     selectParentProcessGroupId,
-    selectProcessGroupId
+    selectProcessGroupId,
+    selectProcessGroupIdFromRoute
 } from './connector-canvas.selectors';
 import type { Mock } from 'vitest';
 
@@ -50,6 +53,7 @@ describe('ConnectorCanvasEffects', () => {
             connectorId?: string | null;
             parentProcessGroupId?: string | null;
             processGroupId?: string | null;
+            processGroupIdFromRoute?: string | null;
         } = {}
     ) {
         let actions$: Observable<Action>;
@@ -58,6 +62,8 @@ describe('ConnectorCanvasEffects', () => {
         const parentProcessGroupId =
             options.parentProcessGroupId !== undefined ? options.parentProcessGroupId : 'parent-pg';
         const processGroupId = options.processGroupId !== undefined ? options.processGroupId : 'child-pg';
+        const processGroupIdFromRoute =
+            options.processGroupIdFromRoute !== undefined ? options.processGroupIdFromRoute : processGroupId;
 
         // Mock services
         const mockConnectorService = {
@@ -82,7 +88,8 @@ describe('ConnectorCanvasEffects', () => {
                     selectors: [
                         { selector: selectConnectorIdFromRoute, value: connectorId },
                         { selector: selectParentProcessGroupId, value: parentProcessGroupId },
-                        { selector: selectProcessGroupId, value: processGroupId }
+                        { selector: selectProcessGroupId, value: processGroupId },
+                        { selector: selectProcessGroupIdFromRoute, value: processGroupIdFromRoute }
                     ]
                 }),
                 { provide: ConnectorService, useValue: mockConnectorService },
@@ -293,40 +300,36 @@ describe('ConnectorCanvasEffects', () => {
     });
 
     describe('leaveProcessGroup$', () => {
-        it('should navigate to parent, then after loadConnectorFlowComplete dispatch setSkipTransform and replaceUrl navigate', () =>
+        it('should navigate to parent, then after loadConnectorFlowComplete dispatch navigateWithoutTransform', () =>
             new Promise<void>((resolve) => {
                 setup({
                     connectorId: 'conn-x',
                     parentProcessGroupId: 'parent-pg',
                     processGroupId: 'child-pg'
-                }).then(({ effects, actions$, mockRouter, store }) => {
-                    const dispatchSpy = vi.spyOn(store, 'dispatch');
+                }).then(({ effects, actions$, mockRouter }) => {
                     const actionSubject = new Subject<Action>();
                     actions$(actionSubject.asObservable());
 
-                    effects.leaveProcessGroup$.subscribe({
-                        complete: () => {
-                            expect(mockRouter.navigate).toHaveBeenNthCalledWith(1, [
-                                '/connectors',
-                                'conn-x',
-                                'canvas',
-                                'parent-pg'
-                            ]);
-                            expect(dispatchSpy).toHaveBeenCalledWith(setSkipTransform({ skipTransform: true }));
-                            expect(mockRouter.navigate).toHaveBeenNthCalledWith(
-                                2,
-                                [
+                    effects.leaveProcessGroup$.subscribe((action) => {
+                        expect(mockRouter.navigate).toHaveBeenCalledWith([
+                            '/connectors',
+                            'conn-x',
+                            'canvas',
+                            'parent-pg'
+                        ]);
+                        expect(action).toEqual(
+                            navigateWithoutTransform({
+                                url: [
                                     '/connectors',
                                     'conn-x',
                                     'canvas',
                                     'parent-pg',
                                     ComponentType.ProcessGroup,
                                     'child-pg'
-                                ],
-                                { replaceUrl: true }
-                            );
-                            resolve();
-                        }
+                                ]
+                            })
+                        );
+                        resolve();
                     });
 
                     actionSubject.next(leaveProcessGroup());
@@ -367,6 +370,101 @@ describe('ConnectorCanvasEffects', () => {
                             expect(mockRouter.navigate).not.toHaveBeenCalled();
                             resolve();
                         }
+                    });
+                });
+            }));
+    });
+
+    describe('selectComponents$', () => {
+        it('should dispatch navigateWithoutTransform with single component URL', () =>
+            new Promise<void>((resolve) => {
+                setup({
+                    connectorId: 'conn-1',
+                    processGroupIdFromRoute: 'pg-root'
+                }).then(({ effects, actions$ }) => {
+                    actions$(
+                        of(
+                            selectComponents({
+                                request: {
+                                    components: [{ id: 'proc-1', componentType: ComponentType.Processor }]
+                                }
+                            })
+                        )
+                    );
+
+                    effects.selectComponents$.subscribe((action) => {
+                        expect(action).toEqual(
+                            navigateWithoutTransform({
+                                url: ['/connectors', 'conn-1', 'canvas', 'pg-root', ComponentType.Processor, 'proc-1']
+                            })
+                        );
+                        resolve();
+                    });
+                });
+            }));
+
+        it('should dispatch navigateWithoutTransform with bulk URL for multiple components', () =>
+            new Promise<void>((resolve) => {
+                setup({
+                    connectorId: 'conn-1',
+                    processGroupIdFromRoute: 'pg-root'
+                }).then(({ effects, actions$ }) => {
+                    actions$(
+                        of(
+                            selectComponents({
+                                request: {
+                                    components: [
+                                        { id: 'proc-1', componentType: ComponentType.Processor },
+                                        { id: 'conn-2', componentType: ComponentType.Connection }
+                                    ]
+                                }
+                            })
+                        )
+                    );
+
+                    effects.selectComponents$.subscribe((action) => {
+                        expect(action).toEqual(
+                            navigateWithoutTransform({
+                                url: ['/connectors', 'conn-1', 'canvas', 'pg-root', 'bulk', 'proc-1,conn-2']
+                            })
+                        );
+                        resolve();
+                    });
+                });
+            }));
+    });
+
+    describe('deselectAllComponents$', () => {
+        it('should dispatch navigateWithoutTransform with base canvas URL', () =>
+            new Promise<void>((resolve) => {
+                setup({
+                    connectorId: 'conn-1',
+                    processGroupIdFromRoute: 'pg-root'
+                }).then(({ effects, actions$ }) => {
+                    actions$(of(deselectAllComponents()));
+
+                    effects.deselectAllComponents$.subscribe((action) => {
+                        expect(action).toEqual(
+                            navigateWithoutTransform({
+                                url: ['/connectors', 'conn-1', 'canvas', 'pg-root']
+                            })
+                        );
+                        resolve();
+                    });
+                });
+            }));
+    });
+
+    describe('navigateWithoutTransform$', () => {
+        it('should call router.navigate with replaceUrl', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockRouter }) => {
+                    const url = ['/connectors', 'conn-1', 'canvas', 'pg-root', 'Processor', 'proc-1'];
+                    actions$(of(navigateWithoutTransform({ url })));
+
+                    effects.navigateWithoutTransform$.subscribe(() => {
+                        expect(mockRouter.navigate).toHaveBeenCalledWith(url, { replaceUrl: true });
+                        resolve();
                     });
                 });
             }));

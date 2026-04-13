@@ -163,6 +163,21 @@ describe('connectorCanvasReducer', () => {
         });
     });
 
+    describe('navigateWithoutTransform', () => {
+        it('should set skipTransform to true', () => {
+            const previousState = createPopulatedState({ skipTransform: false });
+
+            const result = connectorCanvasReducer(
+                previousState,
+                ConnectorCanvasActions.navigateWithoutTransform({
+                    url: ['/connectors', 'conn-1', 'canvas', 'pg-1', 'Processor', 'proc-1']
+                })
+            );
+
+            expect(result.skipTransform).toBe(true);
+        });
+    });
+
     describe('setSkipTransform', () => {
         it('should set skipTransform to the provided value', () => {
             const previousState = createPopulatedState({ skipTransform: true });
