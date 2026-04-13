@@ -446,6 +446,18 @@ and the replacement value. The replacement value may optionally use back-referen
 
 
 
+=== replaceNull
+
+Returns the value of the first argument when it is non-null. If the first argument evaluates to `null`, the function returns the replacement value.
+
+|==========================================================
+| RecordPath | Return value
+| `replaceNull( /details/vehicle, 'no vehicle' )` | no vehicle
+| `replaceNull( /name, 'default' )` | John Doe
+| `replaceNull( /details/vehicle, /name )` | John Doe
+|==========================================================
+
+
 === concat
 
 Concatenates all the arguments together.
@@ -1327,6 +1339,21 @@ Returns `true` if a String value contains the provided substring, `false` otherw
 | `/name[contains(., 'o')]` | John Doe
 | `/name[contains(., 'x')]` | <returns no results>
 | `/name[contains( ../workAddress/state, /details/preferredState )]` | John Doe
+|==============================================================================
+
+
+
+=== containsRegex
+
+Evaluates a Regular Expression against the contents of a String value and returns `true` if the String value contains a substring
+that matches the Regular Expression, `false` otherwise.
+This function requires 2 arguments: the String to run the regular expression against, and the regular expression to run.
+
+|==============================================================================
+| RecordPath | Return value
+| `/name[containsRegex(., 'o[gh]n')]` | John Doe
+| `/name[containsRegex(., 'John')]` | John Doe
+| `/name[containsRegex(., 'o[xy]n')]` | <returns no results>
 |==============================================================================
 
 
