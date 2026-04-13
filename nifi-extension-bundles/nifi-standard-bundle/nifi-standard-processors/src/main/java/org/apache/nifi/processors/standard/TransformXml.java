@@ -378,7 +378,8 @@ public class TransformXml extends AbstractProcessor {
         return factory;
     }
 
-    private StreamSource getTemplateSource(final LookupService<String> lookupService, final ResourceReference resourceReference, final boolean xsltDocument) throws LookupFailureException, IOException {
+    private StreamSource getTemplateSource(final LookupService<String> lookupService, final ResourceReference resourceReference,
+                                           final boolean xsltDocument) throws LookupFailureException, IOException {
         final StreamSource streamSource;
         if (xsltDocument) {
             streamSource = new StreamSource(resourceReference.read());
