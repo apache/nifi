@@ -50,6 +50,7 @@ import { ConnectorVerificationProgressDialog } from '../connector-verification-p
 import {
     SMALL_DIALOG,
     ConnectorEntity,
+    ConnectorPropertyFormValue,
     ConfigurationStepConfiguration,
     ConfigurationStepEntity,
     ConfigVerificationResult,
@@ -371,7 +372,10 @@ export function withConnectorWizard() {
                      * Recomputes visible steps before and after the change. If visibility changed,
                      * invalidates completedSteps for all steps after the modified step.
                      */
-                    updateUnsavedStepValues(data: { stepName: string; values: Record<string, unknown> }): void {
+                    updateUnsavedStepValues(data: {
+                        stepName: string;
+                        values: Record<string, ConnectorPropertyFormValue>;
+                    }): void {
                         const currentUnsaved = store.unsavedStepValues();
                         const currentStepNames = store.stepNames();
                         const currentConfigs = store.stepConfigurations();

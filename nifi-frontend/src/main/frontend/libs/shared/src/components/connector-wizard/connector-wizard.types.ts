@@ -18,6 +18,7 @@
 import { InjectionToken } from '@angular/core';
 import {
     ConnectorEntity,
+    ConnectorPropertyFormValue,
     Revision,
     Secret,
     StepDocumentationState,
@@ -70,7 +71,7 @@ export interface ConnectorWizardState {
     dirtySteps: Record<string, boolean>;
 
     // Unsaved form values per step (preserves user input across navigation)
-    unsavedStepValues: Record<string, Record<string, unknown>>;
+    unsavedStepValues: Record<string, Record<string, ConnectorPropertyFormValue>>;
 
     // Pending step advancement (set by store effects, consumed by component)
     pendingStepAdvancement: boolean;

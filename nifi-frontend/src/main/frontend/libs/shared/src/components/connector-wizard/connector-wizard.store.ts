@@ -21,6 +21,7 @@ import {
     ConfigurationStepConfiguration,
     ConfigVerificationResult,
     ConnectorEntity,
+    ConnectorPropertyFormValue,
     AssetInfo,
     StepDocumentationState,
     ConnectorConfiguration,
@@ -58,7 +59,7 @@ export abstract class ConnectorWizardStore {
     abstract readonly secretsError: Signal<string | null>;
     abstract readonly stepVerificationResults: Signal<Record<string, ConfigVerificationResult[]>>;
     abstract readonly completedSteps: Signal<Record<string, boolean>>;
-    abstract readonly unsavedStepValues: Signal<Record<string, Record<string, unknown>>>;
+    abstract readonly unsavedStepValues: Signal<Record<string, Record<string, ConnectorPropertyFormValue>>>;
 
     // --------------- Computed signals ---------------
     abstract readonly visibleStepNames: Signal<string[]>;
@@ -83,7 +84,10 @@ export abstract class ConnectorWizardStore {
     abstract changeStep(stepIndex: number): void;
     abstract clearPendingStepAdvancement(): void;
     abstract markStepDirty(data: { stepName: string; isDirty: boolean }): void;
-    abstract updateUnsavedStepValues(data: { stepName: string; values: Record<string, unknown> }): void;
+    abstract updateUnsavedStepValues(data: {
+        stepName: string;
+        values: Record<string, ConnectorPropertyFormValue>;
+    }): void;
     abstract clearUnsavedStepValues(stepName: string): void;
     abstract setLoading(loading: boolean): void;
     abstract toggleDocumentationPanel(open: boolean): void;

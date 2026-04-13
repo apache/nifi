@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ConfigurationStepConfiguration, ConfigurationStepDependency } from '../../types';
+import { ConfigurationStepConfiguration, ConfigurationStepDependency, ConnectorPropertyFormValue } from '../../types';
 import { fromValueReference } from '../../services/value-reference.helper';
 
 /**
@@ -32,8 +32,8 @@ function getPropertyValue(
     stepName: string,
     propertyName: string,
     stepConfigurations: { [stepName: string]: ConfigurationStepConfiguration },
-    unsavedStepValues: { [stepName: string]: { [propertyName: string]: any } }
-): any {
+    unsavedStepValues: Record<string, Record<string, ConnectorPropertyFormValue>>
+): ConnectorPropertyFormValue | undefined {
     // Check unsaved values first (form state takes priority)
     const unsavedValue = unsavedStepValues[stepName]?.[propertyName];
     if (unsavedValue !== undefined) {
@@ -74,7 +74,7 @@ function getPropertyValue(
 export function isStepDependencySatisfied(
     dependency: ConfigurationStepDependency,
     stepConfigurations: { [stepName: string]: ConfigurationStepConfiguration },
-    unsavedStepValues: { [stepName: string]: { [propertyName: string]: any } },
+    unsavedStepValues: Record<string, Record<string, ConnectorPropertyFormValue>>,
     visibleSteps: Set<string>
 ): boolean {
     const { stepName, propertyName, dependentValues } = dependency;
@@ -93,7 +93,7 @@ export function isStepDependencySatisfied(
         return value !== null && value !== undefined && value !== '';
     } else {
         // Value must be in the allowed list
-        return dependentValues.includes(value);
+        return value != null && dependentValues.includes(String(value));
     }
 }
 
@@ -113,7 +113,7 @@ export function isStepDependencySatisfied(
 export function getVisibleStepNames(
     stepNames: string[],
     stepConfigurations: { [stepName: string]: ConfigurationStepConfiguration },
-    unsavedStepValues: { [stepName: string]: { [propertyName: string]: any } }
+    unsavedStepValues: Record<string, Record<string, ConnectorPropertyFormValue>>
 ): string[] {
     const visibleSteps = new Set<string>();
 

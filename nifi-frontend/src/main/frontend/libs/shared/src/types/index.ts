@@ -558,4 +558,12 @@ export function parseSecretKey(key: string): {
     };
 }
 
+/**
+ * Union of all primitive form-control value shapes used by the connector wizard.
+ * Covers STRING, INTEGER, DOUBLE, FLOAT, SECRET (string), BOOLEAN (boolean),
+ * STRING_LIST/ASSET_LIST (string[]), ASSET/ASSET_LIST from API (AssetReference / AssetReference[]),
+ * and cleared/unset values (null).
+ */
+export type ConnectorPropertyFormValue = string | boolean | string[] | AssetReference | AssetReference[] | null;
+
 export * from './connector-message.types';

@@ -15,7 +15,13 @@
  * limitations under the License.
  */
 
-import { AssetReference, buildSecretKey, ConnectorValueReference, PropertyType } from '../types';
+import {
+    AssetReference,
+    buildSecretKey,
+    ConnectorPropertyFormValue,
+    ConnectorValueReference,
+    PropertyType
+} from '../types';
 
 /**
  * Options for creating a secret value reference
@@ -46,7 +52,7 @@ export interface SecretReferenceOptions {
  * @returns A ConnectorValueReference suitable for the API
  */
 export function toValueReference(
-    value: any,
+    value: ConnectorPropertyFormValue,
     propertyType?: PropertyType,
     secretOptions?: SecretReferenceOptions
 ): ConnectorValueReference {
@@ -88,7 +94,7 @@ export function toValueReference(
         if (Array.isArray(value) && value.length > 0) {
             return {
                 valueType: 'ASSET_REFERENCE',
-                assetReferences: value.map((id: string) => ({ id }))
+                assetReferences: (value as string[]).map((id) => ({ id }))
             };
         }
         return {
@@ -127,16 +133,18 @@ export function toValueReference(
 export function fromValueReference(
     valueRef: ConnectorValueReference | string | number | boolean | null | undefined,
     propertyType?: PropertyType
-): any {
+): ConnectorPropertyFormValue | undefined {
     if (valueRef === null || valueRef === undefined) {
         return undefined;
     }
 
-    let rawValue: any;
+    let rawValue: ConnectorPropertyFormValue | undefined;
 
     // Backward compatibility: if the API returns a plain primitive value,
     // return it directly without transformation
-    if (typeof valueRef === 'string' || typeof valueRef === 'number' || typeof valueRef === 'boolean') {
+    if (typeof valueRef === 'number') {
+        rawValue = String(valueRef);
+    } else if (typeof valueRef === 'string' || typeof valueRef === 'boolean') {
         rawValue = valueRef;
     } else {
         // Handle ConnectorValueReference object
@@ -144,11 +152,11 @@ export function fromValueReference(
             case 'STRING_LITERAL':
                 rawValue = valueRef.value;
                 break;
-            case 'ASSET_REFERENCE':
-                rawValue =
-                    valueRef.assetReferences ??
-                    (valueRef as ConnectorValueReference & { assetIdentifier?: unknown }).assetIdentifier;
+            case 'ASSET_REFERENCE': {
+                const legacyId = (valueRef as ConnectorValueReference & { assetIdentifier?: string }).assetIdentifier;
+                rawValue = valueRef.assetReferences ?? (legacyId ? legacyId : undefined);
                 break;
+            }
             case 'SECRET_REFERENCE':
                 // Return composite key to uniquely identify the secret
                 // Format: providerId::providerName::fullyQualifiedName

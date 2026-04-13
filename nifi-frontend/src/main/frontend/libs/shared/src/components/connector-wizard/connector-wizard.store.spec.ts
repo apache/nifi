@@ -23,6 +23,7 @@ import { ConnectorConfigurationService } from '../../services/connector-configur
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
+    AllowableValue,
     ConnectorEntity,
     ConfigurationStepConfiguration,
     ConfigurationStepEntity,
@@ -667,7 +668,7 @@ describe('StandardConnectorWizardStore', () => {
         it('sets loading state while the request is in-flight', () => {
             const { store } = setup();
             initConnector(store);
-            const subject = new Subject<{ allowableValues: any[] }>();
+            const subject = new Subject<{ allowableValues: AllowableValue[] }>();
             mockConnectorConfigService.getPropertyAllowableValues.mockReturnValue(subject.asObservable());
 
             store.fetchPropertyAllowableValues({

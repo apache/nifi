@@ -31,8 +31,8 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn } from '@angular/forms';
-import { HttpEventType } from '@angular/common/http';
-import { Subscription } from 'rxjs';
+import { HttpErrorResponse, HttpEvent, HttpEventType } from '@angular/common/http';
+import { Observable, Subscription } from 'rxjs';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { ActiveStepService, SaveableStep } from '../../../services/active-step.service';
@@ -46,6 +46,11 @@ import { ErrorBanner } from '../../error-banner/error-banner.component';
 import { fromValueReference, toValueReference, SecretReferenceOptions } from '../../../services/value-reference.helper';
 import {
     AssetInfo,
+    AssetReference,
+    ConnectorPropertyDescriptor,
+    ConnectorPropertyDependency,
+    ConnectorPropertyFormValue,
+    ConnectorValueReference,
     UploadProgressInfo,
     ConfigurationStepConfiguration,
     parseSecretKey,
@@ -132,7 +137,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     // Track if subscription is set up for the current form instance
     private currentFormSubscription: Subscription | null = null;
     // Track previous form values to detect which specific fields changed
-    private previousFormValues: { [propertyName: string]: any } = {};
+    private previousFormValues: Record<string, ConnectorPropertyFormValue> = {};
 
     private initializeStepSignals(name: string): void {
         this.stepConfiguration = this.wizardStore.stepConfiguration(name);
@@ -222,7 +227,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * Properties without dependencies come first, followed by dependent properties.
      * This ensures parent properties appear before their dependents in the UI.
      */
-    getPropertyNames(propertyDescriptors: { [key: string]: any }): string[] {
+    getPropertyNames(propertyDescriptors: { [key: string]: ConnectorPropertyDescriptor }): string[] {
         const propertyNames = Object.keys(propertyDescriptors || {});
         if (propertyNames.length === 0) return [];
 
@@ -236,7 +241,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      */
     private sortPropertiesByDependencies(
         propertyNames: string[],
-        propertyDescriptors: { [key: string]: any }
+        propertyDescriptors: { [key: string]: ConnectorPropertyDescriptor }
     ): string[] {
         const sorted: string[] = [];
         const visited = new Set<string>();
@@ -252,7 +257,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
             const dependencies = property?.dependencies || [];
 
             // Visit all dependencies first (parent properties)
-            dependencies.forEach((dep: any) => {
+            dependencies.forEach((dep: ConnectorPropertyDependency) => {
                 const parentPropertyName = dep.propertyName;
                 // Only visit if the parent property exists in this group
                 if (propertyNames.includes(parentPropertyName)) {
@@ -274,7 +279,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * Note: DOUBLE and FLOAT types use HTML5 type="number" inputs with step="any".
      * INTEGER types use pattern validation to enforce whole numbers only (no decimals).
      */
-    private buildValidators(property: any): ValidatorFn[] {
+    private buildValidators(property: ConnectorPropertyDescriptor): ValidatorFn[] {
         const validators: ValidatorFn[] = [];
 
         if (property.required) {
@@ -329,10 +334,10 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
         // Clear local progress state when re-initializing
         this.uploadProgressByProperty.clear();
 
-        const unsavedValues: { [propertyName: string]: any } =
+        const unsavedValues: Record<string, ConnectorPropertyFormValue> =
             this.wizardStore.unsavedStepValues()[this.stepName()] ?? {};
 
-        const formConfig: any = {};
+        const formConfig: Record<string, [ConnectorPropertyFormValue, ValidatorFn[]]> = {};
         const propertyAssets: { [propertyName: string]: AssetInfo[] } = {};
 
         stepData.propertyGroupConfigurations?.forEach((group) => {
@@ -341,7 +346,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                 // PRIORITY: unsaved values > saved API values > default value > empty string (false for BOOLEAN)
                 // For STRING_LIST, default to empty array for multi-select
                 // For ASSET types, default to null (single) or empty array (list)
-                let fallbackValue: any = '';
+                let fallbackValue: ConnectorPropertyFormValue = '';
                 if (property.type === 'BOOLEAN') {
                     fallbackValue = false;
                 } else if (property.type === 'STRING_LIST' || property.type === 'ASSET_LIST') {
@@ -369,7 +374,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
                 // For ASSET types, collect assets for store state and set form value to asset ID(s)
                 if (property.type === 'ASSET' || property.type === 'ASSET_LIST') {
-                    const assetValue = unsavedValue ?? apiValue;
+                    const assetValue = (unsavedValue ?? apiValue ?? null) as AssetReference | AssetReference[] | null;
                     const assets = this.buildAssetsFromValue(property.name, property.type, assetValue);
                     if (assets.length > 0) {
                         propertyAssets[property.name] = assets;
@@ -378,9 +383,12 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                     // Form control value should be the asset ID (ASSET) or array of IDs (ASSET_LIST)
                     let formValue: string | string[] | null;
                     if (property.type === 'ASSET') {
-                        formValue = assetValue?.id ?? null;
+                        formValue =
+                            !Array.isArray(assetValue) && assetValue && typeof assetValue === 'object'
+                                ? assetValue.id
+                                : null;
                     } else {
-                        formValue = Array.isArray(assetValue) ? assetValue.map((a: any) => a.id) : [];
+                        formValue = Array.isArray(assetValue) ? assetValue.map((a) => a.id) : [];
                     }
 
                     const validators = this.buildValidators(property);
@@ -479,7 +487,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * Clear subject verification errors only for fields that have changed.
      * This preserves errors on other fields that haven't been modified.
      */
-    private clearErrorsForChangedFields(currentValues: { [propertyName: string]: any }): void {
+    private clearErrorsForChangedFields(currentValues: Record<string, ConnectorPropertyFormValue>): void {
         for (const propertyName of Object.keys(currentValues)) {
             if (this.previousFormValues[propertyName] !== currentValues[propertyName]) {
                 // Only clear if this property has an error
@@ -530,9 +538,9 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     /**
      * Find a property descriptor by name across all property groups
      */
-    private findPropertyDescriptor(propertyName: string): any {
+    private findPropertyDescriptor(propertyName: string): ConnectorPropertyDescriptor | undefined {
         const stepData = this.stepConfiguration?.();
-        if (!stepData?.propertyGroupConfigurations) return null;
+        if (!stepData?.propertyGroupConfigurations) return undefined;
 
         for (const group of stepData.propertyGroupConfigurations) {
             if (group.propertyDescriptors?.[propertyName]) {
@@ -540,7 +548,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
             }
         }
 
-        return null;
+        return undefined;
     }
 
     /**
@@ -548,10 +556,10 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * This is the actual visibility logic, separate from the cached getter.
      * Handles transitive dependencies (e.g., C depends on B, B depends on A).
      */
-    private evaluatePropertyVisibility(property: any): boolean {
+    private evaluatePropertyVisibility(property: ConnectorPropertyDescriptor): boolean {
         if (!property.dependencies || property.dependencies.length === 0) return true;
 
-        return property.dependencies.every((dependency: any) => {
+        return property.dependencies.every((dependency: ConnectorPropertyDependency) => {
             const dependentControl = this.stepForm.get(dependency.propertyName);
             if (!dependentControl) return false;
 
@@ -562,9 +570,9 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
             const dependentValue = dependentControl.value;
 
-            if (dependency.dependentValues?.length > 0) {
+            if (dependency.dependentValues && dependency.dependentValues.length > 0) {
                 // If specific values are required, check if current value matches
-                return dependency.dependentValues.includes(dependentValue);
+                return dependency.dependentValues.includes(dependentValue as string);
             } else {
                 // If no specific values, just check if dependent property has any value
                 return dependentValue !== null && dependentValue !== undefined && dependentValue !== '';
@@ -575,14 +583,14 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     /**
      * Get the value of a specific property
      */
-    getPropertyValue(propertyName: string): any {
+    getPropertyValue(propertyName: string): ConnectorPropertyFormValue {
         return this.stepForm.get(propertyName)?.value;
     }
 
     /**
      * Set the value of a specific property
      */
-    setPropertyValue(propertyName: string, value: any): void {
+    setPropertyValue(propertyName: string, value: ConnectorPropertyFormValue): void {
         this.stepForm.get(propertyName)?.setValue(value);
     }
 
@@ -603,7 +611,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     /**
      * Get all form values
      */
-    getFormValue(): any {
+    getFormValue(): Record<string, ConnectorPropertyFormValue> {
         return this.stepForm.value;
     }
 
@@ -625,7 +633,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * Check if a property should be visible based on its dependencies.
      * Returns the cached visibility state to prevent repeated evaluations during render cycles.
      */
-    isPropertyVisible(property: any): boolean {
+    isPropertyVisible(property: ConnectorPropertyDescriptor): boolean {
         return this.propertyVisibilityCache.get(property.name) ?? true;
     }
 
@@ -778,7 +786,9 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                                 originalValue = originalValue?.id ?? null;
                             } else if (property.type === 'ASSET_LIST') {
                                 // fromValueReference returns AssetReference[]; form stores string[]
-                                originalValue = Array.isArray(originalValue) ? originalValue.map((r: any) => r.id) : [];
+                                originalValue = Array.isArray(originalValue)
+                                    ? originalValue.map((r: AssetReference) => r.id)
+                                    : [];
                             }
 
                             // Only include fields that have changed
@@ -814,7 +824,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                             }
                             return values;
                         },
-                        {} as { [key: string]: any }
+                        {} as Record<string, ConnectorValueReference>
                     );
 
                     return {
@@ -946,13 +956,14 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
             this.uploadProgressByProperty.set(propertyName, currentProgress);
             this.cdr.detectChanges();
 
-            const sub = this.uploadService.upload(request).subscribe({
-                next: (event: any) => {
+            const sub = (this.uploadService.upload(request) as Observable<HttpEvent<unknown>>).subscribe({
+                next: (event: HttpEvent<unknown>) => {
                     if (event.type === HttpEventType.UploadProgress && event.total) {
                         const percent = Math.round((100 * event.loaded) / event.total);
                         this.updateUploadProgress(propertyName, file.name, percent);
                     } else if (event.type === HttpEventType.Response) {
-                        const assetData = event.body?.asset;
+                        const body = event.body as { asset?: AssetInfo } | null;
+                        const assetData = body?.asset;
                         if (assetData?.id) {
                             this.wizardStore.addAsset({
                                 propertyName,
@@ -968,7 +979,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                         this.removeUploadProgress(propertyName, file.name);
                     }
                 },
-                error: (err: any) => {
+                error: (err: HttpErrorResponse) => {
                     this.setUploadError(propertyName, file.name, err.message || 'Upload failed');
                     const ctrl = this.stepForm.get(propertyName);
                     if (ctrl) {
@@ -1057,30 +1068,32 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * Build assets from existing asset references for initialization.
      * Returns the assets array to be collected and initialized in bulk.
      */
-    private buildAssetsFromValue(propertyName: string, propertyType: string, value: any): AssetInfo[] {
+    private buildAssetsFromValue(
+        propertyName: string,
+        propertyType: string,
+        value: AssetReference | AssetReference[] | null
+    ): AssetInfo[] {
         if (!value) return [];
 
         const assets: AssetInfo[] = [];
 
         if (propertyType === 'ASSET') {
             // Single asset reference: { id, name }
-            if (value && typeof value === 'object' && value.id) {
+            if (!Array.isArray(value) && typeof value === 'object' && value.id) {
                 assets.push({
                     id: value.id,
                     name: value.name || value.id,
-                    digest: value.digest,
                     missingContent: value.missingContent
                 });
             }
         } else if (propertyType === 'ASSET_LIST') {
             // Array of asset references
             if (Array.isArray(value)) {
-                value.forEach((ref: any) => {
+                value.forEach((ref: AssetReference) => {
                     if (ref && typeof ref === 'object' && ref.id) {
                         assets.push({
                             id: ref.id,
                             name: ref.name || ref.id,
-                            digest: ref.digest,
                             missingContent: ref.missingContent
                         });
                     }

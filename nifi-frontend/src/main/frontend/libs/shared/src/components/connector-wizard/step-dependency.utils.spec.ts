@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-import { ConfigurationStepConfiguration } from '../../types';
+import { ConfigurationStepConfiguration, ConnectorPropertyDescriptor, ConnectorValueReference } from '../../types';
 import { getVisibleStepNames, isStepDependencySatisfied } from './step-dependency.utils';
 
 describe('Step Dependency Utils', () => {
     function createStepConfig(
         stepName: string,
         dependencies: { stepName: string; propertyName: string; dependentValues?: string[] }[] = [],
-        propertyValues: { [groupName: string]: { [propertyName: string]: any } } = {}
+        propertyValues: { [groupName: string]: { [propertyName: string]: string } } = {}
     ): ConfigurationStepConfiguration {
         const propertyGroupConfigurations = Object.entries(propertyValues).map(([groupName, values]) => ({
             propertyGroupName: groupName,
@@ -35,14 +35,14 @@ describe('Step Dependency Utils', () => {
                     };
                     return acc;
                 },
-                {} as { [key: string]: any }
+                {} as Record<string, ConnectorPropertyDescriptor>
             ),
             propertyValues: Object.entries(values).reduce(
                 (acc, [propName, value]) => {
                     acc[propName] = { value, valueType: 'STRING_LITERAL' as const };
                     return acc;
                 },
-                {} as { [key: string]: any }
+                {} as Record<string, ConnectorValueReference>
             )
         }));
 

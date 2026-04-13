@@ -16,6 +16,7 @@
  */
 
 import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
+import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import { TestBed } from '@angular/core/testing';
 import { ConnectorWizard } from './connector-wizard.component';
 import { ConnectorWizardStore } from './connector-wizard.store';
@@ -239,20 +240,30 @@ describe('ConnectorWizard', () => {
     describe('onStepChange', () => {
         it('calls changeStep with the selected index', async () => {
             const { component, mockStore } = await setup();
-            component.onStepChange({ selectedIndex: 2, previouslySelectedIndex: 1 } as any, ['A', 'B']);
+            component.onStepChange({ selectedIndex: 2, previouslySelectedIndex: 1 } as StepperSelectionEvent, [
+                'A',
+                'B'
+            ]);
             expect(mockStore.changeStep).toHaveBeenCalledWith(2);
         });
 
         it('calls enterSummaryStep and refreshConnectorForSummary when last step selected', async () => {
             const { component, mockStore } = await setup();
-            component.onStepChange({ selectedIndex: 2, previouslySelectedIndex: 1 } as any, ['A', 'B']);
+            component.onStepChange({ selectedIndex: 2, previouslySelectedIndex: 1 } as StepperSelectionEvent, [
+                'A',
+                'B'
+            ]);
             expect(mockStore.enterSummaryStep).toHaveBeenCalled();
             expect(mockStore.refreshConnectorForSummary).toHaveBeenCalled();
         });
 
         it('does not call enterSummaryStep for intermediate steps', async () => {
             const { component, mockStore } = await setup();
-            component.onStepChange({ selectedIndex: 0, previouslySelectedIndex: 0 } as any, ['A', 'B', 'C']);
+            component.onStepChange({ selectedIndex: 0, previouslySelectedIndex: 0 } as StepperSelectionEvent, [
+                'A',
+                'B',
+                'C'
+            ]);
             expect(mockStore.enterSummaryStep).not.toHaveBeenCalled();
         });
     });

@@ -18,7 +18,12 @@
 import { Component, computed, input } from '@angular/core';
 import { MatCard } from '@angular/material/card';
 import { MatError } from '@angular/material/form-field';
-import { ConfigVerificationResult, ConnectorPropertyDescriptor, PropertyGroupConfiguration } from '../../types';
+import {
+    AssetReference,
+    ConfigVerificationResult,
+    ConnectorPropertyDescriptor,
+    PropertyGroupConfiguration
+} from '../../types';
 
 /**
  * Read-only display card for a property group's configured values.
@@ -109,7 +114,7 @@ export class PropertyGroupCard {
         if (valueRef.valueType === 'SECRET_REFERENCE') return '••••••••';
         if (valueRef.valueType === 'ASSET_REFERENCE') {
             const refs = valueRef.assetReferences;
-            return refs?.map((r: any) => r.name || r.id).join(', ') || '';
+            return refs?.map((r: AssetReference) => r.name || r.id).join(', ') || '';
         }
         return valueRef.value ?? '';
     }
