@@ -36,10 +36,10 @@ import { ConfigVerificationResult, ConnectorPropertyDescriptor, PropertyGroupCon
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
                 @for (propertyName of getPropertyNames(); track propertyName) {
                     <div class="flex flex-col gap-y-1">
-                        <div class="flex">
-                            <span class="text-xs tertiary-color">{{ propertyName }}</span>
+                        <div class="flex items-center pt-1">
+                            <span class="text-sm tertiary-color leading-5">{{ propertyName }}</span>
                             @if (isRequired(propertyName)) {
-                                <span class="error-color ml-1">*</span>
+                                <span class="error-color ml-1 text-sm">*</span>
                             }
                         </div>
                         @if (hasValue(propertyName)) {
@@ -48,7 +48,7 @@ import { ConfigVerificationResult, ConnectorPropertyDescriptor, PropertyGroupCon
                             <span class="unset neutral-color text-sm">No value set</span>
                         }
                         @if (getFieldError(propertyName); as errorMessage) {
-                            <mat-error>{{ errorMessage }}</mat-error>
+                            <mat-error class="error-color text-xs">{{ errorMessage }}</mat-error>
                         }
                     </div>
                 }

@@ -269,18 +269,15 @@
         white-space: nowrap !important;
     }
 
-    // markdown styles
-
-    .mat-typography.text-base markdown {
-        h1 {
-            margin: 0 0 16px;
-            line-height: 28px;
-            font-size: 20px;
-            font-weight: 700;
-        }
+    .mat-typography.text-base {
+        font-family: var(--mat-sys-body-medium-font);
+        line-height: var(--mat-sys-body-medium-line-height);
+        font-size: var(--mat-sys-body-medium-size);
+        font-weight: var(--mat-sys-body-medium-weight);
+        letter-spacing: normal;
 
         h2 {
-            margin: 0 0 16px;
+            margin: unset;
             line-height: 28px;
             font-size: 18px;
             font-weight: 700;
@@ -289,8 +286,8 @@
         h3 {
             margin: 0 0 16px;
             line-height: 28px;
-            font-size: 18px;
-            font-weight: 400;
+            font-size: 20px;
+            font-weight: 700;
         }
 
         h4 {
@@ -300,17 +297,129 @@
             font-weight: 400;
         }
 
-        h5 {
+        a {
+            letter-spacing: normal;
+        }
+
+        .mdc-text-field--outlined .mdc-floating-label {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-select {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-card-title {
+            font-size: 18px;
+            letter-spacing: normal;
+            line-height: 28px;
+            font-weight: 700;
+        }
+
+        .mat-mdc-card-subtitle {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: 20px;
+            font-weight: 400;
+        }
+
+        .mat-mdc-option {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-form-field {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-tree-node,
+        .mat-nested-tree-node {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-header-cell {
+            font-weight: 700;
+        }
+
+        .mat-expansion-panel-header {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+            font-weight: 700;
+        }
+
+        .mat-expansion-panel-content {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: 20px;
+        }
+
+        .mat-mdc-menu-content,
+        .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
+            --mat-menu-item-label-text-weight: var(--mat-sys-body-medium-weight);
+        }
+
+        .mdc-list-item__primary-text {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-drawer {
+            color: var(--mat-app-text-color);
+        }
+    }
+
+    // markdown styles
+    .mat-typography.text-base markdown {
+        h1 {
+            margin: 16px 0;
+            line-height: 28px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        h2 {
+            margin: 16px 0;
+            line-height: 28px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        h3 {
+            margin: 16px 0;
+            line-height: 28px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        h4 {
             margin: unset;
             line-height: 20px;
             font-size: 14px;
+            font-weight: 600;
+        }
+
+        h5 {
+            margin: unset;
+            line-height: 20px;
+            font-size: 12px;
             font-weight: 400;
         }
 
         h6 {
             margin: unset;
             line-height: 12px;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 400;
         }
 
@@ -322,6 +431,10 @@
         ol {
             list-style: auto outside;
             margin: 1em;
+        }
+
+        p {
+            margin: 8px 0;
         }
 
         table {
@@ -358,7 +471,6 @@
             ul {
                 list-style-type: disc;
                 list-style-position: inside;
-
                 text-wrap: wrap;
                 word-break: break-all;
             }
@@ -511,116 +623,6 @@
                     }
                 }
             }
-        }
-    }
-
-    .mat-typography.text-base {
-        font-family: var(--mat-sys-body-medium-font);
-        line-height: var(--mat-sys-body-medium-line-height);
-        font-size: var(--mat-sys-body-medium-size);
-        font-weight: var(--mat-sys-body-medium-weight);
-        letter-spacing: normal;
-
-        h2 {
-            margin: unset;
-            line-height: 28px;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        h3 {
-            margin: 0 0 16px;
-            line-height: 28px;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        h4 {
-            margin: unset;
-            line-height: 20px;
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        a {
-            letter-spacing: normal;
-        }
-
-        .mdc-text-field--outlined .mdc-floating-label {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-select {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-card-title {
-            font-size: 18px;
-            letter-spacing: normal;
-            line-height: 28px;
-            font-weight: 700;
-        }
-
-        .mat-mdc-card-subtitle {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: 20px;
-            font-weight: 400;
-        }
-
-        .mat-mdc-option {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-form-field {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-tree-node,
-        .mat-nested-tree-node {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-header-cell {
-            font-weight: 700;
-        }
-
-        .mat-expansion-panel-header {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-            font-weight: 700;
-        }
-
-        .mat-expansion-panel-content {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: 20px;
-        }
-
-        .mat-mdc-menu-content,
-        .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
-            --mat-menu-item-label-text-weight: var(--mat-sys-body-medium-weight);
-        }
-
-        .mdc-list-item__primary-text {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-drawer {
-            color: var(--mat-app-text-color);
         }
     }
 
