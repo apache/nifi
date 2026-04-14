@@ -63,7 +63,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.LineNumberReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -468,7 +467,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     private FlowFile transformJsonLines(final Expression jsltExpression, final FlowFile original, final ProcessSession session) {
         final ObjectWriter writer = JSON_OBJECT_MAPPER.writer().withRootValueSeparator("\n");
         FlowFile transformed = session.write(original, (inputStream, outputStream) -> {
-            try (final LineNumberReader reader = new LineNumberReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
                  final JsonGenerator jsonGenerator = writer.createGenerator(outputStream)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
