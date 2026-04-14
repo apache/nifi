@@ -164,16 +164,6 @@ export function withConnectorWizard() {
                  * and banner (without subject). All successful = show success toast.
                  */
                 function processVerificationResults(stepName: string, results: ConfigVerificationResult[]): void {
-                    config?.telemetry?.trackVerifySuccess({
-                        connectorId: store.connectorId(),
-                        stepName,
-                        results: results.map((r) => ({
-                            verificationStepName: r.verificationStepName,
-                            outcome: r.outcome,
-                            subject: r.subject ?? null
-                        }))
-                    });
-
                     const failedResults = results.filter((r) => r.outcome === 'FAILED');
 
                     if (failedResults.length > 0) {
@@ -252,11 +242,6 @@ export function withConnectorWizard() {
                         unsavedStepValues: remainingUnsaved,
                         status: 'configuring'
                     });
-                    config?.telemetry?.trackStepSaved({
-                        connectorId: store.connectorId(),
-                        stepName,
-                        stepIndex: store.visibleStepNames().indexOf(stepName)
-                    });
                     patchState(store, { pendingStepAdvancement: true });
                 }
 
@@ -270,11 +255,6 @@ export function withConnectorWizard() {
                         unsavedStepValues: remainingUnsaved,
                         status: 'configuring',
                         bannerErrors: [...store.bannerErrors(), error]
-                    });
-                    config?.telemetry?.trackStepSaveError({
-                        connectorId: store.connectorId(),
-                        stepName,
-                        error
                     });
                 }
 
@@ -707,11 +687,6 @@ export function withConnectorWizard() {
                                     }
                                 });
 
-                                config?.telemetry?.trackVerifyStarted({
-                                    connectorId,
-                                    stepName: data.stepName
-                                });
-
                                 const dialogRef = dialog.open(ConnectorVerificationProgressDialog, {
                                     ...SMALL_DIALOG
                                 });
@@ -731,11 +706,6 @@ export function withConnectorWizard() {
                                         const errMsg = err.error?.message || err.message || 'Verification failed';
                                         patchState(store, {
                                             bannerErrors: [...store.bannerErrors(), errMsg]
-                                        });
-                                        config?.telemetry?.trackVerifyError({
-                                            connectorId,
-                                            stepName: data.stepName,
-                                            error: errMsg
                                         });
                                         return EMPTY;
                                     }),
@@ -948,9 +918,6 @@ export function withConnectorWizard() {
                                                     connector: response,
                                                     status: 'complete'
                                                 });
-                                                config?.telemetry?.trackConfigApplied({
-                                                    connectorId
-                                                });
                                                 config?.onApplySuccess?.(connectorId);
                                             },
                                             error: (error: HttpErrorResponse) => {
@@ -958,10 +925,6 @@ export function withConnectorWizard() {
                                                     error.error?.message ||
                                                     error.message ||
                                                     'Failed to apply configuration';
-                                                config?.telemetry?.trackConfigApplyError({
-                                                    connectorId,
-                                                    error: errorMsg
-                                                });
                                                 patchState(store, {
                                                     status: 'error',
                                                     error: errorMsg,

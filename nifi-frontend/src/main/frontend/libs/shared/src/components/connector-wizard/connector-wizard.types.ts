@@ -26,8 +26,7 @@ import {
     ConnectorConfigStepVerificationRequest,
     ConfigVerificationResult,
     AssetInfo,
-    PropertyAllowableValuesState,
-    VerifyResultSummary
+    PropertyAllowableValuesState
 } from '../../types';
 
 /**
@@ -166,16 +165,6 @@ export const initialConnectorWizardState: ConnectorWizardState = {
     disconnectedNodeAcknowledged: false
 };
 
-export interface ConnectorWizardTelemetry {
-    trackStepSaved(data: { connectorId: string | null; stepName: string; stepIndex: number | null }): void;
-    trackStepSaveError(data: { connectorId: string | null; stepName: string; error: string }): void;
-    trackConfigApplied(data: { connectorId: string | null }): void;
-    trackConfigApplyError(data: { connectorId: string | null; error: string }): void;
-    trackVerifyStarted(data: { connectorId: string | null; stepName: string }): void;
-    trackVerifySuccess(data: { connectorId: string | null; stepName: string; results: VerifyResultSummary[] }): void;
-    trackVerifyError(data: { connectorId: string | null; stepName: string; error: string }): void;
-}
-
 export interface CustomStepRegistration {
     stepName: string;
     label?: string;
@@ -183,7 +172,6 @@ export interface CustomStepRegistration {
 
 export interface ConnectorWizardConfig {
     customSteps?: CustomStepRegistration[];
-    telemetry?: ConnectorWizardTelemetry;
     getDisconnectedNodeAcknowledged?: () => boolean;
     onApplySuccess?: (connectorId: string | null) => void;
     onNavigateBack?: (connectorId: string | null) => void;
