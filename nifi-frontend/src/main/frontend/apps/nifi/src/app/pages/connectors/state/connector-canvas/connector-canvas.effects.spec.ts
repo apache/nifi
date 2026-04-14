@@ -307,7 +307,7 @@ describe('ConnectorCanvasEffects', () => {
             });
             actions$(of(leaveProcessGroup()));
 
-            await firstValueFrom(effects.leaveProcessGroup$.pipe(() => of(undefined)));
+            await expect(firstValueFrom(effects.leaveProcessGroup$)).rejects.toThrow();
             expect(mockRouter.navigate).not.toHaveBeenCalled();
         });
 
@@ -319,7 +319,7 @@ describe('ConnectorCanvasEffects', () => {
             });
             actions$(of(leaveProcessGroup()));
 
-            await firstValueFrom(effects.leaveProcessGroup$.pipe(() => of(undefined)));
+            await expect(firstValueFrom(effects.leaveProcessGroup$)).rejects.toThrow();
             expect(mockRouter.navigate).not.toHaveBeenCalled();
         });
     });

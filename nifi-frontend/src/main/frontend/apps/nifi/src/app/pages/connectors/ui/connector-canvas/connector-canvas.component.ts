@@ -22,7 +22,7 @@ import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
-import { ComponentType, selectUrl } from '@nifi/shared';
+import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
 import { combineLatest, distinctUntilChanged, filter, map, Observable, of } from 'rxjs';
 import { NiFiState } from '../../../../state';
@@ -33,7 +33,6 @@ import { Navigation } from '../../../../ui/common/navigation/navigation.componen
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
-import { selectRouteParams } from '../../state/connector-canvas/connector-canvas.selectors';
 
 @Component({
     selector: 'connector-canvas',

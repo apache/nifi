@@ -24,14 +24,14 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { ComponentType, selectUrl } from '@nifi/shared';
+import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
-import { selectParentProcessGroupId, selectRouteParams } from '../../state/connector-canvas/connector-canvas.selectors';
+import { selectParentProcessGroupId } from '../../state/connector-canvas/connector-canvas.selectors';
 import {
     deselectAllComponents,
     enterProcessGroup,
