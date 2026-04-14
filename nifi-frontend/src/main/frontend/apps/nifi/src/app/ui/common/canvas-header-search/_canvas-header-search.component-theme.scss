@@ -15,22 +15,26 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
-import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../state';
-import { Breadcrumbs } from '../../../../../ui/common/breadcrumbs/breadcrumbs.component';
-import { AsyncPipe } from '@angular/common';
+@mixin generate-theme() {
+    .search-container {
+        &:hover,
+        &.open {
+            background-color: var(--mat-sys-background);
+        }
 
-@Component({
-    selector: 'fd-footer',
-    templateUrl: './footer.component.html',
-    imports: [Breadcrumbs, AsyncPipe],
-    styleUrls: ['./footer.component.scss']
-})
-export class FooterComponent {
-    private store = inject<Store<CanvasState>>(Store);
+        .search-input {
+            background-color: var(--mat-sys-background);
+        }
+    }
 
-    breadcrumbs$ = this.store.select(selectBreadcrumbs);
-    currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
+    .search-results {
+        margin-top: 4px;
+        padding: 4px 6px;
+        box-shadow:
+            0 3px 5px -1px rgba(0, 0, 0, 0.2),
+            0 6px 10px 0 rgba(0, 0, 0, 0.14),
+            0 1px 18px 0 rgba(0, 0, 0, 0.12);
+        background-color: var(--mat-sys-surface);
+        border-radius: 4px;
+    }
 }

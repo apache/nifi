@@ -230,6 +230,39 @@ export interface SearchMatchTipInput {
     matches: string[];
 }
 
+export interface SearchResultGroup {
+    id: string;
+    name: string;
+}
+
+export interface ComponentSearchResult {
+    id: string;
+    groupId: string;
+    parentGroup: SearchResultGroup;
+    versionedGroup: SearchResultGroup;
+    name: string;
+    matches: string[];
+}
+
+export interface SearchResults {
+    processorResults: ComponentSearchResult[];
+    connectionResults: ComponentSearchResult[];
+    processGroupResults: ComponentSearchResult[];
+    inputPortResults: ComponentSearchResult[];
+    outputPortResults: ComponentSearchResult[];
+    remoteProcessGroupResults: ComponentSearchResult[];
+    funnelResults: ComponentSearchResult[];
+    labelResults: ComponentSearchResult[];
+    controllerServiceNodeResults: ComponentSearchResult[];
+    parameterContextResults: ComponentSearchResult[];
+    parameterProviderNodeResults: ComponentSearchResult[];
+    parameterResults: ComponentSearchResult[];
+}
+
+export interface SearchResultsEntity {
+    searchResultsDTO: SearchResults;
+}
+
 export interface ControllerServiceApi {
     type: string;
     bundle: Bundle;

@@ -1,0 +1,230 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="h-full flex justify-around search-container border-l" [class.open]="searchInputVisible()">
+    <button
+        class="w-8"
+        aria-label="Search canvas"
+        [attr.aria-expanded]="searchInputVisible()"
+        (click)="toggleSearchVisibility()">
+        <i class="fa fa-search primary-color"></i>
+    </button>
+    <ng-template
+        cdkConnectedOverlay
+        [cdkConnectedOverlayDisableClose]="true"
+        [cdkConnectedOverlayOrigin]="searchInput"
+        [cdkConnectedOverlayOpen]="searching() || searchingResultsVisible()"
+        [cdkConnectedOverlayPositions]="positions"
+        [cdkConnectedOverlayHasBackdrop]="true"
+        [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+        (overlayOutsideClick)="backdropClicked($event)">
+        <div class="search-results w-96 border p-2 text-base max-h-96 overflow-y-auto">
+            @if (searching()) {
+                <div class="unset neutral-color italic" role="status">Searching</div>
+            } @else {
+                @if (hasResults()) {
+                    <ul role="listbox" aria-label="Search results">
+                        @if (results().processorResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().processorResults,
+                                        header: 'Processors',
+                                        icon: 'icon-processor',
+                                        path: ComponentType.Processor
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().connectionResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().connectionResults,
+                                        header: 'Connections',
+                                        icon: 'icon-connect',
+                                        path: ComponentType.Connection
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().processGroupResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().processGroupResults,
+                                        header: 'Process groups',
+                                        icon: 'icon-group',
+                                        path: ComponentType.ProcessGroup
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().remoteProcessGroupResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().remoteProcessGroupResults,
+                                        header: 'Remote process groups',
+                                        icon: 'icon-group-remote',
+                                        path: ComponentType.RemoteProcessGroup
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().inputPortResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().inputPortResults,
+                                        header: 'Input ports',
+                                        icon: 'icon-port-in',
+                                        path: ComponentType.InputPort
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().outputPortResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().outputPortResults,
+                                        header: 'Output ports',
+                                        icon: 'icon-port-out',
+                                        path: ComponentType.OutputPort
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().funnelResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().funnelResults,
+                                        header: 'Funnels',
+                                        icon: 'icon-funnel',
+                                        path: ComponentType.Funnel
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().labelResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().labelResults,
+                                        header: 'Labels',
+                                        icon: 'icon-label',
+                                        path: ComponentType.Label
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().controllerServiceNodeResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().controllerServiceNodeResults,
+                                        header: 'Controller services',
+                                        icon: '',
+                                        path: ComponentType.ControllerService
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().parameterProviderNodeResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().parameterProviderNodeResults,
+                                        header: 'Parameter providers',
+                                        icon: '',
+                                        path: ComponentType.ParameterProvider
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().parameterContextResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().parameterContextResults,
+                                        header: 'Parameter contexts',
+                                        icon: '',
+                                        path: ComponentType.Flow
+                                    }
+                                "></ng-container>
+                        }
+                        @if (results().parameterResults.length > 0) {
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderResults;
+                                    context: {
+                                        $implicit: results().parameterResults,
+                                        header: 'Parameters',
+                                        icon: '',
+                                        path: ComponentType.Flow
+                                    }
+                                "></ng-container>
+                        }
+                    </ul>
+                } @else {
+                    <div class="unset neutral-color italic" role="status">No results matched the search terms</div>
+                }
+            }
+        </div>
+    </ng-template>
+    <input
+        type="text"
+        matInput
+        placeholder="Search"
+        aria-label="Search canvas components"
+        class="search-input neutral-contrast"
+        (keydown)="onKeydown($event)"
+        [class.open]="searchInputVisible()"
+        [formControl]="searchControl"
+        cdkOverlayOrigin
+        #searchInput="cdkOverlayOrigin" />
+    <ng-template #renderResults let-results let-header="header" let-icon="icon" let-path="path">
+        @if (results.length > 0) {
+            <li class="flex items-center" role="presentation">
+                @if (icon) {
+                    <span class="icon mr-1 tertiary-color" [class]="icon"></span>
+                }
+                <span class="font-medium">{{ header }}</span>
+            </li>
+            @for (result of results; track $index) {
+                <li class="ml-4 py-1 flex gap-x-2 items-center" role="option">
+                    <i
+                        class="fa fa-info-circle"
+                        nifiTooltip
+                        [tooltipComponentType]="SearchMatchTip"
+                        [tooltipInputData]="getSearchMatchTipInput(result)"
+                        [delayClose]="true"></i>
+                    <a
+                        class="doc-link w-full overflow-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
+                        [title]="result.name"
+                        [class.selected]="result.id === selectedComponentId()"
+                        (click)="resultClicked(result, path)">
+                        {{ result.name ? result.name : result.id }}
+                    </a>
+                </li>
+            }
+        }
+    </ng-template>
+</div>

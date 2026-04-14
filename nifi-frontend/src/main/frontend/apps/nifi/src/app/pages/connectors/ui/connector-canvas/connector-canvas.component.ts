@@ -30,14 +30,25 @@ import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
+import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
 
+const GRAPH_CONTROLS_STORAGE_KEY = 'connector-graph-controls';
+
 @Component({
     selector: 'connector-canvas',
     standalone: true,
-    imports: [CommonModule, CanvasComponent, MatButton, Navigation],
+    imports: [
+        CommonModule,
+        CanvasComponent,
+        MatButton,
+        Navigation,
+        ConnectorCanvasHeaderBarComponent,
+        ConnectorCanvasFooterComponent
+    ],
     templateUrl: './connector-canvas.component.html'
 })
 export class ConnectorCanvasComponent implements OnInit, OnDestroy {
@@ -53,6 +64,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     selectedComponentIds: string[] = [];
     canNavigateToParent = false;
     skipTransform = this.store.selectSignal(ConnectorCanvasSelectors.selectSkipTransform);
+    graphControlsOpen = localStorage.getItem(GRAPH_CONTROLS_STORAGE_KEY) !== 'false';
 
     // Subscribe to connector canvas state (flow data)
     labels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectLabels);
@@ -222,6 +234,28 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         }
         const tagName = target?.tagName?.toLowerCase();
         return !['input', 'textarea', 'select'].includes(tagName);
+    }
+
+    toggleGraphControls(): void {
+        this.graphControlsOpen = !this.graphControlsOpen;
+        localStorage.setItem(GRAPH_CONTROLS_STORAGE_KEY, String(this.graphControlsOpen));
+    }
+
+    onSearchGoToComponent(event: { id: string; type: ComponentType; groupId: string }): void {
+        if (event.groupId === this.currentProcessGroupId) {
+            this.onSelectComponents([{ id: event.id, type: event.type }]);
+            this.canvasComponent().centerOnComponent(event.id, event.type);
+        } else {
+            this.store.dispatch(ConnectorCanvasActions.setSkipTransform({ skipTransform: false }));
+            this.router.navigate([
+                '/connectors',
+                this.currentConnectorId,
+                'canvas',
+                event.groupId,
+                event.type,
+                event.id
+            ]);
+        }
     }
 
     returnToConnectorListing(): void {

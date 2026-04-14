@@ -18,6 +18,14 @@
     <header class="nifi-header">
         <navigation></navigation>
     </header>
+    <connector-canvas-header-bar
+        [connectorId]="currentConnectorId"
+        [selectedComponentId]="selectedComponentIds.length === 1 ? selectedComponentIds[0] : null"
+        [graphControlsOpen]="graphControlsOpen"
+        (backToConnectors)="returnToConnectorListing()"
+        (goToComponent)="onSearchGoToComponent($event)"
+        (toggleGraphControls)="toggleGraphControls()">
+    </connector-canvas-header-bar>
     <div class="relative flex-1 min-h-0">
         @if ((hasError$ | async) === false) {
             <reusable-canvas
@@ -51,4 +59,5 @@
             </div>
         }
     </div>
+    <connector-canvas-footer [connectorId]="currentConnectorId"></connector-canvas-footer>
 </div>

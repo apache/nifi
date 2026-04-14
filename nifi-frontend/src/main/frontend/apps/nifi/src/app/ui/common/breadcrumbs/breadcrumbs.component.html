@@ -28,14 +28,11 @@
                     [title]="getVersionControlTooltip(breadcrumb)"></div>
             }
             @if (isCurrentProcessGroupBreadcrumb(breadcrumb)) {
-                <a
-                    #currentProcessGroup
-                    class="current-process-group font-bold"
-                    [routerLink]="['/process-groups', breadcrumb.id]">
+                <a #currentProcessGroup class="current-process-group font-bold" [routerLink]="getRoute(breadcrumb)">
                     {{ getBreadcrumbLabel(breadcrumb) }}
                 </a>
             } @else {
-                <a [routerLink]="['/process-groups', breadcrumb.id]">
+                <a [routerLink]="getRoute(breadcrumb)">
                     {{ getBreadcrumbLabel(breadcrumb) }}
                 </a>
             }

@@ -19,7 +19,7 @@ import { Component, DestroyRef, ElementRef, inject, Input, OnInit, ViewChild } f
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { debounceTime, filter, take, tap } from 'rxjs';
-import { ComponentSearchResult, SearchService } from '../../../../service/search.service';
+import { SearchService } from '../../../../service/search.service';
 import {
     CdkConnectedOverlay,
     CdkOverlayOrigin,
@@ -27,7 +27,7 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { SearchMatchTipInput } from '../../../../../../state/shared';
+import { ComponentSearchResult, SearchMatchTipInput } from '../../../../../../state/shared';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';

@@ -22,7 +22,7 @@ import { ControllerServices } from './controller-services.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { ControllerServicesRoutingModule } from './controller-services-routing.module';
-import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
+import { Breadcrumbs } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';

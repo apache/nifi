@@ -37,7 +37,7 @@ import { BreadcrumbEntity } from '../../state/shared';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ControllerServicesState } from '../../state/controller-services';
-import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
+import { Breadcrumbs } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 
 describe('ControllerServices', () => {

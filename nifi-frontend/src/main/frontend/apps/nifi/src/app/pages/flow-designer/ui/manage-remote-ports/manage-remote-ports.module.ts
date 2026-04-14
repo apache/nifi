@@ -21,7 +21,7 @@ import { ManageRemotePorts } from './manage-remote-ports.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { ManageRemotePortsRoutingModule } from './manage-remote-ports-routing.module';
-import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
+import { Breadcrumbs } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';

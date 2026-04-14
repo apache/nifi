@@ -16,11 +16,13 @@
  */
 
 import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
-import { initialState } from '../../../state/flow/flow.reducer';
-
 import { RouterLink } from '@angular/router';
-import { BreadcrumbEntity } from '../../../state/shared';
+import { BreadcrumbEntity } from '../../../pages/flow-designer/state/shared';
 import { Title } from '@angular/platform-browser';
+
+export type BreadcrumbRouteGenerator = (processGroupId: string) => string[];
+
+const defaultRouteGenerator: BreadcrumbRouteGenerator = (processGroupId: string) => ['/process-groups', processGroupId];
 
 @Component({
     selector: 'breadcrumbs',
@@ -31,13 +33,13 @@ import { Title } from '@angular/platform-browser';
 export class Breadcrumbs {
     private title = inject(Title);
 
-    @Input() entity: BreadcrumbEntity = initialState.flow.processGroupFlow.breadcrumb;
-    @Input() currentProcessGroupId: string = initialState.id;
+    @Input() entity: BreadcrumbEntity | null = null;
+    @Input() currentProcessGroupId = '';
+    @Input() routeGenerator: BreadcrumbRouteGenerator = defaultRouteGenerator;
 
     private scrolledToProcessGroupId = '';
 
     @ViewChild('currentProcessGroup') set currentProcessGroupBreadcrumb(currentProcessGroupBreadcrumb: ElementRef) {
-        // only auto scroll to the breadcrumb for the current pg once as the user may have manually scrolled since
         if (currentProcessGroupBreadcrumb && this.scrolledToProcessGroupId != this.currentProcessGroupId) {
             currentProcessGroupBreadcrumb.nativeElement.scrollIntoView();
             this.scrolledToProcessGroupId = this.currentProcessGroupId;
@@ -45,6 +47,9 @@ export class Breadcrumbs {
     }
 
     prepareBreadcrumbs(): BreadcrumbEntity[] {
+        if (!this.entity) {
+            return [];
+        }
         const breadcrumbs: BreadcrumbEntity[] = [];
         this.prepareBreadcrumb(breadcrumbs, this.entity);
         return breadcrumbs.reverse();
@@ -84,7 +89,6 @@ export class Breadcrumbs {
             } else if (vciState === 'LOCALLY_MODIFIED') {
                 return 'locally-modified neutral-color fa fa-asterisk';
             } else {
-                // up to date
                 return 'up-to-date success-color-default fa fa-check';
             }
         } else {
@@ -106,5 +110,9 @@ export class Breadcrumbs {
         }
 
         return breadcrumbEntity.id;
+    }
+
+    getRoute(breadcrumbEntity: BreadcrumbEntity): string[] {
+        return this.routeGenerator(breadcrumbEntity.id);
     }
 }

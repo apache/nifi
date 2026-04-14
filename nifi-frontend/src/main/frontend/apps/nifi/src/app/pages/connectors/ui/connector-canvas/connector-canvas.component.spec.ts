@@ -29,6 +29,8 @@ import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
+import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import { selectParentProcessGroupId } from '../../state/connector-canvas/connector-canvas.selectors';
@@ -68,6 +70,7 @@ class MockReusableCanvasComponent {
     deselectAll = output<void>();
     initialized = output<void>();
     centerOnSelection = vi.fn();
+    centerOnComponent = vi.fn();
 }
 
 @Component({
@@ -78,6 +81,31 @@ class MockReusableCanvasComponent {
 })
 class MockNavigationComponent {
     heading = input<string>('');
+}
+
+@Component({
+    selector: 'connector-canvas-header-bar',
+    standalone: true,
+    imports: [CommonModule],
+    template: ''
+})
+class MockConnectorCanvasHeaderBarComponent {
+    connectorId = input.required<string>();
+    selectedComponentId = input<string | null>(null);
+    graphControlsOpen = input<boolean>(true);
+    backToConnectors = output<void>();
+    goToComponent = output<{ id: string; type: ComponentType; groupId: string }>();
+    toggleGraphControls = output<void>();
+}
+
+@Component({
+    selector: 'connector-canvas-footer',
+    standalone: true,
+    imports: [CommonModule],
+    template: ''
+})
+class MockConnectorCanvasFooterComponent {
+    connectorId = input<string>('');
 }
 
 @Component({
@@ -134,8 +162,17 @@ function configureConnectorCanvasTestBed(options: SetupOptions = {}) {
         imports: [ConnectorCanvasComponent, NoopAnimationsModule, MatDialogModule],
         providers: [provideRouter([]), provideMockStore({ initialState: {}, selectors: buildMockSelectors(options) })]
     }).overrideComponent(ConnectorCanvasComponent, {
-        remove: { imports: [CanvasComponent, Navigation] },
-        add: { imports: [MockReusableCanvasComponent, MockNavigationComponent] }
+        remove: {
+            imports: [CanvasComponent, Navigation, ConnectorCanvasHeaderBarComponent, ConnectorCanvasFooterComponent]
+        },
+        add: {
+            imports: [
+                MockReusableCanvasComponent,
+                MockNavigationComponent,
+                MockConnectorCanvasHeaderBarComponent,
+                MockConnectorCanvasFooterComponent
+            ]
+        }
     });
 }
 
@@ -542,6 +579,64 @@ describe('ConnectorCanvasComponent', () => {
             component.onCanvasInitialized();
 
             expect(dispatchSpy).not.toHaveBeenCalled();
+        }));
+    });
+
+    describe('Header bar and footer', () => {
+        it('should render the header bar component', fakeAsync(() => {
+            const { fixture } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const headerBar = fixture.nativeElement.querySelector('connector-canvas-header-bar');
+            expect(headerBar).toBeTruthy();
+        }));
+
+        it('should render the footer component', fakeAsync(() => {
+            const { fixture } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const footer = fixture.nativeElement.querySelector('connector-canvas-footer');
+            expect(footer).toBeTruthy();
+        }));
+    });
+
+    describe('Graph controls toggle', () => {
+        it('should default graphControlsOpen to true', () => {
+            localStorage.removeItem('connector-graph-controls');
+            const { component } = setup();
+            expect(component.graphControlsOpen).toBe(true);
+        });
+
+        it('should toggle graphControlsOpen and persist to localStorage', () => {
+            localStorage.removeItem('connector-graph-controls');
+            const { component } = setup();
+
+            component.toggleGraphControls();
+            expect(component.graphControlsOpen).toBe(false);
+            expect(localStorage.getItem('connector-graph-controls')).toBe('false');
+
+            component.toggleGraphControls();
+            expect(component.graphControlsOpen).toBe(true);
+            expect(localStorage.getItem('connector-graph-controls')).toBe('true');
+        });
+    });
+
+    describe('Search navigation', () => {
+        it('should navigate with skipTransform=false when search result is in a different process group', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onSearchGoToComponent({
+                id: 'proc-2',
+                type: ComponentType.Processor,
+                groupId: 'different-pg'
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(setSkipTransform({ skipTransform: false }));
         }));
     });
 });
