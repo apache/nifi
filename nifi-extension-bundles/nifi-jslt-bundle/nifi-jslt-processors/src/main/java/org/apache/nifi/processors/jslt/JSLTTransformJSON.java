@@ -22,10 +22,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SequenceWriter;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.schibsted.spt.data.jslt.Expression;
@@ -71,7 +69,6 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -146,35 +143,6 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
     }
 
-    enum MultiLineTransformationStrategy implements DescribedValue {
-        ENTIRE_LINE("Entire Line", "Apply transformation to entire content on JSON line"),
-        EACH_OBJECT("Each JSON Object", "Apply transformation to each JSON Object in top level array on JSON line");
-
-        private final String displayName;
-
-        private final String description;
-
-        MultiLineTransformationStrategy(final String displayName, final String description) {
-            this.displayName = displayName;
-            this.description = description;
-        }
-
-        @Override
-        public String getValue() {
-            return name();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        @Override
-        public String getDescription() {
-            return description;
-        }
-    }
-
     public static final String JSLT_FILTER_DEFAULT = ". != null and . != {} and . != []";
 
     public static final PropertyDescriptor JSLT_TRANSFORM = new PropertyDescriptor.Builder()
@@ -202,15 +170,6 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .allowableValues(TransformationStrategy.class)
             .defaultValue(TransformationStrategy.EACH_OBJECT)
             .dependsOn(INPUT_FORMAT, InputFormat.FLOW_FILE)
-            .build();
-
-    public static final PropertyDescriptor MULTILINE_TRANSFORMATION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Multiline Transformation Strategy")
-            .description("Whether to apply the JSLT transformation to the entire JSON line or each JSON object in the root-level array on the JSON line")
-            .required(true)
-            .allowableValues(MultiLineTransformationStrategy.class)
-            .defaultValue(MultiLineTransformationStrategy.ENTIRE_LINE)
-            .dependsOn(INPUT_FORMAT, InputFormat.JSON_LINES)
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
@@ -256,7 +215,6 @@ public class JSLTTransformJSON extends AbstractProcessor {
             JSLT_TRANSFORM,
             INPUT_FORMAT,
             TRANSFORMATION_STRATEGY,
-            MULTILINE_TRANSFORMATION_STRATEGY,
             PRETTY_PRINT,
             TRANSFORM_CACHE_SIZE,
             RESULT_FILTER
@@ -357,7 +315,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
         try {
             final FlowFile transformed = switch (inputFormat) {
                 case FLOW_FILE -> transformFlowFile(jsltExpression, original, context, session);
-                case JSON_LINES -> transformJsonLines(jsltExpression, original, context, session);
+                case JSON_LINES -> transformJsonLines(jsltExpression, original, session);
             };
 
             session.transfer(transformed, REL_SUCCESS);
@@ -507,59 +465,23 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
     }
 
-    private FlowFile transformJsonLines(final Expression jsltExpression, final FlowFile original, final ProcessContext context, final ProcessSession session) {
-        final MultiLineTransformationStrategy multiLineTransformationStrategy = context.getProperty(MULTILINE_TRANSFORMATION_STRATEGY).asAllowableValue(MultiLineTransformationStrategy.class);
+    private FlowFile transformJsonLines(final Expression jsltExpression, final FlowFile original, final ProcessSession session) {
         final ObjectWriter writer = JSON_OBJECT_MAPPER.writer().withRootValueSeparator("\n");
-        FlowFile transformed;
-
-        if (MultiLineTransformationStrategy.EACH_OBJECT.equals(multiLineTransformationStrategy)) {
-            transformed = session.write(original, (inputStream, outputStream) -> {
-                try (final LineNumberReader reader = new LineNumberReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-                     SequenceWriter sequenceWriter = writer.writeValues(outputStream)) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (line.isBlank()) {
-                            continue;
-                        }
-
-                        JsonNode jsonNode = JSON_OBJECT_MAPPER.readTree(line);
-                        if (!jsonNode.isArray()) {
-                            final String errMsg = "Expected JSON to be an array with multiline strategy %s, but JSON at line %s is not an array".formatted(MultiLineTransformationStrategy.EACH_OBJECT,
-                                    reader.getLineNumber());
-                            throw new IllegalArgumentException(errMsg);
-                        }
-
-                        final Iterator<JsonNode> elementsIterator = jsonNode.elements();
-                        final List<JsonNode> transformedArray = new ArrayList<>();
-                        int index = 0;
-                        while (elementsIterator.hasNext()) {
-                            final JsonNode nextElement = elementsIterator.next();
-                            final JsonNode transformedElement = jsltExpression.apply(nextElement);
-                            if (transformedElement == null || transformedElement.isNull()) {
-                                getLogger().debug("JSLT Transform resulted in no data in array on line number {} at element %s", reader.getLineNumber(), index);
-                            }
-                            transformedArray.add(transformedElement);
-                            index++;
-                        }
-                        sequenceWriter.write(transformedArray);
+        FlowFile transformed = session.write(original, (inputStream, outputStream) -> {
+            try (final LineNumberReader reader = new LineNumberReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+                 final JsonGenerator jsonGenerator = writer.createGenerator(outputStream)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.isBlank()) {
+                        continue;
                     }
+
+                    final JsonNode jsonNode = JSON_OBJECT_MAPPER.readTree(line);
+                    final JsonNode transformedJson = jsltExpression.apply(jsonNode);
+                    jsonGenerator.writeObject(transformedJson);
                 }
-            });
-        } else {
-            transformed = session.write(original, (inputStream, outputStream) -> {
-                try (MappingIterator<JsonNode> mappingIterator = JSON_OBJECT_MAPPER.readerFor(JsonNode.class).readValues(inputStream);
-                     JsonGenerator jsonGenerator = writer.createGenerator(outputStream)) {
-                    while (mappingIterator.hasNextValue()) {
-                        final JsonNode nextValue = mappingIterator.nextValue();
-                        final JsonNode transformedJson = jsltExpression.apply(nextValue);
-                        if (transformedJson == null || transformedJson.isNull()) {
-                            getLogger().debug("JSLT Transform resulted in no data on line number {}", mappingIterator.getCurrentLocation().getLineNr());
-                        }
-                        jsonGenerator.writeObject(transformedJson);
-                    }
-                }
-            });
-        }
+            }
+        });
 
         transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/jsonl");
         return transformed;

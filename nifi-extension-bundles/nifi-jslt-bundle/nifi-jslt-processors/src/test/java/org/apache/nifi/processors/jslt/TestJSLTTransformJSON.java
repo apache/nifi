@@ -18,7 +18,6 @@ package org.apache.nifi.processors.jslt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -42,7 +41,6 @@ import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationStrategy.ENTIRE_FLOWFILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJSLTTransformJSON {
 
@@ -175,30 +173,9 @@ public class TestJSLTTransformJSON {
         runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithNull.json");
     }
 
-    @Test
-    public void testMultilineTransformWithUnexpectedType() throws IOException {
-        final String newLine = "\n";
-        final String singleLine = minifyJson("input.json");
-        final int numberOfLines = 3;
-        final String multilineJson = String.join(newLine, Collections.nCopies(numberOfLines, singleLine));
-        final String transform = getResource("arrayTransformPerObject.json");
-        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.INPUT_FORMAT, JSLTTransformJSON.InputFormat.JSON_LINES);
-        runner.setProperty(JSLTTransformJSON.MULTILINE_TRANSFORMATION_STRATEGY, JSLTTransformJSON.MultiLineTransformationStrategy.EACH_OBJECT);
-        runner.enqueue(multilineJson);
-
-        runner.run();
-        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 0);
-        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 1);
-
-        final MockComponentLog logger = runner.getLogger();
-        assertTrue(logger.getErrorMessages().stream().anyMatch(logMessage -> logMessage.getMsg().contains("IllegalArgumentException")));
-    }
-
     @ParameterizedTest
     @MethodSource("multilineArgs")
-    public void testSimpleJSLTOnMultilineJson(String singleJsonFile, String transformFile, String expectedOutFile,
-                                       JSLTTransformJSON.MultiLineTransformationStrategy multiLineTransformationStrategy) throws IOException {
+    public void testSimpleJSLTOnMultilineJson(String singleJsonFile, String transformFile, String expectedOutFile) throws IOException {
         final String newLine = "\n";
         final String singleLine = minifyJson(singleJsonFile);
         final int numberOfLines = 3;
@@ -206,7 +183,6 @@ public class TestJSLTTransformJSON {
         final String transform = getResource(transformFile);
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
         runner.setProperty(JSLTTransformJSON.INPUT_FORMAT, JSLTTransformJSON.InputFormat.JSON_LINES);
-        runner.setProperty(JSLTTransformJSON.MULTILINE_TRANSFORMATION_STRATEGY, multiLineTransformationStrategy);
         runner.enqueue(multilineJson);
 
         runner.run();
@@ -228,10 +204,8 @@ public class TestJSLTTransformJSON {
 
     private static Stream<Arguments> multilineArgs() {
         return Stream.of(
-                Arguments.argumentSet(JSLTTransformJSON.MultiLineTransformationStrategy.ENTIRE_LINE.getDisplayName(),
-                        "input.json", "simpleTransform.json", "simpleOutput.json", JSLTTransformJSON.MultiLineTransformationStrategy.ENTIRE_LINE),
-                Arguments.argumentSet(JSLTTransformJSON.MultiLineTransformationStrategy.EACH_OBJECT.getDisplayName(),
-                        "inputArray.json", "arrayTransformPerObject.json", "arrayOutput.json", JSLTTransformJSON.MultiLineTransformationStrategy.EACH_OBJECT)
+                Arguments.argumentSet("JSON Object", "input.json", "simpleTransform.json", "simpleOutput.json"),
+                Arguments.argumentSet("JSON Array", "inputArray.json", "arrayTransform.json", "arrayOutput.json")
         );
     }
 
