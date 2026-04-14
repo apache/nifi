@@ -508,7 +508,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     }
 
     private FlowFile transformJsonLines(final Expression jsltExpression, final FlowFile original, final ProcessContext context, final ProcessSession session) {
-        final MultiLineTransformationStrategy multiLineTransformationStrategy = MultiLineTransformationStrategy.valueOf(context.getProperty(MULTILINE_TRANSFORMATION_STRATEGY).getValue());
+        final MultiLineTransformationStrategy multiLineTransformationStrategy = context.getProperty(MULTILINE_TRANSFORMATION_STRATEGY).asAllowableValue(MultiLineTransformationStrategy.class);
         final ObjectWriter writer = JSON_OBJECT_MAPPER.writer().withRootValueSeparator("\n");
         FlowFile transformed;
 
