@@ -19,7 +19,7 @@ import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { firstValueFrom } from 'rxjs';
@@ -105,7 +105,7 @@ class MockConnectorCanvasHeaderBarComponent {
     template: ''
 })
 class MockConnectorCanvasFooterComponent {
-    connectorId = input<string>('');
+    connectorId = input.required<string>();
 }
 
 @Component({
@@ -624,11 +624,41 @@ describe('ConnectorCanvasComponent', () => {
     });
 
     describe('Search navigation', () => {
-        it('should navigate with skipTransform=false when search result is in a different process group', fakeAsync(() => {
+        it('should select components when search result is in the current process group', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({ processGroupId: DEFAULT_PROCESS_GROUP_ID });
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            const selectSpy = vi.spyOn(component, 'onSelectComponents');
+            try {
+                component.onSearchGoToComponent({
+                    id: 'proc-1',
+                    type: ComponentType.Processor,
+                    groupId: DEFAULT_PROCESS_GROUP_ID
+                });
+            } catch (_e: unknown) {
+                // NG0951: viewChild.required for CanvasComponent is not resolvable in tests with mock overrides
+            }
+
+            expect(selectSpy).toHaveBeenCalledWith([{ id: 'proc-1', type: ComponentType.Processor }]);
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                selectComponents({
+                    request: {
+                        components: [{ id: 'proc-1', componentType: ComponentType.Processor }]
+                    }
+                })
+            );
+        }));
+
+        it('should dispatch skipTransform and navigate when search result is in a different process group', fakeAsync(() => {
             const { fixture, component, dispatchSpy } = setup();
             fixture.detectChanges();
             tick();
             dispatchSpy.mockClear();
+
+            const router = TestBed.inject(Router);
+            const navigateSpy = vi.spyOn(router, 'navigate');
 
             component.onSearchGoToComponent({
                 id: 'proc-2',
@@ -637,6 +667,14 @@ describe('ConnectorCanvasComponent', () => {
             });
 
             expect(dispatchSpy).toHaveBeenCalledWith(setSkipTransform({ skipTransform: false }));
+            expect(navigateSpy).toHaveBeenCalledWith([
+                '/connectors',
+                DEFAULT_CONNECTOR_ID,
+                'canvas',
+                'different-pg',
+                ComponentType.Processor,
+                'proc-2'
+            ]);
         }));
     });
 });

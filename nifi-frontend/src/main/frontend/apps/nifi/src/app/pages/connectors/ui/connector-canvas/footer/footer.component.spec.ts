@@ -15,12 +15,22 @@
  * limitations under the License.
  */
 
+import { Component, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { provideRouter } from '@angular/router';
 import { ConnectorCanvasFooterComponent } from './footer.component';
 import { BreadcrumbEntity } from '../../../../flow-designer/state/shared';
 import * as ConnectorCanvasSelectors from '../../../state/connector-canvas/connector-canvas.selectors';
+
+@Component({
+    standalone: true,
+    imports: [ConnectorCanvasFooterComponent],
+    template: `<connector-canvas-footer [connectorId]="connectorId()"></connector-canvas-footer>`
+})
+class TestHostComponent {
+    connectorId = input('connector-123');
+}
 
 interface SetupOptions {
     connectorId?: string;
@@ -45,7 +55,7 @@ async function setup(options: SetupOptions = {}) {
     const { connectorId = 'connector-123', breadcrumb = null, currentProcessGroupId = 'pg-123' } = options;
 
     await TestBed.configureTestingModule({
-        imports: [ConnectorCanvasFooterComponent],
+        imports: [TestHostComponent],
         providers: [
             provideRouter([]),
             provideMockStore({
@@ -58,13 +68,14 @@ async function setup(options: SetupOptions = {}) {
     }).compileComponents();
 
     const store = TestBed.inject(MockStore);
-    const fixture = TestBed.createComponent(ConnectorCanvasFooterComponent);
-    const component = fixture.componentInstance;
-    component.connectorId = connectorId;
+    const hostFixture = TestBed.createComponent(TestHostComponent);
+    hostFixture.componentRef.setInput('connectorId', connectorId);
+    hostFixture.detectChanges();
 
-    fixture.detectChanges();
+    const footerDebugEl = hostFixture.debugElement.children[0];
+    const component = footerDebugEl.componentInstance as ConnectorCanvasFooterComponent;
 
-    return { fixture, component, store };
+    return { fixture: hostFixture, component, store };
 }
 
 describe('ConnectorCanvasFooterComponent', () => {
@@ -80,14 +91,14 @@ describe('ConnectorCanvasFooterComponent', () => {
 
         it('should have connectorId input', async () => {
             const { component } = await setup({ connectorId: 'test-connector' });
-            expect(component.connectorId).toBe('test-connector');
+            expect(component.connectorId()).toBe('test-connector');
         });
     });
 
     describe('Route generation', () => {
         it('should generate correct route for connector canvas breadcrumbs', async () => {
             const { component } = await setup({ connectorId: 'my-connector' });
-            const routeGenerator = component.getRouteGenerator();
+            const routeGenerator = component.routeGenerator();
 
             const route = routeGenerator('process-group-abc');
 
@@ -95,12 +106,14 @@ describe('ConnectorCanvasFooterComponent', () => {
         });
 
         it('should use current connectorId in route generation', async () => {
-            const { component, fixture } = await setup({ connectorId: 'initial-connector' });
+            const { fixture } = await setup({ connectorId: 'initial-connector' });
 
-            component.connectorId = 'updated-connector';
+            fixture.componentRef.setInput('connectorId', 'updated-connector');
             fixture.detectChanges();
 
-            const routeGenerator = component.getRouteGenerator();
+            const footerDebugEl = fixture.debugElement.children[0];
+            const component = footerDebugEl.componentInstance as ConnectorCanvasFooterComponent;
+            const routeGenerator = component.routeGenerator();
             const route = routeGenerator('pg-456');
 
             expect(route).toEqual(['/connectors', 'updated-connector', 'canvas', 'pg-456']);

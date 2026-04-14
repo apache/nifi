@@ -129,16 +129,50 @@ describe('ConnectorCanvasHeaderBarComponent', () => {
     });
 
     describe('goToComponent output', () => {
-        it('should propagate goToComponent events from the search component', async () => {
+        it('should map onGoToComponent using parentGroup.id when available', async () => {
             const { hostFixture, host } = await setup();
 
             const headerBarEl = hostFixture.debugElement.children[0];
             const headerBarComponent = headerBarEl.componentInstance as ConnectorCanvasHeaderBarComponent;
 
-            const event = { id: 'p1', type: ComponentType.Processor, groupId: 'pg1' };
-            headerBarComponent.goToComponent.emit(event);
+            const result = {
+                id: 'p1',
+                groupId: 'fallback-pg',
+                parentGroup: { id: 'parent-pg', name: 'Parent' },
+                versionedGroup: { id: '', name: '' },
+                name: 'MyProcessor',
+                matches: []
+            };
+            headerBarComponent.onGoToComponent({ result, type: ComponentType.Processor });
 
-            expect(host.onGoTo).toHaveBeenCalledWith(event);
+            expect(host.onGoTo).toHaveBeenCalledWith({
+                id: 'p1',
+                type: ComponentType.Processor,
+                groupId: 'parent-pg'
+            });
+        });
+
+        it('should fall back to groupId when parentGroup is null', async () => {
+            const { hostFixture, host } = await setup();
+
+            const headerBarEl = hostFixture.debugElement.children[0];
+            const headerBarComponent = headerBarEl.componentInstance as ConnectorCanvasHeaderBarComponent;
+
+            const result = {
+                id: 'p2',
+                groupId: 'fallback-pg',
+                parentGroup: null as any,
+                versionedGroup: { id: '', name: '' },
+                name: 'AnotherProcessor',
+                matches: []
+            };
+            headerBarComponent.onGoToComponent({ result, type: ComponentType.Processor });
+
+            expect(host.onGoTo).toHaveBeenCalledWith({
+                id: 'p2',
+                type: ComponentType.Processor,
+                groupId: 'fallback-pg'
+            });
         });
     });
 

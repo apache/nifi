@@ -17,7 +17,7 @@
 
 import { NgClass } from '@angular/common';
 import { Component, inject, input, output } from '@angular/core';
-import { Observable } from 'rxjs';
+import { EMPTY, Observable } from 'rxjs';
 import { ComponentSearchResult, SearchResultsEntity } from '../../../../../state/shared';
 import { ComponentType } from '@nifi/shared';
 import { ConnectorService } from '../../../service/connector.service';
@@ -41,10 +41,15 @@ export class ConnectorCanvasHeaderBarComponent {
     goToComponent = output<{ id: string; type: ComponentType; groupId: string }>();
     toggleGraphControls = output<void>();
 
-    protected searchFn = (query: string): Observable<SearchResultsEntity> =>
-        this.connectorService.searchConnector(this.connectorId(), query);
+    protected searchFn = (query: string): Observable<SearchResultsEntity> => {
+        const connectorId = this.connectorId();
+        if (!connectorId) {
+            return EMPTY;
+        }
+        return this.connectorService.searchConnector(connectorId, query);
+    };
 
-    protected onGoToComponent(event: { result: ComponentSearchResult; type: ComponentType }): void {
+    onGoToComponent(event: { result: ComponentSearchResult; type: ComponentType }): void {
         this.goToComponent.emit({
             id: event.result.id,
             type: event.type,

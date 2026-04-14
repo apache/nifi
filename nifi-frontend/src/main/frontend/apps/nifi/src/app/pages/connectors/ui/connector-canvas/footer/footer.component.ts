@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject, Input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { AsyncPipe } from '@angular/common';
 import { Breadcrumbs, BreadcrumbRouteGenerator } from '../../../../../ui/common/breadcrumbs/breadcrumbs.component';
@@ -30,12 +30,13 @@ import { selectBreadcrumbs, selectProcessGroupId } from '../../../state/connecto
 export class ConnectorCanvasFooterComponent {
     private store = inject(Store);
 
-    @Input({ required: true }) connectorId = '';
+    connectorId = input.required<string>();
 
     breadcrumbs$ = this.store.select(selectBreadcrumbs);
     currentProcessGroupId$ = this.store.select(selectProcessGroupId);
 
-    getRouteGenerator(): BreadcrumbRouteGenerator {
-        return (processGroupId: string) => ['/connectors', this.connectorId, 'canvas', processGroupId];
-    }
+    routeGenerator = computed<BreadcrumbRouteGenerator>(() => {
+        const id = this.connectorId();
+        return (processGroupId: string) => ['/connectors', id, 'canvas', processGroupId];
+    });
 }

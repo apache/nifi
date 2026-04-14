@@ -208,7 +208,7 @@
                 }
                 <span class="font-medium">{{ header }}</span>
             </li>
-            @for (result of results; track $index) {
+            @for (result of results; track result.id) {
                 <li class="ml-4 py-1 flex gap-x-2 items-center" role="option">
                     <i
                         class="fa fa-info-circle"

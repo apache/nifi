@@ -27,8 +27,7 @@ import {
     viewChild
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { EMPTY, Observable } from 'rxjs';
-import { catchError, debounceTime, filter, switchMap, tap } from 'rxjs';
+import { catchError, debounceTime, EMPTY, filter, Observable, switchMap, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     CdkConnectedOverlay,
@@ -40,7 +39,6 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentSearchResult, SearchMatchTipInput, SearchResults, SearchResultsEntity } from '../../../state/shared';
 import { ComponentType, NifiTooltipDirective } from '@nifi/shared';
 import { SearchMatchTip } from '../tooltips/search-match-tip/search-match-tip.component';
@@ -109,7 +107,7 @@ export class CanvasHeaderSearchComponent {
                 tap(() => this.searching.set(true)),
                 switchMap((query) =>
                     this.searchFn()(query).pipe(
-                        catchError((_err: HttpErrorResponse) => {
+                        catchError((_err: unknown) => {
                             this.searchingResultsVisible.set(false);
                             this.searching.set(false);
                             return EMPTY;
