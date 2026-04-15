@@ -28,8 +28,8 @@ import java.util.Map;
  * such as database connection strings or other external store configuration.
  *
  * <p>Properties are extracted from NiFi properties with the prefix
- * {@code nifi.components.connectors.configuration.provider.} stripped. For example,
- * a NiFi property {@code nifi.components.connectors.configuration.provider.db.url=jdbc:...}
+ * {@code nifi.connector.configuration.provider.properties.} stripped. For example,
+ * a NiFi property {@code nifi.connector.configuration.provider.properties.db.url=jdbc:...}
  * becomes {@code db.url=jdbc:...} in the returned map.</p>
  */
 public interface ConnectorConfigurationProviderInitializationContext {

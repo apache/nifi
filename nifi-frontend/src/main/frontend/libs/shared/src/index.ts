@@ -21,3 +21,5 @@ export * from './pipes';
 export * from './services';
 export * from './state';
 export * from './types';
+export * from './utils/connector-permissions.utils';
+export * from './utils/connector-validation.utils';

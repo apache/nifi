@@ -22,6 +22,8 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -82,7 +84,15 @@ public class Format extends RecordPathSegment {
 
                     final ZonedDateTime dateTime = instant.atZone(zoneId);
                     final String formatted = dateTimeFormatter.format(dateTime);
-                    return new StandardFieldValue(formatted, fv.getField(), fv.getParent().orElse(null));
+                    final RecordField originalField = fv.getField();
+                    final RecordField stringField;
+                    if (originalField != null) {
+                        stringField = new RecordField(originalField.getFieldName(), RecordFieldType.STRING.getDataType(),
+                            null, originalField.getAliases(), false);
+                    } else {
+                        stringField = new RecordField("format", RecordFieldType.STRING.getDataType());
+                    }
+                    return new StandardFieldValue(formatted, stringField, fv.getParent().orElse(null));
                 });
     }
 

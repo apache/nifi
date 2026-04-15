@@ -974,7 +974,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(SecretsManager.class), false);
             final SecretsManager created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, SecretsManager.class, properties);
 
-            final SecretsManagerInitializationContext initializationContext = new StandardSecretsManagerInitializationContext(flowManager);
+            final Map<String, String> secretsManagerProperties = new HashMap<>();
+            final String cacheDuration = properties.getProperty(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION);
+            if (cacheDuration != null) {
+                secretsManagerProperties.put(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION, cacheDuration);
+            }
+            final SecretsManagerInitializationContext initializationContext = new StandardSecretsManagerInitializationContext(flowManager, secretsManagerProperties);
 
             synchronized (created) {
                 // Ensure that any NAR dependencies are available when we initialize the ConnectorRepository

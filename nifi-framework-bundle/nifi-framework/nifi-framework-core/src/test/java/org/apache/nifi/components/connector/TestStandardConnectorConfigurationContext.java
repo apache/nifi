@@ -17,24 +17,45 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
-import java.util.Collections;
+import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorConfigurationContext {
+
+    private static final String PROVIDER_1_ID = "provider-1";
+    private static final String PROVIDER_1_NAME = "Provider1";
+    private static final String PROVIDER_2_ID = "provider-2";
+    private static final String PROVIDER_2_NAME = "Provider2";
+
+    private static final String SECRET_VALUE_1 = "resolved-value-1";
+    private static final String SECRET_VALUE_2 = "resolved-value-2";
+    private static final String SECRET_VALUE_3 = "resolved-value-3";
+    private static final String PLAIN_VALUE = "plainValue";
+    private static final String ASSET_PATH = "/path/to/asset";
+
+    private static final SecretReference SECRET_REF_1 = new SecretReference(PROVIDER_1_ID, PROVIDER_1_NAME, "secret1", "Provider1.group.secret1");
+    private static final SecretReference SECRET_REF_2 = new SecretReference(PROVIDER_1_ID, PROVIDER_1_NAME, "secret2", "Provider1.group.secret2");
+    private static final SecretReference SECRET_REF_3 = new SecretReference(PROVIDER_2_ID, PROVIDER_2_NAME, "secret3", "Provider2.group.secret3");
+
     private StandardConnectorConfigurationContext context;
 
     @BeforeEach
@@ -51,6 +72,12 @@ public class TestStandardConnectorConfigurationContext {
             valueReferences.put(entry.getKey(), value == null ? null : new StringLiteralValue(value));
         }
         return new StepConfiguration(valueReferences);
+    }
+
+    private static Secret mockSecret(final String value) {
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn(value);
+        return secret;
     }
 
     @Test
@@ -218,39 +245,161 @@ public class TestStandardConnectorConfigurationContext {
 
     @Test
     public void testResolvePropertyValuesResolvesSecretsThatWereInitiallyUnresolvable() {
-        final String providerId = "provider-1";
-        final String providerName = "TestProvider";
-        final String secretName = "mySecret";
-        final String fullyQualifiedName = "TestProvider.mySecret";
-        final String secretValue = "super-secret-value";
-
-        final SecretProvider secretProvider = mock(SecretProvider.class);
-        when(secretProvider.getProviderId()).thenReturn(providerId);
-        when(secretProvider.getProviderName()).thenReturn(providerName);
-
-        final Secret secret = mock(Secret.class);
-        when(secret.getValue()).thenReturn(secretValue);
-        when(secretProvider.getSecrets(List.of(fullyQualifiedName))).thenReturn(List.of(secret));
+        final Secret secret = mockSecret(SECRET_VALUE_1);
 
         final SecretsManager secretsManager = mock(SecretsManager.class);
-        when(secretsManager.getSecretProviders()).thenReturn(Collections.emptySet());
+        when(secretsManager.getSecrets(anySet()))
+            .thenReturn(Map.of())
+            .thenReturn(Map.of(SECRET_REF_1, secret));
 
-        final AssetManager assetManager = mock(AssetManager.class);
-        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(assetManager, secretsManager);
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
 
-        final SecretReference secretRef = new SecretReference(providerId, providerName, secretName, fullyQualifiedName);
         final Map<String, ConnectorValueReference> properties = new HashMap<>();
-        properties.put("plainProp", new StringLiteralValue("plainValue"));
-        properties.put("secretProp", secretRef);
-        testContext.setProperties("authStep", new StepConfiguration(properties));
+        properties.put("plain", new StringLiteralValue(PLAIN_VALUE));
+        properties.put("secret", SECRET_REF_1);
+        testContext.setProperties("step1", new StepConfiguration(properties));
 
-        assertEquals("plainValue", testContext.getProperty("authStep", "plainProp").getValue());
-        assertNull(testContext.getProperty("authStep", "secretProp").getValue());
+        assertEquals(PLAIN_VALUE, testContext.getProperty("step1", "plain").getValue());
+        assertNull(testContext.getProperty("step1", "secret").getValue());
 
-        when(secretsManager.getSecretProviders()).thenReturn(Set.of(secretProvider));
         testContext.resolvePropertyValues();
 
-        assertEquals("plainValue", testContext.getProperty("authStep", "plainProp").getValue());
-        assertEquals(secretValue, testContext.getProperty("authStep", "secretProp").getValue());
+        assertEquals(PLAIN_VALUE, testContext.getProperty("step1", "plain").getValue());
+        assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret").getValue());
+    }
+
+    @Test
+    public void testSetPropertiesBatchesSecretResolution() {
+        final Secret secret1 = mockSecret(SECRET_VALUE_1);
+        final Secret secret2 = mockSecret(SECRET_VALUE_2);
+
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(SECRET_REF_1, secret1, SECRET_REF_2, secret2));
+
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
+
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("plain", new StringLiteralValue(PLAIN_VALUE));
+        properties.put("secret1", SECRET_REF_1);
+        properties.put("secret2", SECRET_REF_2);
+        testContext.setProperties("step1", new StepConfiguration(properties));
+
+        assertEquals(PLAIN_VALUE, testContext.getProperty("step1", "plain").getValue());
+        assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret1").getValue());
+        assertEquals(SECRET_VALUE_2, testContext.getProperty("step1", "secret2").getValue());
+        verify(secretsManager, times(1)).getSecrets(anySet());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testResolvePropertyValuesBatchesAcrossAllSteps() {
+        final Secret secret1 = mockSecret(SECRET_VALUE_1);
+        final Secret secret3 = mockSecret(SECRET_VALUE_3);
+
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(SECRET_REF_1, secret1, SECRET_REF_3, secret3));
+
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
+
+        final Map<String, ConnectorValueReference> step1Props = new HashMap<>();
+        step1Props.put("secret1", SECRET_REF_1);
+        testContext.setProperties("step1", new StepConfiguration(step1Props));
+
+        final Map<String, ConnectorValueReference> step2Props = new HashMap<>();
+        step2Props.put("secret3", SECRET_REF_3);
+        testContext.setProperties("step2", new StepConfiguration(step2Props));
+
+        verify(secretsManager, times(2)).getSecrets(anySet());
+
+        testContext.resolvePropertyValues();
+
+        final ArgumentCaptor<Set<SecretReference>> captor = ArgumentCaptor.forClass(Set.class);
+        verify(secretsManager, times(3)).getSecrets(captor.capture());
+        assertEquals(Set.of(SECRET_REF_1, SECRET_REF_3), captor.getAllValues().get(2));
+
+        assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret1").getValue());
+        assertEquals(SECRET_VALUE_3, testContext.getProperty("step2", "secret3").getValue());
+    }
+
+    @Test
+    public void testMixedPropertyTypesResolvedCorrectly() {
+        final AssetReference assetRef = new AssetReference(Set.of("asset-1"));
+
+        final Secret secret = mockSecret(SECRET_VALUE_1);
+
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(SECRET_REF_1, secret));
+
+        final Asset asset = mock(Asset.class);
+        final File assetFile = mock(File.class);
+        when(assetFile.getAbsolutePath()).thenReturn(ASSET_PATH);
+        when(asset.getFile()).thenReturn(assetFile);
+
+        final AssetManager assetManager = mock(AssetManager.class);
+        when(assetManager.getAsset("asset-1")).thenReturn(Optional.of(asset));
+
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(assetManager, secretsManager);
+
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("plain", new StringLiteralValue(PLAIN_VALUE));
+        properties.put("secret", SECRET_REF_1);
+        properties.put("asset", assetRef);
+        testContext.setProperties("step1", new StepConfiguration(properties));
+
+        assertEquals(PLAIN_VALUE, testContext.getProperty("step1", "plain").getValue());
+        assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret").getValue());
+        assertEquals(ASSET_PATH, testContext.getProperty("step1", "asset").getValue());
+    }
+
+    @Test
+    public void testUnresolvableSecretReferenceMapsToNull() {
+        final Map<SecretReference, Secret> resultWithNull = new HashMap<>();
+        resultWithNull.put(SECRET_REF_1, null);
+
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getSecrets(anySet())).thenReturn(resultWithNull);
+
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
+
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("secret", SECRET_REF_1);
+        testContext.setProperties("step1", new StepConfiguration(properties));
+
+        assertNull(testContext.getProperty("step1", "secret").getValue());
+    }
+
+    @Test
+    public void testNoSecretReferencesDoesNotCallGetSecrets() {
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
+
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("plain1", new StringLiteralValue("value1"));
+        properties.put("plain2", new StringLiteralValue("value2"));
+        testContext.setProperties("step1", new StepConfiguration(properties));
+
+        assertEquals("value1", testContext.getProperty("step1", "plain1").getValue());
+        assertEquals("value2", testContext.getProperty("step1", "plain2").getValue());
+        verify(secretsManager, never()).getSecrets(anySet());
+    }
+
+    @Test
+    public void testReplacePropertiesBatchesSecretResolution() {
+        final Secret secret1 = mockSecret(SECRET_VALUE_1);
+        final Secret secret2 = mockSecret(SECRET_VALUE_2);
+
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(SECRET_REF_1, secret1, SECRET_REF_2, secret2));
+
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
+
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("secret1", SECRET_REF_1);
+        properties.put("secret2", SECRET_REF_2);
+        testContext.replaceProperties("step1", new StepConfiguration(properties));
+
+        assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret1").getValue());
+        assertEquals(SECRET_VALUE_2, testContext.getProperty("step1", "secret2").getValue());
+        verify(secretsManager, times(1)).getSecrets(anySet());
     }
 }

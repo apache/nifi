@@ -60,7 +60,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     name: Validate Pull Request
-    if: github.event_name == 'pull_request' && github.repository == 'apache/nifi'
+    if: github.event_name == 'pull_request' && github.repository == 'apache/nifi' && github.actor != 'dependabot[bot]'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -107,12 +107,13 @@ jobs:
           COMMIT_COUNT: ${{ github.event.pull_request.commits }}
           GITHUB_EVENT_ACTION: ${{ github.event.action }}
         run: .github/scripts/build/validate-single-commit.sh
-      - name: Evaluate Validation Results
+      - name: Validation Results
         env:
           VALIDATION_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
         run: |
           if [[ "${VALIDATION_FAILED}" == "true" ]]; then
-            echo "::error::Pull request validation failed"
+            RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "::error::Pull request validation failed. Review workflow run: ${RUN_URL}"
             exit 1
           fi
 
@@ -138,7 +139,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
       - name: Cache Node Modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
@@ -151,11 +152,11 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
         id: changes
         with:
           filters: |
@@ -213,7 +214,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
       - name: Cache Node Modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
@@ -226,11 +227,11 @@ jobs:
           java-version: '25'
           cache: 'maven'
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
         id: changes
         with:
           filters: |
@@ -282,7 +283,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
       - name: Cache Node Modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
@@ -295,11 +296,11 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
         id: changes
         with:
           filters: |
@@ -361,7 +362,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
       - name: Cache Node Modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~\AppData\npm-cache
@@ -374,7 +375,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
         id: changes
         with:
           filters: |

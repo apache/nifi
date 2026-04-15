@@ -741,6 +741,62 @@ public class TestFlowDifferenceFilters {
     }
 
     @Test
+    public void testPropertySetByUserOnProcessorIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Table";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name(propertyName).build()));
+
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(propertyName);
+        versionedDescriptor.setDisplayName(propertyName);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setPropertyDescriptors(Map.of(propertyName, versionedDescriptor));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, "userValue", "Property set by user");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testPropertySetByUserOnControllerServiceIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ControllerServiceNode controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Service Property";
+        final String instanceId = "service-instance";
+
+        Mockito.when(flowManager.getControllerServiceNode(instanceId)).thenReturn(controllerServiceNode);
+        Mockito.when(controllerServiceNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name(propertyName).build()));
+
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(propertyName);
+        versionedDescriptor.setDisplayName(propertyName);
+
+        final VersionedControllerService registryService = new VersionedControllerService();
+        registryService.setPropertyDescriptors(Map.of(propertyName, versionedDescriptor));
+
+        final InstantiatedVersionedControllerService localService = new InstantiatedVersionedControllerService(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryService, localService, propertyName, null, "userValue", "Property set by user");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
     public void testIsComponentUpdateRequiredForPositionChange() {
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
         final VersionedProcessor processorA = new VersionedProcessor();

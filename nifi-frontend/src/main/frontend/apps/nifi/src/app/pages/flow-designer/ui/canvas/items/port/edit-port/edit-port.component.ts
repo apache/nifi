@@ -28,10 +28,9 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
-import { ComponentType, NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import { ComponentType, NifiSpinnerDirective, NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 @Component({

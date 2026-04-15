@@ -1,0 +1,196 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<div class="connector-configuration-summary-step flex flex-col h-full">
+    <div class="flex-1 flex w-full p-8 justify-center items-start overflow-y-auto">
+        <div class="flex flex-col gap-y-8 w-full max-w-[800px]">
+            @if (loading()) {
+                <!-- Skeleton loader for step sections -->
+                <div class="flex flex-col gap-y-6">
+                    @for (step of skeletonSteps; track step) {
+                        <section class="flex flex-col gap-y-4">
+                            <!-- Step name skeleton -->
+                            <div>
+                                <ngx-skeleton-loader
+                                    [theme]="{ width: '180px', height: '24px', borderRadius: '4px' }"
+                                    data-qa="step-name-skeleton">
+                                </ngx-skeleton-loader>
+                            </div>
+
+                            <!-- Property group card skeleton -->
+                            <mat-card appearance="outlined" class="p-4">
+                                <!-- Card header skeleton -->
+                                <ngx-skeleton-loader
+                                    [theme]="{
+                                        width: '240px',
+                                        height: '20px',
+                                        borderRadius: '4px',
+                                        marginBottom: '16px'
+                                    }"
+                                    data-qa="group-name-skeleton">
+                                </ngx-skeleton-loader>
+
+                                <!-- Property grid skeleton -->
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
+                                    @for (prop of skeletonProperties; track prop) {
+                                        <div class="flex flex-col gap-y-2">
+                                            <ngx-skeleton-loader
+                                                [theme]="{ width: '80px', height: '14px', borderRadius: '4px' }"
+                                                data-qa="property-label-skeleton">
+                                            </ngx-skeleton-loader>
+                                            <ngx-skeleton-loader
+                                                [theme]="{ width: '120px', height: '18px', borderRadius: '4px' }"
+                                                data-qa="property-value-skeleton">
+                                            </ngx-skeleton-loader>
+                                        </div>
+                                    }
+                                </div>
+                            </mat-card>
+                        </section>
+                    }
+                </div>
+            } @else if (workingConfiguration()) {
+                <!-- Header -->
+                <div class="flex flex-col gap-y-2">
+                    <div class="font-bold text-xl leading-6 flex" data-qa="summary-title">Configuration Summary</div>
+                    <p class="tertiary-color" data-qa="summary-description">
+                        Review your configuration before applying changes.
+                    </p>
+                </div>
+
+                @if (verifyAllError()) {
+                    <error-banner
+                        [messages]="[verifyAllError()!]"
+                        [allowDismiss]="false"
+                        data-qa="verify-all-error-banner">
+                    </error-banner>
+                }
+
+                <!-- Verify All Steps -->
+                <button
+                    aria-label="Verify All Steps"
+                    mat-flat-button
+                    class="w-full"
+                    [disabled]="loading() || applying() || verifying()"
+                    (click)="onVerify()"
+                    data-qa="verify-button"
+                    data-action-name="connector-wizard-summary-verify">
+                    <span *nifiSpinner="verifying()"> Verify All Steps </span>
+                </button>
+
+                <!-- Actual content - only visible steps with filtered properties -->
+                <div class="flex flex-col gap-y-6">
+                    @for (stepConfig of filteredVisibleSteps(); track stepConfig.configurationStepName) {
+                        @let stepStatus = getStepVerificationStatus(stepConfig.configurationStepName);
+                        <section class="flex flex-col gap-y-4" data-qa="step-section">
+                            <div class="flex items-center justify-between">
+                                <div class="text-xl font-bold" data-qa="step-name">
+                                    {{ stepConfig.configurationStepName }}
+                                </div>
+                                @switch (stepStatus) {
+                                    @case ('passed') {
+                                        <i
+                                            class="fa fa-check-circle step-status-icon success-color-default"
+                                            matTooltip="Verification passed"
+                                            aria-label="Verification passed"
+                                            data-qa="step-passed-icon"></i>
+                                    }
+                                    @case ('failed') {
+                                        <i
+                                            class="fa fa-times-circle step-status-icon error-color"
+                                            matTooltip="Verification failed"
+                                            aria-label="Verification failed"
+                                            data-qa="step-failed-icon"></i>
+                                    }
+                                    @case ('skipped') {
+                                        <i
+                                            class="fa fa-minus-circle step-status-icon tertiary-color"
+                                            matTooltip="Verification skipped"
+                                            aria-label="Verification skipped"
+                                            data-qa="step-skipped-icon"></i>
+                                    }
+                                }
+                            </div>
+
+                            @let generalMessages = getGeneralErrorMessages(stepConfig.configurationStepName);
+                            @if (generalMessages.length > 0) {
+                                <error-banner
+                                    [messages]="generalMessages"
+                                    [allowDismiss]="false"
+                                    data-qa="step-general-verification-errors">
+                                </error-banner>
+                            }
+
+                            @for (group of stepConfig.propertyGroupConfigurations; track group.propertyGroupName) {
+                                <property-group-card
+                                    [propertyGroup]="group"
+                                    [hideGroupName]="stepConfig.propertyGroupConfigurations.length === 1"
+                                    [verificationErrors]="getStepErrors(stepConfig.configurationStepName)">
+                                </property-group-card>
+                            }
+                        </section>
+                    }
+                </div>
+            } @else {
+                <!-- Empty state (shouldn't happen normally) -->
+                <div class="flex flex-col items-center justify-center p-8 gap-y-4" data-qa="empty-state">
+                    <i class="fa fa-info-circle text-4xl" aria-hidden="true"></i>
+                    <p class="tertiary-color">No configuration data available.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Action Buttons - matching the configuration step layout -->
+    <div class="step-buttons flex justify-between py-4 px-6 border-t" data-qa="step-actions">
+        <div class="flex gap-x-4">
+            <button
+                aria-label="Close"
+                mat-button
+                [disabled]="applying() || verifying()"
+                (click)="onDismiss()"
+                data-qa="close-button"
+                data-action-name="connector-wizard-summary-close">
+                Close
+            </button>
+        </div>
+        <div class="flex gap-x-4">
+            <button
+                aria-label="Back"
+                mat-button
+                [disabled]="loading() || applying() || verifying()"
+                (click)="onPrevious()"
+                data-qa="back-button"
+                data-action-name="connector-wizard-summary-back">
+                Back
+            </button>
+            <button
+                aria-label="Apply"
+                mat-flat-button
+                [disabled]="applyDisabled()"
+                [matTooltipDisabled]="applyTooltip() === ''"
+                [matTooltip]="applyTooltip()"
+                matTooltipPosition="left"
+                (click)="onConfirm()"
+                data-qa="apply-button"
+                data-action-name="connector-wizard-summary-apply">
+                <span *nifiSpinner="applying()"> Apply </span>
+            </button>
+        </div>
+    </div>
+</div>

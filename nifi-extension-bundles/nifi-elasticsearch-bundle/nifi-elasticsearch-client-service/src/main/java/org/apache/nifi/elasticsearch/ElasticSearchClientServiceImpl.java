@@ -27,6 +27,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
@@ -68,6 +69,7 @@ import org.elasticsearch.client.sniff.Sniffer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URI;
@@ -202,7 +204,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private void createObjectMapper(final ConfigurationContext context) {
         mapper = new ObjectMapper();
         if (ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
-            mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
             mapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY);
         }
         prettyPrintWriter = mapper.writerWithDefaultPrettyPrinter();
@@ -624,6 +625,19 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return bulk(Collections.singletonList(operation), elasticsearchRequestOptions);
     }
 
+    /**
+     * ByteArrayOutputStream subclass that exposes the internal buffer without a defensive copy,
+     * allowing zero-copy construction of ByteArrayEntity.
+     */
+    private static final class ExposedByteArrayOutputStream extends ByteArrayOutputStream {
+        byte[] buf() {
+            return buf;
+        }
+        int count() {
+            return count;
+        }
+    }
+
     private String flatten(final String str) {
         return str.replaceAll("[\\n\\r]", "\\\\n");
     }
@@ -656,13 +670,18 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return flatten(mapper.writeValueAsString(Collections.singletonMap(operation, operationBody)));
     }
 
-    protected void buildRequest(final IndexOperationRequest request, final StringBuilder builder) throws JsonProcessingException {
+    protected void buildRequest(final IndexOperationRequest request, final OutputStream out) throws IOException {
         final String header = buildBulkHeader(request);
-        builder.append(header).append("\n");
+        out.write(header.getBytes(StandardCharsets.UTF_8));
+        out.write('\n');
         switch (request.getOperation()) {
             case Index, Create:
-                final String indexDocument = mapper.writeValueAsString(request.getFields());
-                builder.append(indexDocument).append("\n");
+                if (request.getRawJsonBytes() != null) {
+                    out.write(request.getRawJsonBytes());
+                } else {
+                    mapper.writeValue(out, request.getFields());
+                }
+                out.write('\n');
                 break;
             case Update, Upsert:
                 final Map<String, Object> updateBody = new HashMap<>(2, 1);
@@ -678,9 +697,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                         updateBody.put("doc_as_upsert", true);
                     }
                 }
-
                 final String update = flatten(mapper.writeValueAsString(updateBody)).trim();
-                builder.append(update).append("\n");
+                out.write(update.getBytes(StandardCharsets.UTF_8));
+                out.write('\n');
                 break;
             case Delete:
                 // nothing to do for Delete operations, it just needs the header
@@ -691,15 +710,15 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     @Override
     public IndexOperationResponse bulk(final List<IndexOperationRequest> operations, final ElasticsearchRequestOptions elasticsearchRequestOptions) {
         try {
-            final StringBuilder payload = new StringBuilder();
+            final ExposedByteArrayOutputStream payload = new ExposedByteArrayOutputStream();
             for (final IndexOperationRequest or : operations) {
                 buildRequest(or, payload);
             }
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug("{}", payload);
+                getLogger().debug("{}", payload.toString(StandardCharsets.UTF_8));
             }
-            final HttpEntity entity = new NStringEntity(payload.toString(), ContentType.APPLICATION_JSON);
+            final HttpEntity entity = new ByteArrayEntity(payload.buf(), 0, payload.count(), ContentType.APPLICATION_JSON);
             final StopWatch watch = new StopWatch();
             watch.start();
             final Response response = performRequest("POST", "/_bulk", elasticsearchRequestOptions, entity);

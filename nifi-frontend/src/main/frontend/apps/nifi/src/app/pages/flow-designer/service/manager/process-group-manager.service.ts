@@ -31,7 +31,7 @@ import {
 } from '../../state/flow/flow.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
-import { VersionControlTip } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
+import { VersionControlTip } from '../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { Dimension } from '../../state/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';

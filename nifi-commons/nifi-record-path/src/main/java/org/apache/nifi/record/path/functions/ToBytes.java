@@ -21,6 +21,7 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -50,14 +51,25 @@ public class ToBytes extends RecordPathSegment {
 
                     final Charset charset = getCharset(this.charsetSegment, context);
 
+                    final RecordField originalField = fv.getField();
+                    final String fieldName = originalField != null ? originalField.getFieldName() : "toBytes";
                     final byte[] bytesValue;
-                    Byte[] src = (Byte[]) DataTypeUtils.toArray(fv.getValue(), fv.getField().getFieldName(), RecordFieldType.BYTE.getDataType(), charset);
+                    Byte[] src = (Byte[]) DataTypeUtils.toArray(fv.getValue(), fieldName, RecordFieldType.BYTE.getDataType(), charset);
                     bytesValue = new byte[src.length];
                     for (int i = 0; i < src.length; i++) {
                         bytesValue[i] = src[i];
                     }
 
-                    return new StandardFieldValue(bytesValue, fv.getField(), fv.getParent().orElse(null));
+                    final RecordField bytesField;
+                    if (originalField != null) {
+                        bytesField = new RecordField(originalField.getFieldName(),
+                            RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),
+                            null, originalField.getAliases(), false);
+                    } else {
+                        bytesField = new RecordField("toBytes",
+                            RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()));
+                    }
+                    return new StandardFieldValue(bytesValue, bytesField, fv.getParent().orElse(null));
                 });
     }
 

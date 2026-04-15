@@ -17,7 +17,8 @@
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { extensionTypesFeatureKey, ExtensionTypesState, LoadExtensionTypesForDocumentationResponse } from './index';
-import { Bundle, DocumentedType, RequiredPermission } from '../shared';
+import { DocumentedType, RequiredPermission } from '../shared';
+import { Bundle } from '@nifi/shared';
 
 export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
 

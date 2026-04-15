@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Bundle, RegistryClientEntity } from '../../../../state/shared';
-import { Revision } from '@nifi/shared';
+import { RegistryClientEntity } from '../../../../state/shared';
+import { Bundle, Revision } from '@nifi/shared';
 
 export const registryClientsFeatureKey = 'registryClients';
 

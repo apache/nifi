@@ -126,6 +126,26 @@ export class ExtensionTypesEffects {
         )
     );
 
+    loadExtensionTypesForConnectors$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ExtensionTypesActions.loadExtensionTypesForConnectors),
+            switchMap(() =>
+                this.extensionTypesService.getConnectorTypes().pipe(
+                    map((connectorTypesResponse) =>
+                        ExtensionTypesActions.loadExtensionTypesForConnectorsSuccess({
+                            response: {
+                                connectorTypes: connectorTypesResponse.connectorTypes
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse }))
+                    )
+                )
+            )
+        )
+    );
+
     loadExtensionTypesForDocumentation$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ExtensionTypesActions.loadExtensionTypesForDocumentation),

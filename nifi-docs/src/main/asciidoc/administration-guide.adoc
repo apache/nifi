@@ -3808,6 +3808,18 @@ The NiFi Registry NAR provider retrieves NARs from a NiFi Registry instance. In 
 |`nifi.nar.library.provider.nifi-registry.url`| The URL of the NiFi Registry instance, such as `http://localhost:18080`. If the URL begins with `https`, then the NiFi keystore and truststore will be used to make the TLS connection.
 |====
 
+[[secrets_manager_properties]]
+=== Secrets Manager Properties
+
+These properties configure the Secrets Manager, which is responsible for resolving secrets used by Connectors.
+The Secrets Manager delegates to Parameter Providers to retrieve secret values.
+
+|====
+|*Property*|*Description*
+|`nifi.secrets.manager.implementation`|The fully qualified class name of the Secrets Manager implementation. Defaults to `org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager`.
+|`nifi.secrets.manager.cache.duration`|The duration for which resolved secret values are cached before being refreshed from the underlying Parameter Providers. Accepts any NiFi time duration value such as `5 mins`, `30 secs`, etc. A value of `0 sec` disables caching entirely. Defaults to `5 mins`.
+|====
+
 [[upgrading_nifi]]
 == Upgrading NiFi
 

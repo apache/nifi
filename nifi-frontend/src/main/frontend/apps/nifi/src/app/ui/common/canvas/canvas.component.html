@@ -1,0 +1,237 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div
+    class="canvas-background select-none flex h-full w-full"
+    [cdkContextMenuTriggerFor]="menuProvider() ? contextMenuComponent()?.menu : null"
+    #contextMenuTrigger="cdkContextMenuTriggerFor">
+    <svg #canvasSvg class="flex w-full h-full canvas-svg">
+        <!-- SVG Definitions: Filters and Markers -->
+        <defs>
+            <!-- Arrow markers for connection line types -->
+            <marker
+                id="normal"
+                viewBox="0 0 6 6"
+                refX="5"
+                refY="3"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+                class="neutral-contrast">
+                <path d="M2,3 L0,6 L6,3 L0,0 z" />
+            </marker>
+            <marker
+                id="ghost"
+                viewBox="0 0 6 6"
+                refX="5"
+                refY="3"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+                class="ghost neutral-color">
+                <path d="M2,3 L0,6 L6,3 L0,0 z" />
+            </marker>
+            <marker
+                id="unauthorized"
+                viewBox="0 0 6 6"
+                refX="5"
+                refY="3"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+                class="unauthorized error-color">
+                <path d="M2,3 L0,6 L6,3 L0,0 z" />
+            </marker>
+            <marker
+                id="full"
+                viewBox="0 0 6 6"
+                refX="5"
+                refY="3"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+                class="full error-color">
+                <path d="M2,3 L0,6 L6,3 L0,0 z" />
+            </marker>
+
+            <!-- Component drop shadow filter -->
+            <filter id="component-drop-shadow" height="140%" y="-20%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+                <feOffset in="blur" dx="0" dy="1" result="offsetBlur" />
+                <feFlood flood-opacity="0.4" result="offsetColor" />
+                <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetColorBlur" />
+                <feMerge>
+                    <feMergeNode in="offsetColorBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+
+            <!-- Connection full drop shadow filter (for full backpressure connections) -->
+            <filter id="connection-full-drop-shadow" height="140%" y="-20%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+                <feOffset in="blur" dx="0" dy="1" result="offsetBlur" />
+                <feFlood flood-opacity="1" result="offsetColor" />
+                <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetColorBlur" />
+                <feMerge>
+                    <feMergeNode in="offsetColorBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+
+        <!-- Layer ordering follows existing canvas: labels, funnels, ports, remote process groups, process groups, processors, connections -->
+        <g class="canvas" [attr.visibility]="viewportReady() ? null : 'hidden'">
+            <!-- 1. Label Layer (bottom) -->
+            <g
+                #labelLayer
+                canvas-label-layer
+                [labels]="internalLabels()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [nifiCommon]="nifiCommon"
+                [canEdit]="(canEdit$ | async) !== false"
+                [disabledLabelIds]="disabledLabelIds()"
+                [canSelect]="(canSelect$ | async) !== false"
+                (labelClick)="onLabelClick($event)"
+                (labelDoubleClick)="onLabelDoubleClick($event)"
+                (labelResizeEnd)="onLabelResizeEnd($event)"
+                (labelDragEnd)="onLabelDragEnd($event)"></g>
+
+            <!-- 2. Funnel Layer -->
+            <g
+                #funnelLayer
+                canvas-funnel-layer
+                [funnels]="internalFunnels()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [canEdit]="(canEdit$ | async) !== false"
+                [disabledFunnelIds]="disabledFunnelIds()"
+                [canSelect]="(canSelect$ | async) !== false"
+                (funnelClick)="onFunnelClick($event)"
+                (funnelDoubleClick)="onFunnelDoubleClick($event)"
+                (funnelDragEnd)="onFunnelDragEnd($event)"></g>
+
+            <!-- 3. Port Layer -->
+            <g
+                #portLayer
+                canvas-port-layer
+                [ports]="internalPorts()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [componentUtils]="componentUtils"
+                [canEdit]="(canEdit$ | async) !== false"
+                [disabledPortIds]="disabledPortIds()"
+                [canSelect]="(canSelect$ | async) !== false"
+                (portClick)="onPortClick($event)"
+                (portDoubleClick)="onPortDoubleClick($event)"
+                (portDragEnd)="onPortDragEnd($event)"></g>
+
+            <!-- 4. Remote Process Group Layer -->
+            <g
+                #remoteProcessGroupLayer
+                canvas-remote-process-group-layer
+                [remoteProcessGroups]="internalRemoteProcessGroups()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [renderTrigger]="renderTrigger()"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [nifiCommon]="nifiCommon"
+                [componentUtils]="componentUtils"
+                [canEdit]="(canEdit$ | async) !== false"
+                [disabledRemoteProcessGroupIds]="disabledRemoteProcessGroupIds()"
+                [canSelect]="(canSelect$ | async) !== false"
+                (remoteProcessGroupClick)="onRemoteProcessGroupClick($event)"
+                (remoteProcessGroupDoubleClick)="onRemoteProcessGroupDoubleClick($event)"
+                (remoteProcessGroupDragEnd)="onRemoteProcessGroupDragEnd($event)"></g>
+
+            <!-- 5. Process Group Layer -->
+            <g
+                #processGroupLayer
+                canvas-process-group-layer
+                [processGroups]="internalProcessGroups()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [renderTrigger]="renderTrigger()"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [nifiCommon]="nifiCommon"
+                [componentUtils]="componentUtils"
+                [canEdit]="(canEdit$ | async) !== false"
+                [disabledProcessGroupIds]="disabledProcessGroupIds()"
+                [registryClients]="registryClients()"
+                [canSelect]="(canSelect$ | async) !== false"
+                (processGroupClick)="onProcessGroupClick($event)"
+                (processGroupDoubleClick)="onProcessGroupDoubleClick($event)"
+                (processGroupDragEnd)="onProcessGroupDragEnd($event)"></g>
+
+            <!-- 6. Processor Layer -->
+            <g
+                #processorLayer
+                canvas-processor-layer
+                [processors]="internalProcessors()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [renderTrigger]="renderTrigger()"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [nifiCommon]="nifiCommon"
+                [componentUtils]="componentUtils"
+                [canEdit]="(canEdit$ | async) !== false"
+                [previewExtensions]="previewExtensions()"
+                [disabledProcessorIds]="disabledProcessorIds()"
+                [canSelect]="(canSelect$ | async) !== false"
+                (processorClick)="onProcessorClick($event.processor, $event.event)"
+                (processorDoubleClick)="onProcessorDoubleClick($event)"
+                (processorDragEnd)="onProcessorDragEnd($event)"></g>
+
+            <!-- 7. Connection Layer (top - renders last for hover priority) -->
+            <g
+                #connectionLayer
+                canvas-connection-layer
+                [connections]="internalConnections()"
+                [scale]="scale()"
+                [selectedIds]="selectedIds()"
+                [canSelect]="(canSelect$ | async) !== false"
+                [canEdit]="(canEdit$ | async) !== false"
+                [textEllipsis]="textEllipsisUtils"
+                [formatUtils]="formatUtils"
+                [componentUtils]="componentUtils"
+                [nifiCommon]="nifiCommon"
+                [renderTrigger]="renderTrigger()"
+                [processGroupId]="processGroupId()"
+                [disabledConnectionIds]="disabledConnectionIds()"
+                (connectionClick)="onConnectionClick($event)"
+                (connectionDoubleClick)="onConnectionDoubleClick($event)"
+                (bendPointDragEnd)="onConnectionBendPointDragEnd($event)"
+                (bendPointAdd)="onConnectionBendPointAdd($event)"
+                (bendPointRemove)="onConnectionBendPointRemove($event)"
+                (labelDragEnd)="onConnectionLabelDragEnd($event)"></g>
+        </g>
+    </svg>
+</div>
+
+<!-- Context Menu - uses existing fd-context-menu component -->
+@if (menuProvider(); as provider) {
+    <fd-context-menu #contextMenuComponent [menuProvider]="provider" menuId="root"></fd-context-menu>
+}

@@ -270,8 +270,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final ProcessGroup newProcessGroup = addProcessGroup(group, processGroup, options.getComponentIdGenerator(),
                         additions.getParameterContexts(), additions.getParameterProviders(), group);
                 additionsBuilder.addProcessGroup(newProcessGroup);
-            } catch (final ProcessorInstantiationException pie) {
-                throw new RuntimeException(pie);
+            } catch (final ProcessorInstantiationException | FlowSynchronizationException e) {
+                throw new RuntimeException(e);
             }
         });
 
@@ -386,8 +386,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     final ProcessGroup topLevelGroup = syncOptions.getTopLevelGroupId() == null ? group : context.getFlowManager().getGroup(syncOptions.getTopLevelGroupId());
                     synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(),
                         parameterProviderReferences, topLevelGroup, syncOptions.isUpdateSettings());
-                } catch (final ProcessorInstantiationException pie) {
-                    throw new RuntimeException(pie);
+                } catch (final ProcessorInstantiationException | FlowSynchronizationException e) {
+                    throw new RuntimeException(e);
                 }
             });
 
@@ -416,7 +416,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void synchronize(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
                              final Map<String, ParameterProviderReference> parameterProviderReferences, final ProcessGroup topLevelGroup, final boolean updateGroupSettings)
-        throws ProcessorInstantiationException {
+        throws ProcessorInstantiationException, FlowSynchronizationException {
 
         // Some components, such as Processors, may have a Scheduled State of RUNNING in the proposed flow. However, if we
         // transition the service into the RUNNING state, and then we need to update a Connection that is connected to it,
@@ -691,7 +691,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void synchronizeChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
                                         final Map<String, ProcessGroup> childGroupsByVersionedId, final Map<String, ParameterProviderReference> parameterProviderReferences,
-                                        final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
+                                        final ProcessGroup topLevelGroup) throws ProcessorInstantiationException, FlowSynchronizationException {
 
         for (final VersionedProcessGroup proposedChildGroup : proposed.getProcessGroups()) {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
@@ -1193,21 +1193,39 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void synchronizeProcessors(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ProcessorNode> processorsByVersionedId,
                                        final ProcessGroup topLevelGroup)
-                throws ProcessorInstantiationException {
+                throws ProcessorInstantiationException, FlowSynchronizationException {
 
-        for (final VersionedProcessor proposedProcessor : proposed.getProcessors()) {
-            final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
-            if (processor == null) {
-                final ProcessorNode added = addProcessor(group, proposedProcessor, context.getComponentIdGenerator(), topLevelGroup);
-                LOG.info("Added {} to {}", added, group);
-            } else if (updatedVersionedComponentIds.contains(proposedProcessor.getIdentifier())) {
-                updateProcessor(processor, proposedProcessor, topLevelGroup);
-                // Any existing component that is modified during synchronization may have its properties reverted to a pre-migration state,
-                // so we then add it to the set to allow migrateProperties to be called again to get it back to the migrated state
-                createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(processor, getPropertyValues(processor)));
-                LOG.info("Updated {}", processor);
-            } else {
-                processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
+        final Set<ProcessorNode> processorsToRestart = new HashSet<>();
+
+        try {
+            for (final VersionedProcessor proposedProcessor : proposed.getProcessors()) {
+                final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
+                if (processor == null) {
+                    final ProcessorNode added = addProcessor(group, proposedProcessor, context.getComponentIdGenerator(), topLevelGroup);
+                    LOG.info("Added {} to {}", added, group);
+                } else if (updatedVersionedComponentIds.contains(proposedProcessor.getIdentifier())) {
+                    final long processorStopDeadline = System.currentTimeMillis() + syncOptions.getComponentStopTimeout().toMillis();
+                    try {
+                        final boolean stopped = stopOrTerminate(processor, processorStopDeadline, syncOptions);
+                        if (stopped && proposedProcessor.getScheduledState() == org.apache.nifi.flow.ScheduledState.RUNNING) {
+                            processorsToRestart.add(processor);
+                        }
+                    } catch (final TimeoutException e) {
+                        throw new FlowSynchronizationException("Failed to stop processor " + processor + " in preparation for update", e);
+                    }
+                    updateProcessor(processor, proposedProcessor, topLevelGroup);
+                    // Any existing component that is modified during synchronization may have its properties reverted to a pre-migration state,
+                    // so we then add it to the set to allow migrateProperties to be called again to get it back to the migrated state
+                    createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(processor, getPropertyValues(processor)));
+                    LOG.info("Updated {}", processor);
+                } else {
+                    processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
+                }
+            }
+        } finally {
+            for (final ProcessorNode processor : processorsToRestart) {
+                processor.getProcessGroup().startProcessor(processor, false);
+                notifyScheduledStateChange((ComponentNode) processor, syncOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
             }
         }
     }
@@ -1379,7 +1397,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final ComponentIdGenerator componentIdGenerator,
                                          final Map<String, VersionedParameterContext> versionedParameterContexts,
-                                         final Map<String, ParameterProviderReference> parameterProviderReferences, ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
+                                         final Map<String, ParameterProviderReference> parameterProviderReferences, ProcessGroup topLevelGroup)
+                throws ProcessorInstantiationException, FlowSynchronizationException {
         final String id = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), destination.getIdentifier());
         final String connectorId = destination.getConnectorIdentifier().orElse(null);
         final ProcessGroup group = context.getFlowManager().createProcessGroup(id, connectorId);
@@ -2375,7 +2394,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
             if (parameterOption.isPresent()) {
-                // Skip this parameter, since it is already defined. We only want to add missing parameters
+                final Parameter existingParameter = parameterOption.get();
+                if (!Objects.equals(existingParameter.getDescriptor().getDescription(), versionedParameter.getDescription())) {
+                    final Parameter updatedParameter = new Parameter.Builder()
+                        .fromParameter(existingParameter)
+                        .description(versionedParameter.getDescription())
+                        .build();
+                    parameters.put(versionedParameter.getName(), updatedParameter);
+                }
                 continue;
             }
 
@@ -2384,6 +2410,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         currentParameterContext.setParameters(parameters);
+
+        if (!Objects.equals(currentParameterContext.getDescription(), versionedParameterContext.getDescription())) {
+            currentParameterContext.setDescription(versionedParameterContext.getDescription());
+        }
 
         // If the current parameter context doesn't have any inherited param contexts but the versioned one does,
         // add the versioned ones.

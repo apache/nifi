@@ -115,10 +115,10 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return type of reference this is (Processor, ControllerService, ParameterProvider, or ReportingTask)
+     * @return type of reference this is (Processor, ControllerService, ReportingTask, FlowRegistryClient, ParameterProvider, or FlowAnalysisRule)
      */
     @Schema(description = "The type of reference this is.",
-            allowableValues = {"Processor", "ControllerService", "ReportingTask", "FlowRegistryClient"}
+            allowableValues = {"Processor", "ControllerService", "ReportingTask", "FlowRegistryClient", "ParameterProvider", "FlowAnalysisRule"}
     )
     public String getReferenceType() {
         return referenceType;

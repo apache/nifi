@@ -27,12 +27,15 @@ import io.netty.handler.ssl.IdentityCipherSuiteFilter;
 import io.netty.handler.ssl.JdkSslContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -72,6 +75,14 @@ import java.util.concurrent.ConcurrentHashMap;
         "Bytecode submission allows much more flexibility. When providing a jar, custom serializers can be used and pre-compiled graph logic can be utilized by groovy scripts" +
         "provided by processors such as the ExecuteGraphQueryRecord.")
 @RequiresInstanceClassLoading
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Enables configuration of scripted queries"
+                )
+        }
+)
 public class TinkerpopClientService extends AbstractControllerService implements GraphClientService {
     public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
     private static final AllowableValue BYTECODE_SUBMISSION = new AllowableValue("bytecode-submission", "ByteCode Submission",

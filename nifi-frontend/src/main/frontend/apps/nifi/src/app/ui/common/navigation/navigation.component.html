@@ -51,6 +51,16 @@
                             <i class="icon icon-drop primary-color mr-2"></i>
                             Canvas
                         </button>
+                        @if (enableConnectors) {
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/connectors']"
+                                [disabled]="!user.connectorsPermissions.canRead">
+                                <i class="fa fa-plug primary-color mr-2"></i>
+                                Connectors
+                            </button>
+                        }
                         <mat-divider></mat-divider>
                         <button mat-menu-item class="global-menu-item" [routerLink]="['/summary']">
                             <i class="fa fa-table primary-color mr-2"></i>

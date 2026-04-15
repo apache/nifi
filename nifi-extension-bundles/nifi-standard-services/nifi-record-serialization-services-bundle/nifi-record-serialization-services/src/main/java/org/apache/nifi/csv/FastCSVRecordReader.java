@@ -20,6 +20,7 @@ package org.apache.nifi.csv;
 import de.siegmar.fastcsv.reader.CommentStrategy;
 import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvRecord;
+import de.siegmar.fastcsv.reader.FieldMismatchStrategy;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -77,8 +78,8 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
                 .quoteCharacter(csvFormat.getQuoteCharacter())
                 .commentStrategy(CommentStrategy.SKIP)
                 .skipEmptyLines(csvFormat.getIgnoreEmptyLines())
-                .allowExtraFields(csvFormat.getAllowMissingColumnNames())
-                .allowMissingFields(csvFormat.getAllowMissingColumnNames());
+                .extraFieldStrategy(csvFormat.getAllowMissingColumnNames() ? FieldMismatchStrategy.IGNORE : FieldMismatchStrategy.STRICT)
+                .missingFieldStrategy(csvFormat.getAllowMissingColumnNames() ? FieldMismatchStrategy.IGNORE : FieldMismatchStrategy.STRICT);
 
         if (csvFormat.getCommentMarker() != null) {
             builder.commentCharacter(csvFormat.getCommentMarker());

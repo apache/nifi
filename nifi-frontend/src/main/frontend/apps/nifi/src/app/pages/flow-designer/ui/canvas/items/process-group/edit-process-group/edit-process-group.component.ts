@@ -27,7 +27,6 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
 import { Client } from '../../../../../../../service/client.service';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
@@ -37,7 +36,13 @@ import { openNewParameterContextDialog } from '../../../../../state/parameter/pa
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
-import { NifiTooltipDirective, SelectOption, SortObjectByPropertyPipe, TextTip } from '@nifi/shared';
+import {
+    NifiSpinnerDirective,
+    NifiTooltipDirective,
+    SelectOption,
+    SortObjectByPropertyPipe,
+    TextTip
+} from '@nifi/shared';
 import { selectCurrentUser } from '../../../../../../../state/current-user/current-user.selectors';
 
 @Component({

@@ -17,6 +17,7 @@
 
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
+import { environment } from '../../../../environments/environment';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
@@ -66,6 +67,8 @@ import { selectAbout } from '../../../state/about/about.selectors';
     styleUrls: ['./navigation.component.scss']
 })
 export class Navigation implements OnInit, OnDestroy {
+    enableConnectors = environment.enableConnectors;
+
     private store = inject<Store<NiFiState>>(Store);
     private storage = inject(Storage);
     private themingService = inject(ThemingService);

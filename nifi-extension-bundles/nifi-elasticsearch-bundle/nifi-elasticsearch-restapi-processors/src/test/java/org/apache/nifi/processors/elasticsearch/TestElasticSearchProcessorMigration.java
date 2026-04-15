@@ -132,7 +132,8 @@ public class TestElasticSearchProcessorMigration {
                 "put-es-json-scripted-upsert", PutElasticsearchJson.SCRIPTED_UPSERT.getName(),
                 "put-es-json-dynamic_templates", PutElasticsearchJson.DYNAMIC_TEMPLATES.getName(),
                 "put-es-json-charset", PutElasticsearchJson.CHARSET.getName(),
-                "put-es-json-not_found-is-error", AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL.getName()
+                "put-es-json-not_found-is-error", AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL.getName(),
+                AbstractPutElasticsearch.BATCH_SIZE.getName(), PutElasticsearchJson.BATCH_SIZE.getName()
         );
 
         final Map<String, String> expectedRenamed = new HashMap<>(expectedOwnRenamed);

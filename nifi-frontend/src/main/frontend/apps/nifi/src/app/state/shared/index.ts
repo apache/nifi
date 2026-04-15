@@ -20,6 +20,7 @@ import { GarbageCollection } from '../system-diagnostics';
 import {
     AffectedComponentEntity,
     BulletinEntity,
+    Bundle,
     ComponentType,
     Parameter,
     ParameterContextReferenceEntity,
@@ -411,12 +412,6 @@ export interface DocumentedType {
     explicitRestrictions?: ExplicitRestriction[];
     usageRestriction?: string;
     deprecationReason?: string;
-}
-
-export interface Bundle {
-    artifact: string;
-    group: string;
-    version: string;
 }
 
 export interface AllowableValue {

@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-import { Bundle, ComponentHistory, ParameterEntity, PropertyDescriptor } from '../../../../state/shared';
+import { ComponentHistory, ParameterEntity, PropertyDescriptor } from '../../../../state/shared';
 import {
     AffectedComponentEntity,
     BulletinEntity,
+    Bundle,
     ParameterContextReferenceEntity,
     Permissions,
     Revision

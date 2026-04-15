@@ -22,7 +22,14 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import {
+    isDefinedAndNotNull,
+    CloseOnEscapeDialog,
+    NiFiCommon,
+    NifiSpinnerDirective,
+    NifiTooltipDirective,
+    TextTip
+} from '@nifi/shared';
 import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';
 import { clearComponentState, clearComponentStateEntry } from '../../../state/component-state/component-state.actions';
@@ -42,7 +49,6 @@ import { selectClusterSummary } from '../../../state/cluster-summary/cluster-sum
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 import { concatLatestFrom } from '@ngrx/operators';
-import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { MatTableModule } from '@angular/material/table';
 
 @Component({

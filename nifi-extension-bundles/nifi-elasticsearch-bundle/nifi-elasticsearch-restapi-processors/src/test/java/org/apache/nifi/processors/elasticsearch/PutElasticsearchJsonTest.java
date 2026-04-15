@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,7 +83,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         super.setup();
 
         runner.setProperty(PutElasticsearchJson.ID_ATTRIBUTE, "doc_id");
-        runner.setProperty(AbstractPutElasticsearch.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchJson.BATCH_SIZE, "1");
 
         runner.assertValid();
     }
@@ -546,5 +547,338 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE).getFirst();
         assertTrue(flowFile.getAttribute("elasticsearch.put.error").contains("not"));
+    }
+
+    // -------------------------------------------------------------------------
+    // NDJSON format tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void testNdjsonFormat() {
+        // Switch to NDJSON mode (one JSON object per line)
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.assertValid();
+
+        // Three documents in a single FlowFile
+        final String ndjson = "{\"id\":\"1\",\"msg\":\"hello\"}\n"
+                + "{\"id\":\"2\",\"msg\":\"world\"}\n"
+                + "{\"id\":\"3\",\"msg\":\"foo\"}\n";
+
+        // Capture the operations sent to Elasticsearch
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(ndjson);
+        runner.run();
+
+        // All three documents indexed in one bulk call → one FlowFile through
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 0);
+        assertEquals(3, operationCount[0], "Expected 3 index operations from NDJSON FlowFile");
+    }
+
+    @Test
+    void testNdjsonFormatBlankLinesIgnored() {
+        // Blank lines between NDJSON records should be silently skipped
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.assertValid();
+
+        final String ndjsonWithBlanks = "\n{\"id\":\"1\",\"msg\":\"hello\"}\n\n{\"id\":\"2\",\"msg\":\"world\"}\n\n";
+
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(ndjsonWithBlanks);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        assertEquals(2, operationCount[0], "Expected 2 operations — blank lines should be ignored");
+    }
+
+    @Test
+    void testNdjsonFormatInvalidLineRoutesToFailure() {
+        // A malformed JSON line should route the whole FlowFile to failure.
+        // IDENTIFIER_FIELD forces JSON parsing per line (via streaming parser), which catches malformed input.
+        // Without it, lines are passed as raw bytes and validation happens server-side.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "id");
+        runner.assertValid();
+
+        runner.enqueue("{\"id\":\"1\"}\nnot-json\n{\"id\":\"3\"}");
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 0);
+
+        final MockFlowFile failed = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_FAILURE).getFirst();
+        assertNotNull(failed.getAttribute("elasticsearch.put.error"),
+                "Failed FlowFile should carry elasticsearch.put.error attribute");
+    }
+
+    @Test
+    void testNdjsonFormatSizeBatchFlush() {
+        // Set MAX_BATCH_SIZE very small so each document forces its own flush,
+        // resulting in multiple bulk calls for a single FlowFile.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.MAX_BATCH_SIZE, "1 B");
+        runner.assertValid();
+
+        final String ndjson = "{\"id\":\"1\"}\n{\"id\":\"2\"}\n{\"id\":\"3\"}\n";
+
+        final int[] bulkCallCount = {0};
+        clientService.setEvalConsumer(items -> bulkCallCount[0]++);
+
+        runner.enqueue(ndjson);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        assertTrue(bulkCallCount[0] > 1, "Expected multiple bulk flushes when MAX_BATCH_SIZE is tiny");
+    }
+
+    @Test
+    void testNdjsonFormatPartialFailureIsolatesSuccessAndErrorDocs() throws Exception {
+        // When an NDJSON FlowFile contains records that partially fail, the successful and failed
+        // documents should be routed to REL_SUCCESSFUL and REL_ERRORS respectively, each as a
+        // new NDJSON clone containing only those documents.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true");
+        clientService.setResponse(IndexOperationResponse.fromJsonResponse(sampleErrorResponse));
+
+        // 7 records in one FlowFile; sampleErrorResponse has errors at indices 4, 5, 6
+        final String ndjson = "{\"id\":\"1\",\"field2\":\"20\"}\n"
+                + "{\"id\":\"2\",\"field2\":\"20\"}\n"
+                + "{\"id\":\"3\",\"field2\":\"20\"}\n"
+                + "{\"id\":\"4\",\"field2\":\"not_found\"}\n"
+                + "{\"id\":\"5\",\"field2\":\"20abcd\"}\n"
+                + "{\"id\":\"6\",\"field2\":\"213,456.9\"}\n"
+                + "{\"id\":\"7\",\"field2\":\"unit test\"}\n";
+
+        runner.enqueue(ndjson);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+
+        // REL_SUCCESSFUL clone contains only the 4 successfully-indexed documents
+        final MockFlowFile successFf = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_SUCCESSFUL).getFirst();
+        final String successContent = successFf.getContent();
+        assertTrue(successContent.contains("\"id\":\"1\""), "Successful clone should include record 1");
+        assertTrue(successContent.contains("\"id\":\"2\""), "Successful clone should include record 2");
+        assertTrue(successContent.contains("\"id\":\"3\""), "Successful clone should include record 3");
+        assertTrue(successContent.contains("not_found"), "Successful clone should include not_found record (treated as success)");
+        assertFalse(successContent.contains("20abcd"), "Successful clone should not include failed record 5");
+        assertFalse(successContent.contains("213,456.9"), "Successful clone should not include failed record 6");
+        assertFalse(successContent.contains("unit test"), "Successful clone should not include failed record 7");
+
+        // REL_ERRORS clone contains only the 3 failed documents
+        final MockFlowFile errorFf = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_ERRORS).getFirst();
+        final String errorContent = errorFf.getContent();
+        assertTrue(errorContent.contains("20abcd"), "Error clone should include failed record 5");
+        assertTrue(errorContent.contains("213,456.9"), "Error clone should include failed record 6");
+        assertTrue(errorContent.contains("unit test"), "Error clone should include failed record 7");
+        assertFalse(errorContent.contains("\"id\":\"1\""), "Error clone should not include successful record 1");
+        errorFf.assertAttributeExists("elasticsearch.bulk.error");
+    }
+
+    // -------------------------------------------------------------------------
+    // JSON Array format tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void testJsonArrayFormat() {
+        // Switch to JSON Array mode (top-level array of objects)
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        final String jsonArray = "[{\"id\":\"1\",\"msg\":\"hello\"},{\"id\":\"2\",\"msg\":\"world\"},{\"id\":\"3\",\"msg\":\"foo\"}]";
+
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(jsonArray);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ERRORS, 0);
+        assertEquals(3, operationCount[0], "Expected 3 index operations from JSON Array FlowFile");
+    }
+
+    @Test
+    void testJsonArrayFormatMultipleArraysInOneFlowFile() {
+        // A FlowFile may contain multiple top-level JSON arrays; all should be indexed
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        // Two arrays concatenated in one FlowFile
+        final String twoArrays = "[{\"id\":\"1\"},{\"id\":\"2\"}][{\"id\":\"3\"},{\"id\":\"4\"}]";
+
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(twoArrays);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        assertEquals(4, operationCount[0], "Expected 4 operations — 2 per array, 2 arrays");
+    }
+
+    @Test
+    void testJsonArrayFormatMalformedRoutesToFailure() {
+        // A truncated / unclosed array should route to failure with a clear error message
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        // Missing closing ']'
+        runner.enqueue("[{\"id\":\"1\"},{\"id\":\"2\"}");
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 0);
+
+        final MockFlowFile failed = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_FAILURE).getFirst();
+        assertNotNull(failed.getAttribute("elasticsearch.put.error"),
+                "Failed FlowFile should carry elasticsearch.put.error attribute");
+    }
+
+    @Test
+    void testJsonArrayFormatPrettyPrinted() {
+        // Pretty-printed (multi-line) JSON array — newlines inside the array must not confuse the parser
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        final String prettyArray =
+                "[\n"
+                + "  { \"id\": \"1\", \"msg\": \"hello\" },\n"
+                + "  { \"id\": \"2\", \"msg\": \"world\" },\n"
+                + "  { \"id\": \"3\", \"msg\": \"foo\" }\n"
+                + "]\n";
+
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(prettyArray);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        assertEquals(3, operationCount[0], "Expected 3 operations from pretty-printed JSON array");
+    }
+
+    @Test
+    void testJsonArrayFormatMultiplePrettyPrintedArrays() {
+        // Multiple pretty-printed arrays in one FlowFile (newlines between and within arrays)
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        final String twoArraysPretty =
+                "[\n"
+                + "  { \"id\": \"1\" },\n"
+                + "  { \"id\": \"2\" }\n"
+                + "]\n"
+                + "[\n"
+                + "  { \"id\": \"3\" },\n"
+                + "  { \"id\": \"4\" }\n"
+                + "]\n";
+
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(twoArraysPretty);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        assertEquals(4, operationCount[0], "Expected 4 operations from two pretty-printed arrays");
+    }
+
+    @Test
+    void testJsonArrayFormatMixedCompactAndPretty() {
+        // One compact array followed by one pretty-printed array in the same FlowFile
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        final String mixed =
+                "[{\"id\":\"1\"},{\"id\":\"2\"}]\n"
+                + "[\n"
+                + "  { \"id\": \"3\" },\n"
+                + "  { \"id\": \"4\" }\n"
+                + "]\n";
+
+        final int[] operationCount = {0};
+        clientService.setEvalConsumer(items -> operationCount[0] += items.size());
+
+        runner.enqueue(mixed);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 0);
+        assertEquals(4, operationCount[0], "Expected 4 operations from mixed compact + pretty arrays");
+    }
+
+    @Test
+    void testJsonArrayFormatNotAnArrayRoutesToFailure() {
+        // Content that starts with something other than '[' is not a JSON array
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.assertValid();
+
+        runner.enqueue("{\"id\":\"1\"}");
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 0);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_FAILURE, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 0);
+    }
+
+    // -------------------------------------------------------------------------
+    // OUTPUT_BULK_REQUEST relationship test
+    // -------------------------------------------------------------------------
+
+    @Test
+    void testOutputBulkRequestEnabled() {
+        // When Output Bulk Request is true, the raw NDJSON body should be written
+        // to the bulk_request relationship in addition to normal processing.
+        runner.setProperty(PutElasticsearchJson.OUTPUT_BULK_REQUEST, "true");
+        runner.assertValid();
+
+        runner.enqueue(flowFileContents);
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_ORIGINAL, 1);
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        runner.assertTransferCount(PutElasticsearchJson.REL_BULK_REQUEST, 1);
+
+        final MockFlowFile bulkRequest = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_BULK_REQUEST).getFirst();
+        // The bulk request body must contain the action metadata line and the document line
+        final String body = bulkRequest.getContent();
+        assertTrue(body.contains("\"index\""), "Bulk request body should contain action metadata");
+        assertTrue(body.contains("msg"), "Bulk request body should contain document field from flowFileContents");
+    }
+
+    @Test
+    void testOutputBulkRequestDisabledByDefault() {
+        // The bulk_request relationship should not appear unless explicitly enabled
+        runner.assertValid();
+
+        runner.enqueue(flowFileContents);
+        runner.run();
+
+        runner.assertTransferCount(PutElasticsearchJson.REL_BULK_REQUEST, 0);
     }
 }

@@ -49,6 +49,8 @@ import { documentVisibilityFeatureKey, DocumentVisibilityState } from './documen
 import { documentVisibilityReducer } from './document-visibility/document-visibility.reducer';
 import { copyFeatureKey, CopyState } from './copy';
 import { copyReducer } from './copy/copy.reducer';
+import { canvasUiFeatureKey, CanvasUiState } from './canvas-ui';
+import { canvasUiReducer } from './canvas-ui/canvas-ui.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -68,6 +70,7 @@ export interface NiFiState {
     [clusterSummaryFeatureKey]: ClusterSummaryState;
     [propertyVerificationFeatureKey]: PropertyVerificationState;
     [copyFeatureKey]: CopyState;
+    [canvasUiFeatureKey]: CanvasUiState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -87,5 +90,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [documentVisibilityFeatureKey]: documentVisibilityReducer,
     [clusterSummaryFeatureKey]: clusterSummaryReducer,
     [propertyVerificationFeatureKey]: propertyVerificationReducer,
-    [copyFeatureKey]: copyReducer
+    [copyFeatureKey]: copyReducer,
+    [canvasUiFeatureKey]: canvasUiReducer
 };

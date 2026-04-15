@@ -37,4 +37,10 @@ public interface SecretsManager {
 
     Map<SecretReference, Secret> getSecrets(Set<SecretReference> secretReferences);
 
+    /**
+     * Invalidates any cached secret data, forcing the next access to fetch fresh data
+     * from the underlying secret providers.
+     */
+    void invalidateCache();
+
 }

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Bundle, ComponentHistory } from '../../../../state/shared';
-import { BulletinEntity, Permissions, Revision } from '@nifi/shared';
+import { ComponentHistory } from '../../../../state/shared';
+import { BulletinEntity, Bundle, Permissions, Revision } from '@nifi/shared';
 
 export const reportingTasksFeatureKey = 'reportingTasks';
 

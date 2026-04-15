@@ -53,7 +53,6 @@ import {
     UpdateProcessorRequest
 } from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import {
     ComponentType,
     SelectOption,
@@ -62,7 +61,8 @@ import {
     TextTip,
     CopyDirective,
     Revision,
-    BulletinEntity
+    BulletinEntity,
+    NifiSpinnerDirective
 } from '@nifi/shared';
 import { RunDurationSlider } from './run-duration-slider/run-duration-slider.component';
 import {

@@ -18,6 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import {
     LoadExtensionTypesForCanvasResponse,
+    LoadExtensionTypesForConnectorsResponse,
     LoadExtensionTypesForDocumentationResponse,
     LoadExtensionTypesForPoliciesResponse,
     LoadExtensionTypesForSettingsResponse
@@ -47,6 +48,13 @@ export const loadExtensionTypesForPoliciesSuccess = createAction(
 
 export const loadExtensionTypesForDocumentation = createAction(
     '[Extension Types] Load Extension Types For Documentation'
+);
+
+export const loadExtensionTypesForConnectors = createAction('[Extension Types] Load Extension Types For Connectors');
+
+export const loadExtensionTypesForConnectorsSuccess = createAction(
+    '[Extension Types] Load Extension Types For Connectors Success',
+    props<{ response: LoadExtensionTypesForConnectorsResponse }>()
 );
 
 export const loadExtensionTypesForDocumentationSuccess = createAction(

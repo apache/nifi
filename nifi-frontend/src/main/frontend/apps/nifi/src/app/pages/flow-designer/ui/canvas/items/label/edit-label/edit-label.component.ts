@@ -28,11 +28,10 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
+import { CloseOnEscapeDialog, NifiSpinnerDirective, SelectOption } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 

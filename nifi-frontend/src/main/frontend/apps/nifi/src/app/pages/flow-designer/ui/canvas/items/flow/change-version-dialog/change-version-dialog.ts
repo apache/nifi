@@ -21,7 +21,8 @@ import { MatCell, MatCellDef, MatColumnDef, MatTableDataSource, MatTableModule }
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
-import { ChangeVersionDialogRequest, VersionControlInformation } from '../../../../../state/flow';
+import { ChangeVersionDialogRequest } from '../../../../../state/flow';
+import { VersionControlInformation } from '../../../../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';

@@ -943,12 +943,17 @@ public class FlowDifferenceFilters {
 
     /**
      * Determines whether a PROPERTY_ADDED difference is an environmental change because the added property is a
-     * non-dynamic property defined in the component code. Non-dynamic properties are declared through
-     * {@link ConfigurableComponent#getPropertyDescriptors()} and cannot be added by users. When a PROPERTY_ADDED
-     * diff exists for such a property, it means the component's code was updated (e.g., via NiFi upgrade or bundle
-     * version change) and migration added the property. This is an environmental change regardless of whether a
-     * corresponding BUNDLE_CHANGED diff is present, because the VCI baseline may already have resolved bundles
-     * (e.g., after {@code discoverCompatibleBundles} during import).
+     * non-dynamic property defined in the component code that did not exist in the versioned snapshot. Non-dynamic
+     * properties are declared through {@link ConfigurableComponent#getPropertyDescriptors()} and cannot be added by
+     * users. When a PROPERTY_ADDED diff exists for such a property and the snapshot did not already define it, it
+     * means the component's code was updated (e.g., via NiFi upgrade or bundle version change) and migration added
+     * the property. This is an environmental change regardless of whether a corresponding BUNDLE_CHANGED diff is
+     * present, because the VCI baseline may already have resolved bundles (e.g., after
+     * {@code discoverCompatibleBundles} during import).
+     *
+     * <p>If the snapshot (component A) already contains a property descriptor for the property in question, the
+     * property was part of the component definition when the flow was committed and the user has intentionally set
+     * a value. In that case, this method returns {@code false} so the change is treated as a local modification.</p>
      *
      * <p>Only Processors and Controller Services are considered because these are the component types that carry
      * properties within versioned process groups.</p>
@@ -967,6 +972,14 @@ public class FlowDifferenceFilters {
         final Optional<String> fieldName = difference.getFieldName();
         if (fieldName.isEmpty()) {
             return false;
+        }
+
+        final VersionedComponent componentA = difference.getComponentA();
+        if (componentA != null) {
+            final Map<String, VersionedPropertyDescriptor> descriptorsA = getPropertyDescriptors(componentA);
+            if (descriptorsA.containsKey(fieldName.get())) {
+                return false;
+            }
         }
 
         final VersionedComponent componentB = difference.getComponentB();

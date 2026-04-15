@@ -42,6 +42,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -1264,8 +1265,13 @@ public class TestRecordPath {
 
                 record.setValue("id", Instant.parse(instantFormatted).toEpochMilli());
 
-                assertEquals(localDate, evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record).getValue());
-                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
+                final FieldValue dateResult = evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record);
+                assertEquals(localDate, dateResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateResult.getField().getDataType());
+
+                final FieldValue dateTimeResult = evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record);
+                assertEquals(instantFormatted, dateTimeResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateTimeResult.getField().getDataType());
             }
 
             @Test
@@ -1275,8 +1281,13 @@ public class TestRecordPath {
 
                 record.setValue("id", new Date(Instant.parse(instantFormatted).toEpochMilli()));
 
-                assertEquals(localDate, evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record).getValue());
-                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
+                final FieldValue dateResult = evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record);
+                assertEquals(localDate, dateResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateResult.getField().getDataType());
+
+                final FieldValue dateTimeResult = evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record);
+                assertEquals(instantFormatted, dateTimeResult.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), dateTimeResult.getField().getDataType());
             }
 
             @Test
@@ -1284,7 +1295,9 @@ public class TestRecordPath {
                 record.setValue("id", Date.valueOf("2024-08-18"));
                 record.setValue("name", "yyyy-MM-dd");
 
-                assertEquals("2024-08-18", evaluateSingleFieldValue("format(/id, /name)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("format(/id, /name)", record);
+                assertEquals("2024-08-18", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
@@ -1293,7 +1306,9 @@ public class TestRecordPath {
                 record.setValue("id", new Date(Instant.parse(instantFormatted).toEpochMilli()));
                 record.setValue("name", "GMT");
 
-                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", /name)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", /name)", record);
+                assertEquals(instantFormatted, result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
@@ -1301,7 +1316,11 @@ public class TestRecordPath {
                 final Date originalValue = Date.valueOf("2024-08-18");
                 record.setValue("id", originalValue);
 
-                assertEquals(originalValue, evaluateSingleFieldValue("format(/id, 'INVALID')", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("format(/id, 'INVALID')", record);
+                final DataType originalDataType = record.getSchema().getField("id").orElseThrow().getDataType();
+
+                assertEquals(originalValue, result.getValue());
+                assertEquals(originalDataType, result.getField().getDataType());
             }
 
             @Test
@@ -1310,8 +1329,18 @@ public class TestRecordPath {
 
                 assertAll(nonLongOrDateFields.stream().map(fieldName -> () -> {
                     final FieldValue fieldValue = evaluateSingleFieldValue("format(/%s, 'yyyy-MM-dd')".formatted(fieldName), record);
+                    final DataType originalDataType = record.getSchema().getField(fieldName).orElseThrow().getDataType();
+
                     assertEquals(record.getValue(fieldName), fieldValue.getValue());
+                    assertEquals(originalDataType, fieldValue.getField().getDataType());
                 }));
+            }
+
+            @Test
+            public void handlesLiteralValue() {
+                final FieldValue result = evaluateSingleFieldValue("format(0, 'yyyy-MM-dd', 'GMT')", record);
+                assertEquals("1970-01-01", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
         }
 
@@ -1993,7 +2022,9 @@ public class TestRecordPath {
                 final String originalValue = "Hello World!";
                 record.setValue("name", originalValue);
 
-                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_16LE), (byte[]) evaluateSingleFieldValue("toBytes(/name, 'UTF-16LE')", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toBytes(/name, 'UTF-16LE')", record);
+                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_16LE), (byte[]) result.getValue());
+                assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), result.getField().getDataType());
             }
 
             @Test
@@ -2002,12 +2033,21 @@ public class TestRecordPath {
                 record.setValue("name", originalValue);
                 record.setValue("firstName", "UTF-8");
 
-                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_8), (byte[]) evaluateSingleFieldValue("toBytes(/name, /firstName)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toBytes(/name, /firstName)", record);
+                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_8), (byte[]) result.getValue());
+                assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), result.getField().getDataType());
             }
 
             @Test
             public void throwsExceptionWhenPassedAnNonExistingCharset() {
                 assertThrows(IllegalCharsetNameException.class, () -> evaluateSingleFieldValue("toBytes(/name, 'NOT A REAL CHARSET')", record));
+            }
+
+            @Test
+            public void handlesLiteralValue() {
+                final FieldValue result = evaluateSingleFieldValue("toBytes('Hello', 'UTF-8')", record);
+                assertArrayEquals("Hello".getBytes(StandardCharsets.UTF_8), (byte[]) result.getValue());
+                assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), result.getField().getDataType());
             }
         }
 
@@ -2022,6 +2062,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\")", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2035,6 +2076,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\", 'GMT+8:00')", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2047,6 +2089,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, /name)", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2062,6 +2105,7 @@ public class TestRecordPath {
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\", /name)", record);
                 assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
 
             @Test
@@ -2086,6 +2130,15 @@ public class TestRecordPath {
                     final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/%s, 'yyyy-MM-dd')".formatted(fieldName), record);
                     assertEquals(record.getValue(fieldName), fieldValue.getValue());
                 }));
+            }
+
+            @Test
+            public void handlesLiteralValue() {
+                final Date expectedValue = new Date(LocalDate.parse("2017-10-20").atStartOfDay(TEST_ZONE_ID).toInstant().toEpochMilli());
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("toDate('2017-10-20', 'yyyy-MM-dd')", record);
+                assertEquals(expectedValue, fieldValue.getValue());
+                assertEquals(RecordFieldType.TIMESTAMP.getDataType(), fieldValue.getField().getDataType());
             }
         }
 
@@ -2129,7 +2182,9 @@ public class TestRecordPath {
             public void decodesBytesAsStringUsingTheDefinedCharset() {
                 record.setValue("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
 
-                assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, 'UTF-16')", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toString(/bytes, 'UTF-16')", record);
+                assertEquals("Hello World!", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
@@ -2137,12 +2192,21 @@ public class TestRecordPath {
                 record.setValue("bytes", "Hello World!".getBytes(StandardCharsets.UTF_8));
                 record.setValue("name", "UTF-8");
 
-                assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, /name)", record).getValue());
+                final FieldValue result = evaluateSingleFieldValue("toString(/bytes, /name)", record);
+                assertEquals("Hello World!", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
 
             @Test
             public void throwsExceptionWhenPassedAnNonExistingCharset() {
                 assertThrows(IllegalCharsetNameException.class, () -> evaluateSingleFieldValue("toString(/bytes, 'NOT A REAL CHARSET')", record));
+            }
+
+            @Test
+            public void handlesLiteralValue() {
+                final FieldValue result = evaluateSingleFieldValue("toString('literalValue', 'UTF-8')", record);
+                assertEquals("literalValue", result.getValue());
+                assertEquals(RecordFieldType.STRING.getDataType(), result.getField().getDataType());
             }
         }
 

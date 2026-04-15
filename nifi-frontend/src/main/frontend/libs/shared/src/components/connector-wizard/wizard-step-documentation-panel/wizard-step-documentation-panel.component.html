@@ -1,0 +1,52 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<div class="wizard-doc-panel flex flex-col h-full">
+    <div class="panel-header flex items-center justify-between p-4">
+        <span class="text-lg font-semibold" data-qa="panel-title">{{ resolvedPanelTitle() }}</span>
+        <button
+            mat-icon-button
+            type="button"
+            (click)="onClose()"
+            aria-label="Close documentation panel"
+            data-qa="close-panel-button">
+            <i class="fa fa-angle-double-right" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <div class="panel-content flex-1 overflow-y-auto p-6">
+        @if (isLoadingDoc()) {
+            <div class="flex justify-center p-8" data-qa="markdown-loading">
+                <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+            </div>
+        } @else if (getErrorMessage()) {
+            <div class="error-container flex flex-col items-center justify-center gap-4 p-8" data-qa="markdown-error">
+                <i class="fa fa-warning error-color text-4xl" aria-hidden="true"></i>
+                <p class="text-base text-center wrap-anywhere">{{ getErrorMessage() }}</p>
+            </div>
+        } @else if (getStepDocumentation()) {
+            <div class="markdown-content" data-qa="markdown-content">
+                <markdown [data]="getStepDocumentation()!" ngPreserveWhitespaces></markdown>
+            </div>
+        } @else {
+            <div class="empty-container flex flex-col items-center justify-center gap-4 p-8" data-qa="markdown-empty">
+                <i class="fa fa-info-circle text-4xl opacity-50" aria-hidden="true"></i>
+                <p class="text-base text-center opacity-70">No documentation available.</p>
+            </div>
+        }
+    </div>
+</div>

@@ -18,10 +18,10 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
-import { Bundle, DocumentedType, OpenChangeComponentVersionDialogRequest } from '../../../state/shared';
+import { DocumentedType, OpenChangeComponentVersionDialogRequest } from '../../../state/shared';
 import { MatFormField, MatLabel, MatOption, MatSelect } from '@angular/material/select';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TextTip, NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
+import { Bundle, TextTip, NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 import { ControllerServiceApi } from '../controller-service/controller-service-api/controller-service-api.component';
 
 @Component({

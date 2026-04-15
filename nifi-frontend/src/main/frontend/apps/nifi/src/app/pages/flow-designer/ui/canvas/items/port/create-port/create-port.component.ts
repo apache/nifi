@@ -28,8 +28,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { ComponentType, SelectOption, NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import {
+    ComponentType,
+    NifiSpinnerDirective,
+    SelectOption,
+    NifiTooltipDirective,
+    TextTip,
+    CloseOnEscapeDialog
+} from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 

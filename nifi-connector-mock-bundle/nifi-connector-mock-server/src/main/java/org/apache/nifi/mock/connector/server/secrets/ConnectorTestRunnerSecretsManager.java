@@ -96,4 +96,8 @@ public class ConnectorTestRunnerSecretsManager implements SecretsManager {
 
         return secrets;
     }
+
+    @Override
+    public void invalidateCache() {
+    }
 }

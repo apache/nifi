@@ -39,7 +39,8 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { FlowConfiguration } from '../../../state/flow-configuration';
 import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
-import { CopiedSnippet, VersionControlInformation } from '../state/flow';
+import { CopiedSnippet } from '../state/flow';
+import { VersionControlInformation } from '../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { initialState as initialTransformState } from '../state/transform/transform.reducer';
