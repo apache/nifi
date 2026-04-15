@@ -29,11 +29,11 @@ import java.util.Map;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class,
-        CopyAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class, GetAzureBlobStorageTags_v12.class})
+        CopyAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class, GetAzureBlobStorageTags.class})
 @CapabilityDescription("Retrieves user metadata from the specified blob from Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({@WritesAttribute(attribute = "azure.user.metadata.<metadata-key>", description = "The value of the retrieved metadata")})
-public class GetAzureBlobStorageMetadata_v12 extends AbstractGetAzureBlobStoragePropertiesProcessor_v12 {
+public class GetAzureBlobStorageMetadata extends AbstractGetAzureBlobStoragePropertiesProcessor {
 
     private static final String ATTRIBUTE_PREFIX = "azure.user.metadata.%s";
 

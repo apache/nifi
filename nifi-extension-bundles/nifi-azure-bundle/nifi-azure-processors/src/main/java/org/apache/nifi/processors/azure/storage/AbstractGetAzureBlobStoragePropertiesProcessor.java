@@ -39,7 +39,7 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.B
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_CONTAINER;
 
-public abstract class AbstractGetAzureBlobStoragePropertiesProcessor_v12 extends AbstractAzureBlobProcessor_v12 {
+public abstract class AbstractGetAzureBlobStoragePropertiesProcessor extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
