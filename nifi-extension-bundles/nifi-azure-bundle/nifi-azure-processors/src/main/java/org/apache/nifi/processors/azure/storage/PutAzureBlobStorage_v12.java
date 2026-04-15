@@ -101,7 +101,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class,
-        CopyAzureBlobStorage_v12.class, GetAzureBlobStorageMetadata_v12.class, GetAzureBlobStorageTags_v12.class})
+        CopyAzureBlobStorage_v12.class, GetAzureBlobStorageMetadata.class, GetAzureBlobStorageTags.class})
 @CapabilityDescription("Puts content into a blob on Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the blob",
         value = "The value of a User-Defined Metadata field to add to the blob",
