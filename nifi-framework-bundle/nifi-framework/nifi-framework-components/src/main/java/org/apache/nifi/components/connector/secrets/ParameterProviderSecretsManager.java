@@ -167,19 +167,19 @@ public class ParameterProviderSecretsManager implements SecretsManager {
                 .map(SecretReference::getFullyQualifiedName)
                 .filter(Objects::nonNull)
                 .toList();
-            if (secretNames.isEmpty()) {
+            if (!secretNames.isEmpty()) {
+                final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
+                final Map<String, Secret> secretsByName = retrievedSecrets.stream()
+                    .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
+
+                for (final SecretReference secretReference : references) {
+                    final Secret secret = secretsByName.get(secretReference.getFullyQualifiedName());
+                    secrets.put(secretReference, secret);
+                }
+            } else {
                 for (final SecretReference secretReference : references) {
                     secrets.put(secretReference, null);
                 }
-                continue;
-            }
-            final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
-            final Map<String, Secret> secretsByName = retrievedSecrets.stream()
-                .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
-
-            for (final SecretReference secretReference : references) {
-                final Secret secret = secretsByName.get(secretReference.getFullyQualifiedName());
-                secrets.put(secretReference, secret);
             }
         }
 
@@ -224,23 +224,23 @@ public class ParameterProviderSecretsManager implements SecretsManager {
                 .map(SecretReference::getFullyQualifiedName)
                 .filter(Objects::nonNull)
                 .toList();
-            if (secretNames.isEmpty()) {
+            if (!secretNames.isEmpty()) {
+                final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
+                final Map<String, Secret> secretsByName = retrievedSecrets.stream()
+                    .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
+
+                for (final SecretReference secretReference : references) {
+                    final String fqn = secretReference.getFullyQualifiedName();
+                    final Secret secret = secretsByName.get(fqn);
+                    results.put(secretReference, secret);
+
+                    if (secret != null && fqn != null) {
+                        cacheSecret(fqn, secret);
+                    }
+                }
+            } else {
                 for (final SecretReference secretReference : references) {
                     results.put(secretReference, null);
-                }
-                continue;
-            }
-            final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
-            final Map<String, Secret> secretsByName = retrievedSecrets.stream()
-                .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
-
-            for (final SecretReference secretReference : references) {
-                final String fqn = secretReference.getFullyQualifiedName();
-                final Secret secret = secretsByName.get(fqn);
-                results.put(secretReference, secret);
-
-                if (secret != null && fqn != null) {
-                    cacheSecret(fqn, secret);
                 }
             }
         }
