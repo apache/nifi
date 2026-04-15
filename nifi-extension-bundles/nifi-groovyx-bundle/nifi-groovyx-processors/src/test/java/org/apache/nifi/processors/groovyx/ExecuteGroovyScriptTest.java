@@ -588,6 +588,23 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
+    void testTransferToFailureStrategyWhereScriptHandlesRelationship() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, """
+                def ff = session.get()
+                if (!ff) return
+                session.transfer(ff, REL_SUCCESS)
+                """);
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, ExecuteGroovyScript.TRANSFER_TO_FAILURE);
+        runner.assertValid();
+
+        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS, 1);
+    }
+
+    @Test
     void testMigrateProperties() {
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("groovyx-script-file", ExecuteGroovyScript.SCRIPT_FILE.getName()),
