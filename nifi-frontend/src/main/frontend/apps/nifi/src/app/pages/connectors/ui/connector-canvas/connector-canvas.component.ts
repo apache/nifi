@@ -242,6 +242,11 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     }
 
     onSearchGoToComponent(event: { id: string; type: ComponentType; groupId: string }): void {
+        if (event.type === ComponentType.ParameterProvider) {
+            this.router.navigate(['/settings', 'parameter-providers', event.id]);
+            return;
+        }
+
         if (event.groupId === this.currentProcessGroupId) {
             this.onSelectComponents([{ id: event.id, type: event.type }]);
             this.canvasComponent().centerOnComponent(event.id, event.type);

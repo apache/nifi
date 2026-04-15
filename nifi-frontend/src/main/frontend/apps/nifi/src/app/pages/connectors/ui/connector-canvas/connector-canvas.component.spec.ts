@@ -651,6 +651,25 @@ describe('ConnectorCanvasComponent', () => {
             );
         }));
 
+        it('should navigate to settings when search result is a ParameterProvider', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            const router = TestBed.inject(Router);
+            const navigateSpy = vi.spyOn(router, 'navigate');
+
+            component.onSearchGoToComponent({
+                id: 'pp-1',
+                type: ComponentType.ParameterProvider,
+                groupId: DEFAULT_PROCESS_GROUP_ID
+            });
+
+            expect(navigateSpy).toHaveBeenCalledWith(['/settings', 'parameter-providers', 'pp-1']);
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        }));
+
         it('should dispatch skipTransform and navigate when search result is in a different process group', fakeAsync(() => {
             const { fixture, component, dispatchSpy } = setup();
             fixture.detectChanges();
