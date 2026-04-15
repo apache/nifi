@@ -22,10 +22,11 @@ import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError, filter, map, switchMap, take, tap } from 'rxjs/operators';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
+import { BackNavigation } from '../../../../state/navigation';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import { SelectedComponent } from './connector-canvas.actions';
 import {
@@ -42,6 +43,7 @@ export class ConnectorCanvasEffects {
     private router = inject(Router);
     private connectorService = inject(ConnectorService);
     private errorHelper = inject(ErrorHelper);
+    private componentTypeNamePipe = inject(ComponentTypeNamePipe);
 
     loadConnectorFlow$ = createEffect(() =>
         this.actions$.pipe(
@@ -224,5 +226,37 @@ export class ConnectorCanvasEffects {
                 );
             })
         )
+    );
+
+    navigateToProvenanceForComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.navigateToProvenanceForComponent),
+                map((action) => ({ id: action.id, componentType: action.componentType })),
+                concatLatestFrom(() => [
+                    this.store.select(selectConnectorIdFromRoute),
+                    this.store.select(selectProcessGroupIdFromRoute)
+                ]),
+                tap(([{ id: componentId, componentType }, connectorId, processGroupId]) => {
+                    this.router.navigate(['/provenance'], {
+                        queryParams: { componentId },
+                        state: {
+                            backNavigation: {
+                                route: [
+                                    '/connectors',
+                                    connectorId,
+                                    'canvas',
+                                    processGroupId,
+                                    componentType,
+                                    componentId
+                                ],
+                                routeBoundary: ['/provenance'],
+                                context: this.componentTypeNamePipe.transform(componentType).toLowerCase()
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
     );
 }

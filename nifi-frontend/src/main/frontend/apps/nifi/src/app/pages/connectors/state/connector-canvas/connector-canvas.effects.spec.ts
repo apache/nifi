@@ -21,7 +21,7 @@ import { Action } from '@ngrx/store';
 import { Router } from '@angular/router';
 import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
 import { ConnectorCanvasEffects } from './connector-canvas.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -35,6 +35,7 @@ import {
     loadConnectorFlowComplete,
     loadConnectorFlowFailure,
     loadConnectorFlowSuccess,
+    navigateToProvenanceForComponent,
     navigateWithoutTransform,
     selectComponents
 } from './connector-canvas.actions';
@@ -94,7 +95,8 @@ describe('ConnectorCanvasEffects', () => {
                 }),
                 { provide: ConnectorService, useValue: mockConnectorService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
-                { provide: Router, useValue: mockRouter }
+                { provide: Router, useValue: mockRouter },
+                ComponentTypeNamePipe
             ]
         }).compileComponents();
 
@@ -419,6 +421,36 @@ describe('ConnectorCanvasEffects', () => {
 
             await firstValueFrom(effects.navigateWithoutTransform$);
             expect(mockRouter.navigate).toHaveBeenCalledWith(url, { replaceUrl: true });
+        });
+    });
+
+    describe('navigateToProvenanceForComponent$', () => {
+        it('should navigate to /provenance with componentId query param and back navigation state', async () => {
+            const { effects, actions$, mockRouter } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(
+                of(
+                    navigateToProvenanceForComponent({
+                        id: 'proc-1',
+                        componentType: ComponentType.Processor
+                    })
+                )
+            );
+
+            await firstValueFrom(effects.navigateToProvenanceForComponent$);
+
+            expect(mockRouter.navigate).toHaveBeenCalledWith(['/provenance'], {
+                queryParams: { componentId: 'proc-1' },
+                state: {
+                    backNavigation: {
+                        route: ['/connectors', 'conn-1', 'canvas', 'pg-root', ComponentType.Processor, 'proc-1'],
+                        routeBoundary: ['/provenance'],
+                        context: 'processor'
+                    }
+                }
+            });
         });
     });
 });

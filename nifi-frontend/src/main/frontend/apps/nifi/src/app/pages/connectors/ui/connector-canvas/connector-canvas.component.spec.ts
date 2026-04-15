@@ -28,9 +28,11 @@ import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
+import { ContextMenuContext } from '../../../../ui/common/canvas/canvas.types';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import { selectParentProcessGroupId } from '../../state/connector-canvas/connector-canvas.selectors';
@@ -39,11 +41,13 @@ import {
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
+    navigateToProvenanceForComponent,
     resetConnectorCanvasState,
     selectComponents,
     setSkipTransform
 } from '../../state/connector-canvas/connector-canvas.actions';
 import { resetConnectorCanvasEntityState } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 // Mock components to avoid loading complex real components
 @Component({
@@ -66,9 +70,11 @@ class MockReusableCanvasComponent {
     selectedComponentIds = input<string[]>([]);
     dataReady = input(false);
     skipInitialCenter = input(false);
+    menuProvider = input<unknown>(undefined);
     selectComponents = output<Array<{ id: string; type: ComponentType }>>();
     deselectAll = output<void>();
     initialized = output<void>();
+    contextMenuOpened = output<unknown>();
     centerOnSelection = vi.fn();
     centerOnComponent = vi.fn();
 }
@@ -123,10 +129,31 @@ interface SetupOptions {
     parentProcessGroupId?: string | null;
     skipTransform?: boolean;
     routeParams?: Record<string, string>;
+    canAccessProvenance?: boolean;
 }
 
 const DEFAULT_CONNECTOR_ID = 'connector-1';
 const DEFAULT_PROCESS_GROUP_ID = 'pg-root';
+
+function buildMockCurrentUser(canAccessProvenance: boolean) {
+    const permissions = { canRead: false, canWrite: false };
+    return {
+        identity: 'test-user',
+        anonymous: false,
+        canVersionFlows: false,
+        logoutSupported: false,
+        provenancePermissions: { canRead: canAccessProvenance, canWrite: false },
+        countersPermissions: permissions,
+        tenantsPermissions: permissions,
+        controllerPermissions: permissions,
+        policiesPermissions: permissions,
+        systemPermissions: permissions,
+        parameterContextPermissions: permissions,
+        connectorsPermissions: permissions,
+        restrictedComponentsPermissions: permissions,
+        componentRestrictionPermissions: []
+    };
+}
 
 function buildMockSelectors(options: SetupOptions = {}) {
     const loadingStatus = options.loadingStatus ?? 'success';
@@ -136,6 +163,7 @@ function buildMockSelectors(options: SetupOptions = {}) {
     const parentProcessGroupId = options.parentProcessGroupId !== undefined ? options.parentProcessGroupId : null;
     const skipTransform = options.skipTransform ?? false;
     const routeParamsValue = options.routeParams ?? { id: connectorId, processGroupId };
+    const canAccessProvenance = options.canAccessProvenance ?? true;
 
     return [
         { selector: ConnectorCanvasSelectors.selectLabels, value: [] },
@@ -152,7 +180,8 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectProcessGroupIdFromRoute, value: processGroupId },
         { selector: selectParentProcessGroupId, value: parentProcessGroupId },
         { selector: selectUrl, value: url },
-        { selector: selectRouteParams, value: routeParamsValue }
+        { selector: selectRouteParams, value: routeParamsValue },
+        { selector: selectCurrentUser, value: buildMockCurrentUser(canAccessProvenance) }
     ];
 }
 
@@ -694,6 +723,529 @@ describe('ConnectorCanvasComponent', () => {
                 ComponentType.Processor,
                 'proc-2'
             ]);
+        }));
+    });
+
+    describe('Context menu provider', () => {
+        function buildCanvasContext(): ContextMenuContext {
+            return {
+                processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                targetType: 'canvas',
+                selectedComponents: [],
+                allConnections: []
+            };
+        }
+
+        function buildComponentContext(
+            componentType: ComponentType,
+            entityId: string,
+            selectedCount = 1,
+            entityOverrides: Record<string, any> = {}
+        ): ContextMenuContext {
+            const component = {
+                ui: { componentType } as any,
+                entity: { id: entityId, permissions: { canRead: true, canWrite: true }, ...entityOverrides } as any
+            };
+            return {
+                processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                targetType: 'component',
+                clickedComponent: component,
+                selectedComponents: Array.from({ length: selectedCount }, () => component),
+                allConnections: []
+            };
+        }
+
+        describe('getMenu', () => {
+            it('should return undefined for non-root menuId', () => {
+                const { component } = setup();
+                const result = component.contextMenuProvider.getMenu('other');
+                expect(result).toBeUndefined();
+            });
+
+            it('should return canvas menu with Refresh and Leave group when targetType is canvas', fakeAsync(() => {
+                const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+
+                const menu = component.contextMenuProvider.getMenu('root');
+                expect(menu).toBeDefined();
+
+                const items = menu!.menuItems.filter((item) => !item.isSeparator);
+                expect(items.map((i) => i.text)).toEqual(['Refresh', 'Leave group']);
+            }));
+
+            it('should return component menu with Enter group, View data provenance, View state, and Center in view when targetType is component', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1'));
+
+                const menu = component.contextMenuProvider.getMenu('root');
+                expect(menu).toBeDefined();
+
+                const items = menu!.menuItems.filter((item) => !item.isSeparator);
+                expect(items.map((i) => i.text)).toEqual([
+                    'Enter group',
+                    'View data provenance',
+                    'View state',
+                    'Center in view'
+                ]);
+            }));
+
+            it('should return empty menu when no context is set', () => {
+                const { component } = setup();
+                const menu = component.contextMenuProvider.getMenu('root');
+                expect(menu).toBeDefined();
+                expect(menu!.menuItems).toEqual([]);
+            });
+        });
+
+        describe('canvas menu conditions', () => {
+            it('should always show Refresh', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const refresh = menu.menuItems.find((i) => i.text === 'Refresh');
+
+                expect(refresh).toBeDefined();
+                expect(refresh!.condition!(null)).toBe(true);
+            }));
+
+            it('should show Leave group only when canNavigateToParent is true', fakeAsync(() => {
+                const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave group');
+
+                expect(leaveGroup).toBeDefined();
+                expect(leaveGroup!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Leave group when canNavigateToParent is false', fakeAsync(() => {
+                const { fixture, component } = setup({ parentProcessGroupId: null });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave group');
+
+                expect(leaveGroup).toBeDefined();
+                expect(leaveGroup!.condition!(null)).toBe(false);
+            }));
+        });
+
+        describe('component menu conditions', () => {
+            it('should show Enter group for ProcessGroup with single selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter group');
+
+                expect(enterGroup).toBeDefined();
+                expect(enterGroup!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Enter group for non-ProcessGroup types', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter group');
+
+                expect(enterGroup).toBeDefined();
+                expect(enterGroup!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide Enter group for multi-selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 3));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter group');
+
+                expect(enterGroup).toBeDefined();
+                expect(enterGroup!.condition!(null)).toBe(false);
+            }));
+
+            it('should always show Center in view', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const center = menu.menuItems.find((i) => i.text === 'Center in view');
+
+                expect(center).toBeDefined();
+                expect(center!.condition!(null)).toBe(true);
+            }));
+
+            it('should show View data provenance for Processor with provenance access', fakeAsync(() => {
+                const { fixture, component } = setup({ canAccessProvenance: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+
+                expect(provenance).toBeDefined();
+                expect(provenance!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide View data provenance when user lacks provenance access', fakeAsync(() => {
+                const { fixture, component } = setup({ canAccessProvenance: false });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+
+                expect(provenance).toBeDefined();
+                expect(provenance!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View data provenance for ProcessGroup', fakeAsync(() => {
+                const { fixture, component } = setup({ canAccessProvenance: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+
+                expect(provenance).toBeDefined();
+                expect(provenance!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View data provenance for Connection', fakeAsync(() => {
+                const { fixture, component } = setup({ canAccessProvenance: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+
+                expect(provenance).toBeDefined();
+                expect(provenance!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View data provenance for multi-selection', fakeAsync(() => {
+                const { fixture, component } = setup({ canAccessProvenance: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 3));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+
+                expect(provenance).toBeDefined();
+                expect(provenance!.condition!(null)).toBe(false);
+            }));
+
+            it('should show View state for a stateful Processor with read/write permissions', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.Processor, 'proc-1', 1, {
+                        component: { persistsState: true, name: 'My Processor' },
+                        permissions: { canRead: true, canWrite: true }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+
+                expect(viewState).toBeDefined();
+                expect(viewState!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide View state for non-Processor types', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1, {
+                        component: { persistsState: true }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+
+                expect(viewState).toBeDefined();
+                expect(viewState!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View state when processor does not persist state', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.Processor, 'proc-1', 1, {
+                        component: { persistsState: false, name: 'Stateless Proc' },
+                        permissions: { canRead: true, canWrite: true }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+
+                expect(viewState).toBeDefined();
+                expect(viewState!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View state when user lacks write permission', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.Processor, 'proc-1', 1, {
+                        component: { persistsState: true, name: 'My Processor' },
+                        permissions: { canRead: true, canWrite: false }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+
+                expect(viewState).toBeDefined();
+                expect(viewState!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View state for multi-selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.Processor, 'proc-1', 3, {
+                        component: { persistsState: true, name: 'My Processor' },
+                        permissions: { canRead: true, canWrite: true }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+
+                expect(viewState).toBeDefined();
+                expect(viewState!.condition!(null)).toBe(false);
+            }));
+        });
+
+        describe('filterMenuItem', () => {
+            it('should return true when condition returns true', () => {
+                const { component } = setup();
+                const item = { condition: () => true, text: 'test' };
+                expect(component.contextMenuProvider.filterMenuItem(item)).toBe(true);
+            });
+
+            it('should return false when condition returns false', () => {
+                const { component } = setup();
+                const item = { condition: () => false, text: 'test' };
+                expect(component.contextMenuProvider.filterMenuItem(item)).toBe(false);
+            });
+
+            it('should return true when no condition is set (separators)', () => {
+                const { component } = setup();
+                const item = { isSeparator: true };
+                expect(component.contextMenuProvider.filterMenuItem(item)).toBe(true);
+            });
+        });
+
+        describe('menuItemClicked', () => {
+            it('should call the item action', () => {
+                const { component } = setup();
+                const action = vi.fn();
+                const item = { text: 'test', action };
+                const event = new MouseEvent('click');
+
+                component.contextMenuProvider.menuItemClicked(item, event);
+
+                expect(action).toHaveBeenCalled();
+            });
+        });
+
+        describe('onContextMenuOpened', () => {
+            it('should store the context', () => {
+                const { component } = setup();
+                const context = buildCanvasContext();
+
+                component.onContextMenuOpened(context);
+
+                const menu = component.contextMenuProvider.getMenu('root');
+                expect(menu).toBeDefined();
+                expect(menu!.menuItems.length).toBeGreaterThan(0);
+            });
+        });
+    });
+
+    describe('Action methods', () => {
+        describe('refreshAction', () => {
+            it('should dispatch loadConnectorFlow', fakeAsync(() => {
+                const { fixture, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                fixture.componentInstance.refreshAction();
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    loadConnectorFlow({
+                        connectorId: DEFAULT_CONNECTOR_ID,
+                        processGroupId: DEFAULT_PROCESS_GROUP_ID
+                    })
+                );
+            }));
+
+            it('should not dispatch when connectorId is empty', () => {
+                const { component, dispatchSpy } = setup();
+                component.currentConnectorId = '';
+                component.currentProcessGroupId = null;
+                dispatchSpy.mockClear();
+
+                component.refreshAction();
+
+                expect(dispatchSpy).not.toHaveBeenCalled();
+            });
+        });
+
+        describe('enterGroupAction', () => {
+            it('should dispatch enterProcessGroup', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.enterGroupAction('pg-nested');
+
+                expect(dispatchSpy).toHaveBeenCalledWith(enterProcessGroup({ request: { id: 'pg-nested' } }));
+            });
+        });
+
+        describe('viewDataProvenanceAction', () => {
+            it('should dispatch navigateToProvenanceForComponent', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.viewDataProvenanceAction('proc-1', ComponentType.Processor);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    navigateToProvenanceForComponent({ id: 'proc-1', componentType: ComponentType.Processor })
+                );
+            });
+        });
+
+        describe('viewProcessorStateAction', () => {
+            it('should dispatch getComponentStateAndOpenDialog with connectorId', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                const processorEntity = {
+                    id: 'proc-1',
+                    component: { name: 'My Processor', persistsState: true },
+                    status: { aggregateSnapshot: { runStatus: 'Stopped', activeThreadCount: 0 } }
+                };
+
+                component.viewProcessorStateAction(processorEntity);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    getComponentStateAndOpenDialog({
+                        request: {
+                            componentName: 'My Processor',
+                            componentId: 'proc-1',
+                            componentType: ComponentType.Processor,
+                            canClear: true,
+                            connectorId: DEFAULT_CONNECTOR_ID
+                        }
+                    })
+                );
+            }));
+
+            it('should set canClear to false when processor is running', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                const processorEntity = {
+                    id: 'proc-1',
+                    component: { name: 'Running Processor', persistsState: true },
+                    status: { aggregateSnapshot: { runStatus: 'Running', activeThreadCount: 1 } }
+                };
+
+                component.viewProcessorStateAction(processorEntity);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    getComponentStateAndOpenDialog({
+                        request: {
+                            componentName: 'Running Processor',
+                            componentId: 'proc-1',
+                            componentType: ComponentType.Processor,
+                            canClear: false,
+                            connectorId: DEFAULT_CONNECTOR_ID
+                        }
+                    })
+                );
+            }));
+
+            it('should set canClear to false when processor has active threads', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                const processorEntity = {
+                    id: 'proc-1',
+                    component: { name: 'Active Processor', persistsState: true },
+                    status: { aggregateSnapshot: { runStatus: 'Stopped', activeThreadCount: 2 } }
+                };
+
+                component.viewProcessorStateAction(processorEntity);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    getComponentStateAndOpenDialog({
+                        request: {
+                            componentName: 'Active Processor',
+                            componentId: 'proc-1',
+                            componentType: ComponentType.Processor,
+                            canClear: false,
+                            connectorId: DEFAULT_CONNECTOR_ID
+                        }
+                    })
+                );
+            }));
+        });
+    });
+
+    describe('Template bindings', () => {
+        it('should pass menuProvider to reusable-canvas', fakeAsync(() => {
+            const { fixture } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvasDebugEl = fixture.debugElement.query((el) => el.name === 'reusable-canvas');
+            expect(canvasDebugEl).toBeTruthy();
+            expect(canvasDebugEl.componentInstance.menuProvider()).toBeTruthy();
         }));
     });
 });

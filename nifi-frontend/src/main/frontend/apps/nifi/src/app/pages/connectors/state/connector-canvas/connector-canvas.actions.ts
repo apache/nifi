@@ -102,4 +102,9 @@ export const setSkipTransform = createAction(
     props<{ skipTransform: boolean }>()
 );
 
+export const navigateToProvenanceForComponent = createAction(
+    '[Connector Canvas] Navigate To Provenance For Component',
+    props<{ id: string; componentType: ComponentType }>()
+);
+
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');

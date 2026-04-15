@@ -20,6 +20,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
+import { ComponentTypeNamePipe } from '@nifi/shared';
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { ConnectorCanvasRedirector } from './guard/connector-canvas-redirector.component';
 import { connectorCanvasRootGuard } from './guard/connector-canvas-root.guard';
@@ -53,6 +54,7 @@ const routes: Routes = [
         RouterModule.forChild(routes),
         StoreModule.forFeature(connectorCanvasFeatureKey, connectorCanvasReducer),
         EffectsModule.forFeature(ConnectorCanvasEffects, ConnectorCanvasEntityEffects)
-    ]
+    ],
+    providers: [ComponentTypeNamePipe]
 })
 export class ConnectorCanvasModule {}

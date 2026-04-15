@@ -26,7 +26,12 @@ import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ComponentStateService } from '../../service/component-state.service';
 import { ComponentStateDialog } from '../../ui/common/component-state/component-state.component';
-import { selectComponentType, selectComponentId, selectComponentState } from './component-state.selectors';
+import {
+    selectComponentType,
+    selectComponentId,
+    selectComponentState,
+    selectConnectorId
+} from './component-state.selectors';
 import { isDefinedAndNotNull, XL_DIALOG } from '@nifi/shared';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -46,34 +51,40 @@ export class ComponentStateEffects {
         this.actions$.pipe(
             ofType(ComponentStateActions.getComponentStateAndOpenDialog),
             map((action) => action.request),
-            switchMap((request) =>
-                from(
-                    this.componentStateService
-                        .getComponentState({
-                            componentType: request.componentType,
-                            componentId: request.componentId
-                        })
-                        .pipe(
-                            map((response: ComponentStateEntity) =>
-                                ComponentStateActions.loadComponentStateSuccess({
-                                    response: {
-                                        componentState: response.componentState
-                                    }
+            switchMap((request) => {
+                const stateRequest$ = request.connectorId
+                    ? this.componentStateService.getConnectorComponentState(
+                          request.connectorId,
+                          request.componentType,
+                          request.componentId
+                      )
+                    : this.componentStateService.getComponentState({
+                          componentType: request.componentType,
+                          componentId: request.componentId
+                      });
+
+                return from(
+                    stateRequest$.pipe(
+                        map((response: ComponentStateEntity) =>
+                            ComponentStateActions.loadComponentStateSuccess({
+                                response: {
+                                    componentState: response.componentState
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(
+                                ErrorActions.snackBarError({
+                                    error: this.errorHelper.getErrorString(
+                                        errorResponse,
+                                        `Failed to get the component state for ${request.componentName}.`
+                                    )
                                 })
-                            ),
-                            catchError((errorResponse: HttpErrorResponse) =>
-                                of(
-                                    ErrorActions.snackBarError({
-                                        error: this.errorHelper.getErrorString(
-                                            errorResponse,
-                                            `Failed to get the component state for ${request.componentName}.`
-                                        )
-                                    })
-                                )
                             )
                         )
-                )
-            )
+                    )
+                );
+            })
         )
     );
 
@@ -108,11 +119,16 @@ export class ComponentStateEffects {
             ofType(ComponentStateActions.clearComponentState),
             concatLatestFrom(() => [
                 this.store.select(selectComponentType).pipe(isDefinedAndNotNull()),
-                this.store.select(selectComponentId).pipe(isDefinedAndNotNull())
+                this.store.select(selectComponentId).pipe(isDefinedAndNotNull()),
+                this.store.select(selectConnectorId)
             ]),
-            switchMap(([, componentType, componentId]) =>
-                from(
-                    this.componentStateService.clearComponentState({ componentType, componentId }).pipe(
+            switchMap(([, componentType, componentId, connectorId]) => {
+                const clearRequest$ = connectorId
+                    ? this.componentStateService.clearConnectorComponentState(connectorId, componentType, componentId)
+                    : this.componentStateService.clearComponentState({ componentType, componentId });
+
+                return from(
+                    clearRequest$.pipe(
                         map(() => ComponentStateActions.reloadComponentState()),
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
@@ -130,8 +146,8 @@ export class ComponentStateEffects {
                             )
                         )
                     )
-                )
-            )
+                );
+            })
         )
     );
 
@@ -140,12 +156,17 @@ export class ComponentStateEffects {
             ofType(ComponentStateActions.reloadComponentState),
             concatLatestFrom(() => [
                 this.store.select(selectComponentType).pipe(isDefinedAndNotNull()),
-                this.store.select(selectComponentId).pipe(isDefinedAndNotNull())
+                this.store.select(selectComponentId).pipe(isDefinedAndNotNull()),
+                this.store.select(selectConnectorId)
             ]),
-            switchMap(([, componentType, componentId]) =>
-                from(
-                    this.componentStateService.getComponentState({ componentType, componentId }).pipe(
-                        map((response: any) =>
+            switchMap(([, componentType, componentId, connectorId]) => {
+                const stateRequest$ = connectorId
+                    ? this.componentStateService.getConnectorComponentState(connectorId, componentType, componentId)
+                    : this.componentStateService.getComponentState({ componentType, componentId });
+
+                return from(
+                    stateRequest$.pipe(
+                        map((response: ComponentStateEntity) =>
                             ComponentStateActions.reloadComponentStateSuccess({
                                 response: {
                                     componentState: response.componentState
@@ -168,8 +189,8 @@ export class ComponentStateEffects {
                             )
                         )
                     )
-                )
-            )
+                );
+            })
         )
     );
 
@@ -179,12 +200,12 @@ export class ComponentStateEffects {
             concatLatestFrom(() => [
                 this.store.select(selectComponentType).pipe(isDefinedAndNotNull()),
                 this.store.select(selectComponentId).pipe(isDefinedAndNotNull()),
-                this.store.select(selectComponentState).pipe(isDefinedAndNotNull())
+                this.store.select(selectComponentState).pipe(isDefinedAndNotNull()),
+                this.store.select(selectConnectorId)
             ]),
-            switchMap(([action, componentType, componentId, currentState]) => {
+            switchMap(([action, componentType, componentId, currentState, connectorId]) => {
                 const { keyToDelete, scope } = action.request;
 
-                // Create new state without the deleted key
                 const newState: ComponentState = { ...currentState };
 
                 if (scope === 'LOCAL' && newState.localState?.state) {
@@ -203,27 +224,38 @@ export class ComponentStateEffects {
                     componentState: newState
                 };
 
+                const clearRequest$ = connectorId
+                    ? this.componentStateService.clearConnectorComponentStateEntry(
+                          connectorId,
+                          componentType,
+                          componentId,
+                          componentStateEntity
+                      )
+                    : this.componentStateService.clearComponentStateEntry(
+                          componentType,
+                          componentId,
+                          componentStateEntity
+                      );
+
                 return from(
-                    this.componentStateService
-                        .clearComponentStateEntry(componentType, componentId, componentStateEntity)
-                        .pipe(
-                            map(() => ComponentStateActions.reloadComponentState()),
-                            catchError((errorResponse: HttpErrorResponse) =>
-                                of(
-                                    ComponentStateActions.clearComponentStateFailure({
-                                        errorContext: {
-                                            errors: [
-                                                this.errorHelper.getErrorString(
-                                                    errorResponse,
-                                                    `Failed to clear state entry: ${keyToDelete}.`
-                                                )
-                                            ],
-                                            context: ErrorContextKey.COMPONENT_STATE
-                                        }
-                                    })
-                                )
+                    clearRequest$.pipe(
+                        map(() => ComponentStateActions.reloadComponentState()),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(
+                                ComponentStateActions.clearComponentStateFailure({
+                                    errorContext: {
+                                        errors: [
+                                            this.errorHelper.getErrorString(
+                                                errorResponse,
+                                                `Failed to clear state entry: ${keyToDelete}.`
+                                            )
+                                        ],
+                                        context: ErrorContextKey.COMPONENT_STATE
+                                    }
+                                })
                             )
                         )
+                    )
                 );
             })
         )

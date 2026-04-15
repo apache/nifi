@@ -48,11 +48,45 @@ export class ComponentStateService {
         componentId: string,
         componentStateEntity: ComponentStateEntity
     ): Observable<any> {
-        // To clear a specific state entry, we send the updated state
-        // without the key to be cleared in the ComponentStateEntity format
         const path = this.nifiCommon.getComponentTypeApiPath(componentType);
         return this.httpClient.post(
             `${ComponentStateService.API}/${path}/${componentId}/state/clear-requests`,
+            componentStateEntity
+        );
+    }
+
+    getConnectorComponentState(
+        connectorId: string,
+        componentType: ComponentType,
+        componentId: string
+    ): Observable<ComponentStateEntity> {
+        const typePath = this.nifiCommon.getComponentTypeApiPath(componentType);
+        return this.httpClient.get<ComponentStateEntity>(
+            `${ComponentStateService.API}/connectors/${connectorId}/${typePath}/${componentId}/state`
+        );
+    }
+
+    clearConnectorComponentState(
+        connectorId: string,
+        componentType: ComponentType,
+        componentId: string
+    ): Observable<any> {
+        const typePath = this.nifiCommon.getComponentTypeApiPath(componentType);
+        return this.httpClient.post(
+            `${ComponentStateService.API}/connectors/${connectorId}/${typePath}/${componentId}/state/clear-requests`,
+            {}
+        );
+    }
+
+    clearConnectorComponentStateEntry(
+        connectorId: string,
+        componentType: ComponentType,
+        componentId: string,
+        componentStateEntity: ComponentStateEntity
+    ): Observable<any> {
+        const typePath = this.nifiCommon.getComponentTypeApiPath(componentType);
+        return this.httpClient.post(
+            `${ComponentStateService.API}/connectors/${connectorId}/${typePath}/${componentId}/state/clear-requests`,
             componentStateEntity
         );
     }

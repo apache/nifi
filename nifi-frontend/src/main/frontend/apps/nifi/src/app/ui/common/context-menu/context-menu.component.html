@@ -21,7 +21,7 @@
         [class.show-focused]="showFocused$ | async"
         (keydown)="keydown($event)"
         cdkMenu>
-        @for (item of getMenuItems(menuId); track item) {
+        @for (item of getMenuItems(menuId); track item.text || $index) {
             @if (item.isSeparator) {
                 <hr />
             } @else {

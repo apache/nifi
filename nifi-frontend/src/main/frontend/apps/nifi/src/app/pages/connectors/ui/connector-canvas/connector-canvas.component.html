@@ -46,7 +46,9 @@
                 (deselectAll)="onDeselectAll()"
                 (initialized)="onCanvasInitialized()"
                 (transformChange)="onTransformChange($event)"
-                (processGroupDoubleClick)="onProcessGroupDoubleClick($event)">
+                (processGroupDoubleClick)="onProcessGroupDoubleClick($event)"
+                [menuProvider]="contextMenuProvider"
+                (contextMenuOpened)="onContextMenuOpened($event)">
             </reusable-canvas>
         }
         @if ((hasError$ | async) === true) {

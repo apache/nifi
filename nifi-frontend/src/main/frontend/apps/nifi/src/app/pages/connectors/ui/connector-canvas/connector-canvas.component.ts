@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit, DestroyRef, inject, HostListener, viewChild } from '@angular/core';
+import { Component, computed, OnDestroy, OnInit, DestroyRef, inject, HostListener, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButton } from '@angular/material/button';
@@ -26,15 +26,23 @@ import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
 import { combineLatest, distinctUntilChanged, filter, map, Observable, of } from 'rxjs';
 import { NiFiState } from '../../../../state';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
+import { ContextMenuContext } from '../../../../ui/common/canvas/canvas.types';
+import {
+    ContextMenuDefinition,
+    ContextMenuDefinitionProvider,
+    ContextMenuItemDefinition
+} from '../../../../ui/common/context-menu/context-menu.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 const GRAPH_CONTROLS_STORAGE_KEY = 'connector-graph-controls';
 
@@ -66,7 +74,6 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     skipTransform = this.store.selectSignal(ConnectorCanvasSelectors.selectSkipTransform);
     graphControlsOpen = localStorage.getItem(GRAPH_CONTROLS_STORAGE_KEY) !== 'false';
 
-    // Subscribe to connector canvas state (flow data)
     labels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectLabels);
     processors$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectProcessors);
     funnels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectFunnels);
@@ -78,6 +85,108 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         ConnectorCanvasSelectors.selectRegistryClients
     );
     previewExtensions$: Observable<DocumentedType[]> = of([]);
+
+    private currentUser = this.store.selectSignal(selectCurrentUser);
+    canAccessProvenance = computed(() => this.currentUser().provenancePermissions.canRead);
+
+    // =========================================================================
+    // Context Menu
+    // =========================================================================
+
+    private currentContextMenuContext: ContextMenuContext | null = null;
+
+    contextMenuProvider: ContextMenuDefinitionProvider = {
+        getMenu: (menuId: string): ContextMenuDefinition | undefined => {
+            if (menuId !== 'root') {
+                return undefined;
+            }
+
+            const context = this.currentContextMenuContext;
+            let menuItems: ContextMenuItemDefinition[] = [];
+
+            if (context?.targetType === 'canvas') {
+                menuItems = [
+                    {
+                        text: 'Refresh',
+                        clazz: 'fa fa-refresh',
+                        condition: () => true,
+                        action: () => this.refreshAction(),
+                        shortcut: { control: true, code: 'R' }
+                    },
+                    {
+                        text: 'Leave group',
+                        clazz: 'fa fa-level-up',
+                        condition: () => this.canNavigateToParent,
+                        action: () => this.leaveGroupAction(),
+                        shortcut: { code: 'ESC' }
+                    }
+                ];
+            } else if (context?.targetType === 'component') {
+                const clicked = context.clickedComponent;
+                const isSingleSelection = context.selectedComponents.length <= 1;
+                const isProcessGroup = clicked?.ui.componentType === ComponentType.ProcessGroup;
+                const isConnection = clicked?.ui.componentType === ComponentType.Connection;
+                const isProcessor = clicked?.ui.componentType === ComponentType.Processor;
+                const isProvenanceTarget =
+                    !!clicked &&
+                    isSingleSelection &&
+                    !isProcessGroup &&
+                    !isConnection &&
+                    clicked.ui.componentType !== ComponentType.RemoteProcessGroup &&
+                    clicked.ui.componentType !== ComponentType.Label;
+
+                menuItems = [
+                    {
+                        text: 'Enter group',
+                        clazz: 'fa fa-sign-in',
+                        condition: () => isProcessGroup && isSingleSelection,
+                        action: () => this.enterGroupAction(clicked!.entity.id)
+                    },
+                    { isSeparator: true },
+                    {
+                        text: 'View data provenance',
+                        clazz: 'icon icon-provenance',
+                        condition: () => isProvenanceTarget && this.canAccessProvenance(),
+                        action: () => this.viewDataProvenanceAction(clicked!.entity.id, clicked!.ui.componentType)
+                    },
+                    {
+                        text: 'View state',
+                        clazz: 'fa fa-tasks',
+                        condition: () =>
+                            isProcessor &&
+                            isSingleSelection &&
+                            clicked!.entity.component?.persistsState === true &&
+                            clicked!.entity.permissions.canRead === true &&
+                            clicked!.entity.permissions.canWrite === true,
+                        action: () => this.viewProcessorStateAction(clicked!.entity)
+                    },
+                    { isSeparator: true },
+                    this.getCenterInViewMenuItem()
+                ];
+            }
+
+            return { id: menuId, menuItems };
+        },
+        filterMenuItem: (menuItem: ContextMenuItemDefinition): boolean => {
+            return menuItem.condition ? menuItem.condition(null) : true;
+        },
+        menuItemClicked: (menuItem: ContextMenuItemDefinition, event: MouseEvent): void => {
+            menuItem.action?.(null, event);
+        }
+    };
+
+    onContextMenuOpened(context: ContextMenuContext): void {
+        this.currentContextMenuContext = context;
+    }
+
+    private getCenterInViewMenuItem(): ContextMenuItemDefinition {
+        return {
+            text: 'Center in view',
+            clazz: 'fa fa-crosshairs',
+            condition: () => true,
+            action: () => this.centerInViewAction()
+        };
+    }
 
     // Data ready signal for canvas - true when flow data is successfully loaded
     dataReady$: Observable<boolean> = this.store
@@ -191,11 +300,66 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         }
     }
 
+    // =========================================================================
+    // Shared Actions (used by both context menu and keyboard shortcuts)
+    // =========================================================================
+
+    refreshAction(): void {
+        if (this.currentConnectorId && this.currentProcessGroupId) {
+            this.store.dispatch(
+                ConnectorCanvasActions.loadConnectorFlow({
+                    connectorId: this.currentConnectorId,
+                    processGroupId: this.currentProcessGroupId
+                })
+            );
+        }
+    }
+
     leaveGroupAction(): void {
         if (this.canNavigateToParent) {
             this.store.dispatch(ConnectorCanvasActions.leaveProcessGroup());
         }
     }
+
+    enterGroupAction(processGroupId: string): void {
+        this.store.dispatch(ConnectorCanvasActions.enterProcessGroup({ request: { id: processGroupId } }));
+    }
+
+    viewDataProvenanceAction(componentId: string, componentType: ComponentType): void {
+        this.store.dispatch(
+            ConnectorCanvasActions.navigateToProvenanceForComponent({ id: componentId, componentType })
+        );
+    }
+
+    viewProcessorStateAction(processorEntity: any): void {
+        this.store.dispatch(
+            getComponentStateAndOpenDialog({
+                request: {
+                    componentName: processorEntity.component.name,
+                    componentId: processorEntity.id,
+                    componentType: ComponentType.Processor,
+                    canClear: this.canClearProcessorState(processorEntity),
+                    connectorId: this.currentConnectorId
+                }
+            })
+        );
+    }
+
+    private canClearProcessorState(processorEntity: any): boolean {
+        const runStatus = processorEntity.status?.aggregateSnapshot?.runStatus;
+        const activeThreadCount = processorEntity.status?.aggregateSnapshot?.activeThreadCount || 0;
+        return runStatus !== 'Running' && activeThreadCount === 0;
+    }
+
+    centerInViewAction(): void {
+        this.canvasComponent().centerOnSelection(true);
+    }
+
+    // =========================================================================
+    // Keyboard Shortcuts
+    // Typed as Event (not KeyboardEvent) because Angular 21's typeCheckHostBindings
+    // infers $event as Event for key-specific bindings (angular/angular#40778).
+    // =========================================================================
 
     @HostListener('window:keydown.escape', ['$event'])
     handleEscapeShortcut(event: Event): void {
@@ -209,20 +373,9 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     handleRefreshShortcut(event: Event): void {
         if (this.shouldProcessKeyboardEvent(event)) {
             event.preventDefault();
-            this.store.dispatch(
-                ConnectorCanvasActions.loadConnectorFlow({
-                    connectorId: this.currentConnectorId,
-                    processGroupId: this.currentProcessGroupId!
-                })
-            );
+            this.refreshAction();
         }
     }
-
-    // =========================================================================
-    // Keyboard Shortcuts
-    // Typed as Event (not KeyboardEvent) because Angular 21's typeCheckHostBindings
-    // infers $event as Event for key-specific bindings (angular/angular#40778).
-    // =========================================================================
 
     private shouldProcessKeyboardEvent(event: Event): boolean {
         if (this.dialog.openDialogs.length > 0) {

@@ -31,6 +31,7 @@ export const initialState: ComponentStateState = {
     componentName: null,
     componentType: null,
     componentId: null,
+    connectorId: null,
     componentState: null,
     canClear: null,
     clearing: false,
@@ -44,6 +45,7 @@ export const componentStateReducer = createReducer(
         componentName: request.componentName,
         componentType: request.componentType,
         componentId: request.componentId,
+        connectorId: request.connectorId ?? null,
         canClear: request.canClear,
         status: 'loading' as const
     })),
