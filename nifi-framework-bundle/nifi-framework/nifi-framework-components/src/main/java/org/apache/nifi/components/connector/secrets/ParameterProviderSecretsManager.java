@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -162,8 +163,16 @@ public class ParameterProviderSecretsManager implements SecretsManager {
                 continue;
             }
 
-            final List<String> secretNames = new ArrayList<>();
-            references.forEach(ref -> secretNames.add(ref.getFullyQualifiedName()));
+            final List<String> secretNames = references.stream()
+                .map(SecretReference::getFullyQualifiedName)
+                .filter(Objects::nonNull)
+                .toList();
+            if (secretNames.isEmpty()) {
+                for (final SecretReference secretReference : references) {
+                    secrets.put(secretReference, null);
+                }
+                continue;
+            }
             final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
             final Map<String, Secret> secretsByName = retrievedSecrets.stream()
                 .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
@@ -211,8 +220,16 @@ public class ParameterProviderSecretsManager implements SecretsManager {
                 continue;
             }
 
-            final List<String> secretNames = new ArrayList<>();
-            references.forEach(ref -> secretNames.add(ref.getFullyQualifiedName()));
+            final List<String> secretNames = references.stream()
+                .map(SecretReference::getFullyQualifiedName)
+                .filter(Objects::nonNull)
+                .toList();
+            if (secretNames.isEmpty()) {
+                for (final SecretReference secretReference : references) {
+                    results.put(secretReference, null);
+                }
+                continue;
+            }
             final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
             final Map<String, Secret> secretsByName = retrievedSecrets.stream()
                 .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
