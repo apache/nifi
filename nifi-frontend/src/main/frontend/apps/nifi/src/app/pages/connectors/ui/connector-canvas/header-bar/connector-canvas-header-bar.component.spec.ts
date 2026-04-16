@@ -108,10 +108,10 @@ describe('ConnectorCanvasHeaderBarComponent', () => {
             expect(backLink).toBeTruthy();
         });
 
-        it('should display "Installed connectors" text', async () => {
+        it('should display "Installed Connectors" text', async () => {
             const { hostFixture } = await setup();
             const backLink = hostFixture.nativeElement.querySelector('[data-qa="back-to-connectors"]');
-            expect(backLink.textContent).toContain('Installed connectors');
+            expect(backLink.textContent).toContain('Installed Connectors');
         });
 
         it('should render an arrow-left icon', async () => {
