@@ -525,6 +525,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             getLogger().error(t.toString(), t);
             onFailSQL(sql);
             if (toFailureOnError) {
+                // FlowFile must be retrieved in order send to the failure relationship as it may not have been retrieved in the script.
+                session.get();
                 //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
                 session.revertReceivedTo(REL_FAILURE, StackTraceUtils.deepSanitize(t));
             } else {
