@@ -251,7 +251,7 @@ export class ConnectorCanvasEffects {
                                     componentId
                                 ],
                                 routeBoundary: ['/provenance'],
-                                context: this.componentTypeNamePipe.transform(componentType).toLowerCase()
+                                context: this.componentTypeNamePipe.transform(componentType)
                             } as BackNavigation
                         }
                     });

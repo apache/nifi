@@ -762,7 +762,7 @@ describe('ConnectorCanvasComponent', () => {
                 expect(result).toBeUndefined();
             });
 
-            it('should return canvas menu with Refresh and Leave group when targetType is canvas', fakeAsync(() => {
+            it('should return canvas menu with Refresh and Leave Group when targetType is canvas', fakeAsync(() => {
                 const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
                 fixture.detectChanges();
                 tick();
@@ -773,10 +773,10 @@ describe('ConnectorCanvasComponent', () => {
                 expect(menu).toBeDefined();
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
-                expect(items.map((i) => i.text)).toEqual(['Refresh', 'Leave group']);
+                expect(items.map((i) => i.text)).toEqual(['Refresh', 'Leave Group']);
             }));
 
-            it('should return component menu with Enter group, View data provenance, View state, and Center in view when targetType is component', fakeAsync(() => {
+            it('should return component menu with Enter Group, View Data Provenance, View State, and Center In View when targetType is component', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -788,10 +788,10 @@ describe('ConnectorCanvasComponent', () => {
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
                 expect(items.map((i) => i.text)).toEqual([
-                    'Enter group',
-                    'View data provenance',
-                    'View state',
-                    'Center in view'
+                    'Enter Group',
+                    'View Data Provenance',
+                    'View State',
+                    'Center In View'
                 ]);
             }));
 
@@ -817,27 +817,27 @@ describe('ConnectorCanvasComponent', () => {
                 expect(refresh!.condition!(null)).toBe(true);
             }));
 
-            it('should show Leave group only when canNavigateToParent is true', fakeAsync(() => {
+            it('should show Leave Group only when canNavigateToParent is true', fakeAsync(() => {
                 const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave group');
+                const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave Group');
 
                 expect(leaveGroup).toBeDefined();
                 expect(leaveGroup!.condition!(null)).toBe(true);
             }));
 
-            it('should hide Leave group when canNavigateToParent is false', fakeAsync(() => {
+            it('should hide Leave Group when canNavigateToParent is false', fakeAsync(() => {
                 const { fixture, component } = setup({ parentProcessGroupId: null });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave group');
+                const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave Group');
 
                 expect(leaveGroup).toBeDefined();
                 expect(leaveGroup!.condition!(null)).toBe(false);
@@ -845,124 +845,124 @@ describe('ConnectorCanvasComponent', () => {
         });
 
         describe('component menu conditions', () => {
-            it('should show Enter group for ProcessGroup with single selection', fakeAsync(() => {
+            it('should show Enter Group for ProcessGroup with single selection', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter group');
+                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter Group');
 
                 expect(enterGroup).toBeDefined();
                 expect(enterGroup!.condition!(null)).toBe(true);
             }));
 
-            it('should hide Enter group for non-ProcessGroup types', fakeAsync(() => {
+            it('should hide Enter Group for non-ProcessGroup types', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter group');
+                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter Group');
 
                 expect(enterGroup).toBeDefined();
                 expect(enterGroup!.condition!(null)).toBe(false);
             }));
 
-            it('should hide Enter group for multi-selection', fakeAsync(() => {
+            it('should hide Enter Group for multi-selection', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 3));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter group');
+                const enterGroup = menu.menuItems.find((i) => i.text === 'Enter Group');
 
                 expect(enterGroup).toBeDefined();
                 expect(enterGroup!.condition!(null)).toBe(false);
             }));
 
-            it('should always show Center in view', fakeAsync(() => {
+            it('should always show Center In View', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const center = menu.menuItems.find((i) => i.text === 'Center in view');
+                const center = menu.menuItems.find((i) => i.text === 'Center In View');
 
                 expect(center).toBeDefined();
                 expect(center!.condition!(null)).toBe(true);
             }));
 
-            it('should show View data provenance for Processor with provenance access', fakeAsync(() => {
+            it('should show View Data Provenance for Processor with provenance access', fakeAsync(() => {
                 const { fixture, component } = setup({ canAccessProvenance: true });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+                const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
                 expect(provenance!.condition!(null)).toBe(true);
             }));
 
-            it('should hide View data provenance when user lacks provenance access', fakeAsync(() => {
+            it('should hide View Data Provenance when user lacks provenance access', fakeAsync(() => {
                 const { fixture, component } = setup({ canAccessProvenance: false });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+                const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
                 expect(provenance!.condition!(null)).toBe(false);
             }));
 
-            it('should hide View data provenance for ProcessGroup', fakeAsync(() => {
+            it('should hide View Data Provenance for ProcessGroup', fakeAsync(() => {
                 const { fixture, component } = setup({ canAccessProvenance: true });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+                const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
                 expect(provenance!.condition!(null)).toBe(false);
             }));
 
-            it('should hide View data provenance for Connection', fakeAsync(() => {
+            it('should hide View Data Provenance for Connection', fakeAsync(() => {
                 const { fixture, component } = setup({ canAccessProvenance: true });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+                const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
                 expect(provenance!.condition!(null)).toBe(false);
             }));
 
-            it('should hide View data provenance for multi-selection', fakeAsync(() => {
+            it('should hide View Data Provenance for multi-selection', fakeAsync(() => {
                 const { fixture, component } = setup({ canAccessProvenance: true });
                 fixture.detectChanges();
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 3));
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const provenance = menu.menuItems.find((i) => i.text === 'View data provenance');
+                const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
                 expect(provenance!.condition!(null)).toBe(false);
             }));
 
-            it('should show View state for a stateful Processor with read/write permissions', fakeAsync(() => {
+            it('should show View State for a stateful Processor with read/write permissions', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -974,13 +974,13 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+                const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
                 expect(viewState!.condition!(null)).toBe(true);
             }));
 
-            it('should hide View state for non-Processor types', fakeAsync(() => {
+            it('should hide View State for non-Processor types', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -991,13 +991,13 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+                const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
                 expect(viewState!.condition!(null)).toBe(false);
             }));
 
-            it('should hide View state when processor does not persist state', fakeAsync(() => {
+            it('should hide View State when processor does not persist state', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -1009,13 +1009,13 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+                const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
                 expect(viewState!.condition!(null)).toBe(false);
             }));
 
-            it('should hide View state when user lacks write permission', fakeAsync(() => {
+            it('should hide View State when user lacks write permission', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -1027,13 +1027,13 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+                const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
                 expect(viewState!.condition!(null)).toBe(false);
             }));
 
-            it('should hide View state for multi-selection', fakeAsync(() => {
+            it('should hide View State for multi-selection', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -1045,7 +1045,7 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
                 const menu = component.contextMenuProvider.getMenu('root')!;
-                const viewState = menu.menuItems.find((i) => i.text === 'View state');
+                const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
                 expect(viewState!.condition!(null)).toBe(false);

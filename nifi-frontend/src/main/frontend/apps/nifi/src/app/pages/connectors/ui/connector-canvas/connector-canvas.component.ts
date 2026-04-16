@@ -114,7 +114,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                         shortcut: { control: true, code: 'R' }
                     },
                     {
-                        text: 'Leave group',
+                        text: 'Leave Group',
                         clazz: 'fa fa-level-up',
                         condition: () => this.canNavigateToParent,
                         action: () => this.leaveGroupAction(),
@@ -137,20 +137,20 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
                 menuItems = [
                     {
-                        text: 'Enter group',
+                        text: 'Enter Group',
                         clazz: 'fa fa-sign-in',
                         condition: () => isProcessGroup && isSingleSelection,
                         action: () => this.enterGroupAction(clicked!.entity.id)
                     },
                     { isSeparator: true },
                     {
-                        text: 'View data provenance',
+                        text: 'View Data Provenance',
                         clazz: 'icon icon-provenance',
                         condition: () => isProvenanceTarget && this.canAccessProvenance(),
                         action: () => this.viewDataProvenanceAction(clicked!.entity.id, clicked!.ui.componentType)
                     },
                     {
-                        text: 'View state',
+                        text: 'View State',
                         clazz: 'fa fa-tasks',
                         condition: () =>
                             isProcessor &&
@@ -181,7 +181,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     private getCenterInViewMenuItem(): ContextMenuItemDefinition {
         return {
-            text: 'Center in view',
+            text: 'Center In View',
             clazz: 'fa fa-crosshairs',
             condition: () => true,
             action: () => this.centerInViewAction()

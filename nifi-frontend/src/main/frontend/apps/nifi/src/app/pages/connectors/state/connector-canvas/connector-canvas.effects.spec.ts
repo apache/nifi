@@ -447,7 +447,7 @@ describe('ConnectorCanvasEffects', () => {
                     backNavigation: {
                         route: ['/connectors', 'conn-1', 'canvas', 'pg-root', ComponentType.Processor, 'proc-1'],
                         routeBoundary: ['/provenance'],
-                        context: 'processor'
+                        context: 'Processor'
                     }
                 }
             });
