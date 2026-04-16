@@ -47,7 +47,7 @@ import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/c
 import { ErrorContextKey } from '../../../../state/error';
 import { ConnectorMessageHost } from '../../service/connector-message-host.service';
 
-function runtimeWizardConfig(): ConnectorWizardConfig {
+function connectorWizardConfigFactory(): ConnectorWizardConfig {
     const router = inject(Router);
     const clusterConnectionService = inject(ClusterConnectionService);
     return {
@@ -78,7 +78,7 @@ function runtimeWizardConfig(): ConnectorWizardConfig {
     providers: [
         StandardConnectorWizardStore,
         { provide: ConnectorWizardStore, useExisting: StandardConnectorWizardStore },
-        { provide: CONNECTOR_WIZARD_CONFIG, useFactory: runtimeWizardConfig }
+        { provide: CONNECTOR_WIZARD_CONFIG, useFactory: connectorWizardConfigFactory }
     ],
     host: {
         class: 'block h-full'

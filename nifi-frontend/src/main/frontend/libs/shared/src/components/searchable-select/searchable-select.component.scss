@@ -1,0 +1,62 @@
+/*!
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.searchable-select {
+    .mat-mdc-select-value {
+        overflow: unset;
+        // Breathing room between the mat-form-field left edge and the selected value text.
+        padding-left: 12px;
+    }
+
+    .mat-mdc-form-field {
+        width: 100%;
+    }
+}
+
+.searchable-overlay {
+    .search-filter-container {
+        position: sticky;
+        top: 0;
+        background: inherit;
+        z-index: 10;
+        // Small gap between the sticky search input and the first option so the
+        // list does not visually collide with the filter control.
+        padding-bottom: 4px;
+    }
+
+    // The search field wraps its prefix icon inside a flex div, so matPrefix is
+    // never hoisted out and Material doesn't apply its has-icon-prefix padding.
+    // Pad the text field wrapper here so the magnifying glass and placeholder
+    // sit a comfortable distance from the left edge.
+    .search-filter .mat-mdc-text-field-wrapper {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .fa {
+        color: inherit;
+    }
+}
+
+.select-trigger {
+    button.searchable-select-icon-button {
+        border-radius: 4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0;
+    }
+}

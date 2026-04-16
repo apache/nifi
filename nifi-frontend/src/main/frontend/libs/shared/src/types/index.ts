@@ -425,6 +425,34 @@ export interface PropertyAllowableValuesState {
     values: AllowableValue[] | null;
 }
 
+export interface SearchableSelectOption<T = never> {
+    value: T;
+    label: string;
+    description?: string;
+    svgIcon?: string;
+    disabled?: boolean;
+    labelCssClasses?: string[];
+    /** Optional group identifier for grouped display. Grouping is automatically enabled when any option has this property. */
+    group?: string;
+}
+
+export interface FilteredSearchableSelectOption<T = never> extends SearchableSelectOption<T> {
+    hidden: boolean;
+}
+
+/**
+ * Internal type representing a group of options for grouped rendering.
+ * Used by SearchableSelect when any option has a group property.
+ */
+export interface SearchableSelectGroup<T = never> {
+    /** Unique identifier for the group (matches option.group values) */
+    groupId: string;
+    /** Display label for the group header */
+    groupLabel: string;
+    /** Options belonging to this group */
+    options: FilteredSearchableSelectOption<T>[];
+}
+
 export interface StepDocumentationEntity {
     stepDocumentation: string;
 }

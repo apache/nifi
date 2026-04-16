@@ -15,27 +15,32 @@
  * limitations under the License.
  */
 
-import { Component, DestroyRef, DoCheck, inject, input, output } from '@angular/core';
+import { Component, DestroyRef, DoCheck, effect, inject, input, OnInit, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, FormControl, NgControl, ReactiveFormsModule } from '@angular/forms';
-import { MatFormField, MatError, MatLabel, MatHint } from '@angular/material/form-field';
+import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { MatSelect, MatOption } from '@angular/material/select';
 import { MatCheckbox } from '@angular/material/checkbox';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import {
+    AllowableValue,
+    AssetInfo,
     ConnectorPropertyDescriptor,
     PropertyAllowableValuesState,
-    AssetInfo,
-    UploadProgressInfo,
-    Secret
+    SearchableSelectOption,
+    Secret,
+    UploadProgressInfo
 } from '../../types';
+import { SearchableSelect } from '../searchable-select/searchable-select.component';
 
 /**
  * Form control for a single connector property.
  * Renders different input types based on the property descriptor:
  * STRING/INTEGER/DOUBLE/FLOAT -> text input, BOOLEAN -> checkbox,
- * SECRET -> select with secrets. ASSET uploads are handled at the
- * configuration-step level rather than within this component.
+ * STRING_LIST without allowable values -> textarea (comma-separated),
+ * allowable values (static or fetched) -> searchable-select
+ * (multi-select when the property type is STRING_LIST).
+ * SECRET, ASSET, and ASSET_LIST handling is deferred to follow-up PRs.
  *
  * Uses an internal FormControl bound to the actual input elements so that
  * mat-form-field can detect error state. Validation state is synced from
@@ -51,73 +56,16 @@ import {
         MatLabel,
         MatHint,
         MatInput,
-        MatSelect,
-        MatOption,
-        MatCheckbox
+        MatCheckbox,
+        MatProgressSpinner,
+        SearchableSelect
     ],
-    template: `
-        @let prop = property();
-        @if (prop) {
-            @switch (prop.type) {
-                @case ('BOOLEAN') {
-                    <mat-checkbox [formControl]="formControl" data-qa="property-input-boolean">
-                        <span class="text-sm">{{ prop.name }}</span>
-                        @if (prop.description) {
-                            <span class="text-xs tertiary-color block">{{ prop.description }}</span>
-                        }
-                    </mat-checkbox>
-                }
-                @default {
-                    <mat-form-field class="w-full" subscriptSizing="dynamic">
-                        <mat-label>{{ prop.name }}</mat-label>
-                        @if (prop.allowableValues && prop.allowableValues.length > 0) {
-                            <mat-select
-                                [formControl]="formControl"
-                                [required]="prop.required"
-                                (blur)="markAsTouched()"
-                                data-qa="property-input-select">
-                                @for (av of prop.allowableValues; track av.allowableValue.value) {
-                                    <mat-option [value]="av.allowableValue.value">
-                                        {{ av.allowableValue.displayName }}
-                                    </mat-option>
-                                }
-                            </mat-select>
-                        } @else {
-                            <input
-                                matInput
-                                [formControl]="formControl"
-                                [type]="getInputType(prop.type)"
-                                [required]="prop.required"
-                                (blur)="markAsTouched()"
-                                data-qa="property-input-text" />
-                        }
-                        @if (prop.description) {
-                            <mat-hint>{{ prop.description }}</mat-hint>
-                        }
-                        @if (parentControl?.hasError('required') && parentControl?.touched) {
-                            <mat-error>This field is required</mat-error>
-                        }
-                        @if (parentControl?.hasError('verificationError')) {
-                            <mat-error data-qa="verification-error">{{
-                                parentControl?.getError('verificationError')
-                            }}</mat-error>
-                        }
-                        @if (parentControl?.hasError('pattern') && parentControl?.touched) {
-                            <mat-error>Invalid format</mat-error>
-                        }
-                        @if (parentControl?.hasError('assetContentMissing') && parentControl?.touched) {
-                            <mat-error>Asset content is missing</mat-error>
-                        }
-                    </mat-form-field>
-                }
-            }
-        }
-    `,
+    templateUrl: './connector-property-input.component.html',
     host: {
         class: 'block'
     }
 })
-export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck {
+export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, OnInit {
     private ngControl = inject(NgControl, { optional: true, self: true });
     private destroyRef = inject(DestroyRef);
 
@@ -136,6 +84,15 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck {
 
     formControl = new FormControl();
 
+    // Cached options to avoid recomputing on every change detection cycle
+    selectOptions: SearchableSelectOption<string>[] = [];
+
+    // One-shot guard so we only emit requestAllowableValues once per control instance
+    // per property descriptor. Reset when the descriptor's property name changes so a
+    // host that rebinds [property] to a different descriptor re-issues the fetch.
+    private hasFetchedDynamicValues = false;
+    private lastSeenPropertyName: string | null = null;
+
     get parentControl(): FormControl | null {
         return this.ngControl?.control as FormControl | null;
     }
@@ -149,16 +106,39 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck {
         if (this.ngControl) {
             this.ngControl.valueAccessor = this;
         }
+
+        // Recompute select options whenever the property descriptor or the dynamic
+        // allowable values state changes. The initial emission of requestAllowableValues
+        // happens in ngOnInit; if the descriptor identity changes later (different
+        // property name) we reset the guard and re-issue the fetch from here.
+        effect(() => {
+            const prop = this.property();
+            this.dynamicAllowableValuesState();
+            this.selectOptions = this.computeSelectOptions();
+
+            const currentName = prop?.name ?? null;
+            if (this.lastSeenPropertyName !== null && currentName !== this.lastSeenPropertyName) {
+                this.hasFetchedDynamicValues = false;
+                this.triggerDynamicValuesFetch();
+            }
+            this.lastSeenPropertyName = currentName;
+        });
     }
 
-    writeValue(value: any): void {
+    ngOnInit(): void {
+        this.lastSeenPropertyName = this.property()?.name ?? null;
+        this.triggerDynamicValuesFetch();
+    }
+
+    writeValue(value: unknown): void {
+        let normalized = value;
         if (this.property()?.type === 'BOOLEAN') {
-            value = value === true || value === 'true';
+            normalized = value === true || value === 'true';
         }
-        this.formControl.setValue(value, { emitEvent: false });
+        this.formControl.setValue(normalized, { emitEvent: false });
     }
 
-    registerOnChange(fn: (value: any) => void): void {
+    registerOnChange(fn: (value: unknown) => void): void {
         if (!this.valueChangesSubscribed) {
             this.valueChangesSubscribed = true;
             this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
@@ -223,6 +203,205 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck {
             default:
                 return 'text';
         }
+    }
+
+    // ========================================================================================
+    // Allowable-values helpers (PR1 subset: STRING + fetchable dynamic)
+    // ========================================================================================
+
+    /**
+     * True when the descriptor carries a non-empty static allowableValues array.
+     */
+    hasStaticAllowableValues(): boolean {
+        const prop = this.property();
+        if (!prop) {
+            return false;
+        }
+        return prop.allowableValues !== undefined && prop.allowableValues !== null && prop.allowableValues.length > 0;
+    }
+
+    /**
+     * True when a dynamic fetch is currently in flight for this property.
+     */
+    isDynamicValuesLoading(): boolean {
+        return this.dynamicAllowableValuesState()?.loading === true;
+    }
+
+    /**
+     * True when a dynamic fetch completed with an error.
+     */
+    isDynamicValuesFetchFailed(): boolean {
+        const state = this.dynamicAllowableValuesState();
+        return state?.error !== null && state?.error !== undefined;
+    }
+
+    /**
+     * True when a dynamic fetch completed successfully but returned an empty list.
+     * In that case we fall back to a text input so the user can still enter a value.
+     */
+    isDynamicValuesFetchEmpty(): boolean {
+        const prop = this.property();
+        if (!prop?.allowableValuesFetchable) {
+            return false;
+        }
+        const state = this.dynamicAllowableValuesState();
+        return (
+            state !== null &&
+            state !== undefined &&
+            !state.loading &&
+            !state.error &&
+            state.values !== null &&
+            state.values.length === 0
+        );
+    }
+
+    /**
+     * Whether the property should be rendered as a searchable-select dropdown.
+     *
+     * Returns true when:
+     * - Has static allowable values, OR
+     * - Has dynamic allowable values already fetched, OR
+     * - Is fetchable and still loading (or has not yet started fetching).
+     *
+     * Returns false when a dynamic fetch failed or came back empty: in both
+     * cases we fall back to a plain text input so the field remains editable.
+     */
+    shouldUseSelect(): boolean {
+        const prop = this.property();
+        if (!prop || prop.type === 'BOOLEAN') {
+            return false;
+        }
+
+        if (this.isDynamicValuesFetchFailed() || this.isDynamicValuesFetchEmpty()) {
+            return false;
+        }
+
+        if (this.hasStaticAllowableValues()) {
+            return true;
+        }
+
+        const state = this.dynamicAllowableValuesState();
+        if (state?.values && state.values.length > 0) {
+            return true;
+        }
+
+        if (prop.allowableValuesFetchable && this.isDynamicValuesLoading()) {
+            return true;
+        }
+
+        if (prop.allowableValuesFetchable && !state) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether the property should be rendered as a plain text input.
+     * Used for STRING/INTEGER/DOUBLE/FLOAT when a select is not appropriate.
+     * STRING_LIST falls into the textarea branch instead.
+     */
+    shouldUseTextInput(): boolean {
+        const prop = this.property();
+        if (!prop) {
+            return false;
+        }
+        if (prop.type === 'BOOLEAN' || prop.type === 'STRING_LIST') {
+            return false;
+        }
+        return !this.shouldUseSelect();
+    }
+
+    /**
+     * Whether the property should be rendered as a multi-line textarea.
+     * Used for STRING_LIST properties when no allowable values are available
+     * (either the descriptor has none and is not fetchable, or the dynamic
+     * fetch came back empty or failed). The user enters a comma-separated list.
+     */
+    shouldUseTextarea(): boolean {
+        const prop = this.property();
+        if (!prop || prop.type !== 'STRING_LIST') {
+            return false;
+        }
+        return !this.shouldUseSelect();
+    }
+
+    /**
+     * Whether the searchable-select should be rendered in multi-select mode.
+     * True when the property is STRING_LIST and we have allowable values to
+     * pick from (static or successfully fetched).
+     */
+    isMultiSelect(): boolean {
+        return this.property()?.type === 'STRING_LIST' && this.shouldUseSelect();
+    }
+
+    /**
+     * Placeholder text for the searchable-select dropdown.
+     */
+    getSelectPlaceholder(): string {
+        if (this.isDynamicValuesLoading()) {
+            return 'Loading values...';
+        }
+        return 'Select a value';
+    }
+
+    /**
+     * Returns a validation error message to forward to searchable-select when
+     * the parent control reports a known error. Keeps the searchable-select
+     * in charge of displaying its own mat-error.
+     */
+    getValidationErrorMessage(): string {
+        const parent = this.parentControl;
+        if (!parent || !parent.touched) {
+            return '';
+        }
+        if (parent.hasError('required')) {
+            return 'This field is required';
+        }
+        if (parent.hasError('verificationError')) {
+            return parent.getError('verificationError');
+        }
+        if (parent.hasError('pattern')) {
+            return 'Invalid format';
+        }
+        return '';
+    }
+
+    /**
+     * Emits requestAllowableValues exactly once per fetchable property instance
+     * when the descriptor is fetchable and has no static allowable values.
+     */
+    private triggerDynamicValuesFetch(): void {
+        const prop = this.property();
+        if (prop?.allowableValuesFetchable && !this.hasFetchedDynamicValues && !this.hasStaticAllowableValues()) {
+            this.hasFetchedDynamicValues = true;
+            this.requestAllowableValues.emit();
+        }
+    }
+
+    /**
+     * Compute SearchableSelectOptions from whichever source is available:
+     * dynamic values when successfully fetched, otherwise static values.
+     */
+    private computeSelectOptions(): SearchableSelectOption<string>[] {
+        const prop = this.property();
+        if (!prop || prop.type === 'BOOLEAN') {
+            return [];
+        }
+
+        let allowableValues: AllowableValue[] = [];
+
+        const state = this.dynamicAllowableValuesState();
+        if (state?.values && state.values.length > 0) {
+            allowableValues = state.values;
+        } else if (this.hasStaticAllowableValues()) {
+            allowableValues = prop.allowableValues || [];
+        }
+
+        return allowableValues.map((av) => ({
+            value: av.allowableValue.value,
+            label: av.allowableValue.displayName
+        }));
     }
 
     private syncValidationState(): void {

@@ -1,0 +1,130 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+@let prop = property();
+@if (prop) {
+    @switch (prop.type) {
+        @case ('BOOLEAN') {
+            <mat-checkbox [formControl]="formControl" data-qa="property-input-boolean">
+                <span class="text-sm">{{ prop.name }}</span>
+                @if (prop.description) {
+                    <span class="text-xs tertiary-color block">{{ prop.description }}</span>
+                }
+            </mat-checkbox>
+        }
+        @default {
+            @if (shouldUseSelect()) {
+                <div class="w-full">
+                    <div class="text-xs tertiary-color mb-1">
+                        {{ prop.name }}
+                        @if (prop.required) {
+                            <span aria-hidden="true"> *</span>
+                        }
+                    </div>
+                    <searchable-select
+                        [formControl]="formControl"
+                        [options]="selectOptions"
+                        [multiple]="isMultiSelect()"
+                        [placeholder]="getSelectPlaceholder()"
+                        [searchPlaceholder]="'Search'"
+                        [allowClear]="!prop.required"
+                        [hint]="prop.description || ''"
+                        [showHint]="!!prop.description"
+                        [validationError]="getValidationErrorMessage()"
+                        data-qa="property-input-select">
+                    </searchable-select>
+                    @if (isDynamicValuesLoading()) {
+                        <div class="flex items-center gap-2 mt-1" data-qa="property-input-loading">
+                            <mat-progress-spinner diameter="14" mode="indeterminate"></mat-progress-spinner>
+                            <span class="text-xs tertiary-color">Loading values...</span>
+                        </div>
+                    }
+                </div>
+            } @else if (shouldUseTextarea()) {
+                <mat-form-field class="w-full" subscriptSizing="dynamic">
+                    <mat-label>{{ prop.name }}</mat-label>
+                    <textarea
+                        matInput
+                        [formControl]="formControl"
+                        rows="4"
+                        placeholder="Comma-separated list of values"
+                        [required]="prop.required"
+                        (blur)="markAsTouched()"
+                        data-qa="property-input-textarea"></textarea>
+                    @if (isDynamicValuesFetchFailed()) {
+                        <mat-hint data-qa="property-input-textarea-fetch-error-hint">
+                            Unable to load predefined values
+                        </mat-hint>
+                    } @else if (isDynamicValuesFetchEmpty()) {
+                        <mat-hint data-qa="property-input-textarea-fetch-empty-hint">
+                            No predefined values available
+                        </mat-hint>
+                    } @else if (prop.description) {
+                        <mat-hint>{{ prop.description }}</mat-hint>
+                    }
+                    @if (parentControl?.hasError('required') && parentControl?.touched) {
+                        <mat-error>This field is required</mat-error>
+                    }
+                    @if (parentControl?.hasError('verificationError')) {
+                        <mat-error data-qa="verification-error">{{
+                            parentControl?.getError('verificationError')
+                        }}</mat-error>
+                    }
+                    @if (parentControl?.hasError('pattern') && parentControl?.touched) {
+                        <mat-error>Invalid format</mat-error>
+                    }
+                    @if (parentControl?.hasError('assetContentMissing') && parentControl?.touched) {
+                        <mat-error>Asset content is missing</mat-error>
+                    }
+                </mat-form-field>
+            } @else {
+                <mat-form-field class="w-full" subscriptSizing="dynamic">
+                    <mat-label>{{ prop.name }}</mat-label>
+                    <input
+                        matInput
+                        [formControl]="formControl"
+                        [type]="getInputType(prop.type)"
+                        [required]="prop.required"
+                        (blur)="markAsTouched()"
+                        data-qa="property-input-text" />
+                    @if (isDynamicValuesFetchFailed()) {
+                        <mat-hint data-qa="property-input-fetch-error-hint">
+                            Unable to load predefined values
+                        </mat-hint>
+                    } @else if (isDynamicValuesFetchEmpty()) {
+                        <mat-hint data-qa="property-input-fetch-empty-hint"> No predefined values available </mat-hint>
+                    } @else if (prop.description) {
+                        <mat-hint>{{ prop.description }}</mat-hint>
+                    }
+                    @if (parentControl?.hasError('required') && parentControl?.touched) {
+                        <mat-error>This field is required</mat-error>
+                    }
+                    @if (parentControl?.hasError('verificationError')) {
+                        <mat-error data-qa="verification-error">{{
+                            parentControl?.getError('verificationError')
+                        }}</mat-error>
+                    }
+                    @if (parentControl?.hasError('pattern') && parentControl?.touched) {
+                        <mat-error>Invalid format</mat-error>
+                    }
+                    @if (parentControl?.hasError('assetContentMissing') && parentControl?.touched) {
+                        <mat-error>Asset content is missing</mat-error>
+                    }
+                </mat-form-field>
+            }
+        }
+    }
+}
