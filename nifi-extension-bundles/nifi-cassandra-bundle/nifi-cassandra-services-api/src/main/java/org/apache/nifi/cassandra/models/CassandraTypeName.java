@@ -14,15 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra.converter;
+package org.apache.nifi.cassandra.models;
 
-import org.apache.nifi.cassandra.models.CassandraRow;
-import org.apache.nifi.cassandra.models.CassandraType;
-import org.apache.nifi.serialization.record.DataType;
-
-public interface CassandraTypeConverter {
-
-    Object getCassandraObject(CassandraRow row, int index);
-
-    DataType getDataType(CassandraType dataType);
+public enum CassandraTypeName {
+    ASCII,
+    BIGINT,
+    BLOB,
+    BOOLEAN,
+    COUNTER,
+    DATE,
+    DECIMAL,
+    DOUBLE,
+    DURATION,
+    FLOAT,
+    INET,
+    INT,
+    LIST,
+    MAP,
+    SET,
+    SMALLINT,
+    TEXT,
+    TIME,
+    TIMESTAMP,
+    TIMEUUID,
+    TINYINT,
+    UUID,
+    VARINT,
+    UNKNOWN
 }

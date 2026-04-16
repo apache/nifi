@@ -14,15 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra.converter;
+package org.apache.nifi.cassandra.models;
 
-import org.apache.nifi.cassandra.models.CassandraRow;
-import org.apache.nifi.cassandra.models.CassandraType;
-import org.apache.nifi.serialization.record.DataType;
+import java.time.Duration;
 
-public interface CassandraTypeConverter {
-
-    Object getCassandraObject(CassandraRow row, int index);
-
-    DataType getDataType(CassandraType dataType);
+public record CassandraQueryRequest(String cql, Integer fetchSize, Duration timeout) {
 }

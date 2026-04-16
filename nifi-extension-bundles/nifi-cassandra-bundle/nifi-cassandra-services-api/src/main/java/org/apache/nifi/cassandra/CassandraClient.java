@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra.converter;
+package org.apache.nifi.cassandra;
 
-import org.apache.nifi.cassandra.models.CassandraRow;
-import org.apache.nifi.cassandra.models.CassandraType;
-import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.cassandra.exception.CassandraException;
+import org.apache.nifi.cassandra.models.CassandraQueryRequest;
+import org.apache.nifi.cassandra.models.CassandraQueryResult;
 
-public interface CassandraTypeConverter {
-
-    Object getCassandraObject(CassandraRow row, int index);
-
-    DataType getDataType(CassandraType dataType);
+public interface CassandraClient {
+    CassandraQueryResult executeQuery(CassandraQueryRequest request) throws CassandraException;
 }

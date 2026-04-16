@@ -16,23 +16,16 @@
  */
 package org.apache.nifi.processors.cassandra;
 
-import com.datastax.oss.driver.api.core.CqlSession;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.cassandra.CassandraSessionProviderService;
+import org.apache.nifi.cassandra.CassandraConnectionService;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.exception.FlowFileHandlingException;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AbstractCassandraProcessor is a base class for Cassandra processors and contains logic and variables common to most
@@ -40,20 +33,14 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
-    static final PropertyDescriptor CONNECTION_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CASSANDRA_CONNECTION_PROVIDER = new PropertyDescriptor.Builder()
             .name("Cassandra Connection Provider")
-            .description("Specifies the Cassandra connection providing controller service to be used to connect to Cassandra cluster.")
+            .description("""
+                    Specifies the Cassandra connection providing controller service to be used to connect to
+                    Cassandra cluster.
+                    """)
             .required(true)
-            .identifiesControllerService(CassandraSessionProviderService.class)
-            .build();
-
-    static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("Character Set")
-            .description("Specifies the character set of the record data.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("UTF-8")
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .identifiesControllerService(CassandraConnectionService.class)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -68,41 +55,42 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
-            .description("A FlowFile is transferred to this relationship if the operation cannot be completed but attempting "
-                    + "it again may succeed.")
+            .description("""
+                    A FlowFile is transferred to this relationship if the operation cannot be completed but attempting
+                    it again may succeed.
+                    """)
             .build();
 
     protected static final List<PropertyDescriptor> COMMON_PROPERTY_DESCRIPTORS = List.of(
-            CONNECTION_PROVIDER_SERVICE,
-            CHARSET
+            CASSANDRA_CONNECTION_PROVIDER
     );
 
-    protected final AtomicReference<CqlSession> cassandraSession = new AtomicReference<>(null);
+    protected CassandraConnectionService getConnectionService(final ProcessContext context) {
+        return context.getProperty(CASSANDRA_CONNECTION_PROVIDER)
+                .asControllerService(CassandraConnectionService.class);
+    }
 
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Set<ValidationResult> results = new HashSet<>();
+    protected String createTransitUri(CassandraConnectionService service, String query) {
+        String location = service.getDatabaseLocation();
+        return "cassandra://" + location + "/" + query;
+    }
 
-        if (!validationContext.getProperty(CONNECTION_PROVIDER_SERVICE).isSet()) {
-            results.add(new ValidationResult.Builder()
-                    .subject(CONNECTION_PROVIDER_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("Cassandra Connection Provider must be specified.")
-                    .build());
+    protected void routeOnError(final ProcessContext context, final ProcessSession session,
+                              final FlowFile incomingFlowFile, final Relationship relationship) {
+        if (context.hasIncomingConnection()) {
+            try {
+                final FlowFile toRoute = incomingFlowFile != null ? incomingFlowFile : session.create();
+                session.transfer(session.penalize(toRoute), relationship);
+            } catch (FlowFileHandlingException e) {
+                FlowFile proxy = session.create();
+                if (incomingFlowFile != null) {
+                    proxy = session.putAllAttributes(proxy, incomingFlowFile.getAttributes());
+                }
+                session.transfer(session.penalize(proxy), relationship);
+            }
+        } else {
+            context.yield();
         }
-
-        return results;
     }
-
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        final CassandraSessionProviderService sessionProvider = context.getProperty(CONNECTION_PROVIDER_SERVICE)
-                .asControllerService(CassandraSessionProviderService.class);
-        cassandraSession.set(sessionProvider.getCassandraSession());
-    }
-
-    public void stop(ProcessContext context) {
-        cassandraSession.set(null);
-    }
-
 }
+

@@ -16,193 +16,116 @@
  */
 package org.apache.nifi.processors.cassandra;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
-import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
-import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.DataTypes;
+import org.apache.nifi.cassandra.exception.CassandraException;
+import org.apache.nifi.cassandra.exception.CassandraExceptionCategory;
+import org.apache.nifi.cassandra.models.CassandraColumnDefinition;
+import org.apache.nifi.cassandra.models.CassandraQueryResult;
+import org.apache.nifi.cassandra.models.CassandraRow;
+import org.apache.nifi.cassandra.models.CassandraType;
+import org.apache.nifi.cassandra.models.CassandraTypeName;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
-import java.util.concurrent.CompletableFuture;
-
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Utility methods for Cassandra processors' unit tests
  */
-public class CassandraQueryTestUtil {
+public final class CassandraQueryTestUtil {
 
-    static final Date TEST_DATE;
-    static {
-        Calendar c = GregorianCalendar.getInstance(TimeZone.getTimeZone("PST"));
-        c.set(2020, Calendar.JANUARY, 1, 10, 10, 10);
-        c.set(Calendar.MILLISECOND, 10);
-        TEST_DATE = c.getTime();
+    private static final List<CassandraColumnDefinition> COLUMNS = List.of(
+            new CassandraColumnDefinition("user_id", CassandraType.primitive(CassandraTypeName.TEXT)),
+            new CassandraColumnDefinition("first_name", CassandraType.primitive(CassandraTypeName.TEXT)),
+            new CassandraColumnDefinition("last_name", CassandraType.primitive(CassandraTypeName.TEXT)),
+            new CassandraColumnDefinition("emails", CassandraType.set(CassandraType.primitive(CassandraTypeName.TEXT))),
+            new CassandraColumnDefinition("top_places",
+                    CassandraType.list(CassandraType.primitive(CassandraTypeName.TEXT))),
+            new CassandraColumnDefinition("todo", CassandraType.map(CassandraType.primitive(CassandraTypeName.TEXT))),
+            new CassandraColumnDefinition("registered", CassandraType.primitive(CassandraTypeName.BOOLEAN)),
+            new CassandraColumnDefinition("scale", CassandraType.primitive(CassandraTypeName.FLOAT)),
+            new CassandraColumnDefinition("metric", CassandraType.primitive(CassandraTypeName.DOUBLE)));
+
+    public static CassandraQueryResult createMockQueryResult(final boolean twoPages) {
+        final List<CassandraRow> firstPage = List.of(createMockRow("user1"));
+        final List<CassandraRow> secondPage = List.of(createMockRow("user2"));
+        return twoPages
+                ? new TestCassandraQueryResult(COLUMNS, firstPage, true,
+                        new TestCassandraQueryResult(COLUMNS, secondPage, false, null))
+                : new TestCassandraQueryResult(COLUMNS, List.of(createMockRow("user1"), createMockRow("user2")), false,
+                        null);
     }
 
-    public static AsyncResultSet createMockAsyncResultSet(boolean twoPages) throws Exception {
-        AsyncResultSet firstPage = mock(AsyncResultSet.class);
-        AsyncResultSet secondPage = mock(AsyncResultSet.class);
+    public static CassandraRow createMockRow(final String userId) {
+        final Map<Integer, Object> values = new HashMap<>();
 
-        Row row1 = createMockRow("user1");
-        Row row2 = createMockRow("user2");
-
-        if (twoPages) {
-            when(firstPage.currentPage()).thenReturn(List.of(row1));
-            when(firstPage.hasMorePages()).thenReturn(true);
-            when(firstPage.fetchNextPage()).thenReturn(CompletableFuture.completedFuture(secondPage));
-
-            when(secondPage.currentPage()).thenReturn(List.of(row2));
-            when(secondPage.hasMorePages()).thenReturn(false);
-            when(secondPage.fetchNextPage()).thenReturn(CompletableFuture.completedFuture(secondPage));
+        if ("user1".equals(userId)) {
+            values.put(0, "user1");
+            values.put(1, "Joe");
+            values.put(2, "Smith");
+            values.put(3, Set.of("jsmith@notareal.com"));
+            values.put(4, List.of("New York, NY", "Santa Clara, CA"));
+            values.put(5, Map.of("2016-01-03 05:00:00+0000", "Set my alarm \"for\" a month from now"));
+            values.put(6, false);
+            values.put(7, 1.0f);
+            values.put(8, 2.0d);
         } else {
-            when(firstPage.currentPage()).thenReturn(List.of(row1, row2));
-            when(firstPage.hasMorePages()).thenReturn(false);
-            when(firstPage.fetchNextPage()).thenReturn(CompletableFuture.completedFuture(firstPage));
+            values.put(0, "user2");
+            values.put(1, "Mary");
+            values.put(2, "Jones");
+            values.put(3, Set.of("mjones@notareal.com"));
+            values.put(4, List.of("Orlando, FL"));
+            values.put(5, Map.of("2016-02-03 05:00:00+0000", "Get milk and bread"));
+            values.put(6, true);
+            values.put(7, 3.0f);
+            values.put(8, 4.0d);
         }
-        return firstPage;
+
+        return new TestCassandraRow(values, COLUMNS);
     }
 
-    private static void mockValue(Row row, int index, Object value) {
-        if (value instanceof String) {
-            when(row.getString(index)).thenReturn((String) value);
-        } else if (value instanceof Set) {
-            when(row.getSet(eq(index), eq(String.class))).thenReturn((Set<String>) value);
-        } else if (value instanceof List) {
-            when(row.getList(eq(index), eq(String.class))).thenReturn((List<String>) value);
-        } else if (value instanceof Map) {
-            when(row.getMap(eq(index), eq(String.class), eq(String.class))).thenReturn((Map<String, String>) value);
-        } else if (value instanceof Boolean) {
-            when(row.getBoolean(index)).thenReturn((Boolean) value);
-        } else if (value instanceof Float) {
-            when(row.getFloat(index)).thenReturn((Float) value);
-        } else if (value instanceof Double) {
-            when(row.getDouble(index)).thenReturn((Double) value);
+    private record TestCassandraQueryResult(
+            List<CassandraColumnDefinition> columnDefinitions,
+            List<CassandraRow> currentPage,
+            boolean hasMorePages,
+            CassandraQueryResult nextPage) implements CassandraQueryResult {
+
+        @Override
+        public List<CassandraColumnDefinition> getColumnDefinitions() {
+            return columnDefinitions;
+        }
+
+        @Override
+        public Iterable<CassandraRow> getCurrentPage() {
+            return currentPage;
+        }
+
+        @Override
+        public CassandraQueryResult fetchNextPage() throws CassandraException {
+            if (!hasMorePages) {
+                throw new CassandraException("No more pages",
+                        CassandraExceptionCategory.FAILURE, null);
+            }
+            return nextPage;
         }
     }
 
-    private static ColumnDefinition mockColumn(String name, DataType type) {
-        ColumnDefinition cd = mock(ColumnDefinition.class);
-        when(cd.getName()).thenReturn(CqlIdentifier.fromInternal(name));
-        when(cd.getType()).thenReturn(type);
-        return cd;
-    }
-
-    public static Row createMockRow(String userId) {
-        Row row = mock(Row.class);
-
-        ColumnDefinitions colDefs = mock(ColumnDefinitions.class);
-
-        List<ColumnDefinition> columns = List.of(
-                mockColumn("user_id", DataTypes.TEXT),
-                mockColumn("first_name", DataTypes.TEXT),
-                mockColumn("last_name", DataTypes.TEXT),
-                mockColumn("emails", DataTypes.setOf(DataTypes.TEXT)),
-                mockColumn("top_places", DataTypes.listOf(DataTypes.TEXT)),
-                mockColumn("todo", DataTypes.mapOf(DataTypes.TEXT, DataTypes.TEXT)),
-                mockColumn("registered", DataTypes.BOOLEAN),
-                mockColumn("scale", DataTypes.FLOAT),
-                mockColumn("metric", DataTypes.DOUBLE)
-        );
-
-        when(colDefs.size()).thenReturn(columns.size());
-        for (int i = 0; i < columns.size(); i++) {
-            when(colDefs.get(i)).thenReturn(columns.get(i));
+    private record TestCassandraRow(Map<Integer, Object> values, List<CassandraColumnDefinition> columns)
+            implements CassandraRow {
+        @Override
+        public boolean isNull(final int index) {
+            return !values.containsKey(index) || values.get(index) == null;
         }
-        when(colDefs.iterator()).thenAnswer(inv -> columns.iterator());
-        when(row.getColumnDefinitions()).thenReturn(colDefs);
 
-        Map<String, String> todoMap = new HashMap<>();
-
-        if (userId.equals("user1")) {
-            todoMap.put("2016-01-03 05:00:00+0000", "Set my alarm \"for\" a month from now");
-
-            mockValue(row, 0, "user1");
-            mockValue(row, 1, "Joe");
-            mockValue(row, 2, "Smith");
-            mockValue(row, 3, Set.of("jsmith@notareal.com"));
-            mockValue(row, 4, List.of("New York, NY", "Santa Clara, CA"));
-            mockValue(row, 5, todoMap);
-            mockValue(row, 6, false);
-            mockValue(row, 7, 1.0f);
-            mockValue(row, 8, 2.0);
-        } else {
-            todoMap.put("2016-02-03 05:00:00+0000", "Get milk and bread");
-
-            mockValue(row, 0, "user2");
-            mockValue(row, 1, "Mary");
-            mockValue(row, 2, "Jones");
-            mockValue(row, 3, Set.of("mjones@notareal.com"));
-            mockValue(row, 4, List.of("Orlando, FL"));
-            mockValue(row, 5, todoMap);
-            mockValue(row, 6, true);
-            mockValue(row, 7, 3.0f);
-            mockValue(row, 8, 4.0);
+        @Override
+        public Object getValue(final int index) {
+            return values.get(index);
         }
-        when(row.isNull(anyInt())).thenReturn(false);
-        return row;
-    }
 
-    public static AsyncResultSet createMockAsyncResultSetOneColumn() {
-        AsyncResultSet resultSet = mock(AsyncResultSet.class);
-
-        ColumnDefinition columnDef = mock(ColumnDefinition.class);
-        CqlIdentifier columnName = mock(CqlIdentifier.class);
-        when(columnName.asInternal()).thenReturn("user_id");
-        when(columnDef.getName()).thenReturn(columnName);
-        when(columnDef.getType()).thenReturn(DataTypes.TEXT);
-
-        ColumnDefinitions columnDefinitions = mock(ColumnDefinitions.class);
-        when(columnDefinitions.size()).thenReturn(1);
-        when(columnDefinitions.get(0)).thenReturn(columnDef);
-
-        when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
-
-        Row row1 = mock(Row.class);
-        when(row1.getColumnDefinitions()).thenReturn(columnDefinitions);
-        when(row1.getString("user_id")).thenReturn("user1");
-
-        Row row2 = mock(Row.class);
-        when(row2.getColumnDefinitions()).thenReturn(columnDefinitions);
-        when(row2.getString("user_id")).thenReturn("user2");
-
-        List<Row> rows = Arrays.asList(row1, row2);
-
-        when(resultSet.currentPage()).thenReturn(rows);
-        when(resultSet.hasMorePages()).thenReturn(false);
-        when(resultSet.fetchNextPage()).thenReturn(CompletableFuture.completedFuture(resultSet));
-
-        return resultSet;
-    }
-
-    public static Iterable<Row> createMockDateRows() {
-        ColumnDefinition columnDef = mock(ColumnDefinition.class);
-        CqlIdentifier columnName = mock(CqlIdentifier.class);
-        when(columnName.asInternal()).thenReturn("date");
-        when(columnDef.getName()).thenReturn(columnName);
-        when(columnDef.getType()).thenReturn(DataTypes.TIMESTAMP);
-
-        ColumnDefinitions columnDefinitions = mock(ColumnDefinitions.class);
-        when(columnDefinitions.size()).thenReturn(1);
-        when(columnDefinitions.get(0)).thenReturn(columnDef);
-
-        Row row = mock(Row.class);
-        when(row.getColumnDefinitions()).thenReturn(columnDefinitions);
-        when(row.isNull(0)).thenReturn(false);
-        when(row.getInstant(0)).thenReturn(TEST_DATE.toInstant());
-        return List.of(row);
+        @Override
+        public CassandraType getType(final int index) {
+            return columns.get(index).type();
+        }
     }
 }
+

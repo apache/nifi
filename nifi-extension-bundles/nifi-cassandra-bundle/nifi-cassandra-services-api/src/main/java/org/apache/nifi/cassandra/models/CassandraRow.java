@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra.converter;
+package org.apache.nifi.cassandra.models;
 
-import org.apache.nifi.cassandra.models.CassandraRow;
-import org.apache.nifi.cassandra.models.CassandraType;
-import org.apache.nifi.serialization.record.DataType;
+public interface CassandraRow {
 
-public interface CassandraTypeConverter {
+    boolean isNull(int index);
 
-    Object getCassandraObject(CassandraRow row, int index);
+    Object getValue(int index);
 
-    DataType getDataType(CassandraType dataType);
+    CassandraType getType(int index);
 }

@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra.converter;
+package org.apache.nifi.cassandra.models;
 
-import org.apache.nifi.cassandra.models.CassandraRow;
-import org.apache.nifi.cassandra.models.CassandraType;
-import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.cassandra.exception.CassandraException;
 
-public interface CassandraTypeConverter {
+import java.util.List;
 
-    Object getCassandraObject(CassandraRow row, int index);
+public interface CassandraQueryResult {
 
-    DataType getDataType(CassandraType dataType);
+    List<CassandraColumnDefinition> getColumnDefinitions();
+
+    Iterable<CassandraRow> getCurrentPage();
+
+    boolean hasMorePages();
+
+    CassandraQueryResult fetchNextPage() throws CassandraException;
 }

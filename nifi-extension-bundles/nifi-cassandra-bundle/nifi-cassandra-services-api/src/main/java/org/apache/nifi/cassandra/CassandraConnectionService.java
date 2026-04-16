@@ -14,24 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra;
+package org.apache.nifi.cassandra;
 
-import com.datastax.oss.driver.api.core.CqlSession;
-import org.apache.nifi.cassandra.CassandraSessionProviderService;
-import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ControllerService;
 
-/**
- * Test-only Controller Service used to provide a mocked {@link CqlSession} to Cassandra processors.
- */
-public class MockCassandraSessionProviderService extends AbstractControllerService implements CassandraSessionProviderService {
-    private final CqlSession session;
+public interface CassandraConnectionService extends ControllerService {
+    CassandraClient getClient();
 
-    public MockCassandraSessionProviderService(final CqlSession session) {
-        this.session = session;
-    }
-
-    @Override
-    public CqlSession getCassandraSession() {
-        return session;
-    }
+    String getDatabaseLocation();
 }

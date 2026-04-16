@@ -16,48 +16,26 @@
  */
 package org.apache.nifi.processors.cassandra;
 
-import com.datastax.oss.driver.api.core.AllNodesFailedException;
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.DriverTimeoutException;
-import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.Statement;
-import com.datastax.oss.driver.api.core.metadata.Node;
-import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.avro.Schema;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.file.SeekableByteArrayInput;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.cassandra.CassandraClient;
+import org.apache.nifi.cassandra.CassandraConnectionService;
+import org.apache.nifi.cassandra.exception.CassandraException;
+import org.apache.nifi.cassandra.exception.CassandraExceptionCategory;
+import org.apache.nifi.cassandra.models.CassandraQueryRequest;
+import org.apache.nifi.cassandra.models.CassandraQueryResult;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.TimeZone;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -65,165 +43,100 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class QueryCassandraTest {
+class QueryCassandraTest {
+
+    private static final String CASSANDRA_SERVICE_ID = "cassandra";
+    private static final String WRITER_ID = "writer";
 
     private TestRunner testRunner;
     private QueryCassandra processor;
-    private CqlSession mockSession;
+    private CassandraClient mockClient;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         processor = new QueryCassandra();
         testRunner = TestRunners.newTestRunner(processor);
 
-        mockSession = mock(CqlSession.class);
-        final MockCassandraSessionProviderService cassandraSessionProviderService = new MockCassandraSessionProviderService(mockSession);
-        testRunner.addControllerService("cassandra", cassandraSessionProviderService);
-        testRunner.enableControllerService(cassandraSessionProviderService);
+        mockClient = mock(CassandraClient.class);
+        final CassandraConnectionService connectionService = new TestCassandraConnectionService(mockClient, "localhost:9042/test_keyspace");
+        testRunner.addControllerService(CASSANDRA_SERVICE_ID, connectionService);
+        testRunner.enableControllerService(connectionService);
+
+        final MockRecordWriter writerService = new MockRecordWriter(null, false);
+        testRunner.addControllerService(WRITER_ID, writerService);
+        testRunner.enableControllerService(writerService);
+        testRunner.setProperty(QueryCassandra.RECORD_WRITER, WRITER_ID);
     }
 
     @Test
-    public void testProcessorConfigValid() {
-        testRunner.setProperty(AbstractCassandraProcessor.CONNECTION_PROVIDER_SERVICE, "cassandra");
+    void testProcessorConfigValid() {
+        testRunner.setProperty(AbstractCassandraProcessor.CASSANDRA_CONNECTION_PROVIDER, CASSANDRA_SERVICE_ID);
         testRunner.assertNotValid();
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "select * from test");
         testRunner.assertValid();
-
-        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "invalid format");
-        testRunner.assertNotValid();
-        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "yyyy-MM-dd HH:mm:ss.SSSZ");
-        testRunner.assertValid();
     }
 
     @Test
-    public void testProcessorELConfigValid() {
-        testRunner.setProperty(AbstractCassandraProcessor.CONNECTION_PROVIDER_SERVICE, "cassandra");
+    void testProcessorELConfigValid() {
+        testRunner.setProperty(AbstractCassandraProcessor.CASSANDRA_CONNECTION_PROVIDER, CASSANDRA_SERVICE_ID);
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "SELECT * FROM test");
         testRunner.assertValid();
     }
 
     @Test
-    public void testProcessorNoInputFlowFileAndExceptions()  {
+    void testProcessorNoInputFlowFileAndException() {
         setUpStandardProcessorConfig();
-        setMockResultSet(false);
         testRunner.setValidateExpressionUsage(false);
-
         testRunner.setIncomingConnection(false);
-        testRunner.run(1, true, true);
-        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
-        testRunner.clearTransferState();
 
-        setSessionException(AllNodesFailedException.fromErrors(Collections.emptyMap()));
-        testRunner.run(1, true, true);
-        // When there is no incoming connection, the processor yields rather than generating a RETRY FlowFile.
-        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 0);
-        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 0);
-        testRunner.clearTransferState();
-
-        setSessionException(new RuntimeException("All nodes failed"));
+        setSessionException(new CassandraException("All nodes failed", CassandraExceptionCategory.RETRY, null));
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 0);
         testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 0);
         testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 0);
-        testRunner.clearTransferState();
-
-        setSessionException(new DriverTimeoutException("read timeout"));
-        testRunner.run(1, true, true);
-        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 0);
-        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 0);
-        testRunner.clearTransferState();
-
-        setSessionException(new InvalidQueryException(mock(Node.class), "invalid"));
-        testRunner.run(1, true, true);
-        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 0);
-        testRunner.clearTransferState();
-
-        setSessionException(new ProcessException("Process Exception"));
-        testRunner.run(1, true, true);
-        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 0);
-        testRunner.clearTransferState();
     }
 
     @Test
-    public void testProcessorJsonOutput() throws Exception {
+     void testProcessorSuccessOutput() throws Exception {
         setUpStandardProcessorConfig();
         setMockResultSet(false);
         testRunner.setIncomingConnection(false);
         testRunner.setValidateExpressionUsage(false);
-        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
 
-        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+        final MockFlowFile output = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).get(0);
+        output.assertAttributeEquals(QueryCassandra.RESULT_ROW_COUNT, "2");
 
-        assertNotNull(files);
-        assertEquals(1, files.size(), "One file should be transferred to success");
-
-        String json = new String(files.get(0).toByteArray(), StandardCharsets.UTF_8);
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(json);
-
-        assertTrue(root.has("results"));
-        JsonNode results = root.get("results");
-        assertEquals(2, results.size());
-
-        JsonNode row1 = results.get(0);
-
-        assertEquals("user1", row1.get("user_id").asText());
-        assertEquals("Joe", row1.get("first_name").asText());
-        assertEquals("Smith", row1.get("last_name").asText());
-        assertFalse(row1.get("registered").asBoolean());
-        assertEquals(1.0, row1.get("scale").asDouble());
-        assertEquals(2.0, row1.get("metric").asDouble());
-        assertEquals(1, row1.get("emails").size());
-        assertEquals("jsmith@notareal.com", row1.get("emails").get(0).asText());
-        assertEquals(2, row1.get("top_places").size());
-        assertEquals("New York, NY", row1.get("top_places").get(0).asText());
-        assertEquals("Santa Clara, CA", row1.get("top_places").get(1).asText());
-
-        JsonNode todo1 = row1.get("todo");
-        assertEquals(1, todo1.size());
-        assertEquals("Set my alarm \"for\" a month from now", todo1.get("2016-01-03 05:00:00+0000").asText());
-
-        JsonNode row2 = results.get(1);
-
-        assertEquals("user2", row2.get("user_id").asText());
-        assertEquals("Mary", row2.get("first_name").asText());
-        assertEquals("Jones", row2.get("last_name").asText());
-        assertTrue(row2.get("registered").asBoolean());
-        assertEquals(3.0, row2.get("scale").asDouble());
-        assertEquals(4.0, row2.get("metric").asDouble());
-        assertEquals(1, row2.get("emails").size());
-        assertEquals("mjones@notareal.com", row2.get("emails").get(0).asText());
-        assertEquals(1, row2.get("top_places").size());
-        assertEquals("Orlando, FL", row2.get("top_places").get(0).asText());
-
-        JsonNode todo2 = row2.get("todo");
-        assertEquals(1, todo2.size());
-        assertEquals("Get milk and bread", todo2.get("2016-02-03 05:00:00+0000").asText());
+        final String content = new String(output.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(content.contains("user1"));
+        assertTrue(content.contains("Joe"));
+        assertTrue(content.contains("jsmith@notareal.com"));
+        assertTrue(content.contains("user2"));
+        assertTrue(content.contains("Mary"));
+        assertTrue(content.contains("mjones@notareal.com"));
     }
 
     @Test
-    public void testProcessorJsonOutputFragmentAttributes() throws Exception {
+     void testProcessorJsonOutputFragmentAttributes() throws Exception {
         processor = new QueryCassandra();
         testRunner = TestRunners.newTestRunner(processor);
 
-        mockSession = mock(CqlSession.class);
-        final MockCassandraSessionProviderService cassandraSessionProviderService = new MockCassandraSessionProviderService(mockSession);
-        testRunner.addControllerService("cassandra", cassandraSessionProviderService);
-        testRunner.enableControllerService(cassandraSessionProviderService);
+        mockClient = mock(CassandraClient.class);
+        final CassandraConnectionService connectionService = new TestCassandraConnectionService(mockClient, "localhost:9042/test_keyspace");
+        testRunner.addControllerService(CASSANDRA_SERVICE_ID, connectionService);
+        testRunner.enableControllerService(connectionService);
+
+        final MockRecordWriter writerService = new MockRecordWriter(null, false);
+        testRunner.addControllerService(WRITER_ID, writerService);
+        testRunner.enableControllerService(writerService);
+        testRunner.setProperty(QueryCassandra.RECORD_WRITER, WRITER_ID);
 
         setUpStandardProcessorConfig();
         setMockResultSet(true);
         testRunner.setIncomingConnection(false);
         testRunner.setValidateExpressionUsage(false);
         testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "1");
-        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
         testRunner.run(1, true, true);
 
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 2);
@@ -252,77 +165,47 @@ public class QueryCassandraTest {
     }
 
     @Test
-    public void testProcessorConfigJsonOutput() throws Exception {
+     void testProcessorConfigOutput() throws Exception {
         setUpStandardProcessorConfig();
         setMockResultSet(false);
 
         testRunner.setValidateExpressionUsage(false);
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "select * from test");
-        testRunner.setProperty(AbstractCassandraProcessor.CHARSET, "UTF-8");
         testRunner.setProperty(QueryCassandra.QUERY_TIMEOUT, "30 sec");
         testRunner.setProperty(QueryCassandra.FETCH_SIZE, "0");
         testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "0");
         testRunner.setIncomingConnection(false);
 
         testRunner.assertValid();
-        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
-        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
 
-        assertNotNull(files);
-        assertEquals(1, files.size());
-        String json = files.get(0).getContent();
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(json);
+        final MockFlowFile output = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).get(0);
+        output.assertAttributeEquals(QueryCassandra.RESULT_ROW_COUNT, "2");
 
-        assertTrue(root.has("results"));
-        JsonNode results = root.get("results");
-        assertEquals(2, results.size());
-
-        JsonNode row1 = results.get(0);
-        assertEquals("user1", row1.get("user_id").asText());
-        assertEquals("Joe", row1.get("first_name").asText());
-        assertEquals("Smith", row1.get("last_name").asText());
-        assertFalse(row1.get("registered").asBoolean());
-        assertEquals(1.0, row1.get("scale").asDouble());
-        assertEquals(2.0, row1.get("metric").asDouble());
-
-        JsonNode row2 = results.get(1);
-        assertEquals("user2", row2.get("user_id").asText());
-        assertEquals("Mary", row2.get("first_name").asText());
-        assertEquals("Jones", row2.get("last_name").asText());
-        assertTrue(row2.get("registered").asBoolean());
-        assertEquals(3.0, row2.get("scale").asDouble());
-        assertEquals(4.0, row2.get("metric").asDouble());
+        final String content = output.getContent();
+        assertTrue(content.contains("user1"));
+        assertTrue(content.contains("user2"));
     }
 
     @Test
-    public void testJsonOutputWithQueryTimeoutConfigured() throws Exception {
+     void testQueryTimeoutConfigured() throws Exception {
         setUpStandardProcessorConfig();
         setMockResultSet(false);
 
         testRunner.setValidateExpressionUsage(false);
         testRunner.setProperty(QueryCassandra.QUERY_TIMEOUT, "5 sec");
-        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
         testRunner.setIncomingConnection(false);
         testRunner.assertValid();
         testRunner.run(1, true, true);
 
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
-        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
-        assertNotNull(files);
-        assertEquals(1, files.size());
-
-        String json = files.get(0).getContent();
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(json);
-        assertTrue(root.has("results"));
-        assertTrue(root.get("results").isArray());
+        final MockFlowFile output = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).get(0);
+        output.assertAttributeEquals(QueryCassandra.RESULT_ROW_COUNT, "2");
     }
 
     @Test
-    public void testProcessorEmptyFlowFile() {
+     void testProcessorEmptyFlowFile() {
         setUpStandardProcessorConfig();
         setMockResultSet(false);
         testRunner.setValidateExpressionUsage(false);
@@ -337,273 +220,66 @@ public class QueryCassandraTest {
     }
 
     @Test
-    public void testProcessorEmptyFlowFileMaxRowsPerFlowFileEqOne() throws Exception {
-        processor = new QueryCassandra();
-        testRunner = TestRunners.newTestRunner(processor);
-        mockSession = mock(CqlSession.class);
-        final MockCassandraSessionProviderService cassandraSessionProviderService = new MockCassandraSessionProviderService(mockSession);
-        testRunner.addControllerService("cassandra", cassandraSessionProviderService);
-        testRunner.enableControllerService(cassandraSessionProviderService);
-
-        testRunner.setValidateExpressionUsage(false);
+    public void testProcessorEmptyFlowFileAndRetryException() {
         setUpStandardProcessorConfig();
-        setMockResultSet(true);
-        testRunner.setIncomingConnection(true);
-        testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "1");
+        setSessionException(new CassandraException("All nodes failed", CassandraExceptionCategory.RETRY, null));
+        testRunner.setValidateExpressionUsage(false);
         testRunner.enqueue(new byte[0]);
-        testRunner.run(1, true, true);
-        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 2);
-        testRunner.clearTransferState();
-    }
-
-    @Test
-    public void testProcessorEmptyFlowFileAndAllNodesFailedException() {
-        setUpStandardProcessorConfig();
-
-        AllNodesFailedException allNodesFailed = AllNodesFailedException.fromErrors(Collections.emptyMap());
-
-        setSessionException(allNodesFailed);
-        testRunner.setValidateExpressionUsage(false);
-        testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 1);
     }
 
     @Test
-    public void testProcessorEmptyFlowFileAndReadTimeout() {
+     void testProcessorEmptyFlowFileAndFailureException() {
         setUpStandardProcessorConfig();
-
-        setSessionException(new DriverTimeoutException("read timeout"));
-
+        setSessionException(new CassandraException("Invalid query", CassandraExceptionCategory.FAILURE, null));
         testRunner.setValidateExpressionUsage(false);
-        testRunner.enqueue("".getBytes(StandardCharsets.UTF_8));
-        testRunner.run(1, true, true);
-
-        // Processor routes DriverTimeoutException to FAILURE, not RETRY
-        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
-
-        testRunner.clearTransferState();
-    }
-
-    @Test
-    public void testProcessorEmptyFlowFileAndInvalidQueryException() {
-        setUpStandardProcessorConfig();
-        setSessionException(new InvalidQueryException(mock(Node.class), "invalid query"));
-        testRunner.setValidateExpressionUsage(false);
-        testRunner.enqueue("".getBytes(StandardCharsets.UTF_8));
+        testRunner.enqueue(new byte[0]);
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
-        testRunner.clearTransferState();
-    }
-
-    @Test
-    public void testProcessorEmptyFlowFileAndProcessException() {
-        setUpStandardProcessorConfig();
-        setSessionException(new ProcessException());
-        testRunner.setValidateExpressionUsage(false);
-        testRunner.enqueue("".getBytes(StandardCharsets.UTF_8));
-        testRunner.run(1, true, true);
-        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
-        testRunner.clearTransferState();
-    }
-
-    @Test
-    public void testCreateSchemaOneColumn() throws Exception {
-        AsyncResultSet resultSet = CassandraQueryTestUtil.createMockAsyncResultSetOneColumn();
-
-        Row row = StreamSupport.stream(resultSet.currentPage().spliterator(), false)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No rows in mock result set"));
-
-        Schema schema = QueryCassandra.createSchema(row);
-        assertNotNull(schema);
-        assertEquals("NiFi_Cassandra_Query_Record", schema.getName());
-        assertEquals(1, schema.getFields().size());
-        assertEquals("user_id", schema.getFields().get(0).name());
-    }
-
-    @Test
-    public void testCreateSchema() throws Exception {
-        AsyncResultSet resultSet = CassandraQueryTestUtil.createMockAsyncResultSet(false);
-
-        Row row = StreamSupport.stream(resultSet.currentPage().spliterator(), false)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No rows in mock result set"));
-
-        Schema schema = QueryCassandra.createSchema(row);
-
-        assertNotNull(schema);
-        assertEquals(Schema.Type.RECORD, schema.getType());
-
-        Schema.Field field = schema.getField("user_id");
-        assertNotNull(field);
-        Schema fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
-
-        field = schema.getField("first_name");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
-
-        field = schema.getField("last_name");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
-
-        field = schema.getField("emails");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.ARRAY, fieldSchema.getTypes().get(1).getType());
-        Schema arraySchema = fieldSchema.getTypes().get(1);
-        Schema elementSchema = arraySchema.getElementType();
-        assertEquals(Schema.Type.UNION, elementSchema.getType());
-        assertEquals(Schema.Type.NULL, elementSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.STRING, elementSchema.getTypes().get(1).getType());
-
-        field = schema.getField("top_places");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.ARRAY, fieldSchema.getTypes().get(1).getType());
-        arraySchema = fieldSchema.getTypes().get(1);
-        elementSchema = arraySchema.getElementType();
-        assertEquals(Schema.Type.UNION, elementSchema.getType());
-        assertEquals(Schema.Type.NULL, elementSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.STRING, elementSchema.getTypes().get(1).getType());
-
-        field = schema.getField("todo");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.MAP, fieldSchema.getTypes().get(1).getType());
-        Schema mapSchema = fieldSchema.getTypes().get(1);
-        Schema valueSchema = mapSchema.getValueType();
-        assertEquals(Schema.Type.NULL, valueSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.STRING, valueSchema.getTypes().get(1).getType());
-
-        field = schema.getField("registered");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.BOOLEAN, fieldSchema.getTypes().get(1).getType());
-
-        field = schema.getField("scale");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.FLOAT, fieldSchema.getTypes().get(1).getType());
-
-        field = schema.getField("metric");
-        assertNotNull(field);
-        fieldSchema = field.schema();
-        assertEquals(Schema.Type.UNION, fieldSchema.getType());
-        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        assertEquals(Schema.Type.DOUBLE, fieldSchema.getTypes().get(1).getType());
-    }
-
-    @Test
-    public void testConvertToAvroStream() throws Exception {
-        setUpStandardProcessorConfig();
-        AsyncResultSet resultSet = CassandraQueryTestUtil.createMockAsyncResultSet(false);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToAvroStream(resultSet.currentPage(), 0, baos);
-
-        assertEquals(2, numberOfRows);
-
-        try (DataFileReader<GenericRecord> reader = new DataFileReader<>(
-                new SeekableByteArrayInput(baos.toByteArray()),
-                new GenericDatumReader<>())) {
-            List<GenericRecord> records = new ArrayList<>();
-            while (reader.hasNext()) {
-                records.add(reader.next());
-            }
-            assertEquals(2, records.size());
-            assertEquals("user1", records.get(0).get("user_id").toString());
-            assertEquals("user2", records.get(1).get("user_id").toString());
-        }
-    }
-
-    @Test
-    public void testConvertToJSONStream() throws Exception {
-        setUpStandardProcessorConfig();
-        AsyncResultSet resultSet = CassandraQueryTestUtil.createMockAsyncResultSet(false);
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.empty(), resultSet.currentPage(), 0, baos, StandardCharsets.UTF_8);
-        assertEquals(2, numberOfRows);
-        String jsonOutput = baos.toString(StandardCharsets.UTF_8);
-        assertTrue(jsonOutput.contains("\"user_id\":\"user1\""));
-        assertTrue(jsonOutput.contains("\"user_id\":\"user2\""));
-    }
-
-    @Test
-    public void testDefaultDateFormatInConvertToJSONStream() throws Exception {
-        Iterable<Row> rows = CassandraQueryTestUtil.createMockDateRows();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        DateFormat df = new SimpleDateFormat(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rows, 0, baos, StandardCharsets.UTF_8);
-        assertEquals(1, numberOfRows);
-        Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
-
-        String date = map.get("results").get(0).get("date");
-        Instant expected = CassandraQueryTestUtil.TEST_DATE.toInstant();
-        assertEquals(expected.toString(), date);
-    }
-
-    @Test
-    public void testCustomDateFormatInConvertToJSONStream() throws Exception {
-        MockProcessContext context = (MockProcessContext) testRunner.getProcessContext();
-        Iterable<Row> rows = CassandraQueryTestUtil.createMockDateRows();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        final String customDateFormat = "yyyy-MM-dd HH:mm:ss.SSSZ";
-        context.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, customDateFormat);
-
-        DateFormat df = new SimpleDateFormat(customDateFormat);
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rows, 0, baos, StandardCharsets.UTF_8);
-        assertEquals(1, numberOfRows);
-
-        Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
-
-        String date = map.get("results").get(0).get("date");
-        Instant expected = CassandraQueryTestUtil.TEST_DATE.toInstant();
-
-        assertEquals(expected.toString(), date);
     }
 
     private void setUpStandardProcessorConfig() {
-        testRunner.setProperty(AbstractCassandraProcessor.CONNECTION_PROVIDER_SERVICE, "cassandra");
+        testRunner.setProperty(AbstractCassandraProcessor.CASSANDRA_CONNECTION_PROVIDER, CASSANDRA_SERVICE_ID);
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "select * from test");
         testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "0");
     }
 
     private void setMockResultSet(final boolean twoPages) {
         try {
-            final AsyncResultSet mockResultSet = CassandraQueryTestUtil.createMockAsyncResultSet(twoPages);
-            when(mockSession.executeAsync(any(Statement.class)))
-                    .thenReturn(CompletableFuture.completedFuture(mockResultSet));
+            final CassandraQueryResult mockResultSet = CassandraQueryTestUtil.createMockQueryResult(twoPages);
+            when(mockClient.executeQuery(any(CassandraQueryRequest.class))).thenReturn(mockResultSet);
         } catch (final Exception e) {
             fail("Failed to setup mock result set: " + e.getMessage());
         }
     }
 
-    private void setSessionException(final Throwable throwable) {
-        when(mockSession.executeAsync(any(Statement.class)))
-                .thenReturn(CompletableFuture.failedFuture(throwable));
+    private void setSessionException(final CassandraException exception) {
+        try {
+            when(mockClient.executeQuery(any(CassandraQueryRequest.class))).thenThrow(exception);
+        } catch (final Exception e) {
+            fail("Failed to setup session exception: " + e.getMessage());
+        }
     }
+
+    private static class TestCassandraConnectionService extends AbstractControllerService implements CassandraConnectionService {
+        private final CassandraClient client;
+        private final String clusterAddress;
+
+        TestCassandraConnectionService(final CassandraClient client, final String clusterAddress) {
+            this.client = client;
+            this.clusterAddress = clusterAddress;
+        }
+
+        @Override
+        public CassandraClient getClient() {
+            return client;
+        }
+
+        @Override
+        public String getDatabaseLocation() {
+            return clusterAddress;
+        }
+    }
+
 }

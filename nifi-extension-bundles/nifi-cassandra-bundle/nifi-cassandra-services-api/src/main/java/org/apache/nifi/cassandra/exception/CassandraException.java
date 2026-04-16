@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.cassandra.converter;
+package org.apache.nifi.cassandra.exception;
 
-import org.apache.nifi.cassandra.models.CassandraRow;
-import org.apache.nifi.cassandra.models.CassandraType;
-import org.apache.nifi.serialization.record.DataType;
+public class CassandraException extends Exception {
+    private final CassandraExceptionCategory category;
 
-public interface CassandraTypeConverter {
+    public CassandraException(final String message, final CassandraExceptionCategory category, final Throwable cause) {
+        super(message, cause);
+        this.category = category;
+    }
 
-    Object getCassandraObject(CassandraRow row, int index);
-
-    DataType getDataType(CassandraType dataType);
+    public CassandraExceptionCategory getCategory() {
+        return category;
+    }
 }

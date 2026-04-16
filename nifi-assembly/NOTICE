@@ -1998,10 +1998,10 @@ The following binary components are provided under the Apache Software License v
            The original software and related information is available
            at http://www.jcraft.com/jsch/.
 
-    (ASLv2) DataStax Java Driver for Apache Cassandra - Core
+    (ASLv2) Apache Cassandra Java Driver
         The following NOTICE information applies:
-          DataStax Java Driver for Apache Cassandra - Core
-          Copyright (C) 2012-2017 DataStax Inc.
+          Apache Cassandra Java Driver
+          Copyright 2012- The Apache Software Foundation
     (ASLv2) bytebuffer-collections
         The following NOTICE information applies:
           bytebuffer-collections

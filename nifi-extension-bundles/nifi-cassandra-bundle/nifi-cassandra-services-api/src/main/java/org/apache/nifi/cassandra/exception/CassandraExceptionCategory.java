@@ -14,15 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cassandra;
+package org.apache.nifi.cassandra.exception;
 
-import com.datastax.oss.driver.api.core.CqlSession;
-import org.apache.nifi.controller.ControllerService;
-
-public interface CassandraSessionProviderService extends ControllerService {
-    /**
-     * Obtains a Cassandra session instance
-     * @return {@link CqlSession}
-     */
-    CqlSession getCassandraSession();
+public enum CassandraExceptionCategory {
+    RETRY,
+    FAILURE
 }
