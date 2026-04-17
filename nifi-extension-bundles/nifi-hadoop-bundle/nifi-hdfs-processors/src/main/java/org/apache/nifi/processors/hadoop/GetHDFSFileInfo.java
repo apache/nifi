@@ -89,7 +89,7 @@ import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequ
         @WritesAttribute(attribute = "hdfs.permissions", description = "The permissions for the object in HDFS. This is formatted as 3 characters for the owner, "
                 + "3 for the group, and 3 for other users. For example rw-rw-r--"),
         @WritesAttribute(attribute = "hdfs.status", description = "The status contains comma separated list of file/dir paths, which couldn't be listed/accessed. "
-                + "Status won't be set if no errors occured."),
+                + "Status won't be set if no errors occurred."),
         @WritesAttribute(attribute = "hdfs.full.tree", description = "When destination is 'attribute', will be populated with full tree of HDFS directory in JSON format."
                 + "WARNING: In case when scan finds thousands or millions of objects, having huge values in attribute could impact flow file repo and GC/heap usage. "
                 + "Use content destination for such cases")
