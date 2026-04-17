@@ -20,9 +20,10 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
-import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
+import { ComponentType, selectRouteParams, selectUrl, Storage } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
 import { combineLatest, distinctUntilChanged, filter, map, Observable, of } from 'rxjs';
 import { NiFiState } from '../../../../state';
@@ -39,9 +40,16 @@ import {
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
+import { ConnectorGraphControls } from './graph-controls/connector-graph-controls.component';
+import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../state/error';
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import {
+    selectConnectorCanvasEntity,
+    selectConnectorCanvasEntitySaving
+} from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 const GRAPH_CONTROLS_STORAGE_KEY = 'connector-graph-controls';
@@ -53,9 +61,14 @@ const GRAPH_CONTROLS_STORAGE_KEY = 'connector-graph-controls';
         CommonModule,
         CanvasComponent,
         MatButton,
+        MatSidenav,
+        MatSidenavContainer,
+        MatSidenavContent,
         Navigation,
         ConnectorCanvasHeaderBarComponent,
-        ConnectorCanvasFooterComponent
+        ConnectorCanvasFooterComponent,
+        ConnectorGraphControls,
+        ContextErrorBanner
     ],
     templateUrl: './connector-canvas.component.html'
 })
@@ -64,6 +77,10 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private destroyRef = inject(DestroyRef);
     private router = inject(Router);
     private dialog = inject(MatDialog);
+    private storage = inject(Storage);
+
+    private static readonly CONTROL_VISIBILITY_KEY = 'graph-control-visibility';
+    private static readonly GRAPH_CONTROL_KEY = 'connector-graph-controls';
 
     canvasComponent = viewChild.required(CanvasComponent);
 
@@ -72,7 +89,25 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     selectedComponentIds: string[] = [];
     canNavigateToParent = false;
     skipTransform = this.store.selectSignal(ConnectorCanvasSelectors.selectSkipTransform);
-    graphControlsOpen = localStorage.getItem(GRAPH_CONTROLS_STORAGE_KEY) !== 'false';
+    graphControlsOpen = true;
+
+    connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
+    entitySaving = this.store.selectSignal(selectConnectorCanvasEntitySaving);
+
+    protected readonly ErrorContextKey = ErrorContextKey;
+
+    constructor() {
+        try {
+            const item: { [key: string]: boolean } | null = this.storage.getItem(
+                ConnectorCanvasComponent.CONTROL_VISIBILITY_KEY
+            );
+            if (item) {
+                this.graphControlsOpen = item[ConnectorCanvasComponent.GRAPH_CONTROL_KEY] === true;
+            }
+        } catch (_e) {
+            // likely could not parse item... ignoring
+        }
+    }
 
     labels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectLabels);
     processors$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectProcessors);
@@ -391,7 +426,16 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     toggleGraphControls(): void {
         this.graphControlsOpen = !this.graphControlsOpen;
-        localStorage.setItem(GRAPH_CONTROLS_STORAGE_KEY, String(this.graphControlsOpen));
+
+        let item: { [key: string]: boolean } | null = this.storage.getItem(
+            ConnectorCanvasComponent.CONTROL_VISIBILITY_KEY
+        );
+        if (item == null) {
+            item = {};
+        }
+
+        item[ConnectorCanvasComponent.GRAPH_CONTROL_KEY] = this.graphControlsOpen;
+        this.storage.setItem(ConnectorCanvasComponent.CONTROL_VISIBILITY_KEY, item);
     }
 
     onSearchGoToComponent(event: { id: string; type: ComponentType; groupId: string }): void {

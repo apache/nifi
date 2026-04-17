@@ -451,7 +451,7 @@ export class ConnectorsListingEffects {
                 ofType(navigateToViewConnectorDetails),
                 tap(() => {
                     window.alert(
-                        'TODO: View connector details is not yet implemented. This feature will be ported in a future iteration.'
+                        'TODO: View connector details is not yet implemented. This feature will be implemented in a future iteration.'
                     );
                 })
             ),

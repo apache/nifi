@@ -1,0 +1,55 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ng-template #badges>
+    <span
+        class="connector-state-badge text-xs font-semibold uppercase"
+        [class]="getStateColorClass(connector().component.state)"
+        data-qa="connector-state">
+        {{ connector().component.state }}
+    </span>
+    @if (hasUnappliedEdits()) {
+        <span class="caution-color text-xs font-semibold uppercase" data-qa="edits-not-applied-badge">
+            Edits not applied
+        </span>
+    }
+</ng-template>
+
+<div
+    class="flex flex-col"
+    [class.connector-detail]="!condensed()"
+    [class.gap-y-1]="!condensed()"
+    [class.gap-y-2]="condensed()">
+    @if (condensed()) {
+        <span class="text-base font-semibold" data-qa="connector-name">
+            {{ connector().component.name }}
+        </span>
+        <div class="flex items-center gap-x-2 flex-wrap" data-qa="connector-badges">
+            <ng-container *ngTemplateOutlet="badges"></ng-container>
+        </div>
+    } @else {
+        <div class="flex items-center flex-wrap gap-x-3">
+            <h3 class="detail-title" data-qa="connector-name">
+                {{ connector().component.name }}
+            </h3>
+            <ng-container *ngTemplateOutlet="badges"></ng-container>
+        </div>
+    }
+    <div class="tertiary-color" [class.text-sm]="condensed()" data-qa="connector-type">
+        {{ simpleType() }}
+    </div>
+</div>

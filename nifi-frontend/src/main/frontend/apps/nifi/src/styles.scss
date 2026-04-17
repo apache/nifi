@@ -57,6 +57,7 @@
 @use 'libs/shared/src/components/map-table/editors/text-editor/text-editor.component-theme' as text-editor;
 @use 'app/ui/common/overlapping-connections-banner/overlapping-connections-banner.component-theme' as
     overlapping-connections-banner;
+@use 'app/pages/connectors/ui/connector-canvas/connector-canvas.component-theme' as connector-canvas;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
@@ -104,6 +105,7 @@ html {
     @include text-editor.generate-theme();
     @include resizable.generate-theme();
     @include overlapping-connections-banner.generate-theme();
+    @include connector-canvas.generate-theme();
 
     .darkMode {
         @include app.generate-material-theme();
@@ -137,5 +139,6 @@ html {
         @include text-editor.generate-theme();
         @include resizable.generate-theme();
         @include overlapping-connections-banner.generate-theme();
+        @include connector-canvas.generate-theme();
     }
 }

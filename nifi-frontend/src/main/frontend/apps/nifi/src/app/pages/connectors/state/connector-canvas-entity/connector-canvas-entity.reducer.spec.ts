@@ -22,6 +22,15 @@ import {
     loadConnectorEntity,
     loadConnectorEntitySuccess,
     loadConnectorEntityFailure,
+    drainConnector,
+    drainConnectorSuccess,
+    cancelConnectorDrain,
+    cancelConnectorDrainSuccess,
+    startConnector,
+    startConnectorSuccess,
+    stopConnector,
+    stopConnectorSuccess,
+    connectorActionApiError,
     resetConnectorCanvasEntityState
 } from './connector-canvas-entity.actions';
 
@@ -102,6 +111,160 @@ describe('connectorCanvasEntityReducer', () => {
 
             expect(result.loadingStatus).toBe('error');
             expect(result.error).toBe('Not found');
+        });
+    });
+
+    describe('drainConnector / cancelConnectorDrain', () => {
+        it('should set saving to true and clear error on drainConnector', () => {
+            const entity = createMockConnectorEntity();
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: entity,
+                error: 'previous error'
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, drainConnector({ connector: entity }));
+
+            expect(result.saving).toBe(true);
+            expect(result.error).toBeNull();
+            expect(result.connectorEntity).toEqual(entity);
+        });
+
+        it('should set saving to true and clear error on cancelConnectorDrain', () => {
+            const entity = createMockConnectorEntity();
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: entity,
+                error: 'previous error'
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, cancelConnectorDrain({ connector: entity }));
+
+            expect(result.saving).toBe(true);
+            expect(result.error).toBeNull();
+        });
+    });
+
+    describe('drainConnectorSuccess / cancelConnectorDrainSuccess', () => {
+        it('should replace connectorEntity and clear saving on drainConnectorSuccess', () => {
+            const prior = createMockConnectorEntity({ id: 'connector-123' });
+            const refreshed = createMockConnectorEntity({ id: 'connector-123' });
+            refreshed.component.state = 'RUNNING';
+
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: prior,
+                saving: true
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, drainConnectorSuccess({ connector: refreshed }));
+
+            expect(result.connectorEntity).toEqual(refreshed);
+            expect(result.saving).toBe(false);
+            expect(result.error).toBeNull();
+        });
+
+        it('should replace connectorEntity and clear saving on cancelConnectorDrainSuccess', () => {
+            const prior = createMockConnectorEntity({ id: 'connector-123' });
+            const refreshed = createMockConnectorEntity({ id: 'connector-123' });
+
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: prior,
+                saving: true
+            };
+
+            const result = connectorCanvasEntityReducer(
+                priorState,
+                cancelConnectorDrainSuccess({ connector: refreshed })
+            );
+
+            expect(result.connectorEntity).toEqual(refreshed);
+            expect(result.saving).toBe(false);
+            expect(result.error).toBeNull();
+        });
+    });
+
+    describe('startConnector / stopConnector', () => {
+        it('should set saving to true and clear error on startConnector', () => {
+            const entity = createMockConnectorEntity();
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: entity,
+                error: 'previous error'
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, startConnector({ connector: entity }));
+
+            expect(result.saving).toBe(true);
+            expect(result.error).toBeNull();
+            expect(result.connectorEntity).toEqual(entity);
+        });
+
+        it('should set saving to true and clear error on stopConnector', () => {
+            const entity = createMockConnectorEntity();
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: entity,
+                error: 'previous error'
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, stopConnector({ connector: entity }));
+
+            expect(result.saving).toBe(true);
+            expect(result.error).toBeNull();
+        });
+    });
+
+    describe('startConnectorSuccess / stopConnectorSuccess', () => {
+        it('should replace connectorEntity and clear saving on startConnectorSuccess', () => {
+            const prior = createMockConnectorEntity({ id: 'connector-123' });
+            const refreshed = createMockConnectorEntity({ id: 'connector-123' });
+            refreshed.component.state = 'RUNNING';
+
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: prior,
+                saving: true
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, startConnectorSuccess({ connector: refreshed }));
+
+            expect(result.connectorEntity).toEqual(refreshed);
+            expect(result.saving).toBe(false);
+            expect(result.error).toBeNull();
+        });
+
+        it('should replace connectorEntity and clear saving on stopConnectorSuccess', () => {
+            const prior = createMockConnectorEntity({ id: 'connector-123' });
+            const refreshed = createMockConnectorEntity({ id: 'connector-123' });
+            refreshed.component.state = 'STOPPED';
+
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: prior,
+                saving: true
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, stopConnectorSuccess({ connector: refreshed }));
+
+            expect(result.connectorEntity).toEqual(refreshed);
+            expect(result.saving).toBe(false);
+            expect(result.error).toBeNull();
+        });
+    });
+
+    describe('connectorActionApiError', () => {
+        it('should clear saving and store the error', () => {
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                saving: true
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, connectorActionApiError({ error: 'boom' }));
+
+            expect(result.saving).toBe(false);
+            expect(result.error).toBe('boom');
         });
     });
 

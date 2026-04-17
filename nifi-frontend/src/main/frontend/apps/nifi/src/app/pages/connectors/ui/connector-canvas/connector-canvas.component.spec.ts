@@ -33,8 +33,16 @@ import { Navigation } from '../../../../ui/common/navigation/navigation.componen
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { ConnectorGraphControls } from './graph-controls/connector-graph-controls.component';
+import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../state/error';
+import { Storage } from '@nifi/shared';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
+import {
+    selectConnectorCanvasEntity,
+    selectConnectorCanvasEntitySaving
+} from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
 import { selectParentProcessGroupId } from '../../state/connector-canvas/connector-canvas.selectors';
 import {
     deselectAllComponents,
@@ -115,6 +123,27 @@ class MockConnectorCanvasFooterComponent {
 }
 
 @Component({
+    selector: 'connector-graph-controls',
+    standalone: true,
+    imports: [CommonModule],
+    template: ''
+})
+class MockConnectorGraphControls {
+    connectorEntity = input<unknown>(null);
+    entitySaving = input<boolean>(false);
+}
+
+@Component({
+    selector: 'context-error-banner',
+    standalone: true,
+    imports: [CommonModule],
+    template: ''
+})
+class MockContextErrorBanner {
+    context = input.required<ErrorContextKey>();
+}
+
+@Component({
     selector: 'mock-blocking-dialog',
     standalone: true,
     template: '<p>Dialog</p>'
@@ -181,44 +210,78 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: selectParentProcessGroupId, value: parentProcessGroupId },
         { selector: selectUrl, value: url },
         { selector: selectRouteParams, value: routeParamsValue },
-        { selector: selectCurrentUser, value: buildMockCurrentUser(canAccessProvenance) }
+        { selector: selectCurrentUser, value: buildMockCurrentUser(canAccessProvenance) },
+        { selector: selectConnectorCanvasEntity, value: null },
+        { selector: selectConnectorCanvasEntitySaving, value: false }
     ];
 }
 
-function configureConnectorCanvasTestBed(options: SetupOptions = {}) {
+function createMockStorage() {
+    const backingStore = new Map<string, unknown>();
+    return {
+        getItem: vi.fn((key: string) => backingStore.get(key) ?? null),
+        setItem: vi.fn((key: string, value: unknown) => {
+            backingStore.set(key, value);
+        }),
+        removeItem: vi.fn((key: string) => {
+            backingStore.delete(key);
+        }),
+        hasItem: vi.fn((key: string) => backingStore.has(key)),
+        getItemExpiration: vi.fn().mockReturnValue(null),
+        __store: backingStore
+    };
+}
+
+function configureConnectorCanvasTestBed(options: SetupOptions = {}, storage?: ReturnType<typeof createMockStorage>) {
     TestBed.resetTestingModule();
+    const storageMock = storage ?? createMockStorage();
     TestBed.configureTestingModule({
         imports: [ConnectorCanvasComponent, NoopAnimationsModule, MatDialogModule],
-        providers: [provideRouter([]), provideMockStore({ initialState: {}, selectors: buildMockSelectors(options) })]
+        providers: [
+            provideRouter([]),
+            provideMockStore({ initialState: {}, selectors: buildMockSelectors(options) }),
+            { provide: Storage, useValue: storageMock }
+        ]
     }).overrideComponent(ConnectorCanvasComponent, {
         remove: {
-            imports: [CanvasComponent, Navigation, ConnectorCanvasHeaderBarComponent, ConnectorCanvasFooterComponent]
+            imports: [
+                CanvasComponent,
+                Navigation,
+                ConnectorCanvasHeaderBarComponent,
+                ConnectorCanvasFooterComponent,
+                ConnectorGraphControls,
+                ContextErrorBanner
+            ]
         },
         add: {
             imports: [
                 MockReusableCanvasComponent,
                 MockNavigationComponent,
                 MockConnectorCanvasHeaderBarComponent,
-                MockConnectorCanvasFooterComponent
+                MockConnectorCanvasFooterComponent,
+                MockConnectorGraphControls,
+                MockContextErrorBanner
             ]
         }
     });
+    return storageMock;
 }
 
-function createConnectorCanvasFixture(): {
+function createConnectorCanvasFixture(storage: ReturnType<typeof createMockStorage>): {
     fixture: ComponentFixture<ConnectorCanvasComponent>;
     component: ConnectorCanvasComponent;
     dispatchSpy: ReturnType<typeof vi.spyOn>;
+    storage: ReturnType<typeof createMockStorage>;
 } {
     const store = TestBed.inject(MockStore);
     const dispatchSpy = vi.spyOn(store, 'dispatch');
     const fixture = TestBed.createComponent(ConnectorCanvasComponent);
-    return { fixture, component: fixture.componentInstance, dispatchSpy };
+    return { fixture, component: fixture.componentInstance, dispatchSpy, storage };
 }
 
-function setup(options: SetupOptions = {}) {
-    configureConnectorCanvasTestBed(options);
-    return createConnectorCanvasFixture();
+function setup(options: SetupOptions = {}, storageOverride?: ReturnType<typeof createMockStorage>) {
+    const storage = configureConnectorCanvasTestBed(options, storageOverride);
+    return createConnectorCanvasFixture(storage);
 }
 
 function dispatchWindowKeydown(key: string, modifiers: { ctrlKey?: boolean; metaKey?: boolean } = {}) {
@@ -632,23 +695,54 @@ describe('ConnectorCanvasComponent', () => {
     });
 
     describe('Graph controls toggle', () => {
-        it('should default graphControlsOpen to true', () => {
-            localStorage.removeItem('connector-graph-controls');
+        it('should default graphControlsOpen to true when storage has no entry', () => {
             const { component } = setup();
             expect(component.graphControlsOpen).toBe(true);
         });
 
-        it('should toggle graphControlsOpen and persist to localStorage', () => {
-            localStorage.removeItem('connector-graph-controls');
-            const { component } = setup();
+        it('should restore graphControlsOpen from Storage service when persisted as false', () => {
+            const storage = createMockStorage();
+            storage.getItem.mockImplementation((key: string) =>
+                key === 'graph-control-visibility' ? { 'connector-graph-controls': false } : null
+            );
+            const { component } = setup({}, storage);
+            expect(component.graphControlsOpen).toBe(false);
+        });
+
+        it('should toggle graphControlsOpen and persist state via Storage service', () => {
+            const { component, storage } = setup();
 
             component.toggleGraphControls();
             expect(component.graphControlsOpen).toBe(false);
-            expect(localStorage.getItem('connector-graph-controls')).toBe('false');
+            expect(storage.setItem).toHaveBeenCalledWith(
+                'graph-control-visibility',
+                expect.objectContaining({ 'connector-graph-controls': false })
+            );
 
             component.toggleGraphControls();
             expect(component.graphControlsOpen).toBe(true);
-            expect(localStorage.getItem('connector-graph-controls')).toBe('true');
+            expect(storage.setItem).toHaveBeenCalledWith(
+                'graph-control-visibility',
+                expect.objectContaining({ 'connector-graph-controls': true })
+            );
+        });
+
+        it('should preserve sibling visibility keys when toggling', () => {
+            const storage = createMockStorage();
+            storage.getItem.mockImplementation((key: string) =>
+                key === 'graph-control-visibility' ? { 'other-control': true, 'connector-graph-controls': true } : null
+            );
+            const { component } = setup({}, storage);
+
+            component.toggleGraphControls();
+
+            expect(storage.setItem).toHaveBeenCalledWith(
+                'graph-control-visibility',
+                expect.objectContaining({
+                    'other-control': true,
+                    'connector-graph-controls': false
+                })
+            );
         });
     });
 

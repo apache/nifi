@@ -21,6 +21,15 @@ import {
     loadConnectorEntity,
     loadConnectorEntitySuccess,
     loadConnectorEntityFailure,
+    drainConnector,
+    drainConnectorSuccess,
+    cancelConnectorDrain,
+    cancelConnectorDrainSuccess,
+    startConnector,
+    startConnectorSuccess,
+    stopConnector,
+    stopConnectorSuccess,
+    connectorActionApiError,
     resetConnectorCanvasEntityState
 } from './connector-canvas-entity.actions';
 
@@ -43,6 +52,31 @@ export const connectorCanvasEntityReducer = createReducer(
     on(loadConnectorEntityFailure, (state, { error }) => ({
         ...state,
         loadingStatus: 'error' as const,
+        error
+    })),
+
+    on(drainConnector, cancelConnectorDrain, startConnector, stopConnector, (state) => ({
+        ...state,
+        saving: true,
+        error: null
+    })),
+
+    on(
+        drainConnectorSuccess,
+        cancelConnectorDrainSuccess,
+        startConnectorSuccess,
+        stopConnectorSuccess,
+        (state, { connector }) => ({
+            ...state,
+            connectorEntity: connector,
+            saving: false,
+            error: null
+        })
+    ),
+
+    on(connectorActionApiError, (state, { error }) => ({
+        ...state,
+        saving: false,
         error
     })),
 

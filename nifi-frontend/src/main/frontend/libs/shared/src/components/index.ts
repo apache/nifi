@@ -44,3 +44,4 @@ export * from './connector-step-actions/connector-step-actions.component';
 export * from './property-group-card/property-group-card.component';
 export * from './side-panel-container/side-panel-container.component';
 export * from './connector-property-input/connector-property-input.component';
+export * from './connector-detail-header/connector-detail-header.component';

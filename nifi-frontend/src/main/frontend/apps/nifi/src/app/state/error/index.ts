@@ -51,6 +51,7 @@ export enum ErrorContextKey {
     LINEAGE = 'lineage',
     FLOW_ANALYSIS_RULES = 'flow-analysis-rules',
     CONNECTORS = 'connectors',
+    CONNECTOR_CANVAS = 'connector-canvas',
     CONNECTOR_RENAME_DIALOG = 'connector-rename-dialog'
 }
 
