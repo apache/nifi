@@ -619,6 +619,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 }
                 break;
             default:
+                // SWAP_OUT, SWAP_IN, and CLEANUP_TRANSIENT_CLAIMS intentionally do not change the truncation reference count.
+                // SWAP_OUT/SWAP_IN are balanced: SWAP_OUT does not decrement because the FlowFile still exists (on disk in a
+                // swap file), so SWAP_IN must not increment either. CLEANUP_TRANSIENT_CLAIMS describes claims that were
+                // never the current claim of a FlowFile reflected by a CREATE or UPDATE record (e.g., a claim written to and
+                // then replaced by a subsequent session.write, or a claim abandoned by a session rollback), so the reference
+                // count was never incremented for them in the first place. The outer updateContentClaims loop is still
+                // responsible for checking isDestructable / isTruncationAllowed on these transient claims.
                 break;
         }
     }

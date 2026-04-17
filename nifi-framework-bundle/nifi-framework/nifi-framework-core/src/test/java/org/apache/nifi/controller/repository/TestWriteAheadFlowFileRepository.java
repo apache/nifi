@@ -82,6 +82,9 @@ import static org.mockito.Mockito.when;
 
 public class TestWriteAheadFlowFileRepository {
     private static final Logger logger = LoggerFactory.getLogger(TestWriteAheadFlowFileRepository.class);
+
+    // A claim length greater than the 1 MB threshold that makes a tail claim a truncation candidate.
+    private static final long TRUNCATION_CANDIDATE_LENGTH = 5_000_000L;
     private static NiFiProperties niFiProperties;
 
     @BeforeEach
@@ -936,7 +939,7 @@ public class TestWriteAheadFlowFileRepository {
         final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
         context.claimManager().incrementClaimantCount(resourceClaim);
         context.claimManager().incrementClaimantCount(resourceClaim); // count = 2 so that after delete decrement it stays > 0 (not destructable)
-        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(context.claimManager());
@@ -955,7 +958,7 @@ public class TestWriteAheadFlowFileRepository {
         final RuntimeRepoContext context = createRuntimeRepoContext();
         final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
         context.claimManager().incrementClaimantCount(resourceClaim); // count = 1 -- will reach 0 after delete
-        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(context.claimManager());
@@ -980,7 +983,7 @@ public class TestWriteAheadFlowFileRepository {
         final ResourceClaim originalResourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
         context.claimManager().incrementClaimantCount(originalResourceClaim);
         context.claimManager().incrementClaimantCount(originalResourceClaim); // count = 2 so it stays > 0 after decrement
-        final StandardContentClaim originalClaim = createClaim(originalResourceClaim, 2048L, 5_000_000L, true);
+        final StandardContentClaim originalClaim = createClaim(originalResourceClaim, 2048L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         final ResourceClaim newResourceClaim = context.claimManager().newResourceClaim("container", "section", "2", false, false);
         context.claimManager().incrementClaimantCount(newResourceClaim);
@@ -1188,7 +1191,7 @@ public class TestWriteAheadFlowFileRepository {
         context.claimManager().incrementClaimantCount(resourceClaim);
 
         final StandardContentClaim smallClaim = createClaim(resourceClaim, 0L, 100L, false);
-        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 5_000_000L, true);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(context.claimManager());
@@ -1256,7 +1259,7 @@ public class TestWriteAheadFlowFileRepository {
         context.claimManager().incrementClaimantCount(resourceClaim);
 
         final StandardContentClaim smallClaim = createClaim(resourceClaim, 0L, 100L, false);
-        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 5_000_000L, true);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(context.claimManager());
@@ -1391,7 +1394,7 @@ public class TestWriteAheadFlowFileRepository {
         claimManager.incrementClaimantCount(resourceClaim);
         claimManager.incrementClaimantCount(resourceClaim);
         final StandardContentClaim smallClaim = createClaim(resourceClaim, 0L, 100L, false);
-        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, 5_000_000L, true);
+        final StandardContentClaim largeClaim = createClaim(resourceClaim, 100L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(disabledTruncationProperties)) {
             repo.initialize(claimManager);
@@ -1434,7 +1437,7 @@ public class TestWriteAheadFlowFileRepository {
         final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
         context.claimManager().incrementClaimantCount(resourceClaim);
         context.claimManager().incrementClaimantCount(resourceClaim);
-        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, 5_000_000L, true);
+        final StandardContentClaim contentClaim = createClaim(resourceClaim, 1024L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(context.claimManager());
@@ -1478,7 +1481,7 @@ public class TestWriteAheadFlowFileRepository {
             repo.loadFlowFiles(context.queueProvider());
 
             for (int i = 0; i < 50; i++) {
-                final StandardContentClaim claim = createClaim(resourceClaim, (i + 1) * 1024L, 5_000_000L, true);
+                final StandardContentClaim claim = createClaim(resourceClaim, (i + 1) * 1024L, TRUNCATION_CANDIDATE_LENGTH, true);
                 createAndDeleteFlowFile(repo, context.queue(), claim);
                 assertEquals(0, repo.getContentClaimReferenceCount(claim),
                         "Reference count should be 0 after FlowFile is deleted for claim at offset " + claim.getOffset());
@@ -1501,7 +1504,7 @@ public class TestWriteAheadFlowFileRepository {
         final ResourceClaim sharedResourceClaim = writeClaimManager.newResourceClaim("container", "section", "shared-1", false, false);
 
         // Two FlowFiles sharing the same large tail claim
-        final StandardContentClaim largeClaim = createClaim(sharedResourceClaim, 100L, 5_000_000L, true);
+        final StandardContentClaim largeClaim = createClaim(sharedResourceClaim, 100L, TRUNCATION_CANDIDATE_LENGTH, true);
 
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(writeClaimManager);

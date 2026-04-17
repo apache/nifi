@@ -123,6 +123,7 @@ public class FileSystemRepository implements ContentRepository {
     // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
     // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
     private final long maxAppendableClaimLength;
+    private final long minTruncatableClaimLength;
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
     private final boolean alwaysSync;
@@ -157,6 +158,7 @@ public class FileSystemRepository implements ContentRepository {
         } else {
             this.maxAppendableClaimLength = configuredAppendableClaimLength;
         }
+        this.minTruncatableClaimLength = Math.min(1_000_000L, this.maxAppendableClaimLength);
 
         this.containers = new HashMap<>(fileRespositoryPaths);
         this.containerNames = new ArrayList<>(containers.keySet());
@@ -1130,7 +1132,7 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 usableSpace = getContainerUsableSpace(container);
             } catch (final IOException ioe) {
-                LOG.warn("Failed to determine usable space for container {}. Will not truncate claims for this container", container, ioe);
+                LOG.warn("Failed to determine usable space for container [{}] Will not truncate claims for this container", container, ioe);
                 return false;
             }
 
@@ -2045,9 +2047,10 @@ public class FileSystemRepository implements ContentRepository {
                 // Mark the claim as no longer being able to be written to
                 resourceClaimManager.freeze(scc.getResourceClaim());
 
-                final boolean largeClaim = scc.getLength() > Math.min(1_000_000, maxAppendableClaimLength);
+                final boolean largeClaim = scc.getLength() > minTruncatableClaimLength;
                 final boolean nonStartClaim = scc.getOffset() > 0;
-                scc.setTruncationCandidate(truncationEnabled && largeClaim && nonStartClaim);
+                final boolean truncationCandidate = truncationEnabled && largeClaim && nonStartClaim;
+                scc.setTruncationCandidate(truncationCandidate);
 
                 // ensure that the claim is no longer on the queue
                 writableClaimQueue.remove(new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength));

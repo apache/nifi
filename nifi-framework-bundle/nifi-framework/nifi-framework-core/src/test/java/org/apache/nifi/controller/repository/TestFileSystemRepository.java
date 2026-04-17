@@ -74,6 +74,10 @@ public class TestFileSystemRepository {
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
     private static final Logger logger = LoggerFactory.getLogger(TestFileSystemRepository.class);
 
+    // The tests configure CONTENT_ARCHIVE_CLEANUP_FREQUENCY to "1 sec", which is the minimum allowed interval for
+    // the background TruncateClaims task. Waiting twice that interval ensures at least one cycle has executed.
+    private static final long BACKGROUND_TASK_WAIT_MILLIS = 2_000L;
+
     @TempDir
     private Path tempDir;
 
@@ -1044,13 +1048,12 @@ public class TestFileSystemRepository {
     @Test
     @Timeout(60)
     public void testTruncateNotActiveWhenDiskNotPressured() throws IOException, InterruptedException {
-        // Create repository with ample disk space
         shutdown();
 
         final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
-                return Long.MAX_VALUE; // Plenty of space
+                return Long.MAX_VALUE;
             }
 
             @Override
@@ -1082,7 +1085,7 @@ public class TestFileSystemRepository {
             localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
             localClaimManager.markTruncatable(largeClaim);
 
-            Thread.sleep(3000L);
+            Thread.sleep(BACKGROUND_TASK_WAIT_MILLIS);
             assertEquals(originalSize, Files.size(filePath));
         } finally {
             localRepository.shutdown();
@@ -1092,7 +1095,6 @@ public class TestFileSystemRepository {
     @Test
     @Timeout(90)
     public void testTruncateClaimDeferredThenExecutedWhenPressureStarts() throws IOException, InterruptedException {
-        // Create a repository where disk pressure can be toggled
         shutdown();
 
         final AtomicLong usableSpace = new AtomicLong(Long.MAX_VALUE);
@@ -1133,9 +1135,8 @@ public class TestFileSystemRepository {
             localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
             localClaimManager.markTruncatable(largeClaim);
 
-            // Wait for at least one run of the background task with NO pressure.
-            // File should NOT be truncated.
-            Thread.sleep(3_000);
+            // Wait for at least one run of the background task with no disk pressure. File should not be truncated.
+            Thread.sleep(BACKGROUND_TASK_WAIT_MILLIS);
             assertEquals(originalSize, Files.size(filePath));
 
             // Now turn on disk pressure
@@ -1229,9 +1230,8 @@ public class TestFileSystemRepository {
             localClaimManager.incrementTruncationReferenceCount(largeClaim);
 
             // Wait long enough for the TruncateClaims background task to have executed at least once
-            Thread.sleep(3_000);
+            Thread.sleep(BACKGROUND_TASK_WAIT_MILLIS);
 
-            // File should NOT have been truncated because TruncateClaims checks ref count > 0
             assertEquals(originalSize, Files.size(filePath),
                     "File should not be truncated because TruncateClaims should skip claims with positive truncation reference count");
 
