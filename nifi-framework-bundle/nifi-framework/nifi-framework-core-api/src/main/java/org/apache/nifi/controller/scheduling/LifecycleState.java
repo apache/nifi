@@ -22,13 +22,8 @@ import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.WeakHashMap;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,7 +33,6 @@ public class LifecycleState {
     private final Object componentId;
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
-    private final Set<ScheduledFuture<?>> futures = new HashSet<>();
     private final AtomicBoolean mustCallOnStoppedMethods = new AtomicBoolean(false);
     private volatile long lastStopTime = -1;
     private volatile boolean terminated = false;
@@ -111,7 +105,16 @@ public class LifecycleState {
         mustCallOnStoppedMethods.set(true);
 
         if (!scheduled) {
-            lastStopTime = System.currentTimeMillis();
+            // Force the stop time to strictly advance. System.currentTimeMillis() has millisecond resolution, so a
+            // second stop that happens within the same millisecond as the previous one would otherwise read the same
+            // value; that would defeat the race check in VirtualThreadSchedulingAgent, which relies on this field
+            // changing to signal that a prior scheduling generation has ended.
+            final long previousStopTime = lastStopTime;
+            long nextStopTime = System.currentTimeMillis();
+            if (nextStopTime <= previousStopTime) {
+                nextStopTime = previousStopTime + 1L;
+            }
+            lastStopTime = nextStopTime;
         }
     }
 
@@ -133,25 +136,6 @@ public class LifecycleState {
      */
     public boolean mustCallOnStoppedMethods() {
         return mustCallOnStoppedMethods.getAndSet(false);
-    }
-
-    /**
-     * Establishes the list of relevant futures for this processor. Replaces any previously held futures.
-     *
-     * @param newFutures futures
-     */
-    public synchronized void setFutures(final Collection<ScheduledFuture<?>> newFutures) {
-        futures.clear();
-        futures.addAll(newFutures);
-    }
-
-    public synchronized void replaceFuture(final ScheduledFuture<?> oldFuture, final ScheduledFuture<?> newFuture) {
-        futures.remove(oldFuture);
-        futures.add(newFuture);
-    }
-
-    public synchronized Set<ScheduledFuture<?>> getFutures() {
-        return Collections.unmodifiableSet(futures);
     }
 
     public synchronized void terminate() {
