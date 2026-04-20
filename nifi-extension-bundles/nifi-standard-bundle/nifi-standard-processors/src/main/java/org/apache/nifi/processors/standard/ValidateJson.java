@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.Error;
@@ -305,7 +305,7 @@ public class ValidateJson extends AbstractProcessor {
 
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
         final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
-        mapper = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        mapper = new ObjectMapper().configure(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature(), true);
         mapper.getFactory().setStreamReadConstraints(streamReadConstraints);
     }
 

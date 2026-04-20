@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class JsonParserFactory implements TokenParserFactory {
 
         final ObjectMapper objectMapper = new ObjectMapper();
         if (allowComments) {
-            objectMapper.enable(JsonParser.Feature.ALLOW_COMMENTS);
+            objectMapper.enable(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature());
         }
         jsonFactory = objectMapper.getFactory();
         jsonFactory.setStreamReadConstraints(streamReadConstraints);
