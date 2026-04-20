@@ -109,7 +109,7 @@ public class TransformXml extends AbstractProcessor {
             .name("XSLT Document")
             .description("""
                     Provides either the name (including full path) of the XSLT file or the actual XSLT to apply to the FlowFile XML content.
-                    One of the 'XSLT Content' and 'XSLT Lookup' properties must be defined.""")
+                    One of the 'XSLT Document' and 'XSLT Lookup' properties must be defined.""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
@@ -118,7 +118,7 @@ public class TransformXml extends AbstractProcessor {
     public static final PropertyDescriptor XSLT_CONTROLLER = new PropertyDescriptor.Builder()
             .name("XSLT Lookup")
             .description("""
-                    Controller lookup used to store XSLT definitions. One of the 'XSLT Content' and
+                    Controller lookup used to store XSLT definitions. One of the 'XSLT Document' and
                     'XSLT Lookup' properties must be defined. WARNING: note that the lookup controller service
                      should not be used to store large XSLT files.""")
             .required(false)
@@ -223,7 +223,7 @@ public class TransformXml extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(this.getClass().getSimpleName())
-                    .explanation("Exactly one of the \"XSLT Content\" and \"XSLT Lookup\" properties must be defined.")
+                    .explanation("Exactly one of the \"XSLT Document\" and \"XSLT Lookup\" properties must be defined.")
                     .build());
         }
 
@@ -422,11 +422,9 @@ public class TransformXml extends AbstractProcessor {
         }
     }
 
-    private String getResourceReferenceText(ResourceReference resourceReference) {
+    private String getResourceReferenceText(final ResourceReference resourceReference) throws IOException {
         try (InputStream inputStream = resourceReference.read()) {
             return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException ignored) {
-            return "";
         }
     }
 
