@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.components.resource.Utf8TextResource;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -132,7 +133,6 @@ public class TransformXml extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT)
             .build();
 
     public static final PropertyDescriptor INDENT_OUTPUT = new PropertyDescriptor.Builder()
@@ -291,9 +291,14 @@ public class TransformXml extends AbstractProcessor {
         }
 
         final StopWatch stopWatch = new StopWatch(true);
-        final ResourceReference resourceReference = context.getProperty(XSLT_DOCUMENT).isSet()
-                ? context.getProperty(XSLT_DOCUMENT).evaluateAttributeExpressions(original).asResource()
-                : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).asResource();
+        final ResourceReference resourceReference;
+
+        if (context.getProperty(XSLT_DOCUMENT).isSet()) {
+            resourceReference = context.getProperty(XSLT_DOCUMENT).evaluateAttributeExpressions(original).asResource();
+        } else {
+            final String xsltLookupKeyValue = context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).getValue();
+            resourceReference = new Utf8TextResource(xsltLookupKeyValue);
+        }
 
         try {
             final FlowFile transformed = session.write(original, (inputStream, outputStream) -> {
