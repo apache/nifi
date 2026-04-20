@@ -124,8 +124,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
         final String platform = context.getProperty(SiteToSiteUtils.PLATFORM).evaluateAttributeExpressions().getValue();
         final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
-        final String configuredLevel = context.getProperty(MINIMUM_BULLETIN_LEVEL).getValue();
-        final Severity minimumSeverity = Severity.valueOf(configuredLevel);
+        final Severity minimumSeverity = context.getProperty(MINIMUM_BULLETIN_LEVEL).asAllowableValue(Severity.class);
 
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
@@ -143,7 +142,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         final JsonArray jsonArray = arrayBuilder.build();
 
         if (jsonArray.isEmpty()) {
-            getLogger().debug("No bulletins to send after filtering by minimum level [{}]", configuredLevel);
+            getLogger().debug("No bulletins to send after filtering by minimum level [{}]", minimumSeverity.name());
             lastSentBulletinId = currMaxId;
             return;
         }
