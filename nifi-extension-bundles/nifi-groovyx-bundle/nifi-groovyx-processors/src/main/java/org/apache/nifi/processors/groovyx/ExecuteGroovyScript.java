@@ -79,7 +79,7 @@ import java.util.Set;
 @SupportsSensitiveDynamicProperties
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
-        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value. "
                 + "Use `CTL.` to access any controller services, `SQL.` to access any DBCPServices, `RecordReader.` to access RecordReaderFactory instances, or "
                 + "`RecordWriter.` to access any RecordSetWriterFactory instances.")
