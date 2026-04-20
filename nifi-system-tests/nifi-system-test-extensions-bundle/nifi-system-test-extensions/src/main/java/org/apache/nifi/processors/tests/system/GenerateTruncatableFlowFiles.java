@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -30,9 +32,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
+@TriggerSerially
 @DefaultSchedule(period = "10 mins")
 public class GenerateTruncatableFlowFiles extends AbstractProcessor {
+
+    private final AtomicInteger batchesGenerated = new AtomicInteger();
 
     static final PropertyDescriptor BATCH_COUNT = new PropertyDescriptor.Builder()
         .name("Batch Count")
@@ -85,15 +91,24 @@ public class GenerateTruncatableFlowFiles extends AbstractProcessor {
         return Set.of(REL_SUCCESS);
     }
 
+    @OnScheduled
+    public void resetBatchCounter(final ProcessContext context) {
+        batchesGenerated.set(0);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchCount = context.getProperty(BATCH_COUNT).asInteger();
+        if (batchesGenerated.get() >= batchCount) {
+            return;
+        }
+
         final Random random = new Random();
         final int smallFileSize = context.getProperty(SMALL_FILE_SIZE).asDataSize(DataUnit.B).intValue();
         final int largeFileSize = context.getProperty(LARGE_FILE_SIZE).asDataSize(DataUnit.B).intValue();
         final int smallFilesPerBatch = context.getProperty(SMALL_FILES_PER_BATCH).asInteger();
 
-        for (int batch = 0; batch < batchCount; batch++) {
+        while (batchesGenerated.get() < batchCount) {
             // Generate small FlowFiles with priority = 10 (low priority, processed last by PriorityAttributePrioritizer)
             for (int i = 0; i < smallFilesPerBatch; i++) {
                 createFlowFile(session, random, smallFileSize, "10");
@@ -101,6 +116,7 @@ public class GenerateTruncatableFlowFiles extends AbstractProcessor {
 
             // Generate one large FlowFile with priority = 1 (high priority, processed first by PriorityAttributePrioritizer)
             createFlowFile(session, random, largeFileSize, "1");
+            batchesGenerated.incrementAndGet();
         }
     }
 
