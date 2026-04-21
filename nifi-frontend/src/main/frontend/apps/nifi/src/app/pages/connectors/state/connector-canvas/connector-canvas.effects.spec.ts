@@ -22,6 +22,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
+import { MatDialog } from '@angular/material/dialog';
 import { ConnectorCanvasEffects } from './connector-canvas.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -37,7 +38,8 @@ import {
     loadConnectorFlowSuccess,
     navigateToProvenanceForComponent,
     navigateWithoutTransform,
-    selectComponents
+    selectComponents,
+    viewComponentConfiguration
 } from './connector-canvas.actions';
 import {
     selectConnectorIdFromRoute,
@@ -80,6 +82,10 @@ describe('ConnectorCanvasEffects', () => {
             navigate: vi.fn().mockResolvedValue(true)
         };
 
+        const mockDialog = {
+            open: vi.fn().mockReturnValue({ componentInstance: {} })
+        };
+
         await TestBed.configureTestingModule({
             providers: [
                 ConnectorCanvasEffects,
@@ -96,6 +102,7 @@ describe('ConnectorCanvasEffects', () => {
                 { provide: ConnectorService, useValue: mockConnectorService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
                 { provide: Router, useValue: mockRouter },
+                { provide: MatDialog, useValue: mockDialog },
                 ComponentTypeNamePipe
             ]
         }).compileComponents();
@@ -111,7 +118,8 @@ describe('ConnectorCanvasEffects', () => {
             },
             mockConnectorService,
             mockErrorHelper,
-            mockRouter
+            mockRouter,
+            mockDialog
         };
     }
 
@@ -421,6 +429,109 @@ describe('ConnectorCanvasEffects', () => {
 
             await firstValueFrom(effects.navigateWithoutTransform$);
             expect(mockRouter.navigate).toHaveBeenCalledWith(url, { replaceUrl: true });
+        });
+    });
+
+    describe('viewComponentConfiguration$', () => {
+        const baseEntity = {
+            id: 'comp-1',
+            uri: 'https://localhost/nifi-api/processors/comp-1',
+            permissions: { canRead: true, canWrite: true },
+            operatePermissions: { canRead: true, canWrite: true },
+            component: { name: 'My Component' }
+        };
+
+        async function dispatchView(componentType: ComponentType, entity: any = baseEntity) {
+            const { effects, actions$, mockDialog } = await setup();
+            actions$(of(viewComponentConfiguration({ request: { entity, componentType } })));
+            await firstValueFrom(effects.viewComponentConfiguration$);
+            return { mockDialog };
+        }
+
+        it('opens the processor dialog with read-only permissions and the entity uri', async () => {
+            const { mockDialog } = await dispatchView(ComponentType.Processor);
+            expect(mockDialog.open).toHaveBeenCalledTimes(1);
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.Processor);
+            expect(config.data.uri).toBe(baseEntity.uri);
+            expect(config.data.entity.permissions.canWrite).toBe(false);
+            expect(config.data.entity.permissions.canRead).toBe(true);
+            expect(config.data.entity.operatePermissions.canWrite).toBe(false);
+            expect(config.data.entity.operatePermissions.canRead).toBe(true);
+            expect(config.id).toBe(baseEntity.id);
+        });
+
+        it('opens the connection dialog with the breadcrumbs observable wired', async () => {
+            const { effects, actions$, mockDialog } = await setup();
+            const componentInstance: any = {};
+            (mockDialog.open as Mock).mockReturnValue({ componentInstance });
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Connection }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.Connection);
+            expect(componentInstance.breadcrumbs$).toBeDefined();
+            expect(componentInstance.availablePrioritizers$).toBeDefined();
+            expect(componentInstance.getChildInputPorts).toBeInstanceOf(Function);
+            expect(componentInstance.getChildOutputPorts).toBeInstanceOf(Function);
+        });
+
+        it('opens the input port dialog with read-only permissions', async () => {
+            const { mockDialog } = await dispatchView(ComponentType.InputPort);
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.InputPort);
+            expect(config.data.entity.permissions.canWrite).toBe(false);
+        });
+
+        it('opens the output port dialog with read-only permissions', async () => {
+            const { mockDialog } = await dispatchView(ComponentType.OutputPort);
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.OutputPort);
+            expect(config.data.entity.permissions.canWrite).toBe(false);
+        });
+
+        it('opens the label dialog with read-only permissions', async () => {
+            const { mockDialog } = await dispatchView(ComponentType.Label);
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.Label);
+            expect(config.data.entity.permissions.canWrite).toBe(false);
+        });
+
+        it('opens the process group dialog with the current user observable wired', async () => {
+            const { effects, actions$, mockDialog } = await setup();
+            const componentInstance: any = {};
+            (mockDialog.open as Mock).mockReturnValue({ componentInstance });
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.ProcessGroup }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.ProcessGroup);
+            expect(componentInstance.currentUser$).toBeDefined();
+            expect(componentInstance.parameterContexts).toEqual([]);
+        });
+
+        it('opens the remote process group dialog with read-only permissions', async () => {
+            const { mockDialog } = await dispatchView(ComponentType.RemoteProcessGroup);
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.type).toBe(ComponentType.RemoteProcessGroup);
+            expect(config.data.entity.permissions.canWrite).toBe(false);
+        });
+
+        it('does not open a dialog for unsupported component types', async () => {
+            const { mockDialog } = await dispatchView(ComponentType.Funnel);
+            expect(mockDialog.open).not.toHaveBeenCalled();
         });
     });
 

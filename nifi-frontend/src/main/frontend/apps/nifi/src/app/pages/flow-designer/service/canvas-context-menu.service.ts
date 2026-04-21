@@ -56,9 +56,9 @@ import {
     ConfirmStopVersionControlRequest,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
-    OpenLocalChangesDialogRequest,
-    UpdateComponentRequest
+    OpenLocalChangesDialogRequest
 } from '../state/flow';
+import { UpdateComponentRequest } from '../../../state/shared';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,

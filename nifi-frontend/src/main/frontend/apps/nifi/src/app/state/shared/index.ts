@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import { HttpErrorResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { GarbageCollection } from '../system-diagnostics';
 import {
@@ -25,8 +26,10 @@ import {
     Parameter,
     ParameterContextReferenceEntity,
     Permissions,
-    Revision
+    Revision,
+    SelectOption
 } from '@nifi/shared';
+import { VersionControlInformation } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 
 export interface OkDialogRequest {
     title: string;
@@ -126,6 +129,165 @@ export interface EditControllerServiceDialogRequest {
     controllerService: ControllerServiceEntity;
     history?: ComponentHistory;
 }
+
+export interface EditComponentDialogRequest {
+    type: ComponentType;
+    uri: string;
+    entity: any;
+    history?: ComponentHistory;
+    parameterContexts?: ParameterContextEntity[];
+}
+
+export interface EditRemotePortDialogRequest extends EditComponentDialogRequest {
+    rpg?: any;
+}
+
+export interface EditConnectionDialogRequest extends EditComponentDialogRequest {
+    newDestination?: {
+        type: ComponentType | null;
+        id?: string;
+        groupId: string;
+        name: string;
+    };
+}
+
+export interface UpdateComponentRequest {
+    requestId?: number;
+    id: string;
+    type: ComponentType;
+    uri: string;
+    payload: any;
+    errorStrategy: 'snackbar' | 'banner';
+    restoreOnFailure?: any;
+}
+
+export interface UpdateComponentResponse {
+    requestId?: number;
+    id: string;
+    type: ComponentType;
+    response: any;
+}
+
+export interface UpdateComponentFailure {
+    errorResponse: HttpErrorResponse;
+    id: string;
+    type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
+    restoreOnFailure?: any;
+}
+
+export interface UpdateProcessorRequest extends UpdateComponentRequest {
+    postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
+}
+
+export interface UpdateProcessorResponse extends UpdateComponentResponse {
+    postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
+}
+
+export interface UpdateConnectionRequest extends UpdateComponentRequest {
+    previousDestination?: any;
+}
+
+export interface UpdateConnectionSuccess extends UpdateComponentResponse {
+    previousDestination?: any;
+}
+
+export interface StartComponentRequest {
+    id: string;
+    type: ComponentType;
+    revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface StopComponentRequest {
+    id: string;
+    type: ComponentType;
+    revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface EnableComponentRequest {
+    id: string;
+    type: ComponentType;
+    revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface DisableComponentRequest {
+    id: string;
+    type: ComponentType;
+    revision: Revision;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface Breadcrumb {
+    id: string;
+    name: string;
+    versionControlInformation?: VersionControlInformation;
+}
+
+export interface BreadcrumbEntity {
+    id: string;
+    permissions: Permissions;
+    versionedFlowState: string;
+    breadcrumb: Breadcrumb;
+    parentBreadcrumb?: BreadcrumbEntity;
+}
+
+export interface Relationship {
+    autoTerminate: boolean;
+    description: string;
+    name: string;
+    retry: boolean;
+}
+
+export const loadBalanceStrategies: SelectOption[] = [
+    {
+        text: 'Do not load balance',
+        value: 'DO_NOT_LOAD_BALANCE',
+        description: 'Do not load balance FlowFiles between nodes in the cluster.'
+    },
+    {
+        text: 'Partition by attribute',
+        value: 'PARTITION_BY_ATTRIBUTE',
+        description:
+            'Determine which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. ' +
+            'All FlowFiles that have the same value for said Attribute will be sent to the same node in the cluster.'
+    },
+    {
+        text: 'Round robin',
+        value: 'ROUND_ROBIN',
+        description:
+            'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the ' +
+            'cluster is not able to receive data as fast as other nodes, that node may be skipped in one or more iterations ' +
+            'in order to maximize throughput of data distribution across the cluster.'
+    },
+    {
+        text: 'Single node',
+        value: 'SINGLE_NODE',
+        description: 'All FlowFiles will be sent to the same node. Which node they are sent to is not defined.'
+    }
+];
+
+export const loadBalanceCompressionStrategies: SelectOption[] = [
+    {
+        text: 'Do not compress',
+        value: 'DO_NOT_COMPRESS',
+        description: 'FlowFiles will not be compressed'
+    },
+    {
+        text: 'Compress attributes only',
+        value: 'COMPRESS_ATTRIBUTES_ONLY',
+        description: "FlowFiles' attributes will be compressed, but the FlowFiles' contents will not be"
+    },
+    {
+        text: 'Compress attributes and content',
+        value: 'COMPRESS_ATTRIBUTES_AND_CONTENT',
+        description: "FlowFiles' attributes and content will be compressed"
+    }
+];
 
 export interface UpdateControllerServiceRequest {
     payload: any;
@@ -331,6 +493,11 @@ export interface ParameterContext {
     boundProcessGroups: BoundProcessGroup[];
     inheritedParameterContexts: ParameterContextReferenceEntity[];
     parameterProviderConfiguration?: ParameterProviderConfigurationEntity;
+}
+
+export interface ConvertToParameterResponse {
+    propertyValue: string;
+    parameterContext?: ParameterContext;
 }
 
 // TODO - Replace this with ProcessGroupEntity was available

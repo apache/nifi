@@ -160,6 +160,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 const isProcessGroup = clicked?.ui.componentType === ComponentType.ProcessGroup;
                 const isConnection = clicked?.ui.componentType === ComponentType.Connection;
                 const isProcessor = clicked?.ui.componentType === ComponentType.Processor;
+                const isFunnel = clicked?.ui.componentType === ComponentType.Funnel;
                 const isProvenanceTarget =
                     !!clicked &&
                     isSingleSelection &&
@@ -167,8 +168,16 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                     !isConnection &&
                     clicked.ui.componentType !== ComponentType.RemoteProcessGroup &&
                     clicked.ui.componentType !== ComponentType.Label;
+                const isViewConfigurationTarget =
+                    !!clicked && isSingleSelection && !isFunnel && clicked.entity.permissions.canRead === true;
 
                 menuItems = [
+                    {
+                        text: 'View Configuration',
+                        clazz: 'fa fa-gear',
+                        condition: () => isViewConfigurationTarget,
+                        action: () => this.viewConfigurationAction(clicked!.entity, clicked!.ui.componentType)
+                    },
                     {
                         text: 'Enter Group',
                         clazz: 'fa fa-sign-in',
@@ -304,6 +313,20 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     onProcessGroupDoubleClick(event: { processGroupId: string }): void {
         this.store.dispatch(ConnectorCanvasActions.enterProcessGroup({ request: { id: event.processGroupId } }));
+    }
+
+    onComponentDoubleClick(event: { entity: any; componentType: ComponentType }): void {
+        if (event.entity?.permissions?.canRead === true) {
+            this.viewConfigurationAction(event.entity, event.componentType);
+        }
+    }
+
+    viewConfigurationAction(entity: any, componentType: ComponentType): void {
+        this.store.dispatch(
+            ConnectorCanvasActions.viewComponentConfiguration({
+                request: { entity, componentType }
+            })
+        );
     }
 
     onSelectComponents(components: Array<{ id: string; type: ComponentType }>): void {

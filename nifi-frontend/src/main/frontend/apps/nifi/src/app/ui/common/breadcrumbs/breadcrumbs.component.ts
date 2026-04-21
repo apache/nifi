@@ -17,7 +17,7 @@
 
 import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { BreadcrumbEntity } from '../../../pages/flow-designer/state/shared';
+import { BreadcrumbEntity } from '../../../state/shared';
 import { Title } from '@angular/platform-browser';
 
 export type BreadcrumbRouteGenerator = (processGroupId: string) => string[];

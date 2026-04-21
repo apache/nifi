@@ -32,7 +32,7 @@ import {
 import { Client } from '../../../../service/client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
-import { UpdateComponentRequest } from '../../state/flow';
+import { UpdateComponentRequest } from '../../../../state/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';

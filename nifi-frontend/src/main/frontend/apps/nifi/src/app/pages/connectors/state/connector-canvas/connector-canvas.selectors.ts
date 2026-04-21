@@ -96,5 +96,8 @@ export const selectConnection = (id: string) =>
 export const selectRemoteProcessGroup = (id: string) =>
     createSelector(selectRemoteProcessGroups, (rpgs) => rpgs.find((r: any) => r.id === id));
 
+export const selectProcessGroup = (id: string) =>
+    createSelector(selectProcessGroups, (pgs) => pgs.find((pg: any) => pg.id === id));
+
 export const selectFunnel = (id: string) =>
     createSelector(selectFunnels, (funnels) => funnels.find((f: any) => f.id === id));

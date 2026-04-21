@@ -36,7 +36,7 @@ import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../../stat
 import { RouterLink } from '@angular/router';
 import { MatIconButton } from '@angular/material/button';
 import { ComponentContext, ComponentType, NifiSpinnerDirective } from '@nifi/shared';
-import { BreadcrumbEntity } from '../../../../state/shared';
+import { BreadcrumbEntity } from '../../../../../../state/shared';
 
 @Component({
     selector: 'flow-analysis-drawer',

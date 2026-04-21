@@ -20,7 +20,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { provideRouter } from '@angular/router';
 import { ConnectorCanvasFooterComponent } from './footer.component';
-import { BreadcrumbEntity } from '../../../../flow-designer/state/shared';
+import { BreadcrumbEntity } from '../../../../../state/shared';
 import * as ConnectorCanvasSelectors from '../../../state/connector-canvas/connector-canvas.selectors';
 
 @Component({

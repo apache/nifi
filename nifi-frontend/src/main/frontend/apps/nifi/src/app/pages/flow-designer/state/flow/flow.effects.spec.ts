@@ -20,7 +20,7 @@ import * as FlowActions from './flow.actions';
 import { of, ReplaySubject, take, throwError } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ComponentHistoryEntity } from '../../../../state/shared';
-import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
+import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { FlowEffects } from './flow.effects';
 import { provideMockActions } from '@ngrx/effects/testing';
@@ -33,14 +33,16 @@ import {
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
+    flowFeatureKey,
+    MoveToFrontRequest
+} from './index';
+import {
     DisableComponentRequest,
     EnableComponentRequest,
-    flowFeatureKey,
-    MoveToFrontRequest,
     StartComponentRequest,
     StopComponentRequest,
     UpdateProcessorRequest
-} from './index';
+} from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../../state/current-user/current-user.reducer';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';

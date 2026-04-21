@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { RegistryClientEntity } from '../../../../state/shared';
-import { BreadcrumbEntity } from '../../../flow-designer/state/shared';
+import { BreadcrumbEntity, RegistryClientEntity } from '../../../../state/shared';
 
 export const connectorCanvasFeatureKey = 'connectorCanvas';
 

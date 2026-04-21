@@ -39,16 +39,13 @@ import {
     stopComponents,
     stopCurrentProcessGroup
 } from '../state/flow/flow.actions';
+import { ChangeColorRequest, DeleteComponentRequest, MoveComponentRequest, SelectedComponent } from '../state/flow';
 import {
-    ChangeColorRequest,
-    DeleteComponentRequest,
     DisableComponentRequest,
     EnableComponentRequest,
-    MoveComponentRequest,
-    SelectedComponent,
     StartComponentRequest,
     StopComponentRequest
-} from '../state/flow';
+} from '../../../state/shared';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import * as d3 from 'd3';

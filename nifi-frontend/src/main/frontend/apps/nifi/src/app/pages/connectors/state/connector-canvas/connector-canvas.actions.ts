@@ -17,7 +17,7 @@
 
 import { createAction, props } from '@ngrx/store';
 import { ComponentType } from '@nifi/shared';
-import { BreadcrumbEntity } from '../../../flow-designer/state/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
 
 /**
@@ -105,6 +105,15 @@ export const setSkipTransform = createAction(
 export const navigateToProvenanceForComponent = createAction(
     '[Connector Canvas] Navigate To Provenance For Component',
     props<{ id: string; componentType: ComponentType }>()
+);
+
+/**
+ * View the read-only configuration of a canvas component.
+ * Triggers an effect that opens the appropriate EditXyz dialog in read-only mode.
+ */
+export const viewComponentConfiguration = createAction(
+    '[Connector Canvas] View Component Configuration',
+    props<{ request: { entity: any; componentType: ComponentType } }>()
 );
 
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');

@@ -33,7 +33,7 @@ import {
     clearControllerServiceBulletins,
     loadControllerServices
 } from '../../state/controller-services/controller-services.actions';
-import { BreadcrumbEntity } from '../../state/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ControllerServicesState } from '../../state/controller-services';

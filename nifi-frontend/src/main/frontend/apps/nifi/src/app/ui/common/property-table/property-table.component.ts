@@ -35,6 +35,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
     ComponentHistory,
+    ConvertToParameterResponse,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterConfig,
@@ -58,7 +59,6 @@ import {
 import { ComboEditor } from './editors/combo-editor/combo-editor.component';
 import { Observable, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ConvertToParameterResponse } from '../../../pages/flow-designer/service/parameter-helper.service';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { PropertyItem } from './property-item';
 import { PropertyValueTip } from '../tooltips/property-value-tip/property-value-tip.component';

@@ -31,10 +31,8 @@ import {
     CreateProcessorRequest,
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
-    DisableComponentRequest,
     DisableProcessGroupRequest,
     DownloadFlowRequest,
-    EnableComponentRequest,
     EnableProcessGroupRequest,
     FlowComparisonEntity,
     FlowUpdateRequestEntity,
@@ -43,20 +41,25 @@ import {
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
     SaveToVersionControlRequest,
-    StartComponentRequest,
     StartProcessGroupRequest,
-    StopComponentRequest,
     StopProcessGroupRequest,
     StopVersionControlRequest,
     TerminateThreadsRequest,
-    UpdateComponentRequest,
     UploadProcessGroupRequest,
     VersionControlInformationEntity
 } from '../state/flow';
 import { Client } from '../../../service/client.service';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
-import { ClearBulletinsRequest, PropertyDescriptorRetriever } from '../../../state/shared';
+import {
+    ClearBulletinsRequest,
+    DisableComponentRequest,
+    EnableComponentRequest,
+    PropertyDescriptorRetriever,
+    StartComponentRequest,
+    StopComponentRequest,
+    UpdateComponentRequest
+} from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class FlowService implements PropertyDescriptorRetriever {

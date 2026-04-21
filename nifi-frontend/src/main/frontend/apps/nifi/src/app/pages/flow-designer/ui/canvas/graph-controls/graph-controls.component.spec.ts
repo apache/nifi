@@ -23,7 +23,7 @@ import { initialState } from '../../../state/flow/flow.reducer';
 import { NavigationControl } from './navigation-control/navigation-control.component';
 import { OperationControl } from './operation-control/operation-control.component';
 import { selectBreadcrumbs } from '../../../state/flow/flow.selectors';
-import { BreadcrumbEntity } from '../../../state/shared';
+import { BreadcrumbEntity } from '../../../../../state/shared';
 import { MockComponent } from 'ng-mocks';
 import { canvasFeatureKey } from '../../../state';
 import { flowFeatureKey } from '../../../state/flow';

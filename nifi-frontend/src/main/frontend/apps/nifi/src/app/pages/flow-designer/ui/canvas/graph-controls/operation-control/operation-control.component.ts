@@ -22,7 +22,7 @@ import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { ComponentType, Storage, ComponentContext } from '@nifi/shared';
-import { BreadcrumbEntity } from '../../../../state/shared';
+import { BreadcrumbEntity } from '../../../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as d3 from 'd3';

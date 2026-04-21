@@ -22,6 +22,7 @@ import { Client } from '../../../../service/client.service';
 import {
     ControllerServiceEntity,
     ControllerServiceReferencingComponent,
+    ConvertToParameterResponse,
     EditControllerServiceDialogRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -49,7 +50,6 @@ import { ControllerServiceApi } from '../controller-service-api/controller-servi
 import { Observable, of } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
-import { ConvertToParameterResponse } from '../../../../pages/flow-designer/service/parameter-helper.service';
 import { PropertyVerification } from '../../property-verification/property-verification.component';
 import {
     ConfigVerificationResult,

@@ -32,7 +32,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ManageRemotePortService } from '../../service/manage-remote-port.service';
 import { PortSummary } from './index';
 import { EditRemotePortComponent } from '../../ui/manage-remote-ports/edit-remote-port/edit-remote-port.component';
-import { EditRemotePortDialogRequest } from '../flow';
+import { EditRemotePortDialogRequest } from '../../../../state/shared';
 import { ComponentType, isDefinedAndNotNull, MEDIUM_DIALOG } from '@nifi/shared';
 import { selectTimeOffset } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { selectAbout } from '../../../../state/about/about.selectors';

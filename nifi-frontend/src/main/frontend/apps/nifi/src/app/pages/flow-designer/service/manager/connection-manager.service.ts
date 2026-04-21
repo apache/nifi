@@ -41,7 +41,7 @@ import {
 } from '../../state/flow/flow.actions';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { Dimension, Position } from '../../state/shared';
-import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow';
+import { loadBalanceStrategies, UpdateComponentRequest } from '../../../../state/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { ComponentType, NiFiCommon, SelectOption } from '@nifi/shared';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';

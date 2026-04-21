@@ -25,7 +25,7 @@ import { canvasFeatureKey } from '../../../state';
 import { selectBreadcrumbs } from '../../../state/flow/flow.selectors';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { BreadcrumbEntity } from '../../../state/shared';
+import { BreadcrumbEntity } from '../../../../../state/shared';
 import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../../state/error';
 

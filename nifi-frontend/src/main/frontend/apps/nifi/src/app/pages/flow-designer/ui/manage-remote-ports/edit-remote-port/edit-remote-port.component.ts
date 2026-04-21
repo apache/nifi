@@ -24,7 +24,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { selectSaving } from '../../../state/manage-remote-ports/manage-remote-ports.selectors';
-import { EditRemotePortDialogRequest } from '../../../state/flow';
+import { EditRemotePortDialogRequest } from '../../../../../state/shared';
 import { Client } from '../../../../../service/client.service';
 import { PortSummary } from '../../../state/manage-remote-ports';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';

@@ -17,12 +17,12 @@
 
 import { Component, Input, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { CreateConnectionDialogRequest, SelectedComponent } from '../../../../../state/flow';
 import {
-    CreateConnectionDialogRequest,
+    BreadcrumbEntity,
     loadBalanceCompressionStrategies,
-    loadBalanceStrategies,
-    SelectedComponent
-} from '../../../../../state/flow';
+    loadBalanceStrategies
+} from '../../../../../../../state/shared';
 import { Store } from '@ngrx/store';
 import { selectBreadcrumbs, selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
@@ -36,21 +36,20 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ComponentType, NifiSpinnerDirective, TextTip, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 import { NiFiState } from '../../../../../../../state';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
-import { Prioritizers } from '../prioritizers/prioritizers.component';
-import { SourceProcessor } from '../source/source-processor/source-processor.component';
-import { DestinationFunnel } from '../destination/destination-funnel/destination-funnel.component';
+import { Prioritizers } from '../../../../../../../ui/common/component-dialogs/edit-connection/prioritizers/prioritizers.component';
+import { SourceProcessor } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-processor/source-processor.component';
+import { DestinationFunnel } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-funnel/destination-funnel.component';
 import { createConnection } from '../../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../../service/client.service';
-import { SourceFunnel } from '../source/source-funnel/source-funnel.component';
-import { DestinationProcessor } from '../destination/destination-processor/destination-processor.component';
-import { DestinationOutputPort } from '../destination/destination-output-port/destination-output-port.component';
-import { SourceInputPort } from '../source/source-input-port/source-input-port.component';
+import { SourceFunnel } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-funnel/source-funnel.component';
+import { DestinationProcessor } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-processor/destination-processor.component';
+import { DestinationOutputPort } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-output-port/destination-output-port.component';
+import { SourceInputPort } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-input-port/source-input-port.component';
 import { Observable, tap } from 'rxjs';
-import { SourceProcessGroup } from '../source/source-process-group/source-process-group.component';
-import { DestinationProcessGroup } from '../destination/destination-process-group/destination-process-group.component';
-import { SourceRemoteProcessGroup } from '../source/source-remote-process-group/source-remote-process-group.component';
-import { DestinationRemoteProcessGroup } from '../destination/destination-remote-process-group/destination-remote-process-group.component';
-import { BreadcrumbEntity } from '../../../../../state/shared';
+import { SourceProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-process-group/source-process-group.component';
+import { DestinationProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-process-group/destination-process-group.component';
+import { SourceRemoteProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-remote-process-group/source-remote-process-group.component';
+import { DestinationRemoteProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-remote-process-group/destination-remote-process-group.component';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ErrorContextKey } from '../../../../../../../state/error';

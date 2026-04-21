@@ -53,8 +53,6 @@ import {
     CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
-    DisableComponentRequest,
-    EnableComponentRequest,
     GroupComponentsDialogRequest,
     ImportFromRegistryDialogRequest,
     LoadProcessGroupResponse,
@@ -66,21 +64,14 @@ import {
     SaveVersionRequest,
     SelectedComponent,
     Snippet,
-    StartComponentRequest,
-    StopComponentRequest,
     StopVersionControlRequest,
     StopVersionControlResponse,
-    UpdateComponentFailure,
-    UpdateComponentRequest,
-    UpdateComponentResponse,
-    UpdateConnectionSuccess,
-    UpdateProcessorRequest,
-    UpdateProcessorResponse,
     VersionControlInformationEntity
 } from './index';
 import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
+    selectBreadcrumbs,
     selectChangeVersionRequest,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
@@ -101,12 +92,23 @@ import {
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.component';
-import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
+import { EditPort } from '../../../../ui/common/component-dialogs/edit-port/edit-port.component';
 import {
     BranchEntity,
     BucketEntity,
+    DisableComponentRequest,
+    EnableComponentRequest,
     OpenChangeComponentVersionDialogRequest,
+    ParameterContextEntity,
     RegistryClientEntity,
+    StartComponentRequest,
+    StopComponentRequest,
+    UpdateComponentFailure,
+    UpdateComponentRequest,
+    UpdateComponentResponse,
+    UpdateConnectionSuccess,
+    UpdateProcessorRequest,
+    UpdateProcessorResponse,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
@@ -116,15 +118,15 @@ import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasView } from '../../service/canvas-view.service';
 import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/canvas/items/processor/create-processor/create-processor.component';
-import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
+import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { CreateRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component';
 import { CreateProcessGroup } from '../../ui/canvas/items/process-group/create-process-group/create-process-group.component';
 import { CreateConnection } from '../../ui/canvas/items/connection/create-connection/create-connection.component';
-import { EditConnectionComponent } from '../../ui/canvas/items/connection/edit-connection/edit-connection.component';
+import { EditConnectionComponent } from '../../../../ui/common/component-dialogs/edit-connection/edit-connection.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
-import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
+import { EditProcessGroup } from '../../../../ui/common/component-dialogs/edit-process-group/edit-process-group.component';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import {
     ComponentType,
@@ -143,8 +145,9 @@ import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { RegistryService } from '../../service/registry.service';
 import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-registry/import-from-registry.component';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { selectPrioritizerTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
-import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
+import { EditRemoteProcessGroup } from '../../../../ui/common/component-dialogs/edit-remote-process-group/edit-remote-process-group.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialog/save-version-dialog.component';
 import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-dialog/change-version-dialog';
@@ -154,7 +157,7 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { SnippetService } from '../../service/snippet.service';
-import { EditLabel } from '../../ui/canvas/items/label/edit-label/edit-label.component';
+import { EditLabel } from '../../../../ui/common/component-dialogs/edit-label/edit-label.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
@@ -1366,26 +1369,37 @@ export class FlowEffects {
                 ofType(FlowActions.openEditPortDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    this.dialog
-                        .open(EditPort, {
-                            ...MEDIUM_DIALOG,
-                            data: request
-                        })
-                        .afterClosed()
-                        .subscribe(() => {
+                    const editDialogReference = this.dialog.open(EditPort, {
+                        ...MEDIUM_DIALOG,
+                        data: request
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.editPort
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((updateComponentRequest) => {
                             this.store.dispatch(
-                                FlowActions.selectComponents({
-                                    request: {
-                                        components: [
-                                            {
-                                                id: request.entity.id,
-                                                componentType: request.type
-                                            }
-                                        ]
-                                    }
+                                FlowActions.updateComponent({
+                                    request: updateComponentRequest
                                 })
                             );
                         });
+
+                    editDialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(
+                            FlowActions.selectComponents({
+                                request: {
+                                    components: [
+                                        {
+                                            id: request.entity.id,
+                                            componentType: request.type
+                                        }
+                                    ]
+                                }
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
@@ -1397,26 +1411,37 @@ export class FlowEffects {
                 ofType(FlowActions.openEditLabelDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    this.dialog
-                        .open(EditLabel, {
-                            ...MEDIUM_DIALOG,
-                            data: request
-                        })
-                        .afterClosed()
-                        .subscribe(() => {
+                    const editDialogReference = this.dialog.open(EditLabel, {
+                        ...MEDIUM_DIALOG,
+                        data: request
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.editLabel
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((updateComponentRequest) => {
                             this.store.dispatch(
-                                FlowActions.selectComponents({
-                                    request: {
-                                        components: [
-                                            {
-                                                id: request.entity.id,
-                                                componentType: request.type
-                                            }
-                                        ]
-                                    }
+                                FlowActions.updateComponent({
+                                    request: updateComponentRequest
                                 })
                             );
                         });
+
+                    editDialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(
+                            FlowActions.selectComponents({
+                                request: {
+                                    components: [
+                                        {
+                                            id: request.entity.id,
+                                            componentType: request.type
+                                        }
+                                    ]
+                                }
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
@@ -1814,6 +1839,9 @@ export class FlowEffects {
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    editDialogReference.componentInstance.availablePrioritizers$ =
+                        this.store.select(selectPrioritizerTypes);
+                    editDialogReference.componentInstance.breadcrumbs$ = this.store.select(selectBreadcrumbs);
 
                     editDialogReference.componentInstance.getChildOutputPorts = (groupId: string): Observable<any> => {
                         return this.flowService.getFlow(groupId).pipe(
@@ -1843,6 +1871,24 @@ export class FlowEffects {
                     editDialogReference.componentInstance.selectRemoteProcessGroup = (id: string) => {
                         return this.store.select(selectRemoteProcessGroup(id));
                     };
+
+                    editDialogReference.componentInstance.getConnectionSourceComponentId = (connection: any) =>
+                        this.canvasUtils.getConnectionSourceComponentId(connection);
+                    editDialogReference.componentInstance.calculateCollisionBends = (
+                        sourceId: string,
+                        destId: string,
+                        connectionId: string
+                    ) => this.canvasUtils.calculateBendPointsForCollisionAvoidanceByIds(sourceId, destId, connectionId);
+
+                    editDialogReference.componentInstance.editConnection
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((updateRequest) => {
+                            this.store.dispatch(
+                                FlowActions.updateConnection({
+                                    request: updateRequest
+                                })
+                            );
+                        });
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         if (response == 'CANCELLED') {
@@ -1883,6 +1929,8 @@ export class FlowEffects {
                     });
 
                     this.editProcessGroupDialogRef.componentInstance.saving$ = this.store.select(selectSaving);
+                    this.editProcessGroupDialogRef.componentInstance.currentUser$ =
+                        this.store.select(selectCurrentUser);
                     this.editProcessGroupDialogRef.componentInstance.parameterContexts =
                         request.parameterContexts || [];
 
@@ -1898,6 +1946,16 @@ export class FlowEffects {
                                         payload,
                                         errorStrategy: 'banner'
                                     }
+                                })
+                            );
+                        });
+
+                    this.editProcessGroupDialogRef.componentInstance.openNewParameterContext
+                        .pipe(takeUntil(this.editProcessGroupDialogRef.afterClosed()))
+                        .subscribe((parameterContexts: ParameterContextEntity[]) => {
+                            this.store.dispatch(
+                                ParameterActions.openNewParameterContextDialog({
+                                    request: { parameterContexts }
                                 })
                             );
                         });

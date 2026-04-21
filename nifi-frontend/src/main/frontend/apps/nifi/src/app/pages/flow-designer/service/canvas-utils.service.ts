@@ -31,7 +31,8 @@ import {
 import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
-import { BreadcrumbEntity, Position } from '../state/shared';
+import { Position } from '../state/shared';
+import { BreadcrumbEntity } from '../../../state/shared';
 import { BulletinEntity, ComponentType, NiFiCommon, ParameterContextReferenceEntity, Permissions } from '@nifi/shared';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
@@ -46,6 +47,13 @@ import { ComponentPortal } from '@angular/cdk/portal';
 import { initialState as initialTransformState } from '../state/transform/transform.reducer';
 import { selectScale } from '../state/transform/transform.selectors';
 import { ConnectionManager } from './manager/connection-manager.service';
+import {
+    getComponentTypeForDestination as getComponentTypeForDestinationUtil,
+    getComponentTypeForSource as getComponentTypeForSourceUtil,
+    getConnectableTypeForDestination as getConnectableTypeForDestinationUtil,
+    remoteProcessGroupSupportsModification as remoteProcessGroupSupportsModificationUtil,
+    runnableSupportsModification as runnableSupportsModificationUtil
+} from '../../../ui/common/utils/component-state.utils';
 
 export interface CollisionConnection {
     id: string;
@@ -311,10 +319,7 @@ export class CanvasUtils {
      * @param entity
      */
     public runnableSupportsModification(entity: any): boolean {
-        return !(
-            entity.status.aggregateSnapshot.runStatus === 'Running' ||
-            entity.status.aggregateSnapshot.activeThreadCount > 0
-        );
+        return runnableSupportsModificationUtil(entity);
     }
 
     /**
@@ -323,9 +328,7 @@ export class CanvasUtils {
      * @param entity
      */
     public remoteProcessGroupSupportsModification(entity: any): boolean {
-        return !(
-            entity.status.transmissionStatus === 'Transmitting' || entity.status.aggregateSnapshot.activeThreadCount > 0
-        );
+        return remoteProcessGroupSupportsModificationUtil(entity);
     }
 
     /**
@@ -823,20 +826,7 @@ export class CanvasUtils {
      * @argument {connectableType} string      The connectable type
      */
     getComponentTypeForSource(connectableType: string): ComponentType | null {
-        switch (connectableType) {
-            case 'PROCESSOR':
-                return ComponentType.Processor;
-            case 'REMOTE_OUTPUT_PORT':
-                return ComponentType.RemoteProcessGroup;
-            case 'OUTPUT_PORT':
-                return ComponentType.ProcessGroup;
-            case 'INPUT_PORT':
-                return ComponentType.InputPort;
-            case 'FUNNEL':
-                return ComponentType.Funnel;
-            default:
-                return null;
-        }
+        return getComponentTypeForSourceUtil(connectableType);
     }
 
     /**
@@ -845,20 +835,7 @@ export class CanvasUtils {
      * @argument {type} ComponentType      The component type
      */
     getConnectableTypeForDestination(type: ComponentType): string {
-        switch (type) {
-            case ComponentType.Processor:
-                return 'PROCESSOR';
-            case ComponentType.RemoteProcessGroup:
-                return 'REMOTE_INPUT_PORT';
-            case ComponentType.ProcessGroup:
-                return 'INPUT_PORT';
-            case ComponentType.OutputPort:
-                return 'OUTPUT_PORT';
-            case ComponentType.Funnel:
-                return 'FUNNEL';
-            default:
-                return '';
-        }
+        return getConnectableTypeForDestinationUtil(type);
     }
 
     /**
@@ -867,20 +844,7 @@ export class CanvasUtils {
      * @argument {type} ComponentType      The component type
      */
     getComponentTypeForDestination(connectableType: string): ComponentType | null {
-        switch (connectableType) {
-            case 'PROCESSOR':
-                return ComponentType.Processor;
-            case 'REMOTE_INPUT_PORT':
-                return ComponentType.RemoteProcessGroup;
-            case 'INPUT_PORT':
-                return ComponentType.ProcessGroup;
-            case 'OUTPUT_PORT':
-                return ComponentType.OutputPort;
-            case 'FUNNEL':
-                return ComponentType.Funnel;
-            default:
-                return null;
-        }
+        return getComponentTypeForDestinationUtil(connectableType);
     }
 
     /**

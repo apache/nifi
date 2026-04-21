@@ -22,7 +22,13 @@ import { Store } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NiFiState } from '../../../state';
 import { Client } from '../../../service/client.service';
-import { EditParameterRequest, EditParameterResponse, ParameterContext, ParameterEntity } from '../../../state/shared';
+import {
+    ConvertToParameterResponse,
+    EditParameterRequest,
+    EditParameterResponse,
+    ParameterContext,
+    ParameterEntity
+} from '../../../state/shared';
 import { EditParameterDialog } from '../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { selectParameterSaving, selectParameterState } from '../state/parameter/parameter.selectors';
 import { ParameterState } from '../state/parameter';
@@ -32,11 +38,6 @@ import { MEDIUM_DIALOG } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ErrorHelper } from '../../../service/error-helper.service';
 import { ParameterContextService } from '../../parameter-contexts/service/parameter-contexts.service';
-
-export interface ConvertToParameterResponse {
-    propertyValue: string;
-    parameterContext?: ParameterContext;
-}
 
 @Injectable({
     providedIn: 'root'

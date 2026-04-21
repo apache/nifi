@@ -52,7 +52,8 @@ import {
     navigateToProvenanceForComponent,
     resetConnectorCanvasState,
     selectComponents,
-    setSkipTransform
+    setSkipTransform,
+    viewComponentConfiguration
 } from '../../state/connector-canvas/connector-canvas.actions';
 import { resetConnectorCanvasEntityState } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
@@ -870,7 +871,7 @@ describe('ConnectorCanvasComponent', () => {
                 expect(items.map((i) => i.text)).toEqual(['Refresh', 'Leave Group']);
             }));
 
-            it('should return component menu with Enter Group, View Data Provenance, View State, and Center In View when targetType is component', fakeAsync(() => {
+            it('should return component menu with View Configuration, Enter Group, View Data Provenance, View State, and Center In View when targetType is component', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -882,6 +883,7 @@ describe('ConnectorCanvasComponent', () => {
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
                 expect(items.map((i) => i.text)).toEqual([
+                    'View Configuration',
                     'Enter Group',
                     'View Data Provenance',
                     'View State',
@@ -1144,6 +1146,62 @@ describe('ConnectorCanvasComponent', () => {
                 expect(viewState).toBeDefined();
                 expect(viewState!.condition!(null)).toBe(false);
             }));
+
+            it('should show View Configuration for a readable Processor with single selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
+
+                expect(viewConfig).toBeDefined();
+                expect(viewConfig!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide View Configuration when user lacks read permission', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.Processor, 'proc-1', 1, {
+                        permissions: { canRead: false, canWrite: false }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
+
+                expect(viewConfig).toBeDefined();
+                expect(viewConfig!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View Configuration for Funnel components', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Funnel, 'funnel-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
+
+                expect(viewConfig).toBeDefined();
+                expect(viewConfig!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide View Configuration for multi-selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 3));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
+
+                expect(viewConfig).toBeDefined();
+                expect(viewConfig!.condition!(null)).toBe(false);
+            }));
         });
 
         describe('filterMenuItem', () => {
@@ -1244,6 +1302,48 @@ describe('ConnectorCanvasComponent', () => {
                 expect(dispatchSpy).toHaveBeenCalledWith(
                     navigateToProvenanceForComponent({ id: 'proc-1', componentType: ComponentType.Processor })
                 );
+            });
+        });
+
+        describe('viewConfigurationAction', () => {
+            it('should dispatch viewComponentConfiguration with the supplied entity and componentType', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+                const entity = { id: 'proc-1', permissions: { canRead: true } };
+
+                component.viewConfigurationAction(entity, ComponentType.Processor);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    viewComponentConfiguration({
+                        request: { entity, componentType: ComponentType.Processor }
+                    })
+                );
+            });
+        });
+
+        describe('onComponentDoubleClick', () => {
+            it('should dispatch viewComponentConfiguration when entity is readable', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+                const entity = { id: 'proc-1', permissions: { canRead: true } };
+
+                component.onComponentDoubleClick({ entity, componentType: ComponentType.Processor });
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    viewComponentConfiguration({
+                        request: { entity, componentType: ComponentType.Processor }
+                    })
+                );
+            });
+
+            it('should not dispatch when entity is not readable', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+                const entity = { id: 'proc-1', permissions: { canRead: false } };
+
+                component.onComponentDoubleClick({ entity, componentType: ComponentType.Processor });
+
+                expect(dispatchSpy).not.toHaveBeenCalled();
             });
         });
 

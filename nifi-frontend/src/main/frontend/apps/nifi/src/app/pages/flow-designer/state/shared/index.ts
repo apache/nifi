@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-import { Permissions } from '@nifi/shared';
-import { VersionControlInformation } from '../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
-
 export interface Dimension {
     width: number;
     height: number;
@@ -26,18 +23,4 @@ export interface Dimension {
 export interface Position {
     x: number;
     y: number;
-}
-
-export interface Breadcrumb {
-    id: string;
-    name: string;
-    versionControlInformation?: VersionControlInformation;
-}
-
-export interface BreadcrumbEntity {
-    id: string;
-    permissions: Permissions;
-    versionedFlowState: string;
-    breadcrumb: Breadcrumb;
-    parentBreadcrumb?: BreadcrumbEntity;
 }
