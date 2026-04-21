@@ -18,8 +18,6 @@ package org.apache.nifi.web.api.dto.util;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -31,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestDateTimeAdapter {
 
     private static final DateTimeAdapter DEFAULT_TIME_ZONE_ADAPTER = new DateTimeAdapter();
-    private static final String DATE_TIME_ADAPTER_CLASS_NAME = "org.apache.nifi.web.api.dto.util.DateTimeAdapter";
     // Month, day, hour, minute, and second values are distinct for verification.
     private static final long TEST_DATE_TIME_MILLISECONDS = 1767323096000L; // Represents 2026-01-02T03:04:56Z
     private static final Date TEST_DATE = new Date(TEST_DATE_TIME_MILLISECONDS);
@@ -39,6 +36,7 @@ public class TestDateTimeAdapter {
             .withZone(ZoneId.systemDefault());
     private static final String TEST_DATE_TIME = TEST_DATE_TIME_FORMATTER.format(TEST_DATE.toInstant());
 
+    // Verify round-trip consistency for both marshal-then-unmarshal and unmarshal-then-marshal operations.
     @Test
     public void testMarshalThenUnmarshal() throws Exception {
         assertEquals(TEST_DATE, DEFAULT_TIME_ZONE_ADAPTER.unmarshal(DEFAULT_TIME_ZONE_ADAPTER.marshal(TEST_DATE)));
@@ -49,6 +47,7 @@ public class TestDateTimeAdapter {
         assertEquals(TEST_DATE_TIME, DEFAULT_TIME_ZONE_ADAPTER.marshal(DEFAULT_TIME_ZONE_ADAPTER.unmarshal(TEST_DATE_TIME)));
     }
 
+    // Verify behavior after switching the JVM default time zone before invoking the adapter.
     @Test
     public void testMarshalAcrossTimeZones() throws Exception {
         assertAll(
@@ -82,73 +81,25 @@ public class TestDateTimeAdapter {
     }
 
     private static void assertMarshalInTimeZone(final String timeZoneId, final String expectedDateTime) throws Exception {
-        assertEquals(expectedDateTime, invokeInTimeZone(timeZoneId, "marshal", Date.class, TEST_DATE));
-    }
-
-    private static void assertUnmarshalInTimeZone(final String timeZoneId, final String dateTime) throws Exception {
-        assertEquals(TEST_DATE, invokeInTimeZone(timeZoneId, "unmarshal", String.class, dateTime));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T invokeInTimeZone(final String timeZoneId, final String methodName, final Class<?> parameterType, final Object argument) throws Exception {
         final TimeZone originalTimeZone = TimeZone.getDefault();
-
         try {
             TimeZone.setDefault(TimeZone.getTimeZone(timeZoneId));
-
-            // DateTimeAdapter initializes its static formatter with ZoneId.systemDefault() during class loading.
-            // Creating a new adapter after changing the default time zone is not sufficient because the formatter
-            // remains bound to the zone captured during the first initialization. Loading the class through a
-            // dedicated ClassLoader forces static initialization to run again for each configured time zone.
-            final Class<?> adapterClass = Class.forName(DATE_TIME_ADAPTER_CLASS_NAME, true, new DateTimeAdapterClassLoader());
-            final Object adapter = adapterClass.getDeclaredConstructor().newInstance();
-            // The reloaded class is isolated from the test class loader, so reflective invocation is required.
-            return (T) adapterClass.getMethod(methodName, parameterType).invoke(adapter, argument);
+            final DateTimeAdapter dateTimeAdapter = new DateTimeAdapter();
+            assertEquals(expectedDateTime, dateTimeAdapter.marshal(TEST_DATE));
         } finally {
             TimeZone.setDefault(originalTimeZone);
         }
     }
 
-    private static final class DateTimeAdapterClassLoader extends ClassLoader {
-        private DateTimeAdapterClassLoader() {
-            super(TestDateTimeAdapter.class.getClassLoader());
-        }
-
-        @Override
-        protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
-            synchronized (getClassLoadingLock(name)) {
-                if (DATE_TIME_ADAPTER_CLASS_NAME.equals(name)) {
-                    Class<?> loadedClass = findLoadedClass(name);
-                    if (loadedClass == null) {
-                        loadedClass = findClass(name);
-                    }
-                    if (resolve) {
-                        resolveClass(loadedClass);
-                    }
-                    return loadedClass;
-                }
-            }
-
-            return super.loadClass(name, resolve);
-        }
-
-        @Override
-        protected Class<?> findClass(final String name) throws ClassNotFoundException {
-            if (!DATE_TIME_ADAPTER_CLASS_NAME.equals(name)) {
-                throw new ClassNotFoundException(name);
-            }
-
-            final String resourceName = name.replace('.', '/') + ".class";
-            try (InputStream inputStream = getParent().getResourceAsStream(resourceName)) {
-                if (inputStream == null) {
-                    throw new ClassNotFoundException(name);
-                }
-
-                final byte[] classBytes = inputStream.readAllBytes();
-                return defineClass(name, classBytes, 0, classBytes.length);
-            } catch (IOException e) {
-                throw new ClassNotFoundException(name, e);
-            }
+    private static void assertUnmarshalInTimeZone(final String timeZoneId, final String dateTime) throws Exception {
+        final TimeZone originalTimeZone = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone(timeZoneId));
+            final DateTimeAdapter dateTimeAdapter = new DateTimeAdapter();
+            assertEquals(TEST_DATE, dateTimeAdapter.unmarshal(dateTime));
+        } finally {
+            TimeZone.setDefault(originalTimeZone);
         }
     }
+
 }
