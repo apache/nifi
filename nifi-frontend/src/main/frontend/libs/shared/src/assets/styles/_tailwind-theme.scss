@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,15 +15,21 @@
  * limitations under the License.
  */
 
-const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind');
-const { join } = require('path');
-const baseTheme = require('../../libs/shared/tailwind.theme.json');
-
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-    content: [join(__dirname, 'src/**/!(*.stories|*.spec).{ts,html}'), ...createGlobPatternsForDependencies(__dirname)],
-    theme: {
-        ...baseTheme
-    },
-    plugins: []
-};
+@theme {
+    --text-xs: 10px;
+    --text-xs--line-height: 14px;
+    --text-xs--letter-spacing: 0.4px;
+    --text-sm: 12px;
+    --text-sm--line-height: 16px;
+    --text-sm--letter-spacing: 0.4px;
+    --text-base: 14px;
+    --text-base--line-height: 20px;
+    --text-lg: 16px;
+    --text-lg--line-height: 24px;
+    --text-xl: 18px;
+    --text-xl--line-height: 28px;
+    --text-2xl: 20px;
+    --text-2xl--line-height: 28px;
+    --text-3xl: 32px;
+    --text-3xl--line-height: 40px;
+}

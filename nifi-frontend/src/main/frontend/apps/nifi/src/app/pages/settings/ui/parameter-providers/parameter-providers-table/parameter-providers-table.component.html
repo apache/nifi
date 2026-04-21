@@ -57,7 +57,7 @@
                     <!-- Name Column -->
                     <ng-container matColumnDef="name">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                         </th>
                         <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                             <div
@@ -65,7 +65,7 @@
                                     unset: !canRead(item),
                                     'neutral-color': !canRead(item)
                                 }"
-                                class="overflow-hidden overflow-ellipsis whitespace-nowrap">
+                                class="overflow-hidden text-ellipsis whitespace-nowrap">
                                 {{ formatName(item) }}
                             </div>
                         </td>
@@ -74,7 +74,7 @@
                     <!-- Type column -->
                     <ng-container matColumnDef="type">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
+                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">Type</div>
                         </th>
                         <td mat-cell *matCellDef="let item" [title]="formatType(item)">
                             {{ formatType(item) }}
@@ -84,7 +84,7 @@
                     <!-- Bundle column -->
                     <ng-container matColumnDef="bundle">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Bundle</div>
+                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">Bundle</div>
                         </th>
                         <td mat-cell *matCellDef="let item" [title]="formatBundle(item)">
                             {{ formatBundle(item) }}

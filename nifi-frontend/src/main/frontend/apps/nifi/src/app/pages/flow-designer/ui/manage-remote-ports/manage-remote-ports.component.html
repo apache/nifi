@@ -27,7 +27,7 @@
                     <div class="flex flex-col mb-5">
                         <div>Name</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
+                            class="text-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
                             [title]="portsState.rpg?.id">
                             {{ portsState.rpg?.id }}
                         </div>
@@ -37,7 +37,7 @@
                     <div class="flex flex-col mb-5">
                         <div>Urls</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
+                            class="text-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
                             [title]="portsState.rpg?.component?.targetUri">
                             {{ portsState.rpg?.component?.targetUri }}
                         </div>
@@ -89,7 +89,7 @@
                                     <!-- Name Column -->
                                     <ng-container matColumnDef="name">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                                             {{ formatName(item) }}
@@ -99,7 +99,7 @@
                                     <!-- Type Column -->
                                     <ng-container matColumnDef="type">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">Type</div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatType(item)">
                                             {{ formatType(item) }}
@@ -109,7 +109,7 @@
                                     <!-- Tasks Column -->
                                     <ng-container matColumnDef="tasks">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">
                                                 Concurrent Tasks
                                             </div>
                                         </th>
@@ -125,7 +125,7 @@
                                     <!-- Compression Column -->
                                     <ng-container matColumnDef="compression">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">
                                                 Compressed
                                             </div>
                                         </th>
@@ -137,7 +137,7 @@
                                     <!-- Batch Count Column -->
                                     <ng-container matColumnDef="count">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">
                                                 Batch Count
                                             </div>
                                         </th>
@@ -153,7 +153,7 @@
                                     <!-- Batch Size Column -->
                                     <ng-container matColumnDef="size">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">
                                                 Batch Size
                                             </div>
                                         </th>
@@ -169,7 +169,7 @@
                                     <!-- Batch Duration Column -->
                                     <ng-container matColumnDef="duration">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="text-ellipsis overflow-hidden whitespace-nowrap">
                                                 Batch Duration
                                             </div>
                                         </th>

@@ -182,11 +182,11 @@ describe('DestinationProcessor Component', () => {
             const processorDisplay = fixture.nativeElement.querySelector('[data-qa="processor-name-display"]');
             const groupDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
 
-            expect(processorDisplay.classList).toContain('overflow-ellipsis');
+            expect(processorDisplay.classList).toContain('text-ellipsis');
             expect(processorDisplay.classList).toContain('overflow-hidden');
             expect(processorDisplay.classList).toContain('whitespace-nowrap');
 
-            expect(groupDisplay.classList).toContain('overflow-ellipsis');
+            expect(groupDisplay.classList).toContain('text-ellipsis');
             expect(groupDisplay.classList).toContain('overflow-hidden');
             expect(groupDisplay.classList).toContain('whitespace-nowrap');
         });

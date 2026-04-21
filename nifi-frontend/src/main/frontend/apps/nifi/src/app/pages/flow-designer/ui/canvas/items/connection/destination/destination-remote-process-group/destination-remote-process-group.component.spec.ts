@@ -278,7 +278,7 @@ describe('DestinationRemoteProcessGroup Component', () => {
             const { fixture } = await setup({ remoteProcessGroup });
 
             const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
-            expect(groupNameDisplay.classList).toContain('overflow-ellipsis');
+            expect(groupNameDisplay.classList).toContain('text-ellipsis');
             expect(groupNameDisplay.classList).toContain('overflow-hidden');
             expect(groupNameDisplay.classList).toContain('whitespace-nowrap');
         });
