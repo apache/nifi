@@ -29,7 +29,7 @@
 @use 'libs/shared/src/assets/themes/material';
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 
-@source 'libs/shared/src';
+@source #{"'libs/shared/src'"};
 
 // only include these once (not needed for dark mode)
 @include app.styles();

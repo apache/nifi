@@ -33,7 +33,7 @@
 @use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
 
-@source 'libs/shared/src';
+@source #{"'libs/shared/src'"};
 
 // only include these once (not needed for dark mode)
 @include app.styles();
