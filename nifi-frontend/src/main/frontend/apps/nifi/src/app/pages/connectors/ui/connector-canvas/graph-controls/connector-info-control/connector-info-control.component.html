@@ -82,22 +82,22 @@
                     </button>
                 }
             </div>
-            @if (canDrain() || canCancelDrain()) {
+            @if (showDrain() || showCancelDrain()) {
                 <div class="flex gap-1 flex-wrap">
-                    @if (canDrain()) {
+                    @if (showDrain()) {
                         <button
                             mat-stroked-button
                             type="button"
-                            [disabled]="entitySaving()"
+                            [disabled]="!canDrain()"
                             data-qa="connector-panel-drain"
                             (click)="drainConnector()">
                             Drain
                         </button>
-                    } @else if (canCancelDrain()) {
+                    } @else if (showCancelDrain()) {
                         <button
                             mat-stroked-button
                             type="button"
-                            [disabled]="entitySaving()"
+                            [disabled]="!canCancelDrain()"
                             data-qa="connector-panel-cancel-drain"
                             (click)="cancelDrain()">
                             Cancel Drain

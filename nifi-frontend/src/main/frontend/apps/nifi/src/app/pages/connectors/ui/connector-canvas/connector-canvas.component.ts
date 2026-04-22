@@ -52,8 +52,6 @@ import {
 } from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
-const GRAPH_CONTROLS_STORAGE_KEY = 'connector-graph-controls';
-
 @Component({
     selector: 'connector-canvas',
     standalone: true,

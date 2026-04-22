@@ -116,7 +116,7 @@ export class ConnectorInfoControl {
         return canReadConnector(entity) && canModifyConnector(entity);
     }
 
-    canDrain(): boolean {
+    showDrain(): boolean {
         const entity = this.connectorEntity();
         if (!entity) {
             return false;
@@ -124,9 +124,25 @@ export class ConnectorInfoControl {
         return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'DRAIN_FLOWFILES');
     }
 
-    canCancelDrain(): boolean {
+    showCancelDrain(): boolean {
         const entity = this.connectorEntity();
         if (!entity) {
+            return false;
+        }
+        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');
+    }
+
+    canDrain(): boolean {
+        const entity = this.connectorEntity();
+        if (!entity || this.entitySaving()) {
+            return false;
+        }
+        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'DRAIN_FLOWFILES');
+    }
+
+    canCancelDrain(): boolean {
+        const entity = this.connectorEntity();
+        if (!entity || this.entitySaving()) {
             return false;
         }
         return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');

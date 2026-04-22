@@ -298,6 +298,20 @@ describe('ConnectorInfoControl', () => {
                 ConnectorCanvasEntityActions.promptDrainConnector({ connector: entity })
             );
         });
+
+        it('showDrain should remain true while entity is saving so the button stays mounted', async () => {
+            const entity = createMockConnectorEntity();
+            const { component } = await setup({ connectorEntity: entity, entitySaving: true });
+
+            expect(component.showDrain()).toBe(true);
+        });
+
+        it('canDrain should be false while entity is saving', async () => {
+            const entity = createMockConnectorEntity();
+            const { component } = await setup({ connectorEntity: entity, entitySaving: true });
+
+            expect(component.canDrain()).toBe(false);
+        });
     });
 
     describe('Cancel drain action', () => {
@@ -369,6 +383,40 @@ describe('ConnectorInfoControl', () => {
             expect(dispatchSpy).toHaveBeenCalledWith(
                 ConnectorCanvasEntityActions.cancelConnectorDrain({ connector: entity })
             );
+        });
+
+        it('showCancelDrain should remain true while entity is saving so the button stays mounted', async () => {
+            const entity = createMockConnectorEntity({
+                component: {
+                    ...createMockConnectorEntity().component,
+                    availableActions: [
+                        { name: 'DRAIN_FLOWFILES', description: 'Drain', allowed: false },
+                        { name: 'CANCEL_DRAIN_FLOWFILES', description: 'Cancel drain', allowed: true },
+                        { name: 'DISCARD_WORKING_CONFIGURATION', description: 'Discard', allowed: false },
+                        { name: 'CONFIGURE', description: 'Configure', allowed: true }
+                    ]
+                }
+            });
+            const { component } = await setup({ connectorEntity: entity, entitySaving: true });
+
+            expect(component.showCancelDrain()).toBe(true);
+        });
+
+        it('canCancelDrain should be false while entity is saving', async () => {
+            const entity = createMockConnectorEntity({
+                component: {
+                    ...createMockConnectorEntity().component,
+                    availableActions: [
+                        { name: 'DRAIN_FLOWFILES', description: 'Drain', allowed: false },
+                        { name: 'CANCEL_DRAIN_FLOWFILES', description: 'Cancel drain', allowed: true },
+                        { name: 'DISCARD_WORKING_CONFIGURATION', description: 'Discard', allowed: false },
+                        { name: 'CONFIGURE', description: 'Configure', allowed: true }
+                    ]
+                }
+            });
+            const { component } = await setup({ connectorEntity: entity, entitySaving: true });
+
+            expect(component.canCancelDrain()).toBe(false);
         });
     });
 
