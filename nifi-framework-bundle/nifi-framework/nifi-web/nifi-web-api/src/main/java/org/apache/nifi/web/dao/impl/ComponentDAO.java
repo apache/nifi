@@ -18,6 +18,8 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -25,6 +27,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
+import java.util.Optional;
 
 public abstract class ComponentDAO {
 
@@ -83,15 +86,53 @@ public abstract class ComponentDAO {
             return group;
         }
 
-        // Optionally search Connector-managed ProcessGroups
-        if (includeConnectorManaged) {
-            group = flowController.getFlowManager().getGroup(groupId);
-            if (group != null) {
+        // Search Connector-managed ProcessGroups. The unconditional search is important so that if a component exists
+        // in a Connector-managed flow but the Connector is not in Troubleshooting mode, we can produce a clear 409
+        // Conflict response rather than a 404 Not Found.
+        group = flowController.getFlowManager().getGroup(groupId);
+        if (group != null) {
+            if (includeConnectorManaged) {
                 return group;
             }
+
+            verifyAccessibleForComponentOperation(group, groupId);
+            return group;
         }
 
         throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
+    }
+
+    /**
+     * Verifies that the component represented by the given {@link ProcessGroup} (or a component contained within it) is
+     * accessible for a direct user-facing operation such as GET/PUT/POST/DELETE of the component itself. Components that
+     * live within a Connector's managed Process Group hierarchy are only accessible when the owning Connector is in
+     * {@link ConnectorState#TROUBLESHOOTING} mode. If the owning Connector is not in Troubleshooting mode, an
+     * {@link IllegalStateException} is thrown which is translated by the REST layer into a 409 Conflict response.
+     *
+     * <p>Connector-aware REST endpoints that need to read components within a managed flow regardless of the
+     * Connector's state must obtain those components through the
+     * {@link org.apache.nifi.web.dao.ConnectorManagedComponentLookup} facade (or, for authorization, through
+     * {@link org.apache.nifi.authorization.AuthorizableLookup#forConnectorManagedFlow()}) so that this verification is
+     * skipped at the locate call site rather than being bypassed globally for the current thread.
+     *
+     * @param group the ProcessGroup that owns (or is) the component being accessed
+     * @param componentId the identifier of the component being accessed (used in the error message)
+     */
+    protected void verifyAccessibleForComponentOperation(final ProcessGroup group, final String componentId) {
+        if (group == null) {
+            return;
+        }
+
+        final Optional<ConnectorNode> owningConnector = group.findOwningConnector();
+        if (owningConnector.isEmpty()) {
+            return;
+        }
+
+        final ConnectorNode connector = owningConnector.get();
+        if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Component [" + componentId + "] is managed by Connector " + connector.getName() + " ("
+                + connector.getIdentifier() + "); the Connector must be in Troubleshooting mode for this component to be accessible.");
+        }
     }
 
     protected void verifyCreate(final ExtensionManager extensionManager, final String type, final BundleDTO bundle) {

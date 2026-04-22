@@ -130,6 +130,12 @@ public class DynamicFlowConnector extends AbstractConnector {
         return VersionedFlowUtils.loadFlowFromResource("flows/generate-duplicate-log-flow.json");
     }
 
+    @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The authoritative flow is the dynamically built flow based on the active configuration.
+        return getFlow(activeFlowContext);
+    }
+
     public boolean isInitialized() {
         return initialized;
     }

@@ -860,7 +860,14 @@ public class ControllerFacade implements Authorizable {
      */
     public ConnectionStatus getConnectionStatus(final String connectionId) {
         final ProcessGroup root = getRootGroup();
-        final Connection connection = root.findConnection(connectionId);
+        Connection connection = root.findConnection(connectionId);
+
+        // If the Connection was not found by traversing the root hierarchy, fall back to a direct FlowManager lookup. This
+        // is necessary because Connections that live inside a Connector's Managed Process Group are not part of the main
+        // root Process Group's parent hierarchy, but they are still registered with the FlowManager.
+        if (connection == null) {
+            connection = flowController.getFlowManager().getConnection(connectionId);
+        }
 
         // ensure the connection was found
         if (connection == null) {
@@ -920,10 +927,8 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified input port
      */
     public PortStatus getInputPortStatus(final String portId) {
-        final ProcessGroup root = getRootGroup();
-        final Port port = root.findInputPort(portId);
+        final Port port = flowController.findInputPortIncludingConnectorManaged(portId);
 
-        // ensure the input port was found
         if (port == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate input port with id '%s'.", portId));
         }
@@ -949,10 +954,8 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified output port
      */
     public PortStatus getOutputPortStatus(final String portId) {
-        final ProcessGroup root = getRootGroup();
-        final Port port = root.findOutputPort(portId);
+        final Port port = flowController.findOutputPortIncludingConnectorManaged(portId);
 
-        // ensure the output port was found
         if (port == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate output port with id '%s'.", portId));
         }

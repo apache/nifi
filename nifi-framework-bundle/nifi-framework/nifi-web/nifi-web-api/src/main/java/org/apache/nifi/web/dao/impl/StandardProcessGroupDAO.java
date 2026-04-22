@@ -188,11 +188,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup getProcessGroup(String groupId, boolean includeConnectorManaged) {
-        return locateProcessGroup(flowController, groupId, includeConnectorManaged);
-    }
-
-    @Override
     public Set<ProcessGroup> getProcessGroups(final String parentGroupId, final ProcessGroupRecursivity processGroupRecursivity) {
         ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
         if (processGroupRecursivity == ProcessGroupRecursivity.ALL_DESCENDANTS) {
@@ -307,7 +302,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ProcessGroup group = locateProcessGroup(flowController, groupId, true);
 
         final Set<ProcessGroup> validGroups = new HashSet<>();
         validGroups.add(group);
@@ -372,7 +367,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void enableComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ProcessGroup group = locateProcessGroup(flowController, groupId, true);
 
         final Set<ProcessGroup> validGroups = new HashSet<>();
         validGroups.add(group);
@@ -416,10 +411,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toList());
 
-        final ProcessGroup group = flowManager.getGroup(groupId, null);
-        if (group == null) {
-            throw new IllegalArgumentException("Cannot activate Controller Services with IDs " + serviceIds + " because the associated Process Group (id=" + groupId + ") could not be found");
-        }
+        final ProcessGroup group = locateProcessGroup(flowController, groupId, true);
 
         final ExecutionEngine executionEngine = group.resolveExecutionEngine();
         if (executionEngine == ExecutionEngine.STATELESS) {

@@ -40,7 +40,16 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
     protected FlowController flowController;
 
-    protected abstract Port locatePort(final String portId);
+    protected Port locatePort(final String portId) {
+        return locatePort(portId, false);
+    }
+
+    protected abstract Port locatePort(final String portId, final boolean includeConnectorManaged);
+
+    @Override
+    public Port getPort(final String portId) {
+        return locatePort(portId);
+    }
 
     @Override
     public void verifyUpdate(PortDTO portDTO) {

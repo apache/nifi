@@ -235,6 +235,64 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
         });
     }
 
+    @Override
+    public ConnectorEntity enterTroubleshooting(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException {
+        return enterTroubleshooting(connectorEntity.getId(), connectorEntity.getRevision().getClientId(),
+                connectorEntity.getRevision().getVersion(), connectorEntity.isDisconnectedNodeAcknowledged());
+    }
+
+    private ConnectorEntity enterTroubleshooting(final String connectorId, final String clientId, final long version,
+            final Boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector ID cannot be null or blank");
+        }
+
+        return executeAction("Error entering Troubleshooting mode", () -> {
+            final WebTarget target = connectorTarget
+                    .path("/troubleshooting")
+                    .resolveTemplate("id", connectorId);
+
+            final ConnectorEntity requestEntity = new ConnectorEntity();
+            requestEntity.setId(connectorId);
+            requestEntity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
+
+            final RevisionDTO revisionDto = new RevisionDTO();
+            revisionDto.setClientId(clientId);
+            revisionDto.setVersion(version);
+            requestEntity.setRevision(revisionDto);
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(requestEntity, MediaType.APPLICATION_JSON_TYPE),
+                    ConnectorEntity.class);
+        });
+    }
+
+    @Override
+    public ConnectorEntity endTroubleshooting(final String connectorId, final String clientId, final long version) throws NiFiClientException, IOException {
+        return endTroubleshooting(connectorId, clientId, version, false);
+    }
+
+    private ConnectorEntity endTroubleshooting(final String connectorId, final String clientId, final long version,
+            final Boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector ID cannot be null or blank");
+        }
+
+        return executeAction("Error ending Troubleshooting mode", () -> {
+            WebTarget target = connectorTarget
+                    .path("/troubleshooting")
+                    .queryParam("version", version)
+                    .queryParam("clientId", clientId)
+                    .resolveTemplate("id", connectorId);
+
+            if (disconnectedNodeAcknowledged == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
+            return getRequestBuilder(target).delete(ConnectorEntity.class);
+        });
+    }
+
     private ConnectorEntity updateConnectorRunStatus(final String connectorId, final String desiredState, final String clientId,
             final long version, final Boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(connectorId)) {

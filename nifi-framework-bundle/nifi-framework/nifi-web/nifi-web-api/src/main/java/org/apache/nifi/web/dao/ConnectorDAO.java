@@ -59,6 +59,14 @@ public interface ConnectorDAO {
 
     void verifyCancelDrainFlowFile(String id);
 
+    void verifyEnterTroubleshooting(String id);
+
+    void enterTroubleshooting(String id);
+
+    void verifyEndTroubleshooting(String id);
+
+    void endTroubleshooting(String id);
+
     void verifyPurgeFlowFiles(String id);
 
     void purgeFlowFiles(String id, String requestor);

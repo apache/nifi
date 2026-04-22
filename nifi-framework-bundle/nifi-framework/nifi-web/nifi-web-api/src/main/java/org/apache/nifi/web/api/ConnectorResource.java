@@ -807,6 +807,154 @@ public class ConnectorResource extends ApplicationResource {
         );
     }
 
+    /**
+     * Transitions the specified Connector into Troubleshooting mode.
+     *
+     * @param id The id of the connector.
+     * @param requestConnectorEntity A connectorEntity containing the revision.
+     * @return A connectorEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/troubleshooting")
+    @Operation(
+            summary = "Transitions a Connector into Troubleshooting mode",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Places the Connector into Troubleshooting mode so that its managed flow may be directly modified. Standard lifecycle operations are disabled while in Troubleshooting mode.",
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid} or /operation/connectors/{uuid}")
+            }
+    )
+    public Response enterTroubleshooting(
+            @Parameter(
+                    description = "The connector id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The connector entity with revision.",
+                    required = true
+            ) final ConnectorEntity requestConnectorEntity) {
+
+        if (requestConnectorEntity == null || requestConnectorEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Connector entity with revision must be specified.");
+        }
+
+        if (requestConnectorEntity.getId() != null && !id.equals(requestConnectorEntity.getId())) {
+            throw new IllegalArgumentException(String.format("The connector id (%s) in the request body does not equal the "
+                    + "connector id of the requested resource (%s).", requestConnectorEntity.getId(), id));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestConnectorEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestConnectorEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        final Revision requestRevision = getRevision(requestConnectorEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    final Authorizable connector = lookup.getConnector(id);
+                    OperationAuthorizable.authorizeOperation(connector, authorizer, user);
+                },
+                () -> serviceFacade.verifyEnterConnectorTroubleshooting(id),
+                (revision, connectorEntity) -> {
+                    final ConnectorEntity entity = serviceFacade.enterConnectorTroubleshooting(revision, id);
+                    populateRemainingConnectorEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Transitions the specified Connector out of Troubleshooting mode.
+     *
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id.
+     * @param id The id of the connector.
+     * @return A connectorEntity.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/troubleshooting")
+    @Operation(
+            summary = "Transitions a Connector out of Troubleshooting mode",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Ends Troubleshooting mode for the Connector, restoring the authoritative flow. All components in the managed flow must be stopped and disabled, "
+                    + "and the managed flow must have no active tasks.",
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid} or /operation/connectors/{uuid}")
+            }
+    )
+    public Response endTroubleshooting(
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
+            )
+            @QueryParam(VERSION) final LongParameter version,
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @Parameter(
+                    description = "The connector id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(id);
+
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    final Authorizable connector = lookup.getConnector(id);
+                    OperationAuthorizable.authorizeOperation(connector, authorizer, user);
+                },
+                () -> serviceFacade.verifyEndConnectorTroubleshooting(id),
+                (revision, connectorEntity) -> {
+                    final ConnectorEntity entity = serviceFacade.endConnectorTroubleshooting(revision, id);
+                    populateRemainingConnectorEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
 
     @POST
     @Consumes(MediaType.WILDCARD)
@@ -1799,7 +1947,9 @@ public class ConnectorResource extends ApplicationResource {
             connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        // get the flow for the specified process group within the connector's hierarchy
+        // Get the flow for the specified process group within the connector's hierarchy. The facade method is
+        // Connector-aware and skips the normal Troubleshooting access gate at the DAO locate call sites for bulletin
+        // authorization lookups within the managed flow.
         final ProcessGroupFlowEntity entity = serviceFacade.getConnectorFlow(connectorId, processGroupId, uiOnly);
         flowResource.populateRemainingFlowContent(entity.getProcessGroupFlow());
         return generateOkResponse(entity).build();
@@ -1861,9 +2011,11 @@ public class ConnectorResource extends ApplicationResource {
             connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        // get the controller services for the specified process group within the connector's hierarchy
-        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getConnectorControllerServices(
-                connectorId, processGroupId, includeAncestorGroups, includeDescendantGroups, includeReferences);
+        // Get the controller services for the specified process group within the connector's hierarchy. The facade
+        // method operates on the ControllerServiceNodes resolved directly from the managed Process Group tree, so no
+        // DAO locate calls are made against Connector-managed components here.
+        final Set<ControllerServiceEntity> controllerServices =
+                serviceFacade.getConnectorControllerServices(connectorId, processGroupId, includeAncestorGroups, includeDescendantGroups, includeReferences);
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 
         // create the response entity
@@ -2005,7 +2157,9 @@ public class ConnectorResource extends ApplicationResource {
             connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        // get the status for the connector's managed process group
+        // Get the status for the Connector's managed Process Group. The facade method builds the status DTO from the
+        // resolved ProcessGroup directly (no DAO locate calls for Connector-managed components), so the normal
+        // Troubleshooting access gate does not apply.
         final ProcessGroupStatusEntity entity = serviceFacade.getConnectorProcessGroupStatus(id, recursive);
         return generateOkResponse(entity).build();
     }

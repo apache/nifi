@@ -929,6 +929,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -995,6 +1000,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -1041,6 +1051,11 @@ public class TestStandardConnectorNode {
 
         @Override
         public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
             return null;
         }
 
@@ -1116,6 +1131,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -1172,6 +1192,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -1213,6 +1238,11 @@ public class TestStandardConnectorNode {
         @Override
         public VersionedExternalFlow getInitialFlow() {
             return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
         }
 
         @Override

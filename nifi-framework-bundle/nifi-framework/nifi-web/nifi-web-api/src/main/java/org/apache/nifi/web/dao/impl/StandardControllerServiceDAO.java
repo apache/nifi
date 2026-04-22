@@ -71,14 +71,19 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     private FlowController flowController;
 
     private ControllerServiceNode locateControllerService(final String controllerServiceId) {
-        // get the controller service
+        return locateControllerService(controllerServiceId, false);
+    }
+
+    ControllerServiceNode locateControllerService(final String controllerServiceId, final boolean includeConnectorManaged) {
         final ControllerServiceNode controllerService = serviceProvider.getControllerServiceNode(controllerServiceId);
 
-        // ensure the controller service exists
         if (controllerService == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate controller service with id '%s'.", controllerServiceId));
         }
 
+        if (!includeConnectorManaged) {
+            verifyAccessibleForComponentOperation(controllerService.getProcessGroup(), controllerServiceId);
+        }
         return controllerService;
     }
 
@@ -116,11 +121,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 if (groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS)) {
                     group = flowManager.getRootGroup();
                 } else {
-                    group = flowManager.getRootGroup().findProcessGroup(groupId);
-                }
-
-                if (group == null) {
-                    throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
+                    group = locateProcessGroup(flowController, groupId);
                 }
 
                 group.addControllerService(controllerService);
@@ -148,20 +149,17 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
         if (groupId == null) {
             return flowManager.getRootControllerServices();
-        } else {
-            final String searchId = groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS) ? flowManager.getRootGroupId() : groupId;
-            final ProcessGroup procGroup = flowManager.getRootGroup().findProcessGroup(searchId);
-            if (procGroup == null) {
-                throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
-            }
-
-            final Set<ControllerServiceNode> serviceNodes = procGroup.getControllerServices(includeAncestorGroups);
-            if (includeDescendantGroups) {
-                serviceNodes.addAll(procGroup.findAllControllerServices());
-            }
-
-            return serviceNodes;
         }
+
+        final String searchId = groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS) ? flowManager.getRootGroupId() : groupId;
+        final ProcessGroup procGroup = locateProcessGroup(flowController, searchId);
+
+        final Set<ControllerServiceNode> serviceNodes = procGroup.getControllerServices(includeAncestorGroups);
+        if (includeDescendantGroups) {
+            serviceNodes.addAll(procGroup.findAllControllerServices());
+        }
+
+        return serviceNodes;
     }
 
     @Override

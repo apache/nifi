@@ -134,6 +134,21 @@ public class ParameterContextConnector extends AbstractConnector {
         return createEmptyFlow();
     }
 
+    @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The authoritative Active flow is the fully-constructed flow produced by applying the current
+        // configuration values. Before configuration has been applied, fall back to the initial empty flow.
+        final String sensitiveValue = activeFlowContext.getConfigurationContext().getProperty(CONFIG_STEP, SENSITIVE_VALUE).getValue();
+        final String assetFilePath = activeFlowContext.getConfigurationContext().getProperty(CONFIG_STEP, ASSET_FILE).getValue();
+        if (sensitiveValue == null || assetFilePath == null) {
+            return createEmptyFlow();
+        }
+
+        final String sensitiveOutputFile = activeFlowContext.getConfigurationContext().getProperty(CONFIG_STEP, SENSITIVE_OUTPUT_FILE).getValue();
+        final String assetOutputFile = activeFlowContext.getConfigurationContext().getProperty(CONFIG_STEP, ASSET_OUTPUT_FILE).getValue();
+        return createFlow(sensitiveValue, assetFilePath, sensitiveOutputFile, assetOutputFile);
+    }
+
     private VersionedExternalFlow createEmptyFlow() {
         final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Parameter Context Test Flow");
 

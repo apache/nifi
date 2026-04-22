@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
@@ -28,6 +30,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -37,6 +41,7 @@ import static org.mockito.Mockito.when;
 class StandardProcessGroupDAOTest {
 
     private StandardProcessGroupDAO processGroupDAO;
+    private StandardConnectorManagedComponentLookup connectorManagedComponentLookup;
 
     @Mock
     private FlowController flowController;
@@ -50,6 +55,9 @@ class StandardProcessGroupDAOTest {
     @Mock
     private ProcessGroup connectorManagedGroup;
 
+    @Mock
+    private ConnectorNode owningConnector;
+
     private static final String ROOT_GROUP_ID = "root-group-id";
     private static final String CONNECTOR_GROUP_ID = "connector-group-id";
     private static final String NON_EXISTENT_ID = "non-existent-id";
@@ -59,17 +67,21 @@ class StandardProcessGroupDAOTest {
         processGroupDAO = new StandardProcessGroupDAO();
         processGroupDAO.setFlowController(flowController);
 
+        connectorManagedComponentLookup = new StandardConnectorManagedComponentLookup();
+        connectorManagedComponentLookup.setFlowController(flowController);
+
         when(flowController.getFlowManager()).thenReturn(flowManager);
 
-        // Setup root group lookup (non-connector managed)
         when(flowManager.getGroup(ROOT_GROUP_ID, null)).thenReturn(rootGroup);
         when(flowManager.getGroup(CONNECTOR_GROUP_ID, null)).thenReturn(null);
         when(flowManager.getGroup(NON_EXISTENT_ID, null)).thenReturn(null);
 
-        // Setup connector-managed group lookup (includes all groups)
         when(flowManager.getGroup(ROOT_GROUP_ID)).thenReturn(rootGroup);
         when(flowManager.getGroup(CONNECTOR_GROUP_ID)).thenReturn(connectorManagedGroup);
         when(flowManager.getGroup(NON_EXISTENT_ID)).thenReturn(null);
+
+        when(connectorManagedGroup.findOwningConnector()).thenReturn(Optional.of(owningConnector));
+        when(owningConnector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
     }
 
     @Test
@@ -80,51 +92,45 @@ class StandardProcessGroupDAOTest {
     }
 
     @Test
-    void testGetProcessGroupFromRootHierarchyWithIncludeConnectorManagedFalse() {
-        final ProcessGroup result = processGroupDAO.getProcessGroup(ROOT_GROUP_ID, false);
+    void testConnectorManagedLookupReturnsRootGroup() {
+        final ProcessGroup result = connectorManagedComponentLookup.getProcessGroup(ROOT_GROUP_ID);
 
         assertEquals(rootGroup, result);
     }
 
     @Test
-    void testGetProcessGroupFromRootHierarchyWithIncludeConnectorManagedTrue() {
-        final ProcessGroup result = processGroupDAO.getProcessGroup(ROOT_GROUP_ID, true);
-
-        assertEquals(rootGroup, result);
-    }
-
-    @Test
-    void testGetProcessGroupFromConnectorManagedWithIncludeConnectorManagedTrue() {
-        final ProcessGroup result = processGroupDAO.getProcessGroup(CONNECTOR_GROUP_ID, true);
+    void testConnectorManagedLookupReturnsConnectorManagedGroupRegardlessOfConnectorState() {
+        final ProcessGroup result = connectorManagedComponentLookup.getProcessGroup(CONNECTOR_GROUP_ID);
 
         assertEquals(connectorManagedGroup, result);
     }
 
     @Test
-    void testGetProcessGroupFromConnectorManagedWithIncludeConnectorManagedFalseThrows() {
-        assertThrows(ResourceNotFoundException.class, () ->
-            processGroupDAO.getProcessGroup(CONNECTOR_GROUP_ID, false)
+    void testGetProcessGroupOnConnectorManagedGroupThrowsWhenConnectorNotTroubleshooting() {
+        assertThrows(IllegalStateException.class, () ->
+            processGroupDAO.getProcessGroup(CONNECTOR_GROUP_ID)
         );
     }
 
     @Test
-    void testGetProcessGroupWithDefaultDoesNotFindConnectorManagedGroup() {
+    void testGetProcessGroupFromConnectorManagedWhenInTroubleshootingReturnsGroup() {
+        when(owningConnector.getCurrentState()).thenReturn(ConnectorState.TROUBLESHOOTING);
+
+        final ProcessGroup result = processGroupDAO.getProcessGroup(CONNECTOR_GROUP_ID);
+        assertEquals(connectorManagedGroup, result);
+    }
+
+    @Test
+    void testGetProcessGroupWithNonExistentIdThrowsThroughConnectorManagedLookup() {
         assertThrows(ResourceNotFoundException.class, () ->
-            processGroupDAO.getProcessGroup(CONNECTOR_GROUP_ID)
+            connectorManagedComponentLookup.getProcessGroup(NON_EXISTENT_ID)
         );
     }
 
     @Test
     void testGetProcessGroupWithNonExistentIdThrows() {
         assertThrows(ResourceNotFoundException.class, () ->
-            processGroupDAO.getProcessGroup(NON_EXISTENT_ID, true)
-        );
-    }
-
-    @Test
-    void testGetProcessGroupWithNonExistentIdAndIncludeConnectorManagedFalseThrows() {
-        assertThrows(ResourceNotFoundException.class, () ->
-            processGroupDAO.getProcessGroup(NON_EXISTENT_ID, false)
+            processGroupDAO.getProcessGroup(NON_EXISTENT_ID)
         );
     }
 }

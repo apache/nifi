@@ -18,7 +18,9 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.flow.VersionedExternalFlow;
 
 public interface FrameworkConnectorInitializationContext extends ConnectorInitializationContext {
 
@@ -26,4 +28,19 @@ public interface FrameworkConnectorInitializationContext extends ConnectorInitia
 
     AssetManager getAssetManager();
 
+    /**
+     * Verifies that the given FlowContext's Managed Process Group can be updated to the provided
+     * {@link VersionedExternalFlow}, without performing any modifications. This mirrors the checks performed at
+     * the start of {@link #updateFlow(FlowContext, VersionedExternalFlow, BundleCompatibility)} and is intended to
+     * let callers reject update requests synchronously before any state mutation occurs. Note that if the provided
+     * {@link BundleCompatibility} is not {@link BundleCompatibility#REQUIRE_EXACT_BUNDLE}, this method may update the
+     * bundles referenced by the provided flow to match the bundles that would actually be used during the update,
+     * matching the behavior of {@link #updateFlow(FlowContext, VersionedExternalFlow, BundleCompatibility)}.
+     *
+     * @param flowContext the context of the flow to be verified
+     * @param versionedExternalFlow the new representation of the flow
+     * @param bundleCompatability the strategy to use when resolving component bundles
+     * @throws FlowUpdateException if the flow update would not be allowed
+     */
+    void verifyUpdateFlow(FlowContext flowContext, VersionedExternalFlow versionedExternalFlow, BundleCompatibility bundleCompatability) throws FlowUpdateException;
 }

@@ -27,6 +27,7 @@ import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
+import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
@@ -155,6 +156,34 @@ public class StandardConnectorDAO implements ConnectorDAO {
     public void verifyCancelDrainFlowFile(final String id) {
         final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         connector.verifyCancelDrainFlowFiles();
+    }
+
+    @Override
+    public void verifyEnterTroubleshooting(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        getConnectorRepository().verifyEnterTroubleshooting(connector);
+    }
+
+    @Override
+    public void enterTroubleshooting(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        getConnectorRepository().enterTroubleshooting(connector);
+    }
+
+    @Override
+    public void verifyEndTroubleshooting(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        getConnectorRepository().verifyEndTroubleshooting(connector);
+    }
+
+    @Override
+    public void endTroubleshooting(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        try {
+            getConnectorRepository().endTroubleshooting(connector);
+        } catch (final FlowUpdateException e) {
+            throw new IllegalStateException("Failed to exit troubleshooting mode for Connector " + id + ": " + e, e);
+        }
     }
 
     @Override

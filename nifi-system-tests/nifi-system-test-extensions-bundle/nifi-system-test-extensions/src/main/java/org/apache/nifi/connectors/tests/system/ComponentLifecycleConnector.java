@@ -39,7 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Test Connector designed to verify the complete component lifecycle.
@@ -54,6 +53,7 @@ import java.util.UUID;
 public class ComponentLifecycleConnector extends AbstractConnector {
 
     private static final Bundle SYSTEM_TEST_EXTENSIONS_BUNDLE = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "2.8.0-SNAPSHOT");
+    private static final String ROOT_GROUP_ID = "component-lifecycle-root-group";
 
     @Override
     protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
@@ -67,8 +67,14 @@ public class ComponentLifecycleConnector extends AbstractConnector {
         return flow;
     }
 
+    @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // This Connector's flow is fully determined statically and does not depend on runtime configuration.
+        return getInitialFlow();
+    }
+
     private VersionedProcessGroup createRootGroup() {
-        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(UUID.randomUUID().toString(), "Component Lifecycle Root");
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Component Lifecycle Root");
         rootGroup.setPosition(new Position(0, 0));
         rootGroup.setRemoteProcessGroups(new HashSet<>());
         rootGroup.setScheduledState(ScheduledState.ENABLED);
