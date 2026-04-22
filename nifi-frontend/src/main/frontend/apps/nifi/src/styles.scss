@@ -17,6 +17,7 @@
 
 @use '@angular/material' as mat;
 @use 'sass:map';
+@use 'sass:meta';
 
 @use 'tailwindcss';
 @use 'libs/shared/src/assets/styles/tailwind-theme';
@@ -63,8 +64,11 @@
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 
-@use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
+
+@layer base {
+    @include meta.load-css('font-awesome');
+}
 
 @source #{"'libs/shared/src'"};
 

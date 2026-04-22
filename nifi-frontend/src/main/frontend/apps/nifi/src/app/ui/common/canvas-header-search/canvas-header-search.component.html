@@ -217,7 +217,7 @@
                         [tooltipInputData]="getSearchMatchTipInput(result)"
                         [delayClose]="true"></i>
                     <a
-                        class="doc-link w-full overflow-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
+                        class="doc-link w-full text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
                         [title]="result.name"
                         [class.selected]="result.id === selectedComponentId()"
                         (click)="resultClicked(result, path)">
