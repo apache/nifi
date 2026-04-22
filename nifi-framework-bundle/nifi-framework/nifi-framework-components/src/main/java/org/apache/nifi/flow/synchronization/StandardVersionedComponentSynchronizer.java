@@ -4145,19 +4145,20 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final StateManagerProvider stateManagerProvider = context.getStateManagerProvider();
         if (stateManagerProvider == null) {
-            LOG.debug("StateManagerProvider is not available; skipping state restoration for component {}", componentId);
+            LOG.warn("StateManagerProvider is not available; component state from the flow snapshot will not be restored for component {}", componentId);
             return;
         }
 
         final ConfigurableComponent component = componentNode.getComponent();
         if (component == null) {
-            LOG.debug("Component {} is not available; skipping state restoration", componentId);
+            LOG.warn("Component {} is not available; component state from the flow snapshot will not be restored", componentId);
             return;
         }
 
         final Stateful stateful = component.getClass().getAnnotation(Stateful.class);
         if (stateful == null) {
-            LOG.debug("Component {} ({}) is not annotated with @Stateful; skipping state restoration", componentId, component.getClass().getSimpleName());
+            LOG.warn("Component {} ({}) is not annotated with @Stateful; component state from the flow snapshot will not be restored",
+                    componentId, component.getClass().getSimpleName());
             return;
         }
 
@@ -4173,7 +4174,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             if (supportedScopes.contains(Scope.LOCAL) && componentState.getLocalNodeStates() != null && !componentState.getLocalNodeStates().isEmpty()) {
                 final int localNodeOrdinal = context.getLocalNodeOrdinal();
                 if (localNodeOrdinal < 0) {
-                    LOG.debug("Local node ordinal is not set; skipping local state restoration for component {}", componentId);
+                    LOG.warn("Local node ordinal is not set; local component state from the flow snapshot will not be restored for component {}", componentId);
                     return;
                 }
 
@@ -4184,7 +4185,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     stateManager.setState(localState, Scope.LOCAL);
                     LOG.debug("Restored local state for component {} from node ordinal {}", componentId, localNodeOrdinal);
                 } else {
-                    LOG.debug("No local state found for component {} at node ordinal {}", componentId, localNodeOrdinal);
+                    LOG.info("No local component state was captured for node ordinal {} in the flow snapshot; local state for component {} will not be restored on this node",
+                            localNodeOrdinal, componentId);
                 }
             }
         } catch (final IOException e) {

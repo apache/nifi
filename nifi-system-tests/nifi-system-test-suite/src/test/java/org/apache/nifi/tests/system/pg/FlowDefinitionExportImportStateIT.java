@@ -99,8 +99,7 @@ public class FlowDefinitionExportImportStateIT extends NiFiSystemIT {
         final VersionedNodeState nodeState = state.getLocalNodeStates().get(0);
         assertNotNull(nodeState);
         assertNotNull(nodeState.getState().get("count"));
-        assertNotNull(state.getClusterState(), "clusterState should be present (falls back to local provider on standalone)");
-        assertNotNull(state.getClusterState().get("count"));
+        assertNull(state.getClusterState(), "clusterState should not be exported on a standalone node since the cluster state provider is not enabled");
     }
 
     @Test

@@ -38,6 +38,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -548,12 +549,18 @@ public class VersionedComponentFlowMapper {
         }
 
         final String componentId = componentNode.getIdentifier();
-        final StateManager stateManager = flowMappingOptions.getStateManagerProvider().getStateManager(componentId);
+        final StateManagerProvider stateManagerProvider = flowMappingOptions.getStateManagerProvider();
+        final StateManager stateManager = stateManagerProvider.getStateManager(componentId);
+        final boolean clusterProviderEnabled = stateManagerProvider.isClusterProviderEnabled();
         final VersionedComponentState result = new VersionedComponentState();
         boolean hasState = false;
 
         try {
             for (final Scope scope : stateful.scopes()) {
+                if (scope == Scope.CLUSTER && !clusterProviderEnabled) {
+                    continue;
+                }
+
                 final StateMap stateMap = stateManager.getState(scope);
                 if (stateMap != null && !stateMap.toMap().isEmpty()) {
                     if (scope == Scope.CLUSTER) {
