@@ -82,6 +82,20 @@ public class DynamicSemaphore {
     }
 
     /**
+     * Returns the number of permits currently in use, computed atomically against any concurrent
+     * call to {@link #setMaxPermits(int)}. A non-atomic {@code getMaxPermits() - availablePermits()}
+     * outside this class can observe a transient inconsistency if a resize is in progress between
+     * the two reads, which is undesirable for metrics that feed cluster heartbeats.
+     *
+     * @return the number of permits that have been acquired but not yet released. The returned value
+     *         is a best-effort snapshot because permits may be acquired or released by other threads
+     *         before the caller can act on it, but it is consistent with a single point in time.
+     */
+    public synchronized int getInUsePermits() {
+        return maxPermits - semaphore.availablePermits();
+    }
+
+    /**
      * Extends {@link Semaphore} in order to expose the protected {@link #reducePermits(int)}
      * method, which is needed in order to dynamically shrink the pool of available permits.
      */

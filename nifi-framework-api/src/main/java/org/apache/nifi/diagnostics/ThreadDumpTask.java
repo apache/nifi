@@ -17,6 +17,8 @@
 package org.apache.nifi.diagnostics;
 
 import com.sun.management.HotSpotDiagnosticMXBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -31,9 +33,11 @@ import java.util.Collections;
  */
 public class ThreadDumpTask implements DiagnosticTask {
 
+    private static final Logger logger = LoggerFactory.getLogger(ThreadDumpTask.class);
+
     @Override
     public DiagnosticsDumpElement captureDump(final boolean verbose) {
-        final StringBuilder sb = new StringBuilder();
+        String threadDump;
 
         Path tempDirectory = null;
         try {
@@ -41,26 +45,27 @@ public class ThreadDumpTask implements DiagnosticTask {
             // dumpThreads requires that the destination file does not already exist. Creating a private
             // temporary directory and writing to a fresh filename inside it avoids a time-of-check to
             // time-of-use race that would exist if we created a temp file and then deleted it before the
-            // JNI call.
+            // dumpThreads call.
             tempDirectory = Files.createTempDirectory("nifi-thread-dump-");
             final Path tempFile = tempDirectory.resolve("thread-dump.txt");
             try {
                 diagnosticMXBean.dumpThreads(tempFile.toString(), HotSpotDiagnosticMXBean.ThreadDumpFormat.TEXT_PLAIN);
-                sb.append(Files.readString(tempFile));
+                threadDump = Files.readString(tempFile);
             } finally {
                 Files.deleteIfExists(tempFile);
             }
         } catch (final IOException e) {
-            sb.append("Failed to capture thread dump: ").append(e.getMessage());
+            threadDump = "Failed to capture thread dump: " + e.getMessage();
         } finally {
             if (tempDirectory != null) {
                 try {
                     Files.deleteIfExists(tempDirectory);
-                } catch (final IOException ignored) {
+                } catch (final IOException e) {
+                    logger.debug("Failed to delete temporary thread-dump directory {}", tempDirectory, e);
                 }
             }
         }
 
-        return new StandardDiagnosticsDumpElement("Thread Dump", Collections.singletonList(sb.toString()));
+        return new StandardDiagnosticsDumpElement("Thread Dump", Collections.singletonList(threadDump));
     }
 }

@@ -436,6 +436,68 @@ class VirtualThreadSchedulingAgentTest {
         }
     }
 
+    /**
+     * Verifies that a CRON expression with no reachable future firings (for example Feb 30, which does not exist)
+     * causes the scheduling loop to exit cleanly rather than tight-looping on NPEs thrown from
+     * {@link org.springframework.scheduling.support.CronExpression#next(java.time.temporal.Temporal)}.
+     */
+    @Test
+    void testCronConnectableExitsCleanlyWhenNoFutureFirings() throws InterruptedException {
+        final String unreachableCron = "0 0 0 30 2 ?";
+        final AtomicInteger invocationCount = new AtomicInteger(0);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.CRON_DRIVEN, invocationCount, new CountDownLatch(0));
+        when(connectable.getSchedulingPeriod()).thenReturn(unreachableCron);
+        when(connectable.evaluateParameters(eq(unreachableCron))).thenReturn(unreachableCron);
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        scheduleConnectable(connectable, lifecycleState);
+
+        Thread.sleep(500L);
+
+        assertEquals(0, invocationCount.get(),
+                "An unreachable CRON expression must not trigger any invocations");
+        assertEquals(MAX_THREADS, agent.getGlobalSemaphore().availablePermits(),
+                "Scheduling loop must release any acquired permits before exiting; a tight loop would hold a permit");
+
+        unscheduleConnectable(connectable, lifecycleState);
+    }
+
+    @Test
+    void testCronReportingTaskExitsCleanlyWhenNoFutureFirings() throws InterruptedException {
+        final String unreachableCron = "0 0 0 30 2 ?";
+        final AtomicInteger invocationCount = new AtomicInteger(0);
+        final ReportingTask reportingTask = mock(ReportingTask.class);
+        doAnswer(invocation -> {
+            invocationCount.incrementAndGet();
+            return null;
+        }).when(reportingTask).onTrigger(any());
+
+        final ReportingTaskNode taskNode = mock(ReportingTaskNode.class);
+        when(taskNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.CRON_DRIVEN);
+        when(taskNode.getSchedulingPeriod()).thenReturn(unreachableCron);
+        when(taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS))
+                .thenThrow(new IllegalArgumentException("CRON expression cannot be parsed as a time duration"));
+        when(taskNode.getReportingTask()).thenReturn(reportingTask);
+        when(taskNode.getReportingContext()).thenReturn(mock(ReportingContext.class));
+        when(taskNode.getIdentifier()).thenReturn(COMPONENT_ID);
+        when(taskNode.getName()).thenReturn("TestReporter");
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        lifecycleState.setScheduled(true);
+        agent.schedule(taskNode, lifecycleState);
+
+        Thread.sleep(500L);
+
+        assertEquals(0, invocationCount.get(),
+                "An unreachable CRON expression must not trigger any reporting-task invocations");
+        assertEquals(MAX_THREADS, agent.getGlobalSemaphore().availablePermits(),
+                "Scheduling loop must release any acquired permits before exiting");
+
+        lifecycleState.setScheduled(false);
+        agent.unschedule(taskNode, lifecycleState);
+    }
+
     @Test
     void testAgentAcceptsAlreadyScheduledLifecycleStateForReportingTask() throws InterruptedException {
         final AtomicInteger invocationCount = new AtomicInteger(0);
@@ -607,5 +669,108 @@ class VirtualThreadSchedulingAgentTest {
         when(contextFactory.newProcessContext(eq(connectable), any(AtomicLong.class))).thenReturn(repositoryContext);
 
         return connectable;
+    }
+
+    /**
+     * If a failure occurs after the agent has flipped {@code lifecycleState.setScheduled(true)}, the agent must roll
+     * the flag back so the component is not left flagged as running with zero (or a partial set of) scheduling loops.
+     * This covers the three schedule entry points.
+     */
+    @Test
+    void testScheduleRollsBackScheduledFlagOnFailure() {
+        final Connectable connectable = createMockedConnectable(2, SchedulingStrategy.TIMER_DRIVEN, new AtomicInteger(), new CountDownLatch(0));
+        when(connectable.getMaxConcurrentTasks()).thenThrow(new RuntimeException("Simulated failure during schedule"));
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        final RuntimeException thrown = assertThrows(RuntimeException.class, () -> agent.schedule(connectable, lifecycleState));
+        assertEquals("Simulated failure during schedule", thrown.getMessage());
+        assertFalse(lifecycleState.isScheduled(),
+                "schedule() must roll setScheduled(true) back to false when the scheduling setup fails");
+        assertEquals(0, agent.getRunningThreadCount(), "No virtual threads should remain after a failed schedule");
+    }
+
+    @Test
+    void testScheduleOnceRollsBackScheduledFlagOnFailure() {
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.TIMER_DRIVEN, new AtomicInteger(), new CountDownLatch(0));
+        when(connectable.getProcessGroup()).thenThrow(new RuntimeException("Simulated failure building thread name"));
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        assertThrows(RuntimeException.class, () -> agent.scheduleOnce(connectable, lifecycleState, () -> null));
+        assertFalse(lifecycleState.isScheduled(),
+                "scheduleOnce() must roll setScheduled(true) back to false when the scheduling setup fails");
+    }
+
+    @Test
+    void testScheduleReportingTaskRollsBackScheduledFlagOnFailure() {
+        final ReportingTaskNode taskNode = mock(ReportingTaskNode.class);
+        when(taskNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
+        when(taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS)).thenReturn(TimeUnit.MILLISECONDS.toNanos(50L));
+        when(taskNode.getName()).thenThrow(new RuntimeException("Simulated failure building thread name"));
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        assertThrows(RuntimeException.class, () -> agent.schedule(taskNode, lifecycleState));
+        assertFalse(lifecycleState.isScheduled(), "schedule(ReportingTaskNode) must roll setScheduled(true) back to false when the scheduling setup fails");
+    }
+
+    /**
+     * Verifies the shutdown contract: {@code shutdown()} interrupts every virtual thread owned by the agent, those
+     * threads exit cleanly, and subsequent schedule attempts fail fast. A hanging processor onTrigger is used to
+     * ensure the virtual thread is actively executing inside the loop body when shutdown happens, rather than just
+     * sleeping between invocations, because the interesting case is delivering an interrupt to in-flight processor
+     * work that would otherwise run until JVM exit.
+     */
+    @Test
+    void testShutdownInterruptsRunningVirtualThreads() throws InterruptedException {
+        final CountDownLatch invocationStarted = new CountDownLatch(1);
+        final CountDownLatch releaseInvocation = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.TIMER_DRIVEN, new AtomicInteger(), new CountDownLatch(0));
+        doAnswer(invocation -> {
+            invocationStarted.countDown();
+            try {
+                releaseInvocation.await();
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            return null;
+        }).when(connectable).onTrigger(any(), any());
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        scheduleConnectable(connectable, lifecycleState);
+
+        assertTrue(invocationStarted.await(5, TimeUnit.SECONDS), "The virtual thread should have entered onTrigger before shutdown is triggered");
+        assertTrue(agent.getRunningThreadCount() >= 1, "Agent should be tracking at least one running virtual thread");
+
+        agent.shutdown();
+
+        final long deadline = System.currentTimeMillis() + 5_000L;
+        while (agent.getRunningThreadCount() > 0 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(25L);
+        }
+
+        assertEquals(0, agent.getRunningThreadCount(),
+                "shutdown() must interrupt running virtual threads so they exit; still running: " + agent.getRunningThreadCount());
+        assertTrue(agent.isShutdown(), "shutdown flag must remain set after shutdown()");
+    }
+
+    @Test
+    void testScheduleAfterShutdownFailsFast() {
+        agent.shutdown();
+
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.TIMER_DRIVEN, new AtomicInteger(), new CountDownLatch(0));
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        assertThrows(IllegalStateException.class, () -> agent.schedule(connectable, lifecycleState),
+                "schedule() must refuse to start new work after the agent has been shut down");
+        assertFalse(lifecycleState.isScheduled(), "A rejected schedule() after shutdown must not leave the lifecycle state flagged as scheduled");
+    }
+
+    @Test
+    void testShutdownIsIdempotent() {
+        agent.shutdown();
+        agent.shutdown();
+        assertTrue(agent.isShutdown());
+        assertEquals(0, agent.getRunningThreadCount());
     }
 }

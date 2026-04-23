@@ -182,4 +182,75 @@ class DynamicSemaphoreTest {
         assertEquals(5, semaphore.getMaxPermits());
         assertEquals(5, semaphore.availablePermits());
     }
+
+    @Test
+    void testGetInUsePermitsReflectsAcquireAndRelease() throws InterruptedException {
+        final DynamicSemaphore semaphore = new DynamicSemaphore(4);
+        assertEquals(0, semaphore.getInUsePermits());
+
+        semaphore.acquire();
+        assertEquals(1, semaphore.getInUsePermits());
+
+        semaphore.acquire();
+        semaphore.acquire();
+        assertEquals(3, semaphore.getInUsePermits());
+
+        semaphore.release();
+        assertEquals(2, semaphore.getInUsePermits());
+
+        semaphore.release();
+        semaphore.release();
+        assertEquals(0, semaphore.getInUsePermits());
+    }
+
+    @Test
+    void testGetInUsePermitsConsistentDuringConcurrentResize() throws InterruptedException {
+        final int initialPermits = 4;
+        final DynamicSemaphore semaphore = new DynamicSemaphore(initialPermits);
+        for (int i = 0; i < initialPermits; i++) {
+            semaphore.acquire();
+        }
+
+        final int iterations = 1_000;
+        final AtomicInteger impossibleReads = new AtomicInteger(0);
+        final CountDownLatch start = new CountDownLatch(1);
+        final CountDownLatch done = new CountDownLatch(2);
+
+        // Resizer thread: repeatedly flips the max between 4 and 10. If getInUsePermits were non-atomic, the reader
+        // could see max=10 while availablePermits was still reflecting the old max=4 state (or vice versa), which
+        // would yield a transient "in use" count outside the feasible [0, currentMax] window.
+        Thread.ofVirtual().start(() -> {
+            try {
+                start.await();
+                for (int i = 0; i < iterations; i++) {
+                    semaphore.setMaxPermits(10);
+                    semaphore.setMaxPermits(4);
+                }
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                done.countDown();
+            }
+        });
+
+        Thread.ofVirtual().start(() -> {
+            try {
+                start.await();
+                for (int i = 0; i < iterations; i++) {
+                    final int inUse = semaphore.getInUsePermits();
+                    if (inUse < 0 || inUse > 10) {
+                        impossibleReads.incrementAndGet();
+                    }
+                }
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                done.countDown();
+            }
+        });
+
+        start.countDown();
+        assertTrue(done.await(5, TimeUnit.SECONDS));
+        assertEquals(0, impossibleReads.get(), "getInUsePermits should never observe an impossible value during a resize");
+    }
 }

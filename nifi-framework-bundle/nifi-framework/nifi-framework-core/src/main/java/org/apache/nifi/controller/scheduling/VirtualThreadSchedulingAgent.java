@@ -30,7 +30,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +65,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private final RepositoryContextFactory contextFactory;
     private final DynamicSemaphore globalSemaphore;
     private final long noWorkYieldNanos;
+    private final Set<Thread> runningThreads = ConcurrentHashMap.newKeySet();
+    private volatile boolean shutdown = false;
     private volatile String adminYieldDuration = "1 sec";
     private volatile long adminYieldNanos = TimeUnit.SECONDS.toNanos(1L);
 
@@ -81,8 +85,26 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
     }
 
+    /**
+     * Marks the agent as shut down and interrupts every virtual thread that is currently running a scheduling loop,
+     * a run-once invocation, or a reporting-task loop. After {@code shutdown()} returns, subsequent calls to any of
+     * the {@code schedule} methods will fail fast with {@link IllegalStateException}. This method is idempotent and
+     * may be called multiple times (for example, both on the {@code kill} path in {@code FlowController.shutdown}
+     * and again from {@code StandardProcessScheduler.shutdown}). Interrupts are a best-effort mechanism: processor
+     * code that does not honor interruption will continue to run until it completes naturally, but the virtual
+     * threads themselves are daemon threads and will be reaped when the JVM exits.
+     */
     @Override
     public void shutdown() {
+        shutdown = true;
+        int interrupted = 0;
+        for (final Thread thread : runningThreads) {
+            thread.interrupt();
+            interrupted++;
+        }
+        if (interrupted > 0) {
+            logger.info("Shutdown interrupted {} virtual threads managed by the VirtualThreadSchedulingAgent", interrupted);
+        }
     }
 
     /**
@@ -106,26 +128,42 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             cronExpression = null;
         }
 
+        // setScheduled(true) is idempotent with the state the framework already set before calling into the agent.
+        // It is done here too so that the agent is self-consistent even for callers that do not follow the framework
+        // contract, but it also means that if anything below fails we MUST roll it back: otherwise the component
+        // would be left flagged as scheduled with zero (or a partial set of) scheduling loops actually running.
+        // Any loops that did start before the failure will exit on their next isActive() check when the rollback
+        // flips the flag back to false.
         lifecycleState.setScheduled(true);
-        final long startStopTime = lifecycleState.getLastStopTime();
-        final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState);
-        final int taskCount = connectable.getMaxConcurrentTasks();
+        try {
+            final long startStopTime = lifecycleState.getLastStopTime();
+            final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState);
+            final int taskCount = connectable.getMaxConcurrentTasks();
 
-        for (int i = 0; i < taskCount; i++) {
-            final String threadName = buildThreadName(connectable, i);
-            Thread.ofVirtual().name(threadName).start(() -> runSchedulingLoop(connectable, connectableTask, lifecycleState, startStopTime, cronExpression));
+            for (int i = 0; i < taskCount; i++) {
+                final String threadName = buildThreadName(connectable, i);
+                startTrackedVirtualThread(threadName, () -> runSchedulingLoop(connectable, connectableTask, lifecycleState, startStopTime, cronExpression));
+            }
+
+            logger.info("Scheduled {} to run with {} virtual threads", connectable, taskCount);
+        } catch (final Throwable t) {
+            lifecycleState.setScheduled(false);
+            throw t;
         }
-
-        logger.info("Scheduled {} to run with {} virtual threads", connectable, taskCount);
     }
 
     @Override
     public void scheduleOnce(final Connectable connectable, final LifecycleState lifecycleState, final Callable<Future<Void>> stopCallback) {
         lifecycleState.setScheduled(true);
-        final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState);
-        final String threadName = buildThreadName(connectable, 0);
+        try {
+            final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState);
+            final String threadName = buildThreadName(connectable, 0);
 
-        Thread.ofVirtual().name(threadName).start(() -> runOnce(connectable, connectableTask, stopCallback));
+            startTrackedVirtualThread(threadName, () -> runOnce(connectable, connectableTask, stopCallback));
+        } catch (final Throwable t) {
+            lifecycleState.setScheduled(false);
+            throw t;
+        }
     }
 
     @Override
@@ -148,13 +186,19 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         lifecycleState.setScheduled(true);
-        final long startStopTime = lifecycleState.getLastStopTime();
-        final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, lifecycleState, flowController.getExtensionManager());
-        final String threadName = "Reporting Task: " + taskNode.getName();
+        try {
+            final long startStopTime = lifecycleState.getLastStopTime();
+            final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, lifecycleState, flowController.getExtensionManager());
+            final String threadName = "Reporting Task: " + taskNode.getName();
 
-        Thread.ofVirtual().name(threadName).start(() -> runReportingTaskLoop(taskNode, reportingTaskWrapper, schedulingNanos, cronExpression, lifecycleState, startStopTime));
+            startTrackedVirtualThread(threadName,
+                    () -> runReportingTaskLoop(taskNode, reportingTaskWrapper, schedulingNanos, cronExpression, lifecycleState, startStopTime));
 
-        logger.info("{} started on virtual thread", taskNode.getReportingTask());
+            logger.info("{} started on virtual thread", taskNode.getReportingTask());
+        } catch (final Throwable t) {
+            lifecycleState.setScheduled(false);
+            throw t;
+        }
     }
 
     @Override
@@ -187,7 +231,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void setMaxThreadCount(final int maxThreads) {
+    public synchronized void setMaxThreadCount(final int maxThreads) {
         globalSemaphore.setMaxPermits(maxThreads);
         logger.info("Global semaphore permits updated to {}", maxThreads);
     }
@@ -227,6 +271,14 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         return globalSemaphore;
     }
 
+    int getRunningThreadCount() {
+        return runningThreads.size();
+    }
+
+    boolean isShutdown() {
+        return shutdown;
+    }
+
     /**
      * @return the number of virtual threads that are currently executing a processor or
      * reporting-task invocation. A thread counts as active when it is holding a permit on
@@ -234,7 +286,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
      * semantics used by the cluster heartbeat and UI active-thread counter.
      */
     public int getActiveThreadCount() {
-        return globalSemaphore.getMaxPermits() - globalSemaphore.availablePermits();
+        return globalSemaphore.getInUsePermits();
     }
 
     /**
@@ -254,6 +306,10 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         OffsetDateTime nextCronSchedule = null;
         if (cronDriven) {
             nextCronSchedule = getNextCronSchedule(OffsetDateTime.now(), cronExpression);
+            if (nextCronSchedule == null) {
+                logger.warn("CRON expression for {} has no future firings; scheduling loop will exit without invoking the component", connectable);
+                return;
+            }
             final long initialDelayMillis = Math.max(nextCronSchedule.toInstant().toEpochMilli() - System.currentTimeMillis(), 0L);
             if (initialDelayMillis > 0L) {
                 sleepWithPolling(TimeUnit.MILLISECONDS.toNanos(initialDelayMillis), lifecycleState, startStopTime);
@@ -275,6 +331,10 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
 
                 if (cronDriven) {
                     nextCronSchedule = getNextCronSchedule(nextCronSchedule, cronExpression);
+                    if (nextCronSchedule == null) {
+                        logger.warn("CRON expression for {} has no further firings after the current invocation; scheduling loop is exiting", connectable);
+                        return;
+                    }
                     final long sleepMillis = Math.max(nextCronSchedule.toInstant().toEpochMilli() - System.currentTimeMillis(), 0L);
                     sleepWithPolling(TimeUnit.MILLISECONDS.toNanos(sleepMillis), lifecycleState, startStopTime);
                 } else {
@@ -335,6 +395,11 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         OffsetDateTime nextCronSchedule = null;
         if (cronDriven) {
             nextCronSchedule = getNextCronSchedule(OffsetDateTime.now(), cronExpression);
+            if (nextCronSchedule == null) {
+                logger.warn("CRON expression for {} has no future firings; scheduling loop will exit without invoking the reporting task",
+                        taskNode.getReportingTask());
+                return;
+            }
             final long initialDelayMillis = Math.max(nextCronSchedule.toInstant().toEpochMilli() - System.currentTimeMillis(), 0L);
             if (initialDelayMillis > 0L) {
                 sleepWithPolling(TimeUnit.MILLISECONDS.toNanos(initialDelayMillis), lifecycleState, startStopTime);
@@ -355,6 +420,11 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
 
                 if (cronDriven) {
                     nextCronSchedule = getNextCronSchedule(nextCronSchedule, cronExpression);
+                    if (nextCronSchedule == null) {
+                        logger.warn("CRON expression for {} has no further firings after the current invocation; scheduling loop is exiting",
+                                taskNode.getReportingTask());
+                        return;
+                    }
                     final long sleepMillis = Math.max(nextCronSchedule.toInstant().toEpochMilli() - System.currentTimeMillis(), 0L);
                     sleepWithPolling(TimeUnit.MILLISECONDS.toNanos(sleepMillis), lifecycleState, startStopTime);
                 } else {
@@ -445,6 +515,46 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 + ", group=" + connectable.getProcessGroup().getName() + "] task " + taskIndex;
     }
 
+    /**
+     * Starts a virtual thread running {@code task} under the given thread name and tracks it in {@link #runningThreads}
+     * so that {@link #shutdown()} can interrupt it if the agent is torn down while the task is still running. The thread
+     * removes itself from the tracking set in a {@code finally} block when the task completes so the set does not grow
+     * unbounded as processors and reporting tasks are scheduled and unscheduled over the agent's lifetime.
+     * <p>
+     * The {@code shutdown} flag is re-checked inside the wrapped runnable because there is a small window between
+     * {@link Thread#start()} and the first line of the virtual thread's body during which a concurrent call to
+     * {@link #shutdown()} could miss the newly-started thread. The double-check ensures that a task is not started
+     * (and therefore cannot acquire the global semaphore) after shutdown has been signaled.
+     *
+     * @throws IllegalStateException if {@link #shutdown()} has already been called
+     */
+    private void startTrackedVirtualThread(final String threadName, final Runnable task) {
+        if (shutdown) {
+            throw new IllegalStateException("VirtualThreadSchedulingAgent has been shut down and cannot accept new work");
+        }
+
+        final Runnable trackedTask = () -> {
+            final Thread self = Thread.currentThread();
+            runningThreads.add(self);
+            try {
+                if (shutdown) {
+                    return;
+                }
+                task.run();
+            } finally {
+                runningThreads.remove(self);
+            }
+        };
+
+        Thread.ofVirtual().name(threadName).start(trackedTask);
+    }
+
+    /**
+     * Returns the next firing time for the given CRON expression after {@code currentSchedule}.
+     * Callers MUST handle a {@code null} return: {@link CronExpression#next(java.time.temporal.Temporal)}
+     * returns {@code null} when no future firing is reachable within the expression's search horizon,
+     * for example for a physically impossible expression such as {@code "0 0 0 30 2 ?"} (February 30).
+     */
     private static OffsetDateTime getNextCronSchedule(final OffsetDateTime currentSchedule, final CronExpression cronExpression) {
         // Clock resolution is not millisecond-precise, so ensure the next scheduled time is strictly after the time
         // this invocation was supposed to run, otherwise the same moment could be scheduled twice.
