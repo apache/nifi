@@ -1024,7 +1024,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     final String classloaderIsolationKey = getClassLoaderIsolationKey(context);
 
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentClass().getName(), getIdentifier(), bundle, classpathUrls, false,
                                 classloaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
                         final VerifiableProcessor tempVerifiable = verifiableComponentFactory.createProcessor(this, detectedClassLoader);
