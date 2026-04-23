@@ -59,9 +59,7 @@
                             <!-- Processor Load Average column -->
                             <ng-container matColumnDef="processorLoadAverage">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Core Load Average">
-                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">
-                                        Core Load Average
-                                    </div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Core Load Average</div>
                                 </th>
                                 <td
                                     mat-cell
@@ -84,9 +82,7 @@
                             <!-- Daemon Threads column -->
                             <ng-container matColumnDef="daemonThreads">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Daemon Threads">
-                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">
-                                        Daemon Threads
-                                    </div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Daemon Threads</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.daemonThreads">
                                     {{ item.snapshot.daemonThreads }}

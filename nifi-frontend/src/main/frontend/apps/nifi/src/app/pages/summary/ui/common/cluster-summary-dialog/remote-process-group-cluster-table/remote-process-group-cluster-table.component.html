@@ -49,8 +49,7 @@
             <ng-container matColumnDef="transmitting">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Transmitting</th>
                 <td mat-cell *matCellDef="let item">
-                    <div
-                        class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1.5 align-middle">
+                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1.5 align-middle">
                         <span [ngClass]="getTransmissionStatusIcon(item)"></span>
                         <span [title]="formatTransmitting(item)">{{ formatTransmitting(item) }}</span>
                         @if (item.activeThreadCount > 0) {

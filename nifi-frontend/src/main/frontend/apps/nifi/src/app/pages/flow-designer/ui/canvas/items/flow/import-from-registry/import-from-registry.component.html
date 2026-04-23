@@ -144,9 +144,7 @@
                             <ng-container matColumnDef="version">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
                                 <td mat-cell *matCellDef="let item">
-                                    <div
-                                        class="text-ellipsis overflow-hidden whitespace-nowrap"
-                                        [title]="item.version">
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
                                         {{ item.version }}
                                     </div>
                                 </td>

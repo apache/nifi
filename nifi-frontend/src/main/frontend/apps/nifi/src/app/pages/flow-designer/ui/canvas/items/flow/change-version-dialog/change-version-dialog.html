@@ -115,9 +115,7 @@
                         <ng-container matColumnDef="comments">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
                             <td mat-cell *matCellDef="let item">
-                                <div
-                                    class="text-ellipsis overflow-hidden whitespace-nowrap"
-                                    [title]="item.comments">
+                                <div class="text-ellipsis overflow-hidden whitespace-nowrap" [title]="item.comments">
                                     {{ item.comments }}
                                 </div>
                             </td>

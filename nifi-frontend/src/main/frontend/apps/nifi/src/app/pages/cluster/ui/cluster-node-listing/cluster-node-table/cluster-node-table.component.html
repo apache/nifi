@@ -49,9 +49,7 @@
                             <!-- Active Thread Count -->
                             <ng-container matColumnDef="activeThreadCount">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Active Thread Count">
-                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">
-                                        Active Threads
-                                    </div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Active Threads</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatActiveThreadCount(item)">
                                     {{ formatActiveThreadCount(item) }}
@@ -65,8 +63,7 @@
                                     *matHeaderCellDef
                                     mat-sort-header
                                     title="Count / data size queued in the last 5 minutes">
-                                    <div
-                                        class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
+                                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                                         <span
                                             [ngClass]="{
                                                 underline:
@@ -116,9 +113,7 @@
                             <!-- Last Heartbeat Column -->
                             <ng-container matColumnDef="heartbeat">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Last Heartbeat">
-                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">
-                                        Last Heartbeat
-                                    </div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Last Heartbeat</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatHeartbeat(item)">
                                     @if (!item.heartbeat) {

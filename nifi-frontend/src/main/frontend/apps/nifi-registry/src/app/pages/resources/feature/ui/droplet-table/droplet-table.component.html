@@ -78,9 +78,7 @@
                     <ng-container matColumnDef="versions">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Versions</th>
                         <td mat-cell *matCellDef="let item">
-                            <div
-                                class="text-ellipsis overflow-hidden whitespace-nowrap"
-                                [title]="item.versionCount">
+                            <div class="text-ellipsis overflow-hidden whitespace-nowrap" [title]="item.versionCount">
                                 {{ item.versionCount }}
                             </div>
                         </td>
