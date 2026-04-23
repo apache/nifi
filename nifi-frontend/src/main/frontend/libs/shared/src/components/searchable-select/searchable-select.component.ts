@@ -57,6 +57,7 @@ import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { FilteredSearchableSelectOption, SearchableSelectGroup, SearchableSelectOption } from '../../types';
+import { EllipsisTooltipDirective } from '../../directives/ellipsis-tooltip/ellipsis-tooltip.directive';
 import { MultiSelectOption } from '../multi-select-option/multi-select-option.component';
 
 type MatSelectOverlayInternals = MatSelect & {
@@ -97,7 +98,8 @@ type VirtualItem<T> = FilteredSearchableSelectOption<T> | FooterItem | GroupHead
         CdkFixedSizeVirtualScroll,
         MatButton,
         MatSuffix,
-        MatProgressSpinner
+        MatProgressSpinner,
+        EllipsisTooltipDirective
     ],
     templateUrl: './searchable-select.component.html',
     styleUrl: './searchable-select.component.scss',
