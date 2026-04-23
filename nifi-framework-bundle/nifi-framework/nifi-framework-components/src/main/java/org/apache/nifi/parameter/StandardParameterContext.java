@@ -801,8 +801,17 @@ public class StandardParameterContext implements ParameterContext {
 
             final ControllerServiceState serviceState = serviceNode.getState();
             if (serviceState != ControllerServiceState.DISABLED && (isDeletion || duringUpdate)) {
-                throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by "
-                        + serviceNode + ", which currently has a state of " + serviceState);
+                final String baseMessage = "Cannot " + action + " parameter '" + parameterName + "' because it is referenced by "
+                        + serviceNode + ", which currently has a state of " + serviceState;
+                if (isDeletion) {
+                    throw new IllegalStateException(baseMessage);
+                }
+
+                final String serviceDisplayName = serviceNode.getName();
+                throw new IllegalStateException(baseMessage + ".\n\nTo resolve this:\n"
+                        + "1. Disable the '" + serviceDisplayName + "' controller service (and any components that reference it, if prompted).\n"
+                        + "2. Retry the flow upgrade.\n"
+                        + "3. Re-enable the '" + serviceDisplayName + "' controller service once the upgrade completes.");
             }
 
             if (parameter != null) {

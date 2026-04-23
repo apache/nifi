@@ -555,6 +555,9 @@ public class TestStandardParameterContext {
         final ParameterContext context = createStandardParameterContext(referenceManager);
         final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
         enableControllerService(serviceNode);
+        Mockito.when(serviceNode.getName()).thenReturn("My Service");
+        Mockito.when(serviceNode.getComponentType()).thenReturn("MyService");
+        Mockito.when(serviceNode.getIdentifier()).thenReturn("service-id");
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
         final Map<String, Parameter> parameters = new HashMap<>();
@@ -570,24 +573,38 @@ public class TestStandardParameterContext {
         for (final ControllerServiceState state : EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.ENABLING, ControllerServiceState.DISABLING)) {
             setControllerServiceState(serviceNode, state);
 
-            try {
-                context.setParameters(parameters);
-                fail("Was able to update parameter being referenced by Controller Service that is " + state);
-            } catch (final IllegalStateException expected) {
-            }
+            final IllegalStateException updateException = assertThrows(IllegalStateException.class, () -> context.setParameters(parameters),
+                    "Was able to update parameter being referenced by Controller Service that is " + state);
+
+            final String updateMessage = updateException.getMessage();
+            // Preserves the original prefix verbatim so upstream wrapping remains consistent.
+            assertTrue(updateMessage.startsWith("Cannot update parameter 'abc' because it is referenced by "),
+                    "Unexpected update error prefix: " + updateMessage);
+            assertTrue(updateMessage.contains(", which currently has a state of " + state),
+                    "Expected state in update error message: " + updateMessage);
+            assertTrue(updateMessage.contains("To resolve this:"), "Expected remediation guidance in message: " + updateMessage);
+            assertTrue(updateMessage.contains("Disable the 'My Service' controller service"),
+                    "Expected disable remediation step in message: " + updateMessage);
+            assertTrue(updateMessage.contains("Retry the flow upgrade."), "Expected retry remediation step in message: " + updateMessage);
+            assertTrue(updateMessage.contains("Re-enable the 'My Service' controller service once the upgrade completes."),
+                    "Expected re-enable remediation step in message: " + updateMessage);
 
             assertEquals("123", context.getParameter("abc").get().getValue());
         }
 
+        setControllerServiceState(serviceNode, ControllerServiceState.DISABLING);
         parameters.clear();
-        context.setParameters(parameters);
+        parameters.put("abc", null);
+        final IllegalStateException deleteException = assertThrows(IllegalStateException.class, () -> context.setParameters(parameters),
+                "Was able to remove parameter being referenced by Controller Service that is DISABLING");
 
-        parameters.put("abc", createParameter(abcDescriptor, null));
-        try {
-            context.setParameters(parameters);
-            fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
-        } catch (final IllegalStateException expected) {
-        }
+        final String deleteMessage = deleteException.getMessage();
+        // Deletion keeps the original message without remediation guidance.
+        assertTrue(deleteMessage.startsWith("Cannot remove parameter 'abc' because it is referenced by "),
+                "Unexpected delete error prefix: " + deleteMessage);
+        assertTrue(deleteMessage.contains(", which currently has a state of "),
+                "Expected state in delete error message: " + deleteMessage);
+        assertFalse(deleteMessage.contains("To resolve this:"), "Delete message should not contain remediation guidance: " + deleteMessage);
     }
 
     private ParameterContext createStandardParameterContext(final ParameterReferenceManager referenceManager) {
