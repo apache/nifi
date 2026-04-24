@@ -32,8 +32,8 @@ public enum UnmatchedFieldBehavior implements DescribedValue {
     WARN("Warn on Unmatched Fields", "Warn on Unmatched Fields",
             "Any record field that does not map to a BigQuery table column is ignored, but a warning is logged per affected record."),
     FAIL("Fail on Unmatched Fields", "Fail on Unmatched Fields", """
-            If a record contains a field that does not map to a BigQuery table column, the FlowFile is routed to failure; \
-            or the affected record is dropped when Skip Invalid Rows is true.""");
+            If a record contains a field that does not map to a BigQuery table column, the FlowFile is routed to the failure relationship. \
+            This decision is independent of Skip Invalid Rows, which only governs row-level serialization failures.""");
 
     private final String value;
     private final String displayName;
