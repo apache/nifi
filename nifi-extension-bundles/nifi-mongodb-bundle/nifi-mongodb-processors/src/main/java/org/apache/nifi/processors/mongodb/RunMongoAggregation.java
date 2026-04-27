@@ -49,16 +49,16 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 @Tags({"mongo", "aggregation", "aggregate"})
-@CapabilityDescription("A processor that runs an aggregation query whenever a flowfile is received.")
+@CapabilityDescription("A processor that runs an aggregation query whenever a FlowFile is received.")
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 public class RunMongoAggregation extends AbstractMongoProcessor {
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .description("The input flowfile gets sent to this relationship when the query succeeds.")
+            .description("The input FlowFile gets sent to this relationship when the query succeeds.")
             .name("original")
             .build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
-            .description("The input flowfile gets sent to this relationship when the query fails.")
+            .description("The input FlowFile gets sent to this relationship when the query fails.")
             .name("failure")
             .build();
     static final Relationship REL_RESULTS = new Relationship.Builder()

@@ -69,7 +69,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
 
     static final PropertyDescriptor MAX_NUMBER_OF_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name("Max Number of Attributes")
-            .description("Specify the max number of attributes to add to the flowfile. There is no guarantee in what order"
+            .description("Specify the max number of attributes to add to the FlowFile. There is no guarantee in what order"
                     + " the tags will be processed. By default it will process all of them.")
             .required(false)
             .defaultValue("100")
@@ -90,15 +90,15 @@ public class ExtractMediaMetadata extends AbstractProcessor {
     static final PropertyDescriptor METADATA_KEY_FILTER = new PropertyDescriptor.Builder()
             .name("Metadata Key Filter")
             .description("A regular expression identifying which metadata keys received from the parser should be"
-                    + " added to the flowfile attributes.  If left blank, all metadata keys parsed will be added to the"
-                    + " flowfile attributes.")
+                    + " added to the FlowFile attributes.  If left blank, all metadata keys parsed will be added to the"
+                    + " FlowFile attributes.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
     static final PropertyDescriptor METADATA_KEY_PREFIX = new PropertyDescriptor.Builder()
             .name("Metadata Key Prefix")
-            .description("Text to be prefixed to metadata keys as the are added to the flowfile attributes.  It is"
+            .description("Text to be prefixed to metadata keys as the are added to the FlowFile attributes.  It is"
                     + " recommended to end with with a separator character like '.' or '-', this is not automatically "
                     + " added by the processor.")
             .required(false)

@@ -22,9 +22,9 @@ import org.apache.nifi.components.DescribedValue;
 import java.util.EnumSet;
 
 public enum ResultOutputStrategy implements DescribedValue {
-    PER_HIT("splitUp-yes", "Flowfile per hit."),
-    PER_RESPONSE("splitUp-no", "Flowfile per response."),
-    PER_QUERY("splitUp-query", "Combine results from all query responses (one flowfile per entire paginated result set of hits). " +
+    PER_HIT("splitUp-yes", "FlowFile per hit."),
+    PER_RESPONSE("splitUp-no", "FlowFile per response."),
+    PER_QUERY("splitUp-query", "Combine results from all query responses (one FlowFile per entire paginated result set of hits). " +
             "Note that aggregations cannot be paged, they are generated across the entire result set and " +
             "returned as part of the first page. Results are output with one JSON object per line " +
             "(allowing hits to be combined from multiple pages without loading all results into memory).");

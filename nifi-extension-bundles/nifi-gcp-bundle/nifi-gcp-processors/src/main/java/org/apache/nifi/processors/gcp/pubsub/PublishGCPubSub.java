@@ -96,7 +96,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 @SeeAlso({ConsumeGCPubSub.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"google", "google-cloud", "gcp", "message", "pubsub", "publish"})
-@CapabilityDescription("Publishes the content of the incoming flowfile to the configured Google Cloud PubSub topic. The processor supports dynamic properties." +
+@CapabilityDescription("Publishes the content of the incoming FlowFile to the configured Google Cloud PubSub topic. The processor supports dynamic properties." +
         " If any dynamic properties are present, they will be sent along with the message in the form of 'attributes'.")
 @DynamicProperty(name = "Attribute name", value = "Value to be set to the attribute",
         description = "Attributes to be set for the outgoing Google Cloud PubSub message", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

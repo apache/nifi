@@ -47,8 +47,8 @@ import java.util.stream.Stream;
 public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<PaginatedJsonQueryParameters> {
     public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT)
-            .description("Output a flowfile containing all hits or one flowfile for each individual hit " +
-                    "or one flowfile containing all hits from all paged responses.")
+            .description("Output a FlowFile containing all hits or one FlowFile for each individual hit " +
+                    "or one FlowFile containing all hits from all paged responses.")
             .allowableValues(ResultOutputStrategy.class)
             .build();
 

@@ -98,7 +98,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
             .name("Results Per FlowFile")
-            .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
+            .description("How many results to put into a FlowFile at once. The whole body will be treated as a JSON array of results.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")

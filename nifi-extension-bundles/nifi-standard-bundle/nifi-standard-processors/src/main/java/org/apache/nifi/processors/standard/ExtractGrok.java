@@ -71,7 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
     "adding the results as attributes or replacing the content of the FlowFile with a JSON " +
     "notation of the matched content")
 @WritesAttributes({
-    @WritesAttribute(attribute = "grok.XXX", description = "When operating in flowfile-attribute mode, each of the Grok identifier that is matched in the flowfile " +
+    @WritesAttribute(attribute = "grok.XXX", description = "When operating in flowfile-attribute mode, each of the Grok identifier that is matched in the FlowFile " +
         "will be added as an attribute, prefixed with \"grok.\" For example," +
         "if the grok identifier \"timestamp\" is matched, then the value will be added to an attribute named \"grok.timestamp\"")})
 
@@ -109,10 +109,10 @@ public class ExtractGrok extends AbstractProcessor {
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
         .name("Destination")
-        .description("Control if Grok output value is written as a new flowfile attributes, in this case " +
-            "each of the Grok identifier that is matched in the flowfile will be added as an attribute, " +
-            "prefixed with \"grok.\" or written in the flowfile content. Writing to flowfile content " +
-            "will overwrite any existing flowfile content.")
+        .description("Control if Grok output value is written as a new FlowFile attributes, in this case " +
+            "each of the Grok identifier that is matched in the FlowFile will be added as an attribute, " +
+            "prefixed with \"grok.\" or written in the FlowFile content. Writing to FlowFile content " +
+            "will overwrite any existing FlowFile content.")
         .required(true)
         .allowableValues(FLOWFILE_ATTRIBUTE, FLOWFILE_CONTENT)
         .defaultValue(FLOWFILE_ATTRIBUTE)

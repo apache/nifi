@@ -119,9 +119,9 @@ public class AttributesToJSON extends AbstractProcessor {
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
-            .description("Control if JSON value is written as a new flowfile attribute '" + JSON_ATTRIBUTE_NAME + "' " +
-                    "or written in the flowfile content. Writing to flowfile content will overwrite any " +
-                    "existing flowfile content.")
+            .description("Control if JSON value is written as a new FlowFile attribute '" + JSON_ATTRIBUTE_NAME + "' " +
+                    "or written in the FlowFile content. Writing to FlowFile content will overwrite any " +
+                    "existing FlowFile content.")
             .required(true)
             .allowableValues(DESTINATION_ATTRIBUTE, DESTINATION_CONTENT)
             .defaultValue(DESTINATION_ATTRIBUTE)

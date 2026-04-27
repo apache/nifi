@@ -68,7 +68,7 @@ import java.util.stream.Stream;
         "that MongoDB is not overloaded with too many operations at once.")
 @ReadsAttribute(
     attribute = AbstractMongoProcessor.ATTRIBUTE_MONGODB_UPDATE_MODE,
-    description = "Configurable parameter for controlling update mode on a per-flowfile basis." +
+    description = "Configurable parameter for controlling update mode on a per FlowFile basis." +
         " Acceptable values are 'one' and 'many' and controls whether a single incoming record should update a single or multiple Mongo documents."
 )
 public class PutMongoRecord extends AbstractMongoProcessor {

@@ -44,9 +44,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @SupportsBatching
 @Tags({"content", "hash", "sha", "blake2", "md5", "cryptography"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Calculates a cryptographic hash value for the flowfile content using the given algorithm and writes it to an output attribute. Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions for help to decide which algorithm to use.")
+@CapabilityDescription("Calculates a cryptographic hash value for the FlowFile content using the given algorithm and writes it to an output attribute. Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions for help to decide which algorithm to use.")
 @WritesAttribute(attribute = "content_<algorithm>", description = "This processor adds an attribute whose value is the result of "
-        + "hashing the flowfile content. The name of this attribute is specified by the value of the algorithm, e.g. 'content_SHA-256'.")
+        + "hashing the FlowFile content. The name of this attribute is specified by the value of the algorithm, e.g. 'content_SHA-256'.")
 public class CryptographicHashContent extends AbstractProcessor {
 
     static final PropertyDescriptor FAIL_WHEN_EMPTY = new PropertyDescriptor.Builder()
@@ -128,7 +128,7 @@ public class CryptographicHashContent extends AbstractProcessor {
         final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
 
         try {
-            // Read the flowfile content via a lambda InputStreamCallback and hash the content
+            // Read the FlowFile content via a lambda InputStreamCallback and hash the content
             session.read(flowFile, in -> hashValueHolder.set(HashService.hashValueStreaming(algorithm, in)));
 
             // Determine the destination attribute name

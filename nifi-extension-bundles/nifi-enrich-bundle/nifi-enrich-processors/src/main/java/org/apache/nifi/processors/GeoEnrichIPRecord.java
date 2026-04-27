@@ -64,13 +64,13 @@ import java.util.concurrent.locks.Lock;
 public class GeoEnrichIPRecord extends AbstractEnrichIP {
     public static final PropertyDescriptor READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .description("Record reader service to use for reading the flowfile contents.")
+            .description("Record reader service to use for reading the FlowFile contents.")
             .required(true)
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
     public static final PropertyDescriptor WRITER = new PropertyDescriptor.Builder()
             .name("Record Writer")
-            .description("Record writer service to use for enriching the flowfile contents.")
+            .description("Record writer service to use for enriching the FlowFile contents.")
             .required(true)
             .identifiesControllerService(RecordSetWriterFactory.class)
             .build();
@@ -136,7 +136,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("The original input flowfile goes to this relationship regardless of whether the content was enriched or not.")
+            .description("The original input FlowFile goes to this relationship regardless of whether the content was enriched or not.")
             .build();
 
     public static final Set<Relationship> RELATIONSHIPS = Set.of(

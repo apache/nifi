@@ -58,7 +58,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_NUMBER_OF_ATTRIBUTES = new PropertyDescriptor.Builder()
         .name("Max Number of Attributes")
-        .description("Specify the max number of attributes to add to the flowfile. There is no guarantee in what order"
+        .description("Specify the max number of attributes to add to the FlowFile. There is no guarantee in what order"
                 + " the tags will be processed. By default it will process all of them.")
         .required(false)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)

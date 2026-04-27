@@ -127,7 +127,7 @@ public class PutMongo extends AbstractMongoProcessor {
         .defaultValue(UPDATE_WITH_DOC)
         .description("Choose an update mode. You can either supply a JSON document to use as a direct replacement " +
                 "or specify a document that contains update operators like $set, $unset, and $inc. " +
-                "When Operators mode is enabled, the flowfile content is expected to be the operator part " +
+                "When Operators mode is enabled, the FlowFile content is expected to be the operator part " +
                 "for example: {$set:{\"key\": \"value\"},$inc:{\"count\":1234}} and the update query will come " +
                 "from the configured Update Query property.")
          .build();

@@ -55,7 +55,7 @@ import java.util.stream.Stream;
         + "will ignore running on a periodic basis and instead rely on incoming FlowFiles to trigger a delete. "
         + "Note that you may use a wildcard character to match multiple files or directories. If there are"
         + " no incoming connections no FlowFiles will be transfered to any output relationships.  If there is an incoming"
-        + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
+        + " FlowFile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
         + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
 
 @WritesAttributes({
@@ -71,12 +71,12 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("When an incoming flowfile is used then if there are no errors invoking delete the flowfile will route here.")
+            .description("When an incoming FlowFile is used then if there are no errors invoking delete the FlowFile will route here.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("When an incoming flowfile is used and there is a failure while deleting then the flowfile will route here.")
+            .description("When an incoming FlowFile is used and there is a failure while deleting then the FlowFile will route here.")
             .build();
 
     public static final PropertyDescriptor FILE_OR_DIRECTORY = new PropertyDescriptor.Builder()
@@ -185,7 +185,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                                 getLogger().warn("Failed to delete file or directory", ioe);
 
                                 Map<String, String> attributes = new HashMap<>(1);
-                                // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
+                                // The error message is helpful in understanding at a FlowFile level what caused the IOException (which ACL is denying the operation, e.g.)
                                 attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
 
                                 session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());

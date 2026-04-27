@@ -63,7 +63,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
     public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .name("Search Results Split")
-            .description("Output a flowfile containing all hits or one flowfile for each individual hit.")
+            .description("Output a FlowFile containing all hits or one FlowFile for each individual hit.")
             .allowableValues(ResultOutputStrategy.getNonPaginatedResponseOutputStrategies())
             .defaultValue(ResultOutputStrategy.PER_RESPONSE)
             .required(true)
@@ -80,7 +80,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             .build();
     public static final PropertyDescriptor AGGREGATION_RESULTS_SPLIT = new PropertyDescriptor.Builder()
             .name("Aggregation Results Split")
-            .description("Output a flowfile containing all aggregations or one flowfile for each individual aggregation.")
+            .description("Output a FlowFile containing all aggregations or one FlowFile for each individual aggregation.")
             .allowableValues(ResultOutputStrategy.getNonPaginatedResponseOutputStrategies())
             .defaultValue(ResultOutputStrategy.PER_RESPONSE)
             .required(true)
@@ -97,8 +97,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
             .build();
     public static final PropertyDescriptor OUTPUT_NO_HITS = new PropertyDescriptor.Builder()
             .name("Output No Hits")
-            .description("Output a \"" + REL_HITS.getName() + "\" flowfile even if no hits found for query. " +
-                    "If true, an empty \"" + REL_HITS.getName() + "\" flowfile will be output even if \"" +
+            .description("Output a \"" + REL_HITS.getName() + "\" FlowFile even if no hits found for query. " +
+                    "If true, an empty \"" + REL_HITS.getName() + "\" FlowFile will be output even if \"" +
                     REL_AGGREGATIONS.getName() + "\" are output.")
             .allowableValues("true", "false")
             .defaultValue("false")

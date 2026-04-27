@@ -158,14 +158,14 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     static final AllowableValue GROUP_ALL = new AllowableValue("gethdfsfileinfo-group-all", "All",
-            "Group all results into a single flowfile.");
+            "Group all results into a single FlowFile.");
 
     static final AllowableValue GROUP_PARENT_DIR = new AllowableValue("gethdfsfileinfo-group-parent-dir", "Parent Directory",
-            "Group HDFS objects by their parent directories only. Processor will generate flowfile for each directory (if recursive). "
+            "Group HDFS objects by their parent directories only. Processor will generate FlowFile for each directory (if recursive). "
                     + "If 'Recurse Subdirectories' property set to 'false', then will have the same effect as 'All'");
 
     static final AllowableValue GROUP_NONE = new AllowableValue("gethdfsfileinfo-group-none", "None",
-            "Don't group results. Generate flowfile per each HDFS object.");
+            "Don't group results. Generate FlowFile per each HDFS object.");
 
     public static final PropertyDescriptor GROUPING = new PropertyDescriptor.Builder()
             .name("Group Results")
@@ -178,14 +178,14 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .description("Number of records to put into an output flowfile when 'Destination' is set to 'Content'"
+            .description("Number of records to put into an output FlowFile when 'Destination' is set to 'Content'"
                     + " and 'Group Results' is set to 'None'")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue("gethdfsfileinfo-dest-attr", "Attributes",
-            "Details of given HDFS object will be stored in attributes of flowfile. "
+            "Details of given HDFS object will be stored in attributes of FlowFile. "
                     + "WARNING: In case when scan finds thousands or millions of objects, having huge values in attribute could impact flow file repo and GC/heap usage. "
                     + "Use content destination for such cases.");
 
@@ -194,7 +194,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
-            .description("Sets the destination for the resutls. When set to 'Content', attributes of flowfile won't be used for storing results. ")
+            .description("Sets the destination for the resutls. When set to 'Content', attributes of FlowFile won't be used for storing results. ")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(DESTINATION_ATTRIBUTES, DESTINATION_CONTENT)
@@ -452,7 +452,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
     /*
      * Checks whether HDFS object should be sent to output.
-     * If it should be sent, new flowfile will be created, its content and attributes will be populated according to other request params.
+     * If it should be sent, new FlowFile will be created, its content and attributes will be populated according to other request params.
      */
     protected void processHDFSObject(
             final ProcessSession session,
