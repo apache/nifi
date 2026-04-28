@@ -699,25 +699,6 @@
         .mat-mdc-menu-content {
             padding: 0 0 8px 0;
         }
-
-    }
-
-    // Hover row in the searchable-select panel: Material 3's default state-layer is not present
-    // in this bundle, so emulate it directly with the hover-state-layer tokens.
-    .searchable-overlay .mat-mdc-option:not(.mdc-list-item--disabled):hover {
-        background-color: color-mix(
-            in srgb,
-            var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
-            transparent
-        );
-    }
-
-    // Keyboard-active row in the searchable-select panel: use a 2px outline rather than a
-    // background so the keyboard focus indicator stays visually distinct from the hover state.
-    .searchable-overlay .mat-mdc-option-active:not(.mdc-list-item--disabled) {
-        background-color: transparent;
-        outline: 2px solid var(--mat-sys-primary);
-        outline-offset: -2px;
     }
 
     //form-field

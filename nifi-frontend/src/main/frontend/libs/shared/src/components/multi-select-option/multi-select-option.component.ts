@@ -44,7 +44,6 @@ export class MultiSelectOption extends MatOption {
      * Host binding to apply selection styling when virtually selected
      */
     @HostBinding('class.mdc-list-item--selected')
-    @HostBinding('class.mat-mdc-option-active')
     get isVisuallySelected(): boolean {
         return this.selected || this.virtuallySelected;
     }

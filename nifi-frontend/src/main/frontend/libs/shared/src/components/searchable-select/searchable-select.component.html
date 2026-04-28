@@ -47,10 +47,7 @@
             <div class="search-filter-container">
                 <mat-form-field class="search-filter" subscriptSizing="dynamic">
                     <div class="flex items-center">
-                        <i
-                            class="fa fa-search mr-2 text-base leading-none text-inherit"
-                            matPrefix
-                            aria-hidden="true"></i>
+                        <i class="fa fa-search mr-2 leading-none text-inherit" matPrefix aria-hidden="true"></i>
 
                         <input
                             #searchInput
@@ -93,7 +90,7 @@
                     }
                     <div class="flex flex-col gap-y-1 w-full">
                         <div
-                            class="text-md truncate"
+                            class="truncate"
                             [ngClass]="ghostOption.labelCssClasses"
                             data-qa="searchable-select-option-label"
                             ellipsisTooltip>
@@ -137,11 +134,11 @@
                                     role="note"
                                     aria-live="polite">
                                     @if (isMoreItem(item)) {
-                                        <div class="text-md truncate tertiary-color" ellipsisTooltip>
+                                        <div class="truncate tertiary-color" ellipsisTooltip>
                                             More options available
                                         </div>
                                     } @else {
-                                        <span class="text-md truncate error-color" ellipsisTooltip>
+                                        <span class="truncate error-color" ellipsisTooltip>
                                             {{ loadErrorMessage() }}
                                         </span>
                                     }
@@ -172,7 +169,7 @@
                                     }
                                     <div class="flex flex-col gap-y-1 w-full">
                                         <div
-                                            class="text-md truncate"
+                                            class="truncate"
                                             [ngClass]="getItemLabelCss(item)"
                                             data-qa="searchable-select-option-label"
                                             ellipsisTooltip>
@@ -223,7 +220,7 @@
                                             }
                                             <div class="flex flex-col gap-y-1 w-full">
                                                 <div
-                                                    class="text-md truncate"
+                                                    class="truncate"
                                                     [ngClass]="option.labelCssClasses"
                                                     data-qa="searchable-select-option-label"
                                                     ellipsisTooltip>
@@ -253,7 +250,7 @@
                                         }
                                         <div class="flex flex-col gap-y-1 w-full">
                                             <div
-                                                class="text-md truncate"
+                                                class="truncate"
                                                 [ngClass]="option.labelCssClasses"
                                                 data-qa="searchable-select-option-label"
                                                 ellipsisTooltip>
@@ -281,9 +278,7 @@
                                 class="flex w-full items-center justify-center py-2 px-3"
                                 role="note"
                                 aria-live="polite">
-                                <div class="text-md truncate tertiary-color" ellipsisTooltip>
-                                    More options available
-                                </div>
+                                <div class="truncate tertiary-color" ellipsisTooltip>More options available</div>
                             </div>
                         }
                         @if (loadError() && filteredLength === 0) {
@@ -291,7 +286,7 @@
                                 class="flex w-full items-center justify-center py-2 px-3"
                                 role="note"
                                 aria-live="polite">
-                                <span class="text-md truncate error-color" ellipsisTooltip>
+                                <span class="truncate error-color" ellipsisTooltip>
                                     {{ loadErrorMessage() }}
                                 </span>
                             </div>
@@ -300,7 +295,7 @@
                 }
                 @if (filteredLength === 0 && !loadError()) {
                     <div class="flex w-full items-center justify-center py-2 px-3" role="note" aria-live="polite">
-                        <div class="text-md truncate tertiary-color" ellipsisTooltip>No results</div>
+                        <div class="truncate tertiary-color" ellipsisTooltip>No results</div>
                     </div>
                 }
             }
