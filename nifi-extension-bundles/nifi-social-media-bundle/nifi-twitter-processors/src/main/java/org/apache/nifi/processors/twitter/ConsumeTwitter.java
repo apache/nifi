@@ -65,9 +65,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type set to application/json"),
         @WritesAttribute(attribute = "tweets", description = "The number of Tweets in the FlowFile"),
 })
-@DeprecationNotice(reason = """
-NIFI-15882 The streaming endpoints this class uses are only available with either Pro or Enterprise subscriptions
-and the SDK is no longer maintened""")
+@DeprecationNotice(reason = "NIFI-15882 The twitter-api-java-sdk is no longer maintained")
 public class ConsumeTwitter extends AbstractProcessor {
 
     static final AllowableValue ENDPOINT_SAMPLE = new AllowableValue(StreamEndpoint.SAMPLE_ENDPOINT.getEndpointName(),
