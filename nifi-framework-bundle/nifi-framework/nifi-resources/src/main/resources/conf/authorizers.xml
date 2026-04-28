@@ -283,7 +283,7 @@
 
     <!--
         Single User Authorizer requires the configuration of the SingleUserLoginIdentityProvider
-        in login-identity-provider.xml and in nifi.properties
+        in login-identity-providers.xml and in nifi.properties
 
         The managed-authorizer should be used for production deployments
     -->
