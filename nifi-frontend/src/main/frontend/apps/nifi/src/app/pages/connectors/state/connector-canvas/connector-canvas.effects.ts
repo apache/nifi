@@ -43,6 +43,7 @@ import { EditProcessGroup } from '../../../../ui/common/component-dialogs/edit-p
 import { EditRemoteProcessGroup } from '../../../../ui/common/component-dialogs/edit-remote-process-group/edit-remote-process-group.component';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import { SelectedComponent } from './connector-canvas.actions';
+import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectBreadcrumbs,
     selectConnectorIdFromRoute,
@@ -320,6 +321,140 @@ export class ConnectorCanvasEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    /**
+     * Navigate to the controller services view for the supplied process group.
+     * The current route's process group is still consulted to compute the
+     * back-navigation target so the user returns to the canvas they came from.
+     * The routeBoundary includes the controller-services segment so back
+     * navigation clears as soon as the user navigates away from the controller
+     * services view.
+     */
+    navigateToControllerServices$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.navigateToControllerServices),
+                concatLatestFrom(() => [
+                    this.store.select(selectConnectorIdFromRoute),
+                    this.store.select(selectProcessGroupIdFromRoute)
+                ]),
+                tap(([action, connectorId, currentProcessGroupId]) => {
+                    const routeBoundary = [
+                        '/connectors',
+                        connectorId,
+                        'canvas',
+                        action.processGroupId,
+                        'controller-services'
+                    ];
+                    this.router.navigate(routeBoundary, {
+                        state: {
+                            backNavigation: {
+                                route: ['/connectors', connectorId, 'canvas', currentProcessGroupId],
+                                routeBoundary,
+                                context: 'process group'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    /**
+     * Navigate to a specific controller service within a process group, appending
+     * the serviceId for deep linking.
+     */
+    navigateToControllerService$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.navigateToControllerService),
+                concatLatestFrom(() => [
+                    this.store.select(selectConnectorIdFromRoute),
+                    this.store.select(selectProcessGroupIdFromRoute)
+                ]),
+                tap(([action, connectorId, currentProcessGroupId]) => {
+                    const routeBoundary = [
+                        '/connectors',
+                        connectorId,
+                        'canvas',
+                        action.processGroupId,
+                        'controller-services',
+                        action.serviceId
+                    ];
+                    this.router.navigate(routeBoundary, {
+                        state: {
+                            backNavigation: {
+                                route: ['/connectors', connectorId, 'canvas', currentProcessGroupId],
+                                routeBoundary,
+                                context: 'process group'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    /**
+     * Navigate to the queue listing page for a connection. Provides back navigation
+     * back to the originating connection on the connector canvas.
+     */
+    navigateToQueueListing$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.navigateToQueueListing),
+                map((action) => action.request),
+                concatLatestFrom(() => [
+                    this.store.select(selectConnectorIdFromRoute),
+                    this.store.select(selectProcessGroupIdFromRoute)
+                ]),
+                tap(([request, connectorId, processGroupId]) => {
+                    const routeBoundary: string[] = ['/queue', request.connectionId];
+                    this.router.navigate([...routeBoundary], {
+                        state: {
+                            backNavigation: {
+                                route: [
+                                    '/connectors',
+                                    connectorId,
+                                    'canvas',
+                                    processGroupId,
+                                    ComponentType.Connection,
+                                    request.connectionId
+                                ],
+                                routeBoundary,
+                                context: 'connection'
+                            } as BackNavigation
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    /**
+     * Refreshes the connector canvas after a queue has been emptied from this surface.
+     * Listens for the shared queueEmptied event and filters on source so flow-designer
+     * empties do not trigger a connector-canvas refresh.
+     */
+    refreshAfterQueueEmptied$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(EmptyQueueActions.queueEmptied),
+            filter((action) => action.source === 'connector-canvas'),
+            concatLatestFrom(() => [
+                this.store.select(selectConnectorIdFromRoute),
+                this.store.select(selectProcessGroupIdFromRoute)
+            ]),
+            filter(([, connectorId, processGroupId]) => connectorId != null && processGroupId != null),
+            switchMap(([, connectorId, processGroupId]) =>
+                of(
+                    ConnectorCanvasActions.loadConnectorFlow({
+                        connectorId: connectorId!,
+                        processGroupId: processGroupId!
+                    })
+                )
+            )
+        )
     );
 
     /**

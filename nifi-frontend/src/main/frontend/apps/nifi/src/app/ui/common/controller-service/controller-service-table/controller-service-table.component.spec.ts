@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ControllerServiceTable } from './controller-service-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { BulletinEntity } from '@nifi/shared';
+import { CurrentUser } from '../../../../state/current-user';
+import { FlowConfiguration } from '../../../../state/flow-configuration';
 
 describe('ControllerServiceTable', () => {
     // Mock data factories
@@ -100,6 +102,50 @@ describe('ControllerServiceTable', () => {
         fixture.detectChanges();
 
         return { component, fixture };
+    }
+
+    interface TableSetupOptions {
+        readOnly?: boolean;
+        controllerServices?: ControllerServiceEntity[];
+        canModifyParent?: (entity: ControllerServiceEntity) => boolean;
+        canManageAccessPolicies?: boolean;
+    }
+
+    async function setupTable(options: TableSetupOptions = {}): Promise<{
+        fixture: ComponentFixture<ControllerServiceTable>;
+        component: ControllerServiceTable;
+    }> {
+        const { fixture, component } = await setup();
+
+        component.readOnly = options.readOnly ?? false;
+        component.canModifyParent = options.canModifyParent ?? (() => false);
+        component.formatScope = () => '';
+        component.definedByCurrentGroup = () => true;
+        component.flowConfiguration = {
+            supportsManagedAuthorizer: options.canManageAccessPolicies ?? true
+        } as FlowConfiguration;
+        component.currentUser = {
+            tenantsPermissions: { canRead: options.canManageAccessPolicies ?? true }
+        } as CurrentUser;
+        component.controllerServices = options.controllerServices ?? [createMockControllerServiceEntity()];
+
+        fixture.detectChanges();
+        return { fixture, component };
+    }
+
+    function getMenuItemTexts(fixture: ComponentFixture<ControllerServiceTable>): string[] {
+        const trigger = fixture.nativeElement.querySelector('button.global-menu') as HTMLElement | null;
+        trigger?.click();
+        fixture.detectChanges();
+
+        const items = document.querySelectorAll('.mat-mdc-menu-item');
+        return Array.from(items).map((el) => (el.textContent ?? '').trim().replace(/\s+/g, ' '));
+    }
+
+    function closeAllMenus(): void {
+        document.querySelectorAll('.cdk-overlay-backdrop').forEach((backdrop) => {
+            (backdrop as HTMLElement).click();
+        });
     }
 
     it('should create', async () => {
@@ -222,6 +268,75 @@ describe('ControllerServiceTable', () => {
 
             // Assert
             expect(result).toBe(true);
+        });
+    });
+
+    describe('readOnly mode', () => {
+        afterEach(() => {
+            closeAllMenus();
+        });
+
+        it('should default readOnly to false', async () => {
+            const { component } = await setup();
+            expect(component.readOnly).toBe(false);
+        });
+
+        it('should restrict the action menu to view-only entries when readOnly is true', async () => {
+            const entity = createMockControllerServiceEntity();
+            entity.status.runStatus = 'DISABLED';
+            entity.component.persistsState = true;
+            entity.bulletins = [createTestBulletin(1, '12:00:00 UTC')];
+            entity.component.customUiUrl = 'https://example.com/advanced';
+            entity.component.multipleVersionsAvailable = true;
+
+            const { fixture } = await setupTable({
+                readOnly: true,
+                controllerServices: [entity]
+            });
+
+            const labels = getMenuItemTexts(fixture);
+            expect(labels).toEqual(['View Configuration', 'View State', 'View Documentation']);
+        });
+
+        it('should omit View State when persistsState is false even in readOnly mode', async () => {
+            const entity = createMockControllerServiceEntity();
+            entity.status.runStatus = 'DISABLED';
+            entity.component.persistsState = false;
+
+            const { fixture } = await setupTable({
+                readOnly: true,
+                controllerServices: [entity]
+            });
+
+            const labels = getMenuItemTexts(fixture);
+            expect(labels).toEqual(['View Configuration', 'View Documentation']);
+        });
+
+        it('should render no menu items in readOnly mode when the user cannot read the entity', async () => {
+            const entity = createMockControllerServiceEntity();
+            entity.permissions.canRead = false;
+
+            const { fixture } = await setupTable({
+                readOnly: true,
+                controllerServices: [entity]
+            });
+
+            expect(getMenuItemTexts(fixture)).toEqual([]);
+        });
+
+        it('should render the full mutating action menu when readOnly is false', async () => {
+            const entity = createMockControllerServiceEntity();
+            entity.status.runStatus = 'DISABLED';
+
+            const { fixture } = await setupTable({
+                readOnly: false,
+                controllerServices: [entity]
+            });
+
+            const labels = getMenuItemTexts(fixture);
+            expect(labels).toContain('Edit');
+            expect(labels).toContain('Enable');
+            expect(labels).toContain('View Documentation');
         });
     });
 });

@@ -36,11 +36,15 @@ import {
     loadConnectorFlowComplete,
     loadConnectorFlowFailure,
     loadConnectorFlowSuccess,
+    navigateToControllerService,
+    navigateToControllerServices,
     navigateToProvenanceForComponent,
+    navigateToQueueListing,
     navigateWithoutTransform,
     selectComponents,
     viewComponentConfiguration
 } from './connector-canvas.actions';
+import { queueEmptied } from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectConnectorIdFromRoute,
     selectParentProcessGroupId,
@@ -562,6 +566,144 @@ describe('ConnectorCanvasEffects', () => {
                     }
                 }
             });
+        });
+    });
+
+    describe('navigateToQueueListing$', () => {
+        it('should navigate to /queue/:connectionId with back navigation to the originating connection', async () => {
+            const { effects, actions$, mockRouter } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(of(navigateToQueueListing({ request: { connectionId: 'conn-listing-1' } })));
+
+            await firstValueFrom(effects.navigateToQueueListing$);
+
+            expect(mockRouter.navigate).toHaveBeenCalledWith(['/queue', 'conn-listing-1'], {
+                state: {
+                    backNavigation: {
+                        route: [
+                            '/connectors',
+                            'conn-1',
+                            'canvas',
+                            'pg-root',
+                            ComponentType.Connection,
+                            'conn-listing-1'
+                        ],
+                        routeBoundary: ['/queue', 'conn-listing-1'],
+                        context: 'connection'
+                    }
+                }
+            });
+        });
+    });
+
+    describe('navigateToControllerServices$', () => {
+        it('should navigate to controller services using the supplied process group when provided', async () => {
+            const { effects, actions$, mockRouter } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(of(navigateToControllerServices({ processGroupId: 'pg-target' })));
+
+            await firstValueFrom(effects.navigateToControllerServices$);
+
+            expect(mockRouter.navigate).toHaveBeenCalledWith(
+                ['/connectors', 'conn-1', 'canvas', 'pg-target', 'controller-services'],
+                {
+                    state: {
+                        backNavigation: {
+                            route: ['/connectors', 'conn-1', 'canvas', 'pg-root'],
+                            routeBoundary: ['/connectors', 'conn-1', 'canvas', 'pg-target', 'controller-services'],
+                            context: 'process group'
+                        }
+                    }
+                }
+            );
+        });
+    });
+
+    describe('navigateToControllerService$', () => {
+        it('should navigate to a deep-linked controller service with back navigation to the canvas', async () => {
+            const { effects, actions$, mockRouter } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(of(navigateToControllerService({ processGroupId: 'pg-target', serviceId: 'svc-1' })));
+
+            await firstValueFrom(effects.navigateToControllerService$);
+
+            expect(mockRouter.navigate).toHaveBeenCalledWith(
+                ['/connectors', 'conn-1', 'canvas', 'pg-target', 'controller-services', 'svc-1'],
+                {
+                    state: {
+                        backNavigation: {
+                            route: ['/connectors', 'conn-1', 'canvas', 'pg-root'],
+                            routeBoundary: [
+                                '/connectors',
+                                'conn-1',
+                                'canvas',
+                                'pg-target',
+                                'controller-services',
+                                'svc-1'
+                            ],
+                            context: 'process group'
+                        }
+                    }
+                }
+            );
+        });
+    });
+
+    describe('refreshAfterQueueEmptied$', () => {
+        it('should dispatch loadConnectorFlow when the queueEmptied source is connector-canvas', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(
+                of(
+                    queueEmptied({
+                        connectionId: 'conn-listing-1',
+                        processGroupId: null,
+                        source: 'connector-canvas'
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.refreshAfterQueueEmptied$);
+
+            expect(result).toEqual(
+                loadConnectorFlow({
+                    connectorId: 'conn-1',
+                    processGroupId: 'pg-root'
+                })
+            );
+        });
+
+        it('should ignore queueEmptied events from the flow designer', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(
+                of(
+                    queueEmptied({
+                        connectionId: 'conn-listing-1',
+                        processGroupId: null,
+                        source: 'flow-designer'
+                    })
+                )
+            );
+
+            let emitted: Action | undefined;
+            effects.refreshAfterQueueEmptied$.subscribe((action) => {
+                emitted = action;
+            });
+
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+            expect(emitted).toBeUndefined();
         });
     });
 });

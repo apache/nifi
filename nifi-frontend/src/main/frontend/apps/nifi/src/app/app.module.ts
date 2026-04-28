@@ -57,6 +57,7 @@ import { BannerTextEffects } from './state/banner-text/banner-text.effects';
 import { MAT_TOOLTIP_DEFAULT_OPTIONS, MatTooltipDefaultOptions } from '@angular/material/tooltip';
 import { CLIPBOARD_OPTIONS, provideMarkdown } from 'ngx-markdown';
 import { CopyEffects } from './state/copy/copy.effects';
+import { EmptyQueueEffects } from './state/empty-queue/empty-queue.effects';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations = '';
@@ -109,7 +110,8 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
             DocumentationEffects,
             ClusterSummaryEffects,
             PropertyVerificationEffects,
-            CopyEffects
+            CopyEffects,
+            EmptyQueueEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

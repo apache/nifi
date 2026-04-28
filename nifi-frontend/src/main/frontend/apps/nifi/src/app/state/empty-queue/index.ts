@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+import { CanvasActionSource } from '../shared';
+
+export const emptyQueueFeatureKey = 'emptyQueue';
+
 export interface DropRequest {
     id: string;
     uri: string;
@@ -41,6 +45,7 @@ export interface DropRequestEntity {
 
 export interface SubmitEmptyQueueRequest {
     connectionId: string;
+    source: CanvasActionSource;
 }
 
 export interface EmptyQueueRequest {
@@ -50,6 +55,7 @@ export interface EmptyQueueRequest {
 
 export interface SubmitEmptyQueuesRequest {
     processGroupId: string;
+    source: CanvasActionSource;
 }
 
 export interface EmptyQueuesRequest {
@@ -65,10 +71,11 @@ export interface ShowEmptyQueueResults {
     dropEntity: DropRequestEntity;
 }
 
-export interface QueueState {
+export interface EmptyQueueState {
     dropEntity: DropRequestEntity | null;
     connectionId: string | null;
     processGroupId: string | null;
+    source: CanvasActionSource | null;
     loadedTimestamp: string;
     status: 'pending' | 'loading' | 'success';
 }

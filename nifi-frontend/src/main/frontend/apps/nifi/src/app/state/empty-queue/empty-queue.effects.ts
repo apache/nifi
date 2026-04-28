@@ -18,35 +18,38 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
-import * as QueueActions from './queue.actions';
-import * as ErrorActions from '../../../../state/error/error.actions';
+import * as EmptyQueueActions from './empty-queue.actions';
+import * as ErrorActions from '../error/error.actions';
 import { Store } from '@ngrx/store';
 import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
-import { selectDropConnectionId, selectDropProcessGroupId, selectDropRequestEntity } from './queue.selectors';
-import { QueueService } from '../../service/queue.service';
+import {
+    selectDropConnectionId,
+    selectDropProcessGroupId,
+    selectDropRequestEntity,
+    selectDropSource
+} from './empty-queue.selectors';
+import { EmptyQueueService } from '../../service/empty-queue.service';
 import { DropRequest } from './index';
-import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
+import { CancelDialog } from '../../ui/common/cancel-dialog/cancel-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { isDefinedAndNotNull, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
-import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
-import { loadChildProcessGroup, loadConnection, loadProcessGroup } from '../flow/flow.actions';
-import { resetQueueState } from './queue.actions';
+import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
+import { resetEmptyQueueState } from './empty-queue.actions';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorHelper } from '../../../../service/error-helper.service';
-import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
+import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
-export class QueueEffects {
+export class EmptyQueueEffects {
     private actions$ = inject(Actions);
-    private store = inject<Store<CanvasState>>(Store);
-    private queueService = inject(QueueService);
+    private store = inject(Store);
+    private emptyQueueService = inject(EmptyQueueService);
     private dialog = inject(MatDialog);
     private errorHelper = inject(ErrorHelper);
 
     promptEmptyQueueRequest$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(QueueActions.promptEmptyQueueRequest),
+                ofType(EmptyQueueActions.promptEmptyQueueRequest),
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
@@ -60,7 +63,7 @@ export class QueueEffects {
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
                         this.store.dispatch(
-                            QueueActions.submitEmptyQueueRequest({
+                            EmptyQueueActions.submitEmptyQueueRequest({
                                 request
                             })
                         );
@@ -72,7 +75,7 @@ export class QueueEffects {
 
     submitEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.submitEmptyQueueRequest),
+            ofType(EmptyQueueActions.submitEmptyQueueRequest),
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
@@ -84,12 +87,12 @@ export class QueueEffects {
                 });
 
                 dialogReference.componentInstance.exit.pipe(take(1)).subscribe(() => {
-                    this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
+                    this.store.dispatch(EmptyQueueActions.stopPollingEmptyQueueRequest());
                 });
 
-                return from(this.queueService.submitEmptyQueueRequest(request)).pipe(
+                return from(this.emptyQueueService.submitEmptyQueueRequest(request)).pipe(
                     map((response) =>
-                        QueueActions.submitEmptyQueueRequestSuccess({
+                        EmptyQueueActions.submitEmptyQueueRequestSuccess({
                             response: {
                                 dropEntity: response
                             }
@@ -97,7 +100,7 @@ export class QueueEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            QueueActions.queueApiError({
+                            EmptyQueueActions.emptyQueueApiError({
                                 error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
@@ -110,7 +113,7 @@ export class QueueEffects {
     promptEmptyQueuesRequest$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(QueueActions.promptEmptyQueuesRequest),
+                ofType(EmptyQueueActions.promptEmptyQueuesRequest),
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
@@ -124,7 +127,7 @@ export class QueueEffects {
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
                         this.store.dispatch(
-                            QueueActions.submitEmptyQueuesRequest({
+                            EmptyQueueActions.submitEmptyQueuesRequest({
                                 request
                             })
                         );
@@ -136,7 +139,7 @@ export class QueueEffects {
 
     submitEmptyQueuesRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.submitEmptyQueuesRequest),
+            ofType(EmptyQueueActions.submitEmptyQueuesRequest),
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
@@ -148,12 +151,12 @@ export class QueueEffects {
                 });
 
                 dialogReference.componentInstance.exit.pipe(take(1)).subscribe(() => {
-                    this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
+                    this.store.dispatch(EmptyQueueActions.stopPollingEmptyQueueRequest());
                 });
 
-                return from(this.queueService.submitEmptyQueuesRequest(request)).pipe(
+                return from(this.emptyQueueService.submitEmptyQueuesRequest(request)).pipe(
                     map((response) =>
-                        QueueActions.submitEmptyQueueRequestSuccess({
+                        EmptyQueueActions.submitEmptyQueuesRequestSuccess({
                             response: {
                                 dropEntity: response
                             }
@@ -161,7 +164,7 @@ export class QueueEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            QueueActions.queueApiError({
+                            EmptyQueueActions.emptyQueueApiError({
                                 error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
@@ -173,14 +176,14 @@ export class QueueEffects {
 
     submitEmptyQueueRequestSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.submitEmptyQueueRequestSuccess),
+            ofType(EmptyQueueActions.submitEmptyQueueRequestSuccess, EmptyQueueActions.submitEmptyQueuesRequestSuccess),
             map((action) => action.response),
             switchMap((response) => {
                 const dropRequest: DropRequest = response.dropEntity.dropRequest;
                 if (dropRequest.finished) {
-                    return of(QueueActions.deleteEmptyQueueRequest());
+                    return of(EmptyQueueActions.deleteEmptyQueueRequest());
                 } else {
-                    return of(QueueActions.startPollingEmptyQueueRequest());
+                    return of(EmptyQueueActions.startPollingEmptyQueueRequest());
                 }
             })
         )
@@ -188,38 +191,51 @@ export class QueueEffects {
 
     startPollingEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.startPollingEmptyQueueRequest),
+            ofType(EmptyQueueActions.startPollingEmptyQueueRequest),
             switchMap(() =>
                 interval(2000, asyncScheduler).pipe(
-                    takeUntil(this.actions$.pipe(ofType(QueueActions.stopPollingEmptyQueueRequest)))
+                    takeUntil(this.actions$.pipe(ofType(EmptyQueueActions.stopPollingEmptyQueueRequest)))
                 )
             ),
-            switchMap(() => of(QueueActions.pollEmptyQueueRequest()))
+            switchMap(() => of(EmptyQueueActions.pollEmptyQueueRequest()))
         )
     );
 
     pollEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.pollEmptyQueueRequest),
+            ofType(EmptyQueueActions.pollEmptyQueueRequest),
             concatLatestFrom(() => [
                 this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull()),
                 this.store.select(selectDropConnectionId),
                 this.store.select(selectDropProcessGroupId)
             ]),
             switchMap(([, dropEntity, connectionId, processGroupId]) => {
-                const poll$ = connectionId
-                    ? this.queueService.pollEmptyQueueRequest({
-                          connectionId,
-                          dropRequestId: dropEntity.dropRequest.id
-                      })
-                    : this.queueService.pollEmptyQueuesRequest({
-                          processGroupId: processGroupId!,
-                          dropRequestId: dropEntity.dropRequest.id
-                      });
+                let poll$;
+                if (connectionId) {
+                    poll$ = this.emptyQueueService.pollEmptyQueueRequest({
+                        connectionId,
+                        dropRequestId: dropEntity.dropRequest.id
+                    });
+                } else if (processGroupId) {
+                    poll$ = this.emptyQueueService.pollEmptyQueuesRequest({
+                        processGroupId,
+                        dropRequestId: dropEntity.dropRequest.id
+                    });
+                } else {
+                    // The state machine should keep one of the identifiers populated for the
+                    // lifetime of an in-flight drop request; if both are missing we cannot
+                    // continue polling and surface an error rather than crashing on a non-null
+                    // assertion.
+                    return of(
+                        EmptyQueueActions.emptyQueueApiError({
+                            error: 'Unable to poll empty queue request: no connection or process group is associated with the active request.'
+                        })
+                    );
+                }
 
                 return from(poll$).pipe(
                     map((response) =>
-                        QueueActions.pollEmptyQueueRequestSuccess({
+                        EmptyQueueActions.pollEmptyQueueRequestSuccess({
                             response: {
                                 dropEntity: response
                             }
@@ -227,7 +243,7 @@ export class QueueEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            QueueActions.queueApiError({
+                            EmptyQueueActions.emptyQueueApiError({
                                 error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
@@ -239,23 +255,23 @@ export class QueueEffects {
 
     pollEmptyQueueRequestSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.pollEmptyQueueRequestSuccess),
+            ofType(EmptyQueueActions.pollEmptyQueueRequestSuccess),
             map((action) => action.response),
             filter((response) => response.dropEntity.dropRequest.finished),
-            switchMap(() => of(QueueActions.stopPollingEmptyQueueRequest()))
+            switchMap(() => of(EmptyQueueActions.stopPollingEmptyQueueRequest()))
         )
     );
 
     stopPollingEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.stopPollingEmptyQueueRequest),
-            switchMap(() => of(QueueActions.deleteEmptyQueueRequest()))
+            ofType(EmptyQueueActions.stopPollingEmptyQueueRequest),
+            switchMap(() => of(EmptyQueueActions.deleteEmptyQueueRequest()))
         )
     );
 
     deleteEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.deleteEmptyQueueRequest),
+            ofType(EmptyQueueActions.deleteEmptyQueueRequest),
             concatLatestFrom(() => [
                 this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull()),
                 this.store.select(selectDropConnectionId),
@@ -264,19 +280,28 @@ export class QueueEffects {
             switchMap(([, dropEntity, connectionId, processGroupId]) => {
                 this.dialog.closeAll();
 
-                const delete$ = connectionId
-                    ? this.queueService.deleteEmptyQueueRequest({
-                          connectionId,
-                          dropRequestId: dropEntity.dropRequest.id
-                      })
-                    : this.queueService.deleteEmptyQueuesRequest({
-                          processGroupId: processGroupId!,
-                          dropRequestId: dropEntity.dropRequest.id
-                      });
+                let delete$;
+                if (connectionId) {
+                    delete$ = this.emptyQueueService.deleteEmptyQueueRequest({
+                        connectionId,
+                        dropRequestId: dropEntity.dropRequest.id
+                    });
+                } else if (processGroupId) {
+                    delete$ = this.emptyQueueService.deleteEmptyQueuesRequest({
+                        processGroupId,
+                        dropRequestId: dropEntity.dropRequest.id
+                    });
+                } else {
+                    return of(
+                        EmptyQueueActions.emptyQueueApiError({
+                            error: 'Unable to delete empty queue request: no connection or process group is associated with the active request.'
+                        })
+                    );
+                }
 
                 return from(delete$).pipe(
                     map((response) =>
-                        QueueActions.showEmptyQueueResults({
+                        EmptyQueueActions.showEmptyQueueResults({
                             request: {
                                 dropEntity: response
                             }
@@ -284,7 +309,7 @@ export class QueueEffects {
                     ),
                     catchError(() =>
                         of(
-                            QueueActions.showEmptyQueueResults({
+                            EmptyQueueActions.showEmptyQueueResults({
                                 request: {
                                     dropEntity
                                 }
@@ -299,14 +324,14 @@ export class QueueEffects {
     showEmptyQueueResults$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(QueueActions.showEmptyQueueResults),
+                ofType(EmptyQueueActions.showEmptyQueueResults),
                 map((action) => action.request),
                 concatLatestFrom(() => [
                     this.store.select(selectDropConnectionId),
                     this.store.select(selectDropProcessGroupId),
-                    this.store.select(selectCurrentProcessGroupId)
+                    this.store.select(selectDropSource)
                 ]),
-                tap(([request, connectionId, processGroupId, currentProcessGroupId]) => {
+                tap(([request, connectionId, processGroupId, source]) => {
                     const dropRequest: DropRequest = request.dropEntity.dropRequest;
                     const droppedTokens: string[] = dropRequest.dropped.split(/ \/ /);
 
@@ -319,37 +344,23 @@ export class QueueEffects {
 
                     if (connectionId) {
                         message = `${message} were removed from the queue.`;
-
-                        this.store.dispatch(
-                            loadConnection({
-                                id: connectionId
-                            })
-                        );
                     } else if (processGroupId) {
                         message = `${message} were removed from the queues.`;
-
-                        if (processGroupId === currentProcessGroupId) {
-                            this.store.dispatch(
-                                loadProcessGroup({
-                                    request: {
-                                        id: processGroupId,
-                                        transitionRequired: false
-                                    }
-                                })
-                            );
-                        } else {
-                            this.store.dispatch(
-                                loadChildProcessGroup({
-                                    request: {
-                                        id: processGroupId
-                                    }
-                                })
-                            );
-                        }
                     }
 
                     if (dropRequest.failureReason) {
                         message = `${message} ${dropRequest.failureReason}`;
+                    }
+
+                    // Page-specific refresh is handled by listeners on queueEmptied (filtered by source).
+                    if (source) {
+                        this.store.dispatch(
+                            EmptyQueueActions.queueEmptied({
+                                connectionId,
+                                processGroupId,
+                                source
+                            })
+                        );
                     }
 
                     const dialogReference = this.dialog.open(OkDialog, {
@@ -361,20 +372,20 @@ export class QueueEffects {
                     });
 
                     dialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(resetQueueState());
+                        this.store.dispatch(resetEmptyQueueState());
                     });
                 })
             ),
         { dispatch: false }
     );
 
-    queueApiError$ = createEffect(() =>
+    emptyQueueApiError$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(QueueActions.queueApiError),
+            ofType(EmptyQueueActions.emptyQueueApiError),
             map((action) => action.error),
             tap(() => {
                 this.dialog.closeAll();
-                this.store.dispatch(QueueActions.stopPollingEmptyQueueRequest());
+                this.store.dispatch(EmptyQueueActions.stopPollingEmptyQueueRequest());
             }),
             switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )

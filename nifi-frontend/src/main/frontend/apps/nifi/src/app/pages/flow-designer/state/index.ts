@@ -28,9 +28,6 @@ import { controllerServicesFeatureKey, ControllerServicesState } from './control
 import { controllerServicesReducer } from './controller-services/controller-services.reducer';
 import { parameterFeatureKey, ParameterState } from './parameter';
 import { parameterReducer } from './parameter/parameter.reducer';
-import { queueFeatureKey } from '../../queue/state';
-import { QueueState } from './queue';
-import { queueReducer } from './queue/queue.reducer';
 import { FlowAnalysisState, flowAnalysisFeatureKey } from './flow-analysis';
 import { flowAnalysisReducer } from './flow-analysis/flow-analysis.reducer';
 
@@ -41,7 +38,6 @@ export interface CanvasState {
     [transformFeatureKey]: CanvasTransform;
     [controllerServicesFeatureKey]: ControllerServicesState;
     [parameterFeatureKey]: ParameterState;
-    [queueFeatureKey]: QueueState;
     [flowAnalysisFeatureKey]: FlowAnalysisState;
 }
 
@@ -51,7 +47,6 @@ export function reducers(state: CanvasState | undefined, action: Action) {
         [transformFeatureKey]: transformReducer,
         [controllerServicesFeatureKey]: controllerServicesReducer,
         [parameterFeatureKey]: parameterReducer,
-        [queueFeatureKey]: queueReducer,
         [flowAnalysisFeatureKey]: flowAnalysisReducer
     })(state, action);
 }
