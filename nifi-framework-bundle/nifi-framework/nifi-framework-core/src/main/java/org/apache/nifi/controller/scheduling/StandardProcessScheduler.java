@@ -611,14 +611,25 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         final LifecycleState state = getLifecycleState(procNode, false, false);
-        if (state.getActiveThreadCount() == 0) {
-            LOG.debug("Will not terminate {} because it has no active threads", procNode);
+
+        // Capture the active thread count before invoking state.terminate(), since that call resets the
+        // count to zero. The captured count drives whether we still need to interrupt registered threads
+        // and reload the Processor instance below.
+        final int activeThreadsBeforeTermination = state.getActiveThreadCount();
+
+        // Always terminate the LifecycleState so that any retained ActiveProcessSessionFactory instances
+        // have terminateActiveSessions() invoked, rolling back Sessions that the Processor stashed in member
+        // state and never released. This must run even when no Processor thread is currently in flight;
+        // otherwise an offload can hang indefinitely on FlowFiles unacknowledged by orphaned Sessions.
+        state.terminate();
+
+        if (activeThreadsBeforeTermination == 0) {
+            LOG.debug("LifecycleState terminated for {}; no active threads to interrupt", procNode);
             return;
         }
 
         LOG.debug("Terminating {}", procNode);
 
-        state.terminate();
         final int tasksTerminated = procNode.terminate();
 
         getSchedulingAgent(procNode).incrementMaxThreadCount(tasksTerminated);

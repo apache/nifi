@@ -1905,6 +1905,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     }
                                 }
                             }
+                        } else if (lifecycleState.isTerminated()) {
+                            // Termination was requested while the stop sequence was waiting for active threads to drain.
+                            // LifecycleState.terminate() reset the active thread count to zero, so the count==1
+                            // condition above will never be reached and rescheduling would loop forever. Complete the
+                            // stop action and exit. completeStopAction() is idempotent if procNode.terminate() already
+                            // invoked it.
+                            LOG.debug("Stop sequence for {} aborted because LifecycleState was terminated", this);
+                            completeStopAction();
                         } else {
                             // Not all of the active threads have finished. Try again in 100 milliseconds.
                             executor.schedule(this, 100, TimeUnit.MILLISECONDS);
