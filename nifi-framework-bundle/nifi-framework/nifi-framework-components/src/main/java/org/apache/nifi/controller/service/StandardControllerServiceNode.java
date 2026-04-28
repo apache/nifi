@@ -665,6 +665,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 final ConfigurationContext configContext = providedConfigurationContext == null
                     ? new StandardConfigurationContext(serviceNode, controllerServiceProvider, null)
                     : providedConfigurationContext;
+                final ControllerService controllerService = getControllerServiceImplementation();
 
                 if (!isActive()) {
                     LOG.warn("Enabling {} stopped: no active status", serviceNode);
@@ -690,7 +691,15 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 } else {
                     final Collection<ValidationResult> errors = validationState.getValidationErrors();
                     if (completeExceptionallyOnFailure) {
-                        future.completeExceptionally(new IllegalStateException("Enabling %s failed: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
+                        String message = "Enabling %s failed: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors);
+                        future.completeExceptionally(new IllegalStateException(message));
+                        // Controlling frequency of error messages.
+                        // Initial messages will be at 0 seconds, 10 seconds, 36 seconds, 78 seconds etc.
+                        long delay = validationDelay.get();
+                        if (delay % 4000 == 0 || delay >= 75000) {
+                            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService, new StandardLoggingContext(serviceNode));
+                            componentLog.error("Failed to invoke @OnEnabled method. {}", message);
+                        }
                     }
 
                     final long selectedValidationDelay = getDelay(validationDelay, INCREMENTAL_VALIDATION_DELAY_MS);
@@ -712,7 +721,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     return;
                 }
 
-                final ControllerService controllerService = getControllerServiceImplementation();
                 try {
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), controllerService.getClass(), getIdentifier())) {
                         ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, controllerService, configContext);
