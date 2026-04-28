@@ -48,7 +48,7 @@ import {
 } from '@angular/material/select';
 import { MatInput } from '@angular/material/input';
 import { MatIcon } from '@angular/material/icon';
-import { MatButton } from '@angular/material/button';
+import { MatIconButton } from '@angular/material/button';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
@@ -96,7 +96,7 @@ type VirtualItem<T> = FilteredSearchableSelectOption<T> | FooterItem | GroupHead
         CdkVirtualScrollViewport,
         CdkVirtualForOf,
         CdkFixedSizeVirtualScroll,
-        MatButton,
+        MatIconButton,
         MatSuffix,
         MatProgressSpinner,
         EllipsisTooltipDirective
@@ -269,7 +269,7 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
 
     select = viewChild.required<MatSelect>(MatSelect);
     searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
-    clearSearchBtn = viewChild<MatButton>('clearSearchBtn');
+    clearSearchBtn = viewChild<MatIconButton>('clearSearchBtn');
     virtualScrollViewport = viewChild<CdkVirtualScrollViewport>('virtualScrollViewport');
 
     onChange!: (value: T[] | T | null) => void;

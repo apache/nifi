@@ -34,12 +34,12 @@
                     @if (shouldShowClearButton()) {
                         <button
                             type="button"
-                            mat-flat-button
+                            mat-icon-button
                             aria-label="Clear selection"
                             (click)="clearSelection($event)"
                             (keydown)="onClearSelectionKeydown($event)"
-                            class="shrink-0 searchable-select-icon-button mr-2">
-                            <i class="fa fa-times clear-search-filter"></i>
+                            class="shrink-0 primary-icon-button mr-2 rounded size-4 p-0">
+                            <i class="fa fa-times text-xs clear-search-filter"></i>
                         </button>
                     }
                 </div>
@@ -47,7 +47,10 @@
             <div class="search-filter-container">
                 <mat-form-field class="search-filter" subscriptSizing="dynamic">
                     <div class="flex items-center">
-                        <i class="fa fa-search mr-2" matPrefix aria-hidden="true"></i>
+                        <i
+                            class="fa fa-search mr-2 text-base leading-none text-inherit"
+                            matPrefix
+                            aria-hidden="true"></i>
 
                         <input
                             #searchInput
@@ -59,8 +62,6 @@
                             aria-expanded="true"
                             aria-autocomplete="list"
                             [attr.aria-owns]="optionsListId"
-                            autocomplete="off"
-                            data-1p-ignore
                             (keydown)="onSearchInputKeydown($event)" />
 
                         @if (searchString) {
@@ -71,9 +72,9 @@
                                 [attr.aria-label]="a11yClearSearchLabel()"
                                 (keydown)="focusSearchAndOrClear($event)"
                                 (click)="focusSearchAndOrClear($event)"
-                                mat-flat-button
-                                class="searchable-select-icon-button ml-2">
-                                <i class="fa fa-times clear-search-filter" matSuffix aria-hidden="true"></i>
+                                mat-icon-button
+                                class="primary-icon-button ml-2">
+                                <i class="fa fa-times text-xs text-inherit clear-search-filter" matSuffix></i>
                             </button>
                         }
                     </div>
@@ -91,7 +92,11 @@
                         <mat-icon class="shrink-0" [svgIcon]="ghostOption.svgIcon"></mat-icon>
                     }
                     <div class="flex flex-col gap-y-1 w-full">
-                        <div class="text-base truncate" [ngClass]="ghostOption.labelCssClasses" ellipsisTooltip>
+                        <div
+                            class="text-md truncate"
+                            [ngClass]="ghostOption.labelCssClasses"
+                            data-qa="searchable-select-option-label"
+                            ellipsisTooltip>
                             {{ ghostOption.label }}
                         </div>
                         @if (ghostOption.description) {
@@ -132,11 +137,11 @@
                                     role="note"
                                     aria-live="polite">
                                     @if (isMoreItem(item)) {
-                                        <div class="text-base truncate tertiary-color" ellipsisTooltip>
+                                        <div class="text-md truncate tertiary-color" ellipsisTooltip>
                                             More options available
                                         </div>
                                     } @else {
-                                        <span class="text-base truncate error-color" ellipsisTooltip>
+                                        <span class="text-md truncate error-color" ellipsisTooltip>
                                             {{ loadErrorMessage() }}
                                         </span>
                                     }
@@ -167,8 +172,9 @@
                                     }
                                     <div class="flex flex-col gap-y-1 w-full">
                                         <div
-                                            class="text-base truncate"
+                                            class="text-md truncate"
                                             [ngClass]="getItemLabelCss(item)"
+                                            data-qa="searchable-select-option-label"
                                             ellipsisTooltip>
                                             {{ getItemLabel(item) }}
                                         </div>
@@ -217,8 +223,9 @@
                                             }
                                             <div class="flex flex-col gap-y-1 w-full">
                                                 <div
-                                                    class="text-base truncate"
+                                                    class="text-md truncate"
                                                     [ngClass]="option.labelCssClasses"
+                                                    data-qa="searchable-select-option-label"
                                                     ellipsisTooltip>
                                                     {{ option.label }}
                                                 </div>
@@ -246,8 +253,9 @@
                                         }
                                         <div class="flex flex-col gap-y-1 w-full">
                                             <div
-                                                class="text-base truncate"
+                                                class="text-md truncate"
                                                 [ngClass]="option.labelCssClasses"
+                                                data-qa="searchable-select-option-label"
                                                 ellipsisTooltip>
                                                 {{ option.label }}
                                             </div>
@@ -273,7 +281,7 @@
                                 class="flex w-full items-center justify-center py-2 px-3"
                                 role="note"
                                 aria-live="polite">
-                                <div class="text-base truncate tertiary-color" ellipsisTooltip>
+                                <div class="text-md truncate tertiary-color" ellipsisTooltip>
                                     More options available
                                 </div>
                             </div>
@@ -283,7 +291,7 @@
                                 class="flex w-full items-center justify-center py-2 px-3"
                                 role="note"
                                 aria-live="polite">
-                                <span class="text-base truncate error-color" ellipsisTooltip>
+                                <span class="text-md truncate error-color" ellipsisTooltip>
                                     {{ loadErrorMessage() }}
                                 </span>
                             </div>
@@ -292,7 +300,7 @@
                 }
                 @if (filteredLength === 0 && !loadError()) {
                     <div class="flex w-full items-center justify-center py-2 px-3" role="note" aria-live="polite">
-                        <div class="text-base truncate tertiary-color" ellipsisTooltip>No results</div>
+                        <div class="text-md truncate tertiary-color" ellipsisTooltip>No results</div>
                     </div>
                 }
             }

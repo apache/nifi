@@ -15,32 +15,9 @@
  * limitations under the License.
  */
 
-// ViewEncapsulation.None on MultiSelectOption means these rules apply inside the
-// searchable-select overlay without leaking beyond .multi-select-option. They give
-// the custom option a Material-like layout that the subclass otherwise loses when
-// the host class binding replaces MatOption's defaults.
 .multi-select-option {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
-    min-height: 32px;
-    padding: 6px 12px;
-    cursor: pointer;
-
-    &.mdc-list-item--disabled {
-        cursor: not-allowed;
-        opacity: 1;
-        color: var(--mat-sys-on-surface);
-
-        .mdc-list-item__primary-text {
-            color: inherit;
-            opacity: 0.38;
-        }
-    }
-
-    .mdc-list-item__primary-text {
-        color: inherit;
-    }
 
     .mat-pseudo-checkbox {
         height: 16px;
@@ -51,29 +28,5 @@
     .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-checked::after {
         height: 4px;
         width: 10px;
-    }
-
-    &:not(.mdc-list-item--disabled):hover {
-        background-color: color-mix(
-            in srgb,
-            var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
-            transparent
-        );
-    }
-
-    &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-        color: var(--mat-sys-primary);
-
-        .mdc-list-item__primary-text {
-            color: inherit;
-        }
-    }
-
-    // Keyboard-active row: use a 2px outline rather than a background so the keyboard
-    // focus indicator stays visually distinct from the hover state.
-    &.mat-mdc-option-active:not(.mdc-list-item--disabled) {
-        background-color: transparent;
-        outline: 2px solid var(--mat-sys-primary);
-        outline-offset: -2px;
     }
 }

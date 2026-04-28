@@ -26,18 +26,13 @@ import { MatPseudoCheckbox, MatRipple } from '@angular/material/core';
  */
 @Component({
     selector: 'multi-select-option',
-    standalone: true,
     imports: [MatPseudoCheckbox, MatRipple],
     templateUrl: './multi-select-option.component.html',
     styleUrl: './multi-select-option.component.scss',
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
     providers: [{ provide: MatOption, useExisting: MultiSelectOption }],
-    // Include the Material option classes that MatOption's own host metadata applies.
-    // Angular does not merge host bindings across inheritance, so overriding `class`
-    // with only 'multi-select-option' drops 'mat-mdc-option' + 'mdc-list-item' and
-    // strips Material's default option layout and spacing.
-    host: { class: 'multi-select-option mat-mdc-option mdc-list-item', role: 'option' }
+    host: { class: 'multi-select-option', role: 'option' }
 })
 export class MultiSelectOption extends MatOption {
     /**

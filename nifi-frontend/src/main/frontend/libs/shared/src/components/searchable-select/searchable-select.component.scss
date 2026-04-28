@@ -18,8 +18,6 @@
 .searchable-select {
     .mat-mdc-select-value {
         overflow: unset;
-        // Breathing room between the mat-form-field left edge and the selected value text.
-        padding-left: 12px;
     }
 
     .mat-mdc-form-field {
@@ -33,30 +31,5 @@
         top: 0;
         background: inherit;
         z-index: 10;
-        // Small gap between the sticky search input and the first option so the
-        // list does not visually collide with the filter control.
-        padding-bottom: 4px;
-    }
-
-    // The search field wraps its prefix icon inside a flex div, so matPrefix is
-    // never hoisted out and Material doesn't apply its has-icon-prefix padding.
-    // Pad the text field wrapper here so the magnifying glass and placeholder
-    // sit a comfortable distance from the left edge.
-    .search-filter .mat-mdc-text-field-wrapper {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .fa {
-        color: inherit;
-    }
-}
-
-.select-trigger {
-    button.searchable-select-icon-button {
-        border-radius: 4px;
-        min-width: 16px;
-        height: 16px;
-        padding: 0;
     }
 }

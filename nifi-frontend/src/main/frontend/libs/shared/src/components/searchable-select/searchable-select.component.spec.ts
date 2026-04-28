@@ -845,7 +845,9 @@ describe('SearchableSelect', () => {
             fixture.detectChanges();
             await fixture.whenStable();
 
-            const optionElements = document.querySelectorAll('multi-select-option .text-base');
+            const optionElements = document.querySelectorAll(
+                'multi-select-option [data-qa="searchable-select-option-label"]'
+            );
             const normalOption = Array.from(optionElements).find((el) => el.textContent?.trim() === 'Normal Option');
 
             expect(normalOption).toBeTruthy();

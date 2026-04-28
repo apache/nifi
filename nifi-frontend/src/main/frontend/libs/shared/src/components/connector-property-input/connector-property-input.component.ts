@@ -60,10 +60,7 @@ import { SearchableSelect } from '../searchable-select/searchable-select.compone
         MatProgressSpinner,
         SearchableSelect
     ],
-    templateUrl: './connector-property-input.component.html',
-    host: {
-        class: 'block'
-    }
+    templateUrl: './connector-property-input.component.html'
 })
 export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, OnInit {
     private ngControl = inject(NgControl, { optional: true, self: true });
