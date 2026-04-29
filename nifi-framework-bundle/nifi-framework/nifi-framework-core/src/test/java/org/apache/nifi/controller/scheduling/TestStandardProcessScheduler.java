@@ -743,7 +743,7 @@ public class TestStandardProcessScheduler {
 
         final WeakHashMapProcessSessionFactory retainedFactory = new WeakHashMapProcessSessionFactory(delegateFactory);
         lifecycleState.incrementActiveThreadCount(retainedFactory);
-        retainedFactory.createSession();
+        final ProcessSession sessionWrapper = retainedFactory.createSession();
         lifecycleState.decrementActiveThreadCount();
 
         assertEquals(0, lifecycleState.getActiveThreadCount());
@@ -752,6 +752,9 @@ public class TestStandardProcessScheduler {
         harness.scheduler().terminateProcessor(procNode);
 
         Mockito.verify(retainedSession).rollback();
+        // Keep the Session wrapper reachable through verification so that the factory's WeakHashMap
+        // entry tracking it cannot be cleared by the GC before terminateActiveSessions() iterates it.
+        Reference.reachabilityFence(sessionWrapper);
         Reference.reachabilityFence(retainedFactory);
 
         harness.scheduler().shutdown();
