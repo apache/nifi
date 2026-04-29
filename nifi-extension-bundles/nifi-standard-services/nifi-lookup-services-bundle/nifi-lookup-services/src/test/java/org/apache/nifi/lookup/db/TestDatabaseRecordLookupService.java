@@ -41,8 +41,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
@@ -185,5 +187,85 @@ class TestDatabaseRecordLookupService {
         verify(connection).prepareStatement(statementCaptor.capture());
         final String statement = statementCaptor.getValue();
         assertEquals(EXPECTED_STATEMENT, statement);
+    }
+
+    // --- Composite key tests ---
+
+    private static final String COMPOSITE_KEY_COLUMN_1 = "system_id";
+    private static final String COMPOSITE_KEY_COLUMN_2 = "fund_code";
+    private static final String COMPOSITE_KEY_COLUMNS = COMPOSITE_KEY_COLUMN_1 + ", " + COMPOSITE_KEY_COLUMN_2;
+    private static final String COMPOSITE_KEY_VALUE_1 = "PML";
+    private static final int COMPOSITE_KEY_VALUE_2 = 13128;
+    private static final String COMPOSITE_EXPECTED_STATEMENT = String.format(
+            "SELECT %s FROM %s WHERE %s = ? AND %s = ?",
+            LOOKUP_VALUE_COLUMN, TABLE_NAME, COMPOSITE_KEY_COLUMN_1, COMPOSITE_KEY_COLUMN_2);
+
+    private void setUpCompositeKey() {
+        runner.setProperty(lookupService, DatabaseRecordLookupService.LOOKUP_KEY_COLUMN, COMPOSITE_KEY_COLUMNS);
+    }
+
+    @Test
+    void testCompositeKeyLookupEmpty() throws LookupFailureException, SQLException {
+        setUpCompositeKey();
+        runner.enableControllerService(lookupService);
+
+        setConnection();
+
+        final Map<String, Object> coordinates = Map.of(
+                COMPOSITE_KEY_COLUMN_1, COMPOSITE_KEY_VALUE_1,
+                COMPOSITE_KEY_COLUMN_2, COMPOSITE_KEY_VALUE_2);
+        final Optional<Record> lookupFound = lookupService.lookup(coordinates);
+
+        assertFalse(lookupFound.isPresent());
+        verify(connection).prepareStatement(statementCaptor.capture());
+        assertEquals(COMPOSITE_EXPECTED_STATEMENT, statementCaptor.getValue());
+    }
+
+    @Test
+    void testCompositeKeyLookupFound() throws LookupFailureException, SQLException {
+        setUpCompositeKey();
+        runner.enableControllerService(lookupService);
+
+        setConnection();
+        setResultSetMetaData();
+
+        when(resultSet.next()).thenReturn(true);
+        when(resultSet.getObject(eq(LOOKUP_VALUE_COLUMN))).thenReturn(LOOKUP_VALUE);
+
+        final Map<String, Object> coordinates = Map.of(
+                COMPOSITE_KEY_COLUMN_1, COMPOSITE_KEY_VALUE_1,
+                COMPOSITE_KEY_COLUMN_2, COMPOSITE_KEY_VALUE_2);
+        final Optional<Record> lookupFound = lookupService.lookup(coordinates);
+
+        assertTrue(lookupFound.isPresent());
+    }
+
+    @Test
+    void testCompositeKeyLookupMissingCoordinate() throws LookupFailureException, SQLException {
+        setUpCompositeKey();
+        runner.enableControllerService(lookupService);
+
+        // Only provide one of the two required keys
+        final Map<String, Object> coordinates = Map.of(COMPOSITE_KEY_COLUMN_1, COMPOSITE_KEY_VALUE_1);
+        final Optional<Record> lookupFound = lookupService.lookup(coordinates);
+
+        assertFalse(lookupFound.isPresent());
+    }
+
+    @Test
+    void testCompositeKeyGetRequiredKeys() {
+        setUpCompositeKey();
+        runner.enableControllerService(lookupService);
+
+        final Set<String> requiredKeys = lookupService.getRequiredKeys();
+        assertEquals(new LinkedHashSet<>(java.util.List.of(COMPOSITE_KEY_COLUMN_1, COMPOSITE_KEY_COLUMN_2)), requiredKeys);
+    }
+
+    @Test
+    void testSingleKeyGetRequiredKeys() {
+        runner.enableControllerService(lookupService);
+
+        final Set<String> requiredKeys = lookupService.getRequiredKeys();
+        assertEquals(Set.of("key"), requiredKeys);
     }
 }
