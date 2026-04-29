@@ -30,6 +30,7 @@ import software.amazon.awssdk.regions.Region;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ACCESS_KEY_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.SECRET_KEY;
 import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.AWS_CREDENTIALS_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.RDS_ENDPOINT;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,6 +44,7 @@ class AwsRdsIamDatabasePasswordProviderTest {
     private static final String POSTGRES_DRIVER_CLASS = "org.postgresql.Driver";
     private static final String DB_USER = "dbuser";
     private static final String HOSTNAME = "example.us-west-2.rds.amazonaws.com";
+    private static final String RDS_PROXY_HOSTNAME = "my-proxy.proxy-example.us-west-2.rds.amazonaws.com";
     private static final String JDBC_PREFIX = "jdbc:postgresql://";
     private static final String DATABASE = "dev";
     private static final int PORT = 5432;
@@ -79,7 +81,11 @@ class AwsRdsIamDatabasePasswordProviderTest {
     }
 
     @Test
-    void testGeneratesTokenWithDefaultPort() {
+    void testGeneratesTokenUsingRdsEndpointOverride() {
+        runner.disableControllerService(passwordProvider);
+        runner.setProperty(passwordProvider, RDS_ENDPOINT, "%s:%d".formatted(RDS_PROXY_HOSTNAME, PORT));
+        runner.enableControllerService(passwordProvider);
+
         final DatabasePasswordProvider service = getService();
         final DatabasePasswordRequestContext context = DatabasePasswordRequestContext.builder()
                 .jdbcUrl("%s%s:%d/%s".formatted(JDBC_PREFIX, HOSTNAME, PORT, DATABASE))
@@ -88,7 +94,7 @@ class AwsRdsIamDatabasePasswordProviderTest {
                 .build();
 
         final String token = new String(service.getPassword(context));
-        assertTrue(token.startsWith("%s:%d/".formatted(HOSTNAME, PORT)));
+        assertTrue(token.startsWith("%s:%d/".formatted(RDS_PROXY_HOSTNAME, PORT)));
         assertTrue(token.contains("DBUser=" + DB_USER));
     }
 

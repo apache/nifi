@@ -90,3 +90,31 @@ When that works, configure NiFi’s DBCP service with:
 - `Database Password Provider`: `AwsRdsIamDatabasePasswordProvider`
 
 NiFi will then mint IAM tokens automatically for each new JDBC connection.
+
+## Connecting Through a Network Load Balancer in Front of an RDS Proxy
+
+When connecting through a Network Load Balancer (NLB) placed in front of an RDS Proxy, the JDBC URL must point to the NLB endpoint, but the IAM token must be signed for the RDS Proxy endpoint. By default, the token is generated using the hostname extracted from the JDBC URL, which causes authentication to fail.
+
+Use the optional **RDS Endpoint** property to specify the RDS Proxy endpoint (`hostname:port`) for token signing while keeping the NLB endpoint in the JDBC URL for the actual TCP connection.
+
+### CLI verification
+
+```bash
+NLB_ENDPOINT="nlb-example.elb.us-east-1.amazonaws.com"
+RDS_PROXY_ENDPOINT="my-proxy.proxy-example.us-east-1.rds.amazonaws.com"
+
+TOKEN=$(aws rds generate-db-auth-token \
+  --hostname "$RDS_PROXY_ENDPOINT" \
+  --port 3306 \
+  --region us-east-1 \
+  --username nifi_app)
+
+mysql -h "$NLB_ENDPOINT" -P 3306 -u nifi_app --password="$TOKEN"
+```
+
+When that works, configure NiFi's DBCP service with:
+
+- `Database Connection URL`: `jdbc:mysql://nlb-example.elb.us-east-1.amazonaws.com:3306/mydb`
+- `Database User`: `nifi_app`
+- `Database Password Provider`: `AwsRdsIamDatabasePasswordProvider`
+- `RDS Endpoint`: `my-proxy.proxy-example.us-east-1.rds.amazonaws.com:3306`
