@@ -23,16 +23,15 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class AbstractDatabaseLookupService extends AbstractControllerService {
 
     static final String KEY = "key";
-
-    static final Set<String> REQUIRED_KEYS = Set.of(
-        KEY
-    );
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Connection Pooling Service")
@@ -51,8 +50,11 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
 
     static final PropertyDescriptor LOOKUP_KEY_COLUMN = new PropertyDescriptor.Builder()
             .name("Lookup Key Column")
-            .description("The column in the table that will serve as the lookup key. This is the column that will be matched against "
-                    + "the property specified in the lookup processor. Note that this may be case-sensitive depending on the database.")
+            .description("The column(s) in the table that will serve as the lookup key. For composite key lookups, "
+                    + "specify a comma-separated list of column names (e.g. 'col1, col2'). When a single column is specified, "
+                    + "the lookup processor should pass a coordinate named 'key'. When multiple columns are specified, "
+                    + "the lookup processor should pass coordinates whose names match the column names. "
+                    + "Note that this may be case-sensitive depending on the database.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -92,6 +94,22 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
     DBCPService dbcpService;
 
     volatile String lookupKeyColumn;
+
+    volatile List<String> lookupKeyColumns;
+
+    static List<String> parseKeyColumns(final String value) {
+        if (value == null || value.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    boolean isCompositeKey() {
+        return lookupKeyColumns != null && lookupKeyColumns.size() > 1;
+    }
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
