@@ -100,4 +100,15 @@ multi-select-option {
             color: var(--mat-option-selected-state-label-text-color, var(--mat-sys-on-secondary-container));
         }
     }
+
+    // When hover/focus/active overrides the selected background, revert the checkmark
+    // to the regular label color so it remains visible against the state layer.
+    &:hover .mat-pseudo-checkbox,
+    &:focus .mat-pseudo-checkbox,
+    &.mat-mdc-option-active .mat-pseudo-checkbox {
+        --mat-pseudo-checkbox-minimal-selected-checkmark-color: var(
+            --mat-option-label-text-color,
+            var(--mat-sys-on-surface)
+        );
+    }
 }
