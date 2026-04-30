@@ -51,6 +51,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -696,10 +698,49 @@ public class TestStandardConnectorRepository {
 
         repository.syncAssetsFromProvider(connector);
 
-        // Step 1: provider.syncAssets() called
-        verify(provider).syncAssets("connector-1");
+        // Step 1: provider.syncAssets() called (also invoked by addConnector, so happens at least twice)
+        verify(provider, atLeast(2)).syncAssets("connector-1");
         // Step 2: provider.load() called to reload updated config (may also have been called during addConnector)
-        verify(provider, org.mockito.Mockito.atLeastOnce()).load("connector-1");
+        verify(provider, atLeastOnce()).load("connector-1");
+    }
+
+    @Test
+    public void testAddConnectorSyncsAssetsFromProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.load("connector-1")).thenReturn(Optional.empty());
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Test");
+        repository.addConnector(connector);
+
+        verify(provider).syncAssets("connector-1");
+        verify(provider).load("connector-1");
+    }
+
+    @Test
+    public void testRestoreConnectorSyncsAssetsFromProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.load("connector-1")).thenReturn(Optional.empty());
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Test");
+        repository.restoreConnector(connector);
+
+        assertEquals(1, repository.getConnectors().size());
+        verify(provider).syncAssets("connector-1");
+    }
+
+    @Test
+    public void testRestoreConnectorTolerantOfProviderFailure() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        doThrow(new ConnectorConfigurationProviderException("Provider unavailable"))
+                .when(provider).syncAssets("connector-1");
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Test");
+        repository.restoreConnector(connector);
+
+        assertEquals(1, repository.getConnectors().size(), "Restore must succeed even if provider sync fails");
     }
 
     @Test

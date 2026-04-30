@@ -96,13 +96,25 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void addConnector(final ConnectorNode connector) {
-        syncFromProvider(connector);
+        syncAssetsFromProvider(connector);
         connectors.put(connector.getIdentifier(), connector);
     }
 
     @Override
     public void restoreConnector(final ConnectorNode connector) {
         connectors.put(connector.getIdentifier(), connector);
+
+        // Reconcile asset binaries and working configuration with the provider so that connectors
+        // restored from the persisted flow do not require an explicit applyUpdate to download
+        // assets that are missing locally or whose digests are unknown. Provider failures during
+        // restore must not prevent the connector from being added to the repository, since the
+        // provider may be temporarily unavailable at startup.
+        try {
+            syncAssetsFromProvider(connector);
+        } catch (final Exception e) {
+            logger.warn("Failed to synchronize assets from provider for restored {}; continuing without sync", connector, e);
+        }
+
         logger.debug("Successfully restored {}", connector);
     }
 
