@@ -2203,6 +2203,32 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testMigrateToDelegatingSessionWrapper() {
+        FlowFile flowFile = session.create();
+        flowFile = session.write(flowFile, out -> out.write("contents".getBytes(StandardCharsets.UTF_8)));
+
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+
+        // Simulate the framework path that wraps a Session through WeakHashMapProcessSessionFactory: the
+        // Processor receives the wrapper, and other framework code that holds the underlying StandardProcessSession
+        // must still be able to migrate FlowFiles to it.
+        final WeakHashMapProcessSessionFactory wrappingFactory = new WeakHashMapProcessSessionFactory(() -> newSession);
+        final ProcessSession wrapperSession = wrappingFactory.createSession();
+
+        assertTrue(session.isFlowFileKnown(flowFile));
+        assertFalse(newSession.isFlowFileKnown(flowFile));
+
+        session.migrate(wrapperSession, Collections.singleton(flowFile));
+
+        assertFalse(session.isFlowFileKnown(flowFile));
+        assertTrue(newSession.isFlowFileKnown(flowFile));
+
+        newSession.remove(flowFile);
+        newSession.commit();
+        session.commit();
+    }
+
+    @Test
     public void testMigrateAfterTransferToAutoTerminatedRelationship() {
         final long start = System.currentTimeMillis();
 

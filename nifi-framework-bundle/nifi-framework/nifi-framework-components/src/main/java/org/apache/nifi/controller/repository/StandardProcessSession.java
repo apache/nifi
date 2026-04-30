@@ -1501,11 +1501,23 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             throw new IllegalArgumentException("Must supply at least one FlowFile to migrate");
         }
 
-        if (!(newOwner instanceof StandardProcessSession)) {
+        // Look through any framework-internal Session wrappers (such as the one used to keep an
+        // ActiveProcessSessionFactory reachable for the offload/terminate path) so the underlying
+        // StandardProcessSession can be located.
+        ProcessSession resolvedOwner = newOwner;
+        while (resolvedOwner instanceof DelegatingProcessSession delegating) {
+            resolvedOwner = delegating.getDelegate();
+        }
+
+        if (!(resolvedOwner instanceof StandardProcessSession standardOwner)) {
             throw new IllegalArgumentException("Cannot migrate from a StandardProcessSession to a " + newOwner.getClass());
         }
 
-        migrate((StandardProcessSession) newOwner, flowFiles);
+        if (standardOwner == this) {
+            throw new IllegalArgumentException("Cannot migrate FlowFiles from a Process Session to itself");
+        }
+
+        migrate(standardOwner, flowFiles);
     }
 
     private synchronized void migrate(final StandardProcessSession newOwner, Collection<FlowFile> flowFiles) {

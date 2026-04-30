@@ -90,7 +90,7 @@ public class WeakHashMapProcessSessionFactory implements ActiveProcessSessionFac
      * WeakHashMap entry tracking the factory is not cleared while the Session is still in use. All
      * operations are forwarded to the underlying delegate Session.
      */
-    private static final class FactoryRetainingProcessSession implements ProcessSession {
+    private static final class FactoryRetainingProcessSession implements DelegatingProcessSession {
         private final ProcessSession delegate;
         @SuppressWarnings("unused") // Retained only to keep the factory reachable; see class Javadoc.
         private final WeakHashMapProcessSessionFactory factoryRetention;
@@ -98,6 +98,11 @@ public class WeakHashMapProcessSessionFactory implements ActiveProcessSessionFac
         private FactoryRetainingProcessSession(final ProcessSession delegate, final WeakHashMapProcessSessionFactory factoryRetention) {
             this.delegate = delegate;
             this.factoryRetention = factoryRetention;
+        }
+
+        @Override
+        public ProcessSession getDelegate() {
+            return delegate;
         }
 
         @Override
