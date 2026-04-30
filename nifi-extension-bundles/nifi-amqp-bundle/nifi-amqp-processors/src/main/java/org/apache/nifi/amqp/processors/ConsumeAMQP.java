@@ -225,8 +225,19 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
 
         if (lastReceived != null) {
-            final GetResponse finalGetResponse = lastReceived;
-            session.commitAsync(() -> consumer.acknowledge(finalGetResponse), null);
+            final long lastDeliveryTag = lastReceived.getEnvelope().getDeliveryTag();
+
+            session.commitAsync(
+                    () -> consumer.acknowledge(lastDeliveryTag),
+                    failure -> {
+                        getLogger().warn(
+                                "ProcessSession commit failed after consuming AMQP messages up to delivery tag {}; negatively acknowledging with requeue",
+                                lastDeliveryTag,
+                                failure
+                        );
+                        consumer.negativeAcknowledge(lastDeliveryTag);
+                    }
+            );
         }
     }
 

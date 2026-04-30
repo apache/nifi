@@ -103,15 +103,27 @@ final class AMQPConsumer extends AMQPWorker {
         return responseQueue.poll();
     }
 
-    public void acknowledge(final GetResponse response) {
+    public void acknowledge(final long deliveryTag) {
         if (autoAcknowledge) {
             return;
         }
 
         try {
-            getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
+            getChannel().basicAck(deliveryTag, true);
         } catch (Exception e) {
             throw new AMQPException("Failed to acknowledge message", e);
+        }
+    }
+
+    public void negativeAcknowledge(final long deliveryTag) {
+        if (autoAcknowledge) {
+            return;
+        }
+
+        try {
+            getChannel().basicNack(deliveryTag, true, true);
+        } catch (Exception e) {
+            throw new AMQPException("Failed to negatively acknowledge message", e);
         }
     }
 
