@@ -18,5 +18,6 @@
 export * from './nifi-tooltip.directive';
 export * from './copy/copy.directive';
 export * from './ellipsis-tooltip/ellipsis-tooltip.directive';
+export * from './drag-and-drop/drag-and-drop.directive';
 export * from './spinner/nifi-spinner.directive';
 export * from './spinner/spinner.component';
