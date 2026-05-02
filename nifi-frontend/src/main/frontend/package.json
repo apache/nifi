@@ -63,7 +63,7 @@
     "devDependencies": {
         "@analogjs/vite-plugin-angular": "^2.3.1",
         "@analogjs/vitest-angular": "^2.3.1",
-        "@angular-devkit/build-angular": "21.1.5",
+        "@angular-devkit/build-angular": "21.2.9",
         "@angular-devkit/core": "21.1.5",
         "@angular-devkit/schematics": "21.1.5",
         "@angular-eslint/eslint-plugin": "21.3.0",
@@ -96,7 +96,7 @@
         "ng-mocks": "^14.12.2",
         "ng-packagr": "21.1.0",
         "nx": "22.5.4",
-        "postcss": "^8.4.32",
+        "postcss": "^8.5.12",
         "prettier": "^3.2.5",
         "tailwindcss": "^4.2.2",
         "ts-node": "^10.9.2",
