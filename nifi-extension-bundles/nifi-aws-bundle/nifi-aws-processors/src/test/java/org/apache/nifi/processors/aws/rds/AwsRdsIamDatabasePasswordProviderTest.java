@@ -30,7 +30,7 @@ import software.amazon.awssdk.regions.Region;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ACCESS_KEY_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.SECRET_KEY;
 import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.RDS_ENDPOINT;
+import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.TOKEN_REQUEST_ENDPOINT;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,9 +81,9 @@ class AwsRdsIamDatabasePasswordProviderTest {
     }
 
     @Test
-    void testGeneratesTokenUsingRdsEndpointOverride() {
+    void testGeneratesTokenUsingTokenRequestEndpointOverride() {
         runner.disableControllerService(passwordProvider);
-        runner.setProperty(passwordProvider, RDS_ENDPOINT, "%s:%d".formatted(RDS_PROXY_HOSTNAME, PORT));
+        runner.setProperty(passwordProvider, TOKEN_REQUEST_ENDPOINT, "%s:%d".formatted(RDS_PROXY_HOSTNAME, PORT));
         runner.enableControllerService(passwordProvider);
 
         final DatabasePasswordProvider service = getService();

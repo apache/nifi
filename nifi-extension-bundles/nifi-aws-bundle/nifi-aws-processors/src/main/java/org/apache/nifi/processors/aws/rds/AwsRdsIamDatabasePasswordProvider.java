@@ -54,6 +54,8 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.isDynamicRegion;
         """)
 public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService implements DatabasePasswordProvider {
 
+    private static final String URI_ENDPOINT_FORMAT = "tcp://%s";
+
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("AWS Credentials Provider Service")
             .description("Controller Service that provides the AWS credentials used to sign IAM authentication requests.")
@@ -61,9 +63,9 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
             .required(true)
             .build();
 
-    static final PropertyDescriptor RDS_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("RDS Endpoint")
-            .description("RDS endpoint in hostname:port format used for IAM token signing, overriding the hostname and port from the JDBC URL.")
+    static final PropertyDescriptor TOKEN_REQUEST_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("Token Request Endpoint")
+            .description("Token Request Endpoint in hostname:port format used for IAM token signing, overriding the hostname and port from the JDBC URL.")
             .required(false)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
@@ -72,13 +74,13 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
             CUSTOM_REGION,
-            RDS_ENDPOINT
+            TOKEN_REQUEST_ENDPOINT
     );
 
     private volatile AwsCredentialsProvider awsCredentialsProvider;
     private volatile RdsUtilities rdsUtilities;
     private volatile Region awsRegion;
-    private volatile ParsedEndpoint rdsEndpoint;
+    private volatile ParsedEndpoint tokenRequestEndpoint;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -105,7 +107,7 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
         awsCredentialsProvider = credentialsService.getAwsCredentialsProvider();
         awsRegion = getRegion(context);
         rdsUtilities = createRdsUtilities(awsRegion, awsCredentialsProvider);
-        rdsEndpoint = getRdsEndpoint(context);
+        tokenRequestEndpoint = getTokenRequestEndpoint(context);
     }
 
     @OnDisabled
@@ -113,7 +115,7 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
         awsCredentialsProvider = null;
         rdsUtilities = null;
         awsRegion = null;
-        rdsEndpoint = null;
+        tokenRequestEndpoint = null;
     }
 
     @Override
@@ -122,13 +124,13 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
 
         final String hostname;
         final int port;
-        if (rdsEndpoint != null) {
-            hostname = rdsEndpoint.hostname();
-            port = rdsEndpoint.port();
-        } else {
+        if (tokenRequestEndpoint == null) {
             final ParsedEndpoint jdbcEndpoint = parseEndpoint(requestContext.getJdbcUrl());
             hostname = resolveHostname(jdbcEndpoint, requestContext.getJdbcUrl());
             port = resolvePort(jdbcEndpoint);
+        } else {
+            hostname = tokenRequestEndpoint.hostname();
+            port = tokenRequestEndpoint.port();
         }
         final String username = resolveUsername(requestContext.getDatabaseUser());
 
@@ -179,19 +181,18 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
         return username;
     }
 
-    private ParsedEndpoint getRdsEndpoint(final ConfigurationContext context) {
-        return context.getProperty(RDS_ENDPOINT).isSet()
-                ? parseRdsEndpoint(context.getProperty(RDS_ENDPOINT).getValue())
+    private ParsedEndpoint getTokenRequestEndpoint(final ConfigurationContext context) {
+        return context.getProperty(TOKEN_REQUEST_ENDPOINT).isSet()
+                ? parseTokenRequestEndpoint(context.getProperty(TOKEN_REQUEST_ENDPOINT).getValue())
                 : null;
     }
 
-    private ParsedEndpoint parseRdsEndpoint(final String endpoint) {
+    private ParsedEndpoint parseTokenRequestEndpoint(final String endpoint) {
         try {
-            // Prepend a dummy scheme to delegate host and port parsing to the standard URI parser
-            final URI uri = URI.create("tcp://" + endpoint);
-            return new ParsedEndpoint(uri.getHost(), uri.getPort() >= 0 ? uri.getPort() : null);
+            final URI uri = URI.create(URI_ENDPOINT_FORMAT.formatted(endpoint));
+            return new ParsedEndpoint(uri.getHost(), uri.getPort());
         } catch (final IllegalArgumentException e) {
-            throw new ProcessException("Failed to parse RDS Endpoint [%s] as hostname:port".formatted(endpoint), e);
+            throw new ProcessException("Failed to parse Token Request Endpoint [%s] as hostname:port".formatted(endpoint), e);
         }
     }
 
