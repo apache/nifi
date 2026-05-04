@@ -1171,6 +1171,23 @@ public class NiFiClientUtil {
             final Integer terminatedThreadCount = snapshotDto.getTerminatedThreadCount();
 
             if ("RUNNING".equals(expectedState) || (activeThreadCount == 0 && terminatedThreadCount == 0)) {
+                // The logical state masks the framework's physical STOPPING state as STOPPED. The framework's
+                // verifyCanStart check evaluates the physical state, so when the caller is waiting for STOPPED
+                // we additionally require the physical state to have settled to STOPPED or DISABLED. Without
+                // this, a tight loop of runProcessorOnce + waitForStoppedProcessor can race against an
+                // in-flight stop transition and the next start request fails with "cannot be started because
+                // it is not stopped. Current state is STOPPING".
+                if ("STOPPED".equalsIgnoreCase(expectedState)) {
+                    final String physicalState = entity.getComponent().getPhysicalState();
+                    final boolean physicalStateSettled = physicalState == null
+                            || "STOPPED".equalsIgnoreCase(physicalState)
+                            || "DISABLED".equalsIgnoreCase(physicalState);
+                    if (!physicalStateSettled) {
+                        Thread.sleep(10L);
+                        continue;
+                    }
+                }
+
                 logger.info("Processor {} is now in desired state of {} with {} active threads and {} terminated threads",
                     processorId, expectedState, activeThreadCount, terminatedThreadCount);
                 return;

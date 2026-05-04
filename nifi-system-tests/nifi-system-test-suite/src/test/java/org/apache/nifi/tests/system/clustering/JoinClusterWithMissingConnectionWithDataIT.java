@@ -99,8 +99,7 @@ public class JoinClusterWithMissingConnectionWithDataIT extends NiFiSystemIT {
         node2.stop();
 
         // Remove node from the cluster
-        getNifiClient().getControllerClient().deleteNode(node2Dto.getNodeId());
-        waitFor(() -> isNodeRemoved(5672));
+        removeNodeFromCluster(2);
 
         // Drop the data in the queue and delete the queue.
         getClientUtil().emptyQueue(CONNECTION_UUID);
@@ -111,15 +110,6 @@ public class JoinClusterWithMissingConnectionWithDataIT extends NiFiSystemIT {
 
         // Node should fail to connect but instead should be disconnected.
         waitFor(() -> isNodeDisconnected(5672));
-    }
-
-    private boolean isNodeRemoved(final int apiPort) {
-        try {
-            return getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream()
-                .noneMatch(dto -> dto.getApiPort() == apiPort);
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     private boolean isNodeDisconnected(final int apiPort) {

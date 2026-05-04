@@ -24,7 +24,6 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,8 +129,7 @@ public class ClusteredConnectorIT extends ConnectorCrudIT {
         final ConnectorClient connectorClient = getNifiClient().getConnectorClient();
         assertThrows(NiFiClientException.class, () -> connectorClient.deleteConnector(connector));
 
-        final NodeEntity node2Entity = getNodeEntity(2);
-        getNifiClient().getControllerClient().deleteNode(node2Entity.getNode().getNodeId());
+        removeNodeFromCluster(2);
 
         // Should now be able to delete connector
         connectorClient.deleteConnector(connector);
@@ -172,8 +170,7 @@ public class ClusteredConnectorIT extends ConnectorCrudIT {
         assertThrows(NiFiClientException.class, () -> connectorClient.deleteConnector(connector));
 
         // Remove node 2 from cluster.
-        final NodeEntity node2Entity = getNodeEntity(2);
-        getNifiClient().getControllerClient().deleteNode(node2Entity.getNode().getNodeId());
+        removeNodeFromCluster(2);
 
         // We cannot delete the connector directly because it has data queued. Stop Node 1, delete the flow.json.gz file, and restart Node 1.
         getNiFiInstance().getNodeInstance(1).stop();
