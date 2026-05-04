@@ -249,6 +249,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -274,7 +275,7 @@ import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider {
+public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider, ClusterTopologyProvider {
     private static final String STANDARD_PYTHON_BRIDGE_IMPLEMENTATION_CLASS = "org.apache.nifi.py4j.StandardPythonBridge";
 
     // default repository implementations
@@ -2947,9 +2948,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     @Override
     public Set<String> getClusterMembers() {
         if (isClustered()) {
-            return clusterCoordinator.getConnectionStatuses().stream()
-                    .map(s -> "%s:%d".formatted(s.getNodeIdentifier().getApiAddress(), s.getNodeIdentifier().getApiPort()))
-                    .collect(Collectors.toSet());
+            return clusterCoordinator.getConnectionStatuses().stream().map(s -> s.getNodeIdentifier().getApiAddress()).collect(Collectors.toSet());
         } else {
             return Collections.emptySet();
         }
@@ -2958,10 +2957,47 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     @Override
     public Optional<String> getCurrentNode() {
         if (isClustered() && getNodeId() != null) {
-            return Optional.of("%s:%d".formatted(getNodeId().getApiAddress(), getNodeId().getApiPort()));
+            return Optional.of(getNodeId().getApiAddress());
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public int getLocalNodeOrdinal() {
+        final List<NodeIdentifier> sortedConnectedNodes = getSortedConnectedNodeIdentifiers();
+        if (sortedConnectedNodes.isEmpty()) {
+            return 0;
+        }
+
+        final NodeIdentifier localNodeId = getNodeId();
+        if (localNodeId == null) {
+            return 0;
+        }
+
+        for (int i = 0; i < sortedConnectedNodes.size(); i++) {
+            if (sortedConnectedNodes.get(i).equals(localNodeId)) {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    @Override
+    public int getConnectedNodeCount() {
+        final List<NodeIdentifier> sortedConnectedNodes = getSortedConnectedNodeIdentifiers();
+        return sortedConnectedNodes.isEmpty() ? 1 : sortedConnectedNodes.size();
+    }
+
+    private List<NodeIdentifier> getSortedConnectedNodeIdentifiers() {
+        if (!isClustered() || clusterCoordinator == null) {
+            return Collections.emptyList();
+        }
+
+        return clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED).stream()
+                .sorted(Comparator.comparing(NodeIdentifier::getApiAddress).thenComparingInt(NodeIdentifier::getApiPort))
+                .toList();
     }
 
     @Override

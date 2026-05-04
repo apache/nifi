@@ -151,6 +151,9 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
         getClientUtil().waitForStoppedProcessor(stateful.getId());
 
         final Map<String, String> originalClusterState = getProcessorState(stateful.getId(), Scope.CLUSTER);
+        final Map<String, Map<String, String>> originalLocalStatesByNode = getProcessorLocalStatesByNode(stateful.getId());
+        assertEquals(2, originalLocalStatesByNode.size(),
+                "Local state should be populated on both cluster nodes prior to export");
 
         final File exportFile = new File("target/st16-export.json");
         getNifiClient().getProcessGroupClient().exportProcessGroup(pg.getId(), true, true, exportFile);
@@ -164,6 +167,10 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
         final Map<String, String> importedClusterState = getProcessorState(importedProcessor.getId(), Scope.CLUSTER);
         assertEquals(originalClusterState.get("count"), importedClusterState.get("count"),
                 "Cluster state should be restored after round-trip");
+
+        final Map<String, Map<String, String>> importedLocalStatesByNode = getProcessorLocalStatesByNode(importedProcessor.getId());
+        assertEquals(originalLocalStatesByNode, importedLocalStatesByNode,
+                "Local state should be restored to the same node it was exported from after round-trip");
     }
 
     @Test
@@ -244,6 +251,19 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
                 return false;
             }
         });
+    }
+
+    private Map<String, Map<String, String>> getProcessorLocalStatesByNode(final String processorId) throws NiFiClientException, IOException {
+        final ComponentStateEntity stateEntity = getNifiClient().getProcessorClient().getProcessorState(processorId);
+        final ComponentStateDTO componentState = stateEntity.getComponentState();
+        final Map<String, Map<String, String>> byNode = new HashMap<>();
+        if (componentState != null && componentState.getLocalState() != null && componentState.getLocalState().getState() != null) {
+            for (final StateEntryDTO entry : componentState.getLocalState().getState()) {
+                final String nodeId = entry.getClusterNodeId();
+                byNode.computeIfAbsent(nodeId, id -> new HashMap<>()).put(entry.getKey(), entry.getValue());
+            }
+        }
+        return byNode;
     }
 
     private Map<String, String> getProcessorState(final String processorId, final Scope scope) throws NiFiClientException, IOException {
