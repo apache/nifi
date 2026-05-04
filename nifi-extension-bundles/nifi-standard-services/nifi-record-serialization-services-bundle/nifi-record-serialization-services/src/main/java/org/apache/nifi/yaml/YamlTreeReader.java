@@ -44,7 +44,7 @@ import java.util.List;
         + "See the Usage of the Controller Service for more information and examples.")
 public class YamlTreeReader extends JsonTreeReader {
 
-    private static final boolean ALLOW_COMMENTS_DISABLED = false;
+    private static final boolean LENIENT_PARSING_DISABLED = false;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -53,7 +53,7 @@ public class YamlTreeReader extends JsonTreeReader {
 
     @Override
     protected TokenParserFactory createTokenParserFactory(final ConfigurationContext context) {
-        return new YamlParserFactory(buildStreamReadConstraints(context), isAllowCommentsEnabled(context));
+        return new YamlParserFactory(buildStreamReadConstraints(context), isLenientParsingEnabled(context));
     }
 
     @Override
@@ -63,7 +63,7 @@ public class YamlTreeReader extends JsonTreeReader {
     }
 
     @Override
-    protected boolean isAllowCommentsEnabled(final ConfigurationContext context) {
-        return ALLOW_COMMENTS_DISABLED;
+    protected boolean isLenientParsingEnabled(final ConfigurationContext context) {
+        return LENIENT_PARSING_DISABLED;
     }
 }

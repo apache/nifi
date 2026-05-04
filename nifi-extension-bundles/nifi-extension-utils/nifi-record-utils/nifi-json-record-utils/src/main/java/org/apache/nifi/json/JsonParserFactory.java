@@ -42,14 +42,22 @@ public class JsonParserFactory implements TokenParserFactory {
      * JSON Parser Factory constructor with configurable constraints
      *
      * @param streamReadConstraints Stream Read Constraints
-     * @param allowComments Allow Comments during parsing
+     * @param lenient Allow for parsing JSON leniently
      */
-    public JsonParserFactory(final StreamReadConstraints streamReadConstraints, final boolean allowComments) {
+    public JsonParserFactory(final StreamReadConstraints streamReadConstraints, final boolean lenient) {
         Objects.requireNonNull(streamReadConstraints, "Stream Read Constraints required");
 
         final ObjectMapper objectMapper = new ObjectMapper();
-        if (allowComments) {
+        if (lenient) {
             objectMapper.enable(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_YAML_COMMENTS.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_SINGLE_QUOTES.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_LEADING_ZEROS_FOR_NUMBERS.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_TRAILING_DECIMAL_POINT_FOR_NUMBERS.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature());
         }
         jsonFactory = objectMapper.getFactory();
         jsonFactory.setStreamReadConstraints(streamReadConstraints);

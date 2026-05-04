@@ -34,20 +34,14 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_R
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
-import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
-import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestJsonTreeReader {
+public class TestJsonPathReader {
 
     @ParameterizedTest
     @MethodSource("migrationConfigurations")
     void testMigrateProperties(MockPropertyConfiguration configuration, Set<String> expectedRemoved) {
         final Map<String, String> expectedRenamed = Map.ofEntries(
-                Map.entry("starting-field-strategy", JsonTreeReader.STARTING_FIELD_STRATEGY.getName()),
-                Map.entry("starting-field-name", JsonTreeReader.STARTING_FIELD_NAME.getName()),
-                Map.entry("schema-application-strategy", JsonTreeReader.SCHEMA_APPLICATION_STRATEGY.getName()),
-                Map.entry(OBSOLETE_SCHEMA_CACHE, SCHEMA_CACHE.getName()),
                 Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SCHEMA_ACCESS_STRATEGY.getName()),
                 Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName()),
                 Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName()),
@@ -57,7 +51,7 @@ public class TestJsonTreeReader {
                 Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SCHEMA_REFERENCE_READER.getName())
         );
 
-        final JsonTreeReader service = new JsonTreeReader();
+        final JsonPathReader service = new JsonPathReader();
         service.migrateProperties(configuration);
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
 
@@ -75,5 +69,4 @@ public class TestJsonTreeReader {
                         new MockPropertyConfiguration(Map.of(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS, "true")), Set.of(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS))
         );
     }
-
 }

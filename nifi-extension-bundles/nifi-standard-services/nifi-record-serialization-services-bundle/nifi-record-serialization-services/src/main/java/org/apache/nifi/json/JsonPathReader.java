@@ -34,6 +34,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -83,7 +84,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(AbstractJsonRowRecordReader.MAX_STRING_LENGTH);
-        properties.add(AbstractJsonRowRecordReader.ALLOW_COMMENTS);
+        properties.add(AbstractJsonRowRecordReader.JSON_PARSE_MODE);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -113,8 +114,10 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
         this.objectMapper = new ObjectMapper();
         objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
 
-        final boolean allowComments = context.getProperty(AbstractJsonRowRecordReader.ALLOW_COMMENTS).asBoolean();
-        this.tokenParserFactory = new JsonParserFactory(streamReadConstraints, allowComments);
+        final JsonParseMode jsonParseMode =
+                context.getProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE).asAllowableValue(JsonParseMode.class);
+        final boolean lenientEnabled = JsonParseMode.LENIENT == jsonParseMode;
+        this.tokenParserFactory = new JsonParserFactory(streamReadConstraints, lenientEnabled);
 
         final Map<String, JsonPath> compiled = new LinkedHashMap<>();
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
@@ -150,6 +153,23 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
             .valid(false)
             .explanation("No JSON Paths were specified")
             .build());
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+
+        if (config.isPropertySet(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS)) {
+            final String allowCommentsRawValue = config.getRawPropertyValue(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS).orElse("");
+            final boolean allowComments = Boolean.parseBoolean(allowCommentsRawValue);
+            if (allowComments) {
+                config.setProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE, JsonParseMode.LENIENT.getValue());
+            } else {
+                config.setProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE, JsonParseMode.STANDARD.getValue());
+            }
+
+            config.removeProperty(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS);
+        }
     }
 
     @Override
