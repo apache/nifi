@@ -141,12 +141,12 @@
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-data</artifactId>
-            <version>7.0.6</version>
+            <version>8.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-ingest</artifactId>
-            <version>7.0.6</version>
+            <version>8.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

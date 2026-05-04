@@ -82,7 +82,7 @@
         <dependency>
             <groupId>software.amazon.kinesis</groupId>
             <artifactId>amazon-kinesis-client</artifactId>
-            <version>3.4.2</version>
+            <version>3.4.3</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
