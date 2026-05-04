@@ -15,18 +15,36 @@
  * limitations under the License.
  */
 
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { ConnectorEntity } from '@nifi/shared';
+import { CanvasNavigationControl } from '../../../../../ui/common/navigation-control/canvas-navigation-control.component';
+import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
+import { Dimension, Position } from '../../../../../ui/common/canvas/canvas.types';
 import { ConnectorInfoControl } from './connector-info-control/connector-info-control.component';
 
 @Component({
     selector: 'connector-graph-controls',
     standalone: true,
-    imports: [ConnectorInfoControl],
+    imports: [CanvasNavigationControl, ConnectorInfoControl],
     templateUrl: './connector-graph-controls.component.html',
     styleUrls: ['./connector-graph-controls.component.scss']
 })
 export class ConnectorGraphControls {
     connectorEntity = input<ConnectorEntity | null>(null);
     entitySaving = input<boolean>(false);
+
+    birdseyeComponents = input<BirdseyeComponentData[]>([]);
+    birdseyeTransform = input<BirdseyeTransform>({ translate: { x: 0, y: 0 }, scale: 1 });
+    canvasDimensions = input<Dimension>({ width: 0, height: 0 });
+    canNavigateToParent = input<boolean>(false);
+
+    viewportChange = output<Position>();
+    birdseyeDragStart = output<void>();
+    birdseyeDragEnd = output<void>();
+
+    zoomIn = output<void>();
+    zoomOut = output<void>();
+    zoomFit = output<void>();
+    zoomActual = output<void>();
+    leaveGroup = output<void>();
 }

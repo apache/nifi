@@ -22,7 +22,7 @@ import { ReplaySubject } from 'rxjs';
 import { Action } from '@ngrx/store';
 import { outputToObservable } from '@angular/core/rxjs-interop';
 import { CanvasComponent } from './canvas.component';
-import { BirdseyeComponentData } from './canvas.component';
+import { BirdseyeComponentData } from '../birdseye/birdseye.types';
 import { canvasUiFeatureKey, initialCanvasUiState } from '../../../state/canvas-ui';
 import { ComponentType } from '@nifi/shared';
 

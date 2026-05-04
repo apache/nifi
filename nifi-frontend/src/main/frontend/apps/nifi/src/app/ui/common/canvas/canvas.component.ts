@@ -74,18 +74,7 @@ import {
     OverlapDetectionConnection,
     wouldRemovalCauseOverlap
 } from '../overlap-detection.utils';
-
-export interface BirdseyeComponentData {
-    id: string;
-    type: ComponentType;
-    position: Position;
-    dimensions: Dimension;
-}
-
-export interface BirdseyeTransform {
-    translate: Position;
-    scale: number;
-}
+import { BirdseyeComponentData, BirdseyeTransform } from '../birdseye/birdseye.types';
 
 /**
  * Interface for viewport transform storage

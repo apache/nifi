@@ -21,8 +21,10 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { provideMockActions } from '@ngrx/effects/testing';
+import { Action } from '@ngrx/store';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { firstValueFrom } from 'rxjs';
+import { ReplaySubject, firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 
@@ -49,6 +51,7 @@ import {
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
+    loadConnectorFlowSuccess,
     navigateToControllerService,
     navigateToControllerServices,
     navigateToProvenanceForComponent,
@@ -94,6 +97,15 @@ class MockReusableCanvasComponent {
     contextMenuOpened = output<unknown>();
     centerOnSelection = vi.fn();
     centerOnComponent = vi.fn();
+    getBirdseyeComponentData = vi.fn().mockReturnValue([]);
+    getCanvasDimensions = vi.fn().mockReturnValue({ width: 1024, height: 768 });
+    onZoomIn = vi.fn();
+    onZoomOut = vi.fn();
+    onZoomFit = vi.fn();
+    onZoomActual = vi.fn();
+    setViewportPosition = vi.fn();
+    birdseyeDragStart = vi.fn();
+    birdseyeDragEnd = vi.fn();
 }
 
 @Component({
@@ -140,6 +152,18 @@ class MockConnectorCanvasFooterComponent {
 class MockConnectorGraphControls {
     connectorEntity = input<unknown>(null);
     entitySaving = input<boolean>(false);
+    birdseyeComponents = input<unknown[]>([]);
+    birdseyeTransform = input<unknown>({ translate: { x: 0, y: 0 }, scale: 1 });
+    canvasDimensions = input<unknown>({ width: 0, height: 0 });
+    canNavigateToParent = input<boolean>(false);
+    viewportChange = output<{ x: number; y: number }>();
+    birdseyeDragStart = output<void>();
+    birdseyeDragEnd = output<void>();
+    zoomIn = output<void>();
+    zoomOut = output<void>();
+    zoomFit = output<void>();
+    zoomActual = output<void>();
+    leaveGroup = output<void>();
 }
 
 @Component({
@@ -241,13 +265,17 @@ function createMockStorage() {
     };
 }
 
+let actions$: ReplaySubject<Action>;
+
 function configureConnectorCanvasTestBed(options: SetupOptions = {}, storage?: ReturnType<typeof createMockStorage>) {
     TestBed.resetTestingModule();
     const storageMock = storage ?? createMockStorage();
+    actions$ = new ReplaySubject<Action>(1);
     TestBed.configureTestingModule({
         imports: [ConnectorCanvasComponent, NoopAnimationsModule, MatDialogModule],
         providers: [
             provideRouter([]),
+            provideMockActions(() => actions$),
             provideMockStore({ initialState: {}, selectors: buildMockSelectors(options) }),
             { provide: Storage, useValue: storageMock }
         ]
@@ -299,6 +327,21 @@ function dispatchWindowKeydown(key: string, modifiers: { ctrlKey?: boolean; meta
     window.dispatchEvent(event);
 }
 
+function getCanvasMock(fixture: ComponentFixture<ConnectorCanvasComponent>): MockReusableCanvasComponent {
+    return fixture.debugElement.query((el) => el.name === 'reusable-canvas')
+        .componentInstance as MockReusableCanvasComponent;
+}
+
+// viewChild.required(CanvasComponent) cannot resolve to the test mock because the mock has a
+// different class identity than the real CanvasComponent. Stubbing the signal lets the SUT's
+// birdseye / navigation handlers call into the mock directly.
+function attachCanvasMock(component: ConnectorCanvasComponent, mock: MockReusableCanvasComponent): void {
+    Object.defineProperty(component, 'canvasComponent', {
+        configurable: true,
+        value: () => mock
+    });
+}
+
 describe('ConnectorCanvasComponent', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -346,7 +389,7 @@ describe('ConnectorCanvasComponent', () => {
 
             // Should only dispatch setConfiguration, NOT loadConnectorFlow
             const loadFlowDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === loadConnectorFlow.type
+                (call: unknown[]) => (call[0] as { type: string }).type === loadConnectorFlow.type
             );
             expect(loadFlowDispatches).toHaveLength(0);
         }));
@@ -444,7 +487,7 @@ describe('ConnectorCanvasComponent', () => {
             component.leaveGroupAction();
 
             const leaveDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === leaveProcessGroup.type
+                (call: unknown[]) => (call[0] as { type: string }).type === leaveProcessGroup.type
             );
             expect(leaveDispatches).toHaveLength(0);
         }));
@@ -479,7 +522,7 @@ describe('ConnectorCanvasComponent', () => {
             dispatchWindowKeydown('Escape');
 
             const leaveDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === leaveProcessGroup.type
+                (call: unknown[]) => (call[0] as { type: string }).type === leaveProcessGroup.type
             );
             expect(leaveDispatches).toHaveLength(0);
 
@@ -514,7 +557,7 @@ describe('ConnectorCanvasComponent', () => {
             dispatchWindowKeydown('r', { ctrlKey: true });
 
             const loadFlowDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === loadConnectorFlow.type
+                (call: unknown[]) => (call[0] as { type: string }).type === loadConnectorFlow.type
             );
             expect(loadFlowDispatches).toHaveLength(0);
 
@@ -537,7 +580,7 @@ describe('ConnectorCanvasComponent', () => {
             searchEl.dispatchEvent(escapeEvent);
 
             const leaveDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === leaveProcessGroup.type
+                (call: unknown[]) => (call[0] as { type: string }).type === leaveProcessGroup.type
             );
             expect(leaveDispatches).toHaveLength(0);
 
@@ -546,7 +589,7 @@ describe('ConnectorCanvasComponent', () => {
             searchEl.dispatchEvent(refreshEvent);
 
             const loadFlowDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === loadConnectorFlow.type
+                (call: unknown[]) => (call[0] as { type: string }).type === loadConnectorFlow.type
             );
             expect(loadFlowDispatches).toHaveLength(0);
 
@@ -568,7 +611,9 @@ describe('ConnectorCanvasComponent', () => {
             inputEl.dispatchEvent(escapeEvent);
 
             expect(
-                dispatchSpy.mock.calls.filter((call) => (call[0] as { type: string }).type === leaveProcessGroup.type)
+                dispatchSpy.mock.calls.filter(
+                    (call: unknown[]) => (call[0] as { type: string }).type === leaveProcessGroup.type
+                )
             ).toHaveLength(0);
 
             dispatchSpy.mockClear();
@@ -576,7 +621,9 @@ describe('ConnectorCanvasComponent', () => {
             inputEl.dispatchEvent(refreshEvent);
 
             expect(
-                dispatchSpy.mock.calls.filter((call) => (call[0] as { type: string }).type === loadConnectorFlow.type)
+                dispatchSpy.mock.calls.filter(
+                    (call: unknown[]) => (call[0] as { type: string }).type === loadConnectorFlow.type
+                )
             ).toHaveLength(0);
 
             document.body.removeChild(inputEl);
@@ -664,6 +711,7 @@ describe('ConnectorCanvasComponent', () => {
             });
             fixture.detectChanges();
             tick();
+            attachCanvasMock(component, getCanvasMock(fixture));
             dispatchSpy.mockClear();
 
             component.onCanvasInitialized();
@@ -675,6 +723,7 @@ describe('ConnectorCanvasComponent', () => {
             const { fixture, component, dispatchSpy } = setup();
             fixture.detectChanges();
             tick();
+            attachCanvasMock(component, getCanvasMock(fixture));
             dispatchSpy.mockClear();
 
             component.onCanvasInitialized();
@@ -1873,6 +1922,206 @@ describe('ConnectorCanvasComponent', () => {
             const canvasDebugEl = fixture.debugElement.query((el) => el.name === 'reusable-canvas');
             expect(canvasDebugEl).toBeTruthy();
             expect(canvasDebugEl.componentInstance.menuProvider()).toBeTruthy();
+        }));
+    });
+
+    describe('Navigation control / birdseye wiring', () => {
+        function getGraphControlsMock(fixture: ComponentFixture<ConnectorCanvasComponent>): MockConnectorGraphControls {
+            return fixture.debugElement.query((el) => el.name === 'connector-graph-controls')
+                .componentInstance as MockConnectorGraphControls;
+        }
+
+        it('should seed birdseyeComponents and canvasDimensions from the canvas on initialization', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            const seededComponents = [
+                {
+                    id: 'p1',
+                    type: ComponentType.Processor,
+                    position: { x: 1, y: 2 },
+                    dimensions: { width: 10, height: 20 }
+                }
+            ];
+            canvas.getBirdseyeComponentData.mockReturnValue(seededComponents);
+            canvas.getCanvasDimensions.mockReturnValue({ width: 1024, height: 768 });
+
+            component.onCanvasInitialized();
+
+            expect(canvas.getBirdseyeComponentData).toHaveBeenCalled();
+            expect(canvas.getCanvasDimensions).toHaveBeenCalled();
+            expect(component.birdseyeComponents()).toEqual(seededComponents);
+            expect(component.canvasDimensions()).toEqual({ width: 1024, height: 768 });
+        }));
+
+        it('should update birdseyeTransform when the canvas emits transformChange', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const transform = { translate: { x: -100, y: -50 }, scale: 0.5 };
+            component.onTransformChange(transform);
+
+            expect(component.birdseyeTransform()).toEqual(transform);
+        }));
+
+        it('should refresh birdseye components when loadConnectorFlowSuccess is dispatched', async () => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            component.onCanvasInitialized();
+
+            const refreshedComponents = [
+                {
+                    id: 'p2',
+                    type: ComponentType.Processor,
+                    position: { x: 5, y: 6 },
+                    dimensions: { width: 30, height: 40 }
+                }
+            ];
+            canvas.getBirdseyeComponentData.mockReturnValue(refreshedComponents);
+
+            actions$.next(
+                loadConnectorFlowSuccess({
+                    connectorId: DEFAULT_CONNECTOR_ID,
+                    processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                    parentProcessGroupId: null,
+                    breadcrumb: null,
+                    labels: [],
+                    funnels: [],
+                    inputPorts: [],
+                    outputPorts: [],
+                    remoteProcessGroups: [],
+                    processGroups: [],
+                    processors: [],
+                    connections: []
+                })
+            );
+
+            // queueMicrotask defers the refresh; await a microtask to let it run
+            await Promise.resolve();
+
+            expect(component.birdseyeComponents()).toEqual(refreshedComponents);
+        });
+
+        it('should delegate zoom buttons to the canvas', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+
+            component.onNavigationZoomIn();
+            component.onNavigationZoomOut();
+            component.onNavigationZoomFit();
+            component.onNavigationZoomActual();
+
+            expect(canvas.onZoomIn).toHaveBeenCalledTimes(1);
+            expect(canvas.onZoomOut).toHaveBeenCalledTimes(1);
+            expect(canvas.onZoomFit).toHaveBeenCalledTimes(1);
+            expect(canvas.onZoomActual).toHaveBeenCalledTimes(1);
+        }));
+
+        it('should delegate leave group via leaveGroupAction', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({ parentProcessGroupId: 'parent-pg' });
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onNavigationLeaveGroup();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(leaveProcessGroup());
+        }));
+
+        it('should delegate birdseye viewport change to the canvas', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+
+            component.onBirdseyeViewportChange({ x: 42, y: 84 });
+
+            expect(canvas.setViewportPosition).toHaveBeenCalledWith(42, 84, false);
+        }));
+
+        it('should delegate birdseye drag start/end to the canvas', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+
+            component.onBirdseyeDragStart();
+            component.onBirdseyeDragEnd();
+
+            expect(canvas.birdseyeDragStart).toHaveBeenCalledTimes(1);
+            expect(canvas.birdseyeDragEnd).toHaveBeenCalledTimes(1);
+        }));
+
+        it('should refresh canvasDimensions when the window resizes after canvas init', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            component.onCanvasInitialized();
+            canvas.getCanvasDimensions.mockReturnValue({ width: 1600, height: 900 });
+
+            component.handleWindowResize();
+
+            expect(component.canvasDimensions()).toEqual({ width: 1600, height: 900 });
+        }));
+
+        it('should not call into the canvas on resize before initialization', fakeAsync(() => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            canvas.getCanvasDimensions.mockClear();
+
+            component.handleWindowResize();
+
+            expect(canvas.getCanvasDimensions).not.toHaveBeenCalled();
+        }));
+
+        it('should pass birdseye signals through to connector-graph-controls', fakeAsync(() => {
+            const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
+            fixture.detectChanges();
+            tick();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            const seeded = [
+                {
+                    id: 'p1',
+                    type: ComponentType.Processor,
+                    position: { x: 0, y: 0 },
+                    dimensions: { width: 10, height: 10 }
+                }
+            ];
+            canvas.getBirdseyeComponentData.mockReturnValue(seeded);
+            canvas.getCanvasDimensions.mockReturnValue({ width: 800, height: 600 });
+            component.onCanvasInitialized();
+            component.onTransformChange({ translate: { x: -10, y: -20 }, scale: 0.75 });
+            fixture.detectChanges();
+
+            const graphControls = getGraphControlsMock(fixture);
+
+            expect(graphControls.birdseyeComponents()).toEqual(seeded);
+            expect(graphControls.birdseyeTransform()).toEqual({ translate: { x: -10, y: -20 }, scale: 0.75 });
+            expect(graphControls.canvasDimensions()).toEqual({ width: 800, height: 600 });
+            expect(graphControls.canNavigateToParent()).toBe(true);
         }));
     });
 });
