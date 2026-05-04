@@ -155,71 +155,6 @@
                                 </configuration>
                             </execution>
                             <execution>
-                                <id>postgres10-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>postgres-10</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>postgres11-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>postgres-11</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>postgres12-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>postgres-12</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>postgres13-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>postgres-13</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>postgres14-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>postgres-14</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
                                 <id>postgres17-test</id>
                                 <phase>verify</phase>
                                 <goals>
@@ -229,6 +164,19 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <spring.profiles.active>postgres-17</spring.profiles.active>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>postgres18-test</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <spring.profiles.active>postgres-18</spring.profiles.active>
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>
