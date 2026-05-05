@@ -985,6 +985,11 @@ public class StandardConnectorRepository implements ConnectorRepository {
      *
      * <p>Package-private for testing. Production callers should access this method via
      * {@link #resolveSecretReferencesFromProvider}.</p>
+     *
+     * @param providerName the parameter provider name to resolve; may be {@code null}
+     * @return the matching parameter provider identifier when exactly one provider has the given
+     *         name; {@code null} when {@code providerName} is {@code null}, no provider matches,
+     *         or multiple providers share the name
      */
     String findProviderIdByName(final String providerName) {
         if (flowManager == null || providerName == null) {
