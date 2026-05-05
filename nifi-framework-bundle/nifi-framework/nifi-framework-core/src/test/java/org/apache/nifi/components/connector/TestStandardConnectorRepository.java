@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
@@ -1168,6 +1169,75 @@ public class TestStandardConnectorRepository {
         assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
         verify(connector).setName("Provider Name");
         verify(connector).inheritConfiguration(any(), any(), any());
+    }
+
+    // --- findProviderIdByName ---
+
+    @Test
+    public void testFindProviderIdByNameResolvesUniqueMatch() {
+        final ParameterProviderNode snowflake = mockParameterProvider("Snowflake Provider", "id-1");
+        final ParameterProviderNode vault = mockParameterProvider("Vault Provider", "id-2");
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(snowflake, vault));
+
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
+
+        assertEquals("id-1", repository.findProviderIdByName("Snowflake Provider"));
+        assertEquals("id-2", repository.findProviderIdByName("Vault Provider"));
+    }
+
+    @Test
+    public void testFindProviderIdByNameReturnsNullWhenNoMatch() {
+        final ParameterProviderNode snowflake = mockParameterProvider("Snowflake Provider", "id-1");
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(snowflake));
+
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
+
+        assertNull(repository.findProviderIdByName("Nonexistent Provider"));
+    }
+
+    @Test
+    public void testFindProviderIdByNameReturnsNullWhenAmbiguousMatch() {
+        // Two parameter providers share the same name; the resolution must be refused so that the
+        // resulting SECRET_REFERENCE is surfaced as invalid in the UI rather than silently bound
+        // to whichever provider happens to come first.
+        final ParameterProviderNode dup1 = mockParameterProvider("Duplicate", "id-a");
+        final ParameterProviderNode dup2 = mockParameterProvider("Duplicate", "id-b");
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(dup1, dup2));
+
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
+
+        assertNull(repository.findProviderIdByName("Duplicate"));
+    }
+
+    @Test
+    public void testFindProviderIdByNameReturnsNullForNullInput() {
+        final ParameterProviderNode snowflake = mockParameterProvider("Snowflake Provider", "id-1");
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(snowflake));
+
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
+
+        assertNull(repository.findProviderIdByName(null));
+    }
+
+    @Test
+    public void testFindProviderIdByNameReturnsNullWhenNoProvidersRegistered() {
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of());
+
+        final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
+
+        assertNull(repository.findProviderIdByName("Anything"));
+    }
+
+    private static ParameterProviderNode mockParameterProvider(final String name, final String id) {
+        final ParameterProviderNode node = mock(ParameterProviderNode.class);
+        when(node.getName()).thenReturn(name);
+        when(node.getIdentifier()).thenReturn(id);
+        return node;
     }
 
     // --- Helper Methods ---
