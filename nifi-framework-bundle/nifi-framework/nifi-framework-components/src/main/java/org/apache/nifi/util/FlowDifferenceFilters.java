@@ -588,7 +588,9 @@ public class FlowDifferenceFilters {
      * Determines whether a property difference is caused by a statically defined property being removed from the component definition.
      * When a processor or controller service drops a property (for example, as part of a version upgrade that invokes {@code removeProperty}
      * during migration), the reconciled component in NiFi should not report a "local change" so long as the component does not support
-     * dynamic properties.
+     * dynamic properties. This applies whether the registry-side value was a literal value (yielding {@link DifferenceType#PROPERTY_REMOVED})
+     * or a parameter reference (yielding {@link DifferenceType#PROPERTY_PARAMETERIZATION_REMOVED}); both represent the same underlying
+     * scenario of a property no longer exposed by the component definition.
      *
      * @param difference the flow difference under evaluation
      * @param flowManager the flow manager used to resolve instantiated components
@@ -597,7 +599,7 @@ public class FlowDifferenceFilters {
      */
     public static boolean isStaticPropertyRemoved(final FlowDifference difference, final FlowManager flowManager) {
         final DifferenceType differenceType = difference.getDifferenceType();
-        if (differenceType != DifferenceType.PROPERTY_REMOVED) {
+        if (differenceType != DifferenceType.PROPERTY_REMOVED && differenceType != DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED) {
             return false;
         }
 
