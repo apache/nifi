@@ -62,6 +62,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -71,6 +73,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 import javax.net.ssl.SSLContext;
@@ -80,7 +83,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -122,7 +127,7 @@ public class CaptureChangeMySQLTest {
     private static final String TEN = "10";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private CaptureChangeMySQL processor;
+    private MockCaptureChangeMySQL processor;
     private TestRunner testRunner;
     private MockBinlogClient client;
 
@@ -1296,6 +1301,22 @@ public class CaptureChangeMySQLTest {
     }
 
     @Test
+    public void testGetTableInfoQuery() throws SQLException {
+        final Statement statement = mock(Statement.class, CALLS_REAL_METHODS);
+
+        final String prefix = UUID.randomUUID().toString();
+        final long tableId = 0;
+
+        final String databaseName = "NiFi 'Quoted' Repository";
+        final String tableName = "FlowFile";
+
+        final TableInfoCacheKey cacheKey = new TableInfoCacheKey(prefix, databaseName, tableName, tableId);
+        final String tableInfoQuery = processor.getTableInfoQuery(statement, cacheKey);
+
+        assertEquals("SELECT * FROM \"NiFi 'Quoted' Repository\".\"FlowFile\" LIMIT 0", tableInfoQuery);
+    }
+
+    @Test
     void testMigration() {
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("capture-change-mysql-db-name-pattern", CaptureChangeMySQL.DATABASE_NAME_PATTERN.getName()),
@@ -1349,9 +1370,8 @@ public class CaptureChangeMySQLTest {
 
         @Override
         protected TableInfo loadTableInfo(TableInfoCacheKey key) {
-            TableInfo tableInfo = cache.computeIfAbsent(key, k -> new TableInfo(k.getDatabaseName(), k.getTableName(), k.getTableId(),
+            return cache.computeIfAbsent(key, k -> new TableInfo(k.getDatabaseName(), k.getTableName(), k.getTableId(),
                     Collections.singletonList(new ColumnDefinition((byte) -4, "string1"))));
-            return tableInfo;
         }
 
         @Override
