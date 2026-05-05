@@ -746,16 +746,15 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         // Update all Controller Services to match the VersionedControllerService.
-        // Services may be ENABLED here if the outer "affected components" pass did not
-        // disable them (e.g. COMPONENT_ADDED diffs are skipped by AffectedComponentSet).
+        // Services may still be ENABLED here because not all callers disable them before sync-ing.
         // We must disable before calling updateControllerService, which calls setProperties
         // which calls verifyModifiable and throws IllegalStateException on ENABLED services.
-        final long stopTimeout = System.currentTimeMillis() + syncOptions.getComponentStopTimeout().toMillis();
         for (final Map.Entry<ControllerServiceNode, VersionedControllerService> entry : services.entrySet()) {
             final ControllerServiceNode service = entry.getKey();
             final VersionedControllerService proposedService = entry.getValue();
 
             if (updatedVersionedComponentIds.contains(proposedService.getIdentifier())) {
+                final long stopTimeout = System.currentTimeMillis() + syncOptions.getComponentStopTimeout().toMillis();
                 final Set<ComponentNode> referencesToRestart = new HashSet<>();
                 final Set<ControllerServiceNode> servicesToRestart = new HashSet<>();
 
@@ -777,9 +776,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // Re-enable services and restart components that were stopped for the update,
                     // restoring the controller to its pre-update running state.
                     if (proposedService.getScheduledState() != org.apache.nifi.flow.ScheduledState.DISABLED) {
-                        context.getControllerServiceProvider().enableControllerServicesAsync(servicesToRestart);
+                        // Use the component scheduler (not the provider directly) which has
+                        // already been paused, avoiding a race with the enable loop below.
+                        context.getComponentScheduler().enableControllerServicesAsync(servicesToRestart);
+                        notifyScheduledStateChange(servicesToRestart, syncOptions, org.apache.nifi.flow.ScheduledState.ENABLED);
                         context.getControllerServiceProvider().scheduleReferencingComponents(
                                 service, referencesToRestart, context.getComponentScheduler());
+                        referencesToRestart.forEach(componentNode ->
+                                        notifyScheduledStateChange(componentNode, syncOptions, org.apache.nifi.flow.ScheduledState.RUNNING));
                     }
                 }
             }

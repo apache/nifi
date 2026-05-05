@@ -1162,7 +1162,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         verify(controllerServiceProvider).disableControllerServicesAsync(anyCollection());
         verify(service).setProperties(anyMap(), anyBoolean(), anySet());
-        verify(controllerServiceProvider).enableControllerServicesAsync(anySet());
+        verify(componentScheduler).enableControllerServicesAsync(anySet());
     }
 
     @Test
