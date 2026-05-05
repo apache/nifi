@@ -50,23 +50,6 @@
 
 .asset-item-missing-content {
     border-color: var(--nf-caution-default);
-    background-color: color-mix(in srgb, var(--nf-caution-default) 12%, transparent);
-}
-
-.asset-missing-icon {
-    color: var(--nf-caution-default);
-    font-size: 16px;
-    line-height: 1;
-}
-
-.asset-missing-hint {
-    color: var(--nf-caution-default);
-}
-
-.upload-icon {
-    color: var(--mat-sys-on-surface-variant);
-    font-size: 18px;
-    line-height: 1;
 }
 
 .progress-item.error {

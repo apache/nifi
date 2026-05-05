@@ -28,9 +28,9 @@
     (invalidDrop)="onInvalidDrop($event)"
     data-qa="asset-drop-zone">
     @if (assets.length === 0 && uploadProgress.length === 0) {
-        <div class="flex flex-col items-center justify-center gap-3 p-2">
+        <div class="flex flex-col items-center justify-center gap-3">
             <div class="flex items-center gap-2">
-                <i class="fa fa-cloud-upload upload-icon" aria-hidden="true"></i>
+                <i class="fa fa-cloud-upload" aria-hidden="true"></i>
                 <span class="tertiary-color">Drag and drop a file here</span>
             </div>
             <button
@@ -49,14 +49,14 @@
             @for (asset of assets; track trackByAssetId($index, asset)) {
                 @if (asset.missingContent) {
                     <div
-                        class="asset-item asset-item-missing-content flex items-center justify-between gap-3 px-3 py-2 border rounded-md min-h-[44px]"
+                        class="asset-item-missing-content caution-color-background flex items-center justify-between gap-3 px-3 py-2 border rounded-md min-h-[44px]"
                         data-qa="uploaded-asset-missing-content">
                         <div class="flex items-start gap-2 min-w-0 flex-1">
                             <i
-                                class="fa fa-warning asset-missing-icon shrink-0"
+                                class="fa fa-warning caution-color shrink-0"
                                 aria-hidden="true"
                                 data-qa="asset-missing-warning-icon"></i>
-                            <div class="text-sm asset-missing-hint min-w-0">Asset content is missing</div>
+                            <div class="text-sm caution-color min-w-0">Asset content is missing</div>
                         </div>
                         <button
                             mat-icon-button
@@ -72,7 +72,7 @@
                     </div>
                 } @else {
                     <div
-                        class="asset-item flex items-center justify-between px-3 py-2 border rounded-md min-h-[44px]"
+                        class="flex items-center justify-between px-3 py-2 border rounded-md min-h-[44px]"
                         data-qa="uploaded-asset">
                         <div class="truncate" ellipsisTooltip>{{ asset.name }}</div>
                         <button
@@ -96,7 +96,7 @@
                     [class.error]="progress.status === 'error'"
                     data-qa="upload-progress">
                     <div class="truncate min-w-0">
-                        <span class="progress-filename">{{ progress.filename }}</span>
+                        <span>{{ progress.filename }}</span>
                     </div>
                     <div class="flex flex-row items-center gap-2 shrink-0 w-40">
                         <mat-progress-bar
@@ -105,7 +105,7 @@
                             [class.progress-bar-critical]="progress.status === 'error'">
                         </mat-progress-bar>
                         @if (progress.status === 'active') {
-                            <span class="text-sm mr-2 whitespace-nowrap">{{ progress.percentComplete }}%</span>
+                            <span class="tertiary-color font-medium">{{ progress.percentComplete }}%</span>
                         }
                         @if (progress.status === 'error') {
                             <button
