@@ -1222,14 +1222,14 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         if (jdbcConnectionHolder != null) {
 
             try (Statement s = getJdbcConnection().createStatement()) {
-                s.execute("USE `" + key.getDatabaseName() + "`");
-                ResultSet rs = s.executeQuery("SELECT * FROM `" + key.getTableName() + "` LIMIT 0");
-                ResultSetMetaData rsmd = rs.getMetaData();
-                int numCols = rsmd.getColumnCount();
-                List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-                for (int i = 1; i <= numCols; i++) {
+                final String tableInfoQuery = getTableInfoQuery(s, key);
+                final ResultSet rs = s.executeQuery(tableInfoQuery);
+                final ResultSetMetaData rsmd = rs.getMetaData();
+                final int columnCount = rsmd.getColumnCount();
+                final List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+                for (int i = 1; i <= columnCount; i++) {
                     // Use the column label if it exists, otherwise use the column name. We're not doing aliasing here, but it's better practice.
-                    String columnLabel = rsmd.getColumnLabel(i);
+                    final String columnLabel = rsmd.getColumnLabel(i);
                     columnDefinitions.add(new ColumnDefinition(rsmd.getColumnType(i), columnLabel != null ? columnLabel : rsmd.getColumnName(i)));
                 }
 
@@ -1238,6 +1238,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         return tableInfo;
+    }
+
+    protected String getTableInfoQuery(final Statement statement, final TableInfoCacheKey tableInfoCacheKey) throws SQLException {
+        final String databaseNameQuoted = statement.enquoteIdentifier(tableInfoCacheKey.getDatabaseName(), true);
+        final String tableNameQuoted = statement.enquoteIdentifier(tableInfoCacheKey.getTableName(), true);
+        return "SELECT * FROM %s.%s LIMIT 0".formatted(databaseNameQuoted, tableNameQuoted);
     }
 
     protected Connection getJdbcConnection() throws SQLException {

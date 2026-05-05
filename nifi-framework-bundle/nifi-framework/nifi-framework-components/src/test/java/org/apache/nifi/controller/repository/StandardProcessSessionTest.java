@@ -45,6 +45,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -189,6 +191,26 @@ class StandardProcessSessionTest {
 
         assertEquals(GAUGE_NAME, gaugeRecord.name());
         assertEquals(GAUGE_VALUE, gaugeRecord.value());
+    }
+
+    @Test
+    void testCreateLineage() {
+        final long firstFlowFileId = 1;
+        final long secondFlowFileId = 2;
+        when(repositoryContext.getNextFlowFileSequence()).thenReturn(firstFlowFileId, secondFlowFileId);
+
+        final FlowFile firstFlowFile = session.create();
+
+        assertNotNull(firstFlowFile);
+        assertNotEquals(0, firstFlowFile.getLineageStartDate());
+        assertEquals(firstFlowFile.getEntryDate(), firstFlowFile.getLineageStartDate());
+        assertEquals(firstFlowFileId, firstFlowFile.getId());
+        assertEquals(firstFlowFileId, firstFlowFile.getLineageStartIndex());
+
+        final FlowFile secondFlowFile = session.create();
+        assertNotNull(secondFlowFile);
+        assertEquals(secondFlowFileId, secondFlowFile.getId());
+        assertEquals(secondFlowFileId, secondFlowFile.getLineageStartIndex());
     }
 
     private void assertFlowFileEventMatched(final long bytesRead, final long bytesWritten) throws IOException {

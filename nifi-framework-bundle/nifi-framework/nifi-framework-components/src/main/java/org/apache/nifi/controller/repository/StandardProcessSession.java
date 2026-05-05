@@ -2069,8 +2069,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         attrs.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
         attrs.put(CoreAttributes.UUID.key(), uuid);
 
-        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
+        final long entryDate = System.currentTimeMillis();
+        final long id = context.getNextFlowFileSequence();
+        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(id)
             .addAttributes(attrs)
+            // Set Lineage Start to Entry Date and use Identifier as Lineage Start Index for unambiguous ordering
+            .entryDate(entryDate)
+            .lineageStart(entryDate, id)
             .build();
         final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(fFile, attrs, false);
