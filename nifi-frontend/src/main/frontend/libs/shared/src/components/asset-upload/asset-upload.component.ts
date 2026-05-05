@@ -23,8 +23,7 @@ import {
     inject,
     Input,
     Output,
-    ViewChild,
-    ViewEncapsulation
+    ViewChild
 } from '@angular/core';
 
 import { ControlValueAccessor, NgControl } from '@angular/forms';
@@ -53,8 +52,7 @@ import { AssetInfo, UploadProgressInfo } from '../../types';
     standalone: true,
     imports: [MatButton, MatCard, MatProgressBar, MatTooltip, DragAndDropDirective, EllipsisTooltipDirective],
     templateUrl: './asset-upload.component.html',
-    styleUrls: ['./asset-upload.component.scss'],
-    encapsulation: ViewEncapsulation.None
+    styleUrls: ['./asset-upload.component.scss']
 })
 export class AssetUpload implements ControlValueAccessor {
     private cdr = inject(ChangeDetectorRef);

@@ -55,7 +55,3 @@
 .progress-item.error {
     border-color: var(--mat-sys-error);
 }
-
-.mat-mdc-progress-bar.progress-bar-critical {
-    --mdc-linear-progress-active-indicator-color: var(--mat-sys-error);
-}

@@ -102,7 +102,7 @@
                         <mat-progress-bar
                             mode="determinate"
                             [value]="progress.status === 'error' ? 100 : progress.percentComplete"
-                            [class.progress-bar-critical]="progress.status === 'error'">
+                            [class.progress-bar-error]="progress.status === 'error'">
                         </mat-progress-bar>
                         @if (progress.status === 'active') {
                             <span class="tertiary-color font-medium">{{ progress.percentComplete }}%</span>

@@ -533,6 +533,32 @@
         background-color: var(--nf-caution-default);
     }
 
+    /* progress-bar status overrides */
+
+    .progress-bar-success {
+        @include mat.progress-bar-overrides(
+            (
+                active-indicator-color: var(--nf-success-default)
+            )
+        );
+    }
+
+    .progress-bar-caution {
+        @include mat.progress-bar-overrides(
+            (
+                active-indicator-color: var(--nf-caution-default)
+            )
+        );
+    }
+
+    .progress-bar-error {
+        @include mat.progress-bar-overrides(
+            (
+                active-indicator-color: var(--mat-sys-error)
+            )
+        );
+    }
+
     .neutral-contrast {
         color: var(--mat-sys-on-surface);
         fill: var(--mat-sys-on-surface);
