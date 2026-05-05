@@ -703,6 +703,30 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getNifiClient().getControllerClient().connectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
     }
 
+    /**
+     * Removes a node from the cluster and waits until the cluster coordinator no longer reports the node.
+     * Mutating cluster requests (such as deleting a component) reject while a non-CONNECTED node is still
+     * known to the coordinator, so callers that need to issue follow-up mutating requests must wait for
+     * the removal to be reflected in the cluster state rather than relying on the synchronous response of
+     * {@code deleteNode} alone.
+     *
+     * @param nodeIndex the 1-based index of the node
+     */
+    protected void removeNodeFromCluster(final int nodeIndex) throws NiFiClientException, IOException, InterruptedException {
+        final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
+        final int expectedPort = getClientApiPort() + nodeIndex - 1;
+        getNifiClient().getControllerClient().deleteNode(nodeEntity.getNode().getNodeId());
+
+        waitFor(() -> {
+            try {
+                return getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream()
+                        .noneMatch(dto -> dto.getApiPort() == expectedPort);
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+    }
+
     protected NodeEntity getNodeEntity(final int nodeIndex) throws NiFiClientException, IOException {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
         final int expectedPort = getClientApiPort() + nodeIndex - 1;
