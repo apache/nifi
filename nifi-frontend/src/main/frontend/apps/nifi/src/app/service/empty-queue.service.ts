@@ -23,49 +23,49 @@ import {
     EmptyQueuesRequest,
     SubmitEmptyQueueRequest,
     SubmitEmptyQueuesRequest
-} from '../state/queue';
+} from '../state/empty-queue';
 
 @Injectable({ providedIn: 'root' })
-export class QueueService {
+export class EmptyQueueService {
     private httpClient = inject(HttpClient);
 
     private static readonly API: string = '../nifi-api';
 
     submitEmptyQueueRequest(emptyQueueRequest: SubmitEmptyQueueRequest): Observable<any> {
         return this.httpClient.post(
-            `${QueueService.API}/flowfile-queues/${emptyQueueRequest.connectionId}/drop-requests`,
+            `${EmptyQueueService.API}/flowfile-queues/${emptyQueueRequest.connectionId}/drop-requests`,
             {}
         );
     }
 
     submitEmptyQueuesRequest(emptyQueuesRequest: SubmitEmptyQueuesRequest): Observable<any> {
         return this.httpClient.post(
-            `${QueueService.API}/process-groups/${emptyQueuesRequest.processGroupId}/empty-all-connections-requests`,
+            `${EmptyQueueService.API}/process-groups/${emptyQueuesRequest.processGroupId}/empty-all-connections-requests`,
             {}
         );
     }
 
     pollEmptyQueueRequest(request: EmptyQueueRequest): Observable<any> {
         return this.httpClient.get(
-            `${QueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
+            `${EmptyQueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
         );
     }
 
     deleteEmptyQueueRequest(request: EmptyQueueRequest): Observable<any> {
         return this.httpClient.delete(
-            `${QueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
+            `${EmptyQueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
         );
     }
 
     pollEmptyQueuesRequest(request: EmptyQueuesRequest): Observable<any> {
         return this.httpClient.get(
-            `${QueueService.API}/process-groups/${request.processGroupId}/empty-all-connections-requests/${request.dropRequestId}`
+            `${EmptyQueueService.API}/process-groups/${request.processGroupId}/empty-all-connections-requests/${request.dropRequestId}`
         );
     }
 
     deleteEmptyQueuesRequest(request: EmptyQueuesRequest): Observable<any> {
         return this.httpClient.delete(
-            `${QueueService.API}/process-groups/${request.processGroupId}/empty-all-connections-requests/${request.dropRequestId}`
+            `${EmptyQueueService.API}/process-groups/${request.processGroupId}/empty-all-connections-requests/${request.dropRequestId}`
         );
     }
 }

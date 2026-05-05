@@ -15,15 +15,22 @@
  * limitations under the License.
  */
 
-import { createSelector } from '@ngrx/store';
-import { queueFeatureKey } from '../../../queue/state';
-import { QueueState } from './index';
-import { CanvasState, selectCanvasState } from '../index';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { selectRouteParams } from '@nifi/shared';
+import { connectorControllerServicesFeatureKey, ConnectorControllerServicesState } from './index';
 
-export const selectQueueState = createSelector(selectCanvasState, (state: CanvasState) => state[queueFeatureKey]);
+export const selectConnectorControllerServicesState = createFeatureSelector<ConnectorControllerServicesState>(
+    connectorControllerServicesFeatureKey
+);
 
-export const selectDropRequestEntity = createSelector(selectQueueState, (state: QueueState) => state.dropEntity);
+export const selectConnectorIdFromRoute = createSelector(selectRouteParams, (params) => params?.['id'] ?? null);
 
-export const selectDropConnectionId = createSelector(selectQueueState, (state: QueueState) => state.connectionId);
+export const selectProcessGroupIdFromRoute = createSelector(
+    selectRouteParams,
+    (params) => params?.['processGroupId'] ?? null
+);
 
-export const selectDropProcessGroupId = createSelector(selectQueueState, (state: QueueState) => state.processGroupId);
+export const selectControllerServiceIdFromRoute = createSelector(
+    selectRouteParams,
+    (params) => params?.['serviceId'] ?? null
+);

@@ -16,42 +16,56 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { QueueState } from './index';
+import { EmptyQueueState } from './index';
 import {
     pollEmptyQueueRequestSuccess,
     submitEmptyQueueRequest,
     submitEmptyQueueRequestSuccess,
-    resetQueueState,
+    submitEmptyQueuesRequestSuccess,
+    resetEmptyQueueState,
     submitEmptyQueuesRequest
-} from './queue.actions';
+} from './empty-queue.actions';
 
-export const initialState: QueueState = {
+export const initialState: EmptyQueueState = {
     dropEntity: null,
     processGroupId: null,
     connectionId: null,
+    source: null,
     loadedTimestamp: 'N/A',
     status: 'pending'
 };
 
-export const queueReducer = createReducer(
+export const emptyQueueReducer = createReducer(
     initialState,
+    // Explicitly null the unused identifier on each submit so the two
+    // identifier fields remain mutually exclusive even if a prior request was
+    // not explicitly reset.
     on(submitEmptyQueueRequest, (state, { request }) => ({
         ...state,
         connectionId: request.connectionId,
+        processGroupId: null,
+        source: request.source,
         status: 'loading' as const
     })),
     on(submitEmptyQueuesRequest, (state, { request }) => ({
         ...state,
+        connectionId: null,
         processGroupId: request.processGroupId,
+        source: request.source,
         status: 'loading' as const
     })),
-    on(submitEmptyQueueRequestSuccess, pollEmptyQueueRequestSuccess, (state, { response }) => ({
-        ...state,
-        dropEntity: response.dropEntity,
-        loadedTimestamp: response.dropEntity.dropRequest.lastUpdated,
-        status: 'success' as const
-    })),
-    on(resetQueueState, () => ({
+    on(
+        submitEmptyQueueRequestSuccess,
+        submitEmptyQueuesRequestSuccess,
+        pollEmptyQueueRequestSuccess,
+        (state, { response }) => ({
+            ...state,
+            dropEntity: response.dropEntity,
+            loadedTimestamp: response.dropEntity.dropRequest.lastUpdated,
+            status: 'success' as const
+        })
+    ),
+    on(resetEmptyQueueState, () => ({
         ...initialState
     }))
 );

@@ -42,7 +42,7 @@ import {
     submitPurgeConnector,
     submitPurgeConnectorSuccess
 } from './purge-connector.actions';
-import { DropRequestEntity } from '../../../flow-designer/state/queue';
+import { DropRequestEntity } from '../../../../state/empty-queue';
 import type { Mock } from 'vitest';
 
 describe('PurgeConnectorEffects', () => {

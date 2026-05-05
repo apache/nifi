@@ -23,7 +23,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
-import { ComponentType, selectRouteParams, selectUrl, Storage } from '@nifi/shared';
+import {
+    canOperateConnector,
+    ComponentType,
+    isConnectorActionAllowed,
+    selectRouteParams,
+    selectUrl,
+    Storage
+} from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
 import { combineLatest, distinctUntilChanged, filter, map, Observable, of } from 'rxjs';
 import { NiFiState } from '../../../../state';
@@ -46,6 +53,7 @@ import { ErrorContextKey } from '../../../../state/error';
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectConnectorCanvasEntity,
     selectConnectorCanvasEntitySaving
@@ -152,6 +160,33 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                         condition: () => this.canNavigateToParent,
                         action: () => this.leaveGroupAction(),
                         shortcut: { code: 'ESC' }
+                    },
+                    { isSeparator: true },
+                    {
+                        text: 'Controller Services',
+                        clazz: 'fa fa-list',
+                        condition: () => !!this.currentProcessGroupId,
+                        action: () => this.controllerServicesAction(this.currentProcessGroupId!)
+                    },
+                    { isSeparator: true },
+                    {
+                        text: 'Empty All Queues',
+                        clazz: 'fa fa-minus-circle',
+                        condition: () => !!this.currentProcessGroupId,
+                        action: () => this.emptyAllQueuesAction(this.currentProcessGroupId!)
+                    },
+                    { isSeparator: true },
+                    {
+                        text: 'Drain',
+                        clazz: 'fa',
+                        condition: () => this.canDrain(),
+                        action: () => this.drainConnectorAction()
+                    },
+                    {
+                        text: 'Cancel Drain',
+                        clazz: 'fa',
+                        condition: () => this.canCancelDrain(),
+                        action: () => this.cancelDrainConnectorAction()
                     }
                 ];
             } else if (context?.targetType === 'component') {
@@ -201,6 +236,31 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                             clicked!.entity.permissions.canRead === true &&
                             clicked!.entity.permissions.canWrite === true,
                         action: () => this.viewProcessorStateAction(clicked!.entity)
+                    },
+                    { isSeparator: true },
+                    {
+                        text: 'List Queue',
+                        clazz: 'fa fa-list',
+                        condition: () => isConnection && isSingleSelection,
+                        action: () => this.listQueueAction(clicked!.entity.id)
+                    },
+                    {
+                        text: 'Empty Queue',
+                        clazz: 'fa fa-minus-circle',
+                        condition: () => isConnection && isSingleSelection,
+                        action: () => this.emptyQueueAction(clicked!.entity.id)
+                    },
+                    {
+                        text: 'Empty All Queues',
+                        clazz: 'fa fa-minus-circle',
+                        condition: () => isProcessGroup && isSingleSelection,
+                        action: () => this.emptyAllQueuesAction(clicked!.entity.id)
+                    },
+                    {
+                        text: 'Controller Services',
+                        clazz: 'fa fa-list',
+                        condition: () => isProcessGroup && isSingleSelection,
+                        action: () => this.controllerServicesAction(clicked!.entity.id)
                     },
                     { isSeparator: true },
                     this.getCenterInViewMenuItem()
@@ -411,6 +471,60 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         this.canvasComponent().centerOnSelection(true);
     }
 
+    controllerServicesAction(processGroupId: string): void {
+        this.store.dispatch(ConnectorCanvasActions.navigateToControllerServices({ processGroupId }));
+    }
+
+    canDrain(): boolean {
+        const entity = this.connectorEntity();
+        if (!entity || this.entitySaving()) {
+            return false;
+        }
+        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'DRAIN_FLOWFILES');
+    }
+
+    canCancelDrain(): boolean {
+        const entity = this.connectorEntity();
+        if (!entity || this.entitySaving()) {
+            return false;
+        }
+        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');
+    }
+
+    drainConnectorAction(): void {
+        const entity = this.connectorEntity();
+        if (entity) {
+            this.store.dispatch(ConnectorCanvasEntityActions.promptDrainConnector({ connector: entity }));
+        }
+    }
+
+    cancelDrainConnectorAction(): void {
+        const entity = this.connectorEntity();
+        if (entity) {
+            this.store.dispatch(ConnectorCanvasEntityActions.cancelConnectorDrain({ connector: entity }));
+        }
+    }
+
+    listQueueAction(connectionId: string): void {
+        this.store.dispatch(ConnectorCanvasActions.navigateToQueueListing({ request: { connectionId } }));
+    }
+
+    emptyQueueAction(connectionId: string): void {
+        this.store.dispatch(
+            EmptyQueueActions.promptEmptyQueueRequest({
+                request: { connectionId, source: 'connector-canvas' }
+            })
+        );
+    }
+
+    emptyAllQueuesAction(processGroupId: string): void {
+        this.store.dispatch(
+            EmptyQueueActions.promptEmptyQueuesRequest({
+                request: { processGroupId, source: 'connector-canvas' }
+            })
+        );
+    }
+
     // =========================================================================
     // Keyboard Shortcuts
     // Typed as Event (not KeyboardEvent) because Angular 21's typeCheckHostBindings
@@ -460,6 +574,16 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     }
 
     onSearchGoToComponent(event: { id: string; type: ComponentType; groupId: string }): void {
+        if (event.type === ComponentType.ControllerService) {
+            this.store.dispatch(
+                ConnectorCanvasActions.navigateToControllerService({
+                    processGroupId: event.groupId,
+                    serviceId: event.id
+                })
+            );
+            return;
+        }
+
         if (event.type === ComponentType.ParameterProvider) {
             this.router.navigate(['/settings', 'parameter-providers', event.id]);
             return;

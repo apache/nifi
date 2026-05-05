@@ -49,13 +49,21 @@ import {
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
+    navigateToControllerService,
+    navigateToControllerServices,
     navigateToProvenanceForComponent,
+    navigateToQueueListing,
     resetConnectorCanvasState,
     selectComponents,
     setSkipTransform,
     viewComponentConfiguration
 } from '../../state/connector-canvas/connector-canvas.actions';
-import { resetConnectorCanvasEntityState } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import {
+    cancelConnectorDrain,
+    promptDrainConnector,
+    resetConnectorCanvasEntityState
+} from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../../../../state/empty-queue/empty-queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 // Mock components to avoid loading complex real components
@@ -794,6 +802,23 @@ describe('ConnectorCanvasComponent', () => {
             expect(dispatchSpy).not.toHaveBeenCalled();
         }));
 
+        it('should dispatch navigateToControllerService when search result is a ControllerService', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onSearchGoToComponent({
+                id: 'svc-1',
+                type: ComponentType.ControllerService,
+                groupId: 'pg-target'
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                navigateToControllerService({ processGroupId: 'pg-target', serviceId: 'svc-1' })
+            );
+        }));
+
         it('should dispatch skipTransform and navigate when search result is in a different process group', fakeAsync(() => {
             const { fixture, component, dispatchSpy } = setup();
             fixture.detectChanges();
@@ -857,7 +882,7 @@ describe('ConnectorCanvasComponent', () => {
                 expect(result).toBeUndefined();
             });
 
-            it('should return canvas menu with Refresh and Leave Group when targetType is canvas', fakeAsync(() => {
+            it('should return canvas menu with Refresh, Leave Group, and Empty All Queues when targetType is canvas', fakeAsync(() => {
                 const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
                 fixture.detectChanges();
                 tick();
@@ -868,10 +893,17 @@ describe('ConnectorCanvasComponent', () => {
                 expect(menu).toBeDefined();
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
-                expect(items.map((i) => i.text)).toEqual(['Refresh', 'Leave Group']);
+                expect(items.map((i) => i.text)).toEqual([
+                    'Refresh',
+                    'Leave Group',
+                    'Controller Services',
+                    'Empty All Queues',
+                    'Drain',
+                    'Cancel Drain'
+                ]);
             }));
 
-            it('should return component menu with View Configuration, Enter Group, View Data Provenance, View State, and Center In View when targetType is component', fakeAsync(() => {
+            it('should return component menu with all defined items when targetType is component', fakeAsync(() => {
                 const { fixture, component } = setup();
                 fixture.detectChanges();
                 tick();
@@ -887,6 +919,10 @@ describe('ConnectorCanvasComponent', () => {
                     'Enter Group',
                     'View Data Provenance',
                     'View State',
+                    'List Queue',
+                    'Empty Queue',
+                    'Empty All Queues',
+                    'Controller Services',
                     'Center In View'
                 ]);
             }));
@@ -937,6 +973,156 @@ describe('ConnectorCanvasComponent', () => {
 
                 expect(leaveGroup).toBeDefined();
                 expect(leaveGroup!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Controller Services when a process group context is loaded', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
+
+                expect(controllerServices).toBeDefined();
+                expect(controllerServices!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Controller Services when no process group is loaded', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+                component.currentProcessGroupId = null;
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
+
+                expect(controllerServices).toBeDefined();
+                expect(controllerServices!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Empty All Queues when a process group context is loaded', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
+
+                expect(emptyAll).toBeDefined();
+                expect(emptyAll!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Empty All Queues when no process group is loaded', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+                component.currentProcessGroupId = null;
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
+
+                expect(emptyAll).toBeDefined();
+                expect(emptyAll!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Drain when the connector entity allows DRAIN_FLOWFILES', fakeAsync(() => {
+                const { fixture, component } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, {
+                    id: 'connector-1',
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canRead: true, canWrite: true },
+                    component: {
+                        availableActions: [{ name: 'DRAIN_FLOWFILES', allowed: true }]
+                    }
+                } as any);
+                store.refreshState();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const drain = menu.menuItems.find((i) => i.text === 'Drain');
+
+                expect(drain).toBeDefined();
+                expect(drain!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Drain when no entity is loaded', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const drain = menu.menuItems.find((i) => i.text === 'Drain');
+
+                expect(drain).toBeDefined();
+                expect(drain!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide Drain while the entity is saving', fakeAsync(() => {
+                const { fixture, component } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, {
+                    id: 'connector-1',
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canRead: true, canWrite: true },
+                    component: {
+                        availableActions: [{ name: 'DRAIN_FLOWFILES', allowed: true }]
+                    }
+                } as any);
+                store.overrideSelector(selectConnectorCanvasEntitySaving, true);
+                store.refreshState();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const drain = menu.menuItems.find((i) => i.text === 'Drain');
+
+                expect(drain).toBeDefined();
+                expect(drain!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Cancel Drain when the connector entity allows CANCEL_DRAIN_FLOWFILES', fakeAsync(() => {
+                const { fixture, component } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, {
+                    id: 'connector-1',
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canRead: true, canWrite: true },
+                    component: {
+                        availableActions: [{ name: 'CANCEL_DRAIN_FLOWFILES', allowed: true }]
+                    }
+                } as any);
+                store.refreshState();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const cancelDrain = menu.menuItems.find((i) => i.text === 'Cancel Drain');
+
+                expect(cancelDrain).toBeDefined();
+                expect(cancelDrain!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Cancel Drain when no entity is loaded', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const cancelDrain = menu.menuItems.find((i) => i.text === 'Cancel Drain');
+
+                expect(cancelDrain).toBeDefined();
+                expect(cancelDrain!.condition!(null)).toBe(false);
             }));
         });
 
@@ -1202,6 +1388,136 @@ describe('ConnectorCanvasComponent', () => {
                 expect(viewConfig).toBeDefined();
                 expect(viewConfig!.condition!(null)).toBe(false);
             }));
+
+            it('should show List Queue for a single Connection selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const listQueue = menu.menuItems.find((i) => i.text === 'List Queue');
+
+                expect(listQueue).toBeDefined();
+                expect(listQueue!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide List Queue for non-Connection types', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const listQueue = menu.menuItems.find((i) => i.text === 'List Queue');
+
+                expect(listQueue).toBeDefined();
+                expect(listQueue!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide List Queue for multi-selection of Connections', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 2));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const listQueue = menu.menuItems.find((i) => i.text === 'List Queue');
+
+                expect(listQueue).toBeDefined();
+                expect(listQueue!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Empty Queue for a single Connection selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyQueue = menu.menuItems.find((i) => i.text === 'Empty Queue');
+
+                expect(emptyQueue).toBeDefined();
+                expect(emptyQueue!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Empty Queue for non-Connection types', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyQueue = menu.menuItems.find((i) => i.text === 'Empty Queue');
+
+                expect(emptyQueue).toBeDefined();
+                expect(emptyQueue!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Empty All Queues for a single ProcessGroup selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
+
+                expect(emptyAll).toBeDefined();
+                expect(emptyAll!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Empty All Queues on a component menu when not a ProcessGroup', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
+
+                expect(emptyAll).toBeDefined();
+                expect(emptyAll!.condition!(null)).toBe(false);
+            }));
+
+            it('should hide Empty All Queues when ProcessGroup is part of a multi-selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 3));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
+
+                expect(emptyAll).toBeDefined();
+                expect(emptyAll!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Controller Services for a single ProcessGroup selection', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
+
+                expect(controllerServices).toBeDefined();
+                expect(controllerServices!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Controller Services on a component menu when not a ProcessGroup', fakeAsync(() => {
+                const { fixture, component } = setup();
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
+
+                expect(controllerServices).toBeDefined();
+                expect(controllerServices!.condition!(null)).toBe(false);
+            }));
         });
 
         describe('filterMenuItem', () => {
@@ -1428,6 +1744,123 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
             }));
+        });
+
+        describe('queue and controller-services actions', () => {
+            it('should dispatch navigateToQueueListing when listQueueAction is invoked', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.listQueueAction('conn-1');
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    navigateToQueueListing({ request: { connectionId: 'conn-1' } })
+                );
+            });
+
+            it('should dispatch promptEmptyQueueRequest with connector-canvas source when emptyQueueAction is invoked', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.emptyQueueAction('conn-1');
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    promptEmptyQueueRequest({
+                        request: { connectionId: 'conn-1', source: 'connector-canvas' }
+                    })
+                );
+            });
+
+            it('should dispatch promptEmptyQueuesRequest with connector-canvas source when emptyAllQueuesAction is invoked', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.emptyAllQueuesAction('pg-1');
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    promptEmptyQueuesRequest({
+                        request: { processGroupId: 'pg-1', source: 'connector-canvas' }
+                    })
+                );
+            });
+
+            it('should dispatch navigateToControllerServices when controllerServicesAction is invoked', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.controllerServicesAction('pg-target');
+
+                expect(dispatchSpy).toHaveBeenCalledWith(navigateToControllerServices({ processGroupId: 'pg-target' }));
+            });
+        });
+
+        describe('drain actions', () => {
+            const operableConnectorEntity = {
+                id: 'connector-1',
+                permissions: { canRead: true, canWrite: true },
+                operatePermissions: { canRead: true, canWrite: true },
+                component: {
+                    availableActions: [
+                        { name: 'DRAIN_FLOWFILES', allowed: true },
+                        { name: 'CANCEL_DRAIN_FLOWFILES', allowed: true }
+                    ]
+                }
+            };
+
+            it('canDrain should be false when no entity is loaded', () => {
+                const { component } = setup();
+                expect(component.canDrain()).toBe(false);
+            });
+
+            it('canDrain should be false while the entity is saving', () => {
+                const { component, fixture } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operableConnectorEntity);
+                store.overrideSelector(selectConnectorCanvasEntitySaving, true);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canDrain()).toBe(false);
+            });
+
+            it('cancelDrainAction should not dispatch when no entity is loaded', () => {
+                const { component, dispatchSpy } = setup();
+                dispatchSpy.mockClear();
+
+                component.cancelDrainConnectorAction();
+
+                expect(dispatchSpy).not.toHaveBeenCalled();
+            });
+
+            it('drainConnectorAction should dispatch promptDrainConnector with the current entity', () => {
+                const { component, fixture, dispatchSpy } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operableConnectorEntity);
+                store.refreshState();
+                fixture.detectChanges();
+                dispatchSpy.mockClear();
+
+                component.drainConnectorAction();
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    promptDrainConnector({ connector: operableConnectorEntity as any })
+                );
+            });
+
+            it('cancelDrainConnectorAction should dispatch cancelConnectorDrain with the current entity', () => {
+                const { component, fixture, dispatchSpy } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operableConnectorEntity);
+                store.refreshState();
+                fixture.detectChanges();
+                dispatchSpy.mockClear();
+
+                component.cancelDrainConnectorAction();
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    cancelConnectorDrain({ connector: operableConnectorEntity as any })
+                );
+            });
         });
     });
 

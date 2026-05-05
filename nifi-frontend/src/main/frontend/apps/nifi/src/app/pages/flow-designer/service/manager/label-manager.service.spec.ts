@@ -34,8 +34,6 @@ import { parameterFeatureKey } from '../../state/parameter';
 import * as fromParameter from '../../state/parameter/parameter.reducer';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
-import { queueFeatureKey } from '../../../queue/state';
-import * as fromQueue from '../../state/queue/queue.reducer';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { flowAnalysisFeatureKey } from '../../state/flow-analysis';
 import * as fromFlowAnalysis from '../../state/flow-analysis/flow-analysis.reducer';
@@ -49,7 +47,6 @@ describe('LabelManager', () => {
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
             [parameterFeatureKey]: fromParameter.initialState,
-            [queueFeatureKey]: fromQueue.initialState,
             [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
         };
 

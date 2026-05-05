@@ -37,6 +37,13 @@ const routes: Routes = [
         pathMatch: 'full'
     },
     {
+        path: ':processGroupId/controller-services',
+        loadChildren: () =>
+            import('../connector-controller-services/connector-controller-services.module').then(
+                (m) => m.ConnectorControllerServicesModule
+            )
+    },
+    {
         path: ':processGroupId',
         component: ConnectorCanvasComponent,
         children: [

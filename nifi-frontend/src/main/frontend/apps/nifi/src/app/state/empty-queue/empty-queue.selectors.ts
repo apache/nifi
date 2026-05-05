@@ -15,25 +15,24 @@
  * limitations under the License.
  */
 
-import { DropRequestEntity } from '../../../../state/empty-queue';
-import { ConnectorEntity } from '@nifi/shared';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { EmptyQueueState, emptyQueueFeatureKey } from './index';
 
-export const purgeConnectorFeatureKey = 'purgeConnector';
+export const selectEmptyQueueState = createFeatureSelector<EmptyQueueState>(emptyQueueFeatureKey);
 
-export interface PurgeConnectorState {
-    connectorId: string | null;
-    dropEntity: DropRequestEntity | null;
-    status: 'pending' | 'loading' | 'success';
-}
+export const selectDropRequestEntity = createSelector(
+    selectEmptyQueueState,
+    (state: EmptyQueueState) => state.dropEntity
+);
 
-export interface PurgeConnectorRequest {
-    connector: ConnectorEntity;
-}
+export const selectDropConnectionId = createSelector(
+    selectEmptyQueueState,
+    (state: EmptyQueueState) => state.connectionId
+);
 
-export interface PollPurgeConnectorSuccess {
-    dropEntity: DropRequestEntity;
-}
+export const selectDropProcessGroupId = createSelector(
+    selectEmptyQueueState,
+    (state: EmptyQueueState) => state.processGroupId
+);
 
-export interface ShowPurgeConnectorResults {
-    dropEntity: DropRequestEntity;
-}
+export const selectDropSource = createSelector(selectEmptyQueueState, (state: EmptyQueueState) => state.source);

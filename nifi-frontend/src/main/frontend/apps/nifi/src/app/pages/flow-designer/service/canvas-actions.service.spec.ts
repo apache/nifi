@@ -35,8 +35,6 @@ import { controllerServicesFeatureKey } from '../state/controller-services';
 import * as fromControllerServices from '../state/controller-services/controller-services.reducer';
 import { parameterFeatureKey } from '../state/parameter';
 import * as fromParameter from '../state/parameter/parameter.reducer';
-import { queueFeatureKey } from '../../queue/state';
-import * as fromQueue from '../state/queue/queue.reducer';
 import { flowAnalysisFeatureKey } from '../state/flow-analysis';
 import * as fromFlowAnalysis from '../state/flow-analysis/flow-analysis.reducer';
 import * as FlowActions from '../state/flow/flow.actions';
@@ -57,7 +55,6 @@ describe('CanvasActionsService', () => {
         [transformFeatureKey]: fromTransform.initialState,
         [controllerServicesFeatureKey]: fromControllerServices.initialState,
         [parameterFeatureKey]: fromParameter.initialState,
-        [queueFeatureKey]: fromQueue.initialState,
         [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
     };
 
