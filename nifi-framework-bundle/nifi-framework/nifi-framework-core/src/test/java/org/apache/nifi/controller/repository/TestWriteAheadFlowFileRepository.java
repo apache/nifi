@@ -1155,6 +1155,65 @@ public class TestWriteAheadFlowFileRepository {
         assertTrue(truncated.contains(originalClaim));
     }
 
+    @Test
+    public void testCreateRecordsForSharedTruncatableClaimPreventPrematureTruncation() throws IOException {
+        // Multiple CREATE records for the same truncation-eligible Content Claim should increment
+        // the truncation reference count per FlowFile, so deleting one sibling does not queue the
+        // shared claim for truncation while others still reference it.
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+
+        final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        final StandardContentClaim sharedClaim = createClaim(resourceClaim, 1024L, TRUNCATION_CANDIDATE_LENGTH, true);
+
+        final FlowFileRecord first = new StandardFlowFileRecord.Builder()
+                .id(1L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(sharedClaim)
+                .build();
+        final FlowFileRecord second = new StandardFlowFileRecord.Builder()
+                .id(2L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(sharedClaim)
+                .build();
+        final FlowFileRecord third = new StandardFlowFileRecord.Builder()
+                .id(3L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(sharedClaim)
+                .build();
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+
+            final List<RepositoryRecord> createRecords = new ArrayList<>();
+            for (final FlowFileRecord flowFile : List.of(first, second, third)) {
+                final StandardRepositoryRecord createRecord = new StandardRepositoryRecord(context.queue());
+                createRecord.setWorking(flowFile, false);
+                createRecord.setDestination(context.queue());
+                createRecords.add(createRecord);
+            }
+            repo.updateRepository(createRecords);
+
+            assertEquals(3, repo.getContentClaimReferenceCount(sharedClaim),
+                    "Each CREATE record for a truncation-eligible Content Claim must increment the truncation reference count");
+
+            final StandardRepositoryRecord deleteRecord = new StandardRepositoryRecord(context.queue(), first);
+            deleteRecord.markForDelete();
+            repo.updateRepository(List.of(deleteRecord));
+            repo.checkpoint();
+        }
+
+        assertEquals(2, context.claimManager().getTruncationReferenceCount(sharedClaim));
+
+        final List<ContentClaim> truncated = new ArrayList<>();
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertFalse(truncated.contains(sharedClaim),
+                "Shared Content Claim must not be queued for truncation while live siblings still reference it");
+    }
+
     // =========================================================================
     // Truncation Feature: Recovery Tests
     // =========================================================================
