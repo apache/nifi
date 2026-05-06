@@ -231,7 +231,7 @@ export class UserListingEffects {
                     if (userGroupUpdates.length === 0) {
                         return of(UserListingActions.createUserComplete({ response }));
                     } else {
-                        return userGroupUpdates;
+                        return from(userGroupUpdates);
                     }
                 } else {
                     return of(UserListingActions.createUserComplete({ response }));
@@ -264,8 +264,7 @@ export class UserListingEffects {
             map((action) => action.response),
             filter((response) => response.userGroupUpdate != null),
             mergeMap((createUserResponse) => {
-                // @ts-ignore
-                const expectedCount = createUserResponse.userGroupUpdate.userGroups?.length || 0;
+                const expectedCount = createUserResponse.userGroupUpdate?.userGroups?.length ?? 0;
                 if (expectedCount === 0) {
                     return of(UserListingActions.createUserComplete({ response: createUserResponse }));
                 }
@@ -546,10 +545,8 @@ export class UserListingEffects {
             map((action) => action.response),
             filter((response) => response.userGroupUpdate != null),
             mergeMap((updateUserResponse) => {
-                // @ts-ignore
-                const addedCount = updateUserResponse.userGroupUpdate.userGroupsAdded?.length || 0;
-                // @ts-ignore
-                const removedCount = updateUserResponse.userGroupUpdate.userGroupsRemoved?.length || 0;
+                const addedCount = updateUserResponse.userGroupUpdate?.userGroupsAdded?.length ?? 0;
+                const removedCount = updateUserResponse.userGroupUpdate?.userGroupsRemoved?.length ?? 0;
                 const expectedCount = addedCount + removedCount;
 
                 if (expectedCount === 0) {
