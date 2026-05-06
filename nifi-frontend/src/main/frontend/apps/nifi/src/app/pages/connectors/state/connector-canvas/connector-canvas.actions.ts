@@ -108,6 +108,35 @@ export const navigateToProvenanceForComponent = createAction(
 );
 
 /**
+ * Navigate to the controller services view for a process group within a connector.
+ * The target process group must be supplied by the caller; the canvas-background
+ * caller passes the current route's process group, and component-menu callers pass
+ * the id of the right-clicked process group.
+ */
+export const navigateToControllerServices = createAction(
+    '[Connector Canvas] Navigate To Controller Services',
+    props<{ processGroupId: string }>()
+);
+
+/**
+ * Navigate to a specific controller service within a process group, deep linking
+ * to the controller services view with the service pre-selected.
+ */
+export const navigateToControllerService = createAction(
+    '[Connector Canvas] Navigate To Controller Service',
+    props<{ processGroupId: string; serviceId: string }>()
+);
+
+/**
+ * Navigate to the queue listing page for a connection.
+ * Uses back navigation to return to the connector canvas.
+ */
+export const navigateToQueueListing = createAction(
+    '[Connector Canvas] Navigate To Queue Listing',
+    props<{ request: { connectionId: string } }>()
+);
+
+/**
  * View the read-only configuration of a canvas component.
  * Triggers an effect that opens the appropriate EditXyz dialog in read-only mode.
  */

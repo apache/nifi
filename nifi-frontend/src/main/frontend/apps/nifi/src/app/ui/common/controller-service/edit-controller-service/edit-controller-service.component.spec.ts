@@ -620,4 +620,81 @@ describe('EditControllerService', () => {
             }
         });
     });
+
+    describe('readonly derivation', () => {
+        function buildRequest(overrides: {
+            readonly?: boolean;
+            canWrite?: boolean;
+            runStatus?: string;
+        }): EditControllerServiceDialogRequest {
+            return {
+                ...data,
+                ...(overrides.readonly !== undefined ? { readonly: overrides.readonly } : {}),
+                controllerService: {
+                    ...data.controllerService,
+                    permissions: {
+                        ...data.controllerService.permissions,
+                        canWrite: overrides.canWrite ?? data.controllerService.permissions.canWrite
+                    },
+                    status: {
+                        ...data.controllerService.status,
+                        runStatus: overrides.runStatus ?? data.controllerService.status.runStatus
+                    }
+                }
+            };
+        }
+
+        function createWith(request: EditControllerServiceDialogRequest): EditControllerService {
+            TestBed.resetTestingModule();
+            TestBed.configureTestingModule({
+                imports: [EditControllerService, MockComponent(ContextErrorBanner), NoopAnimationsModule],
+                providers: [
+                    provideMockStore({
+                        initialState: {
+                            [errorFeatureKey]: initialErrorState
+                        }
+                    }),
+                    { provide: MAT_DIALOG_DATA, useValue: request },
+                    { provide: MatDialogRef, useValue: null },
+                    { provide: Client, useValue: { getRevision: () => mockRevision } },
+                    {
+                        provide: ClusterConnectionService,
+                        useValue: { isDisconnectionAcknowledged: () => true }
+                    }
+                ]
+            });
+
+            const newFixture = TestBed.createComponent(EditControllerService);
+            newFixture.detectChanges();
+            return newFixture.componentInstance;
+        }
+
+        it('forces readonly mode when the request explicitly opts in, regardless of permissions or run status', () => {
+            const editable = createWith(buildRequest({ readonly: true, canWrite: true, runStatus: 'DISABLED' }));
+
+            expect(editable.readonly).toBe(true);
+            expect(editable.editControllerServiceForm.get('properties')?.disabled).toBe(true);
+        });
+
+        it('forces readonly mode when the user lacks write permission', () => {
+            const noWrite = createWith(buildRequest({ canWrite: false, runStatus: 'DISABLED' }));
+
+            expect(noWrite.readonly).toBe(true);
+            expect(noWrite.editControllerServiceForm.get('properties')?.disabled).toBe(true);
+        });
+
+        it('forces readonly mode when the controller service is not DISABLED', () => {
+            const enabled = createWith(buildRequest({ canWrite: true, runStatus: 'ENABLED' }));
+
+            expect(enabled.readonly).toBe(true);
+            expect(enabled.editControllerServiceForm.get('properties')?.disabled).toBe(true);
+        });
+
+        it('allows editing when the user can write, the service is DISABLED, and the readonly flag is unset', () => {
+            const editable = createWith(buildRequest({ canWrite: true, runStatus: 'DISABLED' }));
+
+            expect(editable.readonly).toBe(false);
+            expect(editable.editControllerServiceForm.get('properties')?.enabled).toBe(true);
+        });
+    });
 });

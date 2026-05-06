@@ -51,6 +51,8 @@ import { copyFeatureKey, CopyState } from './copy';
 import { copyReducer } from './copy/copy.reducer';
 import { canvasUiFeatureKey, CanvasUiState } from './canvas-ui';
 import { canvasUiReducer } from './canvas-ui/canvas-ui.reducer';
+import { emptyQueueFeatureKey, EmptyQueueState } from './empty-queue';
+import { emptyQueueReducer } from './empty-queue/empty-queue.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -71,6 +73,7 @@ export interface NiFiState {
     [propertyVerificationFeatureKey]: PropertyVerificationState;
     [copyFeatureKey]: CopyState;
     [canvasUiFeatureKey]: CanvasUiState;
+    [emptyQueueFeatureKey]: EmptyQueueState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -91,5 +94,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [clusterSummaryFeatureKey]: clusterSummaryReducer,
     [propertyVerificationFeatureKey]: propertyVerificationReducer,
     [copyFeatureKey]: copyReducer,
-    [canvasUiFeatureKey]: canvasUiReducer
+    [canvasUiFeatureKey]: canvasUiReducer,
+    [emptyQueueFeatureKey]: emptyQueueReducer
 };

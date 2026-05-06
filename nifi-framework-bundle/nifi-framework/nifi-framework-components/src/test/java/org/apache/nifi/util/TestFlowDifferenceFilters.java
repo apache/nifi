@@ -205,6 +205,17 @@ public class TestFlowDifferenceFilters {
                 "Property removed in component definition");
 
         assertTrue(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+
+        final FlowDifference parameterizationRemovedDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "#{SomeParam}",
+                null,
+                "Property parameterization removed in component definition");
+
+        assertTrue(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
     }
 
     @Test
@@ -231,6 +242,17 @@ public class TestFlowDifferenceFilters {
                 "Property still defined");
 
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+
+        final FlowDifference parameterizationRemovedDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "#{SomeParam}",
+                null,
+                "Parameterization removed but property still defined");
+
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
     }
 
     @Test
@@ -255,6 +277,16 @@ public class TestFlowDifferenceFilters {
                 null,
                 "Dynamic property removed");
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+
+        final FlowDifference parameterizationRemovedDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "#{SomeParam}",
+                null,
+                "Dynamic property parameterization removed");
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
     }
 
     @Test

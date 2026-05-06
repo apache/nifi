@@ -148,6 +148,7 @@ export class EditControllerService extends TabbedDialog {
         const request = this.request;
 
         this.readonly =
+            request.readonly === true ||
             !request.controllerService.permissions.canWrite ||
             request.controllerService.status.runStatus !== 'DISABLED';
 

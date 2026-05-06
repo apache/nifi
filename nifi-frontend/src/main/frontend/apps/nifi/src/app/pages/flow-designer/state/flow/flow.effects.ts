@@ -31,6 +31,7 @@ import {
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import * as CopyActions from '../../../../state/copy/copy.actions';
+import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     asyncScheduler,
     catchError,
@@ -4760,6 +4761,46 @@ export class FlowEffects {
                         })
                     );
                 }
+            })
+        )
+    );
+
+    /**
+     * Refreshes the affected connection or process group after a queue has been emptied
+     * from the flow designer. Listens for the shared queueEmptied event and filters on
+     * source so that connector-canvas-initiated empties do not trigger flow-designer
+     * refreshes.
+     */
+    refreshAfterQueueEmptied$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(EmptyQueueActions.queueEmptied),
+            filter((action) => action.source === 'flow-designer'),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([action, currentProcessGroupId]) => {
+                const refreshActions: Action[] = [];
+
+                if (action.connectionId) {
+                    refreshActions.push(FlowActions.loadConnection({ id: action.connectionId }));
+                } else if (action.processGroupId) {
+                    if (action.processGroupId === currentProcessGroupId) {
+                        refreshActions.push(
+                            FlowActions.loadProcessGroup({
+                                request: {
+                                    id: action.processGroupId,
+                                    transitionRequired: false
+                                }
+                            })
+                        );
+                    } else {
+                        refreshActions.push(
+                            FlowActions.loadChildProcessGroup({
+                                request: { id: action.processGroupId }
+                            })
+                        );
+                    }
+                }
+
+                return from(refreshActions);
             })
         )
     );

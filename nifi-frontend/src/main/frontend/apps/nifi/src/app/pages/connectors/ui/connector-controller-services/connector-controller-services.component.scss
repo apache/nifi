@@ -15,25 +15,8 @@
  * limitations under the License.
  */
 
-import { DropRequestEntity } from '../../../../state/empty-queue';
-import { ConnectorEntity } from '@nifi/shared';
-
-export const purgeConnectorFeatureKey = 'purgeConnector';
-
-export interface PurgeConnectorState {
-    connectorId: string | null;
-    dropEntity: DropRequestEntity | null;
-    status: 'pending' | 'loading' | 'success';
-}
-
-export interface PurgeConnectorRequest {
-    connector: ConnectorEntity;
-}
-
-export interface PollPurgeConnectorSuccess {
-    dropEntity: DropRequestEntity;
-}
-
-export interface ShowPurgeConnectorResults {
-    dropEntity: DropRequestEntity;
+.current-scope-only {
+    .fa-info-circle {
+        font-size: 14px;
+    }
 }

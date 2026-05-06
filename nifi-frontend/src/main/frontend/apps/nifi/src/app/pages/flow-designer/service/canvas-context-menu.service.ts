@@ -64,7 +64,7 @@ import {
     ContextMenuDefinitionProvider,
     ContextMenuItemDefinition
 } from '../../../ui/common/context-menu/context-menu.component';
-import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
+import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../../../state/empty-queue/empty-queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
 import * as d3 from 'd3';
@@ -1334,7 +1334,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     this.store.dispatch(
                         promptEmptyQueueRequest({
                             request: {
-                                connectionId: selectionData.id
+                                connectionId: selectionData.id,
+                                source: 'flow-designer'
                             }
                         })
                     );
@@ -1358,7 +1359,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     this.store.dispatch(
                         promptEmptyQueuesRequest({
                             request: {
-                                processGroupId
+                                processGroupId,
+                                source: 'flow-designer'
                             }
                         })
                     );

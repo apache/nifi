@@ -31,6 +31,8 @@ import {
 } from '@nifi/shared';
 import { VersionControlInformation } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 
+export type CanvasActionSource = 'flow-designer' | 'connector-canvas';
+
 export interface OkDialogRequest {
     title: string;
     message: string;
@@ -128,6 +130,12 @@ export interface EditControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
     history?: ComponentHistory;
+    /**
+     * When true, forces the dialog to be read-only regardless of the
+     * underlying controller service permissions or run status. Used by the
+     * connector canvas controller services view.
+     */
+    readonly?: boolean;
 }
 
 export interface EditComponentDialogRequest {
