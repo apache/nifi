@@ -122,6 +122,10 @@ class TestConnection implements Connection {
         return this.channel;
     }
 
+    public TestChannel getTestChannel() {
+        return this.channel;
+    }
+
     @Override
     public Channel createChannel(int channelNumber) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");

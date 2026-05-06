@@ -37,7 +37,6 @@ import static org.mockito.Mockito.verify;
 
 public class AMQPPublisherTest {
 
-    @SuppressWarnings("resource")
     @Test
     public void failOnNullConnection() {
         assertThrows(IllegalArgumentException.class, () -> new AMQPPublisher(null, null));
@@ -103,6 +102,62 @@ public class AMQPPublisherTest {
         verify(retListener, atMost(1)).handleReturn(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyString(), Mockito.any(BasicProperties.class), (byte[]) Mockito.any());
         connection.close();
+    }
+
+    /**
+     * Verifies that a {@link com.rabbitmq.client.ShutdownSignalException} thrown by
+     * {@code waitForConfirms()} (e.g., broker closes channel with 404 NOT_FOUND because the
+     * exchange does not exist) is converted to {@link AMQPException} so the FlowFile routes
+     * to REL_FAILURE instead of surfacing as an unhandled processor error.
+     */
+    @Test
+    public void failPublishWhenBrokerClosesChannelDuringConfirm() {
+        assertThrows(AMQPException.class, () -> {
+            TestConnection conn = new TestConnection(null, null);
+            conn.getTestChannel().setSimulateShutdownOnConfirm(true);
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+                sender.publish("hello".getBytes(), null, "foo", "");
+            }
+        });
+    }
+
+    /**
+     * Verifies that a broker NACK (waitForConfirms returns false) throws {@link AMQPException}
+     * so the FlowFile routes to REL_FAILURE.
+     */
+    @Test
+    public void failPublishWhenBrokerNacksMessage() {
+        assertThrows(AMQPException.class, () -> {
+            TestConnection conn = new TestConnection(null, null);
+            conn.getTestChannel().setSimulateNackOnConfirm(true);
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+                sender.publish("hello".getBytes(), null, "foo", "");
+            }
+        });
+    }
+
+    /**
+     * Verifies that when the broker returns a message as undeliverable (basic.return, e.g., no
+     * queue bound to the exchange/routing-key), an {@link AMQPException} is thrown so the FlowFile
+     * routes to REL_FAILURE rather than silently to REL_SUCCESS.
+     */
+    @Test
+    public void failPublishWhenMessageReturnedAsUndeliverable() {
+        assertThrows(AMQPException.class, () -> {
+            Map<String, List<String>> routingMap = new HashMap<>();
+            routingMap.put("key1", Arrays.asList("queue1"));
+            Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
+            exchangeToRoutingKeymap.put("myExchange", "key1");
+
+            TestConnection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
+            // Fire return listener synchronously so it is guaranteed to run before waitForConfirms()
+            conn.getTestChannel().setSimulateSynchronousReturn(true);
+
+            try (AMQPPublisher sender = new AMQPPublisher(conn, new MockComponentLog("id", ""))) {
+                // Wrong routing key → broker returns the message as undeliverable
+                sender.publish("hello".getBytes(), null, "wrongKey", "myExchange");
+            }
+        });
     }
 
 }

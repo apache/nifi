@@ -278,5 +278,45 @@ public class PublishAMQPTest {
         public Connection getConnection() {
             return connection;
         }
+
+        public TestChannel getTestChannel() {
+            return connection.getTestChannel();
+        }
+    }
+
+    /**
+     * When the broker closes the channel with a 404 (exchange not found), the FlowFile
+     * must route to REL_FAILURE — not cause an unhandled processor exception.
+     */
+    @Test
+    public void validateFlowFileRoutedToFailureWhenBrokerClosesChannel() {
+        final LocalPublishAMQP proc = new LocalPublishAMQP();
+        final TestRunner testRunner = TestRunners.newTestRunner(proc);
+        setConnectionProperties(testRunner);
+        proc.getTestChannel().setSimulateShutdownOnConfirm(true);
+
+        testRunner.enqueue("Hello Joe".getBytes());
+        testRunner.run();
+
+        assertTrue(testRunner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
+        assertNotNull(testRunner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst());
+    }
+
+    /**
+     * When the broker sends a NACK for the published message, the FlowFile must route
+     * to REL_FAILURE.
+     */
+    @Test
+    public void validateFlowFileRoutedToFailureOnBrokerNack() {
+        final LocalPublishAMQP proc = new LocalPublishAMQP();
+        final TestRunner testRunner = TestRunners.newTestRunner(proc);
+        setConnectionProperties(testRunner);
+        proc.getTestChannel().setSimulateNackOnConfirm(true);
+
+        testRunner.enqueue("Hello Joe".getBytes());
+        testRunner.run();
+
+        assertTrue(testRunner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
+        assertNotNull(testRunner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst());
     }
 }
