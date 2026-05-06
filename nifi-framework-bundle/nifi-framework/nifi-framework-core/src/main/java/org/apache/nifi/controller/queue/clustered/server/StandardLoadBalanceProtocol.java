@@ -56,6 +56,7 @@ import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -421,7 +422,9 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     private void updateFlowFileRepository(final List<RemoteFlowFileRecord> flowFiles, final FlowFileQueue flowFileQueue) throws IOException {
         final List<RepositoryRecord> repoRecords = flowFiles.stream()
                 .map(remoteFlowFile -> {
-                    final StandardRepositoryRecord record = new StandardRepositoryRecord(flowFileQueue, remoteFlowFile.getFlowFile());
+                    // A received FlowFile is new to this node's repository, so track it as a CREATE record.
+                    final StandardRepositoryRecord record = new StandardRepositoryRecord(flowFileQueue);
+                    record.setWorking(remoteFlowFile.getFlowFile(), Collections.emptyMap(), false);
                     record.setDestination(flowFileQueue);
                     return record;
                 })
