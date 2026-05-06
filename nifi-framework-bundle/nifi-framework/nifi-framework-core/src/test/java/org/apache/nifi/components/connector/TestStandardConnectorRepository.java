@@ -1178,7 +1178,7 @@ public class TestStandardConnectorRepository {
         final ParameterProviderNode snowflake = mockParameterProvider("Snowflake Provider", "id-1");
         final ParameterProviderNode vault = mockParameterProvider("Vault Provider", "id-2");
         final FlowManager flowManager = mock(FlowManager.class);
-        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(snowflake, vault));
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(snowflake, vault));
 
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
 
@@ -1190,7 +1190,7 @@ public class TestStandardConnectorRepository {
     public void testFindProviderIdByNameReturnsNullWhenNoMatch() {
         final ParameterProviderNode snowflake = mockParameterProvider("Snowflake Provider", "id-1");
         final FlowManager flowManager = mock(FlowManager.class);
-        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(snowflake));
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(snowflake));
 
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
 
@@ -1205,7 +1205,7 @@ public class TestStandardConnectorRepository {
         final ParameterProviderNode dup1 = mockParameterProvider("Duplicate", "id-a");
         final ParameterProviderNode dup2 = mockParameterProvider("Duplicate", "id-b");
         final FlowManager flowManager = mock(FlowManager.class);
-        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(dup1, dup2));
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(dup1, dup2));
 
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
 
@@ -1216,7 +1216,7 @@ public class TestStandardConnectorRepository {
     public void testFindProviderIdByNameReturnsNullForNullInput() {
         final ParameterProviderNode snowflake = mockParameterProvider("Snowflake Provider", "id-1");
         final FlowManager flowManager = mock(FlowManager.class);
-        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of(snowflake));
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(snowflake));
 
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
 
@@ -1226,7 +1226,7 @@ public class TestStandardConnectorRepository {
     @Test
     public void testFindProviderIdByNameReturnsNullWhenNoProvidersRegistered() {
         final FlowManager flowManager = mock(FlowManager.class);
-        when(flowManager.getAllParameterProviders()).thenReturn(java.util.Set.of());
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of());
 
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(mock(ConnectorConfigurationProvider.class), flowManager);
 
