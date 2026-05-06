@@ -27,10 +27,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import javax.sql.DataSource;
 
 @Configuration
-@Profile("postgres-14")
-public class Postgres14DataSourceFactory extends TestDataSourceFactory {
+@Profile("postgres-17")
+public class Postgres17DataSourceFactory extends TestDataSourceFactory {
 
-    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:14");
+    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:17");
 
     static {
         POSTGRESQL_CONTAINER.start();
