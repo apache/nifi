@@ -187,6 +187,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      */
     private syncFormControlsWithAssets(assetsByProperty: { [propertyName: string]: AssetInfo[] }): void {
         const config = this.stepConfiguration?.();
+
         if (!config || !this.formReady) return;
 
         for (const propertyName of Object.keys(assetsByProperty)) {
@@ -325,6 +326,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
     private initializeForm(): void {
         const stepData = this.stepConfiguration?.();
+
         if (!stepData) {
             this.stepForm = this.fb.group({});
             this.formReady = true;
@@ -374,7 +376,44 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
                 // For ASSET types, collect assets for store state and set form value to asset ID(s)
                 if (property.type === 'ASSET' || property.type === 'ASSET_LIST') {
-                    const assetValue = (unsavedValue ?? apiValue ?? null) as AssetReference | AssetReference[] | null;
+                    // unsavedStepValues are stored in form shape (string id for ASSET, string[] for
+                    // ASSET_LIST), while apiValue is in API shape (AssetReference / AssetReference[]).
+                    // Reconcile by re-hydrating the unsaved id(s) against apiValue so we keep names
+                    // and missingContent flags when available.
+                    const apiAssetReferences: AssetReference[] = Array.isArray(apiValue)
+                        ? (apiValue as AssetReference[])
+                        : apiValue && typeof apiValue === 'object'
+                          ? [apiValue as AssetReference]
+                          : [];
+                    let assetValue: AssetReference | AssetReference[] | null;
+                    if (property.type === 'ASSET') {
+                        if (typeof unsavedValue === 'string' && unsavedValue) {
+                            assetValue =
+                                apiAssetReferences.find((r) => r.id === unsavedValue) ??
+                                ({ id: unsavedValue } as AssetReference);
+                        } else if (unsavedValue && !Array.isArray(unsavedValue) && typeof unsavedValue === 'object') {
+                            assetValue = unsavedValue as AssetReference;
+                        } else {
+                            assetValue = (apiValue ?? null) as AssetReference | null;
+                        }
+                    } else {
+                        if (Array.isArray(unsavedValue)) {
+                            const ids = unsavedValue as Array<string | AssetReference>;
+                            assetValue = ids
+                                .map((entry) => {
+                                    if (typeof entry === 'string') {
+                                        return (
+                                            apiAssetReferences.find((r) => r.id === entry) ??
+                                            ({ id: entry } as AssetReference)
+                                        );
+                                    }
+                                    return entry as AssetReference;
+                                })
+                                .filter((ref): ref is AssetReference => !!ref && !!ref.id);
+                        } else {
+                            assetValue = (apiValue ?? []) as AssetReference[];
+                        }
+                    }
                     const assets = this.buildAssetsFromValue(property.name, property.type, assetValue);
                     if (assets.length > 0) {
                         propertyAssets[property.name] = assets;
@@ -761,7 +800,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
         const formValues = this.stepForm.getRawValue();
 
-        return {
+        const result = {
             configurationStepName: stepData.configurationStepName,
             configurationStepDescription: stepData.configurationStepDescription,
             dependencies: stepData.dependencies,
@@ -837,6 +876,8 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                 // Only include groups that have changed values
                 .filter((group) => Object.keys(group.propertyValues).length > 0)
         };
+
+        return result;
     }
 
     /**

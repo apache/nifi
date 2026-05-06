@@ -26,7 +26,44 @@
             </mat-checkbox>
         }
         @default {
-            @if (shouldUseSelect()) {
+            @if (shouldUseAssetUpload()) {
+                <div class="w-full flex flex-col gap-1" data-qa="property-input-asset-upload-block">
+                    <div class="text-xs tertiary-color">
+                        {{ prop.name }}
+                        @if (prop.required) {
+                            <span aria-hidden="true"> *</span>
+                        }
+                    </div>
+                    <asset-upload
+                        [formControl]="formControl"
+                        [assets]="currentAssets()"
+                        [uploadProgress]="assetUploadProgress()"
+                        [multiple]="isMultipleAssets()"
+                        (filesSelected)="onAssetFilesSelected($event)"
+                        (deleteAsset)="onAssetDeleteRequested($event)"
+                        (dismissFailedUpload)="onDismissFailedUpload($event)"
+                        data-qa="property-input-asset-upload">
+                    </asset-upload>
+                    @if (prop.description && (!parentControl?.invalid || !parentControl?.touched)) {
+                        <mat-hint class="text-xs">{{ prop.description }}</mat-hint>
+                    }
+                    @if (parentControl?.hasError('required') && parentControl?.touched) {
+                        <mat-error class="error-color text-xs" data-qa="property-input-asset-required-error">
+                            This field is required
+                        </mat-error>
+                    }
+                    @if (parentControl?.hasError('assetContentMissing') && parentControl?.touched) {
+                        <mat-error class="error-color text-xs" data-qa="property-input-asset-missing-error">
+                            Asset content is missing
+                        </mat-error>
+                    }
+                    @if (parentControl?.hasError('verificationError')) {
+                        <mat-error class="error-color text-xs" data-qa="property-input-asset-verification-error">
+                            {{ parentControl?.getError('verificationError') }}
+                        </mat-error>
+                    }
+                </div>
+            } @else if (shouldUseSelect()) {
                 <div class="w-full">
                     <div class="text-xs tertiary-color mb-1">
                         {{ prop.name }}

@@ -456,6 +456,174 @@ describe('SharedConnectorConfigurationStep', () => {
     });
 
     // ═══════════════════════════════════════════════════════
+    // ASSET / ASSET_LIST initialization shape reconciliation
+    // ═══════════════════════════════════════════════════════
+    //
+    // unsavedStepValues stores form-shape values (string id for ASSET,
+    // string[] for ASSET_LIST), while saved propertyValues are API-shape
+    // (AssetReference / AssetReference[]). initializeForm must reconcile
+    // form-shape unsaved values against API-shape apiValue so that:
+    //   - the form control receives proper id strings,
+    //   - initializeAssets receives proper AssetInfo[] for the store, and
+    //   - asset names / missingContent flags survive the reconciliation
+    //     when available from the API value.
+
+    describe('asset initialization shape reconciliation', () => {
+        const ASSET_ID = 'asset-1';
+        const ASSET_ID_2 = 'asset-2';
+        const ASSET_ID_3 = 'asset-3';
+
+        it('hydrates ASSET form control from API value when no unsaved value exists', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('single-asset', { type: 'ASSET' })], {
+                'single-asset': {
+                    valueType: 'ASSET_REFERENCE' as const,
+                    assetReferences: [{ id: ASSET_ID, name: 'doc.pdf', missingContent: false }]
+                }
+            });
+
+            const { component, mockStore } = await setup({ stepConfig });
+
+            expect(component.stepForm.get('single-asset')?.value).toBe(ASSET_ID);
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({
+                'single-asset': [{ id: ASSET_ID, name: 'doc.pdf', missingContent: false }]
+            });
+        });
+
+        it('hydrates ASSET_LIST form control from API value when no unsaved value exists', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('multi-asset', { type: 'ASSET_LIST' })], {
+                'multi-asset': {
+                    valueType: 'ASSET_REFERENCE' as const,
+                    assetReferences: [
+                        { id: ASSET_ID, name: 'a.pdf', missingContent: false },
+                        { id: ASSET_ID_2, name: 'b.pdf', missingContent: false },
+                        { id: ASSET_ID_3, name: 'c.pdf', missingContent: false }
+                    ]
+                }
+            });
+
+            const { component, mockStore } = await setup({ stepConfig });
+
+            expect(component.stepForm.get('multi-asset')?.value).toEqual([ASSET_ID, ASSET_ID_2, ASSET_ID_3]);
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({
+                'multi-asset': [
+                    { id: ASSET_ID, name: 'a.pdf', missingContent: false },
+                    { id: ASSET_ID_2, name: 'b.pdf', missingContent: false },
+                    { id: ASSET_ID_3, name: 'c.pdf', missingContent: false }
+                ]
+            });
+        });
+
+        it('reconciles a form-shape unsaved string against ASSET API value (preserves name/missingContent)', async () => {
+            // unsavedStepValues stores the asset id as a plain string for an ASSET property
+            const stepConfig = makeStepConfig('test-step', [makeProp('single-asset', { type: 'ASSET' })], {
+                'single-asset': {
+                    valueType: 'ASSET_REFERENCE' as const,
+                    assetReferences: [{ id: ASSET_ID, name: 'doc.pdf', missingContent: false }]
+                }
+            });
+
+            const { component, mockStore } = await setup({
+                stepConfig,
+                unsavedValues: { 'single-asset': ASSET_ID }
+            });
+
+            expect(component.stepForm.get('single-asset')?.value).toBe(ASSET_ID);
+            // The store should receive a fully populated AssetInfo, not an {id}-only stub
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({
+                'single-asset': [{ id: ASSET_ID, name: 'doc.pdf', missingContent: false }]
+            });
+        });
+
+        it('reconciles a form-shape unsaved string[] against ASSET_LIST API value (preserves name/missingContent)', async () => {
+            // Regression guard: the failed-list-upload + Next + Back path leaves
+            // unsavedStepValues['Test Asset List'] as ['id1','id2','id3'] (form shape).
+            // Without reconciliation, .map(a => a.id) yielded [null,null,null] and the
+            // form/store rendered empty. With reconciliation, both should be hydrated.
+            const stepConfig = makeStepConfig('test-step', [makeProp('multi-asset', { type: 'ASSET_LIST' })], {
+                'multi-asset': {
+                    valueType: 'ASSET_REFERENCE' as const,
+                    assetReferences: [
+                        { id: ASSET_ID, name: 'a.pdf', missingContent: false },
+                        { id: ASSET_ID_2, name: 'b.pdf', missingContent: false },
+                        { id: ASSET_ID_3, name: 'c.pdf', missingContent: false }
+                    ]
+                }
+            });
+
+            const { component, mockStore } = await setup({
+                stepConfig,
+                unsavedValues: { 'multi-asset': [ASSET_ID, ASSET_ID_2, ASSET_ID_3] }
+            });
+
+            expect(component.stepForm.get('multi-asset')?.value).toEqual([ASSET_ID, ASSET_ID_2, ASSET_ID_3]);
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({
+                'multi-asset': [
+                    { id: ASSET_ID, name: 'a.pdf', missingContent: false },
+                    { id: ASSET_ID_2, name: 'b.pdf', missingContent: false },
+                    { id: ASSET_ID_3, name: 'c.pdf', missingContent: false }
+                ]
+            });
+        });
+
+        it('keeps unsaved ASSET_LIST ids whose ids are not represented in API value (id-only fallback)', async () => {
+            // If the unsaved set diverges from apiValue (e.g. user added/removed entries
+            // before saving), unknown ids fall back to id-only AssetReferences but still
+            // appear in the form and store.
+            const stepConfig = makeStepConfig('test-step', [makeProp('multi-asset', { type: 'ASSET_LIST' })], {
+                'multi-asset': {
+                    valueType: 'ASSET_REFERENCE' as const,
+                    assetReferences: [{ id: ASSET_ID, name: 'a.pdf', missingContent: false }]
+                }
+            });
+
+            const { component, mockStore } = await setup({
+                stepConfig,
+                unsavedValues: { 'multi-asset': [ASSET_ID, 'unknown-id'] }
+            });
+
+            expect(component.stepForm.get('multi-asset')?.value).toEqual([ASSET_ID, 'unknown-id']);
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({
+                'multi-asset': [
+                    { id: ASSET_ID, name: 'a.pdf', missingContent: false },
+                    { id: 'unknown-id', name: 'unknown-id' }
+                ]
+            });
+        });
+
+        it('falls back to API value when unsaved ASSET_LIST is empty or absent', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('multi-asset', { type: 'ASSET_LIST' })], {
+                'multi-asset': {
+                    valueType: 'ASSET_REFERENCE' as const,
+                    assetReferences: [{ id: ASSET_ID, name: 'a.pdf', missingContent: false }]
+                }
+            });
+
+            const { component } = await setup({
+                stepConfig,
+                unsavedValues: { 'multi-asset': [] }
+            });
+
+            expect(component.stepForm.get('multi-asset')?.value).toEqual([]);
+        });
+
+        it('initializes ASSET_LIST to empty array when neither unsaved nor API value exist', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('multi-asset', { type: 'ASSET_LIST' })]);
+            const { component, mockStore } = await setup({ stepConfig });
+
+            expect(component.stepForm.get('multi-asset')?.value).toEqual([]);
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({});
+        });
+
+        it('initializes ASSET to null when neither unsaved nor API value exist', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('single-asset', { type: 'ASSET' })]);
+            const { component, mockStore } = await setup({ stepConfig });
+
+            expect(component.stepForm.get('single-asset')?.value).toBeNull();
+            expect(mockStore.initializeAssets).toHaveBeenCalledWith({});
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════
     // Back navigation
     // ═══════════════════════════════════════════════════════
 

@@ -1,4 +1,4 @@
-/*
+/*!
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -15,9 +15,43 @@
  * limitations under the License.
  */
 
-export * from './nifi-tooltip.directive';
-export * from './copy/copy.directive';
-export * from './ellipsis-tooltip/ellipsis-tooltip.directive';
-export * from './drag-and-drop/drag-and-drop.directive';
-export * from './spinner/nifi-spinner.directive';
-export * from './spinner/spinner.component';
+.asset-upload-container {
+    &.drop-allowed {
+        border: 1px dashed var(--mat-sys-primary);
+        * {
+            pointer-events: none;
+        }
+    }
+
+    &.drop-invalid {
+        border: 1px dashed var(--mat-sys-error);
+        * {
+            pointer-events: none;
+        }
+    }
+
+    &.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    &.has-error {
+        border: 1px solid var(--mat-sys-error);
+
+        &.drop-allowed {
+            border: 1px dashed var(--mat-sys-primary);
+        }
+
+        &.drop-invalid {
+            border: 1px dashed var(--mat-sys-error);
+        }
+    }
+}
+
+.asset-item-missing-content {
+    border-color: var(--nf-caution-default);
+}
+
+.progress-item.error {
+    border-color: var(--mat-sys-error);
+}
