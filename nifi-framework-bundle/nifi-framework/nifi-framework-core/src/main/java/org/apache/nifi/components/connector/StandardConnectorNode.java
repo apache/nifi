@@ -1068,8 +1068,25 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     /**
-     * String value used to evaluate {@link ConnectorPropertyDependency}, aligned with
-     * {@code AbstractConnector.isDependencySatisfied(ConnectorPropertyDescriptor, Function, Function, Set)} for {@link StepConfiguration} payloads.
+     * Returns the configured String value of a controlling property for the purposes of evaluating a
+     * {@link ConnectorPropertyDependency} against a raw {@link StepConfiguration} payload.
+     *
+     * <p>This is an approximation of the value lookup performed inside
+     * {@code AbstractConnector.isDependencySatisfied(...)}, scoped to the framework's pre-resolution data model. It
+     * intentionally diverges from the connector-side implementation in two cases:
+     * <ul>
+     *   <li>A {@link StringLiteralValue} whose {@link StringLiteralValue#getValue() value} is {@code null} falls back to
+     *       {@link ConnectorPropertyDescriptor#getDefaultValue() the descriptor default}, whereas the connector-side
+     *       implementation treats a null literal value as no value (and would mark the dependency unsatisfied).</li>
+     *   <li>{@link AssetReference} and {@link SecretReference} controlling properties are treated as having no
+     *       String value (returns {@code null}, which renders the dependency unsatisfied), whereas the connector-side
+     *       implementation works against a {@code ConnectorPropertyValue} whose value has already been resolved.</li>
+     * </ul>
+     * Both divergences are acceptable because controlling properties (the property a dependency points at) are, in
+     * practice, {@code STRING_LITERAL} values drawn from a fixed set of allowable values — typically an enum of strategies
+     * or modes. They are not asset or secret references, and a typed-but-null literal can only occur when the controlling
+     * property has been explicitly cleared, in which case treating it as the descriptor default matches the user's intent
+     * for the typical "switch back to the default mode" UX.
      */
     private static String getConfiguredValueForDependency(final StepConfiguration stepConfig, final ConnectorPropertyDescriptor descriptor) {
         final ConnectorValueReference ref = stepConfig.getPropertyValue(descriptor.getName());

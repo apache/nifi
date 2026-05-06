@@ -533,15 +533,24 @@ public class TestStandardConnectorNode {
 
     @Test
     public void testVerifyConfigurationStepSkipsSecretReferenceWhenPropertyDependenciesNotMet() throws FlowUpdateException {
+        // Use a SecretsManager that fails the test if it is consulted. This isolates the dependency-skip path: a regression
+        // that stopped short-circuiting on unsatisfied dependencies would surface the lookup attempt as a hard failure here
+        // instead of silently being masked by the empty-stub filter or by a null-returning mock.
+        final SecretsManager strictSecretsManager = mock(SecretsManager.class);
+        when(strictSecretsManager.getSecrets(anySet()))
+            .thenThrow(new AssertionError("SecretsManager.getSecrets must not be called when property dependencies are not satisfied"));
+
         final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, strictSecretsManager);
 
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
 
+        // SecretReference is fully populated so isEmptySecretReference cannot carry this test; only the dependency-aware
+        // filter should prevent the SecretsManager lookup.
         final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
         propertyValues.put("Mode", new StringLiteralValue("OFF"));
-        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", null, null));
+        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
 
         final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("authStep", new StepConfiguration(propertyValues));
 
@@ -720,6 +729,13 @@ public class TestStandardConnectorNode {
     }
 
     private StandardConnectorNode createConnectorNode(final Connector connector) throws FlowUpdateException {
+        final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
+        when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        return createConnectorNode(connector, defaultSecretsManager);
+    }
+
+    private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager) throws FlowUpdateException {
         final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
         final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
         final StandardConnectorNode node = new StandardConnectorNode(
@@ -736,13 +752,8 @@ public class TestStandardConnectorNode {
             validationTrigger,
             false);
 
-        // mock secrets manager
-        final SecretsManager secretsManager = mock(SecretsManager.class);
-        when(secretsManager.getAllSecrets()).thenReturn(List.of());
-        when(secretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
-
         final FrameworkConnectorInitializationContext initializationContext = mock(FrameworkConnectorInitializationContext.class);
-        when(initializationContext.getSecretsManager()).thenReturn(secretsManager);
+        when(initializationContext.getSecretsManager()).thenReturn(initializedSecretsManager);
 
         node.initializeConnector(initializationContext);
         node.loadInitialFlow();
