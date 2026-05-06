@@ -24,6 +24,8 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.components.validation.ValidationState;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.engine.FlowEngine;
@@ -41,7 +43,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -528,6 +532,92 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testVerifyConfigurationStepSkipsSecretReferenceWhenPropertyDependenciesNotMet() throws FlowUpdateException {
+        // Use a SecretsManager that fails the test if it is consulted. This isolates the dependency-skip path: a regression
+        // that stopped short-circuiting on unsatisfied dependencies would surface the lookup attempt as a hard failure here
+        // instead of silently being masked by the empty-stub filter or by a null-returning mock.
+        final SecretsManager strictSecretsManager = mock(SecretsManager.class);
+        when(strictSecretsManager.getSecrets(anySet()))
+            .thenThrow(new AssertionError("SecretsManager.getSecrets must not be called when property dependencies are not satisfied"));
+
+        final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, strictSecretsManager);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+
+        // SecretReference is fully populated so isEmptySecretReference cannot carry this test; only the dependency-aware
+        // filter should prevent the SecretsManager lookup.
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("Mode", new StringLiteralValue("OFF"));
+        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("authStep", new StepConfiguration(propertyValues));
+
+        assertTrue(results.stream().noneMatch(result -> result.getOutcome() == ConfigVerificationResult.Outcome.FAILED), results::toString);
+        assertTrue(connector.verifyInvoked);
+    }
+
+    @Test
+    public void testVerifyConfigurationStepSurfacesRequiredErrorForEmptySecretReference() throws FlowUpdateException {
+        final RequiredSecretConnector connector = new RequiredSecretConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+
+        // Structurally-empty SECRET_REFERENCE (only providerName populated) for a required, non-dependent secret property.
+        // Without the empty-stub filter this would surface as "[null] could not be found"; with it, the connector's
+        // required-property validation should produce "<name> is required" instead.
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("RequiredSecret", new SecretReference(null, "My Provider", null, null));
+
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("requiredStep", new StepConfiguration(propertyValues));
+
+        final List<ConfigVerificationResult> failures = results.stream()
+            .filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.FAILED)
+            .toList();
+        assertFalse(failures.isEmpty(), () -> "Expected a required-property failure, got: " + results);
+        assertTrue(failures.stream().noneMatch(result -> {
+            final String explanation = result.getExplanation();
+            return explanation != null && explanation.contains("could not be found");
+        }), () -> "Empty SECRET_REFERENCE should not surface as a missing secret, got: " + failures);
+        assertTrue(failures.stream().anyMatch(result -> {
+            final String explanation = result.getExplanation();
+            return explanation != null && explanation.contains("RequiredSecret is required");
+        }), () -> "Expected required-property failure, got: " + failures);
+    }
+
+    @Test
+    public void testPerformValidationSurfacesRequiredErrorForEmptySecretReferenceInActiveContext() throws FlowUpdateException {
+        final RequiredSecretConnector connector = new RequiredSecretConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        // Place a structurally-empty SECRET_REFERENCE into the working context, then applyUpdate so it lives in the
+        // active context. performValidation runs against the active context and exercises the steady-state validation
+        // code path (validatePropertyReferences -> resolvePropertyReferences for each step).
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("RequiredSecret", new SecretReference(null, "My Provider", null, null));
+        connectorNode.setConfiguration("requiredStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        final ValidationState state = connectorNode.performValidation();
+
+        assertEquals(ValidationStatus.INVALID, state.getStatus(), () -> "Expected INVALID validation state, got: " + state);
+        final Collection<ValidationResult> errors = state.getValidationErrors();
+        assertTrue(errors.stream().noneMatch(result -> {
+            final String explanation = result.getExplanation();
+            return explanation != null && explanation.contains("could not be found");
+        }), () -> "Empty SECRET_REFERENCE should not surface as a missing secret in active validation, got: " + errors);
+        assertTrue(errors.stream().anyMatch(result -> {
+            final String explanation = result.getExplanation();
+            return explanation != null && explanation.contains("RequiredSecret is required");
+        }), () -> "Expected required-property failure in active validation, got: " + errors);
+    }
+
+    @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     public void testDrainFlowFilesTransitionsStateToDraining() throws FlowUpdateException {
         final CompletableFuture<Void> drainCompletionFuture = new CompletableFuture<>();
@@ -639,6 +729,13 @@ public class TestStandardConnectorNode {
     }
 
     private StandardConnectorNode createConnectorNode(final Connector connector) throws FlowUpdateException {
+        final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
+        when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        return createConnectorNode(connector, defaultSecretsManager);
+    }
+
+    private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager) throws FlowUpdateException {
         final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
         final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
         final StandardConnectorNode node = new StandardConnectorNode(
@@ -655,13 +752,8 @@ public class TestStandardConnectorNode {
             validationTrigger,
             false);
 
-        // mock secrets manager
-        final SecretsManager secretsManager = mock(SecretsManager.class);
-        when(secretsManager.getAllSecrets()).thenReturn(List.of());
-        when(secretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
-
         final FrameworkConnectorInitializationContext initializationContext = mock(FrameworkConnectorInitializationContext.class);
-        when(initializationContext.getSecretsManager()).thenReturn(secretsManager);
+        when(initializationContext.getSecretsManager()).thenReturn(initializedSecretsManager);
 
         node.initializeConnector(initializationContext);
         node.loadInitialFlow();
@@ -817,6 +909,130 @@ public class TestStandardConnectorNode {
                 .name("testStep")
                 .build();
             return List.of(testStep);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Connector whose secret property is gated by another property; used to ensure verify does not resolve or validate
+     * secret references when dependencies are not satisfied (empty getSecrets map would otherwise fail verification).
+     */
+    private static class DependentSecretVerifyConnector extends AbstractConnector {
+        private boolean verifyInvoked;
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor modeProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("Mode")
+                .description("Authentication mode")
+                .required(true)
+                .defaultValue("OFF")
+                .allowableValues("OFF", "WITH_SECRET")
+                .build();
+
+            final ConnectorPropertyDescriptor secretProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("SecretKey")
+                .description("Secret when mode requires it")
+                .type(PropertyType.SECRET)
+                .dependsOn(modeProperty, "WITH_SECRET")
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("g")
+                .description("g")
+                .properties(List.of(modeProperty, secretProperty))
+                .build();
+
+            final ConfigurationStep authStep = new ConfigurationStep.Builder()
+                .name("authStep")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(authStep);
+        }
+
+        @Override
+        public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext,
+                final ConnectorValidationContext connectorValidationContext) {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            verifyInvoked = true;
+            return List.of(new ConfigVerificationResult.Builder()
+                .verificationStepName("Custom verify")
+                .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                .build());
+        }
+    }
+
+    /**
+     * Connector with a required, non-dependent SECRET property. Used to confirm that when the framework receives a
+     * structurally-empty SECRET_REFERENCE, it surfaces the connector's "is required" message rather than a
+     * "[null] could not be found" failure from secret resolution. Defers to AbstractConnector.validateConfigurationStep
+     * so the required-property check actually runs.
+     */
+    private static class RequiredSecretConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor secretProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("RequiredSecret")
+                .description("A required secret with no dependencies")
+                .type(PropertyType.SECRET)
+                .required(true)
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("g")
+                .description("g")
+                .properties(List.of(secretProperty))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("requiredStep")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
         }
 
         @Override
