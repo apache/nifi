@@ -78,6 +78,9 @@ class TestChannel implements Channel {
     private final BitSet acknowledgments = new BitSet();
     private final BitSet nacks = new BitSet();
     private int prefetchCount = 0;
+    private boolean simulateShutdownOnConfirm = false;
+    private boolean simulateNackOnConfirm = false;
+    private boolean simulateSynchronousReturn = false;
 
     public TestChannel(Map<String, String> exchangeToRoutingKeyMappings,
             Map<String, List<String>> routingKeyToQueueMappings) {
@@ -98,6 +101,24 @@ class TestChannel implements Channel {
 
     void corruptChannel() {
         this.corrupted = true;
+    }
+
+    /** Causes the next {@link #waitForConfirms(long)} call to throw {@link ShutdownSignalException},
+     *  simulating the broker closing the channel (e.g., exchange not found, 404 NOT_FOUND). */
+    void setSimulateShutdownOnConfirm(boolean simulate) {
+        this.simulateShutdownOnConfirm = simulate;
+    }
+
+    /** Causes the next {@link #waitForConfirms(long)} call to return {@code false},
+     *  simulating the broker sending a NACK for the published message. */
+    void setSimulateNackOnConfirm(boolean simulate) {
+        this.simulateNackOnConfirm = simulate;
+    }
+
+    /** When {@code true}, return listeners are invoked synchronously inside
+     *  {@link #basicPublish} rather than asynchronously, making tests deterministic. */
+    void setSimulateSynchronousReturn(boolean simulate) {
+        this.simulateSynchronousReturn = simulate;
     }
 
     void setConnection(Connection connection) {
@@ -283,15 +304,23 @@ class TestChannel implements Channel {
 
     private void discard(final String exchange, final String routingKey, boolean mandatory, final BasicProperties props,
             final byte[] body) {
-        // NO ROUTE. Invoke return listener async
+        // NO ROUTE. Invoke return listener — synchronously when simulating for tests, async otherwise.
         for (final ReturnListener listener : returnListeners) {
-            this.executorService.execute(() -> {
+            if (simulateSynchronousReturn) {
                 try {
                     listener.handleReturn(-9, "Rejecting", exchange, routingKey, props, body);
                 } catch (Exception e) {
                     throw new IllegalStateException("Failed to send return message", e);
                 }
-            });
+            } else {
+                this.executorService.execute(() -> {
+                    try {
+                        listener.handleReturn(-9, "Rejecting", exchange, routingKey, props, body);
+                    } catch (Exception e) {
+                        throw new IllegalStateException("Failed to send return message", e);
+                    }
+                });
+            }
         }
     }
 
@@ -582,7 +611,7 @@ class TestChannel implements Channel {
 
     @Override
     public com.rabbitmq.client.AMQP.Confirm.SelectOk confirmSelect() throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+        return null; // no-op: publisher confirms enabled for testing
     }
 
     @Override
@@ -597,7 +626,10 @@ class TestChannel implements Channel {
 
     @Override
     public boolean waitForConfirms(long timeout) throws InterruptedException, TimeoutException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+        if (simulateShutdownOnConfirm) {
+            throw new ShutdownSignalException(false, false, null, this);
+        }
+        return !simulateNackOnConfirm;
     }
 
     @Override

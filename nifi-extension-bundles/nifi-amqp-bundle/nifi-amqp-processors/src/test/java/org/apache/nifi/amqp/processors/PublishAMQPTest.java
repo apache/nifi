@@ -252,6 +252,38 @@ public class PublishAMQPTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
+    /**
+     * When the broker closes the channel with a 404 (exchange not found), the FlowFile
+     * must route to REL_FAILURE — not cause an unhandled processor exception.
+     */
+    @Test
+    public void validateFlowFileRoutedToFailureWhenBrokerClosesChannel() {
+        final LocalPublishAMQP proc = new LocalPublishAMQP();
+        final TestRunner testRunner = TestRunners.newTestRunner(proc);
+        setConnectionProperties(testRunner);
+        testRunner.setProperty(PublishAMQP.DELIVERY_GUARANTEE, PublishAMQP.DeliveryGuarantee.AT_LEAST_ONCE);
+        proc.getTestChannel().setSimulateShutdownOnConfirm(true);
+
+        testRunner.enqueue("Hello Joe".getBytes());
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PublishAMQP.REL_FAILURE);
+    }
+
+    @Test
+    public void validateFlowFileRoutedToFailureOnBrokerNack() {
+        final LocalPublishAMQP proc = new LocalPublishAMQP();
+        final TestRunner testRunner = TestRunners.newTestRunner(proc);
+        setConnectionProperties(testRunner);
+        testRunner.setProperty(PublishAMQP.DELIVERY_GUARANTEE, PublishAMQP.DeliveryGuarantee.AT_LEAST_ONCE);
+        proc.getTestChannel().setSimulateNackOnConfirm(true);
+
+        testRunner.enqueue("Hello Joe".getBytes());
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PublishAMQP.REL_FAILURE);
+    }
+
     private void setConnectionProperties(TestRunner runner) {
         runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
         runner.setProperty(PublishAMQP.USER, "user");
@@ -277,6 +309,10 @@ public class PublishAMQPTest {
 
         public Connection getConnection() {
             return connection;
+        }
+
+        public TestChannel getTestChannel() {
+            return connection.getTestChannel();
         }
     }
 }
