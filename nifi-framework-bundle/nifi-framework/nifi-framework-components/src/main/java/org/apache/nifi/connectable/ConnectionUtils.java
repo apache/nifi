@@ -101,7 +101,8 @@ public class ConnectionUtils {
     }
 
     private static RepositoryRecord createRepositoryRecord(final FlowFileRecord flowFile, final FlowFileQueue destinationQueue) {
-        final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(null, flowFile);
+        // The FlowFile is being introduced to this repository for the first time, so it is tracked as a CREATE record.
+        final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(destinationQueue);
         repoRecord.setWorking(flowFile, Collections.emptyMap(), false);
         repoRecord.setDestination(destinationQueue);
         return repoRecord;

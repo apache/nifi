@@ -23,7 +23,13 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 
 import { ConnectorPropertyInput } from './connector-property-input.component';
-import { AllowableValue, ConnectorPropertyDescriptor, PropertyAllowableValuesState } from '../../types';
+import {
+    AllowableValue,
+    AssetInfo,
+    ConnectorPropertyDescriptor,
+    PropertyAllowableValuesState,
+    UploadProgressInfo
+} from '../../types';
 
 function makeProp(overrides: Partial<ConnectorPropertyDescriptor> = {}): ConnectorPropertyDescriptor {
     return {
@@ -42,6 +48,23 @@ function makeAllowable(value: string, displayName: string = value): AllowableVal
     };
 }
 
+function makeAsset(overrides: Partial<AssetInfo> = {}): AssetInfo {
+    return {
+        id: 'asset-1',
+        name: 'asset-1.jar',
+        ...overrides
+    };
+}
+
+function makeProgress(overrides: Partial<UploadProgressInfo> = {}): UploadProgressInfo {
+    return {
+        filename: 'in-flight.jar',
+        percentComplete: 30,
+        status: 'active',
+        ...overrides
+    };
+}
+
 /**
  * Host fixture that owns the parent FormControl and reactively passes signal inputs
  * to ConnectorPropertyInput. Use setters on the returned harness to drive updates.
@@ -54,18 +77,40 @@ function makeAllowable(value: string, displayName: string = value): AllowableVal
             [formControl]="control"
             [property]="property()"
             [dynamicAllowableValuesState]="dynamicAllowableValuesState()"
-            (requestAllowableValues)="onRequestAllowableValues()">
+            [currentAssets]="currentAssets()"
+            [assetUploadProgress]="assetUploadProgress()"
+            (requestAllowableValues)="onRequestAllowableValues()"
+            (assetFilesSelected)="onAssetFilesSelected($event)"
+            (assetDeleteRequested)="onAssetDeleteRequested($event)"
+            (dismissFailedUploadRequested)="onDismissFailedUploadRequested($event)">
         </connector-property-input>
     `
 })
 class HostComponent {
-    control = new FormControl<string | null>(null);
+    control = new FormControl<string | string[] | null>(null);
     property: WritableSignal<ConnectorPropertyDescriptor> = signal(makeProp());
     dynamicAllowableValuesState: WritableSignal<PropertyAllowableValuesState | null> = signal(null);
+    currentAssets: WritableSignal<AssetInfo[]> = signal([]);
+    assetUploadProgress: WritableSignal<UploadProgressInfo[]> = signal([]);
     requestSpy = vi.fn();
+    assetFilesSelectedSpy = vi.fn();
+    assetDeleteRequestedSpy = vi.fn();
+    dismissFailedUploadRequestedSpy = vi.fn();
 
     onRequestAllowableValues(): void {
         this.requestSpy();
+    }
+
+    onAssetFilesSelected(files: File[]): void {
+        this.assetFilesSelectedSpy(files);
+    }
+
+    onAssetDeleteRequested(asset: AssetInfo): void {
+        this.assetDeleteRequestedSpy(asset);
+    }
+
+    onDismissFailedUploadRequested(progress: UploadProgressInfo): void {
+        this.dismissFailedUploadRequestedSpy(progress);
     }
 }
 
@@ -82,7 +127,9 @@ async function setup(
     options: {
         property?: ConnectorPropertyDescriptor;
         dynamicState?: PropertyAllowableValuesState | null;
-        initialValue?: string | null;
+        initialValue?: string | string[] | null;
+        currentAssets?: AssetInfo[];
+        assetUploadProgress?: UploadProgressInfo[];
     } = {}
 ) {
     await TestBed.configureTestingModule({
@@ -101,10 +148,20 @@ async function setup(
     if (options.initialValue !== undefined) {
         host.control.setValue(options.initialValue);
     }
+    if (options.currentAssets !== undefined) {
+        host.currentAssets.set(options.currentAssets);
+    }
+    if (options.assetUploadProgress !== undefined) {
+        host.assetUploadProgress.set(options.assetUploadProgress);
+    }
 
     fixture.detectChanges();
     await fixture.whenStable();
-    fixture.detectChanges();
+    // Skip checkNoChanges on the post-stable CD so EllipsisTooltipDirective's deferred
+    // overflow evaluation (which intentionally mutates MatTooltip.disabled in a microtask)
+    // does not trigger NG0100 in dev mode. happy-dom returns offsetWidth=0/scrollWidth=0,
+    // which causes the directive to flip MatTooltip.disabled from false to true.
+    fixture.detectChanges(false);
 
     const inputDebug = fixture.debugElement.query(By.directive(ConnectorPropertyInput));
     const inputComponent = inputDebug.componentInstance as ConnectorPropertyInput;
@@ -429,6 +486,171 @@ describe('ConnectorPropertyInput', () => {
             fixture.detectChanges();
 
             expect(host.requestSpy).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('asset rendering', () => {
+        it('renders an asset-upload (single) for an ASSET property and hides the default text input', async () => {
+            const { fixture, inputComponent } = await setup({
+                property: makeProp({ type: 'ASSET' })
+            });
+
+            const block = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload-block"]'));
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            const textInput = fixture.debugElement.query(By.css('[data-qa="property-input-text"]'));
+            const select = fixture.debugElement.query(By.css('[data-qa="property-input-select"]'));
+
+            expect(block).toBeTruthy();
+            expect(upload).toBeTruthy();
+            expect(upload.nativeElement.tagName.toLowerCase()).toBe('asset-upload');
+            expect(textInput).toBeNull();
+            expect(select).toBeNull();
+            expect(inputComponent.shouldUseAssetUpload()).toBe(true);
+            expect(inputComponent.isMultipleAssets()).toBe(false);
+        });
+
+        it('renders an asset-upload (multi) for an ASSET_LIST property', async () => {
+            const { fixture, inputComponent } = await setup({
+                property: makeProp({ type: 'ASSET_LIST' })
+            });
+
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            const textarea = fixture.debugElement.query(By.css('[data-qa="property-input-textarea"]'));
+
+            expect(upload).toBeTruthy();
+            expect(textarea).toBeNull();
+            expect(inputComponent.shouldUseAssetUpload()).toBe(true);
+            expect(inputComponent.isMultipleAssets()).toBe(true);
+            expect(upload.componentInstance.multiple).toBe(true);
+        });
+
+        it('renders the property name as the inline label inside the asset block', async () => {
+            const { fixture } = await setup({
+                property: makeProp({ name: 'truststore', type: 'ASSET' })
+            });
+
+            const block: HTMLElement = fixture.debugElement.query(
+                By.css('[data-qa="property-input-asset-upload-block"]')
+            ).nativeElement;
+            expect(block.textContent).toContain('truststore');
+        });
+
+        it('passes the current assets and upload progress to the child', async () => {
+            const asset = makeAsset({ id: 'a-1', name: 'file-a.jar' });
+            const progress = makeProgress({ filename: 'file-b.jar', percentComplete: 60 });
+            const { fixture } = await setup({
+                property: makeProp({ type: 'ASSET' }),
+                currentAssets: [asset],
+                assetUploadProgress: [progress]
+            });
+
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            expect(upload.componentInstance.assets).toEqual([asset]);
+            expect(upload.componentInstance.uploadProgress).toEqual([progress]);
+        });
+
+        it('forwards filesSelected from the child up through the wrapper output', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'ASSET' })
+            });
+
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            const file = new File(['x'], 'creds.json', { type: 'application/json' });
+            upload.componentInstance.filesSelected.emit([file]);
+
+            expect(host.assetFilesSelectedSpy).toHaveBeenCalledWith([file]);
+        });
+
+        it('forwards deleteAsset from the child up through the wrapper output', async () => {
+            const asset = makeAsset();
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'ASSET' }),
+                currentAssets: [asset]
+            });
+
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            upload.componentInstance.deleteAsset.emit(asset);
+
+            expect(host.assetDeleteRequestedSpy).toHaveBeenCalledWith(asset);
+        });
+
+        it('forwards dismissFailedUpload from the child up through the wrapper output', async () => {
+            const progress = makeProgress({ status: 'error', error: 'boom' });
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'ASSET' }),
+                assetUploadProgress: [progress]
+            });
+
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            upload.componentInstance.dismissFailedUpload.emit(progress);
+
+            expect(host.dismissFailedUploadRequestedSpy).toHaveBeenCalledWith(progress);
+        });
+
+        it('shows a required error inside the asset block when the parent control is required and touched', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'ASSET', required: true })
+            });
+
+            host.control.setErrors({ required: true });
+            host.control.markAsTouched();
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+
+            const requiredError = fixture.debugElement.query(
+                By.css('mat-error[data-qa="property-input-asset-required-error"]')
+            );
+            expect(requiredError).toBeTruthy();
+            expect(requiredError.nativeElement.textContent.trim()).toBe('This field is required');
+        });
+
+        it('shows an assetContentMissing error inside the asset block when the parent reports it', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'ASSET' })
+            });
+
+            host.control.setErrors({ assetContentMissing: true });
+            host.control.markAsTouched();
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+
+            const missingError = fixture.debugElement.query(
+                By.css('mat-error[data-qa="property-input-asset-missing-error"]')
+            );
+            expect(missingError).toBeTruthy();
+            expect(missingError.nativeElement.textContent.trim()).toBe('Asset content is missing');
+        });
+
+        it('shows a verificationError inside the asset block when the parent reports it', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'ASSET' })
+            });
+
+            host.control.setErrors({ verificationError: 'Backend rejected asset' });
+            host.control.markAsTouched();
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+
+            const verificationError = fixture.debugElement.query(
+                By.css('mat-error[data-qa="property-input-asset-verification-error"]')
+            );
+            expect(verificationError).toBeTruthy();
+            expect(verificationError.nativeElement.textContent.trim()).toBe('Backend rejected asset');
+        });
+
+        it('does not render the asset-upload for a non-asset property (regression guard)', async () => {
+            const { fixture } = await setup({
+                property: makeProp({ type: 'STRING' })
+            });
+
+            const upload = fixture.debugElement.query(By.css('[data-qa="property-input-asset-upload"]'));
+            const textInput = fixture.debugElement.query(By.css('[data-qa="property-input-text"]'));
+
+            expect(upload).toBeNull();
+            expect(textInput).toBeTruthy();
         });
     });
 

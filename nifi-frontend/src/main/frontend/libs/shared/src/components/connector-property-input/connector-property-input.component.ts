@@ -32,6 +32,7 @@ import {
     UploadProgressInfo
 } from '../../types';
 import { SearchableSelect } from '../searchable-select/searchable-select.component';
+import { AssetUpload } from '../asset-upload/asset-upload.component';
 
 /**
  * Form control for a single connector property.
@@ -39,8 +40,9 @@ import { SearchableSelect } from '../searchable-select/searchable-select.compone
  * STRING/INTEGER/DOUBLE/FLOAT -> text input, BOOLEAN -> checkbox,
  * STRING_LIST without allowable values -> textarea (comma-separated),
  * allowable values (static or fetched) -> searchable-select
- * (multi-select when the property type is STRING_LIST).
- * SECRET, ASSET, and ASSET_LIST handling is deferred to follow-up PRs.
+ * (multi-select when the property type is STRING_LIST),
+ * ASSET / ASSET_LIST -> asset-upload (drop zone + uploaded list + progress).
+ * SECRET handling is deferred to a follow-up PR.
  *
  * Uses an internal FormControl bound to the actual input elements so that
  * mat-form-field can detect error state. Validation state is synced from
@@ -58,7 +60,8 @@ import { SearchableSelect } from '../searchable-select/searchable-select.compone
         MatInput,
         MatCheckbox,
         MatProgressSpinner,
-        SearchableSelect
+        SearchableSelect,
+        AssetUpload
     ],
     templateUrl: './connector-property-input.component.html'
 })
@@ -269,6 +272,10 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             return false;
         }
 
+        if (this.shouldUseAssetUpload()) {
+            return false;
+        }
+
         if (this.isDynamicValuesFetchFailed() || this.isDynamicValuesFetchEmpty()) {
             return false;
         }
@@ -294,19 +301,19 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     /**
-     * Whether the property should be rendered as a plain text input.
-     * Used for STRING/INTEGER/DOUBLE/FLOAT when a select is not appropriate.
-     * STRING_LIST falls into the textarea branch instead.
+     * Whether the property should be rendered using the asset-upload component.
+     * True for ASSET (single upload) and ASSET_LIST (multi-file upload).
      */
-    shouldUseTextInput(): boolean {
-        const prop = this.property();
-        if (!prop) {
-            return false;
-        }
-        if (prop.type === 'BOOLEAN' || prop.type === 'STRING_LIST') {
-            return false;
-        }
-        return !this.shouldUseSelect();
+    shouldUseAssetUpload(): boolean {
+        const type = this.property()?.type;
+        return type === 'ASSET' || type === 'ASSET_LIST';
+    }
+
+    /**
+     * Whether the asset-upload should accept multiple files (ASSET_LIST only).
+     */
+    isMultipleAssets(): boolean {
+        return this.property()?.type === 'ASSET_LIST';
     }
 
     /**
@@ -362,6 +369,24 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             return 'Invalid format';
         }
         return '';
+    }
+
+    // ========================================================================================
+    // The parent connector-configuration-step listens on the
+    // component's existing assetFilesSelected / assetDeleteRequested / dismissFailedUploadRequested
+    // outputs and drives the upload service + wizard store from there.
+    // ========================================================================================
+
+    onAssetFilesSelected(files: File[]): void {
+        this.assetFilesSelected.emit(files);
+    }
+
+    onAssetDeleteRequested(asset: AssetInfo): void {
+        this.assetDeleteRequested.emit(asset);
+    }
+
+    onDismissFailedUpload(progress: UploadProgressInfo): void {
+        this.dismissFailedUploadRequested.emit(progress);
     }
 
     /**

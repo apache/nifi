@@ -79,13 +79,13 @@ export function toValueReference(
     if (propertyType === 'ASSET') {
         if (value && typeof value === 'string') {
             return {
-                valueType: 'ASSET_REFERENCE',
+                valueType: 'ASSET_REFERENCE' as const,
                 assetReferences: [{ id: value }]
             };
         }
         return {
             value: null,
-            valueType: 'STRING_LITERAL'
+            valueType: 'STRING_LITERAL' as const
         };
     }
 
@@ -93,13 +93,13 @@ export function toValueReference(
     if (propertyType === 'ASSET_LIST') {
         if (Array.isArray(value) && value.length > 0) {
             return {
-                valueType: 'ASSET_REFERENCE',
+                valueType: 'ASSET_REFERENCE' as const,
                 assetReferences: (value as string[]).map((id) => ({ id }))
             };
         }
         return {
             value: null,
-            valueType: 'STRING_LITERAL'
+            valueType: 'STRING_LITERAL' as const
         };
     }
 
