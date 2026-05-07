@@ -57,17 +57,13 @@ import org.apache.nifi.authorization.SnippetAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.http.replication.AsyncClusterResponse;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
-import org.apache.nifi.flow.VersionedComponentState;
-import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
-import org.apache.nifi.flow.VersionedNodeState;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -141,7 +137,6 @@ import org.springframework.stereotype.Controller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -315,10 +310,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             @QueryParam("includeComponentState")
             @DefaultValue("false") final boolean includeComponentState) {
 
-        // When exporting with component state in a cluster, replicate to all nodes so that each node
-        // contributes its LOCAL state. The coordinator merges the localNodeStates maps from all responses.
+        // When exporting with component state in a cluster, replicate to all nodes so that each contributes its
+        // LOCAL state. The framework's ExportProcessGroupEndpointMerger combines the per-node localNodeStates.
         if (includeComponentState && isReplicateRequest()) {
-            return replicateAndMergeFlowExport();
+            return replicate(HttpMethod.GET);
         }
 
         // authorize access — exporting with component state requires WRITE (state access requires write permission)
@@ -345,160 +340,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final String filename = flowName.replaceAll("\\s", "_") + ".json";
 
         return generateOkResponse(currentVersionedFlowSnapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
-    }
-
-    /**
-     * Replicates the flow export request to all cluster nodes and merges the LOCAL state from each node
-     * into a single response. Each node returns a RegisteredFlowSnapshot containing only its own LOCAL
-     * state (keyed by its ordinal). This method collects all node responses and combines the localNodeStates
-     * maps so the exported flow contains LOCAL state from every node.
-     *
-     * @return the merged response containing LOCAL state from all nodes
-     */
-    private Response replicateAndMergeFlowExport() {
-        final URI path = getAbsolutePath();
-        final Map<String, String> headers = getHeaders();
-
-        try {
-            final AsyncClusterResponse asyncResponse;
-            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                asyncResponse = getRequestReplicator().replicate(HttpMethod.GET, path, getRequestParameters(), headers);
-            } else {
-                // Not the coordinator — forward to coordinator which will handle the replicate-and-merge
-                return getRequestReplicator().forwardToCoordinator(
-                        getClusterCoordinatorNode(), HttpMethod.GET, path, getRequestParameters(), headers
-                ).awaitMergedResponse().getResponse();
-            }
-
-            // Wait for all nodes to respond
-            asyncResponse.awaitMergedResponse();
-            final Set<NodeResponse> nodeResponses = asyncResponse.getCompletedNodeResponses();
-
-            // Check for errors — if any node returned a non-2xx response, return that error
-            for (final NodeResponse nodeResponse : nodeResponses) {
-                if (!nodeResponse.is2xx()) {
-                    return nodeResponse.getResponse();
-                }
-            }
-
-            // Deserialize each node's RegisteredFlowSnapshot and merge localNodeStates
-            RegisteredFlowSnapshot mergedSnapshot = null;
-            for (final NodeResponse nodeResponse : nodeResponses) {
-                final RegisteredFlowSnapshot nodeSnapshot = nodeResponse.getClientResponse().readEntity(RegisteredFlowSnapshot.class);
-                if (mergedSnapshot == null) {
-                    mergedSnapshot = nodeSnapshot;
-                } else {
-                    mergeLocalNodeStates(mergedSnapshot.getFlowContents(), nodeSnapshot.getFlowContents());
-                }
-            }
-
-            if (mergedSnapshot == null) {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity("No responses received from cluster nodes")
-                        .type(MediaType.TEXT_PLAIN)
-                        .build();
-            }
-
-            final String flowName = mergedSnapshot.getFlowContents().getName();
-            final String filename = flowName.replaceAll("\\s", "_") + ".json";
-
-            return generateOkResponse(mergedSnapshot)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename))
-                    .build();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Request was interrupted while waiting for cluster responses")
-                    .type(MediaType.TEXT_PLAIN)
-                    .build();
-        }
-    }
-
-    /**
-     * Recursively merges localNodeStates from a source process group into a target process group.
-     * For each stateful component (processor or controller service), the LOCAL state entries from
-     * the source are added to the target's localNodeStates list. Cluster state is identical across
-     * nodes and is already present in the target.
-     *
-     * @param target the process group to merge into (from the first/client node response)
-     * @param source the process group to merge from (from another node's response)
-     */
-    private void mergeLocalNodeStates(final VersionedProcessGroup target, final VersionedProcessGroup source) {
-        // Merge processor states
-        if (target.getProcessors() != null && source.getProcessors() != null) {
-            final Map<String, VersionedProcessor> sourceProcessors = new HashMap<>();
-            for (final VersionedProcessor sp : source.getProcessors()) {
-                sourceProcessors.put(sp.getIdentifier(), sp);
-            }
-            for (final VersionedProcessor tp : target.getProcessors()) {
-                mergeComponentState(tp, sourceProcessors.get(tp.getIdentifier()));
-            }
-        }
-
-        // Merge controller service states
-        if (target.getControllerServices() != null && source.getControllerServices() != null) {
-            final Map<String, VersionedControllerService> sourceServices = new HashMap<>();
-            for (final VersionedControllerService ss : source.getControllerServices()) {
-                sourceServices.put(ss.getIdentifier(), ss);
-            }
-            for (final VersionedControllerService ts : target.getControllerServices()) {
-                mergeComponentState(ts, sourceServices.get(ts.getIdentifier()));
-            }
-        }
-
-        // Recurse into child process groups
-        if (target.getProcessGroups() != null && source.getProcessGroups() != null) {
-            final Map<String, VersionedProcessGroup> sourceGroups = new HashMap<>();
-            for (final VersionedProcessGroup sg : source.getProcessGroups()) {
-                sourceGroups.put(sg.getIdentifier(), sg);
-            }
-            for (final VersionedProcessGroup tg : target.getProcessGroups()) {
-                final VersionedProcessGroup sg = sourceGroups.get(tg.getIdentifier());
-                if (sg != null) {
-                    mergeLocalNodeStates(tg, sg);
-                }
-            }
-        }
-    }
-
-    /**
-     * Merges the localNodeStates from a source component into a target component's VersionedComponentState.
-     * Each node contributes its own ordinal entry to localNodeStates — this method adds the source's entries
-     * to the target's list at the corresponding index positions.
-     *
-     * @param target the target component (already contains state from first node)
-     * @param source the source component (contains state from another node), may be null
-     */
-    private void mergeComponentState(final VersionedConfigurableExtension target, final VersionedConfigurableExtension source) {
-        if (source == null) {
-            return;
-        }
-
-        final VersionedComponentState sourceState = source.getComponentState();
-        if (sourceState == null || sourceState.getLocalNodeStates() == null) {
-            return;
-        }
-
-        VersionedComponentState targetState = target.getComponentState();
-        if (targetState == null) {
-            targetState = new VersionedComponentState();
-            target.setComponentState(targetState);
-        }
-
-        final List<VersionedNodeState> sourceList = sourceState.getLocalNodeStates();
-        if (targetState.getLocalNodeStates() == null) {
-            targetState.setLocalNodeStates(new ArrayList<>(sourceList));
-        } else {
-            final List<VersionedNodeState> targetList = targetState.getLocalNodeStates();
-            while (targetList.size() < sourceList.size()) {
-                targetList.add(null);
-            }
-            for (int i = 0; i < sourceList.size(); i++) {
-                if (sourceList.get(i) != null) {
-                    targetList.set(i, sourceList.get(i));
-                }
-            }
-        }
     }
 
     /**

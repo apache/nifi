@@ -44,6 +44,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.CountersEndpointMerge
 import org.apache.nifi.cluster.coordination.http.endpoints.CurrentUserEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.DropAllFlowFilesRequestEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ExportProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisRuleEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisRuleTypesEndpointMerger;
@@ -161,6 +162,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new RemoteProcessGroupsEndpointMerger());
         endpointMergers.add(new ProcessGroupEndpointMerger());
         endpointMergers.add(new ProcessGroupsEndpointMerger());
+        endpointMergers.add(new ExportProcessGroupEndpointMerger());
         endpointMergers.add(new FlowSnippetEndpointMerger());
         endpointMergers.add(new PasteEndpointMerger());
         endpointMergers.add(new ProvenanceQueryEndpointMerger());

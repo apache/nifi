@@ -89,7 +89,7 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
         getClientUtil().createConnection(stateful, terminate, "success");
 
         getClientUtil().startProcessor(stateful);
-        waitForStatePopulated(stateful.getId(), Scope.LOCAL);
+        waitForLocalStatePopulatedOnAllNodes(stateful.getId(), 2);
         getClientUtil().stopProcessor(stateful);
         getClientUtil().waitForStoppedProcessor(stateful.getId());
 
@@ -116,7 +116,7 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
 
         getClientUtil().startProcessor(stateful);
         waitForStatePopulated(stateful.getId(), Scope.CLUSTER);
-        waitForStatePopulated(stateful.getId(), Scope.LOCAL);
+        waitForLocalStatePopulatedOnAllNodes(stateful.getId(), 2);
         getClientUtil().stopProcessor(stateful);
         getClientUtil().waitForStoppedProcessor(stateful.getId());
 
@@ -146,7 +146,7 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
 
         getClientUtil().startProcessor(stateful);
         waitForStatePopulated(stateful.getId(), Scope.CLUSTER);
-        waitForStatePopulated(stateful.getId(), Scope.LOCAL);
+        waitForLocalStatePopulatedOnAllNodes(stateful.getId(), 2);
         getClientUtil().stopProcessor(stateful);
         getClientUtil().waitForStoppedProcessor(stateful.getId());
 
@@ -163,6 +163,8 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
         final ProcessGroupEntity uploaded = getNifiClient().getProcessGroupClient().upload("root", exportFile, "ImportedGroup", 0.0, 0.0);
         final ProcessorEntity importedProcessor = findProcessorByTypeInGroup(uploaded.getId(), "StatefulCountProcessor");
         assertNotNull(importedProcessor);
+
+        waitForLocalStatePopulatedOnAllNodes(importedProcessor.getId(), 2);
 
         final Map<String, String> importedClusterState = getProcessorState(importedProcessor.getId(), Scope.CLUSTER);
         assertEquals(originalClusterState.get("count"), importedClusterState.get("count"),
@@ -247,6 +249,25 @@ public class ClusterFlowDefinitionExportImportStateIT extends NiFiSystemIT {
             try {
                 final Map<String, String> state = getProcessorState(processorId, scope);
                 return state.get("count") != null;
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+    }
+
+    private void waitForLocalStatePopulatedOnAllNodes(final String processorId, final int expectedNodeCount) throws InterruptedException {
+        waitFor(() -> {
+            try {
+                final Map<String, Map<String, String>> byNode = getProcessorLocalStatesByNode(processorId);
+                if (byNode.size() != expectedNodeCount) {
+                    return false;
+                }
+                for (final Map<String, String> nodeState : byNode.values()) {
+                    if (nodeState.get("count") == null) {
+                        return false;
+                    }
+                }
+                return true;
             } catch (final Exception e) {
                 return false;
             }

@@ -92,6 +92,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
@@ -518,6 +519,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private FlowRegistryDAO flowRegistryDAO;
     private ParameterContextDAO parameterContextDAO;
     private ClusterCoordinator clusterCoordinator;
+    private ClusterTopologyProvider clusterTopologyProvider;
     private StateManagerProvider stateManagerProvider;
     private HeartbeatMonitor heartbeatMonitor;
     private LeaderElectionManager leaderElectionManager;
@@ -5968,7 +5970,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .mapAssetReferences(false)
                 .mapComponentState(includeComponentState)
                 .stateManagerProvider(stateManagerProvider)
-                .localNodeOrdinal(computeLocalNodeOrdinal())
+                .localNodeOrdinal(clusterTopologyProvider.getLocalNodeOrdinal())
                 .build();
 
         return buildFlowSnapshot(processGroup, processGroupId, includeReferencedServices, mappingOptions);
@@ -5980,35 +5982,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .collect(Collectors.toSet());
         result.add(processGroup.getIdentifier());
         return result;
-    }
-
-    /**
-     * Computes the ordinal index of the local node among connected cluster nodes.
-     * Nodes are sorted deterministically by apiAddress. In standalone mode, returns 0.
-     *
-     * @return the ordinal index of the local node, or 0 if not clustered
-     */
-    private int computeLocalNodeOrdinal() {
-        if (clusterCoordinator == null) {
-            return 0;
-        }
-
-        final NodeIdentifier localNodeId = clusterCoordinator.getLocalNodeIdentifier();
-        if (localNodeId == null) {
-            return 0;
-        }
-
-        final List<NodeIdentifier> connectedNodes = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED).stream()
-                .sorted(Comparator.comparing((NodeIdentifier n) -> n.getApiAddress()).thenComparingInt(NodeIdentifier::getApiPort))
-                .toList();
-
-        for (int i = 0; i < connectedNodes.size(); i++) {
-            if (connectedNodes.get(i).equals(localNodeId)) {
-                return i;
-            }
-        }
-
-        return 0;
     }
 
     private RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedControllerServices) {
@@ -8009,6 +7982,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired(required = false)
     public void setClusterCoordinator(final ClusterCoordinator coordinator) {
         this.clusterCoordinator = coordinator;
+    }
+
+    @Autowired
+    public void setClusterTopologyProvider(final ClusterTopologyProvider clusterTopologyProvider) {
+        this.clusterTopologyProvider = clusterTopologyProvider;
     }
 
     @Autowired
