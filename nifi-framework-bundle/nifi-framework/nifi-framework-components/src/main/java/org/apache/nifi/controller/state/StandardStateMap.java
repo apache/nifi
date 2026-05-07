@@ -20,6 +20,7 @@ package org.apache.nifi.controller.state;
 import org.apache.nifi.components.state.StateMap;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,7 +31,12 @@ public class StandardStateMap implements StateMap {
     private final Optional<String> stateVersion;
 
     public StandardStateMap(final Map<String, String> stateValues, final Optional<String> stateVersion) {
-        this.stateValues = Collections.unmodifiableMap(stateValues == null ? Collections.emptyMap() : stateValues);
+        // Defensively copy the caller's Map so that this StateMap's contents are immutable and
+        // isolated from any subsequent mutations to the caller's reference. Extensions that retain
+        // and continue to mutate the Map they pass to setState() across invocations would otherwise
+        // race with the framework's checkpoint thread iterating the StateMap during snapshot
+        // serialization.
+        this.stateValues = (stateValues == null || stateValues.isEmpty()) ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(stateValues));
         this.stateVersion = stateVersion;
     }
 
