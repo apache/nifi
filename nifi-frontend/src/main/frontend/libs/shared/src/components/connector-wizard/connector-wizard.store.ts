@@ -69,6 +69,8 @@ export abstract class ConnectorWizardStore {
     abstract readonly verificationPassed: Signal<boolean | null>;
     abstract readonly currentVerifyingStepName: Signal<string | null>;
     abstract readonly verifyAllError: Signal<string | null>;
+    abstract readonly applyUpdatesAllowed: Signal<boolean>;
+    abstract readonly applyUpdatesDisabledReason: Signal<string>;
 
     // --------------- Per-step signal factories ---------------
     abstract stepConfiguration(stepName: string): Signal<ConfigurationStepConfiguration | null>;

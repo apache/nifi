@@ -1045,6 +1045,48 @@ describe('ConnectorConfigurationSummaryStep', () => {
                 const applyButton = fixture.debugElement.query(By.css('[data-qa="apply-button"]'));
                 expect(applyButton.nativeElement.disabled).toBe(true);
             });
+
+            it('should disable apply when applyAllowed is false even with verificationPassed=true', () => {
+                fixture.componentRef.setInput('verificationPassed', true);
+                fixture.componentRef.setInput('applyAllowed', false);
+                fixture.componentRef.setInput('applyDisabledReason', 'No pending changes');
+                fixture.detectChanges();
+
+                const applyButton = fixture.debugElement.query(By.css('[data-qa="apply-button"]'));
+                expect(applyButton.nativeElement.disabled).toBe(true);
+            });
+
+            it('should surface the applyDisabledReason as the apply tooltip when not allowed', () => {
+                fixture.componentRef.setInput('verificationPassed', true);
+                fixture.componentRef.setInput('applyAllowed', false);
+                fixture.componentRef.setInput('applyDisabledReason', 'No pending changes');
+                fixture.detectChanges();
+
+                expect(component.applyTooltip()).toBe('No pending changes');
+            });
+
+            it('should keep the verify-required tooltip when apply is allowed but verification has not passed', () => {
+                fixture.componentRef.setInput('verificationPassed', null);
+                fixture.componentRef.setInput('applyAllowed', true);
+                fixture.componentRef.setInput('applyDisabledReason', '');
+                fixture.detectChanges();
+
+                expect(component.applyTooltip()).toBe('Run verification before applying');
+            });
+
+            it('should fall through to the verify-required tooltip when applyAllowed=false but no reason is provided', () => {
+                fixture.componentRef.setInput('verificationPassed', null);
+                fixture.componentRef.setInput('applyAllowed', false);
+                fixture.componentRef.setInput('applyDisabledReason', '');
+                fixture.detectChanges();
+
+                expect(component.applyTooltip()).toBe('Run verification before applying');
+            });
+
+            it('should default applyAllowed to true so existing callers are unaffected', () => {
+                expect(component.applyAllowed()).toBe(true);
+                expect(component.applyDisabledReason()).toBe('');
+            });
         });
 
         describe('Step verification status icons', () => {
