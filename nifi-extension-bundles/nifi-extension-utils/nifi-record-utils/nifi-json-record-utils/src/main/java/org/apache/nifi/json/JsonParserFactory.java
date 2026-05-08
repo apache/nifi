@@ -42,13 +42,13 @@ public class JsonParserFactory implements TokenParserFactory {
      * JSON Parser Factory constructor with configurable constraints
      *
      * @param streamReadConstraints Stream Read Constraints
-     * @param lenient Allow for parsing JSON leniently
+     * @param parsingStrategy Parsing strategy which determines how the JSON should be parsed.
      */
-    public JsonParserFactory(final StreamReadConstraints streamReadConstraints, final boolean lenient) {
+    public JsonParserFactory(final StreamReadConstraints streamReadConstraints, final ParsingStrategy parsingStrategy) {
         Objects.requireNonNull(streamReadConstraints, "Stream Read Constraints required");
 
         final ObjectMapper objectMapper = new ObjectMapper();
-        if (lenient) {
+        if (ParsingStrategy.LENIENT == parsingStrategy) {
             objectMapper.enable(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature());
             objectMapper.enable(JsonReadFeature.ALLOW_YAML_COMMENTS.mappedFeature());
             objectMapper.enable(JsonReadFeature.ALLOW_SINGLE_QUOTES.mappedFeature());

@@ -18,7 +18,7 @@ package org.apache.nifi.json;
 
 import org.apache.nifi.components.DescribedValue;
 
-enum JsonParseMode implements DescribedValue {
+public enum ParsingStrategy implements DescribedValue {
     STANDARD("Standard", "Parse JSON per the JSON specification"),
     LENIENT("Lenient", """
             Parse JSON leniently allowing Java comments (/**/ and //), Yaml comments (start of line begins with #)
@@ -31,7 +31,7 @@ enum JsonParseMode implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    JsonParseMode(String displayName, String description) {
+    ParsingStrategy(String displayName, String description) {
         this.displayName = displayName;
         this.description = description;
     }

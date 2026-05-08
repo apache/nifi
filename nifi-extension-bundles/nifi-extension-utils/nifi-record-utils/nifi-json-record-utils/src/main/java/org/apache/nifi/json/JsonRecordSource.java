@@ -33,9 +33,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
 
     private static final StreamReadConstraints DEFAULT_STREAM_READ_CONSTRAINTS = StreamReadConstraints.defaults();
 
-    private static final boolean ALLOW_LENIENT_JSON = true;
-
-    private static final TokenParserFactory DEFAULT_TOKEN_PARSER_FACTORY = new JsonParserFactory(DEFAULT_STREAM_READ_CONSTRAINTS, ALLOW_LENIENT_JSON);
+    private static final TokenParserFactory DEFAULT_TOKEN_PARSER_FACTORY = new JsonParserFactory(DEFAULT_STREAM_READ_CONSTRAINTS, ParsingStrategy.LENIENT);
 
     private final JsonParser jsonParser;
     private final StartingFieldStrategy strategy;

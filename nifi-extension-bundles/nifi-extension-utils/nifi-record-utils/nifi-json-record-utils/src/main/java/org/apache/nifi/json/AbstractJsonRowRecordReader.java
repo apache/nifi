@@ -64,21 +64,12 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor ALLOW_COMMENTS = new PropertyDescriptor.Builder()
-            .name("Allow Comments")
-            .description("Whether to allow comments when parsing the JSON document")
+    public static final PropertyDescriptor PARSING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Parsing Strategy")
+            .description("Set the strategy for the level of JSON specification conformity required")
             .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor JSON_PARSE_MODE = new PropertyDescriptor.Builder()
-            .name("JSON Parse Mode")
-            .description("Specifies whether to parse the incoming JSON per the JSON specification or allow for lenient parsing")
-            .required(true)
-            .allowableValues(JsonParseMode.class)
-            .defaultValue(JsonParseMode.STANDARD)
+            .allowableValues(ParsingStrategy.class)
+            .defaultValue(ParsingStrategy.STANDARD)
             .build();
 
     private final ComponentLog logger;

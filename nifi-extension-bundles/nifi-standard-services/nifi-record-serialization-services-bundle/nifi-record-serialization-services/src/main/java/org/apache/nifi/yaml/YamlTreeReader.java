@@ -21,8 +21,10 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.json.AbstractJsonRowRecordReader;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
+import org.apache.nifi.json.ParsingStrategy;
 import org.apache.nifi.json.TokenParserFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -44,8 +46,6 @@ import java.util.List;
         + "See the Usage of the Controller Service for more information and examples.")
 public class YamlTreeReader extends JsonTreeReader {
 
-    private static final boolean LENIENT_PARSING_DISABLED = false;
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return new ArrayList<>(super.getSupportedPropertyDescriptors());
@@ -53,17 +53,15 @@ public class YamlTreeReader extends JsonTreeReader {
 
     @Override
     protected TokenParserFactory createTokenParserFactory(final ConfigurationContext context) {
-        return new YamlParserFactory(buildStreamReadConstraints(context), isLenientParsingEnabled(context));
+        final ParsingStrategy parsingStrategy =
+                context.getProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY).asAllowableValue(ParsingStrategy.class);
+        final boolean allowComments = ParsingStrategy.LENIENT == parsingStrategy;
+        return new YamlParserFactory(buildStreamReadConstraints(context), allowComments);
     }
 
     @Override
     protected JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream in, ComponentLog logger, RecordSchema schema) throws IOException, MalformedRecordException {
         return new YamlTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
                 schemaApplicationStrategy, null);
-    }
-
-    @Override
-    protected boolean isLenientParsingEnabled(final ConfigurationContext context) {
-        return LENIENT_PARSING_DISABLED;
     }
 }

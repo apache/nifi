@@ -117,7 +117,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         properties.add(STARTING_FIELD_NAME);
         properties.add(SCHEMA_APPLICATION_STRATEGY);
         properties.add(AbstractJsonRowRecordReader.MAX_STRING_LENGTH);
-        properties.add(AbstractJsonRowRecordReader.JSON_PARSE_MODE);
+        properties.add(AbstractJsonRowRecordReader.PARSING_STRATEGY);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -147,9 +147,9 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             final String allowCommentsRawValue = config.getRawPropertyValue(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS).orElse("");
             final boolean allowComments = Boolean.parseBoolean(allowCommentsRawValue);
             if (allowComments) {
-                config.setProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE, JsonParseMode.LENIENT.getValue());
+                config.setProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY, ParsingStrategy.LENIENT.getValue());
             } else {
-                config.setProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE, JsonParseMode.STANDARD.getValue());
+                config.setProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY, ParsingStrategy.STANDARD.getValue());
             }
 
             config.removeProperty(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS);
@@ -157,7 +157,9 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     }
 
     protected TokenParserFactory createTokenParserFactory(final ConfigurationContext context) {
-        return new JsonParserFactory(buildStreamReadConstraints(context), isLenientParsingEnabled(context));
+        final ParsingStrategy parsingStrategy =
+                context.getProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY).asAllowableValue(ParsingStrategy.class);
+        return new JsonParserFactory(buildStreamReadConstraints(context), parsingStrategy);
     }
 
     /**
@@ -169,18 +171,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
         final int maxStringLength = context.getProperty(AbstractJsonRowRecordReader.MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
         return StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
-    }
-
-    /**
-     * Determine whether to allow lenient parsing based on available properties
-     *
-     * @param context Configuration Context with property values
-     * @return Allow lenient parsing status
-     */
-    protected boolean isLenientParsingEnabled(final ConfigurationContext context) {
-        final JsonParseMode jsonParseMode =
-                context.getProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE).asAllowableValue(JsonParseMode.class);
-        return JsonParseMode.LENIENT == jsonParseMode;
     }
 
     @Override

@@ -84,7 +84,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(AbstractJsonRowRecordReader.MAX_STRING_LENGTH);
-        properties.add(AbstractJsonRowRecordReader.JSON_PARSE_MODE);
+        properties.add(AbstractJsonRowRecordReader.PARSING_STRATEGY);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -114,10 +114,9 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
         this.objectMapper = new ObjectMapper();
         objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
 
-        final JsonParseMode jsonParseMode =
-                context.getProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE).asAllowableValue(JsonParseMode.class);
-        final boolean lenientEnabled = JsonParseMode.LENIENT == jsonParseMode;
-        this.tokenParserFactory = new JsonParserFactory(streamReadConstraints, lenientEnabled);
+        final ParsingStrategy parsingStrategy =
+                context.getProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY).asAllowableValue(ParsingStrategy.class);
+        this.tokenParserFactory = new JsonParserFactory(streamReadConstraints, parsingStrategy);
 
         final Map<String, JsonPath> compiled = new LinkedHashMap<>();
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
@@ -163,9 +162,9 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
             final String allowCommentsRawValue = config.getRawPropertyValue(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS).orElse("");
             final boolean allowComments = Boolean.parseBoolean(allowCommentsRawValue);
             if (allowComments) {
-                config.setProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE, JsonParseMode.LENIENT.getValue());
+                config.setProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY, ParsingStrategy.LENIENT.getValue());
             } else {
-                config.setProperty(AbstractJsonRowRecordReader.JSON_PARSE_MODE, JsonParseMode.STANDARD.getValue());
+                config.setProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY, ParsingStrategy.STANDARD.getValue());
             }
 
             config.removeProperty(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS);
