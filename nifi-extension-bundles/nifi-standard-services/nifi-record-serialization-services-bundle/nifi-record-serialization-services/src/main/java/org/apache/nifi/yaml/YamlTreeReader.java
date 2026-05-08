@@ -24,9 +24,9 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.json.AbstractJsonRowRecordReader;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
-import org.apache.nifi.json.ParsingStrategy;
 import org.apache.nifi.json.TokenParserFactory;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -47,16 +47,22 @@ import java.util.List;
 public class YamlTreeReader extends JsonTreeReader {
 
     @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.removeProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY.getName());
+    }
+
+    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return new ArrayList<>(super.getSupportedPropertyDescriptors());
+        final List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        supportedPropertyDescriptors.remove(AbstractJsonRowRecordReader.PARSING_STRATEGY);
+
+        return  supportedPropertyDescriptors;
     }
 
     @Override
     protected TokenParserFactory createTokenParserFactory(final ConfigurationContext context) {
-        final ParsingStrategy parsingStrategy =
-                context.getProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY).asAllowableValue(ParsingStrategy.class);
-        final boolean allowComments = ParsingStrategy.LENIENT == parsingStrategy;
-        return new YamlParserFactory(buildStreamReadConstraints(context), allowComments);
+        return new YamlParserFactory(buildStreamReadConstraints(context));
     }
 
     @Override
