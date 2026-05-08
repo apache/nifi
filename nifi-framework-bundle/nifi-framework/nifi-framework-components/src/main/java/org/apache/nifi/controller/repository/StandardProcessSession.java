@@ -3751,13 +3751,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         if (missingClaim == registeredClaim) {
             suspectRecord.markForAbort();
+            LOG.warn("Unable to find content for {}; dropping FlowFile", suspectRecord.getCurrent(), nfe);
             rollback();
-            throw new MissingFlowFileException("Unable to find content for FlowFile", nfe);
+            throw new MissingFlowFileException("Unable to find content for " + suspectRecord.getCurrent() + "; dropping FlowFile", nfe);
         }
 
         if (missingClaim == transientClaim) {
             rollback();
-            throw new MissingFlowFileException("Unable to find content for FlowFile", nfe);
+            throw new MissingFlowFileException("Unable to find in-flight content for " + suspectRecord.getCurrent() + "; rolling back", nfe);
         }
     }
 

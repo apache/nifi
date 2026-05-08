@@ -1601,7 +1601,10 @@ public class StandardProcessSessionIT {
 
         // attempt to read the data.
         final FlowFile ff1 = session.get();
-        assertThrows(MissingFlowFileException.class, () -> session.read(ff1, InputStream::read));
+        final MissingFlowFileException ex = assertThrows(MissingFlowFileException.class,
+                () -> session.read(ff1, InputStream::read));
+        assertTrue(ex.getMessage().contains("12345678-1234-1234-1234-123456789012"));
+        assertTrue(ex.getMessage().contains("rolling back"));
     }
 
     @Test
@@ -1775,7 +1778,10 @@ public class StandardProcessSessionIT {
         session.get();
         final FlowFile ff2 = session.get();
 
-        assertThrows(MissingFlowFileException.class, () -> session.read(ff2, InputStream::read));
+        final MissingFlowFileException ex = assertThrows(MissingFlowFileException.class,
+                () -> session.read(ff2, InputStream::read));
+        assertTrue(ex.getMessage().contains("12345678-1234-1234-1234-123456789012"));
+        assertTrue(ex.getMessage().contains("rolling back"));
     }
 
     @Test
