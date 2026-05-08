@@ -41,7 +41,15 @@ import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-e
     selector: 'connector-table',
     standalone: true,
     templateUrl: './connector-table.component.html',
-    imports: [MatButtonModule, MatTableModule, MatSortModule, MatMenuModule, MatTooltipModule, NifiTooltipDirective],
+    imports: [
+        MatButtonModule,
+        MatTableModule,
+        MatSortModule,
+        MatMenuModule,
+        MatTooltipModule,
+        NifiTooltipDirective,
+        MatTooltipModule
+    ],
     styleUrls: ['./connector-table.component.scss']
 })
 export class ConnectorTable {

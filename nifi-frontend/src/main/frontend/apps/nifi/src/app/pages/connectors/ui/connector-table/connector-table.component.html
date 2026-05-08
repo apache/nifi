@@ -76,9 +76,10 @@
                     <div class="inline-flex items-center gap-x-2">
                         <span [title]="formatState(item)">{{ formatState(item) }}</span>
                         @if (canRead(item) && canDiscardConfig(item)) {
-                            <span class="caution-color text-xs font-medium" data-qa="edits-not-applied-badge"
-                                >(Edits not applied)</span
-                            >
+                            <i
+                                class="neutral-color fa fa-asterisk"
+                                matTooltip="Edits not applied"
+                                matTooltipPosition="after"></i>
                         }
                     </div>
                 </td>
