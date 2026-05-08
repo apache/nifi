@@ -34,7 +34,7 @@ public class RunOnceIT extends NiFiSystemIT {
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity generateToTerminate = getClientUtil().createConnection(generate, terminate, "success");
 
-        getNifiClient().getProcessorClient().runProcessorOnce(generate);
+        getClientUtil().runProcessorOnce(generate);
         waitForQueueCount(generateToTerminate.getId(), 1);
 
         getClientUtil().waitForStoppedProcessor(generate.getId());
@@ -44,7 +44,7 @@ public class RunOnceIT extends NiFiSystemIT {
         getClientUtil().updateProcessorSchedulingStrategy(generate, "CRON_DRIVEN");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "* * * * * ?");
 
-        getNifiClient().getProcessorClient().runProcessorOnce(generate);
+        getClientUtil().runProcessorOnce(generate);
         waitForQueueCount(generateToTerminate.getId(), 2);
 
         getClientUtil().waitForStoppedProcessor(generate.getId());

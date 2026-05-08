@@ -169,7 +169,7 @@ public class OffloadContentClaimTruncationIT extends NiFiSystemIT {
         // DELETE is sufficient for updateContentClaims() to queue the shared claim for truncation
         // even though FLOW_FILE_COUNT - 1 sibling FlowFiles still point inside it.
         terminate = getNifiClient().getProcessorClient().getProcessor(terminate.getId());
-        terminate = getNifiClient().getProcessorClient().runProcessorOnce(terminate);
+        terminate = getClientUtil().runProcessorOnce(terminate);
         getClientUtil().waitForStoppedProcessor(terminate.getId());
         waitForQueueCount(dataConnection.getId(), FLOW_FILE_COUNT - 1);
 

@@ -48,7 +48,7 @@ public class ComponentMetricReporterIT extends NiFiSystemIT {
     @Test
     void testUpdateMetricReported() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity updateMetric = getClientUtil().createProcessor("UpdateMetric");
-        getNifiClient().getProcessorClient().runProcessorOnce(updateMetric);
+        getClientUtil().runProcessorOnce(updateMetric);
         getClientUtil().waitForStoppedProcessor(updateMetric.getId());
 
         final String componentId = updateMetric.getId();

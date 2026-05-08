@@ -113,7 +113,7 @@ public class ContentClaimTruncationAfterRestartIT extends NiFiSystemIT {
         // FlowFiles (priority=1) are dequeued first.
         for (int i = 0; i < 10; i++) {
             final ProcessorEntity terminateAfterRestart = getNifiClient().getProcessorClient().getProcessor(terminate.getId());
-            getNifiClient().getProcessorClient().runProcessorOnce(terminateAfterRestart);
+            getClientUtil().runProcessorOnce(terminateAfterRestart);
             getClientUtil().waitForStoppedProcessor(terminateAfterRestart.getId());
         }
 

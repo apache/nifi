@@ -132,6 +132,11 @@ class KubernetesConfigMapStateProviderTest {
     }
 
     @Test
+    void testShutdownWithoutInitialize() {
+        provider.shutdown();
+    }
+
+    @Test
     void testInitializeEnableDisable() {
         setContext();
         provider.initialize(context);

@@ -103,6 +103,13 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
     }
 
     private static class ProcessNiFiInstance implements NiFiInstance {
+        private static final Duration MANAGEMENT_SERVER_RETRY_BUDGET = Duration.ofMinutes(1);
+        private static final Duration MANAGEMENT_SERVER_POLL_INTERVAL = Duration.ofMillis(500);
+        private static final Duration MANAGEMENT_SERVER_REQUEST_TIMEOUT = Duration.ofSeconds(2);
+        private static final HttpClient MANAGEMENT_SERVER_HTTP_CLIENT = HttpClient.newBuilder()
+                .connectTimeout(MANAGEMENT_SERVER_REQUEST_TIMEOUT)
+                .build();
+
         private final File instanceDirectory;
         private final File configDir;
         private final InstanceConfiguration instanceConfiguration;
@@ -142,25 +149,101 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                 throw new IllegalStateException("NiFi has already been started");
             }
 
-            logger.info("Starting NiFi [{}]", instanceDirectory.getName());
-
             final Map<String, String> environmentVariables = Map.of("NIFI_HOME", instanceDirectory.getAbsolutePath());
             final ConfigurationProvider configurationProvider = new StandardConfigurationProvider(environmentVariables, new Properties());
             final ManagementServerAddressProvider managementServerAddressProvider = new StandardManagementServerAddressProvider(configurationProvider);
             final ProcessBuilderProvider processBuilderProvider = new StandardProcessBuilderProvider(configurationProvider, managementServerAddressProvider);
+            final String managementServerAddress = managementServerAddressProvider.getAddress()
+                    .orElseThrow(() -> new IllegalStateException("Management Server Address not configured for [%s]".formatted(instanceDirectory.getName())));
 
             try {
-                final ProcessBuilder processBuilder = processBuilderProvider.getApplicationProcessBuilder();
-                processBuilder.directory(instanceDirectory);
-                process = processBuilder.start();
-
-                logger.info("Started NiFi [{}] PID [{}]", instanceDirectory.getName(), process.pid());
-
                 if (waitForCompletion) {
+                    startUntilManagementServerReady(processBuilderProvider, managementServerAddress);
                     waitForStartup();
+                } else {
+                    final ProcessBuilder processBuilder = processBuilderProvider.getApplicationProcessBuilder();
+                    processBuilder.directory(instanceDirectory);
+                    process = processBuilder.start();
+                    logger.info("Started NiFi [{}] PID [{}]", instanceDirectory.getName(), process.pid());
                 }
             } catch (final IOException e) {
                 throw new RuntimeException("Failed to start NiFi", e);
+            }
+        }
+
+        /**
+         * Spawns the NiFi process and waits for its Management Server to become reachable. If the launched process exits
+         * before the Management Server is reachable, a new process is spawned and the wait is repeated. Repeated retries
+         * are necessary because the Management Server uses {@link com.sun.net.httpserver.HttpServer}, which does not set
+         * SO_REUSEADDR; the configured port can therefore remain in TIME_WAIT briefly after the previous test instance
+         * shuts down, causing the first start attempt to fail with {@code BindException: Address already in use}.
+         *
+         * @param processBuilderProvider builder provider used to construct the application process
+         * @param managementServerAddress {@code host:port} of the Management Server to probe via HTTP
+         * @throws IOException if no attempt succeeds within {@link #MANAGEMENT_SERVER_RETRY_BUDGET}
+         */
+        private void startUntilManagementServerReady(final ProcessBuilderProvider processBuilderProvider, final String managementServerAddress) throws IOException {
+            final URI managementHealthUri = URI.create("http://%s/health".formatted(managementServerAddress));
+            final long deadline = System.currentTimeMillis() + MANAGEMENT_SERVER_RETRY_BUDGET.toMillis();
+            int attempt = 0;
+
+            while (true) {
+                attempt++;
+                logger.info("Starting NiFi [{}] attempt [{}]", instanceDirectory.getName(), attempt);
+
+                final ProcessBuilder processBuilder = processBuilderProvider.getApplicationProcessBuilder();
+                processBuilder.directory(instanceDirectory);
+                process = processBuilder.start();
+                logger.info("Started NiFi [{}] PID [{}] attempt [{}]", instanceDirectory.getName(), process.pid(), attempt);
+
+                while (System.currentTimeMillis() < deadline) {
+                    if (isManagementServerReady(managementHealthUri)) {
+                        logger.info("Management Server reachable for NiFi [{}] PID [{}] attempt [{}]",
+                                instanceDirectory.getName(), process.pid(), attempt);
+                        return;
+                    }
+
+                    if (!process.isAlive()) {
+                        final int exitValue = process.exitValue();
+                        logger.warn("NiFi [{}] PID [{}] attempt [{}] exited with code [{}] before Management Server became reachable",
+                                instanceDirectory.getName(), process.pid(), attempt, exitValue);
+                        process = null;
+                        break;
+                    }
+
+                    try {
+                        Thread.sleep(MANAGEMENT_SERVER_POLL_INTERVAL.toMillis());
+                    } catch (final InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Interrupted while waiting for Management Server to become reachable", interrupted);
+                    }
+                }
+
+                if (process != null) {
+                    throw new IOException("Management Server for NiFi [%s] PID [%d] not reachable within [%d] seconds across [%d] attempt(s)"
+                            .formatted(instanceDirectory.getName(), process.pid(), MANAGEMENT_SERVER_RETRY_BUDGET.toSeconds(), attempt));
+                }
+
+                if (System.currentTimeMillis() >= deadline) {
+                    throw new IOException("NiFi [%s] failed to start within [%d] seconds across [%d] attempt(s)"
+                            .formatted(instanceDirectory.getName(), MANAGEMENT_SERVER_RETRY_BUDGET.toSeconds(), attempt));
+                }
+            }
+        }
+
+        private boolean isManagementServerReady(final URI managementHealthUri) {
+            try {
+                final HttpRequest request = HttpRequest.newBuilder(managementHealthUri)
+                        .timeout(MANAGEMENT_SERVER_REQUEST_TIMEOUT)
+                        .GET()
+                        .build();
+                final HttpResponse<Void> response = MANAGEMENT_SERVER_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+                return response.statusCode() == 200;
+            } catch (final InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return false;
+            } catch (final IOException ignored) {
+                return false;
             }
         }
 

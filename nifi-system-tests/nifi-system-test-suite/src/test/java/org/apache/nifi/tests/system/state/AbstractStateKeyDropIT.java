@@ -127,7 +127,7 @@ public abstract class AbstractStateKeyDropIT extends NiFiSystemIT {
 
         while (true) {
             try {
-                getNifiClient().getProcessorClient().runProcessorOnce(processor);
+                getClientUtil().runProcessorOnce(processor);
                 break;
             } catch (final NiFiClientException e) {
                 if (!isTransientClusterError(e) || System.currentTimeMillis() > maxTime) {

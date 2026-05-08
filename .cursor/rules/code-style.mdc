@@ -72,3 +72,11 @@ final List<String> result = myList.stream()
     when the logic is not simple and straightforward. The stream API is powerful but can be difficult to
     read when overused or used in complex scenarios. Functional style is best used when the logic is simple
     and chains together no more than 3-4 operations.
+16. Never use single-element arrays such as `final int[] counter = new int[]{0}` or
+    `final boolean[] flag = new boolean[]{false}` as a workaround for capturing a mutable primitive in a
+    lambda or anonymous class. This pattern is unidiomatic and confusing. When a lambda needs to mutate a
+    captured primitive, use the appropriate `java.util.concurrent.atomic` type (`AtomicInteger`,
+    `AtomicLong`, `AtomicBoolean`, `AtomicReference`, etc.). When a lambda needs to mutate a captured
+    object, hold the object in a final reference and mutate the object's state. The same applies to
+    `final Object[] holder = new Object[1]` for capturing a single reference; use `AtomicReference`
+    instead.
