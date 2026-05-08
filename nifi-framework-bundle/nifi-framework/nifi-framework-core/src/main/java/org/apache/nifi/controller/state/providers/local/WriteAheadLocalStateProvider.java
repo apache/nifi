@@ -168,6 +168,13 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         return properties;
     }
 
+    // Visible for testing. Forces a synchronous checkpoint of the underlying Write-Ahead Log so
+    // that tests can deterministically observe the on-disk snapshot without waiting for the
+    // scheduled CheckpointTask to run.
+    void checkpoint() throws IOException {
+        writeAheadLog.checkpoint();
+    }
+
     @Override
     public synchronized void shutdown() {
         executor.shutdown();
