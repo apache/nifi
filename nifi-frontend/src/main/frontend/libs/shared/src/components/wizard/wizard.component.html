@@ -20,8 +20,7 @@
         @for (step of steps; track step) {
             <div
                 class="mat-step"
-                [class.step-active]="selectedIndex === $index"
-                [class.step-disabled]="stepIsDisabled(step)">
+                [class.step-active]="selectedIndex === $index">
                 <ng-container [ngTemplateOutlet]="stepTemplate" [ngTemplateOutletContext]="{ step, i: $index }" />
             </div>
         }
