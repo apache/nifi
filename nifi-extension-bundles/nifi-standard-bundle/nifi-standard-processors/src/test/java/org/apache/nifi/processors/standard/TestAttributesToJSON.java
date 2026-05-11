@@ -441,6 +441,26 @@ public class TestAttributesToJSON {
         assertFalse(val.containsKey("delimited.footer.column.1"));
         assertTrue(val.containsKey("test"));
         assertTrue(val.containsKey("test1"));
+
+        // Now remove ATTRIBUTES_REGEX property, verify JSON attribute does not contain ATTRIBUTES_REGEX matches
+        runner.removeProperty(AttributesToJSON.ATTRIBUTES_REGEX);
+        runner.enqueue("".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+        runner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 2);
+
+        flowFile = runner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(1);
+
+        val = MAPPER.readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), new TypeReference<>() { });
+        assertFalse(val.containsKey("delimited.header.column.1"));
+        assertFalse(val.containsKey("delimited.header.column.2"));
+        assertFalse(val.containsKey("delimited.header.column.3"));
+        assertFalse(val.containsKey("delimited.header.column.4"));
+        assertFalse(val.containsKey("delimited.footer.column.1"));
+        assertTrue(val.containsKey("test"));
+        assertTrue(val.containsKey("test1"));
     }
 
     @ParameterizedTest

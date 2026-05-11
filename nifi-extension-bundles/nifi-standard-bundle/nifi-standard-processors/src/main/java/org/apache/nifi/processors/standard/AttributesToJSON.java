@@ -272,6 +272,8 @@ public class AttributesToJSON extends AbstractProcessor {
 
         if (context.getProperty(ATTRIBUTES_REGEX).isSet()) {
             pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
+        } else {
+            pattern = null;
         }
     }
 
