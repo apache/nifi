@@ -56,7 +56,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
-            .description("The maximum allowed length of a string value when parsing the JSON document")
+            .description("The maximum allowed length of a string value when parsing the document")
             .required(true)
             .defaultValue(DEFAULT_MAX_STRING_LENGTH)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
