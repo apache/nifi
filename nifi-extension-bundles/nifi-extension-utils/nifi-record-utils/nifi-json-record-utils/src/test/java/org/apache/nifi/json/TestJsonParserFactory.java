@@ -60,7 +60,7 @@ public class TestJsonParserFactory {
     @ParameterizedTest
     @MethodSource("jsonParsing")
     void testJsonParsing(ParsingStrategy parsingStrategy) throws Exception {
-        StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().build();
+        final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().build();
         final JsonParserFactory jsonParserFactory = new JsonParserFactory(streamReadConstraints, parsingStrategy);
         final InputStream inputStream = new ByteArrayInputStream(LENIENT_JSON.getBytes(StandardCharsets.UTF_8));
         final JsonParser jsonParser = jsonParserFactory.getJsonParser(inputStream);
