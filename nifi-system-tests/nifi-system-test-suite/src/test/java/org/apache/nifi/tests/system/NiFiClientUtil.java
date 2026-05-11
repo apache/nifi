@@ -113,6 +113,7 @@ import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
@@ -910,6 +911,13 @@ public class NiFiClientUtil {
     public ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {
         final ProcessGroupEntity processGroup = nifiClient.getProcessGroupClient().getProcessGroup(groupId);
         processGroup.getComponent().setParameterContext(createReferenceEntity(parameterContext.getId()));
+        return nifiClient.getProcessGroupClient().updateProcessGroup(processGroup);
+    }
+
+    public ProcessGroupEntity setParameterContextRecursively(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {
+        final ProcessGroupEntity processGroup = nifiClient.getProcessGroupClient().getProcessGroup(groupId);
+        processGroup.getComponent().setParameterContext(createReferenceEntity(parameterContext.getId()));
+        processGroup.setProcessGroupUpdateStrategy(ProcessGroupRecursivity.ALL_DESCENDANTS.name());
         return nifiClient.getProcessGroupClient().updateProcessGroup(processGroup);
     }
 

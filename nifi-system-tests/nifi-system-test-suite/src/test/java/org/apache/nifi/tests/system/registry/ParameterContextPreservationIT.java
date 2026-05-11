@@ -480,4 +480,45 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         }
         return null;
     }
+
+    /**
+     * Verifies that applying a Parameter Context recursively succeeds when one of the descendant Process Groups is
+     * under version control. The descendant must end up rebound to the new Parameter Context while continuing to be
+     * tracked by Version Control (NIFI-15470).
+     */
+    @Test
+    void testApplyParameterContextRecursivelyAcrossVersionedDescendant() throws NiFiClientException, IOException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ParameterContextEntity firstContext = util.createParameterContext("recursive-vc-first", Map.of(PARAMETER_NAME, PARAMETER_VALUE));
+        final ParameterContextEntity secondContext = util.createParameterContext("recursive-vc-second", Map.of(PARAMETER_NAME, "secondValue"));
+
+        final ProcessGroupEntity parentGroup = util.createProcessGroup("recursive-vc-parent", "root");
+        util.setParameterContext(parentGroup.getId(), firstContext);
+
+        final ProcessGroupEntity childGroup = util.createProcessGroup("recursive-vc-child", parentGroup.getId());
+        util.setParameterContext(childGroup.getId(), firstContext);
+
+        final ProcessorEntity childProcessor = util.createProcessor(PROCESSOR_TYPE, childGroup.getId());
+        util.updateProcessorProperties(childProcessor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
+        util.setAutoTerminatedRelationships(childProcessor, RELATIONSHIP_SUCCESS);
+
+        final ProcessGroupEntity childForVersioning = getNifiClient().getProcessGroupClient().getProcessGroup(childGroup.getId());
+        final VersionControlInformationEntity childVci = util.startVersionControl(childForVersioning, clientEntity, TEST_FLOWS_BUCKET, "RecursiveVcChildFlow");
+        assertNotNull(childVci.getVersionControlInformation(), "Child process group should be under version control before the recursive apply");
+
+        util.setParameterContextRecursively(parentGroup.getId(), secondContext);
+
+        final ProcessGroupEntity parentAfterUpdate = getNifiClient().getProcessGroupClient().getProcessGroup(parentGroup.getId());
+        assertNotNull(parentAfterUpdate.getComponent().getParameterContext());
+        assertEquals(secondContext.getId(), parentAfterUpdate.getComponent().getParameterContext().getId());
+
+        final ProcessGroupEntity childAfterUpdate = getNifiClient().getProcessGroupClient().getProcessGroup(childGroup.getId());
+        assertNotNull(childAfterUpdate.getComponent().getParameterContext());
+        assertEquals(secondContext.getId(), childAfterUpdate.getComponent().getParameterContext().getId(),
+                "Versioned child Process Group should be rebound to the new Parameter Context after a recursive apply");
+        assertNotNull(childAfterUpdate.getComponent().getVersionControlInformation(),
+                "Versioned child Process Group should remain under version control after a recursive Parameter Context change");
+    }
 }
