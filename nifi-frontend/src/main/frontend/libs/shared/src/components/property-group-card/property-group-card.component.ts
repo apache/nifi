@@ -16,8 +16,9 @@
  */
 
 import { Component, computed, input } from '@angular/core';
-import { MatCard } from '@angular/material/card';
+import { MatCard, MatCardHeader, MatCardTitle } from '@angular/material/card';
 import { MatError } from '@angular/material/form-field';
+import { EllipsisTooltipDirective } from '../../directives/ellipsis-tooltip/ellipsis-tooltip.directive';
 import {
     AssetReference,
     ConfigVerificationResult,
@@ -31,35 +32,8 @@ import {
  */
 @Component({
     selector: 'property-group-card',
-    standalone: true,
-    imports: [MatCard, MatError],
-    template: `
-        <mat-card appearance="outlined" class="p-4">
-            @if (!hideGroupName()) {
-                <h4 class="font-semibold mb-4">{{ propertyGroup().propertyGroupName }}</h4>
-            }
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
-                @for (propertyName of getPropertyNames(); track propertyName) {
-                    <div class="flex flex-col gap-y-1">
-                        <div class="flex items-center pt-1">
-                            <span class="text-sm tertiary-color leading-5">{{ propertyName }}</span>
-                            @if (isRequired(propertyName)) {
-                                <span class="error-color ml-1 text-sm">*</span>
-                            }
-                        </div>
-                        @if (hasValue(propertyName)) {
-                            <span class="text-sm">{{ getDisplayValueForProperty(propertyName) }}</span>
-                        } @else {
-                            <span class="unset neutral-color text-sm">No value set</span>
-                        }
-                        @if (getFieldError(propertyName); as errorMessage) {
-                            <mat-error class="error-color text-xs">{{ errorMessage }}</mat-error>
-                        }
-                    </div>
-                }
-            </div>
-        </mat-card>
-    `
+    imports: [MatCard, MatCardHeader, MatCardTitle, MatError, EllipsisTooltipDirective],
+    templateUrl: './property-group-card.component.html'
 })
 export class PropertyGroupCard {
     readonly propertyGroup = input.required<PropertyGroupConfiguration>();
