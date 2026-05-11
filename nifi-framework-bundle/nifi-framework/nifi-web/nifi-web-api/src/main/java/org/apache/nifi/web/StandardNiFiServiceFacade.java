@@ -85,12 +85,14 @@ import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
@@ -517,6 +519,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private FlowRegistryDAO flowRegistryDAO;
     private ParameterContextDAO parameterContextDAO;
     private ClusterCoordinator clusterCoordinator;
+    private ClusterTopologyProvider clusterTopologyProvider;
+    private StateManagerProvider stateManagerProvider;
     private HeartbeatMonitor heartbeatMonitor;
     private LeaderElectionManager leaderElectionManager;
 
@@ -5927,6 +5931,51 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return getCurrentFlowSnapshotByGroupId(processGroupId, true);
     }
 
+    @Override
+    public RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedServices, final boolean includeComponentState) {
+        if (!includeComponentState) {
+            return getCurrentFlowSnapshotByGroupId(processGroupId, includeReferencedServices);
+        }
+
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+
+        // Validate all processors are stopped and all controller services are disabled
+        final List<ProcessorNode> runningProcessors = processGroup.findAllProcessors().stream()
+                .filter(p -> p.getPhysicalScheduledState() != ScheduledState.STOPPED && p.getPhysicalScheduledState() != ScheduledState.DISABLED)
+                .toList();
+        if (!runningProcessors.isEmpty()) {
+            throw new IllegalStateException("Cannot export component state because %d processor(s) are not stopped: %s".formatted(
+                    runningProcessors.size(),
+                    runningProcessors.stream().map(p -> "%s [%s]".formatted(p.getName(), p.getIdentifier())).limit(5).collect(Collectors.joining(", "))));
+        }
+
+        final List<ControllerServiceNode> enabledServices = processGroup.findAllControllerServices().stream()
+                .filter(s -> s.getState() != ControllerServiceState.DISABLED)
+                .toList();
+        if (!enabledServices.isEmpty()) {
+            throw new IllegalStateException("Cannot export component state because %d controller service(s) are not disabled: %s".formatted(
+                    enabledServices.size(),
+                    enabledServices.stream().map(s -> "%s [%s]".formatted(s.getName(), s.getIdentifier())).limit(5).collect(Collectors.joining(", "))));
+        }
+
+        final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
+                .sensitiveValueEncryptor(null)
+                .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
+                .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+                .mapPropertyDescriptors(true)
+                .mapSensitiveConfiguration(false)
+                .mapInstanceIdentifiers(false)
+                .mapControllerServiceReferencesToVersionedId(true)
+                .mapFlowRegistryClientId(false)
+                .mapAssetReferences(false)
+                .mapComponentState(includeComponentState)
+                .stateManagerProvider(stateManagerProvider)
+                .localNodeOrdinal(clusterTopologyProvider.getLocalNodeOrdinal())
+                .build();
+
+        return buildFlowSnapshot(processGroup, processGroupId, includeReferencedServices, mappingOptions);
+    }
+
     private Set<String> getAllSubGroups(ProcessGroup processGroup) {
         final Set<String> result = processGroup.findAllProcessGroups().stream()
                 .map(ProcessGroup::getIdentifier)
@@ -5937,22 +5986,27 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedControllerServices) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        return buildFlowSnapshot(processGroup, processGroupId, includeReferencedControllerServices, null);
+    }
 
+    private RegisteredFlowSnapshot buildFlowSnapshot(final ProcessGroup processGroup, final String processGroupId,
+                                                      final boolean includeReferencedControllerServices, final FlowMappingOptions customMappingOptions) {
         // Create a complete (include descendant flows) VersionedProcessGroup snapshot of the flow as it is
         // currently without any registry related fields populated, even if the flow is currently versioned.
-        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = customMappingOptions != null
+                ? makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager(), customMappingOptions)
+                : makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+
         final InstantiatedVersionedProcessGroup nonVersionedProcessGroup =
                 mapper.mapNonVersionedProcessGroup(processGroup, controllerFacade.getControllerServiceProvider());
 
         final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
-
-        // Create a complete (include descendant flows) map of parameter contexts
         final Map<String, VersionedParameterContext> parameterContexts = mapper.mapParameterContexts(processGroup, true, parameterProviderReferences);
 
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
                 Optional.ofNullable(nonVersionedProcessGroup.getExternalControllerServiceReferences()).orElse(Collections.emptyMap());
         final Set<VersionedControllerService> controllerServices = new HashSet<>(nonVersionedProcessGroup.getControllerServices());
-        final RegisteredFlowSnapshot nonVersionedFlowSnapshot = new RegisteredFlowSnapshot();
+        final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
 
         ProcessGroup parentGroup = processGroup.getParent();
 
@@ -5968,24 +6022,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                     if (externalControllerServiceReferences.keySet().contains(versionedControllerService.getIdentifier())) {
                         versionedControllerService.setGroupIdentifier(processGroupId);
+                        versionedControllerService.setComponentState(null);
                         externalServices.add(versionedControllerService);
                     }
                 }
             } while ((parentGroup = parentGroup.getParent()) != null);
 
             controllerServices.addAll(externalServices);
-            nonVersionedFlowSnapshot.setExternalControllerServices(new HashMap<>());
+            flowSnapshot.setExternalControllerServices(new HashMap<>());
         } else {
-            nonVersionedFlowSnapshot.setExternalControllerServices(externalControllerServiceReferences);
+            flowSnapshot.setExternalControllerServices(externalControllerServiceReferences);
         }
 
         nonVersionedProcessGroup.setControllerServices(controllerServices);
-        nonVersionedFlowSnapshot.setFlowContents(nonVersionedProcessGroup);
-        nonVersionedFlowSnapshot.setParameterProviders(parameterProviderReferences);
-        nonVersionedFlowSnapshot.setParameterContexts(parameterContexts);
-        nonVersionedFlowSnapshot.setFlowEncodingVersion(FlowRegistryUtil.FLOW_ENCODING_VERSION);
+        flowSnapshot.setFlowContents(nonVersionedProcessGroup);
+        flowSnapshot.setParameterProviders(parameterProviderReferences);
+        flowSnapshot.setParameterContexts(parameterContexts);
+        flowSnapshot.setFlowEncodingVersion(FlowRegistryUtil.FLOW_ENCODING_VERSION);
 
-        return nonVersionedFlowSnapshot;
+        return flowSnapshot;
     }
 
     @Override
@@ -7927,6 +7982,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired(required = false)
     public void setClusterCoordinator(final ClusterCoordinator coordinator) {
         this.clusterCoordinator = coordinator;
+    }
+
+    @Autowired
+    public void setClusterTopologyProvider(final ClusterTopologyProvider clusterTopologyProvider) {
+        this.clusterTopologyProvider = clusterTopologyProvider;
+    }
+
+    @Autowired
+    public void setStateManagerProvider(final StateManagerProvider stateManagerProvider) {
+        this.stateManagerProvider = stateManagerProvider;
     }
 
     @Autowired(required = false)

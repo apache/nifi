@@ -274,6 +274,12 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
 
     @Override
     public File exportProcessGroup(final String processGroupId, final boolean includeReferencedServices, final File outputFile) throws NiFiClientException, IOException {
+        return exportProcessGroup(processGroupId, includeReferencedServices, false, outputFile);
+    }
+
+    @Override
+    public File exportProcessGroup(final String processGroupId, final boolean includeReferencedServices, final boolean includeComponentState,
+                                   final File outputFile) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(processGroupId)) {
             throw new IllegalArgumentException("Process group id cannot be null or blank");
         }
@@ -282,7 +288,8 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
             final WebTarget target = processGroupsTarget
                     .path("{id}/download")
                     .resolveTemplate("id", processGroupId)
-                    .queryParam("includeReferencedServices", includeReferencedServices);
+                    .queryParam("includeReferencedServices", includeReferencedServices)
+                    .queryParam("includeComponentState", includeComponentState);
 
             final Response response = getRequestBuilder(target)
                     .accept(MediaType.APPLICATION_JSON)

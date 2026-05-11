@@ -41,6 +41,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.ProcessGroupFlowFileActivity;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -195,6 +196,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
     private final NodeTypeProvider nodeTypeProvider;
+    private final ClusterTopologyProvider clusterTopologyProvider;
     private final AssetManager assetManager;
     private final StatelessGroupNode statelessGroupNode;
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
@@ -232,6 +234,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
+                                final ClusterTopologyProvider clusterTopologyProvider,
                                 final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory,
                                 final AssetManager assetManager, final String connectorId) {
 
@@ -246,6 +249,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.flowManager = flowManager;
         this.reloadComponent = reloadComponent;
         this.nodeTypeProvider = nodeTypeProvider;
+        this.clusterTopologyProvider = clusterTopologyProvider;
         this.assetManager = assetManager;
         this.connectorId = connectorId;
 
@@ -4073,6 +4077,9 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private VersionedFlowSynchronizationContext createGroupSynchronizationContext(final ComponentIdGenerator componentIdGenerator, final ComponentScheduler componentScheduler,
                                                                                   final FlowMappingOptions flowMappingOptions) {
+        final int localNodeOrdinal = clusterTopologyProvider.getLocalNodeOrdinal();
+        final int connectedNodeCount = clusterTopologyProvider.getConnectedNodeCount();
+
         return new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)
             .flowManager(flowManager)
@@ -4084,6 +4091,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             .processContextFactory(this::createProcessContext)
             .configurationContextFactory(this::createConfigurationContext)
             .assetManager(assetManager)
+            .stateManagerProvider(stateManagerProvider)
+            .localNodeOrdinal(localNodeOrdinal)
+            .connectedNodeCount(connectedNodeCount)
             .build();
     }
 

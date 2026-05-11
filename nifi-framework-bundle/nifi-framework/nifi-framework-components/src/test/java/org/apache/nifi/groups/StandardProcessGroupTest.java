@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
@@ -90,6 +91,9 @@ class StandardProcessGroupTest {
     private NodeTypeProvider nodeTypeProvider;
 
     @Mock
+    private ClusterTopologyProvider clusterTopologyProvider;
+
+    @Mock
     private NiFiProperties properties;
 
     @Mock
@@ -130,6 +134,7 @@ class StandardProcessGroupTest {
                 flowManager,
                 reloadComponent,
                 nodeTypeProvider,
+                clusterTopologyProvider,
                 properties,
                 statelessGroupNodeFactory,
                 assetManager,
