@@ -2972,7 +2972,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 id: p.entity.id,
                 type: ComponentType.Processor,
                 position: { x: p.entity.position.x, y: p.entity.position.y },
-                dimensions: { width: p.ui.dimensions.width, height: p.ui.dimensions.height }
+                dimensions: { width: p.ui.dimensions.width, height: p.ui.dimensions.height },
+                fillColor: p.entity.component?.style?.['background-color'] || undefined
             });
         });
 
@@ -3023,7 +3024,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 id: l.entity.id,
                 type: ComponentType.Label,
                 position: { x: l.entity.position.x, y: l.entity.position.y },
-                dimensions: { width: l.ui.dimensions.width, height: l.ui.dimensions.height }
+                dimensions: { width: l.ui.dimensions.width, height: l.ui.dimensions.height },
+                fillColor: l.entity.component?.style?.['background-color'] || undefined
             });
         });
 

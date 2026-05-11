@@ -23,6 +23,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ConnectorGraphControls } from './connector-graph-controls.component';
 import { ConnectorInfoControl } from './connector-info-control/connector-info-control.component';
 import { ConnectorEntity } from '@nifi/shared';
+import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
+import { Dimension } from '../../../../../ui/common/canvas/canvas.types';
 
 @Component({
     selector: 'connector-info-control',
@@ -35,7 +37,15 @@ class MockConnectorInfoControl {
     entitySaving = input<boolean>(false);
 }
 
-async function setup(inputs: { connectorEntity?: ConnectorEntity | null; entitySaving?: boolean } = {}) {
+interface SetupInputs {
+    connectorEntity?: ConnectorEntity | null;
+    entitySaving?: boolean;
+    birdseyeComponents?: BirdseyeComponentData[];
+    birdseyeTransform?: BirdseyeTransform;
+    canvasDimensions?: Dimension;
+}
+
+async function setup(inputs: SetupInputs = {}) {
     await TestBed.configureTestingModule({
         imports: [ConnectorGraphControls, NoopAnimationsModule]
     })
@@ -48,6 +58,12 @@ async function setup(inputs: { connectorEntity?: ConnectorEntity | null; entityS
     const fixture: ComponentFixture<ConnectorGraphControls> = TestBed.createComponent(ConnectorGraphControls);
     fixture.componentRef.setInput('connectorEntity', inputs.connectorEntity ?? null);
     fixture.componentRef.setInput('entitySaving', inputs.entitySaving ?? false);
+    fixture.componentRef.setInput('birdseyeComponents', inputs.birdseyeComponents ?? []);
+    fixture.componentRef.setInput(
+        'birdseyeTransform',
+        inputs.birdseyeTransform ?? { translate: { x: 0, y: 0 }, scale: 1 }
+    );
+    fixture.componentRef.setInput('canvasDimensions', inputs.canvasDimensions ?? { width: 0, height: 0 });
     fixture.detectChanges();
 
     return { fixture, component: fixture.componentInstance };

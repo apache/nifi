@@ -33,9 +33,9 @@ export class ConnectorGraphControls {
     connectorEntity = input<ConnectorEntity | null>(null);
     entitySaving = input<boolean>(false);
 
-    birdseyeComponents = input<BirdseyeComponentData[]>([]);
-    birdseyeTransform = input<BirdseyeTransform>({ translate: { x: 0, y: 0 }, scale: 1 });
-    canvasDimensions = input<Dimension>({ width: 0, height: 0 });
+    birdseyeComponents = input.required<BirdseyeComponentData[]>();
+    birdseyeTransform = input.required<BirdseyeTransform>();
+    canvasDimensions = input.required<Dimension>();
     canNavigateToParent = input<boolean>(false);
 
     viewportChange = output<Position>();

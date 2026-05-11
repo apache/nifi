@@ -111,19 +111,24 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
 
     private effectiveWidth = 200;
 
-    // Component colors mirror the legacy BirdseyeView palette: only processors and labels have a stroke.
+    // Component colors mirror the flow-designer BirdseyeView palette so the connector and
+    // flow-designer minimaps render with consistent visual language. Process groups inherit the
+    // remote-process-group fill because the flow-designer palette intentionally falls through to
+    // the same color. Only processors and labels render a stroke; the stroke is derived from the
+    // resolved fill so user-configured background colors keep adequate contrast. Connection is
+    // intentionally omitted — getBirdseyeComponentData() does not emit connections, so any
+    // unmapped type falls through to DEFAULT_COLOR.
     private readonly COMPONENT_COLORS: Partial<Record<ComponentType, { fill: string; hasStroke: boolean }>> = {
-        [ComponentType.Processor]: { fill: '#A3BEF5', hasStroke: true },
-        [ComponentType.ProcessGroup]: { fill: '#A3BEF5', hasStroke: false },
-        [ComponentType.RemoteProcessGroup]: { fill: '#154BB7', hasStroke: false },
-        [ComponentType.InputPort]: { fill: '#D1DFFA', hasStroke: false },
-        [ComponentType.OutputPort]: { fill: '#D1DFFA', hasStroke: false },
+        [ComponentType.Processor]: { fill: '#dde4eb', hasStroke: true },
+        [ComponentType.ProcessGroup]: { fill: '#728e9b', hasStroke: false },
+        [ComponentType.RemoteProcessGroup]: { fill: '#728e9b', hasStroke: false },
+        [ComponentType.InputPort]: { fill: '#bbdcde', hasStroke: false },
+        [ComponentType.OutputPort]: { fill: '#bbdcde', hasStroke: false },
         [ComponentType.Funnel]: { fill: '#ad9897', hasStroke: false },
-        [ComponentType.Label]: { fill: '#fff7d7', hasStroke: true },
-        [ComponentType.Connection]: { fill: '#A3BEF5', hasStroke: false }
+        [ComponentType.Label]: { fill: '#fff7d7', hasStroke: true }
     };
 
-    private readonly DEFAULT_COLOR = { fill: '#A3BEF5', hasStroke: false };
+    private readonly DEFAULT_COLOR = { fill: '#dde4eb', hasStroke: false };
 
     constructor() {
         effect(() => {
@@ -363,8 +368,11 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
 
         for (const component of components) {
             const color = this.COMPONENT_COLORS[component.type] || this.DEFAULT_COLOR;
+            // Honor a user-configured background color (set by Change Color on processors and
+            // labels) when present; otherwise fall back to the type-based palette entry.
+            const fill = component.fillColor || color.fill;
 
-            ctx.fillStyle = color.fill;
+            ctx.fillStyle = fill;
             ctx.fillRect(
                 component.position.x,
                 component.position.y,
@@ -373,7 +381,7 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
             );
 
             if (color.hasStroke) {
-                ctx.strokeStyle = '#000000';
+                ctx.strokeStyle = this.determineContrastColor(fill);
                 ctx.strokeRect(
                     component.position.x,
                     component.position.y,
@@ -384,6 +392,19 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
         }
 
         ctx.restore();
+    }
+
+    /**
+     * Returns black or white depending on whether the supplied hex color is light or dark,
+     * mirroring the algorithm used by the flow-designer canvas utilities so the birdseye
+     * stroke contrast remains consistent across both minimaps.
+     */
+    private determineContrastColor(fill: string): string {
+        const hex = fill.startsWith('#') ? fill.substring(1) : fill;
+        if (parseInt(hex, 16) > 0xffffff / 1.5) {
+            return '#000000';
+        }
+        return '#ffffff';
     }
 
     /**

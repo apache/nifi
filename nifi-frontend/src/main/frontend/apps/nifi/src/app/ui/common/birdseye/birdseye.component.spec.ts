@@ -29,6 +29,7 @@ function createMockComponent(
         y?: number;
         width?: number;
         height?: number;
+        fillColor?: string;
     } = {}
 ): BirdseyeComponentData {
     return {
@@ -41,7 +42,8 @@ function createMockComponent(
         dimensions: {
             width: options.width ?? 352,
             height: options.height ?? 128
-        }
+        },
+        ...(options.fillColor !== undefined ? { fillColor: options.fillColor } : {})
     };
 }
 
@@ -269,6 +271,109 @@ describe('CanvasBirdseyeComponent', () => {
         it('should expose dragEnd', async () => {
             const { component } = await setup({ components: [createMockComponent()] });
             expect(component.dragEnd).toBeDefined();
+        });
+    });
+
+    describe('Component palette', () => {
+        // The default test environment does not implement CanvasRenderingContext2D, so the
+        // component's rendering code path is normally a no-op. To exercise the paint logic we
+        // install a stub 2D context on HTMLCanvasElement that records every value assigned to
+        // fillStyle and strokeStyle while satisfying the methods the component invokes during
+        // initializeBirdseye(), renderComponents(), and updateBirdseyeSize().
+        function installPaintTracker() {
+            const fillColors: string[] = [];
+            const strokeColors: string[] = [];
+
+            const ctx: any = {
+                _fillStyle: '',
+                _strokeStyle: '',
+                set fillStyle(value: string) {
+                    fillColors.push(String(value));
+                    this._fillStyle = value;
+                },
+                get fillStyle() {
+                    return this._fillStyle;
+                },
+                set strokeStyle(value: string) {
+                    strokeColors.push(String(value));
+                    this._strokeStyle = value;
+                },
+                get strokeStyle() {
+                    return this._strokeStyle;
+                },
+                scale: vi.fn(),
+                clearRect: vi.fn(),
+                save: vi.fn(),
+                restore: vi.fn(),
+                translate: vi.fn(),
+                fillRect: vi.fn(),
+                strokeRect: vi.fn(),
+                setTransform: vi.fn()
+            };
+
+            const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as any);
+
+            return {
+                fillColors,
+                strokeColors,
+                restore: () => spy.mockRestore()
+            };
+        }
+
+        it('should use the flow-designer palette for processors with a contrast stroke', async () => {
+            const tracker = installPaintTracker();
+            try {
+                const components = [createMockComponent({ type: ComponentType.Processor })];
+                const { fixture } = await setup({ components });
+                await fixture.whenStable();
+
+                expect(tracker.fillColors).toContain('#dde4eb');
+                expect(tracker.strokeColors).toContain('#000000');
+            } finally {
+                tracker.restore();
+            }
+        });
+
+        it('should default labels to the flow-designer label fill', async () => {
+            const tracker = installPaintTracker();
+            try {
+                const components = [createMockComponent({ type: ComponentType.Label })];
+                const { fixture } = await setup({ components });
+                await fixture.whenStable();
+
+                expect(tracker.fillColors).toContain('#fff7d7');
+            } finally {
+                tracker.restore();
+            }
+        });
+
+        it('should honor a user-configured fillColor override', async () => {
+            const tracker = installPaintTracker();
+            try {
+                const components = [createMockComponent({ type: ComponentType.Processor, fillColor: '#123456' })];
+                const { fixture } = await setup({ components });
+                await fixture.whenStable();
+
+                expect(tracker.fillColors).toContain('#123456');
+                // #123456 is dark, so the contrast-derived stroke should be white.
+                expect(tracker.strokeColors).toContain('#ffffff');
+            } finally {
+                tracker.restore();
+            }
+        });
+
+        it('should derive a black stroke for light user-configured fills', async () => {
+            const tracker = installPaintTracker();
+            try {
+                const components = [createMockComponent({ type: ComponentType.Label, fillColor: '#fefefe' })];
+                const { fixture } = await setup({ components });
+                await fixture.whenStable();
+
+                expect(tracker.fillColors).toContain('#fefefe');
+                expect(tracker.strokeColors).toContain('#000000');
+            } finally {
+                tracker.restore();
+            }
         });
     });
 
