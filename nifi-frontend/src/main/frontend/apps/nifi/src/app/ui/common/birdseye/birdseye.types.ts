@@ -28,8 +28,9 @@ export interface BirdseyeComponentData {
     dimensions: Dimension;
     /**
      * Optional hex color (e.g. '#aabbcc') used to fill this component on the birdseye. When
-     * present it overrides the type-based palette so user-configured background colors on
-     * processors and labels are honored, matching the flow-designer minimap.
+     * present it overrides the type-based palette so a user-configured background color on a
+     * processor or label is reflected on the minimap, keeping the overview visually
+     * consistent with what the user sees on the canvas.
      */
     fillColor?: string;
 }

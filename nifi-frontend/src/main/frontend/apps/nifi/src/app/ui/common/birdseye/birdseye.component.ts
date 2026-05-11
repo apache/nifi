@@ -111,13 +111,13 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
 
     private effectiveWidth = 200;
 
-    // Component colors mirror the flow-designer BirdseyeView palette so the connector and
-    // flow-designer minimaps render with consistent visual language. Process groups inherit the
-    // remote-process-group fill because the flow-designer palette intentionally falls through to
-    // the same color. Only processors and labels render a stroke; the stroke is derived from the
-    // resolved fill so user-configured background colors keep adequate contrast. Connection is
-    // intentionally omitted — getBirdseyeComponentData() does not emit connections, so any
-    // unmapped type falls through to DEFAULT_COLOR.
+    // Default palette mapped per ComponentType. Process groups and remote process groups share a
+    // fill so the two visually merge into a single "group" band on the minimap. Only processors
+    // and labels render a stroke because they are the only component types whose fill can be
+    // overridden by a user-configured background color; the stroke is derived from the resolved
+    // fill so it keeps adequate contrast against any choice. Connection is intentionally omitted
+    // because getBirdseyeComponentData() does not emit connections, so any unmapped type
+    // (current or future) falls through to DEFAULT_COLOR.
     private readonly COMPONENT_COLORS: Partial<Record<ComponentType, { fill: string; hasStroke: boolean }>> = {
         [ComponentType.Processor]: { fill: '#dde4eb', hasStroke: true },
         [ComponentType.ProcessGroup]: { fill: '#728e9b', hasStroke: false },
@@ -234,8 +234,10 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
-     * Create the draggable viewport brush. Drag-only, delta-based translation matches
-     * the legacy BirdseyeView behavior.
+     * Create the draggable viewport brush. Translation is delta-based: each drag event applies
+     * an incremental offset to the current canvas translate rather than computing an absolute
+     * viewport position. This keeps the brush in lock-step with incremental canvas pans and
+     * avoids cumulative rounding drift when the user holds and drags continuously.
      */
     private createBrush(): void {
         if (!this.brushGroup) return;
@@ -359,9 +361,12 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
 
         ctx.save();
 
-        // Apply the same transformation chain the legacy BirdseyeView uses, so strokes scale
-        // naturally with the content:
-        // translate(offset) -> scale(birdseyeScale) -> translate(-bounds.min)
+        // Apply the transformation chain in this order:
+        //   translate(offset) -> scale(birdseyeScale) -> translate(-bounds.min)
+        // Scaling before drawing means strokes scale uniformly with the content, so a single
+        // strokeStyle assignment produces a visually consistent border for every component.
+        // Translating by -bounds.min lets the loop pass each component's raw canvas position
+        // and dimensions without the caller having to map them into birdseye coordinates.
         ctx.translate(this.offsetX, this.offsetY);
         ctx.scale(this.birdseyeScale, this.birdseyeScale);
         ctx.translate(-this.bounds.minX, -this.bounds.minY);
@@ -395,9 +400,10 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
-     * Returns black or white depending on whether the supplied hex color is light or dark,
-     * mirroring the algorithm used by the flow-designer canvas utilities so the birdseye
-     * stroke contrast remains consistent across both minimaps.
+     * Returns black or white depending on whether the supplied hex color is light or dark, so
+     * the stroke remains legible against any user-configured fill. Uses a simple luminance
+     * threshold (`parseInt(hex, 16) > 0xffffff / 1.5`) which is cheap to compute on every
+     * paint and gives correct contrast for the limited fill palette this component renders.
      */
     private determineContrastColor(fill: string): string {
         const hex = fill.startsWith('#') ? fill.substring(1) : fill;

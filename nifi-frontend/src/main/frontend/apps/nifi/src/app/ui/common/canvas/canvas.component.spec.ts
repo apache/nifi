@@ -384,6 +384,48 @@ describe('CanvasComponent', () => {
             expect(types).toContain(ComponentType.Funnel);
             expect(types).toContain(ComponentType.ProcessGroup);
         });
+
+        it('should expose the user-configured background color for a readable processor', async () => {
+            const processor = createMockProcessor({ id: 'proc-1' });
+            processor.component.style = { 'background-color': '#abcdef' };
+            const { component } = await setup({ processors: [processor] });
+
+            const data = component.getBirdseyeComponentData();
+
+            expect(data[0].fillColor).toBe('#abcdef');
+        });
+
+        it('should leave fillColor undefined for an unauthorized processor even when a style is present', async () => {
+            const processor = createMockProcessor({ id: 'proc-1' });
+            processor.permissions = { canRead: false, canWrite: false };
+            processor.component.style = { 'background-color': '#abcdef' };
+            const { component } = await setup({ processors: [processor] });
+
+            const data = component.getBirdseyeComponentData();
+
+            expect(data[0].fillColor).toBeUndefined();
+        });
+
+        it('should expose the user-configured background color for a readable label', async () => {
+            const label = createMockLabel({ id: 'label-1' });
+            label.component.style = { 'background-color': '#fedcba' };
+            const { component } = await setup({ labels: [label] });
+
+            const data = component.getBirdseyeComponentData();
+
+            expect(data[0].fillColor).toBe('#fedcba');
+        });
+
+        it('should leave fillColor undefined for an unauthorized label even when a style is present', async () => {
+            const label = createMockLabel({ id: 'label-1' });
+            label.permissions = { canRead: false, canWrite: false };
+            label.component.style = { 'background-color': '#fedcba' };
+            const { component } = await setup({ labels: [label] });
+
+            const data = component.getBirdseyeComponentData();
+
+            expect(data[0].fillColor).toBeUndefined();
+        });
     });
 
     describe('Birdseye API - setViewportPosition', () => {

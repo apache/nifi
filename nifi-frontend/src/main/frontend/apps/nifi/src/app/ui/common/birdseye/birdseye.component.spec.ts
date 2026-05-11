@@ -320,7 +320,7 @@ describe('CanvasBirdseyeComponent', () => {
             };
         }
 
-        it('should use the flow-designer palette for processors with a contrast stroke', async () => {
+        it('should fill processors with the default palette color and a contrast stroke', async () => {
             const tracker = installPaintTracker();
             try {
                 const components = [createMockComponent({ type: ComponentType.Processor })];
@@ -334,7 +334,7 @@ describe('CanvasBirdseyeComponent', () => {
             }
         });
 
-        it('should default labels to the flow-designer label fill', async () => {
+        it('should fill labels with the default label palette color', async () => {
             const tracker = installPaintTracker();
             try {
                 const components = [createMockComponent({ type: ComponentType.Label })];
