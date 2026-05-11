@@ -55,6 +55,7 @@ import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.StandardConnectorConfigurationProviderInitializationContext;
@@ -1050,7 +1051,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return connection;
         }
 
-        for (final ConnectorNode connector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
             if (flowContext != null) {
                 final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
@@ -1077,7 +1078,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return remoteGroupPort;
         }
 
-        for (final ConnectorNode connector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
             if (flowContext != null) {
                 final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
@@ -1507,7 +1508,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 LOG.info("Starting {} Connectors", startConnectorsAfterInitialization.size());
                 for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
                     try {
-                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier(), ConnectorSyncMode.LOCAL_ONLY);
                         if (existingConnector == null) {
                             LOG.debug("Will not start {} because it no longer exists", connectorNode);
                             continue;
@@ -1539,7 +1540,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 // Explicitly stop Connectors so that their state is properly transitioned from UPDATED to STOPPED.
                 for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
                     try {
-                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier(), ConnectorSyncMode.LOCAL_ONLY);
                         if (existingConnector != null) {
                             connectorRepository.stopConnector(connectorNode);
                         }

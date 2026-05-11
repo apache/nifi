@@ -20,6 +20,7 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -289,7 +290,7 @@ class VersionedFlowSynchronizerTest {
         when(flowController.createVersionedComponentStateLookup(any())).thenReturn(stateLookup);
         when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
 
-        when(connectorRepository.getConnectors()).thenReturn(Collections.emptyList());
+        when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(Collections.emptyList());
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
     }
 
@@ -376,7 +377,7 @@ class VersionedFlowSynchronizerTest {
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
         setFlowController(connectorRepository);
-        when(connectorRepository.getConnectors()).thenReturn(List.of(orphanConnector));
+        when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(orphanConnector));
         when(versionedDataflow.getConnectors()).thenReturn(List.of(proposedConnector));
 
         versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
@@ -410,7 +411,7 @@ class VersionedFlowSynchronizerTest {
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
         setFlowController(connectorRepository);
-        when(connectorRepository.getConnectors()).thenReturn(List.of(existingConnector));
+        when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(existingConnector));
         when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
 
         versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
@@ -447,7 +448,7 @@ class VersionedFlowSynchronizerTest {
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
         setFlowController(connectorRepository);
-        when(connectorRepository.getConnectors()).thenReturn(List.of(orphanConnector));
+        when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(orphanConnector));
         when(versionedDataflow.getConnectors()).thenReturn(List.of(proposedConnector));
 
         versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);

@@ -28,6 +28,7 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
@@ -1058,7 +1059,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        for (final ConnectorNode existingConnector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode existingConnector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             if (!proposedConnectorIds.contains(existingConnector.getIdentifier())) {
                 logger.info("Connector [{}] (state={}) is no longer part of the proposed flow. Stopping and removing.",
                         existingConnector.getIdentifier(), existingConnector.getCurrentState());

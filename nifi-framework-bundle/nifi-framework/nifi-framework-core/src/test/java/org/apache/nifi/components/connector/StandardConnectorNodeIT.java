@@ -263,7 +263,7 @@ public class StandardConnectorNodeIT {
         final DynamicFlowConnector flowConnector = (DynamicFlowConnector) connector;
         assertTrue(flowConnector.isInitialized());
 
-        assertEquals(List.of(connectorNode), connectorRepository.getConnectors());
+        assertEquals(List.of(connectorNode), connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY));
 
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
         assertEquals(3, rootGroup.getProcessGroups().size());
@@ -282,7 +282,7 @@ public class StandardConnectorNodeIT {
     private ConnectorNode initializeParameterConnector() {
         final ConnectorNode connectorNode = flowManager.createConnector(ParameterConnector.class.getName(), "parameter-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
-        assertEquals(List.of(connectorNode), connectorRepository.getConnectors());
+        assertEquals(List.of(connectorNode), connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY));
 
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
         assertEquals(3, rootGroup.getProcessors().size());

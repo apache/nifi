@@ -20,6 +20,7 @@ package org.apache.nifi.mock.connector.server;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.web.NiFiConnectorWebContext;
 import org.apache.nifi.web.NiFiConnectorWebContext.ConnectorWebContext;
@@ -55,7 +56,7 @@ class MockNiFiConnectorWebContextTest {
 
     @Test
     void testGetConnectorWebContextReturnsConnectorAndFlowContexts() {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorRepository.getConnector(CONNECTOR_ID, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getConnector()).thenReturn(connector);
         when(connectorNode.getWorkingFlowContext()).thenReturn(workingFlowContext);
         when(connectorNode.getActiveFlowContext()).thenReturn(activeFlowContext);
@@ -71,7 +72,7 @@ class MockNiFiConnectorWebContextTest {
 
     @Test
     void testGetConnectorWebContextThrowsForUnknownConnector() {
-        when(connectorRepository.getConnector("unknown-id")).thenReturn(null);
+        when(connectorRepository.getConnector("unknown-id", ConnectorSyncMode.LOCAL_ONLY)).thenReturn(null);
 
         final NiFiConnectorWebContext context = new MockNiFiConnectorWebContext(connectorRepository);
 

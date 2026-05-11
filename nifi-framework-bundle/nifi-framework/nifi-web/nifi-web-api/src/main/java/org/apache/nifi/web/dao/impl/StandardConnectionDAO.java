@@ -24,6 +24,7 @@ import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -92,7 +93,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
         // Optionally search Connector-managed ProcessGroups
         if (includeConnectorManaged) {
-            for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors()) {
+            for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
                 final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
                 if (flowContext != null) {
                     final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();

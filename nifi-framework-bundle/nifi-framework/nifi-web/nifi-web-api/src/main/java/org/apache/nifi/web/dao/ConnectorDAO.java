@@ -21,6 +21,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
@@ -37,6 +38,8 @@ public interface ConnectorDAO {
     boolean hasConnector(String id);
 
     ConnectorNode getConnector(String id);
+
+    ConnectorNode getConnector(String id, ConnectorSyncMode syncMode);
 
     List<ConnectorNode> getConnectors();
 
