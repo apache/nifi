@@ -74,18 +74,7 @@ import {
     OverlapDetectionConnection,
     wouldRemovalCauseOverlap
 } from '../overlap-detection.utils';
-
-export interface BirdseyeComponentData {
-    id: string;
-    type: ComponentType;
-    position: Position;
-    dimensions: Dimension;
-}
-
-export interface BirdseyeTransform {
-    translate: Position;
-    scale: number;
-}
+import { BirdseyeComponentData, BirdseyeTransform } from '../birdseye/birdseye.types';
 
 /**
  * Interface for viewport transform storage
@@ -2979,11 +2968,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Add processors
         this.internalProcessors().forEach((p) => {
+            // Without canRead the caller is not authorized to view the component definition
+            // (including its configured style), so fall back to the default palette fill rather
+            // than leaking the user-configured background color through the minimap.
+            const fillColor = p.entity.permissions?.canRead
+                ? p.entity.component?.style?.['background-color'] || undefined
+                : undefined;
             components.push({
                 id: p.entity.id,
                 type: ComponentType.Processor,
                 position: { x: p.entity.position.x, y: p.entity.position.y },
-                dimensions: { width: p.ui.dimensions.width, height: p.ui.dimensions.height }
+                dimensions: { width: p.ui.dimensions.width, height: p.ui.dimensions.height },
+                fillColor
             });
         });
 
@@ -3030,11 +3026,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Add labels
         this.internalLabels().forEach((l) => {
+            // Same authorization rule as processors above: a caller without canRead has no
+            // authority to view the label's configured style, so fall back to the default
+            // palette fill rather than leaking the user-configured background color.
+            const fillColor = l.entity.permissions?.canRead
+                ? l.entity.component?.style?.['background-color'] || undefined
+                : undefined;
             components.push({
                 id: l.entity.id,
                 type: ComponentType.Label,
                 position: { x: l.entity.position.x, y: l.entity.position.y },
-                dimensions: { width: l.ui.dimensions.width, height: l.ui.dimensions.height }
+                dimensions: { width: l.ui.dimensions.width, height: l.ui.dimensions.height },
+                fillColor
             });
         });
 

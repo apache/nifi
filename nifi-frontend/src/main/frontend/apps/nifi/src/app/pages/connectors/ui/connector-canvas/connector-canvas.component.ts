@@ -15,13 +15,24 @@
  * limitations under the License.
  */
 
-import { Component, computed, OnDestroy, OnInit, DestroyRef, inject, HostListener, viewChild } from '@angular/core';
+import {
+    Component,
+    computed,
+    OnDestroy,
+    OnInit,
+    DestroyRef,
+    inject,
+    HostListener,
+    signal,
+    viewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import {
     canOperateConnector,
@@ -38,7 +49,8 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
-import { ContextMenuContext } from '../../../../ui/common/canvas/canvas.types';
+import { BirdseyeComponentData, BirdseyeTransform } from '../../../../ui/common/birdseye/birdseye.types';
+import { ContextMenuContext, Dimension, Position } from '../../../../ui/common/canvas/canvas.types';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
@@ -80,6 +92,7 @@ import { getComponentStateAndOpenDialog } from '../../../../state/component-stat
 })
 export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private store = inject(Store<NiFiState>);
+    private actions$ = inject(Actions);
     private destroyRef = inject(DestroyRef);
     private router = inject(Router);
     private dialog = inject(MatDialog);
@@ -96,6 +109,12 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     canNavigateToParent = false;
     skipTransform = this.store.selectSignal(ConnectorCanvasSelectors.selectSkipTransform);
     graphControlsOpen = true;
+
+    birdseyeComponents = signal<BirdseyeComponentData[]>([]);
+    birdseyeTransform = signal<BirdseyeTransform>({ translate: { x: 0, y: 0 }, scale: 1 });
+    canvasDimensions = signal<Dimension>({ width: 0, height: 0 });
+
+    private canvasReady = false;
 
     connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
     entitySaving = this.store.selectSignal(selectConnectorCanvasEntitySaving);
@@ -360,6 +379,18 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
             .subscribe((parentProcessGroupId) => {
                 this.canNavigateToParent = parentProcessGroupId != null;
             });
+
+        // Refresh birdseye geometry whenever a flow load completes (initial load or refresh).
+        // Without this, the minimap would only reflect the data captured during the very first
+        // canvas initialization and would go stale after subsequent refreshes / process-group
+        // navigations performed against an already-mounted canvas.
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.loadConnectorFlowSuccess), takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+                // Defer one tick so the entity arrays flow through async pipes into the canvas
+                // and the canvas's internal signals (read by getBirdseyeComponentData) update.
+                queueMicrotask(() => this.refreshBirdseye());
+            });
     }
 
     ngOnDestroy(): void {
@@ -367,8 +398,15 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         this.store.dispatch(ConnectorCanvasEntityActions.resetConnectorCanvasEntityState());
     }
 
-    onTransformChange(_event: { translate: { x: number; y: number }; scale: number }): void {
-        // placeholder for future viewport persistence
+    @HostListener('window:resize')
+    handleWindowResize(): void {
+        if (this.canvasReady) {
+            this.canvasDimensions.set(this.canvasComponent().getCanvasDimensions());
+        }
+    }
+
+    onTransformChange(event: BirdseyeTransform): void {
+        this.birdseyeTransform.set(event);
     }
 
     onProcessGroupDoubleClick(event: { processGroupId: string }): void {
@@ -407,6 +445,9 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     }
 
     onCanvasInitialized(): void {
+        this.canvasReady = true;
+        this.refreshBirdseye();
+
         if (this.selectedComponentIds.length > 0) {
             if (this.skipTransform()) {
                 this.store.dispatch(ConnectorCanvasActions.setSkipTransform({ skipTransform: false }));
@@ -414,6 +455,51 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 this.canvasComponent().centerOnSelection(false, 1);
             }
         }
+    }
+
+    private refreshBirdseye(): void {
+        if (!this.canvasReady) {
+            return;
+        }
+        const canvas = this.canvasComponent();
+        this.birdseyeComponents.set(canvas.getBirdseyeComponentData());
+        this.canvasDimensions.set(canvas.getCanvasDimensions());
+    }
+
+    // =========================================================================
+    // Navigation Control / Birdseye delegation
+    // =========================================================================
+
+    onNavigationZoomIn(): void {
+        this.canvasComponent().onZoomIn();
+    }
+
+    onNavigationZoomOut(): void {
+        this.canvasComponent().onZoomOut();
+    }
+
+    onNavigationZoomFit(): void {
+        this.canvasComponent().onZoomFit();
+    }
+
+    onNavigationZoomActual(): void {
+        this.canvasComponent().onZoomActual();
+    }
+
+    onNavigationLeaveGroup(): void {
+        this.leaveGroupAction();
+    }
+
+    onBirdseyeViewportChange(event: Position): void {
+        this.canvasComponent().setViewportPosition(event.x, event.y, false);
+    }
+
+    onBirdseyeDragStart(): void {
+        this.canvasComponent().birdseyeDragStart();
+    }
+
+    onBirdseyeDragEnd(): void {
+        this.canvasComponent().birdseyeDragEnd();
     }
 
     // =========================================================================

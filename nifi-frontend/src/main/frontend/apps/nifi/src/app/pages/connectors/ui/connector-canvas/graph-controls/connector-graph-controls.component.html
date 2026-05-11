@@ -17,7 +17,21 @@
 
 <div class="connector-graph-controls w-96">
     <div class="flex flex-col p-2 gap-y-2">
-        <!-- Navigation control will be added in Effort 3 (Canvas Navigation & Birdseye). -->
+        <canvas-navigation-control
+            storageKey="connector-navigation-control"
+            [birdseyeComponents]="birdseyeComponents()"
+            [birdseyeTransform]="birdseyeTransform()"
+            [canvasDimensions]="canvasDimensions()"
+            [canNavigateToParent]="canNavigateToParent()"
+            (viewportChange)="viewportChange.emit($event)"
+            (birdseyeDragStart)="birdseyeDragStart.emit()"
+            (birdseyeDragEnd)="birdseyeDragEnd.emit()"
+            (zoomIn)="zoomIn.emit()"
+            (zoomOut)="zoomOut.emit()"
+            (zoomFit)="zoomFit.emit()"
+            (zoomActual)="zoomActual.emit()"
+            (leaveGroup)="leaveGroup.emit()">
+        </canvas-navigation-control>
         <connector-info-control
             [connectorEntity]="connectorEntity()"
             [entitySaving]="entitySaving()"></connector-info-control>

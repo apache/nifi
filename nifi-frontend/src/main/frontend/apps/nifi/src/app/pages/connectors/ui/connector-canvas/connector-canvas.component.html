@@ -29,7 +29,21 @@
     <div class="relative flex-1 min-h-0">
         <mat-sidenav-container class="h-full">
             <mat-sidenav disableClose="true" mode="side" [opened]="graphControlsOpen" position="start">
-                <connector-graph-controls [connectorEntity]="connectorEntity()" [entitySaving]="entitySaving()">
+                <connector-graph-controls
+                    [connectorEntity]="connectorEntity()"
+                    [entitySaving]="entitySaving()"
+                    [birdseyeComponents]="birdseyeComponents()"
+                    [birdseyeTransform]="birdseyeTransform()"
+                    [canvasDimensions]="canvasDimensions()"
+                    [canNavigateToParent]="canNavigateToParent"
+                    (viewportChange)="onBirdseyeViewportChange($event)"
+                    (birdseyeDragStart)="onBirdseyeDragStart()"
+                    (birdseyeDragEnd)="onBirdseyeDragEnd()"
+                    (zoomIn)="onNavigationZoomIn()"
+                    (zoomOut)="onNavigationZoomOut()"
+                    (zoomFit)="onNavigationZoomFit()"
+                    (zoomActual)="onNavigationZoomActual()"
+                    (leaveGroup)="onNavigationLeaveGroup()">
                 </connector-graph-controls>
             </mat-sidenav>
             <mat-sidenav-content>
