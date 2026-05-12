@@ -36,6 +36,12 @@
                     [birdseyeTransform]="birdseyeTransform()"
                     [canvasDimensions]="canvasDimensions()"
                     [canNavigateToParent]="canNavigateToParent"
+                    [canAccessProvenance]="canAccessProvenance()"
+                    [provenanceEvents]="provenanceEvents()"
+                    [provenanceStatus]="provenanceStatus()"
+                    [provenanceError]="provenanceError()"
+                    [connectedToCluster]="connectedToCluster()"
+                    [contentViewerAvailable]="contentViewerAvailable()"
                     (viewportChange)="onBirdseyeViewportChange($event)"
                     (birdseyeDragStart)="onBirdseyeDragStart()"
                     (birdseyeDragEnd)="onBirdseyeDragEnd()"
@@ -43,7 +49,13 @@
                     (zoomOut)="onNavigationZoomOut()"
                     (zoomFit)="onNavigationZoomFit()"
                     (zoomActual)="onNavigationZoomActual()"
-                    (leaveGroup)="onNavigationLeaveGroup()">
+                    (leaveGroup)="onNavigationLeaveGroup()"
+                    (provenanceRefresh)="onProvenanceRefresh()"
+                    (provenanceCollapsedChange)="onProvenanceCollapsedChange($event)"
+                    (provenanceViewDetails)="onProvenanceViewDetails($event)"
+                    (provenanceDownloadContent)="onProvenanceDownloadContent($event)"
+                    (provenanceViewContent)="onProvenanceViewContent($event)"
+                    (provenanceReplayEvent)="onProvenanceReplayEvent($event)">
                 </connector-graph-controls>
             </mat-sidenav>
             <mat-sidenav-content>

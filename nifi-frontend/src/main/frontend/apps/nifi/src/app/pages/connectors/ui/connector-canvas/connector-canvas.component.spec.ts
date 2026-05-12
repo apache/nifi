@@ -41,6 +41,9 @@ import { ErrorContextKey } from '../../../../state/error';
 import { Storage } from '@nifi/shared';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
+import { selectAbout } from '../../../../state/about/about.selectors';
+import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { ProvenanceEvent } from '../../../../state/shared';
 import {
     selectConnectorCanvasEntity,
     selectConnectorCanvasEntitySaving
@@ -70,6 +73,19 @@ import {
 } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../../../../state/empty-queue/empty-queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
+import {
+    downloadContent as connectorProvenanceDownloadContent,
+    loadLatestEventsForComponent as connectorProvenanceLoadLatest,
+    openProvenanceEventDialog as connectorProvenanceOpenEventDialog,
+    replayEvent as connectorProvenanceReplayEvent,
+    resetState as connectorProvenanceResetState,
+    viewContent as connectorProvenanceViewContent
+} from '../../state/connector-provenance-preview/connector-provenance-preview.actions';
+import {
+    selectConnectorProvenanceError,
+    selectConnectorProvenanceEvents,
+    selectConnectorProvenanceStatus
+} from '../../state/connector-provenance-preview/connector-provenance-preview.selectors';
 
 // Mock components to avoid loading complex real components
 @Component({
@@ -158,6 +174,12 @@ class MockConnectorGraphControls {
     birdseyeTransform = input<unknown>({ translate: { x: 0, y: 0 }, scale: 1 });
     canvasDimensions = input<unknown>({ width: 0, height: 0 });
     canNavigateToParent = input<boolean>(false);
+    canAccessProvenance = input<boolean>(false);
+    provenanceEvents = input<ProvenanceEvent[]>([]);
+    provenanceStatus = input<'pending' | 'loading' | 'success' | 'error'>('pending');
+    provenanceError = input<string | null>(null);
+    connectedToCluster = input<boolean>(false);
+    contentViewerAvailable = input<boolean>(false);
     viewportChange = output<{ x: number; y: number }>();
     birdseyeDragStart = output<void>();
     birdseyeDragEnd = output<void>();
@@ -166,6 +188,12 @@ class MockConnectorGraphControls {
     zoomFit = output<void>();
     zoomActual = output<void>();
     leaveGroup = output<void>();
+    provenanceRefresh = output<void>();
+    provenanceCollapsedChange = output<boolean>();
+    provenanceViewDetails = output<ProvenanceEvent>();
+    provenanceDownloadContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
+    provenanceViewContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
+    provenanceReplayEvent = output<ProvenanceEvent>();
 }
 
 @Component({
@@ -194,6 +222,13 @@ interface SetupOptions {
     skipTransform?: boolean;
     routeParams?: Record<string, string>;
     canAccessProvenance?: boolean;
+    inputPorts?: any[];
+    outputPorts?: any[];
+    provenanceEvents?: ProvenanceEvent[];
+    provenanceStatus?: 'pending' | 'loading' | 'success' | 'error';
+    provenanceError?: string | null;
+    connectedToCluster?: boolean;
+    contentViewerUrl?: string | null;
 }
 
 const DEFAULT_CONNECTOR_ID = 'connector-1';
@@ -234,6 +269,8 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectProcessors, value: [] },
         { selector: ConnectorCanvasSelectors.selectFunnels, value: [] },
         { selector: ConnectorCanvasSelectors.selectAllPorts, value: [] },
+        { selector: ConnectorCanvasSelectors.selectInputPorts, value: options.inputPorts ?? [] },
+        { selector: ConnectorCanvasSelectors.selectOutputPorts, value: options.outputPorts ?? [] },
         { selector: ConnectorCanvasSelectors.selectRemoteProcessGroups, value: [] },
         { selector: ConnectorCanvasSelectors.selectProcessGroups, value: [] },
         { selector: ConnectorCanvasSelectors.selectConnections, value: [] },
@@ -247,7 +284,15 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: selectRouteParams, value: routeParamsValue },
         { selector: selectCurrentUser, value: buildMockCurrentUser(canAccessProvenance) },
         { selector: selectConnectorCanvasEntity, value: null },
-        { selector: selectConnectorCanvasEntitySaving, value: false }
+        { selector: selectConnectorCanvasEntitySaving, value: false },
+        { selector: selectConnectorProvenanceEvents, value: options.provenanceEvents ?? [] },
+        { selector: selectConnectorProvenanceStatus, value: options.provenanceStatus ?? 'pending' },
+        { selector: selectConnectorProvenanceError, value: options.provenanceError ?? null },
+        {
+            selector: selectClusterSummary,
+            value: { connectedToCluster: options.connectedToCluster ?? false, clustered: false }
+        },
+        { selector: selectAbout, value: { contentViewerUrl: options.contentViewerUrl ?? null } }
     ];
 }
 
@@ -2321,6 +2366,282 @@ describe('ConnectorCanvasComponent', () => {
             component.returnToConnectorListing();
 
             expect(navigateSpy).toHaveBeenCalledWith(['/connectors']);
+        });
+    });
+
+    describe('Provenance preview wiring', () => {
+        function getGraphControlsMock(fixture: ComponentFixture<ConnectorCanvasComponent>): MockConnectorGraphControls {
+            return fixture.debugElement.query((el) => el.name === 'connector-graph-controls')
+                .componentInstance as MockConnectorGraphControls;
+        }
+
+        const SAMPLE_EVENT: ProvenanceEvent = {
+            id: 'evt-1',
+            eventId: 100,
+            eventTime: '01/01/2025 12:00:00 UTC',
+            eventTimestamp: '2025-01-01T12:00:00Z',
+            eventType: 'RECEIVE',
+            flowFileUuid: 'ff-1',
+            fileSize: '1 KB',
+            fileSizeBytes: 1024,
+            clusterNodeId: 'node-1',
+            clusterNodeAddress: 'node-1.local',
+            groupId: 'group-1',
+            componentId: 'proc-1',
+            componentType: 'Processor',
+            componentName: 'MyProcessor',
+            eventDuration: '0 ms',
+            lineageDuration: 0,
+            sourceSystemFlowFileId: '',
+            alternateIdentifierUri: '',
+            parentUuids: [],
+            childUuids: [],
+            transitUri: '',
+            relationship: '',
+            details: '',
+            contentEqual: false,
+            inputContentAvailable: true,
+            inputContentClaimSection: '',
+            inputContentClaimContainer: '',
+            inputContentClaimIdentifier: '',
+            inputContentClaimOffset: 0,
+            inputContentClaimFileSize: '0 bytes',
+            inputContentClaimFileSizeBytes: 0,
+            outputContentAvailable: true,
+            outputContentClaimSection: '',
+            outputContentClaimContainer: '',
+            outputContentClaimIdentifier: '',
+            outputContentClaimOffset: '0',
+            outputContentClaimFileSize: '0 bytes',
+            outputContentClaimFileSizeBytes: 0,
+            replayAvailable: true,
+            replayExplanation: '',
+            sourceConnectionIdentifier: ''
+        };
+
+        it('should expose provenance signals to connector-graph-controls', fakeAsync(() => {
+            const { fixture } = setup({
+                provenanceStatus: 'success',
+                provenanceEvents: [SAMPLE_EVENT],
+                connectedToCluster: true,
+                contentViewerUrl: 'http://viewer'
+            });
+            fixture.detectChanges();
+            tick();
+
+            const graphControls = getGraphControlsMock(fixture);
+            expect(graphControls.provenanceStatus()).toBe('success');
+            expect(graphControls.provenanceEvents()).toEqual([SAMPLE_EVENT]);
+            expect(graphControls.canAccessProvenance()).toBe(true);
+            expect(graphControls.connectedToCluster()).toBe(true);
+            expect(graphControls.contentViewerAvailable()).toBe(true);
+        }));
+
+        it('should dispatch loadLatestEventsForComponent for an eligible Processor selection', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({
+                routeParams: { type: ComponentType.Processor, componentId: 'proc-42' }
+            });
+            fixture.detectChanges();
+            tick();
+
+            // Mirror the provenance-preview child notifying the parent that its panel is expanded,
+            // which flushes the deferred load queued during eligibility evaluation.
+            component.onProvenanceCollapsedChange(false);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceLoadLatest({ componentId: 'proc-42' }));
+        }));
+
+        it('should dispatch loadLatestEventsForComponent for an eligible Connection selection', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({
+                routeParams: { type: ComponentType.Connection, componentId: 'conn-1' }
+            });
+            fixture.detectChanges();
+            tick();
+
+            component.onProvenanceCollapsedChange(false);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceLoadLatest({ componentId: 'conn-1' }));
+        }));
+
+        it('should dispatch loadLatestEventsForComponent for an InputPort that allows remote access', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({
+                routeParams: { type: ComponentType.InputPort, componentId: 'port-1' },
+                inputPorts: [{ id: 'port-1', component: { allowRemoteAccess: true } }]
+            });
+            fixture.detectChanges();
+            tick();
+
+            component.onProvenanceCollapsedChange(false);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceLoadLatest({ componentId: 'port-1' }));
+        }));
+
+        it('should NOT load events for an InputPort without allowRemoteAccess', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({
+                routeParams: { type: ComponentType.InputPort, componentId: 'port-1' },
+                inputPorts: [{ id: 'port-1', component: { allowRemoteAccess: false } }]
+            });
+            fixture.detectChanges();
+            tick();
+
+            const loads = dispatchSpy.mock.calls.filter(
+                (call: unknown[]) => (call[0] as { type: string }).type === connectorProvenanceLoadLatest.type
+            );
+            expect(loads).toHaveLength(0);
+        }));
+
+        it('should dispatch resetState when no component is selected', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({
+                routeParams: { id: DEFAULT_CONNECTOR_ID, processGroupId: DEFAULT_PROCESS_GROUP_ID }
+            });
+            fixture.detectChanges();
+            tick();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceResetState());
+        }));
+
+        it('should NOT load events when an ineligible ProcessGroup is selected', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({
+                routeParams: { type: ComponentType.ProcessGroup, componentId: 'pg-x' }
+            });
+            fixture.detectChanges();
+            tick();
+
+            const loads = dispatchSpy.mock.calls.filter(
+                (call: unknown[]) => (call[0] as { type: string }).type === connectorProvenanceLoadLatest.type
+            );
+            expect(loads).toHaveLength(0);
+        }));
+
+        it('should defer loading when graph controls are collapsed and flush when reopened', fakeAsync(() => {
+            const storage = createMockStorage();
+            storage.getItem.mockImplementation((key: string) => {
+                if (key === 'graph-control-visibility') {
+                    return {
+                        'connector-graph-controls': false
+                    };
+                }
+                return null;
+            });
+            const { fixture, component, dispatchSpy } = setup(
+                { routeParams: { type: ComponentType.Processor, componentId: 'proc-77' } },
+                storage
+            );
+            fixture.detectChanges();
+            tick();
+
+            const initialLoads = dispatchSpy.mock.calls.filter(
+                (call: unknown[]) => (call[0] as { type: string }).type === connectorProvenanceLoadLatest.type
+            );
+            expect(initialLoads).toHaveLength(0);
+
+            dispatchSpy.mockClear();
+            // Mirror the provenance-preview child notifying the parent that its panel is expanded.
+            component.onProvenanceCollapsedChange(false);
+            component.toggleGraphControls();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceLoadLatest({ componentId: 'proc-77' }));
+        }));
+
+        it('should defer loading when the provenance section is collapsed and flush when expanded', fakeAsync(() => {
+            const storage = createMockStorage();
+            storage.getItem.mockImplementation((key: string) => {
+                if (key === 'graph-control-visibility') {
+                    return {
+                        'connector-graph-controls': true
+                    };
+                }
+                return null;
+            });
+            const { fixture, component, dispatchSpy } = setup(
+                { routeParams: { type: ComponentType.Processor, componentId: 'proc-88' } },
+                storage
+            );
+            fixture.detectChanges();
+            tick();
+
+            const initialLoads = dispatchSpy.mock.calls.filter(
+                (call: unknown[]) => (call[0] as { type: string }).type === connectorProvenanceLoadLatest.type
+            );
+            expect(initialLoads).toHaveLength(0);
+
+            dispatchSpy.mockClear();
+            component.onProvenanceCollapsedChange(false);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceLoadLatest({ componentId: 'proc-88' }));
+        }));
+
+        it('should dispatch openProvenanceEventDialog from onProvenanceViewDetails', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onProvenanceViewDetails(SAMPLE_EVENT);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                connectorProvenanceOpenEventDialog({ request: { event: SAMPLE_EVENT } })
+            );
+        }));
+
+        it('should dispatch downloadContent from onProvenanceDownloadContent', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            const request = { event: SAMPLE_EVENT, direction: 'input' as const };
+            component.onProvenanceDownloadContent(request);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceDownloadContent({ request }));
+        }));
+
+        it('should dispatch viewContent from onProvenanceViewContent', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            const request = { event: SAMPLE_EVENT, direction: 'output' as const };
+            component.onProvenanceViewContent(request);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceViewContent({ request }));
+        }));
+
+        it('should dispatch replayEvent from onProvenanceReplayEvent', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onProvenanceReplayEvent(SAMPLE_EVENT);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                connectorProvenanceReplayEvent({ request: { event: SAMPLE_EVENT } })
+            );
+        }));
+
+        it('should dispatch loadLatestEventsForComponent from onProvenanceRefresh when an eligible component is selected', fakeAsync(() => {
+            const { fixture, component, dispatchSpy } = setup({
+                routeParams: { type: ComponentType.Processor, componentId: 'proc-99' }
+            });
+            fixture.detectChanges();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.onProvenanceRefresh();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceLoadLatest({ componentId: 'proc-99' }));
+        }));
+
+        it('should dispatch resetState on destroy', () => {
+            const { fixture, dispatchSpy } = setup();
+            fixture.detectChanges();
+            dispatchSpy.mockClear();
+
+            fixture.destroy();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceResetState());
         });
     });
 });
