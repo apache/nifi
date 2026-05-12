@@ -24,7 +24,7 @@ import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 /**
  * Kafka Client Component interface with common Property Descriptors
@@ -175,7 +175,7 @@ public interface KafkaClientComponent {
             .name("SSL Context Service")
             .description("Service supporting SSL communication with Kafka brokers")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .dependsOn(
                     SECURITY_PROTOCOL,
                     SecurityProtocol.SSL.name(),
