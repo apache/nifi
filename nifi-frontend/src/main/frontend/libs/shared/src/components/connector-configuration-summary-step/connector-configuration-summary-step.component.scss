@@ -20,8 +20,3 @@
     line-height: 1;
     vertical-align: middle;
 }
-
-button[disabled] {
-    pointer-events: auto;
-    cursor: not-allowed;
-}

@@ -793,4 +793,10 @@
             )
         );
     }
+
+    // buttons
+    .mdc-button:disabled {
+        pointer-events: auto;
+        cursor: not-allowed;
+    }
 }
