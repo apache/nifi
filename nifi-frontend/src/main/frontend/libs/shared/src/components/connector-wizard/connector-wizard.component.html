@@ -81,6 +81,8 @@
                                     [stepVerificationResults]="wizardStore.stepVerificationResults()"
                                     [verifyAllError]="wizardStore.verifyAllError()"
                                     [stepNameMapping]="stepNameMapping()"
+                                    [applyAllowed]="wizardStore.applyUpdatesAllowed()"
+                                    [applyDisabledReason]="wizardStore.applyUpdatesDisabledReason()"
                                     (confirm)="onApplyConfiguration()"
                                     (dismiss)="navigateBack.emit()"
                                     (previous)="onPreviousStep()"

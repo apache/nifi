@@ -53,6 +53,8 @@ function createMockStore(state: MockStoreState = {}) {
         currentVerifyingStepName: signal<string | null>(null),
         stepVerificationResults: signal<Record<string, unknown>>({}),
         verifyAllError: signal<string | null>(null),
+        applyUpdatesAllowed: signal<boolean>(false),
+        applyUpdatesDisabledReason: signal<string>(''),
         bannerErrors: signal<string[]>([]),
         initializeWithConnector: vi.fn(),
         loadSecrets: vi.fn(),

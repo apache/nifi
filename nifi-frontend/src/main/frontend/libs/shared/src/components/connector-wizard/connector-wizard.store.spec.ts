@@ -264,6 +264,63 @@ describe('StandardConnectorWizardStore', () => {
     });
 
     // ═══════════════════════════════════════════════════════
+    // applyUpdatesAllowed / applyUpdatesDisabledReason
+    // ═══════════════════════════════════════════════════════
+
+    describe('applyUpdatesAllowed / applyUpdatesDisabledReason', () => {
+        it('returns false with empty reason when no connector is set', () => {
+            const { store } = setup();
+            expect(store.applyUpdatesAllowed()).toBe(false);
+            expect(store.applyUpdatesDisabledReason()).toBe('');
+        });
+
+        it('returns false with empty reason when APPLY_UPDATES action is missing', () => {
+            const { store } = setup();
+            store.initializeWithConnector(makeConnector());
+            expect(store.applyUpdatesAllowed()).toBe(false);
+            expect(store.applyUpdatesDisabledReason()).toBe('');
+        });
+
+        it('reflects allowed=true when backend permits APPLY_UPDATES', () => {
+            const { store } = setup();
+            const connector = makeConnector();
+            connector.component.availableActions = [
+                { name: 'APPLY_UPDATES', description: 'Apply updates', allowed: true }
+            ];
+            store.initializeWithConnector(connector);
+            expect(store.applyUpdatesAllowed()).toBe(true);
+            expect(store.applyUpdatesDisabledReason()).toBe('');
+        });
+
+        it('surfaces the backend reason when APPLY_UPDATES is not allowed', () => {
+            const { store } = setup();
+            const connector = makeConnector();
+            connector.component.availableActions = [
+                {
+                    name: 'APPLY_UPDATES',
+                    description: 'Apply updates',
+                    allowed: false,
+                    reasonNotAllowed: 'No pending changes'
+                }
+            ];
+            store.initializeWithConnector(connector);
+            expect(store.applyUpdatesAllowed()).toBe(false);
+            expect(store.applyUpdatesDisabledReason()).toBe('No pending changes');
+        });
+
+        it('returns empty reason when APPLY_UPDATES is not allowed but no reason is provided', () => {
+            const { store } = setup();
+            const connector = makeConnector();
+            connector.component.availableActions = [
+                { name: 'APPLY_UPDATES', description: 'Apply updates', allowed: false }
+            ];
+            store.initializeWithConnector(connector);
+            expect(store.applyUpdatesAllowed()).toBe(false);
+            expect(store.applyUpdatesDisabledReason()).toBe('');
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════
     // Per-step signal factories
     // ═══════════════════════════════════════════════════════
 

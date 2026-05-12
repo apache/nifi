@@ -58,6 +58,18 @@ export class ConnectorConfigurationSummaryStep {
     stepVerificationResults = input<{ [stepName: string]: ConfigVerificationResult[] }>({});
     stepNameMapping = input<{ [displayName: string]: string[] }>({});
     verifyAllError = input<string | null>(null);
+    /**
+     * Whether the backend permits applying updates. Defaults to true so callers that
+     * have not yet adopted the input continue to behave as before. When false (e.g. the
+     * connector reports `APPLY_UPDATES` as not allowed because there are no pending
+     * changes or the connector is mid-update), the Apply button is disabled.
+     */
+    applyAllowed = input(true);
+    /**
+     * Backend-supplied reason describing why apply is not allowed. Surfaced verbatim as
+     * the Apply button tooltip when {@link applyAllowed} is false. May be empty.
+     */
+    applyDisabledReason = input('');
 
     // Signal outputs
     confirm = output<void>();
@@ -66,10 +78,27 @@ export class ConnectorConfigurationSummaryStep {
     verify = output<void>();
 
     applyDisabled = computed(() => {
-        return this.loading() || this.applying() || this.verifying() || this.verificationPassed() !== true;
+        return (
+            this.loading() ||
+            this.applying() ||
+            this.verifying() ||
+            this.verificationPassed() !== true ||
+            !this.applyAllowed()
+        );
     });
 
+    /**
+     * The Apply button's tooltip. Returns one of:
+     *  - the backend-supplied {@link applyDisabledReason} verbatim when apply is not
+     *    allowed; takes precedence so the user sees the authoritative reason
+     *    (e.g. "No pending changes", "Connector is updating");
+     *  - the verify-required hint when verification has not succeeded;
+     *  - empty string otherwise.
+     */
     applyTooltip = computed(() => {
+        if (!this.applyAllowed() && this.applyDisabledReason()) {
+            return this.applyDisabledReason();
+        }
         if (this.verificationPassed() !== true) {
             return 'Run verification before applying';
         }

@@ -68,6 +68,7 @@ import {
     initialConnectorWizardState
 } from './connector-wizard.types';
 import { getVisibleStepNames } from './step-dependency.utils';
+import { getConnectorAction } from '../../utils/connector-permissions.utils';
 
 /**
  * Reusable SignalStore feature encapsulating all shared connector wizard logic.
@@ -90,7 +91,28 @@ export function withConnectorWizard() {
                 allStepsVerifying: computed(() => allStepsVerification().verifying),
                 verificationPassed: computed(() => allStepsVerification().passed),
                 currentVerifyingStepName: computed(() => allStepsVerification().currentStepName),
-                verifyAllError: computed(() => allStepsVerification().error)
+                verifyAllError: computed(() => allStepsVerification().error),
+                /**
+                 * Whether the backend currently permits applying the connector's working
+                 * configuration. Derived from the `APPLY_UPDATES` action on the connector
+                 * entity. The backend reports `allowed: false` with reason
+                 * `"No pending changes"` when there is nothing to apply, and with reason
+                 * `"Connector is updating"` while a previous apply is still in progress.
+                 */
+                applyUpdatesAllowed: computed(() => {
+                    const c = connector();
+                    if (!c) return false;
+                    return getConnectorAction(c, 'APPLY_UPDATES')?.allowed ?? false;
+                }),
+                /**
+                 * Backend-supplied reason describing why apply is not allowed. Empty when
+                 * apply is allowed or the action is missing entirely.
+                 */
+                applyUpdatesDisabledReason: computed(() => {
+                    const c = connector();
+                    if (!c) return '';
+                    return getConnectorAction(c, 'APPLY_UPDATES')?.reasonNotAllowed ?? '';
+                })
             })
         ),
 
