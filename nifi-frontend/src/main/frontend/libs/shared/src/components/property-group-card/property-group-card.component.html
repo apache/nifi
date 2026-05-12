@@ -15,30 +15,36 @@
   limitations under the License.
 -->
 
-<mat-card appearance="outlined" class="p-4">
+<mat-card appearance="outlined">
     @if (!hideGroupName()) {
-        <div class="font-semibold mb-4">{{ propertyGroup().propertyGroupName }}</div>
+        <mat-card-header>
+            <mat-card-title data-qa="property-group-name">
+                {{ propertyGroup().propertyGroupName }}
+            </mat-card-title>
+        </mat-card-header>
     }
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
-        @for (propertyName of getPropertyNames(); track propertyName) {
-            <div class="min-w-0 flex flex-col gap-y-1">
-                <div class="flex items-center pt-1">
-                    <mat-label ellipsisTooltip>{{ propertyName }}</mat-label>
-                    @if (isRequired(propertyName)) {
-                        <span class="error-color ml-1 shrink-0">*</span>
+    <mat-card-content>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
+            @for (propertyName of getPropertyNames(); track propertyName) {
+                <div class="min-w-0 flex flex-col gap-y-1">
+                    <div class="flex items-center pt-1">
+                        <mat-label ellipsisTooltip>{{ propertyName }}</mat-label>
+                        @if (isRequired(propertyName)) {
+                            <span class="error-color ml-1 shrink-0">*</span>
+                        }
+                    </div>
+                    @if (hasValue(propertyName)) {
+                        <span class="tertiary-color truncate" ellipsisTooltip>{{
+                            getDisplayValueForProperty(propertyName)
+                        }}</span>
+                    } @else {
+                        <span class="unset neutral-color">No value set</span>
+                    }
+                    @if (getFieldError(propertyName); as errorMessage) {
+                        <mat-error class="error-color">{{ errorMessage }}</mat-error>
                     }
                 </div>
-                @if (hasValue(propertyName)) {
-                    <span class="tertiary-color truncate" ellipsisTooltip>{{
-                        getDisplayValueForProperty(propertyName)
-                    }}</span>
-                } @else {
-                    <span class="unset neutral-color">No value set</span>
-                }
-                @if (getFieldError(propertyName); as errorMessage) {
-                    <mat-error class="error-color">{{ errorMessage }}</mat-error>
-                }
-            </div>
-        }
-    </div>
+            }
+        </div>
+    </mat-card-content>
 </mat-card>

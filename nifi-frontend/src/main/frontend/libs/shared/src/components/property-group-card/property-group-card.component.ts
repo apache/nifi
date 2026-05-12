@@ -16,8 +16,8 @@
  */
 
 import { Component, computed, input } from '@angular/core';
-import { MatCard, MatCardHeader, MatCardTitle } from '@angular/material/card';
-import { MatError } from '@angular/material/form-field';
+import { MatCard, MatCardHeader, MatCardTitle, MatCardContent } from '@angular/material/card';
+import { MatLabel, MatError } from '@angular/material/form-field';
 import { EllipsisTooltipDirective } from '../../directives/ellipsis-tooltip/ellipsis-tooltip.directive';
 import {
     AssetReference,
@@ -32,7 +32,7 @@ import {
  */
 @Component({
     selector: 'property-group-card',
-    imports: [MatCard, MatCardHeader, MatCardTitle, MatError, EllipsisTooltipDirective],
+    imports: [MatCard, MatCardHeader, MatCardTitle, MatCardContent, MatLabel, MatError, EllipsisTooltipDirective],
     templateUrl: './property-group-card.component.html'
 })
 export class PropertyGroupCard {
