@@ -31,6 +31,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
@@ -660,7 +661,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public Authorizable getConnector(final String connectorId) {
-        return connectorDAO.getConnector(connectorId);
+        return connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
     }
 
     private Authorizable handleResourceTypeContainingOtherResourceType(final String resource, final ResourceType resourceType) {

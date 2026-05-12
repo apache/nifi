@@ -89,16 +89,26 @@ public interface ConnectorRepository {
     void removeConnector(String connectorId);
 
     /**
-     * Gets the Connector with the given identifier
+     * Gets the Connector with the given identifier.
+     *
      * @param identifier the identifier of the Connector to get
+     * @param syncMode whether to consult the {@link ConnectorConfigurationProvider} (if configured)
+     *                 to refresh local state from the external store before returning, or whether
+     *                 to return the in-memory copy as-is. See {@link ConnectorSyncMode}.
      * @return the Connector with the given identifier, or null if no such Connector exists
      */
-    ConnectorNode getConnector(String identifier);
+    ConnectorNode getConnector(String identifier, ConnectorSyncMode syncMode);
 
     /**
+     * Returns all Connectors in the Repository.
+     *
+     * @param syncMode whether to consult the {@link ConnectorConfigurationProvider} (if configured)
+     *                 to refresh each connector's local state from the external store before
+     *                 returning, or whether to return the in-memory copies as-is. See
+     *                 {@link ConnectorSyncMode}.
      * @return all Connectors in the Repository
      */
-    List<ConnectorNode> getConnectors();
+    List<ConnectorNode> getConnectors(ConnectorSyncMode syncMode);
 
     /**
      * Starts the given Connector, managing any appropriate lifecycle events.

@@ -459,19 +459,23 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public ConnectorNode getConnector(final String identifier) {
+    public ConnectorNode getConnector(final String identifier, final ConnectorSyncMode syncMode) {
+        Objects.requireNonNull(syncMode, "syncMode is required");
         final ConnectorNode connector = connectors.get(identifier);
-        if (connector != null) {
+        if (connector != null && syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
             syncFromProvider(connector);
         }
         return connector;
     }
 
     @Override
-    public List<ConnectorNode> getConnectors() {
+    public List<ConnectorNode> getConnectors(final ConnectorSyncMode syncMode) {
+        Objects.requireNonNull(syncMode, "syncMode is required");
         final List<ConnectorNode> connectorList = List.copyOf(connectors.values());
-        for (final ConnectorNode connector : connectorList) {
-            syncFromProvider(connector);
+        if (syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
+            for (final ConnectorNode connector : connectorList) {
+                syncFromProvider(connector);
+            }
         }
         return connectorList;
     }
@@ -665,7 +669,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void updateConnector(final ConnectorNode connector, final String name) {
         if (configurationProvider != null) {
-            final ConnectorWorkingConfiguration workingConfiguration = buildWorkingConfiguration(connector);
+            // Load the latest provider state so that other in-flight working changes are not overwritten by a rename.
+            final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connector.getIdentifier());
+            final ConnectorWorkingConfiguration workingConfiguration = externalConfig.orElseGet(() -> buildWorkingConfiguration(connector));
             workingConfiguration.setName(name);
             configurationProvider.save(connector.getIdentifier(), workingConfiguration);
         }

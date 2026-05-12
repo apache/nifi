@@ -75,7 +75,7 @@ public class TestStandardConnectorRepository {
         repository.addConnector(connector1);
         repository.addConnector(connector2);
 
-        final List<ConnectorNode> connectors = repository.getConnectors();
+        final List<ConnectorNode> connectors = repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
         assertEquals(2, connectors.size());
         assertTrue(connectors.contains(connector1));
         assertTrue(connectors.contains(connector2));
@@ -98,8 +98,8 @@ public class TestStandardConnectorRepository {
         repository.addConnector(connector);
         repository.removeConnector("connector-1");
 
-        assertEquals(0, repository.getConnectors().size());
-        assertNull(repository.getConnector("connector-1"));
+        assertEquals(0, repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER).size());
+        assertNull(repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER));
     }
 
     @Test
@@ -110,8 +110,8 @@ public class TestStandardConnectorRepository {
         when(connector.getIdentifier()).thenReturn("connector-1");
 
         repository.restoreConnector(connector);
-        assertEquals(1, repository.getConnectors().size());
-        assertEquals(connector, repository.getConnector("connector-1"));
+        assertEquals(1, repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER).size());
+        assertEquals(connector, repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER));
     }
 
     @Test
@@ -126,8 +126,8 @@ public class TestStandardConnectorRepository {
         repository.addConnector(connector1);
         repository.addConnector(connector2);
 
-        final List<ConnectorNode> connectors1 = repository.getConnectors();
-        final List<ConnectorNode> connectors2 = repository.getConnectors();
+        final List<ConnectorNode> connectors1 = repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
+        final List<ConnectorNode> connectors2 = repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertEquals(2, connectors1.size());
         assertEquals(2, connectors2.size());
@@ -147,9 +147,9 @@ public class TestStandardConnectorRepository {
         repository.addConnector(connector1);
         repository.addConnector(connector2);
 
-        final List<ConnectorNode> connectors = repository.getConnectors();
+        final List<ConnectorNode> connectors = repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
         assertEquals(1, connectors.size());
-        assertEquals(connector2, repository.getConnector("same-id"));
+        assertEquals(connector2, repository.getConnector("same-id", ConnectorSyncMode.SYNC_WITH_PROVIDER));
     }
 
     @Test
@@ -233,7 +233,7 @@ public class TestStandardConnectorRepository {
         externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
         when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
 
-        final ConnectorNode result = repository.getConnector("connector-1");
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertNotNull(result);
         verify(connector).setName("External Name");
@@ -250,7 +250,7 @@ public class TestStandardConnectorRepository {
 
         when(provider.load("connector-1")).thenReturn(Optional.empty());
 
-        final ConnectorNode result = repository.getConnector("connector-1");
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertNotNull(result);
         verify(connector, never()).setName(anyString());
@@ -266,7 +266,7 @@ public class TestStandardConnectorRepository {
 
         when(provider.load("connector-1")).thenThrow(new ConnectorConfigurationProviderException("Provider failure"));
 
-        assertThrows(ConnectorConfigurationProviderException.class, () -> repository.getConnector("connector-1"));
+        assertThrows(ConnectorConfigurationProviderException.class, () -> repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER));
         verify(connector, never()).setName(anyString());
     }
 
@@ -277,10 +277,43 @@ public class TestStandardConnectorRepository {
         final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
         repository.addConnector(connector);
 
-        final ConnectorNode result = repository.getConnector("connector-1");
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertNotNull(result);
         verify(connector, never()).setName(anyString());
+    }
+
+    @Test
+    public void testGetConnectorLocalOnlyDoesNotCallProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Local Name");
+        repository.restoreConnector(connector);
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.LOCAL_ONLY);
+
+        assertNotNull(result);
+        verifyNoInteractions(provider);
+        verify(connector, never()).setName(anyString());
+    }
+
+    @Test
+    public void testGetConnectorsLocalOnlyDoesNotCallProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector1 = createSimpleConnectorNode("connector-1", "Local Name 1");
+        final ConnectorNode connector2 = createSimpleConnectorNode("connector-2", "Local Name 2");
+        repository.restoreConnector(connector1);
+        repository.restoreConnector(connector2);
+
+        final List<ConnectorNode> results = repository.getConnectors(ConnectorSyncMode.LOCAL_ONLY);
+
+        assertEquals(2, results.size());
+        verifyNoInteractions(provider);
+        verify(connector1, never()).setName(anyString());
+        verify(connector2, never()).setName(anyString());
     }
 
     @Test
@@ -301,7 +334,7 @@ public class TestStandardConnectorRepository {
         when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig1));
         when(provider.load("connector-2")).thenReturn(Optional.empty());
 
-        final List<ConnectorNode> results = repository.getConnectors();
+        final List<ConnectorNode> results = repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertEquals(2, results.size());
         verify(connector1).setName("External Name 1");
@@ -675,7 +708,7 @@ public class TestStandardConnectorRepository {
         config.setWorkingFlowConfiguration(List.of(step));
         when(provider.load("connector-1")).thenReturn(Optional.of(config));
 
-        repository.getConnector("connector-1");
+        repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         // Working config is updated with NiFi UUIDs as-is -- no translation in the repository
         verify(workingConfigContext).replaceProperties(eq("step1"), any(StepConfiguration.class));

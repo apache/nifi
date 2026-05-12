@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
@@ -97,7 +98,7 @@ public class VersionedDataflowMapper {
     private List<VersionedConnector> mapConnectors() {
         final List<VersionedConnector> connectors = new ArrayList<>();
 
-        for (final ConnectorNode connectorNode : flowController.getConnectorRepository().getConnectors()) {
+        for (final ConnectorNode connectorNode : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             final VersionedConnector versionedConnector = flowMapper.mapConnector(connectorNode);
             if (flowController.isStartAfterInitialization(connectorNode)) {
                 versionedConnector.setScheduledState(ScheduledState.RUNNING);

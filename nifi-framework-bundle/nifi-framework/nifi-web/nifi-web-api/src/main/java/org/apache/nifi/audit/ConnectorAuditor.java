@@ -27,6 +27,7 @@ import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
@@ -95,7 +96,7 @@ public class ConnectorAuditor extends NiFiAuditor {
             + "args(connectorId) && "
             + "target(connectorDAO)")
     public void removeConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
+        final ConnectorNode connector = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
 
         proceedingJoinPoint.proceed();
 
@@ -118,7 +119,7 @@ public class ConnectorAuditor extends NiFiAuditor {
             + "args(connectorId) && "
             + "target(connectorDAO)")
     public void startConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
+        final ConnectorNode connector = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         final ConnectorState previousState = connector.getCurrentState();
 
         proceedingJoinPoint.proceed();
@@ -144,7 +145,7 @@ public class ConnectorAuditor extends NiFiAuditor {
             + "args(connectorId) && "
             + "target(connectorDAO)")
     public void stopConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
+        final ConnectorNode connector = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         final ConnectorState previousState = connector.getCurrentState();
 
         proceedingJoinPoint.proceed();
@@ -173,9 +174,8 @@ public class ConnectorAuditor extends NiFiAuditor {
             + "target(connectorDAO)")
     public void updateConfigurationStepAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final String configurationStepName,
                                               final ConfigurationStepConfigurationDTO configurationStepConfiguration, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
+        final ConnectorNode connector = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
 
-        // Capture the current property values before the update (flat map: property name -> value)
         final Map<String, String> previousValues = extractCurrentPropertyValues(connector, configurationStepName);
 
         proceedingJoinPoint.proceed();
@@ -346,7 +346,7 @@ public class ConnectorAuditor extends NiFiAuditor {
             + "args(connectorId) && "
             + "target(connectorDAO)")
     public void applyConnectorUpdateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
+        final ConnectorNode connector = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
 
         proceedingJoinPoint.proceed();
 
