@@ -2875,8 +2875,8 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.authorizer.configuration.file`*|This is the location of the file that specifies how authorizers are defined.  The default value is `./conf/authorizers.xml`.
 |`nifi.login.identity.provider.configuration.file`*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only considered if `nifi.security.user.login.identity.provider` is configured with a provider identifier. The default value is `./conf/login-identity-providers.xml`.
-|`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is.
 |`nifi.restore.directory`|The location that certain providers (e.g. UserGroupProviders) will look for previous configurations to restore from. There is no default value.
+|`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is. +
  +
 *NOTE*: Additional library directories can be specified by using the `nifi.nar.library.directory.` prefix with unique suffixes and separate paths as values. +
  +
@@ -4065,17 +4065,13 @@ Restart NiFi and the custom processor should now be available when adding a new 
 
 This section describes the process to use the Autoloading feature for custom processors.
 
-To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`.
+To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`. Prior to starting NiFi, ensure that this directory exists and has appropriate permissions for the nifi user and group.
 
 For example:
 
    nifi.nar.library.autoload.directory=./extensions
 
-Ensure that this directory exists and has appropriate permissions for the nifi user and group.
-
-Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/extensions`.
-
-Ensure that the file has appropriate permissions for the nifi user and group.
+Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/extensions`. Prior to copying a nar to the autoload directory, ensure that the file has appropriate permissions for the nifi user and group.
 
 Refresh the browser page and the custom processor should now be available when adding a new Processor to your flow.
 
