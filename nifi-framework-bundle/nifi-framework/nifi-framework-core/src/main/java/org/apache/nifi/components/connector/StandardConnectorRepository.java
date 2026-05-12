@@ -813,15 +813,26 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         final List<VersionedConfigurationStep> workingFlowConfiguration = config.getWorkingFlowConfiguration();
-        if (workingFlowConfiguration != null) {
-            // Enrich provider-sourced SECRET_REFERENCE values with providerId before they are
-            // converted into the in-memory ConnectorValueReference graph.
-            resolveSecretReferencesFromProvider(workingFlowConfiguration);
 
-            final MutableConnectorConfigurationContext workingConfigContext = connector.getWorkingFlowContext().getConfigurationContext();
-            for (final VersionedConfigurationStep step : workingFlowConfiguration) {
-                final StepConfiguration stepConfiguration = toStepConfiguration(step);
-                workingConfigContext.replaceProperties(step.getName(), stepConfiguration);
+        if (workingFlowConfiguration == null) {
+            return;
+        }
+
+        // Enrich provider-sourced SECRET_REFERENCE values with providerId before they are
+        // converted into the in-memory ConnectorValueReference graph.
+        resolveSecretReferencesFromProvider(workingFlowConfiguration);
+
+        // Replace each step's working configuration on the connector. Routing through the connector
+        // (rather than touching the configuration context directly) ensures it is notified via
+        // onConfigurationStepConfigured when raw or resolved property values changed, so the embedded
+        // flow's Parameter Context picks up new values (e.g., rotated secrets) without an explicit save.
+        for (final VersionedConfigurationStep step : workingFlowConfiguration) {
+            final StepConfiguration stepConfiguration = toStepConfiguration(step);
+            try {
+                connector.replaceWorkingConfiguration(step.getName(), stepConfiguration);
+            } catch (final Exception e) {
+                logger.warn("Failed to replace working configuration for step [{}] on {} during sync from provider; continuing with remaining steps",
+                        step.getName(), connector, e);
             }
         }
     }

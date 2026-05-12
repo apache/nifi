@@ -333,18 +333,30 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void setConfiguration(final String stepName, final StepConfiguration configuration, final boolean forceOnConfigurationStepConfigured) throws FlowUpdateException {
-        // Update properties and check if the configuration changed.
         final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, configuration);
         if (updateResult == ConfigurationUpdateResult.NO_CHANGES && !forceOnConfigurationStepConfigured) {
             return;
         }
+        notifyStepConfigured(stepName);
+    }
 
-        // If there were changes, trigger Processor to be notified of the change.
+    @Override
+    public void replaceWorkingConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        // The configuration provider's view is authoritative: any property absent from the provided
+        // configuration is removed from the step.
+        final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().replaceProperties(stepName, configuration);
+        if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
+            return;
+        }
+        notifyStepConfigured(stepName);
+    }
+
+    private void notifyStepConfigured(final String stepName) throws FlowUpdateException {
         final Connector connector = connectorDetails.getConnector();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), getIdentifier())) {
             logger.debug("Notifying {} of configuration change for configuration step {}", this, stepName);
             connector.onConfigurationStepConfigured(stepName, workingFlowContext);
-            logger.debug("Successfully set configuration for step {} on {}", stepName, this);
+            logger.debug("Successfully notified {} of configuration change for step {}", this, stepName);
         } catch (final FlowUpdateException e) {
             throw e;
         } catch (final Exception e) {
@@ -863,29 +875,19 @@ public class StandardConnectorNode implements ConnectorNode {
 
         getComponentLog().info("Working Flow Context has been recreated");
 
-        synchronizeWorkingFlowParameters();
-    }
-
-    /**
-     * Re-triggers {@link Connector#onConfigurationStepConfigured} for every configured step in
-     * the working flow context. This ensures that flow parameters derived from the configuration
-     * (e.g., resolved asset paths) are fresh, even when the working context was just recreated
-     * from the active flow whose parameter values may be stale.
-     *
-     * <p>Skipped when {@code initializationContext} is {@code null} because the connector has
-     * not yet been initialized and there is no flow to update.</p>
-     */
-    private void synchronizeWorkingFlowParameters() {
+        // Re-fire onConfigurationStepConfigured for every step so flow parameters derived from the
+        // configuration (e.g., resolved asset paths, secret values) are refreshed against the new
+        // working context. Step failures are logged so the remaining steps can still be refreshed.
+        // Skipped before the connector has been initialized because there is no flow to update yet.
         if (initializationContext == null) {
             return;
         }
-
         final ConnectorConfiguration config = workingFlowContext.getConfigurationContext().toConnectorConfiguration();
         for (final NamedStepConfiguration stepConfig : config.getNamedStepConfigurations()) {
             try {
                 setConfiguration(stepConfig.stepName(), stepConfig.configuration(), true);
             } catch (final Exception e) {
-                logger.warn("Failed to synchronize working flow parameters for step [{}] of {}",
+                logger.warn("Failed to refresh resolved configuration for step [{}] of {}",
                     stepConfig.stepName(), this, e);
             }
         }

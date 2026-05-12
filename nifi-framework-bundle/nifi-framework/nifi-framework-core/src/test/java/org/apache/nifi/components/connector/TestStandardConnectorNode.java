@@ -491,7 +491,67 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testSynchronizeWorkingFlowParametersContinuesOnStepFailure() throws FlowUpdateException {
+    public void testReplaceWorkingConfigurationReplacesPropertiesAndFiresWhenChanged() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA", "propB", "valueB")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
+
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        final ConnectorConfiguration workingConfig = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final NamedStepConfiguration namedStep = workingConfig.getNamedStepConfigurations().iterator().next();
+        assertEquals("step1", namedStep.stepName());
+        assertEquals(Map.of("propA", new StringLiteralValue("newA")), namedStep.configuration().getPropertyValues());
+    }
+
+    @Test
+    public void testReplaceWorkingConfigurationDoesNotFireWhenUnchanged() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
+
+        assertFalse(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+    }
+
+    @Test
+    public void testDiscardWorkingConfigurationFiresOnConfiguredForEveryWorkingStep() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
+        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("propB", "valueB")));
+        connectorNode.applyUpdate();
+
+        trackingConnector.reset();
+
+        // Recreating the working flow context from the active flow must fire onConfigurationStepConfigured
+        // for every working configuration step so that flow parameters derived from the configuration
+        // (resolved asset paths, secrets, etc.) are refreshed.
+        connectorNode.discardWorkingConfiguration();
+
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+    }
+
+    @Test
+    public void testDiscardWorkingConfigurationContinuesOnStepFailure() throws FlowUpdateException {
         final FailingStepConnector failingStepConnector = new FailingStepConnector("failingStep");
         final StandardConnectorNode connectorNode = createConnectorNode(failingStepConnector);
 

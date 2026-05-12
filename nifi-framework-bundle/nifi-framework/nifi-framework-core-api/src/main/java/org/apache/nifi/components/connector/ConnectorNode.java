@@ -242,6 +242,27 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void setConfiguration(String configurationStepName, StepConfiguration configuration) throws FlowUpdateException;
 
+    /**
+     * Replaces the configuration of the named step on the working flow context with the given configuration.
+     * Unlike {@link #setConfiguration(String, StepConfiguration)}, which merges the incoming properties with
+     * any existing properties for the step, this method treats the supplied configuration as the authoritative
+     * full state for the step: any property not present in {@code configuration} is removed from the step.
+     *
+     * <p>If applying the configuration changes either the raw or the resolved property values, the Connector
+     * is notified via {@link Connector#onConfigurationStepConfigured} so the embedded flow and Parameter
+     * Context can be brought up to date. If nothing changed, no notification is performed.</p>
+     *
+     * <p>Intended for use by the framework when reconciling the working flow context against an external
+     * {@link ConnectorConfigurationProvider}, whose view is treated as authoritative. This method should
+     * only be invoked via the ConnectorRepository.</p>
+     *
+     * @param configurationStepName the name of the configuration step being replaced
+     *                              (must match one of the names returned by {@link Connector#getConfigurationSteps()})
+     * @param configuration the full configuration for the given configuration step
+     * @throws FlowUpdateException if unable to apply the configuration changes
+     */
+    void replaceWorkingConfiguration(String configurationStepName, StepConfiguration configuration) throws FlowUpdateException;
+
     void transitionStateForUpdating();
 
     void prepareForUpdate() throws FlowUpdateException;

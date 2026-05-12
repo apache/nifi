@@ -69,6 +69,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.AbstractComponentScheduler;
 import org.apache.nifi.groups.BundleUpdateStrategy;
@@ -117,6 +118,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -126,6 +128,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -417,14 +420,19 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 versionedExternalFlow.setParameterContexts(versionedParameterContextMap);
                 versionedExternalFlow.setFlowContents(versionedFlow.getRootGroup());
 
-                // Inherit Parameter Providers and Connectors first. Because Connectors are a bit different, in that updates could result in Exceptions being thrown,
-                // due to the fact that they manipulate the flow, and changes can be aborted, we handle them first. This way, if there's any Exception,
-                // we can fail before updating parts of the flow that are not managed by Connectors.
-                // Because Connectors may depend on Parameter Providers, we need to ensure that we inherit Parameter Providers first.
+                // Inherit Parameter Providers, the subset of root Controller Services that back them,
+                // and Connectors. Pre-enabling PP-referenced Controller Services ensures that Parameter
+                // Providers validate VALID before connectors resolve their SecretReferences, so that
+                // every connector's working configuration sees correct values on the first pass. Connectors
+                // are still handled before the remaining controller-level components so that any Exception
+                // raised by a connector aborts the sync before broader controller-level mutations occur.
                 inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
+                inheritControllerServicesForParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritConnectors(controller, versionedFlow);
 
-                // Inherit controller-level components.
+                // Inherit the remaining controller-level components. Services pre-enabled above are
+                // skipped here unless AffectedComponentSet flags them as changed; enableControllerServices
+                // tolerates already-enabled services.
                 inheritControllerServices(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
@@ -1083,6 +1091,58 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void inheritControllerServices(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
+        final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
+        if (controllerServices != null && !controllerServices.isEmpty()) {
+            final Set<String> allIds = controllerServices.stream()
+                    .map(VersionedControllerService::getInstanceIdentifier)
+                    .collect(Collectors.toSet());
+            inheritControllerServicesById(controller, dataflow, allIds, affectedComponentSet);
+        }
+
+        removeMissingServices(controller, dataflow);
+    }
+
+    /**
+     * Pre-pass that runs the add → update → migrate → enable lifecycle on only the closure of root
+     * Controller Services reachable from any {@link VersionedParameterProvider} in the dataflow.
+     * Intended to be called before {@link #inheritConnectors(FlowController, VersionedDataflow)} so
+     * that Parameter Providers backed by Controller Services validate VALID before connectors attempt
+     * to resolve any SecretReferences. Removal of stale services is deferred to the main
+     * {@link #inheritControllerServices(FlowController, VersionedDataflow, AffectedComponentSet)} call.
+     */
+    private void inheritControllerServicesForParameterProviders(final FlowController controller, final VersionedDataflow dataflow,
+                                                                final AffectedComponentSet affectedComponentSet) {
+        final Set<String> reachable = computeParameterProviderReferencedControllerServiceClosure(dataflow);
+        if (reachable.isEmpty()) {
+            return;
+        }
+
+        logger.info("Pre-enabling {} root Controller Service(s) reachable from Parameter Providers", reachable.size());
+        inheritControllerServicesById(controller, dataflow, reachable, affectedComponentSet);
+    }
+
+    /**
+     * Executes the add → update → migrate → enable lifecycle of {@link #inheritControllerServices} for
+     * only the entries whose {@code getInstanceIdentifier()} is in the supplied filter. Does not call
+     * {@link #removeMissingServices}; removal stays in the wrapper so it runs exactly once at the end
+     * of the full sync.
+     */
+    private void inheritControllerServicesById(final FlowController controller, final VersionedDataflow dataflow,
+                                               final Set<String> filter, final AffectedComponentSet affectedComponentSet) {
+        if (filter.isEmpty()) {
+            return;
+        }
+
+        final List<VersionedControllerService> filteredServices = new ArrayList<>();
+        for (final VersionedControllerService versionedControllerService : dataflow.getControllerServices()) {
+            if (filter.contains(versionedControllerService.getInstanceIdentifier())) {
+                filteredServices.add(versionedControllerService);
+            }
+        }
+        if (filteredServices.isEmpty()) {
+            return;
+        }
+
         final FlowManager flowManager = controller.getFlowManager();
 
         final Set<ControllerServiceNode> toEnable = new HashSet<>();
@@ -1094,9 +1154,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // we will have a situation where Service A references Service B. And if Service A is added first,
         // Service B's references won't be updated. To avoid this, we create them all first, and then configure/update
         // them so that when AbstractComponentNode#setProperty is called, it properly establishes that reference.
-        final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
         final Map<ControllerServiceNode, Map<String, String>> controllerServicesAddedAndProperties = new HashMap<>();
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
+        for (final VersionedControllerService versionedControllerService : filteredServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (serviceNode == null) {
                 final ControllerServiceNode added = addRootControllerService(controller, versionedControllerService);
@@ -1104,7 +1163,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
+        for (final VersionedControllerService versionedControllerService : filteredServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (controllerServicesAddedAndProperties.containsKey(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
                 // Set Decrypted Properties for subsequent migrate configuration using actual values
@@ -1123,7 +1182,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             service.migrateConfiguration(originalPropertyValues, serviceFactory);
         }
 
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
+        for (final VersionedControllerService versionedControllerService : filteredServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
 
             if (versionedControllerService.getScheduledState() == ScheduledState.ENABLED) {
@@ -1147,8 +1206,66 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         if (!toDisable.isEmpty()) {
             controller.getControllerServiceProvider().disableControllerServicesAsync(toDisable);
         }
+    }
 
-        removeMissingServices(controller, dataflow);
+    /**
+     * Computes the closure of root Controller Service identifiers reachable from any Parameter
+     * Provider in the dataflow. The walk consults {@link VersionedPropertyDescriptor#getIdentifiesControllerService()}
+     * on each component's descriptor map to decide which property values are CS references, so no
+     * component instantiation is required. References to ids that have no matching entry in
+     * {@code dataflow.getControllerServices()} are omitted from the result so that the closure
+     * accurately reflects the set of services that will actually be inherited.
+     */
+    static Set<String> computeParameterProviderReferencedControllerServiceClosure(final VersionedDataflow dataflow) {
+        if (dataflow == null || dataflow.getParameterProviders() == null || dataflow.getParameterProviders().isEmpty()) {
+            return Set.of();
+        }
+
+        final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
+        if (controllerServices == null || controllerServices.isEmpty()) {
+            return Set.of();
+        }
+
+        final Map<String, VersionedControllerService> rootCsById = controllerServices.stream()
+                .collect(Collectors.toMap(VersionedControllerService::getInstanceIdentifier, Function.identity()));
+
+        final Queue<String> worklist = new ArrayDeque<>();
+        final Set<String> reachable = new HashSet<>();
+
+        for (final VersionedParameterProvider pp : dataflow.getParameterProviders()) {
+            addReferencedControllerServiceIds(pp.getPropertyDescriptors(), pp.getProperties(), worklist);
+        }
+
+        while (!worklist.isEmpty()) {
+            final String csId = worklist.poll();
+            final VersionedControllerService cs = rootCsById.get(csId);
+            if (cs == null) {
+                continue;
+            }
+            if (!reachable.add(csId)) {
+                continue;
+            }
+            addReferencedControllerServiceIds(cs.getPropertyDescriptors(), cs.getProperties(), worklist);
+        }
+
+        return reachable;
+    }
+
+    private static void addReferencedControllerServiceIds(final Map<String, VersionedPropertyDescriptor> descriptors,
+                                                          final Map<String, String> properties, final Queue<String> worklist) {
+        if (descriptors == null || properties == null) {
+            return;
+        }
+        for (final Map.Entry<String, VersionedPropertyDescriptor> entry : descriptors.entrySet()) {
+            final VersionedPropertyDescriptor descriptor = entry.getValue();
+            if (descriptor == null || !descriptor.getIdentifiesControllerService()) {
+                continue;
+            }
+            final String value = properties.get(entry.getKey());
+            if (value != null && !value.isEmpty()) {
+                worklist.add(value);
+            }
+        }
     }
 
     private Map<String, Parameter> getProvidedParameters(final FlowManager flowManager, final VersionedParameterContext versionedParameterContext) {
