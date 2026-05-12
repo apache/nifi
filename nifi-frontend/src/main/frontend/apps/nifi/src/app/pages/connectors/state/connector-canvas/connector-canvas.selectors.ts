@@ -80,6 +80,11 @@ export const selectBreadcrumbs = createSelector(selectConnectorCanvasState, (sta
 
 export const selectSkipTransform = createSelector(selectConnectorCanvasState, (state) => state.skipTransform);
 
+export const selectConnectorParameterContext = createSelector(
+    selectConnectorCanvasState,
+    (state) => state.parameterContext
+);
+
 // Entity-by-id factory selectors for provenance eligibility checks
 export const selectProcessor = (id: string) =>
     createSelector(selectProcessors, (processors) => processors.find((p: any) => p.id === id));

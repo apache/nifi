@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { BreadcrumbEntity, RegistryClientEntity } from '../../../../state/shared';
+import { BreadcrumbEntity, ParameterContextEntity, RegistryClientEntity } from '../../../../state/shared';
 
 export const connectorCanvasFeatureKey = 'connectorCanvas';
 
@@ -36,6 +36,7 @@ export interface ConnectorCanvasState {
     skipTransform: boolean;
     loadingStatus: 'pending' | 'loading' | 'success' | 'error';
     error: string | null;
+    parameterContext: ParameterContextEntity | null;
 }
 
 export const initialConnectorCanvasState: ConnectorCanvasState = {
@@ -54,5 +55,6 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     registryClients: [],
     skipTransform: false,
     loadingStatus: 'pending',
-    error: null
+    error: null,
+    parameterContext: null
 };

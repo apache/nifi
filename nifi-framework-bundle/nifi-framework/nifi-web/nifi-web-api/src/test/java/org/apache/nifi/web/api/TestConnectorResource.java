@@ -32,6 +32,8 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
@@ -41,6 +43,8 @@ import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -493,6 +497,43 @@ public class TestConnectorResource {
     }
 
     @Test
+    public void testGetParameterContextForConnectorProcessGroup() {
+        final ParameterContextEntity responseEntity = createParameterContextEntity();
+        when(serviceFacade.getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID)).thenReturn(responseEntity);
+
+        try (Response response = connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(responseEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID);
+    }
+
+    @Test
+    public void testGetParameterContextForConnectorProcessGroupReturnsNoContentWhenUnbound() {
+        when(serviceFacade.getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID)).thenReturn(null);
+
+        try (Response response = connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID)) {
+            assertEquals(204, response.getStatus());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID);
+    }
+
+    @Test
+    public void testGetParameterContextForConnectorProcessGroupNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorParameterContext(anyString(), anyString());
+    }
+
+    @Test
     public void testInitiateDrain() {
         final ConnectorEntity requestEntity = createConnectorEntity();
         final ConnectorEntity responseEntity = createConnectorEntity();
@@ -616,6 +657,28 @@ public class TestConnectorResource {
         final ProcessGroupFlowDTO flowDTO = new ProcessGroupFlowDTO();
         flowDTO.setId("root-process-group-id");
         entity.setProcessGroupFlow(flowDTO);
+        return entity;
+    }
+
+    private ParameterContextEntity createParameterContextEntity() {
+        final ParameterContextEntity entity = new ParameterContextEntity();
+        entity.setId("test-parameter-context-id");
+
+        final ParameterContextDTO dto = new ParameterContextDTO();
+        dto.setId("test-parameter-context-id");
+        dto.setName("Test Parameter Context");
+
+        final ParameterDTO parameterDto = new ParameterDTO();
+        parameterDto.setName("test-parameter");
+        parameterDto.setValue("test-value");
+        parameterDto.setSensitive(false);
+
+        final ParameterEntity parameterEntity = new ParameterEntity();
+        parameterEntity.setParameter(parameterDto);
+        parameterEntity.setCanWrite(false);
+
+        dto.setParameters(Set.of(parameterEntity));
+        entity.setComponent(dto);
         return entity;
     }
 

@@ -3951,6 +3951,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ParameterContextEntity getConnectorParameterContext(final String connectorId, final String processGroupId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroup targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
+        if (targetProcessGroup == null) {
+            throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
+        }
+
+        final ParameterContext parameterContext = targetProcessGroup.getParameterContext();
+        if (parameterContext == null) {
+            return null;
+        }
+
+        // Connector-managed parameter contexts (and any contexts they inherit from) are not registered with the
+        // global flow's ParameterContextManager. The DTO factory now resolves a parameter's source context by
+        // walking the in-memory inheritance graph on the supplied context, so an empty lookup is sufficient here.
+        return createParameterContextEntity(parameterContext, true, NiFiUserUtils.getNiFiUser(), ParameterContextLookup.EMPTY);
+    }
+
+    @Override
     public void verifyCanVerifyConnectorConfigurationStep(final String connectorId, final String configurationStepName) {
         connectorDAO.verifyCanVerifyConfigurationStep(connectorId, configurationStepName);
     }

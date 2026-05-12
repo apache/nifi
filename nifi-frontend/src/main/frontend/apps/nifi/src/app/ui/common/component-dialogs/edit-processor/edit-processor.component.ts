@@ -127,7 +127,7 @@ export class EditProcessor extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
-    @Input() goToParameter!: (parameter: string) => void;
+    @Input() goToParameter?: (parameter: string) => void;
     @Input() convertToParameter!: (
         name: string,
         sensitive: boolean,

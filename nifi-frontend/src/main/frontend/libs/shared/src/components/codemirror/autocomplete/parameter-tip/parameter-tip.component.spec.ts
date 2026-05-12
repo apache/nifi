@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ParameterTip } from './parameter-tip.component';
+import { ParameterTipInput } from '../../../../types';
 
 describe('ParameterTip', () => {
     let component: ParameterTip;
@@ -29,10 +30,52 @@ describe('ParameterTip', () => {
         });
         fixture = TestBed.createComponent(ParameterTip);
         component = fixture.componentInstance;
-        fixture.detectChanges();
     });
+
+    function setData(value: string | null | undefined, sensitive = false): void {
+        const data: ParameterTipInput = {
+            parameter: {
+                name: 'PARAM_A',
+                description: 'desc',
+                sensitive,
+                value: value as string | null
+            }
+        };
+        component.data = data;
+        fixture.detectChanges();
+    }
+
+    function getValueText(): string {
+        const el: HTMLElement = fixture.nativeElement;
+        const unset = el.querySelector('.unset');
+        if (unset) {
+            return unset.textContent?.trim() ?? '';
+        }
+        const fontMono = el.querySelector('.font-mono');
+        return fontMono?.textContent?.trim() ?? '';
+    }
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('renders "No value set" when the parameter value is null', () => {
+        setData(null);
+        expect(getValueText()).toBe('No value set');
+    });
+
+    it('renders "No value set" when the parameter value is undefined', () => {
+        setData(undefined);
+        expect(getValueText()).toBe('No value set');
+    });
+
+    it('renders "Empty string set" when the parameter value is an empty string', () => {
+        setData('');
+        expect(getValueText()).toBe('Empty string set');
+    });
+
+    it('renders the value when the parameter has a non-empty value', () => {
+        setData('hello');
+        expect(getValueText()).toBe('hello');
     });
 });

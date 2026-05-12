@@ -20,7 +20,7 @@
         <div class="flex flex-col gap-y-3">
             <div class="parameter-name text-lg font-bold">{{ parameter.name }}</div>
             @if (!parameter.sensitive) {
-                @if (parameter.value === null) {
+                @if (parameter.value === null || parameter.value === undefined) {
                     <div class="unset neutral-color">No value set</div>
                 } @else if (parameter.value === '') {
                     <div class="unset neutral-color">Empty string set</div>

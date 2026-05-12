@@ -18,9 +18,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action } from '@ngrx/store';
+import { provideMockStore } from '@ngrx/store/testing';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { firstValueFrom, Observable, of, throwError } from 'rxjs';
+import { firstValueFrom, Observable, Subject, of, throwError } from 'rxjs';
 import { ConnectorControllerServicesEffects } from './connector-controller-services.effects';
 import {
     loadConnectorControllerServices,
@@ -29,11 +30,13 @@ import {
     openViewControllerServiceDialog,
     selectConnectorControllerService
 } from './connector-controller-services.actions';
+import { selectConnectorParameterContext } from '../connector-canvas/connector-canvas.selectors';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
 import * as ErrorActions from '../../../../state/error/error.actions';
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity, ParameterContextEntity } from '../../../../state/shared';
+import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 
 function buildService(overrides: Partial<ControllerServiceEntity> = {}): ControllerServiceEntity {
@@ -46,7 +49,11 @@ function buildService(overrides: Partial<ControllerServiceEntity> = {}): Control
 }
 
 describe('ConnectorControllerServicesEffects', () => {
-    async function setup() {
+    interface SetupOptions {
+        parameterContext?: ParameterContextEntity | null;
+    }
+
+    async function setup(options: SetupOptions = {}) {
         let actions$: Observable<Action>;
 
         const mockConnectorService = {
@@ -62,14 +69,34 @@ describe('ConnectorControllerServicesEffects', () => {
             navigate: vi.fn().mockResolvedValue(true)
         };
 
+        const afterClosed$ = new Subject<any>();
+        const mockDialogInstance = {
+            createNewService: undefined as any,
+            goToParameter: undefined as any,
+            convertToParameter: undefined as any,
+            goToService: undefined as any,
+            parameterContext: undefined as any,
+            supportsParameters: true as any
+        };
         const mockDialog = {
-            open: vi.fn().mockReturnValue({ componentInstance: {} })
+            open: vi.fn().mockReturnValue({
+                componentInstance: mockDialogInstance,
+                afterClosed: () => afterClosed$.asObservable()
+            })
         };
 
         await TestBed.configureTestingModule({
             providers: [
                 ConnectorControllerServicesEffects,
                 provideMockActions(() => actions$),
+                provideMockStore({
+                    selectors: [
+                        {
+                            selector: selectConnectorParameterContext,
+                            value: options.parameterContext ?? null
+                        }
+                    ]
+                }),
                 { provide: ConnectorService, useValue: mockConnectorService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
                 { provide: Router, useValue: mockRouter },
@@ -82,6 +109,8 @@ describe('ConnectorControllerServicesEffects', () => {
             mockConnectorService,
             mockRouter,
             mockDialog,
+            mockDialogInstance,
+            afterClosed$,
             actions$: (stream: Observable<Action>) => {
                 actions$ = stream;
             }
@@ -197,6 +226,35 @@ describe('ConnectorControllerServicesEffects', () => {
             expect(config.data.readonly).toBe(true);
             expect(config.data.controllerService).toBe(service);
             expect(config.data.controllerService.permissions.canWrite).toBe(true);
+        });
+
+        it('should wire the bound parameter context onto the EditControllerService dialog instance', async () => {
+            const parameterContext = createParameterContextFixture({
+                component: { id: 'pc-1', name: 'Bound PC', parameters: [] }
+            });
+            const { effects, actions$, mockDialogInstance } = await setup({ parameterContext });
+
+            actions$(of(openViewControllerServiceDialog({ controllerService: buildService() })));
+
+            await firstValueFrom(effects.openViewControllerServiceDialog$);
+
+            expect(mockDialogInstance.parameterContext).toBe(parameterContext);
+            expect(mockDialogInstance.supportsParameters).toBe(true);
+            // Read-only mode should not wire a navigation callback. The property table hides
+            // "Go to Parameter" when this is undefined, while still rendering parameter values.
+            expect(mockDialogInstance.goToParameter).toBeUndefined();
+        });
+
+        it('should set supportsParameters to false when no parameter context is bound', async () => {
+            const { effects, actions$, mockDialogInstance } = await setup({ parameterContext: null });
+
+            actions$(of(openViewControllerServiceDialog({ controllerService: buildService() })));
+
+            await firstValueFrom(effects.openViewControllerServiceDialog$);
+
+            expect(mockDialogInstance.parameterContext).toBeUndefined();
+            expect(mockDialogInstance.supportsParameters).toBe(false);
+            expect(mockDialogInstance.goToParameter).toBeUndefined();
         });
     });
 });

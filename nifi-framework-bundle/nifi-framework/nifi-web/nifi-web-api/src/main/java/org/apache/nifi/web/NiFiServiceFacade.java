@@ -237,6 +237,16 @@ public interface NiFiServiceFacade {
     Set<ControllerServiceEntity> getConnectorControllerServices(String connectorId, String processGroupId, boolean includeAncestorGroups,
                                                                 boolean includeDescendantGroups, boolean includeReferencingComponents);
 
+    /**
+     * Returns the parameter context bound to the specified process group within the connector's hierarchy. Sensitive parameter values are masked
+     * by the underlying DTO factory.
+     *
+     * @param connectorId the connector id
+     * @param processGroupId the process group id within the connector's hierarchy
+     * @return the parameter context entity with effective parameters (inherited included), or {@code null} if the process group has no bound parameter context
+     */
+    ParameterContextEntity getConnectorParameterContext(String connectorId, String processGroupId);
+
     void verifyCanVerifyConnectorConfigurationStep(String connectorId, String configurationStepName);
 
     List<ConfigVerificationResultDTO> performConnectorConfigurationStepVerification(String connectorId, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);

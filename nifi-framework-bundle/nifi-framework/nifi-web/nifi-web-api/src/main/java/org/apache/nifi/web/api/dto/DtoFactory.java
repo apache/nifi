@@ -1620,8 +1620,7 @@ public final class DtoFactory {
         final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
         dto.setReferencingComponents(referencingComponentEntities);
 
-        final ParameterContext containingParameterContext = (parameter.getParameterContextId() == null)
-                ? parameterContext : parameterContextLookup.getParameterContext(parameter.getParameterContextId());
+        final ParameterContext containingParameterContext = resolveContainingParameterContext(parameterContext, parameter, parameterContextLookup);
 
         dto.setInherited(!containingParameterContext.getIdentifier().equals(parameterContext.getIdentifier()));
 
@@ -1629,6 +1628,51 @@ public final class DtoFactory {
         dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 
         return dto;
+    }
+
+    /**
+     * Resolves the {@link ParameterContext} where the given parameter was originally defined.
+     *
+     * <p>For parameters declared directly on the current context (or whose source id matches the current
+     * context's identifier), the current context is returned without consulting any external lookup. For
+     * inherited parameters, the source context is found by walking the in-memory inheritance graph reachable
+     * from the current context via {@link ParameterContext#getInheritedParameterContexts()}. Only if the
+     * source context is not reachable on that graph (which is expected only for legacy callers that pass a
+     * registry-backed lookup) does the provided {@link ParameterContextLookup} get consulted as a fallback.</p>
+     */
+    private ParameterContext resolveContainingParameterContext(final ParameterContext parameterContext, final Parameter parameter,
+                                                                final ParameterContextLookup parameterContextLookup) {
+        final String sourceId = parameter.getParameterContextId();
+        if (sourceId == null || sourceId.equals(parameterContext.getIdentifier())) {
+            return parameterContext;
+        }
+
+        final ParameterContext fromGraph = findInheritedParameterContext(parameterContext, sourceId, new HashSet<>());
+        if (fromGraph != null) {
+            return fromGraph;
+        }
+
+        return parameterContextLookup.getParameterContext(sourceId);
+    }
+
+    private ParameterContext findInheritedParameterContext(final ParameterContext parameterContext, final String sourceId, final Set<String> visited) {
+        if (parameterContext == null || !visited.add(parameterContext.getIdentifier())) {
+            return null;
+        }
+        if (sourceId.equals(parameterContext.getIdentifier())) {
+            return parameterContext;
+        }
+        final List<ParameterContext> inherited = parameterContext.getInheritedParameterContexts();
+        if (inherited == null) {
+            return null;
+        }
+        for (final ParameterContext inheritedContext : inherited) {
+            final ParameterContext match = findInheritedParameterContext(inheritedContext, sourceId, visited);
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
     }
 
     public ReportingTaskDTO createReportingTaskDto(final ReportingTaskNode reportingTaskNode) {

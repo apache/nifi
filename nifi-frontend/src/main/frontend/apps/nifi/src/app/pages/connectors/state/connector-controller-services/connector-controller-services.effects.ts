@@ -19,8 +19,9 @@ import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { combineLatest, of } from 'rxjs';
+import { NEVER, combineLatest, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
 import { XL_DIALOG } from '@nifi/shared';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorContextKey } from '../../../../state/error';
@@ -29,12 +30,14 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import * as ConnectorControllerServicesActions from './connector-controller-services.actions';
+import { bindConnectorParameterContext } from '../connector-canvas/bind-connector-parameter-context';
 
 @Injectable()
 export class ConnectorControllerServicesEffects {
     private actions$ = inject(Actions);
     private router = inject(Router);
     private dialog = inject(MatDialog);
+    private store = inject(Store);
     private connectorService = inject(ConnectorService);
     private errorHelper = inject(ErrorHelper);
 
@@ -131,12 +134,30 @@ export class ConnectorControllerServicesEffects {
                         readonly: true
                     };
 
-                    this.dialog.open(EditControllerService, {
+                    const dialogRef = this.dialog.open(EditControllerService, {
                         ...XL_DIALOG,
                         autoFocus: 'dialog',
                         data: dialogRequest,
                         id: action.controllerService.id
                     });
+
+                    const instance = dialogRef.componentInstance;
+                    // Read-only mode: stub callbacks the property table needs but never invokes.
+                    // `goToParameter` is intentionally left undefined so the property table hides
+                    // the "Go to Parameter" affordance for the connector canvas, while parameter
+                    // values still render in the value tip.
+                    instance.createNewService = () => NEVER;
+                    instance.convertToParameter = () => NEVER;
+                    instance.goToService = () => undefined;
+
+                    bindConnectorParameterContext(
+                        this.store,
+                        dialogRef.afterClosed(),
+                        (parameterContext, supportsParameters) => {
+                            instance.parameterContext = parameterContext ?? undefined;
+                            instance.supportsParameters = supportsParameters;
+                        }
+                    );
                 })
             ),
         { dispatch: false }
