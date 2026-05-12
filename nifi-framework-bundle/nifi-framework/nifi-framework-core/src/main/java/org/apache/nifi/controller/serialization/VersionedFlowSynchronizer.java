@@ -417,15 +417,12 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 versionedExternalFlow.setParameterContexts(versionedParameterContextMap);
                 versionedExternalFlow.setFlowContents(versionedFlow.getRootGroup());
 
-                // Inherit Parameter Providers and Connectors first. Because Connectors are a bit different, in that updates could result in Exceptions being thrown,
-                // due to the fact that they manipulate the flow, and changes can be aborted, we handle them first. This way, if there's any Exception,
-                // we can fail before updating parts of the flow that are not managed by Connectors.
-                // Because Connectors may depend on Parameter Providers, we need to ensure that we inherit Parameter Providers first.
+                // Inherit root-level Controller Services first so that Parameter Providers backed by
+                // them are VALID when Connectors begin resolving SecretReferences and so that any other
+                // controller-level component that references a root CS sees it in its target state.
+                inheritControllerServices(controller, versionedFlow, affectedComponentSet);
                 inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritConnectors(controller, versionedFlow);
-
-                // Inherit controller-level components.
-                inheritControllerServices(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
                 inheritFlowAnalysisRules(controller, versionedFlow, affectedComponentSet);
@@ -1083,69 +1080,71 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void inheritControllerServices(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
-        final FlowManager flowManager = controller.getFlowManager();
-
-        final Set<ControllerServiceNode> toEnable = new HashSet<>();
-        final Set<ControllerServiceNode> toDisable = new HashSet<>();
-
-        // We need to add any Controller Services that are not yet part of the flow. We must then
-        // update the Controller Services to match what is proposed. Finally, we can enable the services.
-        // We have to do this in 3 parts because if we just configure the Controller Service as we add it,
-        // we will have a situation where Service A references Service B. And if Service A is added first,
-        // Service B's references won't be updated. To avoid this, we create them all first, and then configure/update
-        // them so that when AbstractComponentNode#setProperty is called, it properly establishes that reference.
         final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
-        final Map<ControllerServiceNode, Map<String, String>> controllerServicesAddedAndProperties = new HashMap<>();
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
-            final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
-            if (serviceNode == null) {
-                final ControllerServiceNode added = addRootControllerService(controller, versionedControllerService);
-                controllerServicesAddedAndProperties.put(added, versionedControllerService.getProperties());
+        if (controllerServices != null && !controllerServices.isEmpty()) {
+            final FlowManager flowManager = controller.getFlowManager();
+
+            final Set<ControllerServiceNode> toEnable = new HashSet<>();
+            final Set<ControllerServiceNode> toDisable = new HashSet<>();
+
+            // We need to add any Controller Services that are not yet part of the flow. We must then
+            // update the Controller Services to match what is proposed. Finally, we can enable the services.
+            // We have to do this in 3 parts because if we just configure the Controller Service as we add it,
+            // we will have a situation where Service A references Service B. And if Service A is added first,
+            // Service B's references won't be updated. To avoid this, we create them all first, and then configure/update
+            // them so that when AbstractComponentNode#setProperty is called, it properly establishes that reference.
+            final Map<ControllerServiceNode, Map<String, String>> controllerServicesAddedAndProperties = new HashMap<>();
+            for (final VersionedControllerService versionedControllerService : controllerServices) {
+                final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
+                if (serviceNode == null) {
+                    final ControllerServiceNode added = addRootControllerService(controller, versionedControllerService);
+                    controllerServicesAddedAndProperties.put(added, versionedControllerService.getProperties());
+                }
             }
-        }
 
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
-            final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
-            if (controllerServicesAddedAndProperties.containsKey(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
-                // Set Decrypted Properties for subsequent migrate configuration using actual values
-                final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), controller.getEncryptor());
-                controllerServicesAddedAndProperties.put(serviceNode, decryptedProperties);
-                updateRootControllerService(serviceNode, versionedControllerService, decryptedProperties);
+            for (final VersionedControllerService versionedControllerService : controllerServices) {
+                final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
+                if (controllerServicesAddedAndProperties.containsKey(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
+                    // Set Decrypted Properties for subsequent migrate configuration using actual values
+                    final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), controller.getEncryptor());
+                    controllerServicesAddedAndProperties.put(serviceNode, decryptedProperties);
+                    updateRootControllerService(serviceNode, versionedControllerService, decryptedProperties);
+                }
             }
-        }
 
-        for (final Map.Entry<ControllerServiceNode, Map<String, String>> entry : controllerServicesAddedAndProperties.entrySet()) {
-            final ControllerServiceNode service = entry.getKey();
-            final Map<String, String> originalPropertyValues = entry.getValue();
+            for (final Map.Entry<ControllerServiceNode, Map<String, String>> entry : controllerServicesAddedAndProperties.entrySet()) {
+                final ControllerServiceNode service = entry.getKey();
+                final Map<String, String> originalPropertyValues = entry.getValue();
 
-            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
-                controller.getControllerServiceProvider(), service);
-            service.migrateConfiguration(originalPropertyValues, serviceFactory);
-        }
-
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
-            final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
-
-            if (versionedControllerService.getScheduledState() == ScheduledState.ENABLED) {
-                toEnable.add(serviceNode);
-            } else {
-                toDisable.add(serviceNode);
+                final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
+                    controller.getControllerServiceProvider(), service);
+                service.migrateConfiguration(originalPropertyValues, serviceFactory);
             }
-        }
 
-        // Enable any Controller-level services that are intended to be enabled.
-        if (!toEnable.isEmpty()) {
-            controller.getControllerServiceProvider().enableControllerServices(toEnable);
+            for (final VersionedControllerService versionedControllerService : controllerServices) {
+                final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
 
-            // Validate Controller-level services
-            for (final ControllerServiceNode serviceNode : toEnable) {
-                serviceNode.performValidation();
+                if (versionedControllerService.getScheduledState() == ScheduledState.ENABLED) {
+                    toEnable.add(serviceNode);
+                } else {
+                    toDisable.add(serviceNode);
+                }
             }
-        }
 
-        // Disable any Controller-level services that are intended to be disabled.
-        if (!toDisable.isEmpty()) {
-            controller.getControllerServiceProvider().disableControllerServicesAsync(toDisable);
+            // Enable any Controller-level services that are intended to be enabled.
+            if (!toEnable.isEmpty()) {
+                controller.getControllerServiceProvider().enableControllerServices(toEnable);
+
+                // Validate Controller-level services
+                for (final ControllerServiceNode serviceNode : toEnable) {
+                    serviceNode.performValidation();
+                }
+            }
+
+            // Disable any Controller-level services that are intended to be disabled.
+            if (!toDisable.isEmpty()) {
+                controller.getControllerServiceProvider().disableControllerServicesAsync(toDisable);
+            }
         }
 
         removeMissingServices(controller, dataflow);
