@@ -306,20 +306,6 @@
             line-height: normal;
         }
 
-        .mat-mdc-card-title {
-            font-size: 18px;
-            letter-spacing: normal;
-            line-height: 28px;
-            font-weight: 700;
-        }
-
-        .mat-mdc-card-subtitle {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: 20px;
-            font-weight: 400;
-        }
-
         .mat-mdc-option {
             font-size: var(--mat-sys-body-medium-size);
             letter-spacing: normal;
@@ -799,4 +785,13 @@
         pointer-events: auto;
         cursor: not-allowed;
     }
+
+    // mat-card
+    @include mat.card-overrides(
+        (
+            title-text-size: 16px,
+            title-text-line-height: 20px,
+            title-text-weight: 600,
+        )
+    );
 }
