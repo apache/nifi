@@ -18,6 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConnectorDetailHeader } from './connector-detail-header.component';
 import { ConnectorEntity, ConnectorState, ConnectorStatus } from '../../types';
+import { getConnectorStateVariant } from '../../utils/connector-permissions.utils';
 
 interface SetupOptions {
     connector?: ConnectorEntity;
@@ -108,56 +109,9 @@ describe('ConnectorDetailHeader', () => {
         expect(stateBadge.textContent.trim()).toBe('RUNNING');
     });
 
-    describe('getStateVariant', () => {
-        it('should return success for RUNNING', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.RUNNING)).toBe('success');
-        });
-
-        it('should return neutral for STOPPED', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.STOPPED)).toBe('neutral');
-        });
-
-        it('should return neutral for DISABLED', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.DISABLED)).toBe('neutral');
-        });
-
-        it('should return info for STARTING', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.STARTING)).toBe('info');
-        });
-
-        it('should return info for UPDATING', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.UPDATING)).toBe('info');
-        });
-
-        it('should return info for STOPPING', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.STOPPING)).toBe('info');
-        });
-
-        it('should return info for DRAINING', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.DRAINING)).toBe('info');
-        });
-
-        it('should return info for PREPARING_FOR_UPDATE', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.PREPARING_FOR_UPDATE)).toBe('info');
-        });
-
-        it('should return critical for UPDATE_FAILED', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant(ConnectorState.UPDATE_FAILED)).toBe('critical');
-        });
-
-        it('should return neutral for unknown state', async () => {
-            const { component } = await setup();
-            expect(component.getStateVariant('UNKNOWN')).toBe('neutral');
-        });
+    it('should delegate getStateVariant to getConnectorStateVariant', async () => {
+        const { component } = await setup();
+        expect(component.getStateVariant).toBe(getConnectorStateVariant);
     });
 
     describe('hasUnappliedEdits', () => {

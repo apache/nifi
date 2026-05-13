@@ -17,8 +17,9 @@
 
 import { Component, computed, input } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { ConnectorEntity, ConnectorState, StatusVariant } from '../../types';
+import { ConnectorEntity } from '../../types';
 import { StatusBadge } from '../status-badge/status-badge.component';
+import { getConnectorStateVariant } from '../../utils/connector-permissions.utils';
 
 @Component({
     selector: 'connector-detail-header',
@@ -47,23 +48,5 @@ export class ConnectorDetailHeader {
         return action?.allowed ?? false;
     });
 
-    getStateVariant(state: string): StatusVariant {
-        switch (state) {
-            case ConnectorState.RUNNING:
-                return 'success';
-            case ConnectorState.STOPPED:
-            case ConnectorState.DISABLED:
-                return 'neutral';
-            case ConnectorState.STARTING:
-            case ConnectorState.UPDATING:
-            case ConnectorState.STOPPING:
-            case ConnectorState.DRAINING:
-            case ConnectorState.PREPARING_FOR_UPDATE:
-                return 'info';
-            case ConnectorState.UPDATE_FAILED:
-                return 'critical';
-            default:
-                return 'neutral';
-        }
-    }
+    protected readonly getStateVariant = getConnectorStateVariant;
 }

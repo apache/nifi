@@ -77,7 +77,7 @@
                         @if (canRead(item)) {
                             <status-badge
                                 [label]="formatState(item)"
-                                [variant]="getStateVariant(item)"
+                                [variant]="getConnectorStateVariant(item.component.state)"
                                 data-qa="connector-state">
                             </status-badge>
                         }

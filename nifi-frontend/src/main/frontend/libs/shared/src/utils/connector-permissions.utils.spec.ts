@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 
-import { ConnectorEntity } from '../types';
+import { ConnectorEntity, ConnectorState } from '../types';
 import {
     canReadConnector,
     canModifyConnector,
     canOperateConnector,
     getConnectorAction,
     isConnectorActionAllowed,
-    getConnectorActionDisabledReason
+    getConnectorActionDisabledReason,
+    getConnectorStateVariant
 } from './connector-permissions.utils';
 
 function createMockEntity(overrides: Partial<ConnectorEntity> = {}): ConnectorEntity {
@@ -180,6 +181,48 @@ describe('connector-permissions.utils', () => {
             const entity = createMockEntity();
             (entity.component as any).availableActions = undefined;
             expect(getConnectorActionDisabledReason(entity, 'START')).toBe('');
+        });
+    });
+
+    describe('getConnectorStateVariant', () => {
+        it('should return success for RUNNING', () => {
+            expect(getConnectorStateVariant(ConnectorState.RUNNING)).toBe('success');
+        });
+
+        it('should return neutral for STOPPED', () => {
+            expect(getConnectorStateVariant(ConnectorState.STOPPED)).toBe('neutral');
+        });
+
+        it('should return neutral for DISABLED', () => {
+            expect(getConnectorStateVariant(ConnectorState.DISABLED)).toBe('neutral');
+        });
+
+        it('should return info for STARTING', () => {
+            expect(getConnectorStateVariant(ConnectorState.STARTING)).toBe('info');
+        });
+
+        it('should return info for UPDATING', () => {
+            expect(getConnectorStateVariant(ConnectorState.UPDATING)).toBe('info');
+        });
+
+        it('should return info for STOPPING', () => {
+            expect(getConnectorStateVariant(ConnectorState.STOPPING)).toBe('info');
+        });
+
+        it('should return info for DRAINING', () => {
+            expect(getConnectorStateVariant(ConnectorState.DRAINING)).toBe('info');
+        });
+
+        it('should return info for PREPARING_FOR_UPDATE', () => {
+            expect(getConnectorStateVariant(ConnectorState.PREPARING_FOR_UPDATE)).toBe('info');
+        });
+
+        it('should return critical for UPDATE_FAILED', () => {
+            expect(getConnectorStateVariant(ConnectorState.UPDATE_FAILED)).toBe('critical');
+        });
+
+        it('should return neutral for unknown state', () => {
+            expect(getConnectorStateVariant('UNKNOWN')).toBe('neutral');
         });
     });
 });

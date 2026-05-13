@@ -17,12 +17,11 @@
 
 import { Component, Input } from '@angular/core';
 import { StatusVariant } from '../../types';
-import { MatIcon } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
 
 @Component({
     selector: 'status-badge',
-    imports: [MatIcon, MatTooltip],
+    imports: [MatTooltip],
     templateUrl: './status-badge.component.html',
     styleUrls: ['./status-badge.component.scss']
 })
