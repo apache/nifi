@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundException
 import org.apache.nifi.web.api.config.AuthenticationNotSupportedExceptionMapper;
 import org.apache.nifi.web.api.config.AuthorizationAccessExceptionMapper;
 import org.apache.nifi.web.api.config.ClusterExceptionMapper;
+import org.apache.nifi.web.api.config.ConnectorConfigurationProviderExceptionMapper;
 import org.apache.nifi.web.api.config.IllegalArgumentExceptionMapper;
 import org.apache.nifi.web.api.config.IllegalClusterResourceRequestExceptionMapper;
 import org.apache.nifi.web.api.config.IllegalClusterStateExceptionMapper;
@@ -114,6 +115,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(AuthenticationCredentialsNotFoundExceptionMapper.class);
         register(AdministrationExceptionMapper.class);
         register(ClusterExceptionMapper.class);
+        register(ConnectorConfigurationProviderExceptionMapper.class);
         register(IllegalArgumentExceptionMapper.class);
         register(IllegalClusterResourceRequestExceptionMapper.class);
         register(IllegalClusterStateExceptionMapper.class);
