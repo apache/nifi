@@ -53,6 +53,11 @@ public class VirtualThreadStartStopCycleIT extends NiFiSystemIT {
 
     private static final int START_STOP_CYCLES = 25;
 
+    @Override
+    protected Map<String, String> getNifiPropertiesOverrides() {
+        return Map.of("nifi.scheduler.virtual.threads.enabled", "true");
+    }
+
     @Test
     @Timeout(value = 5, unit = TimeUnit.MINUTES)
     public void testRepeatedStartStopProducesExpectedQueueCount() throws NiFiClientException, IOException, InterruptedException {

@@ -83,6 +83,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             throw new RuntimeException("Failed to create VirtualThreadSchedulingAgent because the "
                     + NiFiProperties.BORED_YIELD_DURATION + " property is set to an invalid time duration: " + boredYieldDuration);
         }
+
+        logger.info("VirtualThreadSchedulingAgent initialized with {} permits", maxThreadCount);
     }
 
     /**
@@ -145,7 +147,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 startTrackedVirtualThread(threadName, () -> runSchedulingLoop(connectable, connectableTask, lifecycleState, startStopTime, cronExpression));
             }
 
-            logger.info("Scheduled {} to run with {} virtual threads", connectable, taskCount);
+            logger.info("Scheduled {} to run with {} Virtual Threads", connectable, taskCount);
         } catch (final Throwable t) {
             lifecycleState.setScheduled(false);
             throw t;

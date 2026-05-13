@@ -51,6 +51,11 @@ public class VirtualThreadSchedulingIT extends NiFiSystemIT {
     private static final int DRAINED_POLLS_REQUIRED = 20;
     private static final long POLL_DELAY_MILLIS = 500L;
 
+    @Override
+    protected Map<String, String> getNifiPropertiesOverrides() {
+        return Map.of("nifi.scheduler.virtual.threads.enabled", "true");
+    }
+
     @Test
     @Timeout(value = 10, unit = TimeUnit.MINUTES)
     public void testMillionFlowFilesThroughVirtualThreads() throws NiFiClientException, IOException, InterruptedException {
