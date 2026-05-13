@@ -18,8 +18,6 @@
 .wizard-stepper {
     .wizard-stepper-header-wrapper {
         width: 280px;
-        background-color: var(--mat-sys-surface-container-low);
-        border-right: 1px solid var(--mat-sys-outline-variant);
         overflow-y: auto;
     }
 
@@ -28,41 +26,12 @@
         gap: 8px;
         align-items: center;
         padding: 8px 16px;
-
-        .mat-icon.step-icon {
-            color: var(--mat-sys-on-surface-variant);
-            height: 20px;
-            width: 20px;
-        }
     }
 
-    // There are no available overrides in mat.stepper-overrides for the selected step bg or radius.
-    // As such, they are set here and rely on the wizard adding the step-active class.
     .step-active .mat-step-header {
-        background-color: var(--mat-sys-secondary-container);
-        border-radius: 8px;
-        color: var(--mat-sys-on-secondary-container);
-
-        .mat-icon.step-icon,
         .mat-step-label {
-            color: var(--mat-sys-on-secondary-container);
+            color: var(--mat-sys-tertiary);
+            font-weight: 700;
         }
-    }
-
-    .step-disabled .mat-step-header {
-        color: var(--mat-sys-outline);
-
-        .mat-icon.step-icon,
-        .mat-step-label {
-            color: var(--mat-sys-outline);
-        }
-    }
-
-    .mat-step-icon-selected {
-        background: unset;
-    }
-
-    .step-buttons {
-        background-color: var(--mat-sys-surface-container-low);
     }
 }

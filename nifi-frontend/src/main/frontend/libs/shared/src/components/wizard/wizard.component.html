@@ -16,12 +16,9 @@
 -->
 
 <div class="wizard-stepper flex flex-1">
-    <div class="wizard-stepper-header-wrapper flex flex-col gap-y-2 shrink-0 px-4 py-4">
+    <div class="wizard-stepper-header-wrapper flex flex-col gap-y-2 shrink-0 px-4 py-4 border-r">
         @for (step of steps; track step) {
-            <div
-                class="mat-step"
-                [class.step-active]="selectedIndex === $index"
-                [class.step-disabled]="stepIsDisabled(step)">
+            <div class="mat-step" [class.step-active]="selectedIndex === $index">
                 <ng-container [ngTemplateOutlet]="stepTemplate" [ngTemplateOutletContext]="{ step, i: $index }" />
             </div>
         }
