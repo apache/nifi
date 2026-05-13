@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ConnectorFlowEndpointMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity, ProcessGroupFlowDTO> {
-    public static final Pattern CONNECTOR_FLOW_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/flow");
+    public static final Pattern CONNECTOR_FLOW_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/flow/process-groups/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
