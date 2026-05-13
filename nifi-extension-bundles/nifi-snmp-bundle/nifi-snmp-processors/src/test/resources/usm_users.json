@@ -4,13 +4,15 @@
     "authProtocol":"HMAC384SHA512",
     "authPassphrase":"abc12345",
     "privProtocol":"AES192",
-    "privPassphrase":"abc12345"
+    "privPassphrase":"abc12345",
+    "localizationEngineID":"8000000001020304"
   },
   {
     "securityName":"user2",
     "authProtocol":"HMAC192SHA256",
     "authPassphrase":"abc12345",
     "privProtocol":"AES256",
-    "privPassphrase":"abc12345"
+    "privPassphrase":"abc12345",
+    "localizationEngineID":"8000000001020308"
   }
 ]

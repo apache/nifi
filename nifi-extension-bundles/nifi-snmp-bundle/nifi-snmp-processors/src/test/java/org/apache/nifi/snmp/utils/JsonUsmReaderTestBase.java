@@ -39,14 +39,17 @@ public class JsonUsmReaderTestBase {
                 new OID("1.3.6.1.6.3.10.1.1.7"),
                 new OctetString("abc12345"),
                 new OID("1.3.6.1.4.1.4976.2.2.1.1.1"),
-                new OctetString("abc12345")
+                new OctetString("abc12345"),
+                new OctetString("8000000001020304")
+
         ));
         expectedUsmUsers.add(new UsmUser(
                 new OctetString("user2"),
                 new OID("1.3.6.1.6.3.10.1.1.5"),
                 new OctetString("abc12345"),
                 new OID("1.3.6.1.4.1.4976.2.2.1.1.2"),
-                new OctetString("abc12345")
+                new OctetString("abc12345"),
+                new OctetString("8000000001020308")
         ));
     }
 
