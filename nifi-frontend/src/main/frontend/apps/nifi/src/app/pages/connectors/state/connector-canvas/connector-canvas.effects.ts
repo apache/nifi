@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 
-import { Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
-import { NEVER, Observable, of } from 'rxjs';
-import { catchError, filter, map, switchMap, take, tap } from 'rxjs/operators';
-import { ComponentType, ComponentTypeNamePipe, LARGE_DIALOG, MEDIUM_DIALOG, XL_DIALOG } from '@nifi/shared';
+import { asyncScheduler, interval, NEVER, Observable, of } from 'rxjs';
+import { catchError, filter, map, switchMap, take, takeUntil, tap, throttleTime } from 'rxjs/operators';
+import { ComponentType, ComponentTypeNamePipe, LARGE_DIALOG, MEDIUM_DIALOG, NiFiCommon, XL_DIALOG } from '@nifi/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectPrioritizerTypes } from '../../../../state/extension-types/extension-types.selectors';
 import {
@@ -46,8 +47,10 @@ import { SelectedComponent } from './connector-canvas.actions';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectBreadcrumbs,
+    selectConnectorId,
     selectConnectorIdFromRoute,
     selectInputPort,
+    selectLoadingStatus,
     selectOutputPort,
     selectParentProcessGroupId,
     selectProcessGroup,
@@ -56,6 +59,8 @@ import {
     selectProcessor,
     selectRemoteProcessGroup
 } from './connector-canvas.selectors';
+import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
+import { DocumentVisibility } from '../../../../state/document-visibility';
 
 @Injectable()
 export class ConnectorCanvasEffects {
@@ -66,6 +71,35 @@ export class ConnectorCanvasEffects {
     private errorHelper = inject(ErrorHelper);
     private componentTypeNamePipe = inject(ComponentTypeNamePipe);
     private dialog = inject(MatDialog);
+    private destroyRef = inject(DestroyRef);
+
+    /**
+     * Timestamp of the most recent reload (epoch millis). Used by the document
+     * visibility subscription to debounce "tab refocus" reloads so that
+     * switching tabs in quick succession does not produce a thrash of loads.
+     */
+    private lastReload = 0;
+
+    constructor() {
+        // When the document becomes visible after having been hidden long enough
+        // for the polling interval to be skipped, trigger a reload so the canvas
+        // does not display stale bulletins / status while the next interval tick
+        // is pending. The 30 second floor matches the polling cadence and keeps
+        // rapid tab switches from forcing a fresh load every time.
+        this.store
+            .select(selectDocumentVisibilityState)
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                filter((documentVisibility) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
+                filter(
+                    (documentVisibility) =>
+                        documentVisibility.changedTimestamp - this.lastReload > 30 * NiFiCommon.MILLIS_PER_SECOND
+                )
+            )
+            .subscribe(() => {
+                this.store.dispatch(ConnectorCanvasActions.reloadConnectorFlow());
+            });
+    }
 
     loadConnectorFlow$ = createEffect(() =>
         this.actions$.pipe(
@@ -125,6 +159,69 @@ export class ConnectorCanvasEffects {
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlowSuccess),
             map(() => ConnectorCanvasActions.loadConnectorFlowComplete())
+        )
+    );
+
+    /**
+     * Translate a reload request into a fresh {@link loadConnectorFlow} for the
+     * connector and process group currently mounted on the canvas.
+     *
+     * The connector and process group ids come from the canvas state (set by the
+     * most recent successful load) rather than the route so that a reload fired
+     * mid-navigation does not race the URL change. A 1 second throttle protects
+     * against rapid back-to-back reload requests, and the effect is a no-op when
+     * the canvas has not yet completed an initial load.
+     */
+    reloadConnectorFlow$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.reloadConnectorFlow),
+            throttleTime(1000),
+            concatLatestFrom(() => [this.store.select(selectConnectorId), this.store.select(selectProcessGroupId)]),
+            filter(([, connectorId, processGroupId]) => !!connectorId && processGroupId != null),
+            switchMap(([, connectorId, processGroupId]) => {
+                this.lastReload = Date.now();
+
+                return of(
+                    ConnectorCanvasActions.loadConnectorFlow({
+                        connectorId,
+                        processGroupId: processGroupId!
+                    })
+                );
+            })
+        )
+    );
+
+    /**
+     * Drive periodic refresh of the connector flow.
+     *
+     * The interval ticks every 30 seconds and is torn down when
+     * {@link stopConnectorCanvasPolling} is dispatched (typically from the
+     * canvas component's ngOnDestroy). Polling is skipped when the document is
+     * hidden so background tabs do not generate load, and it is also skipped
+     * while a load is already in flight to avoid racing user-initiated process
+     * group navigations.
+     */
+    startConnectorCanvasPolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.startConnectorCanvasPolling),
+            switchMap(() =>
+                interval(30000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(ConnectorCanvasActions.stopConnectorCanvasPolling)))
+                )
+            ),
+            concatLatestFrom(() => [
+                this.store.select(selectDocumentVisibilityState),
+                this.store.select(selectLoadingStatus)
+            ]),
+            // Skip polling when the document is hidden or while a flow load is
+            // already in flight. Without the loading guard the polling-driven
+            // reload would race a user-initiated process group navigation: the
+            // load effect uses switchMap, so a polling reload would cancel the
+            // pending navigation load and replace it with a load of the
+            // previously-rendered group, leaving the URL and canvas out of sync.
+            filter(([, documentVisibility]) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
+            filter(([, , loadingStatus]) => loadingStatus !== 'loading'),
+            switchMap(() => of(ConnectorCanvasActions.reloadConnectorFlow()))
         )
     );
 
