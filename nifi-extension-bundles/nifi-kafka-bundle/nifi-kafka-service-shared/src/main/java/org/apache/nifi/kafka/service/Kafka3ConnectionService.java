@@ -23,6 +23,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -51,6 +52,7 @@ import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.consumer.Subscription;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
 import org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler;
+import org.apache.nifi.kafka.service.security.StandardSslEngineFactory;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.IsolationLevel;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -61,7 +63,7 @@ import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -76,14 +78,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler.PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER;
+import static org.apache.nifi.kafka.service.security.StandardSslEngineFactory.SSL_CONTEXT_PROVIDER_PROPERTY;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CALLBACK_HANDLER_CLASS;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_PASSWORD;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_TYPE;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEY_PASSWORD;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_LOCATION;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_TYPE;
 import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.SASL_EXTENSION_PROPERTY_PREFIX;
 import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.isSaslExtensionProperty;
 import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.removeSaslExtensionPropertyPrefix;
@@ -396,25 +392,11 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     }
 
     private void setSslProperties(final Properties properties, final PropertyContext context) {
-        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
-        if (sslContextServiceProperty.isSet()) {
-            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
-            if (sslContextService.isKeyStoreConfigured()) {
-                properties.put(SSL_KEYSTORE_LOCATION.getProperty(), sslContextService.getKeyStoreFile());
-                properties.put(SSL_KEYSTORE_TYPE.getProperty(), sslContextService.getKeyStoreType());
-
-                final String keyStorePassword = sslContextService.getKeyStorePassword();
-                properties.put(SSL_KEYSTORE_PASSWORD.getProperty(), keyStorePassword);
-
-                final String keyPassword = sslContextService.getKeyPassword();
-                final String configuredKeyPassword = keyPassword == null ? keyStorePassword : keyPassword;
-                properties.put(SSL_KEY_PASSWORD.getProperty(), configuredKeyPassword);
-            }
-            if (sslContextService.isTrustStoreConfigured()) {
-                properties.put(SSL_TRUSTSTORE_LOCATION.getProperty(), sslContextService.getTrustStoreFile());
-                properties.put(SSL_TRUSTSTORE_TYPE.getProperty(), sslContextService.getTrustStoreType());
-                properties.put(SSL_TRUSTSTORE_PASSWORD.getProperty(), sslContextService.getTrustStorePassword());
-            }
+        final PropertyValue sslContextProperty = context.getProperty(SSL_CONTEXT_SERVICE);
+        if (sslContextProperty.isSet()) {
+            final SSLContextProvider sslContextProvider = sslContextProperty.asControllerService(SSLContextProvider.class);
+            properties.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, StandardSslEngineFactory.class.getName());
+            properties.put(SSL_CONTEXT_PROVIDER_PROPERTY, sslContextProvider);
         }
     }
 

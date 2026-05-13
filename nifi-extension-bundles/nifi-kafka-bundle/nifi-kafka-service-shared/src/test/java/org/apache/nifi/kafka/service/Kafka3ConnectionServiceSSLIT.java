@@ -17,19 +17,31 @@
 package org.apache.nifi.kafka.service;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT {
+
+    private static final String TLS_PROTOCOL = "TLS";
 
     @Override
     protected Map<String, String> getKafkaContainerConfigProperties() {
@@ -60,32 +72,52 @@ public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT 
     protected Map<String, String> getAdminClientConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getAdminClientConfigProperties());
         properties.put(AdminClientConfig.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name());
-        properties.put(KafkaClientProperty.SSL_KEY_PASSWORD.getProperty(), KEY_PASSWORD);
-        properties.put(KafkaClientProperty.SSL_KEYSTORE_LOCATION.getProperty(), keyStorePath.toString());
-        properties.put(KafkaClientProperty.SSL_KEYSTORE_TYPE.getProperty(), keyStoreType);
-        properties.put(KafkaClientProperty.SSL_KEYSTORE_PASSWORD.getProperty(), KEY_STORE_PASSWORD);
-        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_LOCATION.getProperty(), trustStorePath.toString());
-        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_TYPE.getProperty(), keyStoreType);
-        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD.getProperty(), KEY_STORE_PASSWORD);
+        properties.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, KEY_PASSWORD);
+        properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath.toString());
+        properties.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, keyStoreType);
+        properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
+        properties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath.toString());
+        properties.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, keyStoreType);
+        properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
         return properties;
     }
 
     private String addSSLContextService(final TestRunner runner) throws InitializationException {
         final String identifier = SSLContextService.class.getSimpleName();
-        final SSLContextService service = mock(SSLContextService.class);
-        when(service.getIdentifier()).thenReturn(identifier);
-        runner.addControllerService(identifier, service);
+        final SSLContextProvider provider = mock(SSLContextProvider.class);
+        when(provider.getIdentifier()).thenReturn(identifier);
 
-        when(service.isKeyStoreConfigured()).thenReturn(true);
-        when(service.getKeyStoreFile()).thenReturn(keyStorePath.toString());
-        when(service.getKeyStoreType()).thenReturn(keyStoreType);
-        when(service.getKeyStorePassword()).thenReturn(KEY_STORE_PASSWORD);
-        when(service.isTrustStoreConfigured()).thenReturn(true);
-        when(service.getTrustStoreFile()).thenReturn(trustStorePath.toString());
-        when(service.getTrustStoreType()).thenReturn(keyStoreType);
-        when(service.getTrustStorePassword()).thenReturn(KEY_STORE_PASSWORD);
+        runner.addControllerService(identifier, provider);
+        runner.enableControllerService(provider);
 
-        runner.enableControllerService(service);
+        try {
+            final SSLContext sslContext = buildSslContext();
+            when(provider.createContext()).thenReturn(sslContext);
+        } catch (final GeneralSecurityException | IOException e) {
+            throw new InitializationException(e);
+        }
+
         return identifier;
+    }
+
+    private SSLContext buildSslContext() throws GeneralSecurityException, IOException {
+        final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+        try (InputStream inputStream = Files.newInputStream(keyStorePath)) {
+            keyStore.load(inputStream, KEY_STORE_PASSWORD.toCharArray());
+        }
+        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, KEY_PASSWORD.toCharArray());
+
+        final KeyStore trustStore = KeyStore.getInstance(keyStoreType);
+        try (InputStream inputStream = Files.newInputStream(trustStorePath)) {
+            trustStore.load(inputStream, KEY_STORE_PASSWORD.toCharArray());
+        }
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
+
+        final SSLContext sslContext = SSLContext.getInstance(TLS_PROTOCOL);
+        final SecureRandom secureRandom = new SecureRandom();
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), secureRandom);
+        return sslContext;
     }
 }
