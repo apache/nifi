@@ -26,11 +26,13 @@ import {
     ConnectorActionName,
     NifiTooltipDirective,
     NiFiCommon,
+    StatusBadge,
     canReadConnector,
     canModifyConnector,
     canOperateConnector,
     isConnectorActionAllowed,
-    getConnectorActionDisabledReason
+    getConnectorActionDisabledReason,
+    getConnectorStateVariant
 } from '@nifi/shared';
 import { ValidationErrorsTipInput } from '../../../../state/shared';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
@@ -41,7 +43,15 @@ import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-e
     selector: 'connector-table',
     standalone: true,
     templateUrl: './connector-table.component.html',
-    imports: [MatButtonModule, MatTableModule, MatSortModule, MatMenuModule, MatTooltipModule, NifiTooltipDirective],
+    imports: [
+        MatButtonModule,
+        MatTableModule,
+        MatSortModule,
+        MatMenuModule,
+        MatTooltipModule,
+        NifiTooltipDirective,
+        StatusBadge
+    ],
     styleUrls: ['./connector-table.component.scss']
 })
 export class ConnectorTable {
@@ -112,6 +122,8 @@ export class ConnectorTable {
     getActionDisabledReason(entity: ConnectorEntity, actionName: ConnectorActionName): string {
         return getConnectorActionDisabledReason(entity, actionName);
     }
+
+    protected readonly getConnectorStateVariant = getConnectorStateVariant;
 
     canConfigure(entity: ConnectorEntity): boolean {
         return isConnectorActionAllowed(entity, 'CONFIGURE');

@@ -74,11 +74,16 @@
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
                 <td mat-cell *matCellDef="let item" data-qa="connector-state-cell">
                     <div class="inline-flex items-center gap-x-2">
-                        <span [title]="formatState(item)">{{ formatState(item) }}</span>
+                        @if (canRead(item)) {
+                            <status-badge
+                                [label]="formatState(item)"
+                                [variant]="getConnectorStateVariant(item.component.state)"
+                                data-qa="connector-state">
+                            </status-badge>
+                        }
                         @if (canRead(item) && canDiscardConfig(item)) {
-                            <span class="caution-color text-xs font-medium" data-qa="edits-not-applied-badge"
-                                >(Edits not applied)</span
-                            >
+                            <status-badge label="Edits not applied" variant="caution" data-qa="edits-not-applied-badge">
+                            </status-badge>
                         }
                     </div>
                 </td>

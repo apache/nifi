@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ConnectorAction, ConnectorActionName, ConnectorEntity } from '../types';
+import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorState, StatusVariant } from '../types';
 
 export function canReadConnector(entity: ConnectorEntity): boolean {
     return entity.permissions.canRead;
@@ -44,4 +44,24 @@ export function isConnectorActionAllowed(entity: ConnectorEntity, actionName: Co
 export function getConnectorActionDisabledReason(entity: ConnectorEntity, actionName: ConnectorActionName): string {
     const action = getConnectorAction(entity, actionName);
     return action?.reasonNotAllowed ?? '';
+}
+
+export function getConnectorStateVariant(state: string): StatusVariant {
+    switch (state) {
+        case ConnectorState.RUNNING:
+            return 'success';
+        case ConnectorState.STOPPED:
+        case ConnectorState.DISABLED:
+            return 'neutral';
+        case ConnectorState.STARTING:
+        case ConnectorState.UPDATING:
+        case ConnectorState.STOPPING:
+        case ConnectorState.DRAINING:
+        case ConnectorState.PREPARING_FOR_UPDATE:
+            return 'info';
+        case ConnectorState.UPDATE_FAILED:
+            return 'critical';
+        default:
+            return 'neutral';
+    }
 }

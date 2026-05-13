@@ -361,6 +361,30 @@
             )
         );
     }
+
+    // NOTE: The following styles are for the status badge and status banner components. The `.status-variant` class should only be applied to a div or span element that should adhear to the variant color and background.
+    .status-variant {
+        &.neutral {
+            color: var(--mat-sys-on-surface);
+            background-color: var(--mat-sys-surface-dim);
+        }
+        &.critical {
+            color: var(--mat-sys-on-error);
+            background-color: var(--mat-sys-error);
+        }
+        &.caution {
+            color: var(--nf-caution-contrast);
+            background-color: var(--nf-caution-default);
+        }
+        &.success {
+            color: var(--nf-success-contrast);
+            background-color: var(--nf-success-default);
+        }
+        &.info {
+            color: var(--nf-success-contrast);
+            background-color: var(--nf-success-variant);
+        }
+    }
 }
 
 // Note: Color palettes are generated from primary: #6750a4
@@ -853,5 +877,29 @@ html {
                 active-indicator-color: var(--md-ref-palette-tertiary-70)
             )
         );
+    }
+
+    // NOTE: The following styles are for the status badge and status banner components. The `.status-variant` class should only be applied to a div or span element that should adhear to the variant color and background.
+    .status-variant {
+        &.neutral {
+            color: var(--mat-sys-on-surface);
+            background-color: var(--mat-sys-surface-dim);
+        }
+        &.critical {
+            color: var(--mat-sys-on-error);
+            background-color: var(--mat-sys-error);
+        }
+        &.caution {
+            color: var(--nf-caution-contrast);
+            background-color: var(--nf-caution-default);
+        }
+        &.success {
+            color: var(--nf-success-contrast);
+            background-color: var(--nf-success-default);
+        }
+        &.info {
+            color: var(--nf-success-contrast);
+            background-color: var(--nf-success-variant);
+        }
     }
 }

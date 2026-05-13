@@ -17,14 +17,14 @@
 
 import { Component, computed, input } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { ConnectorEntity, ConnectorState } from '../../types';
-
-export type ConnectorStateVariant = 'neutral' | 'critical' | 'caution' | 'success' | 'info';
+import { ConnectorEntity } from '../../types';
+import { StatusBadge } from '../status-badge/status-badge.component';
+import { getConnectorStateVariant } from '../../utils/connector-permissions.utils';
 
 @Component({
     selector: 'connector-detail-header',
     standalone: true,
-    imports: [NgTemplateOutlet],
+    imports: [NgTemplateOutlet, StatusBadge],
     templateUrl: './connector-detail-header.component.html',
     styleUrls: ['./connector-detail-header.component.scss']
 })
@@ -48,39 +48,5 @@ export class ConnectorDetailHeader {
         return action?.allowed ?? false;
     });
 
-    getStateVariant(state: string): ConnectorStateVariant {
-        switch (state) {
-            case ConnectorState.RUNNING:
-                return 'success';
-            case ConnectorState.STOPPED:
-            case ConnectorState.DISABLED:
-                return 'neutral';
-            case ConnectorState.STARTING:
-            case ConnectorState.UPDATING:
-            case ConnectorState.STOPPING:
-            case ConnectorState.DRAINING:
-            case ConnectorState.PREPARING_FOR_UPDATE:
-                return 'info';
-            case ConnectorState.UPDATE_FAILED:
-                return 'critical';
-            default:
-                return 'neutral';
-        }
-    }
-
-    getStateColorClass(state: string): string {
-        switch (this.getStateVariant(state)) {
-            case 'success':
-                return 'success-color-default';
-            case 'critical':
-                return 'error-color';
-            case 'caution':
-                return 'caution-color';
-            case 'info':
-                return 'primary-color';
-            case 'neutral':
-            default:
-                return 'neutral-color';
-        }
-    }
+    protected readonly getStateVariant = getConnectorStateVariant;
 }
