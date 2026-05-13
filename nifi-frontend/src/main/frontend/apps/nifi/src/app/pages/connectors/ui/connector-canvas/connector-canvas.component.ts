@@ -329,6 +329,10 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         };
         this.store.dispatch(setConfiguration({ configuration: config }));
 
+        // Begin periodic refresh so bulletins, queue counts, and run status reflect
+        // server-side changes without requiring the user to manually navigate.
+        this.store.dispatch(ConnectorCanvasActions.startConnectorCanvasPolling());
+
         // Subscribe to connector ID and process group ID from route and load flow data
         combineLatest([
             this.store.select(ConnectorCanvasSelectors.selectConnectorIdFromRoute),
@@ -394,6 +398,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(ConnectorCanvasActions.stopConnectorCanvasPolling());
         this.store.dispatch(ConnectorCanvasActions.resetConnectorCanvasState());
         this.store.dispatch(ConnectorCanvasEntityActions.resetConnectorCanvasEntityState());
     }

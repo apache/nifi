@@ -65,6 +65,34 @@ export const loadConnectorFlowFailure = createAction(
 
 export const loadConnectorFlowComplete = createAction('[Connector Canvas] Load Connector Flow Complete');
 
+/**
+ * Reload the currently displayed connector flow.
+ *
+ * The polling effect dispatches this action; the corresponding effect throttles
+ * and resolves the connector and process group identifiers from state before
+ * delegating to {@link loadConnectorFlow}. Keeping the indirection makes the
+ * polling source independent of which connector and process group are currently
+ * mounted, mirroring the flow-designer's reloadFlow pattern.
+ */
+export const reloadConnectorFlow = createAction('[Connector Canvas] Reload Connector Flow');
+
+/**
+ * Begin periodic refresh of the connector flow on the currently mounted canvas.
+ *
+ * The component dispatches this action in ngOnInit; the polling effect drives a
+ * 30 second interval, gates on document visibility and on the absence of an
+ * in-flight load, and dispatches {@link reloadConnectorFlow}.
+ */
+export const startConnectorCanvasPolling = createAction('[Connector Canvas] Start Connector Canvas Polling');
+
+/**
+ * Stop the periodic refresh started by {@link startConnectorCanvasPolling}.
+ *
+ * Dispatched by the component in ngOnDestroy (and may be dispatched explicitly
+ * by other effects that need to suppress polling around a destructive operation).
+ */
+export const stopConnectorCanvasPolling = createAction('[Connector Canvas] Stop Connector Canvas Polling');
+
 export const enterProcessGroup = createAction(
     '[Connector Canvas] Enter Process Group',
     props<{ request: { id: string } }>()

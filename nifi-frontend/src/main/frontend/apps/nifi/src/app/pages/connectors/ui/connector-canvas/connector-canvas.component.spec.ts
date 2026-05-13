@@ -59,6 +59,8 @@ import {
     resetConnectorCanvasState,
     selectComponents,
     setSkipTransform,
+    startConnectorCanvasPolling,
+    stopConnectorCanvasPolling,
     viewComponentConfiguration
 } from '../../state/connector-canvas/connector-canvas.actions';
 import {
@@ -393,6 +395,14 @@ describe('ConnectorCanvasComponent', () => {
             );
             expect(loadFlowDispatches).toHaveLength(0);
         }));
+
+        it('should dispatch startConnectorCanvasPolling on init', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup();
+            fixture.detectChanges();
+            tick();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(startConnectorCanvasPolling());
+        }));
     });
 
     describe('Component destruction', () => {
@@ -414,6 +424,16 @@ describe('ConnectorCanvasComponent', () => {
             fixture.destroy();
 
             expect(dispatchSpy).toHaveBeenCalledWith(resetConnectorCanvasEntityState());
+        });
+
+        it('should dispatch stopConnectorCanvasPolling on destroy', () => {
+            const { fixture, dispatchSpy } = setup();
+            fixture.detectChanges();
+            dispatchSpy.mockClear();
+
+            fixture.destroy();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(stopConnectorCanvasPolling());
         });
     });
 
@@ -1793,6 +1813,88 @@ describe('ConnectorCanvasComponent', () => {
                     })
                 );
             }));
+
+            it('should set canClear to true when status data is missing', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                // No status property: runStatus is undefined (not 'Running') and activeThreadCount
+                // defaults to 0 via the || 0 fallback, so canClear resolves to true.
+                const processorEntity = {
+                    id: 'proc-1',
+                    component: { name: 'Stateless Processor', persistsState: true }
+                };
+
+                component.viewProcessorStateAction(processorEntity);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    getComponentStateAndOpenDialog({
+                        request: {
+                            componentName: 'Stateless Processor',
+                            componentId: 'proc-1',
+                            componentType: ComponentType.Processor,
+                            canClear: true,
+                            connectorId: DEFAULT_CONNECTOR_ID
+                        }
+                    })
+                );
+            }));
+
+            it('should set canClear to true when processor is disabled', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                const processorEntity = {
+                    id: 'proc-1',
+                    component: { name: 'Disabled Processor', persistsState: true },
+                    status: { aggregateSnapshot: { runStatus: 'Disabled', activeThreadCount: 0 } }
+                };
+
+                component.viewProcessorStateAction(processorEntity);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    getComponentStateAndOpenDialog({
+                        request: {
+                            componentName: 'Disabled Processor',
+                            componentId: 'proc-1',
+                            componentType: ComponentType.Processor,
+                            canClear: true,
+                            connectorId: DEFAULT_CONNECTOR_ID
+                        }
+                    })
+                );
+            }));
+
+            it('should set canClear to true when processor is invalid', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup();
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                const processorEntity = {
+                    id: 'proc-1',
+                    component: { name: 'Invalid Processor', persistsState: true },
+                    status: { aggregateSnapshot: { runStatus: 'Invalid', activeThreadCount: 0 } }
+                };
+
+                component.viewProcessorStateAction(processorEntity);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    getComponentStateAndOpenDialog({
+                        request: {
+                            componentName: 'Invalid Processor',
+                            componentId: 'proc-1',
+                            componentType: ComponentType.Processor,
+                            canClear: true,
+                            connectorId: DEFAULT_CONNECTOR_ID
+                        }
+                    })
+                );
+            }));
         });
 
         describe('queue and controller-services actions', () => {
@@ -1909,6 +2011,91 @@ describe('ConnectorCanvasComponent', () => {
                 expect(dispatchSpy).toHaveBeenCalledWith(
                     cancelConnectorDrain({ connector: operableConnectorEntity as any })
                 );
+            });
+
+            it('canDrain should be true when the entity is operable and DRAIN_FLOWFILES is allowed', () => {
+                const { component, fixture } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operableConnectorEntity);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canDrain()).toBe(true);
+            });
+
+            it('canDrain should be false when the user cannot operate the connector', () => {
+                const { component, fixture } = setup();
+                const entityWithoutOperatePermissions = {
+                    ...operableConnectorEntity,
+                    permissions: { canRead: true, canWrite: false },
+                    operatePermissions: { canRead: true, canWrite: false }
+                };
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, entityWithoutOperatePermissions);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canDrain()).toBe(false);
+            });
+
+            it('canDrain should be false when the DRAIN_FLOWFILES action is not allowed', () => {
+                const { component, fixture } = setup();
+                const entityWithDrainDisallowed = {
+                    ...operableConnectorEntity,
+                    component: {
+                        availableActions: [
+                            { name: 'DRAIN_FLOWFILES', allowed: false },
+                            { name: 'CANCEL_DRAIN_FLOWFILES', allowed: true }
+                        ]
+                    }
+                };
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, entityWithDrainDisallowed);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canDrain()).toBe(false);
+            });
+
+            it('canDrain should be true when only operatePermissions.canWrite is true (permissions.canWrite is false)', () => {
+                const { component, fixture } = setup();
+                const operateOnlyEntity = {
+                    ...operableConnectorEntity,
+                    permissions: { canRead: true, canWrite: false },
+                    operatePermissions: { canRead: true, canWrite: true }
+                };
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operateOnlyEntity);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canDrain()).toBe(true);
+            });
+
+            it('canCancelDrain should be false when no entity is loaded', () => {
+                const { component } = setup();
+                expect(component.canCancelDrain()).toBe(false);
+            });
+
+            it('canCancelDrain should be true when the entity is operable and CANCEL_DRAIN_FLOWFILES is allowed', () => {
+                const { component, fixture } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operableConnectorEntity);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canCancelDrain()).toBe(true);
+            });
+
+            it('canCancelDrain should be false while the entity is saving', () => {
+                const { component, fixture } = setup();
+                const store = TestBed.inject(MockStore);
+                store.overrideSelector(selectConnectorCanvasEntity, operableConnectorEntity);
+                store.overrideSelector(selectConnectorCanvasEntitySaving, true);
+                store.refreshState();
+                fixture.detectChanges();
+
+                expect(component.canCancelDrain()).toBe(false);
             });
         });
     });
@@ -2123,5 +2310,17 @@ describe('ConnectorCanvasComponent', () => {
             expect(graphControls.canvasDimensions()).toEqual({ width: 800, height: 600 });
             expect(graphControls.canNavigateToParent()).toBe(true);
         }));
+    });
+
+    describe('returnToConnectorListing', () => {
+        it('should navigate to the connectors listing route', () => {
+            const { component } = setup();
+            const router = TestBed.inject(Router);
+            const navigateSpy = vi.spyOn(router, 'navigate');
+
+            component.returnToConnectorListing();
+
+            expect(navigateSpy).toHaveBeenCalledWith(['/connectors']);
+        });
     });
 });

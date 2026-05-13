@@ -41,16 +41,23 @@ import {
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateWithoutTransform,
+    reloadConnectorFlow,
     selectComponents,
+    startConnectorCanvasPolling,
+    stopConnectorCanvasPolling,
     viewComponentConfiguration
 } from './connector-canvas.actions';
 import { queueEmptied } from '../../../../state/empty-queue/empty-queue.actions';
 import {
+    selectConnectorId,
     selectConnectorIdFromRoute,
+    selectLoadingStatus,
     selectParentProcessGroupId,
     selectProcessGroupId,
     selectProcessGroupIdFromRoute
 } from './connector-canvas.selectors';
+import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
+import { DocumentVisibility } from '../../../../state/document-visibility';
 import type { Mock } from 'vitest';
 
 describe('ConnectorCanvasEffects', () => {
@@ -61,6 +68,8 @@ describe('ConnectorCanvasEffects', () => {
             parentProcessGroupId?: string | null;
             processGroupId?: string | null;
             processGroupIdFromRoute?: string | null;
+            documentVisibility?: DocumentVisibility;
+            loadingStatus?: 'pending' | 'loading' | 'success' | 'error';
         } = {}
     ) {
         let actions$: Observable<Action>;
@@ -71,6 +80,8 @@ describe('ConnectorCanvasEffects', () => {
         const processGroupId = options.processGroupId !== undefined ? options.processGroupId : 'child-pg';
         const processGroupIdFromRoute =
             options.processGroupIdFromRoute !== undefined ? options.processGroupIdFromRoute : processGroupId;
+        const documentVisibility = options.documentVisibility ?? DocumentVisibility.Visible;
+        const loadingStatus = options.loadingStatus ?? 'success';
 
         // Mock services
         const mockConnectorService = {
@@ -98,9 +109,15 @@ describe('ConnectorCanvasEffects', () => {
                     initialState: {},
                     selectors: [
                         { selector: selectConnectorIdFromRoute, value: connectorId },
+                        { selector: selectConnectorId, value: connectorId },
                         { selector: selectParentProcessGroupId, value: parentProcessGroupId },
                         { selector: selectProcessGroupId, value: processGroupId },
-                        { selector: selectProcessGroupIdFromRoute, value: processGroupIdFromRoute }
+                        { selector: selectProcessGroupIdFromRoute, value: processGroupIdFromRoute },
+                        { selector: selectLoadingStatus, value: loadingStatus },
+                        {
+                            selector: selectDocumentVisibilityState,
+                            value: { documentVisibility, changedTimestamp: 0 }
+                        }
                     ]
                 }),
                 { provide: ConnectorService, useValue: mockConnectorService },
@@ -537,6 +554,19 @@ describe('ConnectorCanvasEffects', () => {
             const { mockDialog } = await dispatchView(ComponentType.Funnel);
             expect(mockDialog.open).not.toHaveBeenCalled();
         });
+
+        it('handles entities without operatePermissions by forcing operatePermissions.canWrite to false', async () => {
+            const entityWithoutOperatePermissions = {
+                id: 'comp-1',
+                uri: 'https://localhost/nifi-api/processors/comp-1',
+                permissions: { canRead: true, canWrite: true },
+                component: { name: 'My Component' }
+            };
+            const { mockDialog } = await dispatchView(ComponentType.Processor, entityWithoutOperatePermissions);
+            const [, config] = (mockDialog.open as Mock).mock.calls[0];
+            expect(config.data.entity.operatePermissions).toBeDefined();
+            expect(config.data.entity.operatePermissions.canWrite).toBe(false);
+        });
     });
 
     describe('navigateToProvenanceForComponent$', () => {
@@ -563,6 +593,34 @@ describe('ConnectorCanvasEffects', () => {
                         route: ['/connectors', 'conn-1', 'canvas', 'pg-root', ComponentType.Processor, 'proc-1'],
                         routeBoundary: ['/provenance'],
                         context: 'Processor'
+                    }
+                }
+            });
+        });
+
+        it('should use the supplied component type in the back navigation route for a funnel', async () => {
+            const { effects, actions$, mockRouter } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(
+                of(
+                    navigateToProvenanceForComponent({
+                        id: 'funnel-1',
+                        componentType: ComponentType.Funnel
+                    })
+                )
+            );
+
+            await firstValueFrom(effects.navigateToProvenanceForComponent$);
+
+            expect(mockRouter.navigate).toHaveBeenCalledWith(['/provenance'], {
+                queryParams: { componentId: 'funnel-1' },
+                state: {
+                    backNavigation: {
+                        route: ['/connectors', 'conn-1', 'canvas', 'pg-root', ComponentType.Funnel, 'funnel-1'],
+                        routeBoundary: ['/provenance'],
+                        context: 'Funnel'
                     }
                 }
             });
@@ -681,6 +739,31 @@ describe('ConnectorCanvasEffects', () => {
             );
         });
 
+        it('should dispatch loadConnectorFlow when all queues are emptied for a process group with connector-canvas source', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: 'conn-1',
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(
+                of(
+                    queueEmptied({
+                        connectionId: null,
+                        processGroupId: 'pg-root',
+                        source: 'connector-canvas'
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.refreshAfterQueueEmptied$);
+
+            expect(result).toEqual(
+                loadConnectorFlow({
+                    connectorId: 'conn-1',
+                    processGroupId: 'pg-root'
+                })
+            );
+        });
+
         it('should ignore queueEmptied events from the flow designer', async () => {
             const { effects, actions$ } = await setup({
                 connectorId: 'conn-1',
@@ -704,6 +787,297 @@ describe('ConnectorCanvasEffects', () => {
             await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
             expect(emitted).toBeUndefined();
+        });
+
+        it('should not dispatch when the connectorId route param is missing', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: null,
+                processGroupIdFromRoute: 'pg-root'
+            });
+            actions$(
+                of(
+                    queueEmptied({
+                        connectionId: 'conn-listing-1',
+                        processGroupId: null,
+                        source: 'connector-canvas'
+                    })
+                )
+            );
+
+            let emitted: Action | undefined;
+            effects.refreshAfterQueueEmptied$.subscribe((action) => {
+                emitted = action;
+            });
+
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+            expect(emitted).toBeUndefined();
+        });
+    });
+
+    describe('reloadConnectorFlow$', () => {
+        it('should dispatch loadConnectorFlow with the connector and process group ids from state', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: 'conn-state',
+                processGroupId: 'pg-state'
+            });
+            actions$(of(reloadConnectorFlow()));
+
+            const action = await firstValueFrom(effects.reloadConnectorFlow$);
+            expect(action).toEqual(
+                loadConnectorFlow({
+                    connectorId: 'conn-state',
+                    processGroupId: 'pg-state'
+                })
+            );
+        });
+
+        it('should not dispatch loadConnectorFlow when the connector id is empty', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: '',
+                processGroupId: 'pg-state'
+            });
+            actions$(of(reloadConnectorFlow()));
+
+            let emitted: Action | undefined;
+            effects.reloadConnectorFlow$.subscribe((action) => {
+                emitted = action;
+            });
+
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+            expect(emitted).toBeUndefined();
+        });
+
+        it('should not dispatch loadConnectorFlow when the process group id is null', async () => {
+            const { effects, actions$ } = await setup({
+                connectorId: 'conn-state',
+                processGroupId: null
+            });
+            actions$(of(reloadConnectorFlow()));
+
+            let emitted: Action | undefined;
+            effects.reloadConnectorFlow$.subscribe((action) => {
+                emitted = action;
+            });
+
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+            expect(emitted).toBeUndefined();
+        });
+
+        describe('throttleTime', () => {
+            beforeEach(() => {
+                vi.useFakeTimers();
+            });
+
+            afterEach(() => {
+                vi.useRealTimers();
+            });
+
+            async function flushPromises(): Promise<void> {
+                await Promise.resolve();
+                await Promise.resolve();
+            }
+
+            it('should collapse rapid back-to-back reloadConnectorFlow dispatches into a single loadConnectorFlow within the throttle window', async () => {
+                const { effects, actions$ } = await setup({
+                    connectorId: 'conn-state',
+                    processGroupId: 'pg-state'
+                });
+                const actionSubject = new Subject<Action>();
+                actions$(actionSubject.asObservable());
+
+                const emitted: Action[] = [];
+                const subscription = effects.reloadConnectorFlow$.subscribe((action) => {
+                    emitted.push(action);
+                });
+
+                // Three reloadConnectorFlow dispatches inside the 1s throttle window:
+                // throttleTime defaults to leading-only, so only the first should produce
+                // a loadConnectorFlow. The remaining two are dropped.
+                actionSubject.next(reloadConnectorFlow());
+                actionSubject.next(reloadConnectorFlow());
+                actionSubject.next(reloadConnectorFlow());
+
+                await flushPromises();
+
+                expect(emitted).toEqual([
+                    loadConnectorFlow({
+                        connectorId: 'conn-state',
+                        processGroupId: 'pg-state'
+                    })
+                ]);
+
+                // After the throttle window expires the next dispatch is allowed through.
+                await vi.advanceTimersByTimeAsync(1500);
+                actionSubject.next(reloadConnectorFlow());
+                await flushPromises();
+
+                expect(emitted).toEqual([
+                    loadConnectorFlow({
+                        connectorId: 'conn-state',
+                        processGroupId: 'pg-state'
+                    }),
+                    loadConnectorFlow({
+                        connectorId: 'conn-state',
+                        processGroupId: 'pg-state'
+                    })
+                ]);
+
+                subscription.unsubscribe();
+            });
+        });
+    });
+
+    describe('document visibility wake-up', () => {
+        it('should dispatch reloadConnectorFlow when the document becomes visible after being hidden longer than the polling interval', async () => {
+            const { store } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            // Simulate the tab being foregrounded after the polling cadence elapsed.
+            // The lastReload field starts at 0 in the freshly constructed effects, so
+            // any changedTimestamp greater than the 30 second threshold satisfies the
+            // wake-up filter.
+            store.overrideSelector(selectDocumentVisibilityState, {
+                documentVisibility: DocumentVisibility.Visible,
+                changedTimestamp: 31 * 1000
+            });
+            store.refreshState();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(reloadConnectorFlow());
+        });
+
+        it('should not dispatch reloadConnectorFlow when the document becomes visible within the polling interval', async () => {
+            const { store } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            store.overrideSelector(selectDocumentVisibilityState, {
+                documentVisibility: DocumentVisibility.Visible,
+                changedTimestamp: 5 * 1000
+            });
+            store.refreshState();
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(reloadConnectorFlow());
+        });
+
+        it('should not dispatch reloadConnectorFlow when the document transitions to hidden', async () => {
+            const { store } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            store.overrideSelector(selectDocumentVisibilityState, {
+                documentVisibility: DocumentVisibility.Hidden,
+                changedTimestamp: 60 * 1000
+            });
+            store.refreshState();
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(reloadConnectorFlow());
+        });
+    });
+
+    describe('startConnectorCanvasPolling$', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        async function flushPromises(): Promise<void> {
+            await Promise.resolve();
+            await Promise.resolve();
+        }
+
+        it('should dispatch reloadConnectorFlow on each polling tick while the document is visible', async () => {
+            const { effects, actions$ } = await setup();
+            const actionSubject = new Subject<Action>();
+            actions$(actionSubject.asObservable());
+
+            const emitted: Action[] = [];
+            const subscription = effects.startConnectorCanvasPolling$.subscribe((action) => {
+                emitted.push(action);
+            });
+
+            actionSubject.next(startConnectorCanvasPolling());
+
+            await vi.advanceTimersByTimeAsync(30000);
+            await flushPromises();
+            await vi.advanceTimersByTimeAsync(30000);
+            await flushPromises();
+
+            subscription.unsubscribe();
+
+            expect(emitted).toEqual([reloadConnectorFlow(), reloadConnectorFlow()]);
+        });
+
+        it('should suppress reloadConnectorFlow while the document is hidden', async () => {
+            const { effects, actions$ } = await setup({
+                documentVisibility: DocumentVisibility.Hidden
+            });
+            const actionSubject = new Subject<Action>();
+            actions$(actionSubject.asObservable());
+
+            const emitted: Action[] = [];
+            const subscription = effects.startConnectorCanvasPolling$.subscribe((action) => {
+                emitted.push(action);
+            });
+
+            actionSubject.next(startConnectorCanvasPolling());
+
+            await vi.advanceTimersByTimeAsync(60000);
+            await flushPromises();
+
+            subscription.unsubscribe();
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('should suppress reloadConnectorFlow while a load is already in flight', async () => {
+            const { effects, actions$ } = await setup({ loadingStatus: 'loading' });
+            const actionSubject = new Subject<Action>();
+            actions$(actionSubject.asObservable());
+
+            const emitted: Action[] = [];
+            const subscription = effects.startConnectorCanvasPolling$.subscribe((action) => {
+                emitted.push(action);
+            });
+
+            actionSubject.next(startConnectorCanvasPolling());
+
+            await vi.advanceTimersByTimeAsync(30000);
+            await flushPromises();
+
+            subscription.unsubscribe();
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('should stop polling once stopConnectorCanvasPolling is dispatched', async () => {
+            const { effects, actions$ } = await setup();
+            const actionSubject = new Subject<Action>();
+            actions$(actionSubject.asObservable());
+
+            const emitted: Action[] = [];
+            const subscription = effects.startConnectorCanvasPolling$.subscribe((action) => {
+                emitted.push(action);
+            });
+
+            actionSubject.next(startConnectorCanvasPolling());
+
+            await vi.advanceTimersByTimeAsync(30000);
+            await flushPromises();
+            expect(emitted).toEqual([reloadConnectorFlow()]);
+
+            actionSubject.next(stopConnectorCanvasPolling());
+
+            await vi.advanceTimersByTimeAsync(60000);
+            await flushPromises();
+
+            subscription.unsubscribe();
+
+            // No additional emissions after stop.
+            expect(emitted).toEqual([reloadConnectorFlow()]);
         });
     });
 });
