@@ -24,8 +24,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
     ConnectorEntity,
     ConnectorActionName,
+    ConnectorState,
+    StatusVariant,
     NifiTooltipDirective,
     NiFiCommon,
+    StatusBadge,
     canReadConnector,
     canModifyConnector,
     canOperateConnector,
@@ -48,7 +51,7 @@ import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-e
         MatMenuModule,
         MatTooltipModule,
         NifiTooltipDirective,
-        MatTooltipModule
+        StatusBadge
     ],
     styleUrls: ['./connector-table.component.scss']
 })
@@ -119,6 +122,26 @@ export class ConnectorTable {
 
     getActionDisabledReason(entity: ConnectorEntity, actionName: ConnectorActionName): string {
         return getConnectorActionDisabledReason(entity, actionName);
+    }
+
+    getStateVariant(entity: ConnectorEntity): StatusVariant {
+        switch (entity.component.state) {
+            case ConnectorState.RUNNING:
+                return 'success';
+            case ConnectorState.STOPPED:
+            case ConnectorState.DISABLED:
+                return 'neutral';
+            case ConnectorState.STARTING:
+            case ConnectorState.UPDATING:
+            case ConnectorState.STOPPING:
+            case ConnectorState.DRAINING:
+            case ConnectorState.PREPARING_FOR_UPDATE:
+                return 'info';
+            case ConnectorState.UPDATE_FAILED:
+                return 'critical';
+            default:
+                return 'neutral';
+        }
     }
 
     canConfigure(entity: ConnectorEntity): boolean {

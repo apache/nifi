@@ -46,5 +46,6 @@ export * from './side-panel-container/side-panel-container.component';
 export * from './connector-property-input/connector-property-input.component';
 export * from './connector-detail-header/connector-detail-header.component';
 export * from './searchable-select/searchable-select.component';
+export * from './status-badge/status-badge.component';
 export * from './multi-select-option/multi-select-option.component';
 export * from './asset-upload/asset-upload.component';

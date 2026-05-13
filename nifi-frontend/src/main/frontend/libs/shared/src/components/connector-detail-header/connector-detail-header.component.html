@@ -16,16 +16,13 @@
   -->
 
 <ng-template #badges>
-    <span
-        class="connector-state-badge text-xs font-semibold uppercase"
-        [class]="getStateColorClass(connector().component.state)"
+    <status-badge
+        [label]="connector().component.state"
+        [variant]="getStateVariant(connector().component.state)"
         data-qa="connector-state">
-        {{ connector().component.state }}
-    </span>
+    </status-badge>
     @if (hasUnappliedEdits()) {
-        <span class="caution-color text-xs font-semibold uppercase" data-qa="edits-not-applied-badge">
-            Edits not applied
-        </span>
+        <status-badge label="Edits not applied" variant="caution" data-qa="edits-not-applied-badge"> </status-badge>
     }
 </ng-template>
 

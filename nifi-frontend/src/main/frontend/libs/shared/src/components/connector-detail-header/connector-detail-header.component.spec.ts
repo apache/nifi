@@ -160,28 +160,6 @@ describe('ConnectorDetailHeader', () => {
         });
     });
 
-    describe('getStateColorClass', () => {
-        it('should map success variant to success-color-default', async () => {
-            const { component } = await setup();
-            expect(component.getStateColorClass(ConnectorState.RUNNING)).toBe('success-color-default');
-        });
-
-        it('should map neutral variant to neutral-color', async () => {
-            const { component } = await setup();
-            expect(component.getStateColorClass(ConnectorState.STOPPED)).toBe('neutral-color');
-        });
-
-        it('should map info variant to primary-color', async () => {
-            const { component } = await setup();
-            expect(component.getStateColorClass(ConnectorState.STARTING)).toBe('primary-color');
-        });
-
-        it('should map critical variant to error-color', async () => {
-            const { component } = await setup();
-            expect(component.getStateColorClass(ConnectorState.UPDATE_FAILED)).toBe('error-color');
-        });
-    });
-
     describe('hasUnappliedEdits', () => {
         it('should return false when no DISCARD_WORKING_CONFIGURATION action exists', async () => {
             const { component } = await setup();
