@@ -4674,34 +4674,84 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private boolean authorizeBulletin(final Bulletin bulletin) {
+        return authorizeBulletin(bulletin, null);
+    }
+
+    /**
+     * Resolves the bulletin's source authorizable and checks READ for the current user.
+     *
+     * <p>When {@code group} is non-null the source is resolved within that group's
+     * component hierarchy via the {@code findX} APIs first. This is required for
+     * bulletins generated inside a connector's managed flow: the standard
+     * {@link AuthorizableLookup} is backed by {@link org.apache.nifi.web.dao.impl.StandardProcessorDAO}
+     * (and its peers) which only walks the {@link org.apache.nifi.controller.flow.FlowManager}'s
+     * root group, so any source that lives inside a connector's managed flow context
+     * would otherwise resolve to {@link ResourceNotFoundException} and report
+     * {@code canRead = false} for every bulletin -- preventing the canvas from
+     * rendering bulletin icons for the connector's components and child groups.
+     * Resolving via the live group preserves the source's authorizable parent chain
+     * (which terminates at the connector node via
+     * {@link org.apache.nifi.groups.ProcessGroup#setExplicitParentAuthorizable(Authorizable)}),
+     * so READ on the connector correctly grants READ on its inner bulletins.</p>
+     *
+     * <p>The fallback to {@code authorizableLookup} handles source types that are
+     * not addressable via a {@link ProcessGroup} (controller-scoped components such
+     * as reporting tasks and flow analysis rules) and the standard root-flow case
+     * when no owning group is supplied.</p>
+     */
+    private boolean authorizeBulletin(final Bulletin bulletin, final ProcessGroup group) {
         final String sourceId = bulletin.getSourceId();
         final ComponentType type = bulletin.getSourceType();
 
         final Authorizable authorizable;
         try {
-            authorizable = switch (type) {
-                case PROCESSOR -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
-                case REPORTING_TASK -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
-                case FLOW_ANALYSIS_RULE -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
-                case FLOW_REGISTRY_CLIENT -> authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
-                case PARAMETER_PROVIDER -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
-                case CONTROLLER_SERVICE -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
-                case FLOW_CONTROLLER -> controllerFacade;
-                case INPUT_PORT -> authorizableLookup.getInputPort(sourceId);
-                case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
-                case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
-                case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
-                case CONNECTOR -> authorizableLookup.getConnector(sourceId);
-                default -> throw new IllegalArgumentException("Unexpected ComponentType: " + type);
-            };
+            authorizable = resolveBulletinAuthorizable(sourceId, type, group);
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
+            return false;
+        }
+
+        if (authorizable == null) {
             return false;
         }
 
         // perform the authorization
         final AuthorizationResult result = authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         return Result.Approved.equals(result.getResult());
+    }
+
+    private Authorizable resolveBulletinAuthorizable(final String sourceId, final ComponentType type, final ProcessGroup group) {
+        if (group != null) {
+            final Authorizable found = switch (type) {
+                case PROCESSOR -> group.findProcessor(sourceId);
+                case INPUT_PORT -> group.findInputPort(sourceId);
+                case OUTPUT_PORT -> group.findOutputPort(sourceId);
+                case REMOTE_PROCESS_GROUP -> group.findRemoteProcessGroup(sourceId);
+                case CONTROLLER_SERVICE -> group.findControllerService(sourceId, true, true);
+                case PROCESS_GROUP -> sourceId.equals(group.getIdentifier()) ? group : group.findProcessGroup(sourceId);
+                default -> null;
+            };
+
+            if (found != null) {
+                return found;
+            }
+        }
+
+        return switch (type) {
+            case PROCESSOR -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
+            case REPORTING_TASK -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+            case FLOW_ANALYSIS_RULE -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
+            case FLOW_REGISTRY_CLIENT -> authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
+            case PARAMETER_PROVIDER -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
+            case CONTROLLER_SERVICE -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
+            case FLOW_CONTROLLER -> controllerFacade;
+            case INPUT_PORT -> authorizableLookup.getInputPort(sourceId);
+            case OUTPUT_PORT -> authorizableLookup.getOutputPort(sourceId);
+            case REMOTE_PROCESS_GROUP -> authorizableLookup.getRemoteProcessGroup(sourceId);
+            case PROCESS_GROUP -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+            case CONNECTOR -> authorizableLookup.getConnector(sourceId);
+            default -> throw new IllegalArgumentException("Unexpected ComponentType: " + type);
+        };
     }
 
     @Override
@@ -5417,9 +5467,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             bulletins.addAll(bulletinRepository.findBulletinsForGroupBySource(descendantGroup.getIdentifier()));
         }
 
+        // Pass the owning group so authorizeBulletin can resolve sources via the live
+        // group hierarchy. The standard AuthorizableLookup only walks the FlowManager's
+        // root group and cannot resolve sources that live inside a connector's managed
+        // flow context, which would otherwise cause every bulletin in the connector
+        // canvas to report canRead=false.
         List<BulletinEntity> bulletinEntities = new ArrayList<>();
         for (final Bulletin bulletin : bulletins) {
-            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), authorizeBulletin(bulletin)));
+            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), authorizeBulletin(bulletin, group)));
         }
 
         return pruneAndSortBulletins(bulletinEntities, BulletinRepository.MAX_BULLETINS_PER_COMPONENT);
