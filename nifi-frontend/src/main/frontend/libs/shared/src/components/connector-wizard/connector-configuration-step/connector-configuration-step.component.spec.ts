@@ -723,6 +723,162 @@ describe('SharedConnectorConfigurationStep', () => {
     });
 
     // ═══════════════════════════════════════════════════════
+    // Verify gate (canVerify / onVerify)
+    //
+    // API verification errors (key 'verificationError', sourced from
+    // subjectVerificationErrors) must NOT block re-submitting verify --
+    // only client-side validator failures (required, pattern, etc.) should.
+    // ═══════════════════════════════════════════════════════
+
+    describe('verify gate', () => {
+        it('canVerify is true on a clean form with no errors', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host')]);
+            const { component } = await setup({ stepConfig });
+
+            expect(component.stepForm.valid).toBe(true);
+            expect(component.canVerify).toBe(true);
+        });
+
+        it('canVerify is true when only API verification errors are present', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host')], {
+                host: { valueType: 'STRING_LITERAL' as const, value: 'db.example.com' }
+            });
+            const { component, mockStore, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            mockStore.subjectVerificationErrors.set({ host: 'Connection refused' });
+            // toObservable subscription on subjectVerificationErrors triggers
+            // updateFormValidityForVerificationErrors which re-runs the validator.
+            await fixture.whenStable();
+
+            expect(component.stepForm.get('host')?.hasError('verificationError')).toBe(true);
+            expect(component.stepForm.valid).toBe(false);
+            expect(component.canVerify).toBe(true);
+        });
+
+        it('canVerify is false when a required client validator fails', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host', { required: true })]);
+            const { component } = await setup({ stepConfig });
+
+            component.stepForm.get('host')?.setValue('');
+
+            expect(component.stepForm.get('host')?.hasError('required')).toBe(true);
+            expect(component.canVerify).toBe(false);
+        });
+
+        it('canVerify is true when an invisible (disabled) dependent property would otherwise be invalid', async () => {
+            const stepConfig = makeStepConfig('test-step', [
+                makeProp('mode'),
+                makeProp('advanced-setting', {
+                    required: true,
+                    dependencies: [{ propertyName: 'mode', dependentValues: ['advanced'] }]
+                })
+            ]);
+            const { component } = await setup({ stepConfig });
+
+            // mode = '' so advanced-setting is hidden and therefore disabled.
+            expect(component.stepForm.get('advanced-setting')?.disabled).toBe(true);
+
+            // The disabled, required-but-empty control must not block Verify (mirrors FormGroup.valid).
+            expect(component.canVerify).toBe(true);
+        });
+
+        it('canVerify is false when both client and API errors exist (client error wins)', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host', { required: true }), makeProp('port')], {
+                port: { valueType: 'STRING_LITERAL' as const, value: '5432' }
+            });
+            const { component, mockStore, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            component.stepForm.get('host')?.setValue('');
+            mockStore.subjectVerificationErrors.set({ port: 'Port unreachable' });
+            await fixture.whenStable();
+
+            expect(component.stepForm.get('host')?.hasError('required')).toBe(true);
+            expect(component.stepForm.get('port')?.hasError('verificationError')).toBe(true);
+            expect(component.canVerify).toBe(false);
+        });
+
+        it('canVerify is false while a verify request is in flight', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host')]);
+            const { component, mockStore } = await setup({ stepConfig });
+
+            mockStore.verifying.set(true);
+
+            expect(component.canVerify).toBe(false);
+        });
+
+        it('onVerify dispatches verifyStep when only API verification errors remain', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host')], {
+                host: { valueType: 'STRING_LITERAL' as const, value: 'db.example.com' }
+            });
+            const { component, mockStore, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            mockStore.subjectVerificationErrors.set({ host: 'Connection refused' });
+            await fixture.whenStable();
+
+            component.onVerify();
+
+            expect(mockStore.verifyStep).toHaveBeenCalledTimes(1);
+            expect(mockStore.verifyStep).toHaveBeenCalledWith(expect.objectContaining({ stepName: 'test-step' }));
+        });
+
+        it('onVerify does not dispatch verifyStep when a required client error exists', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host', { required: true })]);
+            const { component, mockStore } = await setup({ stepConfig });
+
+            component.stepForm.get('host')?.setValue('');
+
+            component.onVerify();
+
+            expect(mockStore.verifyStep).not.toHaveBeenCalled();
+        });
+
+        it('clears stale verificationError from form controls when subjectVerificationErrors becomes empty', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host')], {
+                host: { valueType: 'STRING_LITERAL' as const, value: 'db.example.com' }
+            });
+            const { component, mockStore, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            // Simulate a previous failed verify that surfaced a subject error on host.
+            mockStore.subjectVerificationErrors.set({ host: 'Connection refused' });
+            await fixture.whenStable();
+            expect(component.stepForm.get('host')?.hasError('verificationError')).toBe(true);
+
+            // Simulate a successful verify (or verify start): the store clears the signal.
+            mockStore.subjectVerificationErrors.set({});
+            await fixture.whenStable();
+
+            expect(component.stepForm.get('host')?.hasError('verificationError')).toBe(false);
+            expect(component.stepForm.get('host')?.valid).toBe(true);
+        });
+
+        it('reconciles per-control verificationErrors when the signal transitions to a different set', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('host'), makeProp('port')], {
+                host: { valueType: 'STRING_LITERAL' as const, value: 'db.example.com' },
+                port: { valueType: 'STRING_LITERAL' as const, value: '5432' }
+            });
+            const { component, mockStore, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            mockStore.subjectVerificationErrors.set({ host: 'Connection refused' });
+            await fixture.whenStable();
+            expect(component.stepForm.get('host')?.hasError('verificationError')).toBe(true);
+            expect(component.stepForm.get('port')?.hasError('verificationError')).toBe(false);
+
+            // A subsequent failed verify: host is fine now, port is failing instead.
+            mockStore.subjectVerificationErrors.set({ port: 'Port unreachable' });
+            await fixture.whenStable();
+
+            expect(component.stepForm.get('host')?.hasError('verificationError')).toBe(false);
+            expect(component.stepForm.get('port')?.hasError('verificationError')).toBe(true);
+            expect(component.canVerify).toBe(true);
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════
     // Store signal delegation
     // ═══════════════════════════════════════════════════════
 
