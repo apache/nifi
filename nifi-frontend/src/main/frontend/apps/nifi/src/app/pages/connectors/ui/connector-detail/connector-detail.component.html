@@ -1,0 +1,66 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="flex flex-col h-full">
+    <header class="nifi-header">
+        <navigation></navigation>
+    </header>
+    @if (!backNavigation() && !loading && !errorMessage) {
+        <div class="pl-5 pt-2">
+            <a (click)="returnToConnectorListing()" data-qa="fallback-back-link">
+                <i class="fa fa-arrow-left mr-2" aria-hidden="true"></i>Installed connectors
+            </a>
+        </div>
+    }
+    <context-error-banner [context]="ErrorContextKey.CONNECTORS"></context-error-banner>
+    <div class="flex flex-1 min-h-0 overflow-y-auto">
+        @if (loading) {
+            <div class="flex-1 flex items-center justify-center">
+                <span *nifiSpinner="loading" data-qa="loading-spinner"></span>
+            </div>
+        } @else if (errorMessage) {
+            <div class="flex-1 flex items-center justify-center" data-qa="error-container">
+                <div class="flex flex-col items-center gap-y-4">
+                    <i class="fa fa-warning error-color text-4xl" data-qa="error-icon" aria-hidden="true"></i>
+                    <div data-qa="error-message">{{ errorMessage }}</div>
+                    <button mat-flat-button (click)="returnToConnectorListing()" data-qa="return-button">
+                        Return to Connectors
+                    </button>
+                </div>
+            </div>
+        } @else if (frameSource) {
+            <!--
+                Sandbox flags:
+                  allow-scripts        — run the embedded connector app
+                  allow-same-origin    — postMessage, style injection, API calls
+                  allow-popups         — open external doc links via target="_blank"
+                  allow-popups-to-escape-sandbox — opened tabs run without sandbox restrictions
+                  (allow-forms omitted — read-only details view)
+            -->
+            <iframe
+                #iframeRef
+                class="flex-1 border-none"
+                [src]="frameSource"
+                [title]="'Custom details for ' + (connector?.component?.name || 'connector')"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                referrerpolicy="strict-origin-when-cross-origin"
+                (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
+        } @else if (connector) {
+            <connector-details-content [connector]="connector"></connector-details-content>
+        }
+    </div>
+</div>
