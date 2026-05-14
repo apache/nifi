@@ -19,14 +19,24 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.components.FlowContextType;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -35,7 +45,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,6 +55,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -50,6 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -219,7 +233,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testGetConnectorWithProviderOverridesWorkingConfig() {
+    public void testGetConnectorWithProviderOverridesWorkingConfig() throws FlowUpdateException {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -237,7 +251,7 @@ public class TestStandardConnectorRepository {
 
         assertNotNull(result);
         verify(connector).setName("External Name");
-        verify(workingConfigContext).replaceProperties(eq("step1"), any(StepConfiguration.class));
+        verify(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
     }
 
     @Test
@@ -689,7 +703,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncFromProviderAppliesNifiUuidsDirectly() {
+    public void testSyncFromProviderAppliesNifiUuidsDirectly() throws FlowUpdateException {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -710,8 +724,85 @@ public class TestStandardConnectorRepository {
 
         repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
-        // Working config is updated with NiFi UUIDs as-is -- no translation in the repository
-        verify(workingConfigContext).replaceProperties(eq("step1"), any(StepConfiguration.class));
+        // Working config is replaced with NiFi UUIDs as-is -- no translation in the repository
+        verify(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
+    }
+
+    @Test
+    public void testGetConnectorTriggersOnConfigurationStepConfiguredWhenValuesChange() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", trackingConnector);
+        seedWorkingConfiguration(connectorNode, "step1", Map.of("prop1", "initial-value"));
+        repository.restoreConnector(connectorNode);
+
+        trackingConnector.reset();
+
+        final VersionedConfigurationStep externalStep = createVersionedStep("step1",
+                Map.of("prop1", createStringLiteralRef("updated-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("connector-1");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertNotNull(result);
+        assertTrue(trackingConnector.wasOnStepConfiguredCalled("step1"));
+    }
+
+    @Test
+    public void testGetConnectorDoesNotTriggerOnConfigurationStepConfiguredWhenValuesUnchanged() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", trackingConnector);
+        seedWorkingConfiguration(connectorNode, "step1", Map.of("prop1", "same-value"));
+        repository.restoreConnector(connectorNode);
+
+        trackingConnector.reset();
+
+        final VersionedConfigurationStep externalStep = createVersionedStep("step1",
+                Map.of("prop1", createStringLiteralRef("same-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("connector-1");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertNotNull(result);
+        assertFalse(trackingConnector.wasOnStepConfiguredCalled("step1"));
+    }
+
+    @Test
+    public void testGetConnectorContinuesWhenOneStepFailsToReplace() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        doThrow(new FlowUpdateException("Simulated failure for step1"))
+                .when(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
+        repository.addConnector(connector);
+
+        final VersionedConfigurationStep stepOne = createVersionedStep("step1",
+                Map.of("prop1", createStringLiteralRef("value1")));
+        final VersionedConfigurationStep stepTwo = createVersionedStep("step2",
+                Map.of("prop2", createStringLiteralRef("value2")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("connector-1");
+        externalConfig.setWorkingFlowConfiguration(List.of(stepOne, stepTwo));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertNotNull(result);
+        verify(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
+        verify(connector).replaceWorkingConfiguration(eq("step2"), any(StepConfiguration.class));
     }
 
     @Test
@@ -1379,6 +1470,80 @@ public class TestStandardConnectorRepository {
         return vc;
     }
 
+    private StandardConnectorNode createRealConnectorNode(final String identifier, final Connector connector) throws FlowUpdateException {
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final AssetManager assetManager = mock(AssetManager.class);
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getAllSecrets()).thenReturn(List.of());
+        when(secretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
+        when(managedProcessGroup.getQueueSize()).thenReturn(new QueueSize(0, 0L));
+
+        final FlowContextFactory flowContextFactory = new FlowContextFactory() {
+            @Override
+            public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
+                final MutableConnectorConfigurationContext activeConfigurationContext =
+                        new StandardConnectorConfigurationContext(assetManager, secretsManager);
+                return new StandardFlowContext(managedProcessGroup, activeConfigurationContext,
+                        mock(ProcessGroupFacadeFactory.class), mock(ParameterContextFacadeFactory.class),
+                        connectorLogger, FlowContextType.ACTIVE, bundle);
+            }
+
+            @Override
+            public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
+                    final MutableConnectorConfigurationContext currentConfiguration, final Bundle bundle) {
+                return new StandardFlowContext(managedProcessGroup, currentConfiguration,
+                        mock(ProcessGroupFacadeFactory.class), mock(ParameterContextFacadeFactory.class),
+                        connectorLogger, FlowContextType.WORKING, bundle);
+            }
+        };
+
+        final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnector-" + identifier);
+        final ConnectorValidationTrigger validationTrigger = new ConnectorValidationTrigger() {
+            @Override
+            public void triggerAsync(final ConnectorNode node) {
+                node.performValidation();
+            }
+
+            @Override
+            public void trigger(final ConnectorNode node) {
+                node.performValidation();
+            }
+        };
+
+        final ComponentLog componentLog = new MockComponentLog("TestConnector", connector);
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "1.0.0");
+        final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
+
+        final StandardConnectorNode node = new StandardConnectorNode(
+                identifier, mock(FlowManager.class), extensionManager, null, connectorDetails,
+                "TestConnector", connector.getClass().getCanonicalName(),
+                new StandardConnectorConfigurationContext(assetManager, secretsManager),
+                stateTransition, flowContextFactory, validationTrigger, false);
+
+        final FrameworkConnectorInitializationContext initializationContext = mock(FrameworkConnectorInitializationContext.class);
+        when(initializationContext.getSecretsManager()).thenReturn(secretsManager);
+        when(initializationContext.getAssetManager()).thenReturn(assetManager);
+
+        node.initializeConnector(initializationContext);
+        node.loadInitialFlow();
+        return node;
+    }
+
+    private void seedWorkingConfiguration(final StandardConnectorNode connectorNode, final String stepName,
+            final Map<String, String> properties) throws FlowUpdateException {
+        final Map<String, ConnectorValueReference> references = new HashMap<>();
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            references.put(entry.getKey(), new StringLiteralValue(entry.getValue()));
+        }
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration(stepName, new StepConfiguration(references));
+        connectorNode.applyUpdate();
+    }
+
     private StandardConnectorRepository createRepositoryWithShortTimeout(final ConnectorConfigurationProvider provider) {
         final StandardConnectorRepository repository = new StandardConnectorRepository();
         final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
@@ -1389,5 +1554,49 @@ public class TestStandardConnectorRepository {
         when(initContext.getConnectorSyncTimeout()).thenReturn(Duration.ofSeconds(5));
         repository.initialize(initContext);
         return repository;
+    }
+
+    /**
+     * Test connector that tracks invocations of onStepConfigured so tests can assert which
+     * configuration steps were notified of changes.
+     */
+    private static class TrackingConnector extends AbstractConnector {
+        private final Set<String> onStepConfiguredCalls = new HashSet<>();
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+            onStepConfiguredCalls.add(stepName);
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        public boolean wasOnStepConfiguredCalled(final String stepName) {
+            return onStepConfiguredCalls.contains(stepName);
+        }
+
+        public void reset() {
+            onStepConfiguredCalls.clear();
+        }
     }
 }

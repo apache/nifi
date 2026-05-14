@@ -575,5 +575,76 @@ public class TestParameterProviderSecretsManager {
         manager.initialize(initContext);
         return manager;
     }
+
+    @Test
+    public void testGetSecretsReturnsNullValueWhenProviderIsInvalid() {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ParameterProviderNode invalidProvider = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            ValidationStatus.INVALID, createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        // performValidation should also return INVALID so the provider is consistently filtered out.
+        when(invalidProvider.performValidation()).thenReturn(ValidationStatus.INVALID);
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(invalidProvider));
+
+        final ParameterProviderSecretsManager manager = new ParameterProviderSecretsManager();
+        manager.initialize(new StandardSecretsManagerInitializationContext(flowManager));
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, PROVIDER_1_NAME, SECRET_1_NAME);
+
+        final Map<SecretReference, Secret> results = manager.getSecrets(Set.of(reference));
+
+        assertEquals(1, results.size());
+        assertTrue(results.containsKey(reference));
+        assertNull(results.get(reference));
+    }
+
+    @Test
+    public void testGetSecretsResolvesReferenceOnceProviderTransitionsToValid() {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ParameterProviderNode flippingProvider = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            ValidationStatus.INVALID, createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        when(flippingProvider.performValidation()).thenReturn(ValidationStatus.INVALID);
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(flippingProvider));
+
+        final ParameterProviderSecretsManager manager = new ParameterProviderSecretsManager();
+        manager.initialize(new StandardSecretsManagerInitializationContext(flowManager,
+            Map.of(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION, DEFAULT_CACHE_DURATION)));
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, PROVIDER_1_NAME, SECRET_1_NAME);
+
+        // While the provider is INVALID the secret is unresolvable.
+        assertNull(manager.getSecrets(Set.of(reference)).get(reference));
+
+        // Once the provider transitions to VALID a follow-up call resolves the value. The cache only
+        // stores non-null secrets, so the prior unresolved attempt does not block this re-attempt.
+        when(flippingProvider.getValidationStatus()).thenReturn(ValidationStatus.VALID);
+        when(flippingProvider.performValidation()).thenReturn(ValidationStatus.VALID);
+
+        final Secret resolved = manager.getSecrets(Set.of(reference)).get(reference);
+        assertNotNull(resolved);
+        assertEquals(SECRET_1_VALUE, resolved.getValue());
+    }
+
+    @Test
+    public void testGetSecretProvidersFiltersConsistentlyAcrossValidationStatusTransitions() {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ParameterProviderNode provider = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            ValidationStatus.INVALID, createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        when(provider.performValidation()).thenReturn(ValidationStatus.INVALID);
+        when(flowManager.getAllParameterProviders()).thenReturn(Set.of(provider));
+
+        final ParameterProviderSecretsManager manager = new ParameterProviderSecretsManager();
+        manager.initialize(new StandardSecretsManagerInitializationContext(flowManager));
+
+        assertTrue(manager.getSecretProviders().isEmpty());
+        assertTrue(manager.getSecretProviders().isEmpty());
+
+        when(provider.getValidationStatus()).thenReturn(ValidationStatus.VALID);
+        when(provider.performValidation()).thenReturn(ValidationStatus.VALID);
+        assertEquals(1, manager.getSecretProviders().size());
+
+        when(provider.getValidationStatus()).thenReturn(ValidationStatus.INVALID);
+        when(provider.performValidation()).thenReturn(ValidationStatus.INVALID);
+        assertTrue(manager.getSecretProviders().isEmpty());
+    }
 }
 
