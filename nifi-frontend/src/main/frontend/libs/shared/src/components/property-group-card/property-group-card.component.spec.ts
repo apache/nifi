@@ -59,7 +59,7 @@ describe('PropertyGroupCard', () => {
         fixture.detectChanges();
 
         const queryAll = (qa: string) => fixture.debugElement.queryAll(By.css(`[data-qa="${qa}"]`));
-        const query = (qa: string) => fixture.debugElement.query(By.css(qa));
+        const query = (selector: string) => fixture.debugElement.query(By.css(selector));
 
         return { fixture, component, queryAll, query };
     }
@@ -334,8 +334,9 @@ describe('PropertyGroupCard', () => {
         it('should show required asterisk for required properties', async () => {
             const { query } = await setup();
             const content = query('mat-card-content');
-            const asterisks = content.queryAll(By.css('.error-color'));
-            expect(asterisks.length).toBeGreaterThanOrEqual(1);
+            const asterisks = content.queryAll(By.css('span.error-color'));
+            expect(asterisks.length).toBe(1);
+            expect(asterisks[0].nativeElement.textContent.trim()).toBe('*');
         });
 
         it('should show "No value set" for properties without values', async () => {
