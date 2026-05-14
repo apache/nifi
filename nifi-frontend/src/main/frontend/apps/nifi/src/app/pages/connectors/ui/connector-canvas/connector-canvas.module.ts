@@ -28,6 +28,9 @@ import { connectorCanvasFeatureKey } from '../../state/connector-canvas';
 import { connectorCanvasReducer } from '../../state/connector-canvas/connector-canvas.reducer';
 import { ConnectorCanvasEffects } from '../../state/connector-canvas/connector-canvas.effects';
 import { ConnectorCanvasEntityEffects } from '../../state/connector-canvas-entity/connector-canvas-entity.effects';
+import { connectorProvenancePreviewFeatureKey } from '../../state/connector-provenance-preview';
+import { connectorProvenancePreviewReducer } from '../../state/connector-provenance-preview/connector-provenance-preview.reducer';
+import { ConnectorProvenanceEffects } from '../../state/connector-provenance-preview/connector-provenance-preview.effects';
 
 const routes: Routes = [
     {
@@ -60,7 +63,8 @@ const routes: Routes = [
         ConnectorCanvasRedirector,
         RouterModule.forChild(routes),
         StoreModule.forFeature(connectorCanvasFeatureKey, connectorCanvasReducer),
-        EffectsModule.forFeature(ConnectorCanvasEffects, ConnectorCanvasEntityEffects)
+        StoreModule.forFeature(connectorProvenancePreviewFeatureKey, connectorProvenancePreviewReducer),
+        EffectsModule.forFeature(ConnectorCanvasEffects, ConnectorCanvasEntityEffects, ConnectorProvenanceEffects)
     ],
     providers: [ComponentTypeNamePipe]
 })

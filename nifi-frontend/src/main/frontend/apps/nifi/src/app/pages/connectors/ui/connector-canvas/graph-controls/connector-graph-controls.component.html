@@ -35,6 +35,21 @@
         <connector-info-control
             [connectorEntity]="connectorEntity()"
             [entitySaving]="entitySaving()"></connector-info-control>
-        <!-- Provenance preview will be added in Effort 7 (Provenance Preview). -->
+        @if (canAccessProvenance()) {
+            <provenance-preview
+                storageKey="connector-provenance-control"
+                [events]="provenanceEvents()"
+                [status]="provenanceStatus()"
+                [error]="provenanceError()"
+                [connectedToCluster]="connectedToCluster()"
+                [contentViewerAvailable]="contentViewerAvailable()"
+                (refresh)="provenanceRefresh.emit()"
+                (collapsedChange)="provenanceCollapsedChange.emit($event)"
+                (viewDetails)="provenanceViewDetails.emit($event)"
+                (downloadContent)="provenanceDownloadContent.emit($event)"
+                (viewContent)="provenanceViewContent.emit($event)"
+                (replayEvent)="provenanceReplayEvent.emit($event)">
+            </provenance-preview>
+        }
     </div>
 </div>

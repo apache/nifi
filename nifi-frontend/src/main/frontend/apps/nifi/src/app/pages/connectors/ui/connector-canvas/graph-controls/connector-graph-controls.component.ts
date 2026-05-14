@@ -21,11 +21,13 @@ import { CanvasNavigationControl } from '../../../../../ui/common/navigation-con
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
 import { Dimension, Position } from '../../../../../ui/common/canvas/canvas.types';
 import { ConnectorInfoControl } from './connector-info-control/connector-info-control.component';
+import { ProvenancePreview } from '../../../../../ui/common/provenance-preview/provenance-preview.component';
+import { ProvenanceEvent } from '../../../../../state/shared';
 
 @Component({
     selector: 'connector-graph-controls',
     standalone: true,
-    imports: [CanvasNavigationControl, ConnectorInfoControl],
+    imports: [CanvasNavigationControl, ConnectorInfoControl, ProvenancePreview],
     templateUrl: './connector-graph-controls.component.html',
     styleUrls: ['./connector-graph-controls.component.scss']
 })
@@ -38,6 +40,13 @@ export class ConnectorGraphControls {
     canvasDimensions = input.required<Dimension>();
     canNavigateToParent = input<boolean>(false);
 
+    canAccessProvenance = input<boolean>(false);
+    provenanceEvents = input<ProvenanceEvent[]>([]);
+    provenanceStatus = input<'pending' | 'loading' | 'success' | 'error'>('pending');
+    provenanceError = input<string | null>(null);
+    connectedToCluster = input<boolean>(false);
+    contentViewerAvailable = input<boolean>(false);
+
     viewportChange = output<Position>();
     birdseyeDragStart = output<void>();
     birdseyeDragEnd = output<void>();
@@ -47,4 +56,11 @@ export class ConnectorGraphControls {
     zoomFit = output<void>();
     zoomActual = output<void>();
     leaveGroup = output<void>();
+
+    provenanceRefresh = output<void>();
+    provenanceCollapsedChange = output<boolean>();
+    provenanceViewDetails = output<ProvenanceEvent>();
+    provenanceDownloadContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
+    provenanceViewContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
+    provenanceReplayEvent = output<ProvenanceEvent>();
 }

@@ -66,6 +66,12 @@ export class ProvenanceService {
         });
     }
 
+    getLatestEventsForComponent(componentId: string): Observable<any> {
+        return this.httpClient.get(
+            `${ProvenanceService.API}/provenance-events/latest/${encodeURIComponent(componentId)}`
+        );
+    }
+
     downloadContent(eventId: number, direction: string, clusterNodeId?: string): void {
         let dataUri = `${ProvenanceService.API}/provenance-events/${encodeURIComponent(
             eventId

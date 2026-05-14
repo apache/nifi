@@ -62,9 +62,23 @@ import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import { ConnectorGraphControls } from './graph-controls/connector-graph-controls.component';
 import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
 import { ErrorContextKey } from '../../../../state/error';
+import { selectAbout } from '../../../../state/about/about.selectors';
+import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { ProvenanceEvent } from '../../../../state/shared';
 import * as ConnectorCanvasActions from '../../state/connector-canvas/connector-canvas.actions';
 import * as ConnectorCanvasSelectors from '../../state/connector-canvas/connector-canvas.selectors';
 import * as ConnectorCanvasEntityActions from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import * as ConnectorProvenanceActions from '../../state/connector-provenance-preview/connector-provenance-preview.actions';
+import {
+    selectConnectorProvenanceError,
+    selectConnectorProvenanceEvents,
+    selectConnectorProvenanceStatus
+} from '../../state/connector-provenance-preview/connector-provenance-preview.selectors';
+import {
+    DownloadContentRequest,
+    ReplayEventRequest,
+    ViewContentRequest
+} from '../../state/connector-provenance-preview';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectConnectorCanvasEntity,
@@ -118,6 +132,20 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
     entitySaving = this.store.selectSignal(selectConnectorCanvasEntitySaving);
+
+    provenanceEvents = this.store.selectSignal(selectConnectorProvenanceEvents);
+    provenanceStatus = this.store.selectSignal(selectConnectorProvenanceStatus);
+    provenanceError = this.store.selectSignal(selectConnectorProvenanceError);
+
+    private clusterSummary = this.store.selectSignal(selectClusterSummary);
+    private about = this.store.selectSignal(selectAbout);
+
+    connectedToCluster = computed(() => this.clusterSummary()?.connectedToCluster ?? false);
+    contentViewerAvailable = computed(() => (this.about()?.contentViewerUrl ?? null) != null);
+
+    private provenanceComponentId = signal<string | null>(null);
+    private provenanceCollapsed = true;
+    private lastDeferredComponentId: string | null = null;
 
     protected readonly ErrorContextKey = ErrorContextKey;
 
@@ -395,12 +423,31 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 // and the canvas's internal signals (read by getBirdseyeComponentData) update.
                 queueMicrotask(() => this.refreshBirdseye());
             });
+
+        // Derive provenance eligibility from the route + loaded canvas entities. The eligible
+        // set covers Processor / Connection / RemoteProcessGroup, plus InputPort / OutputPort
+        // gated on allowRemoteAccess. All other types (Funnel, Label, ProcessGroup, multi-select,
+        // and no selection) clear the preview.
+        combineLatest([
+            this.store.select(selectRouteParams),
+            this.store.select(ConnectorCanvasSelectors.selectInputPorts),
+            this.store.select(ConnectorCanvasSelectors.selectOutputPorts)
+        ])
+            .pipe(
+                map(([params, inputPorts, outputPorts]) =>
+                    this.computeEligibleProvenanceId(params, inputPorts, outputPorts)
+                ),
+                distinctUntilChanged(),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe((eligibleId) => this.handleProvenanceEligibilityChange(eligibleId));
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(ConnectorCanvasActions.stopConnectorCanvasPolling());
         this.store.dispatch(ConnectorCanvasActions.resetConnectorCanvasState());
         this.store.dispatch(ConnectorCanvasEntityActions.resetConnectorCanvasEntityState());
+        this.store.dispatch(ConnectorProvenanceActions.resetState());
     }
 
     @HostListener('window:resize')
@@ -505,6 +552,104 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     onBirdseyeDragEnd(): void {
         this.canvasComponent().birdseyeDragEnd();
+    }
+
+    // =========================================================================
+    // Provenance Preview orchestration
+    // =========================================================================
+
+    private computeEligibleProvenanceId(
+        params: { [key: string]: string } | null,
+        inputPorts: any[],
+        outputPorts: any[]
+    ): string | null {
+        if (!params || !params['type'] || !params['componentId']) {
+            return null;
+        }
+
+        const componentId = params['componentId'];
+        const componentType = params['type'] as ComponentType;
+
+        switch (componentType) {
+            case ComponentType.Processor:
+            case ComponentType.Connection:
+            case ComponentType.RemoteProcessGroup:
+                return componentId;
+            case ComponentType.InputPort: {
+                const port = inputPorts.find((p: any) => p.id === componentId);
+                return port?.component?.allowRemoteAccess === true ? componentId : null;
+            }
+            case ComponentType.OutputPort: {
+                const port = outputPorts.find((p: any) => p.id === componentId);
+                return port?.component?.allowRemoteAccess === true ? componentId : null;
+            }
+            default:
+                return null;
+        }
+    }
+
+    private handleProvenanceEligibilityChange(eligibleId: string | null): void {
+        this.provenanceComponentId.set(eligibleId);
+
+        if (eligibleId === null) {
+            this.lastDeferredComponentId = null;
+            this.store.dispatch(ConnectorProvenanceActions.resetState());
+            return;
+        }
+
+        if (this.graphControlsOpen && !this.provenanceCollapsed) {
+            this.lastDeferredComponentId = null;
+            this.store.dispatch(ConnectorProvenanceActions.loadLatestEventsForComponent({ componentId: eligibleId }));
+        } else {
+            this.lastDeferredComponentId = eligibleId;
+        }
+    }
+
+    private flushDeferredProvenanceLoad(): void {
+        if (!this.graphControlsOpen || this.provenanceCollapsed) {
+            return;
+        }
+
+        const pending = this.lastDeferredComponentId;
+        if (pending) {
+            this.lastDeferredComponentId = null;
+            this.store.dispatch(ConnectorProvenanceActions.loadLatestEventsForComponent({ componentId: pending }));
+        }
+    }
+
+    onProvenanceCollapsedChange(collapsed: boolean): void {
+        this.provenanceCollapsed = collapsed;
+        if (!collapsed) {
+            this.flushDeferredProvenanceLoad();
+        }
+    }
+
+    onProvenanceRefresh(): void {
+        const id = this.provenanceComponentId();
+        if (id) {
+            this.store.dispatch(ConnectorProvenanceActions.loadLatestEventsForComponent({ componentId: id }));
+        }
+    }
+
+    onProvenanceViewDetails(event: ProvenanceEvent): void {
+        this.store.dispatch(
+            ConnectorProvenanceActions.openProvenanceEventDialog({
+                request: { event }
+            })
+        );
+    }
+
+    onProvenanceDownloadContent(request: DownloadContentRequest): void {
+        this.store.dispatch(ConnectorProvenanceActions.downloadContent({ request }));
+    }
+
+    onProvenanceViewContent(request: ViewContentRequest): void {
+        this.store.dispatch(ConnectorProvenanceActions.viewContent({ request }));
+    }
+
+    onProvenanceReplayEvent(event: ProvenanceEvent): void {
+        const request: ReplayEventRequest = { event };
+        this.store.dispatch(ConnectorProvenanceActions.replayEvent({ request }));
     }
 
     // =========================================================================
@@ -662,6 +807,10 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
         item[ConnectorCanvasComponent.GRAPH_CONTROL_KEY] = this.graphControlsOpen;
         this.storage.setItem(ConnectorCanvasComponent.CONTROL_VISIBILITY_KEY, item);
+
+        if (this.graphControlsOpen) {
+            this.flushDeferredProvenanceLoad();
+        }
     }
 
     onSearchGoToComponent(event: { id: string; type: ComponentType; groupId: string }): void {
