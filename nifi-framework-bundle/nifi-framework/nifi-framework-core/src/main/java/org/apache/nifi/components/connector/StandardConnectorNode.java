@@ -873,7 +873,7 @@ public class StandardConnectorNode implements ConnectorNode {
         workingFlowContext = flowContextFactory.createWorkingFlowContext(identifier,
             connectorDetails.getComponentLog(), activeFlowContext.getConfigurationContext(), activeFlowContext.getBundle());
 
-        getComponentLog().info("Working Flow Context has been recreated");
+        getComponentLog().info("Working Flow Context has been set");
 
         // Re-fire onConfigurationStepConfigured for every step so flow parameters derived from the
         // configuration (e.g., resolved asset paths, secret values) are refreshed against the new
@@ -891,6 +891,8 @@ public class StandardConnectorNode implements ConnectorNode {
                     stepConfig.stepName(), this, e);
             }
         }
+
+        getComponentLog().info("Working Flow Context configuration has been refreshed");
     }
 
     @Override

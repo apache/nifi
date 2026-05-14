@@ -52,9 +52,11 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
     // Per-ParameterProvider-id deduplication for the WARN log emitted whenever a SecretReference
     // resolution is skipped because its backing provider is not VALID. An entry is present for any
-    // provider id we have already surfaced via WARN; the value is the status that was logged so the
-    // same WARN is not repeated until the status either changes or the provider returns to VALID.
-    private final Map<String, ValidationStatus> lastLoggedStatus = new ConcurrentHashMap<>();
+    // provider id we have already surfaced via WARN; the value is the status that was warned about
+    // so the same WARN is not repeated until the status either changes or the provider returns to
+    // VALID. Entries for providers that no longer exist in the flow are pruned at the top of
+    // getSecretProviders() so the map stays bounded across many flow synchronizations.
+    private final Map<String, ValidationStatus> lastWarnedStatus = new ConcurrentHashMap<>();
 
     private record CachedSecret(Secret secret, long timestampNanos) {
     }
@@ -85,8 +87,21 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
     @Override
     public Set<SecretProvider> getSecretProviders() {
+        final Set<ParameterProviderNode> parameterProviderNodes = flowManager.getAllParameterProviders();
+
+        // Drop dedup entries for any Parameter Provider that no longer exists in the flow so the map
+        // does not grow unbounded when providers are created INVALID and deleted before going VALID.
+        final Set<String> currentProviderIds = new HashSet<>();
+        for (final ParameterProviderNode parameterProviderNode : parameterProviderNodes) {
+            final String providerId = parameterProviderNode.getIdentifier();
+            if (providerId != null) {
+                currentProviderIds.add(providerId);
+            }
+        }
+        lastWarnedStatus.keySet().retainAll(currentProviderIds);
+
         final Set<SecretProvider> providers = new HashSet<>();
-        for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+        for (final ParameterProviderNode parameterProviderNode : parameterProviderNodes) {
             ValidationStatus validationStatus = parameterProviderNode.getValidationStatus();
             if (validationStatus != ValidationStatus.VALID) {
                 validationStatus = parameterProviderNode.performValidation();
@@ -96,10 +111,16 @@ public class ParameterProviderSecretsManager implements SecretsManager {
                 continue;
             }
 
-            // Clear the WARN-dedup state so that a future INVALID transition for this provider is logged again.
+            // Clear the WARN-dedup state for this provider and surface a paired INFO so each
+            // earlier WARN has an explicit recovery line operators can correlate against.
             final String providerId = parameterProviderNode.getIdentifier();
             if (providerId != null) {
-                lastLoggedStatus.remove(providerId);
+                final ValidationStatus priorWarnedStatus = lastWarnedStatus.remove(providerId);
+                if (priorWarnedStatus != null) {
+                    logger.info("Parameter Provider [{}] (id={}) returned to VALID after being logged as {};"
+                                    + " SecretReferences backed by this provider will resolve again",
+                            parameterProviderNode.getName(), providerId, priorWarnedStatus);
+                }
             }
             providers.add(new ParameterProviderSecretProvider(parameterProviderNode));
         }
@@ -281,7 +302,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
         // Treat a null status (e.g., a mock or transient lookup failure) as INVALID for deduplication
         // purposes so the tracked status is always well-defined.
         final ValidationStatus effectiveStatus = status == null ? ValidationStatus.INVALID : status;
-        final ValidationStatus priorStatus = lastLoggedStatus.put(providerId, effectiveStatus);
+        final ValidationStatus priorStatus = lastWarnedStatus.put(providerId, effectiveStatus);
         if (priorStatus == effectiveStatus) {
             return;
         }
