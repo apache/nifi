@@ -137,12 +137,16 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     }
 
     /**
-     * Shutdown Provider
+     * Shutdown Provider. Safe to invoke even when the Provider was never initialized.
      */
     @Override
     public void shutdown() {
-        kubernetesClient.close();
-        logger.info("Provider shutdown");
+        if (kubernetesClient != null) {
+            kubernetesClient.close();
+        }
+        if (logger != null) {
+            logger.info("Provider shutdown");
+        }
     }
 
     /**

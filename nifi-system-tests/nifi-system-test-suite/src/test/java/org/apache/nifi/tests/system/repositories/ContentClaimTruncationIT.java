@@ -127,7 +127,7 @@ public class ContentClaimTruncationIT extends NiFiSystemIT {
         }
 
         for (int i = 0; i < BATCH_COUNT; i++) {
-            terminateFlowFile = getNifiClient().getProcessorClient().runProcessorOnce(terminateFlowFile);
+            terminateFlowFile = getClientUtil().runProcessorOnce(terminateFlowFile);
             getClientUtil().waitForStoppedProcessor(terminateFlowFile.getId());
         }
         waitForQueueCount(connection.getId(), BATCH_COUNT * SMALL_FILES_PER_BATCH);
@@ -244,7 +244,7 @@ public class ContentClaimTruncationIT extends NiFiSystemIT {
 
         ProcessorEntity secondTerminate = secondTerminateFlowFile;
         for (int i = 0; i < BATCH_COUNT; i++) {
-            secondTerminate = getNifiClient().getProcessorClient().runProcessorOnce(secondTerminate);
+            secondTerminate = getClientUtil().runProcessorOnce(secondTerminate);
             getClientUtil().waitForStoppedProcessor(secondTerminate.getId());
         }
         waitForQueueCount(secondConnection.getId(), BATCH_COUNT * SMALL_FILES_PER_BATCH);
@@ -290,7 +290,7 @@ public class ContentClaimTruncationIT extends NiFiSystemIT {
 
         ProcessorEntity currentUpdateContent = updateContent;
         for (int i = 0; i < BATCH_COUNT; i++) {
-            currentUpdateContent = getNifiClient().getProcessorClient().runProcessorOnce(currentUpdateContent);
+            currentUpdateContent = getClientUtil().runProcessorOnce(currentUpdateContent);
             getClientUtil().waitForStoppedProcessor(currentUpdateContent.getId());
         }
         waitForQueueCount(generatorToUpdate.getId(), BATCH_COUNT * SMALL_FILES_PER_BATCH);
@@ -313,11 +313,12 @@ public class ContentClaimTruncationIT extends NiFiSystemIT {
         final ProcessorEntity generator = getClientUtil().createProcessor("GenerateTruncatableFlowFiles");
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
 
+        final int smallFilesPerBatch = 9;
         final Map<String, String> generateProps = Map.of(
             "Batch Count", "1",
             "Small File Size", "1 KB",
             "Large File Size", "10 MB",
-            "Small Files Per Batch", "9");
+            "Small Files Per Batch", String.valueOf(smallFilesPerBatch));
         getClientUtil().updateProcessorProperties(generator, generateProps);
         getClientUtil().updateProcessorSchedulingPeriod(generator, "0 sec");
 
@@ -326,33 +327,39 @@ public class ContentClaimTruncationIT extends NiFiSystemIT {
         connection = getClientUtil().updateConnectionBackpressure(connection, 10000, BACKPRESSURE_BYTES);
 
         getClientUtil().startProcessor(generator);
-        waitForQueueCount(connection.getId(), 10);
+        waitForQueueCount(connection.getId(), smallFilesPerBatch + 1);
         getClientUtil().stopProcessor(generator);
         getClientUtil().waitForStoppedProcessor(generator.getId());
 
+        // Keep one small FlowFile in the queue. All small FlowFiles share a single resource claim (they fit
+        // within nifi.content.claim.max.appendable.size), and that is also the claim referenced by the last
+        // DROP event. The remaining FlowFile pins the claim so the aggressive archive/truncation cleanup
+        // cannot delete the replayed content before it is read back.
         ProcessorEntity currentTerminate = terminate;
-        while (getConnectionQueueSize(connection.getId()) > 0) {
-            currentTerminate = getNifiClient().getProcessorClient().runProcessorOnce(currentTerminate);
+        while (getConnectionQueueSize(connection.getId()) > 1) {
+            currentTerminate = getClientUtil().runProcessorOnce(currentTerminate);
             getClientUtil().waitForStoppedProcessor(currentTerminate.getId());
         }
-        waitForQueueCount(connection.getId(), 0);
+        waitForQueueCount(connection.getId(), 1);
+
+        final String pinnedFlowFileUuid = getClientUtil().getQueueFlowFile(connection.getId(), 0).getFlowFile().getUuid();
 
         final ReplayLastEventResponseEntity replayResponse = getNifiClient().getProvenanceClient().replayLastEvent(currentTerminate.getId(), ReplayEventNodes.PRIMARY);
         assertNull(replayResponse.getAggregateSnapshot().getFailureExplanation());
         assertNotNull(replayResponse.getAggregateSnapshot().getEventsReplayed());
 
-        waitForQueueCount(connection.getId(), 1);
+        waitForQueueCount(connection.getId(), 2);
 
-        final byte[] replayedContent = getClientUtil().getFlowFileContentAsByteArray(connection.getId(), 0);
-        assertNotNull(replayedContent);
-        assertTrue(replayedContent.length > 0,
-                "Replayed FlowFile content should not be empty — truncation must not have destroyed the content");
+        final String firstQueueFlowFileUuid = getClientUtil().getQueueFlowFile(connection.getId(), 0).getFlowFile().getUuid();
+        final int replayedFlowFileIndex = pinnedFlowFileUuid.equals(firstQueueFlowFileUuid) ? 1 : 0;
+        final byte[] replayedContent = getClientUtil().getFlowFileContentAsByteArray(connection.getId(), replayedFlowFileIndex);
+        assertEquals(SMALL_FILE_SIZE_BYTES, replayedContent.length);
     }
 
     private void drainTerminateQueue(final ProcessorEntity terminateFlowFileProcessor, final String connectionId) throws NiFiClientException, IOException, InterruptedException {
         ProcessorEntity currentProcessor = terminateFlowFileProcessor;
         while (getConnectionQueueSize(connectionId) > 0) {
-            currentProcessor = getNifiClient().getProcessorClient().runProcessorOnce(currentProcessor);
+            currentProcessor = getClientUtil().runProcessorOnce(currentProcessor);
             getClientUtil().waitForStoppedProcessor(currentProcessor.getId());
         }
     }

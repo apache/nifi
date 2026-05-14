@@ -1,0 +1,77 @@
+---
+description: Explains that every CI run of NiFi system tests uploads a per-test troubleshooting archive containing each cluster node's logs/ and conf/ directories, and how to download it when investigating a system test failure.
+alwaysApply: true
+---
+
+# System Test Troubleshooting Archive
+
+When a NiFi system test (anything under `nifi-system-tests/`) fails in CI, the
+`system-tests` workflow uploads a `*-troubleshooting-logs` artifact for each
+OS/JDK combination that ran. This archive is far more useful than the surefire/
+failsafe console output alone and **must** be retrieved before drawing
+conclusions about a system test failure.
+
+## What the archive contains
+
+For every failed test in that job, the archive includes:
+
+```
+troubleshooting/
+  <TestClass>-<testMethod>/
+    node-1/
+      logs/        full nifi-app.log, nifi-bootstrap.log, etc. for that node
+      conf/        nifi.properties, flow definition, state-management.xml, etc.
+    node-2/
+      logs/
+      conf/
+    ...
+```
+
+That is, for each failed test, the running NiFi instance(s) used by the test
+are captured with the same `logs/` and `conf/` you would inspect on a real
+deployment. For clustered tests, every node is captured separately. The
+archive also typically contains the matching `failsafe-reports/`.
+
+This is critical because a system test failure surfaces in CI as a single
+exception message, but the actual root cause is almost always visible only in
+`nifi-app.log` of one of the cluster nodes (cluster join issues, replication
+errors, repository corruption, processor scheduling issues, etc.).
+
+## How to fetch the archive
+
+1. Identify the failing GitHub Actions run id. For a PR, list its checks:
+   ```
+   gh pr checks <PR_NUMBER> --repo apache/nifi
+   gh run list --repo apache/nifi --limit 30
+   ```
+2. List the artifacts attached to that run to see which OS/JDK combos are
+   available and confirm none have expired:
+   ```
+   gh api repos/apache/nifi/actions/runs/<RUN_ID>/artifacts \
+     --jq '.artifacts[] | "\(.id)\t\(.name)\t\(.size_in_bytes)\t\(.expired)"'
+   ```
+3. Download into a directory:
+   ```
+   gh run download <RUN_ID> --repo apache/nifi --dir <local-dir>
+   ```
+   Each `*-troubleshooting-logs` artifact becomes a subdirectory under
+   `<local-dir>`.
+4. Inspect the per-node logs for the specific failing test:
+   ```
+   <local-dir>/<os-jdk>-troubleshooting-logs/troubleshooting/<TestClass>-<testMethod>/node-1/logs/nifi-app.log
+   ```
+
+GitHub Actions artifacts expire (currently 7 days for these workflows), so
+fetch them as soon as a failure is observed; once expired they cannot be
+recovered.
+
+## When this rule applies
+
+- Investigating any failed test under `nifi-system-tests/` in CI.
+- Triaging suspected flaky system tests across multiple PRs.
+- Reviewing a PR whose `system-tests` check has failed.
+
+It does **not** apply to unit tests (surefire) or integration tests
+(failsafe outside `nifi-system-tests/`); those workflows do not produce a
+troubleshooting archive, and only the surefire/failsafe console output is
+available via `gh run view <RUN_ID> --log-failed`.

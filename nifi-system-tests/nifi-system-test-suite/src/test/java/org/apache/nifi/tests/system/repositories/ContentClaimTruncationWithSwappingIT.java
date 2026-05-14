@@ -101,7 +101,7 @@ public class ContentClaimTruncationWithSwappingIT extends NiFiSystemIT {
         connection = getClientUtil().updateConnectionBackpressure(connection, TOTAL_FLOWFILES_PER_CONNECTION + 1000, BACKPRESSURE_BYTES);
 
         ProcessorEntity currentGenerator = generator;
-        currentGenerator = getNifiClient().getProcessorClient().runProcessorOnce(currentGenerator);
+        currentGenerator = getClientUtil().runProcessorOnce(currentGenerator);
         getClientUtil().waitForStoppedProcessor(currentGenerator.getId());
         waitForQueueCount(connection.getId(), TOTAL_FLOWFILES_PER_CONNECTION);
 
@@ -114,7 +114,7 @@ public class ContentClaimTruncationWithSwappingIT extends NiFiSystemIT {
 
         ProcessorEntity currentTerminate = terminateFlowFile;
         for (int i = 0; i < BATCH_COUNT; i++) {
-            currentTerminate = getNifiClient().getProcessorClient().runProcessorOnce(currentTerminate);
+            currentTerminate = getClientUtil().runProcessorOnce(currentTerminate);
             getClientUtil().waitForStoppedProcessor(currentTerminate.getId());
         }
         waitForQueueCount(connection.getId(), TOTAL_FLOWFILES_PER_CONNECTION - BATCH_COUNT);
@@ -145,7 +145,7 @@ public class ContentClaimTruncationWithSwappingIT extends NiFiSystemIT {
         secondConnection = getClientUtil().updateConnectionBackpressure(secondConnection, TOTAL_FLOWFILES_PER_CONNECTION + 1000, BACKPRESSURE_BYTES);
 
         ProcessorEntity currentGenerator = generator;
-        currentGenerator = getNifiClient().getProcessorClient().runProcessorOnce(currentGenerator);
+        currentGenerator = getClientUtil().runProcessorOnce(currentGenerator);
         getClientUtil().waitForStoppedProcessor(currentGenerator.getId());
         waitForQueueCount(firstConnection.getId(), TOTAL_FLOWFILES_PER_CONNECTION);
         waitForQueueCount(secondConnection.getId(), TOTAL_FLOWFILES_PER_CONNECTION);
@@ -198,7 +198,7 @@ public class ContentClaimTruncationWithSwappingIT extends NiFiSystemIT {
         secondConnection = getClientUtil().updateConnectionBackpressure(secondConnection, TOTAL_FLOWFILES_PER_CONNECTION + 1000, BACKPRESSURE_BYTES);
 
         ProcessorEntity currentGenerator = generator;
-        currentGenerator = getNifiClient().getProcessorClient().runProcessorOnce(currentGenerator);
+        currentGenerator = getClientUtil().runProcessorOnce(currentGenerator);
         getClientUtil().waitForStoppedProcessor(currentGenerator.getId());
         waitForQueueCount(firstConnection.getId(), TOTAL_FLOWFILES_PER_CONNECTION);
         waitForQueueCount(secondConnection.getId(), TOTAL_FLOWFILES_PER_CONNECTION);

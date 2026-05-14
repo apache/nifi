@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -151,7 +150,7 @@ public class LifecycleState {
     }
 
     public synchronized Set<ScheduledFuture<?>> getFutures() {
-        return Collections.unmodifiableSet(futures);
+        return Set.copyOf(futures);
     }
 
     public synchronized void terminate() {
