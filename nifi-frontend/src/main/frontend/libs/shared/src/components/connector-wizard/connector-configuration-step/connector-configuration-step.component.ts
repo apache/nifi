@@ -60,6 +60,21 @@ import { ConnectorWizardStore } from '../connector-wizard.store';
 import { WizardContextBanner } from '../wizard-context-banner/wizard-context-banner.component';
 import { WizardStepDocumentationPanel } from '../wizard-step-documentation-panel/wizard-step-documentation-panel.component';
 
+/**
+ * Validation error key used to surface backend (API) field-level verification
+ * failures into Angular form errors. The `verifyStep` flow stores per-field
+ * messages in the wizard store under `subjectVerificationErrors`, and the
+ * `verificationErrorValidator` in this component projects those messages onto
+ * the corresponding controls under this key. The verify gate (`isClientValid`)
+ * intentionally ignores this key so the user can resubmit a verify request
+ * after addressing external conditions (network, permissions, etc.) without
+ * having to mutate form values.
+ *
+ * The matching template literal lives in connector-property-input.component.html
+ * (`parentControl?.hasError('verificationError')`); keep them in sync.
+ */
+const VERIFICATION_ERROR_KEY = 'verificationError';
+
 @Component({
     selector: 'shared-connector-configuration-step',
     standalone: true,
@@ -311,9 +326,9 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
      * Reads directly from the store signal for synchronous, up-to-date access.
      */
     private verificationErrorValidator(propertyName: string): ValidatorFn {
-        return (): { verificationError: string } | null => {
+        return (): { [VERIFICATION_ERROR_KEY]: string } | null => {
             const errorMessage = this.subjectVerificationErrorsSignal()[propertyName];
-            return errorMessage ? { verificationError: errorMessage } : null;
+            return errorMessage ? { [VERIFICATION_ERROR_KEY]: errorMessage } : null;
         };
     }
 
@@ -701,20 +716,35 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     }
 
     /**
-     * Trigger revalidation on form controls that have verification errors.
-     * Called when verification errors change to ensure mat-error displays properly.
+     * Sync form-control validity with the wizard store's subjectVerificationErrors signal.
+     * Called whenever the signal changes (verify start, failed verify, successful verify,
+     * single-field clear). Two cases must be handled:
+     *   1. New errors: re-run validators on the affected controls so the verificationError
+     *      key gets attached. Mark them touched so mat-error displays.
+     *   2. Stale errors: re-run validators on any control that still carries a
+     *      verificationError but whose property is no longer in the signal -- this
+     *      clears the error after a successful verify (signal becomes {}) or after
+     *      verify start (signal is wiped) when the next response is success.
      */
     private updateFormValidityForVerificationErrors(): void {
         if (!this.stepForm) return;
 
-        Object.keys(this.subjectVerificationErrorsSignal()).forEach((propertyName) => {
+        const currentErrors = this.subjectVerificationErrorsSignal();
+
+        Object.keys(this.stepForm.controls).forEach((propertyName) => {
             const control = this.stepForm.get(propertyName);
-            if (control) {
+            if (!control) return;
+
+            const hasNewError = !!currentErrors[propertyName];
+            const hasStaleError = control.hasError(VERIFICATION_ERROR_KEY);
+            if (!hasNewError && !hasStaleError) return;
+
+            if (hasNewError) {
                 // Mark as touched BEFORE updating validity so that ngDoCheck
                 // in ConnectorPropertyInput will sync errors to the internal control
                 control.markAsTouched();
-                control.updateValueAndValidity({ emitEvent: true });
             }
+            control.updateValueAndValidity({ emitEvent: true });
         });
 
         // Force change detection to ensure property inputs re-sync with parent control errors
@@ -722,10 +752,35 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     }
 
     /**
-     * Check if verify button can be enabled
+     * True when the form has no client-side validation errors. API verification
+     * errors (key 'verificationError') are intentionally ignored so the user can
+     * resubmit a verify request without first clearing prior backend failures,
+     * which are frequently caused by external conditions (network, permissions,
+     * etc.) that the user cannot resolve by editing form values.
+     *
+     * Disabled controls (e.g. dependency-hidden properties via
+     * computeAllPropertyVisibility) are skipped to mirror FormGroup.valid's
+     * behavior; Angular reports valid === false / errors === null on disabled
+     * controls, so without this guard a step with any hidden-via-dependency
+     * property would never enable Verify.
+     */
+    private isClientValid(): boolean {
+        return Object.keys(this.stepForm.controls).every((key) => {
+            const control = this.stepForm.get(key);
+            if (!control || control.disabled || control.valid) return true;
+            const errorKeys = Object.keys(control.errors ?? {});
+            return errorKeys.length > 0 && errorKeys.every((k) => k === VERIFICATION_ERROR_KEY);
+        });
+    }
+
+    /**
+     * Check if verify button can be enabled.
+     * Only client-side validation errors block verification; prior API verification
+     * errors are ignored so the user can re-submit verify after addressing external
+     * conditions (network, permissions, etc.) without modifying form values.
      */
     get canVerify(): boolean {
-        return this.stepForm.valid && !this.isStepSaving() && !this.isVerifying();
+        return this.isClientValid() && !this.isStepSaving() && !this.isVerifying();
     }
 
     /**
@@ -886,7 +941,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
     onVerify(): void {
         const stepData = this.stepConfiguration?.();
         // If form is invalid, mark all fields as touched to show validation errors
-        if (!this.stepForm.valid || !stepData) {
+        if (!this.isClientValid() || !stepData) {
             this.markAllAsTouched();
             return;
         }
