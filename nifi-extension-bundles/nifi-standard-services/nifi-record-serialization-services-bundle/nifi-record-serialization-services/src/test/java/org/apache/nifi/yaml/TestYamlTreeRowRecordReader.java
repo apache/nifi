@@ -107,12 +107,12 @@ class TestYamlTreeRowRecordReader {
     @Test
     void testReadChoiceOfStringOrArrayOfRecords() throws IOException, MalformedRecordException {
         final File schemaFile = new File("src/test/resources/json/choice-of-string-or-array-record.avsc");
-        final File jsonFile = new File("src/test/resources/yaml/choice-of-string-or-array-record.yaml");
+        final File yamlFile = new File("src/test/resources/yaml/choice-of-string-or-array-record.yaml");
 
         final Schema avroSchema = new Schema.Parser().parse(schemaFile);
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
-        try (final InputStream fis = Files.newInputStream(jsonFile.toPath());
+        try (final InputStream fis = Files.newInputStream(yamlFile.toPath());
              final YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(fis, new MockComponentLog("id", "id"), recordSchema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record record = reader.nextRecord();
@@ -410,7 +410,7 @@ class TestYamlTreeRowRecordReader {
             for (int i = 0; i < schema.getFields().size(); i++) {
                 assertInstanceOf(ChoiceDataType.class, fields.get(i).getDataType());
                 final ChoiceDataType choiceDataType = (ChoiceDataType) fields.get(i).getDataType();
-                assertEquals(expectedTypes.get(i), choiceDataType.getPossibleSubTypes().get(0).getFieldType());
+                assertEquals(expectedTypes.get(i), choiceDataType.getPossibleSubTypes().getFirst().getFieldType());
             }
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
@@ -974,9 +974,9 @@ class TestYamlTreeRowRecordReader {
     }
 
     private void testReadRecords(String yamlPath, List<Object> expected) throws IOException, MalformedRecordException {
-        final File jsonFile = new File(yamlPath);
+        final File yamlFile = new File(yamlPath);
         try (
-            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
+            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(yamlFile))
         ) {
             RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
             testReadRecords(jsonStream, schema, expected);
@@ -985,16 +985,16 @@ class TestYamlTreeRowRecordReader {
 
     private void testNestedReadRecords(String yamlPath, List<Object> expected, String startingFieldName) throws IOException, MalformedRecordException {
 
-        final File jsonFile = new File(yamlPath);
-        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
+        final File yamlFile = new File(yamlPath);
+        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(yamlFile))) {
             RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.NESTED_FIELD, startingFieldName);
             testNestedReadRecords(jsonStream, schema, expected, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
         }
     }
 
     private void testReadRecords(String yamlPath, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
-        final File jsonFile = new File(yamlPath);
-        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
+        final File yamlFile = new File(yamlPath);
+        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(yamlFile))) {
             testReadRecords(jsonStream, schema, expected);
         }
     }
