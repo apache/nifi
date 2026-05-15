@@ -51,3 +51,4 @@ For SNMPv3, security is based on a User-Based Security Model (USM). The 'USM Use
 ]
 
 ```
+**NOTE:** `localizationEngineID` is not required, but if specified it must be a hex string either with or without colon delimiters.
