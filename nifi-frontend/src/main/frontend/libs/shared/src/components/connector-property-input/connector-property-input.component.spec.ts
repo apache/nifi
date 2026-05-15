@@ -684,7 +684,7 @@ describe('ConnectorPropertyInput', () => {
             expect(orphan?.group).toBe('OldVault');
         });
 
-        it('renders the saved value as an orphan placeholder while secrets are still loading', async () => {
+        it('renders the saved value as an orphan placeholder while secrets are still loading (no "(no longer available)" suffix)', async () => {
             const orphanKey = buildSecretKey('provider-1', 'Vault', 'group-a.secret-1');
             const { inputComponent } = await setup({
                 property: makeProp({ type: 'SECRET' }),
@@ -696,8 +696,30 @@ describe('ConnectorPropertyInput', () => {
             const orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
             expect(orphan).toBeTruthy();
             expect(orphan?.disabled).toBe(true);
-            expect(orphan?.label).toBe('group-a.secret-1 (no longer available)');
+            expect(orphan?.label).toBe('group-a.secret-1');
             expect(orphan?.group).toBe('Vault');
+        });
+
+        it('shows the "(no longer available)" suffix once loading completes and the secret is absent', async () => {
+            const orphanKey = buildSecretKey('provider-1', 'Vault', 'group-a.secret-1');
+            const { fixture, host, inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: orphanKey,
+                availableSecrets: null,
+                secretsLoading: true
+            });
+
+            let orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
+            expect(orphan?.label).toBe('group-a.secret-1');
+
+            host.secretsLoading.set(false);
+            host.availableSecrets.set([]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
+            expect(orphan?.label).toBe('group-a.secret-1 (no longer available)');
         });
 
         it('rewrites the form value to the current composite key after a provider rename', async () => {
@@ -802,6 +824,30 @@ describe('ConnectorPropertyInput', () => {
             await fixture.whenStable();
             fixture.detectChanges(false);
             expect(inputComponent.getSelectPlaceholder()).toBe('Select a secret');
+        });
+
+        it('removes the orphan option from selectOptions after the user selects a real secret', async () => {
+            const orphanKey = buildSecretKey('old-provider', 'OldVault', 'group-x.gone');
+            const realSecret = makeSecret();
+            const realKey = buildSecretKey(
+                realSecret.providerId,
+                realSecret.providerName,
+                realSecret.fullyQualifiedName
+            );
+            const { fixture, host, inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: orphanKey,
+                availableSecrets: [realSecret]
+            });
+
+            expect(inputComponent.selectOptions.some((o) => o.value === orphanKey && o.disabled)).toBe(true);
+
+            host.control.setValue(realKey);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(inputComponent.selectOptions.some((o) => o.value === orphanKey)).toBe(false);
         });
     });
 

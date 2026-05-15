@@ -19,10 +19,9 @@
     @switch (prop.type) {
         @case ('BOOLEAN') {
             <div class="flex flex-col">
-                <div class="flex gap-x-2 items-center">
+                <mat-slide-toggle [formControl]="formControl" labelPosition="before" data-qa="property-input-boolean">
                     <span class="text-sm">{{ prop.name }}</span>
-                    <mat-slide-toggle [formControl]="formControl" data-qa="property-input-boolean"></mat-slide-toggle>
-                </div>
+                </mat-slide-toggle>
                 @if (prop.description) {
                     <span class="text-xs tertiary-color block">{{ prop.description }}</span>
                 }

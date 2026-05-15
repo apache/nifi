@@ -142,6 +142,29 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             }
             this.lastSeenPropertyName = currentName;
         });
+
+        // Reconcile form value with current secret identity after secrets load.
+        // If the saved composite key matches a current secret by providerId + fullyQualifiedName
+        // but the providerName has changed, rewrite the form value to the current key.
+        // afterNextRender defers the setValue past the current change-detection cycle.
+        // Multiple rapid re-runs are safe: the rewrite is idempotent.
+        effect(() => {
+            const secrets = this.availableSecrets();
+            if (this.property()?.type !== 'SECRET' || !secrets) return;
+            const currentValue = this.formControl.value as string | null;
+            if (!currentValue) return;
+            const parsed = parseSecretKey(currentValue);
+            const matching = secrets.find(
+                (s) => s.providerId === parsed.providerId && s.fullyQualifiedName === parsed.fullyQualifiedName
+            );
+            if (!matching) return;
+            const expected = buildSecretKey(matching.providerId, matching.providerName, matching.fullyQualifiedName);
+            if (currentValue !== expected) {
+                runInInjectionContext(this.injector, () => {
+                    afterNextRender(() => this.formControl.setValue(expected, { emitEvent: true }));
+                });
+            }
+        });
     }
 
     ngOnInit(): void {
@@ -155,6 +178,9 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             normalized = value === true || value === 'true';
         }
         this.formControl.setValue(normalized, { emitEvent: false });
+        if (this.property()?.type === 'SECRET') {
+            this.selectOptions = this.computeSelectOptions();
+        }
     }
 
     registerOnChange(fn: (value: unknown) => void): void {
@@ -162,6 +188,9 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             this.valueChangesSubscribed = true;
             this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
                 fn(value);
+                if (this.property()?.type === 'SECRET') {
+                    this.selectOptions = this.computeSelectOptions();
+                }
             });
         }
     }
@@ -365,13 +394,6 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     /**
-     * Whether the property should be rendered as a slide toggle (BOOLEAN).
-     */
-    shouldUseToggle(): boolean {
-        return this.property()?.type === 'BOOLEAN';
-    }
-
-    /**
      * True when a SECRET property's secrets list is currently being loaded.
      */
     isSecretsLoading(): boolean {
@@ -462,15 +484,16 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     /**
-     * Compute SearchableSelectOptions from whichever source is available.
+     * Pure computation of SearchableSelectOptions from whichever source is available.
+     * Has no side effects; all reactive updates (provider-rename rewrite, orphan
+     * clearance on value change) are handled by separate effects and subscriptions.
      *
      * - SECRET: options come from availableSecrets, valued by a composite key
      *   (providerId::providerName::fullyQualifiedName) and grouped by provider
      *   (or "Provider - Group" when a provider owns multiple groups). Saved
      *   values that no longer match an available secret are surfaced as disabled
-     *   "(no longer available)" options. When the saved value still matches but
-     *   the provider name has changed, the form value is rewritten to the new
-     *   composite key after the next render.
+     *   options; the "(no longer available)" suffix is suppressed while secrets
+     *   are still loading so as not to alarm the user prematurely.
      * - Otherwise: dynamic values when successfully fetched, falling back to
      *   the descriptor's static allowableValues.
      */
@@ -524,26 +547,13 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             }
         }
 
-        const currentValue = this.formControl.value;
+        const currentValue = this.formControl.value as string | null;
         if (currentValue && secrets) {
             const parsed = parseSecretKey(currentValue);
             const matching = secrets.find(
                 (s) => s.providerId === parsed.providerId && s.fullyQualifiedName === parsed.fullyQualifiedName
             );
-            if (matching) {
-                const expected = buildSecretKey(
-                    matching.providerId,
-                    matching.providerName,
-                    matching.fullyQualifiedName
-                );
-                if (currentValue !== expected) {
-                    // Provider name changed since saving - update form value to match current secret.
-                    // Use afterNextRender to safely modify form value after change detection completes.
-                    runInInjectionContext(this.injector, () => {
-                        afterNextRender(() => this.formControl.setValue(expected, { emitEvent: true }));
-                    });
-                }
-            } else {
+            if (!matching) {
                 options.push({
                     value: currentValue,
                     label: `${parsed.fullyQualifiedName} (no longer available)`,
@@ -553,9 +563,10 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             }
         } else if (currentValue) {
             const parsed = parseSecretKey(currentValue);
+            const loadCompleted = !this.secretsLoading() && !this.secretsError();
             options.push({
                 value: currentValue,
-                label: `${parsed.fullyQualifiedName} (no longer available)`,
+                label: loadCompleted ? `${parsed.fullyQualifiedName} (no longer available)` : parsed.fullyQualifiedName,
                 disabled: true,
                 group: parsed.providerName
             });
