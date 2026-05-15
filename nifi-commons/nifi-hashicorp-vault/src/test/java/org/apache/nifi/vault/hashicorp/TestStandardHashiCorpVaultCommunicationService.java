@@ -63,10 +63,10 @@ public class TestStandardHashiCorpVaultCommunicationService {
     }
 
     @Test
-    public void testBasicConfiguration() throws Exception {
+    public void testBasicConfiguration() {
         try (StandardHashiCorpVaultCommunicationService ignored = this.configureService()) {
-            // Once to check if the URI is https, once by VaultTemplate, once by RestTemplate, and once to validate
-            Mockito.verify(properties, Mockito.times(4)).getUri();
+            // Once to check if the URI is https, once by VaultTemplate, once by RestTemplate
+            Mockito.verify(properties, Mockito.times(3)).getUri();
 
             // Once to check if the property is set, and once to retrieve the value
             Mockito.verify(properties, Mockito.times(2)).getAuthPropertiesFilename();
@@ -74,7 +74,7 @@ public class TestStandardHashiCorpVaultCommunicationService {
     }
 
     @Test
-    public void testTimeouts() throws Exception {
+    public void testTimeouts() {
         when(properties.getConnectionTimeout()).thenReturn(Optional.of("20 secs"));
         when(properties.getReadTimeout()).thenReturn(Optional.of("40 secs"));
         try (StandardHashiCorpVaultCommunicationService ignored = this.configureService()) {
