@@ -31,6 +31,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -70,8 +71,9 @@ public class OidcService {
 
         identityProvider.initializeProvider();
         this.identityProvider = identityProvider;
-        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
-        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
+        final Duration expirationDuration = getDuration(duration, units);
+        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(expirationDuration).build();
+        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(expirationDuration).build();
     }
 
     /**
@@ -295,5 +297,17 @@ public class OidcService {
         }
 
         return MessageDigest.isEqual(value1.getBytes(StandardCharsets.UTF_8), value2.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Duration getDuration(long duration, TimeUnit unit) {
+        return switch (unit) {
+            case DAYS -> Duration.ofDays(duration);
+            case HOURS -> Duration.ofHours(duration);
+            case MICROSECONDS -> Duration.ofMillis(TimeUnit.MILLISECONDS.convert(duration, TimeUnit.MICROSECONDS));
+            case MILLISECONDS -> Duration.ofMillis(duration);
+            case MINUTES -> Duration.ofMinutes(duration);
+            case NANOSECONDS -> Duration.ofNanos(duration);
+            case SECONDS -> Duration.ofSeconds(duration);
+        };
     }
 }
