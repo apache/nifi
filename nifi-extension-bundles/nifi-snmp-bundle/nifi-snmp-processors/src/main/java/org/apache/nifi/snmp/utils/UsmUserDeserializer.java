@@ -76,7 +76,11 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
         OctetString localizationEngineID = null;
         final JsonNode localizationEngineIDNode = node.get("localizationEngineID");
         if (localizationEngineIDNode != null) {
-            localizationEngineID = new OctetString(localizationEngineIDNode.asText());
+            if (localizationEngineIDNode.asText().contains(":")) {
+                localizationEngineID = OctetString.fromHexString(localizationEngineIDNode.asText());
+            } else {
+                localizationEngineID = OctetString.fromHexStringPairs(localizationEngineIDNode.asText());
+            }
         }
 
         return new UsmUser(

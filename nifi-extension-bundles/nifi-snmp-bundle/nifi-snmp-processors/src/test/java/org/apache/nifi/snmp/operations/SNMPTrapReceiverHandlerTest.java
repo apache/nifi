@@ -99,7 +99,7 @@ class SNMPTrapReceiverHandlerTest {
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
         trapReceiverHandler.createTrapReceiver(null, null);
 
-        verify(mockSnmpManager.getUSM(), times(2)).addUser(usmUserCaptor.capture());
+        verify(mockSnmpManager.getUSM(), times(3)).addUser(usmUserCaptor.capture());
         verify(mockSnmpManager).addCommandResponder(any(SNMPTrapReceiver.class));
 
         assertTrue(trapReceiverHandler.isStarted());

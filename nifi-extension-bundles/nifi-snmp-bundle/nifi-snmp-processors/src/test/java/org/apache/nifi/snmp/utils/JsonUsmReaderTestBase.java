@@ -31,6 +31,7 @@ public class JsonUsmReaderTestBase {
     public static final String LEGACY_USERS_JSON_PATH = "src/test/resources/invalid_usm_user_legacy_protocol.json";
 
     static final List<UsmUser> expectedUsmUsers;
+    private static final OctetString EMPTY_LOCALIZATION_ENGINE_ID = null;
 
     static {
         expectedUsmUsers = new ArrayList<>();
@@ -40,7 +41,7 @@ public class JsonUsmReaderTestBase {
                 new OctetString("abc12345"),
                 new OID("1.3.6.1.4.1.4976.2.2.1.1.1"),
                 new OctetString("abc12345"),
-                new OctetString("8000000001020304")
+                EMPTY_LOCALIZATION_ENGINE_ID
 
         ));
         expectedUsmUsers.add(new UsmUser(
@@ -49,8 +50,15 @@ public class JsonUsmReaderTestBase {
                 new OctetString("abc12345"),
                 new OID("1.3.6.1.4.1.4976.2.2.1.1.2"),
                 new OctetString("abc12345"),
-                new OctetString("8000000001020308")
+                OctetString.fromHexString("00:0A:95:9D:68:16")
+        ));
+        expectedUsmUsers.add(new UsmUser(
+                new OctetString("user3"),
+                new OID("1.3.6.1.6.3.10.1.1.7"),
+                new OctetString("abc12345"),
+                new OID("1.3.6.1.4.1.4976.2.2.1.1.2"),
+                new OctetString("abc12345"),
+                OctetString.fromHexStringPairs("08A69E")
         ));
     }
-
 }
