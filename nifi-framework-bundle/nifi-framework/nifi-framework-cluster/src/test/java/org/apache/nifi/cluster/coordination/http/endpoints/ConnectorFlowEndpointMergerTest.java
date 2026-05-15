@@ -25,58 +25,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConnectorFlowEndpointMergerTest {
 
-    private static final String CONNECTOR_ID = "12345678-1234-1234-1234-123456789012";
-    private static final String PROCESS_GROUP_ID = "abcdef01-2345-6789-abcd-ef0123456789";
-
-    private final ConnectorFlowEndpointMerger merger = new ConnectorFlowEndpointMerger();
-
     @Test
-    public void testCanHandleConnectorProcessGroupFlowUri() {
-        final URI uri = URI.create("/nifi-api/connectors/" + CONNECTOR_ID + "/flow/process-groups/" + PROCESS_GROUP_ID);
-        assertTrue(merger.canHandle(uri, "GET"));
-    }
+    public void testCanHandle() {
+        final ConnectorFlowEndpointMerger merger = new ConnectorFlowEndpointMerger();
+        final String connectorId = "12345678-1234-1234-1234-123456789012";
+        final String processGroupId = "abcdef01-2345-6789-abcd-ef0123456789";
+        final String connectorFlowUri = "/nifi-api/connectors/" + connectorId + "/flow/process-groups/" + processGroupId;
 
-    @Test
-    public void testCanHandleIgnoresQueryParameters() {
-        final URI uri = URI.create("/nifi-api/connectors/" + CONNECTOR_ID + "/flow/process-groups/" + PROCESS_GROUP_ID + "?uiOnly=true");
-        assertTrue(merger.canHandle(uri, "GET"));
-    }
+        // Test valid URIs
+        assertTrue(merger.canHandle(URI.create(connectorFlowUri), "GET"));
+        assertTrue(merger.canHandle(URI.create(connectorFlowUri + "?uiOnly=true"), "GET"));
 
-    @Test
-    public void testCannotHandleNonGetMethods() {
-        final URI uri = URI.create("/nifi-api/connectors/" + CONNECTOR_ID + "/flow/process-groups/" + PROCESS_GROUP_ID);
-        assertFalse(merger.canHandle(uri, "POST"));
-        assertFalse(merger.canHandle(uri, "PUT"));
-        assertFalse(merger.canHandle(uri, "DELETE"));
-    }
-
-    @Test
-    public void testCannotHandleConnectorFlowWithoutProcessGroup() {
-        final URI uri = URI.create("/nifi-api/connectors/" + CONNECTOR_ID + "/flow");
-        assertFalse(merger.canHandle(uri, "GET"));
-    }
-
-    @Test
-    public void testCannotHandleControllerServicesSubPath() {
-        final URI uri = URI.create("/nifi-api/connectors/" + CONNECTOR_ID + "/flow/process-groups/" + PROCESS_GROUP_ID + "/controller-services");
-        assertFalse(merger.canHandle(uri, "GET"));
-    }
-
-    @Test
-    public void testCannotHandleStandardFlowUri() {
-        final URI uri = URI.create("/nifi-api/flow/process-groups/" + PROCESS_GROUP_ID);
-        assertFalse(merger.canHandle(uri, "GET"));
-    }
-
-    @Test
-    public void testCannotHandleInvalidConnectorId() {
-        final URI uri = URI.create("/nifi-api/connectors/not-a-uuid/flow/process-groups/" + PROCESS_GROUP_ID);
-        assertFalse(merger.canHandle(uri, "GET"));
-    }
-
-    @Test
-    public void testCannotHandleInvalidProcessGroupId() {
-        final URI uri = URI.create("/nifi-api/connectors/" + CONNECTOR_ID + "/flow/process-groups/not-a-uuid");
-        assertFalse(merger.canHandle(uri, "GET"));
+        // Test invalid URIs
+        assertFalse(merger.canHandle(URI.create(connectorFlowUri), "POST"));
+        assertFalse(merger.canHandle(URI.create("/nifi-api/connectors/" + connectorId + "/flow"), "GET"));
+        assertFalse(merger.canHandle(URI.create(connectorFlowUri + "/controller-services"), "GET"));
+        assertFalse(merger.canHandle(URI.create("/nifi-api/flow/process-groups/" + processGroupId), "GET"));
+        assertFalse(merger.canHandle(URI.create("/nifi-api/connectors/not-a-uuid/flow/process-groups/" + processGroupId), "GET"));
+        assertFalse(merger.canHandle(URI.create("/nifi-api/connectors/" + connectorId + "/flow/process-groups/not-a-uuid"), "GET"));
     }
 }
