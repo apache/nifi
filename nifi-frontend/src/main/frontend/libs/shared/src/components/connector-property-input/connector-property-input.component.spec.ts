@@ -26,8 +26,10 @@ import { ConnectorPropertyInput } from './connector-property-input.component';
 import {
     AllowableValue,
     AssetInfo,
+    buildSecretKey,
     ConnectorPropertyDescriptor,
     PropertyAllowableValuesState,
+    Secret,
     UploadProgressInfo
 } from '../../types';
 
@@ -65,6 +67,18 @@ function makeProgress(overrides: Partial<UploadProgressInfo> = {}): UploadProgre
     };
 }
 
+function makeSecret(overrides: Partial<Secret> = {}): Secret {
+    return {
+        name: 'my-secret',
+        fullyQualifiedName: 'group-a.my-secret',
+        providerId: 'provider-1',
+        providerName: 'Vault',
+        groupName: 'group-a',
+        description: 'A secret',
+        ...overrides
+    };
+}
+
 /**
  * Host fixture that owns the parent FormControl and reactively passes signal inputs
  * to ConnectorPropertyInput. Use setters on the returned harness to drive updates.
@@ -79,6 +93,9 @@ function makeProgress(overrides: Partial<UploadProgressInfo> = {}): UploadProgre
             [dynamicAllowableValuesState]="dynamicAllowableValuesState()"
             [currentAssets]="currentAssets()"
             [assetUploadProgress]="assetUploadProgress()"
+            [availableSecrets]="availableSecrets()"
+            [secretsLoading]="secretsLoading()"
+            [secretsError]="secretsError()"
             (requestAllowableValues)="onRequestAllowableValues()"
             (assetFilesSelected)="onAssetFilesSelected($event)"
             (assetDeleteRequested)="onAssetDeleteRequested($event)"
@@ -87,11 +104,14 @@ function makeProgress(overrides: Partial<UploadProgressInfo> = {}): UploadProgre
     `
 })
 class HostComponent {
-    control = new FormControl<string | string[] | null>(null);
+    control = new FormControl<string | string[] | boolean | null>(null);
     property: WritableSignal<ConnectorPropertyDescriptor> = signal(makeProp());
     dynamicAllowableValuesState: WritableSignal<PropertyAllowableValuesState | null> = signal(null);
     currentAssets: WritableSignal<AssetInfo[]> = signal([]);
     assetUploadProgress: WritableSignal<UploadProgressInfo[]> = signal([]);
+    availableSecrets: WritableSignal<Secret[] | null> = signal(null);
+    secretsLoading: WritableSignal<boolean> = signal(false);
+    secretsError: WritableSignal<string | null> = signal(null);
     requestSpy = vi.fn();
     assetFilesSelectedSpy = vi.fn();
     assetDeleteRequestedSpy = vi.fn();
@@ -127,9 +147,12 @@ async function setup(
     options: {
         property?: ConnectorPropertyDescriptor;
         dynamicState?: PropertyAllowableValuesState | null;
-        initialValue?: string | string[] | null;
+        initialValue?: string | string[] | boolean | null;
         currentAssets?: AssetInfo[];
         assetUploadProgress?: UploadProgressInfo[];
+        availableSecrets?: Secret[] | null;
+        secretsLoading?: boolean;
+        secretsError?: string | null;
     } = {}
 ) {
     await TestBed.configureTestingModule({
@@ -153,6 +176,15 @@ async function setup(
     }
     if (options.assetUploadProgress !== undefined) {
         host.assetUploadProgress.set(options.assetUploadProgress);
+    }
+    if (options.availableSecrets !== undefined) {
+        host.availableSecrets.set(options.availableSecrets);
+    }
+    if (options.secretsLoading !== undefined) {
+        host.secretsLoading.set(options.secretsLoading);
+    }
+    if (options.secretsError !== undefined) {
+        host.secretsError.set(options.secretsError);
     }
 
     fixture.detectChanges();
@@ -330,13 +362,90 @@ describe('ConnectorPropertyInput', () => {
     });
 
     describe('boolean rendering', () => {
-        it('renders a checkbox for BOOLEAN properties', async () => {
+        it('renders a mat-slide-toggle (not a checkbox) for BOOLEAN properties', async () => {
             const { fixture } = await setup({
                 property: makeProp({ type: 'BOOLEAN' })
             });
 
-            const checkbox = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
-            expect(checkbox).toBeTruthy();
+            const toggle = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
+            const checkbox = fixture.debugElement.query(By.css('mat-checkbox'));
+
+            expect(toggle).toBeTruthy();
+            expect(toggle.nativeElement.tagName.toLowerCase()).toBe('mat-slide-toggle');
+            expect(checkbox).toBeNull();
+        });
+
+        it('reflects the form value in the toggle checked state', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'BOOLEAN' }),
+                initialValue: true
+            });
+
+            const toggle = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
+            expect(toggle.componentInstance.checked).toBe(true);
+
+            host.control.setValue(false);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(toggle.componentInstance.checked).toBe(false);
+        });
+
+        it('propagates the form value through the [formControl] binding (parent <-> toggle round-trip)', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'BOOLEAN' })
+            });
+
+            const toggleDebug = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
+
+            // Parent -> child
+            host.control.setValue(true);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+            expect(toggleDebug.componentInstance.checked).toBe(true);
+
+            // Toggle -> parent: invoke the underlying input element's click,
+            // which is the public surface MatSlideToggle exposes for user-driven changes.
+            const input: HTMLInputElement | null = (toggleDebug.nativeElement as HTMLElement).querySelector(
+                'button[role="switch"], input[type="checkbox"]'
+            );
+            expect(input).not.toBeNull();
+            input!.click();
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(host.control.value).toBe(false);
+        });
+
+        it('coerces string "true" to true via writeValue', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'BOOLEAN' })
+            });
+
+            host.control.setValue('true' as unknown as boolean);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            const toggle = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
+            expect(toggle.componentInstance.checked).toBe(true);
+        });
+
+        it('coerces non-true values to false via writeValue', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'BOOLEAN' })
+            });
+
+            host.control.setValue('false' as unknown as boolean);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            const toggle = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
+            expect(toggle.componentInstance.checked).toBe(false);
         });
     });
 
@@ -486,6 +595,259 @@ describe('ConnectorPropertyInput', () => {
             fixture.detectChanges();
 
             expect(host.requestSpy).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('SECRET rendering', () => {
+        it('renders a searchable-select for a SECRET property even when no secrets are loaded yet', async () => {
+            const { fixture, inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' })
+            });
+
+            const select = fixture.debugElement.query(By.css('[data-qa="property-input-select"]'));
+            expect(select).toBeTruthy();
+            expect(inputComponent.shouldUseSelect()).toBe(true);
+        });
+
+        it('builds options from availableSecrets using the composite key as the option value', async () => {
+            const secret = makeSecret({
+                name: 'Prod DB Password',
+                fullyQualifiedName: 'group-a.prod-db',
+                providerId: 'vault-1',
+                providerName: 'Vault',
+                groupName: 'group-a',
+                description: 'Production DB password'
+            });
+            const { inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                availableSecrets: [secret]
+            });
+
+            expect(inputComponent.selectOptions).toEqual([
+                {
+                    value: buildSecretKey('vault-1', 'Vault', 'group-a.prod-db'),
+                    label: 'Prod DB Password',
+                    description: 'Production DB password',
+                    group: 'Vault'
+                }
+            ]);
+        });
+
+        it('uses the bare provider name as the group when a provider owns a single group', async () => {
+            const secrets = [
+                makeSecret({ name: 'secret-1', providerName: 'Vault', groupName: 'group-a' }),
+                makeSecret({
+                    name: 'secret-2',
+                    fullyQualifiedName: 'group-a.secret-2',
+                    providerName: 'Vault',
+                    groupName: 'group-a'
+                })
+            ];
+            const { inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                availableSecrets: secrets
+            });
+
+            expect(inputComponent.selectOptions.map((o) => o.group)).toEqual(['Vault', 'Vault']);
+        });
+
+        it('formats the group as "Provider - Group" when a provider owns multiple groups', async () => {
+            const secrets = [
+                makeSecret({ name: 'secret-1', providerName: 'Vault', groupName: 'group-a' }),
+                makeSecret({
+                    name: 'secret-2',
+                    fullyQualifiedName: 'group-b.secret-2',
+                    providerName: 'Vault',
+                    groupName: 'group-b'
+                })
+            ];
+            const { inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                availableSecrets: secrets
+            });
+
+            expect(inputComponent.selectOptions.map((o) => o.group)).toEqual(['Vault - group-a', 'Vault - group-b']);
+        });
+
+        it('appends a disabled "(no longer available)" option when the saved value is missing from the loaded secrets', async () => {
+            const orphanKey = buildSecretKey('old-provider', 'OldVault', 'group-x.gone');
+            const { inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: orphanKey,
+                availableSecrets: [makeSecret()]
+            });
+
+            const orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
+            expect(orphan).toBeTruthy();
+            expect(orphan?.disabled).toBe(true);
+            expect(orphan?.label).toBe('group-x.gone (no longer available)');
+            expect(orphan?.group).toBe('OldVault');
+        });
+
+        it('renders the saved value as an orphan placeholder while secrets are still loading (no "(no longer available)" suffix)', async () => {
+            const orphanKey = buildSecretKey('provider-1', 'Vault', 'group-a.secret-1');
+            const { inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: orphanKey,
+                availableSecrets: null,
+                secretsLoading: true
+            });
+
+            const orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
+            expect(orphan).toBeTruthy();
+            expect(orphan?.disabled).toBe(true);
+            expect(orphan?.label).toBe('group-a.secret-1');
+            expect(orphan?.group).toBe('Vault');
+        });
+
+        it('shows the "(no longer available)" suffix once loading completes and the secret is absent', async () => {
+            const orphanKey = buildSecretKey('provider-1', 'Vault', 'group-a.secret-1');
+            const { fixture, host, inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: orphanKey,
+                availableSecrets: null,
+                secretsLoading: true
+            });
+
+            let orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
+            expect(orphan?.label).toBe('group-a.secret-1');
+
+            host.secretsLoading.set(false);
+            host.availableSecrets.set([]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            orphan = inputComponent.selectOptions.find((o) => o.value === orphanKey);
+            expect(orphan?.label).toBe('group-a.secret-1 (no longer available)');
+        });
+
+        it('rewrites the form value to the current composite key after a provider rename', async () => {
+            const savedKey = buildSecretKey('provider-1', 'OldVault', 'group-a.secret-1');
+            const renamedSecret = makeSecret({
+                providerId: 'provider-1',
+                providerName: 'NewVault',
+                fullyQualifiedName: 'group-a.secret-1',
+                groupName: 'group-a',
+                name: 'secret-1'
+            });
+            const expectedKey = buildSecretKey('provider-1', 'NewVault', 'group-a.secret-1');
+
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: savedKey,
+                availableSecrets: [renamedSecret]
+            });
+
+            // afterNextRender defers the setValue to the next render; flush via detectChanges + whenStable.
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(host.control.value).toBe(expectedKey);
+        });
+
+        it('flips the searchable-select into loadError mode and suppresses the description hint when secretsError is set', async () => {
+            const { fixture, inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET', description: 'A description' }),
+                secretsError: 'Backend rejected the secrets request'
+            });
+
+            const select = fixture.debugElement.query(By.css('[data-qa="property-input-select"]'));
+            expect(select.componentInstance.loadError()).toBe(true);
+            expect(select.componentInstance.loadErrorMessage()).toBe('Failed to load secrets');
+            expect(select.componentInstance.showHint()).toBe(false);
+            expect(inputComponent.hasSecretsError()).toBe(true);
+        });
+
+        it('does not flip into loadError mode when secretsError is the empty string', async () => {
+            const { fixture } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                secretsError: ''
+            });
+
+            const select = fixture.debugElement.query(By.css('[data-qa="property-input-select"]'));
+            expect(select.componentInstance.loadError()).toBe(false);
+            expect(select.componentInstance.loadErrorMessage()).toBe('Failed to load secrets');
+        });
+
+        it('shows the inline loading spinner with "Loading secrets..." while secretsLoading is true', async () => {
+            const { fixture } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                secretsLoading: true
+            });
+
+            const spinner = fixture.debugElement.query(By.css('[data-qa="property-input-loading"]'));
+            expect(spinner).toBeTruthy();
+            expect((spinner.nativeElement as HTMLElement).textContent).toContain('Loading secrets...');
+        });
+
+        it('hides the loading spinner once secretsLoading flips back to false', async () => {
+            const { fixture, host } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                secretsLoading: true
+            });
+
+            expect(fixture.debugElement.query(By.css('[data-qa="property-input-loading"]'))).toBeTruthy();
+
+            host.secretsLoading.set(false);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(fixture.debugElement.query(By.css('[data-qa="property-input-loading"]'))).toBeNull();
+        });
+
+        it('returns the right placeholder text for each SECRET state', async () => {
+            const { inputComponent, host, fixture } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                secretsLoading: true
+            });
+            expect(inputComponent.getSelectPlaceholder()).toBe('Loading secrets...');
+
+            host.secretsLoading.set(false);
+            host.secretsError.set('boom');
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+            expect(inputComponent.getSelectPlaceholder()).toBe('Failed to load secrets');
+
+            host.secretsError.set(null);
+            host.availableSecrets.set([]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+            expect(inputComponent.getSelectPlaceholder()).toBe('No secrets available');
+
+            host.availableSecrets.set([makeSecret()]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+            expect(inputComponent.getSelectPlaceholder()).toBe('Select a secret');
+        });
+
+        it('removes the orphan option from selectOptions after the user selects a real secret', async () => {
+            const orphanKey = buildSecretKey('old-provider', 'OldVault', 'group-x.gone');
+            const realSecret = makeSecret();
+            const realKey = buildSecretKey(
+                realSecret.providerId,
+                realSecret.providerName,
+                realSecret.fullyQualifiedName
+            );
+            const { fixture, host, inputComponent } = await setup({
+                property: makeProp({ type: 'SECRET' }),
+                initialValue: orphanKey,
+                availableSecrets: [realSecret]
+            });
+
+            expect(inputComponent.selectOptions.some((o) => o.value === orphanKey && o.disabled)).toBe(true);
+
+            host.control.setValue(realKey);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(inputComponent.selectOptions.some((o) => o.value === orphanKey)).toBe(false);
         });
     });
 

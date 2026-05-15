@@ -15,17 +15,31 @@
  * limitations under the License.
  */
 
-import { Component, DestroyRef, DoCheck, effect, inject, input, OnInit, output } from '@angular/core';
+import {
+    afterNextRender,
+    Component,
+    DestroyRef,
+    DoCheck,
+    effect,
+    inject,
+    Injector,
+    input,
+    OnInit,
+    output,
+    runInInjectionContext
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, FormControl, NgControl, ReactiveFormsModule } from '@angular/forms';
 import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { MatCheckbox } from '@angular/material/checkbox';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
 import {
     AllowableValue,
     AssetInfo,
+    buildSecretKey,
     ConnectorPropertyDescriptor,
+    parseSecretKey,
     PropertyAllowableValuesState,
     SearchableSelectOption,
     Secret,
@@ -37,12 +51,13 @@ import { AssetUpload } from '../asset-upload/asset-upload.component';
 /**
  * Form control for a single connector property.
  * Renders different input types based on the property descriptor:
- * STRING/INTEGER/DOUBLE/FLOAT -> text input, BOOLEAN -> checkbox,
+ * STRING/INTEGER/DOUBLE/FLOAT -> text input, BOOLEAN -> slide toggle,
  * STRING_LIST without allowable values -> textarea (comma-separated),
  * allowable values (static or fetched) -> searchable-select
  * (multi-select when the property type is STRING_LIST),
- * ASSET / ASSET_LIST -> asset-upload (drop zone + uploaded list + progress).
- * SECRET handling is deferred to a follow-up PR.
+ * ASSET / ASSET_LIST -> asset-upload (drop zone + uploaded list + progress),
+ * SECRET -> searchable-select populated from availableSecrets (composite key
+ * value, provider/group grouping, orphan handling, provider-rename auto-fix).
  *
  * Uses an internal FormControl bound to the actual input elements so that
  * mat-form-field can detect error state. Validation state is synced from
@@ -58,8 +73,8 @@ import { AssetUpload } from '../asset-upload/asset-upload.component';
         MatLabel,
         MatHint,
         MatInput,
-        MatCheckbox,
         MatProgressSpinner,
+        MatSlideToggle,
         SearchableSelect,
         AssetUpload
     ],
@@ -68,6 +83,7 @@ import { AssetUpload } from '../asset-upload/asset-upload.component';
 export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, OnInit {
     private ngControl = inject(NgControl, { optional: true, self: true });
     private destroyRef = inject(DestroyRef);
+    private injector = inject(Injector);
 
     readonly property = input.required<ConnectorPropertyDescriptor>();
     readonly dynamicAllowableValuesState = input<PropertyAllowableValuesState | null>(null);
@@ -114,6 +130,9 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
         effect(() => {
             const prop = this.property();
             this.dynamicAllowableValuesState();
+            this.availableSecrets();
+            this.secretsLoading();
+            this.secretsError();
             this.selectOptions = this.computeSelectOptions();
 
             const currentName = prop?.name ?? null;
@@ -122,6 +141,29 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
                 this.triggerDynamicValuesFetch();
             }
             this.lastSeenPropertyName = currentName;
+        });
+
+        // Reconcile form value with current secret identity after secrets load.
+        // If the saved composite key matches a current secret by providerId + fullyQualifiedName
+        // but the providerName has changed, rewrite the form value to the current key.
+        // afterNextRender defers the setValue past the current change-detection cycle.
+        // Multiple rapid re-runs are safe: the rewrite is idempotent.
+        effect(() => {
+            const secrets = this.availableSecrets();
+            if (this.property()?.type !== 'SECRET' || !secrets) return;
+            const currentValue = this.formControl.value as string | null;
+            if (!currentValue) return;
+            const parsed = parseSecretKey(currentValue);
+            const matching = secrets.find(
+                (s) => s.providerId === parsed.providerId && s.fullyQualifiedName === parsed.fullyQualifiedName
+            );
+            if (!matching) return;
+            const expected = buildSecretKey(matching.providerId, matching.providerName, matching.fullyQualifiedName);
+            if (currentValue !== expected) {
+                runInInjectionContext(this.injector, () => {
+                    afterNextRender(() => this.formControl.setValue(expected, { emitEvent: true }));
+                });
+            }
         });
     }
 
@@ -136,6 +178,9 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             normalized = value === true || value === 'true';
         }
         this.formControl.setValue(normalized, { emitEvent: false });
+        if (this.property()?.type === 'SECRET') {
+            this.selectOptions = this.computeSelectOptions();
+        }
     }
 
     registerOnChange(fn: (value: unknown) => void): void {
@@ -143,6 +188,9 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             this.valueChangesSubscribed = true;
             this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
                 fn(value);
+                if (this.property()?.type === 'SECRET') {
+                    this.selectOptions = this.computeSelectOptions();
+                }
             });
         }
     }
@@ -276,6 +324,12 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             return false;
         }
 
+        // SECRET always uses the select. Loading shows an inline spinner; load errors
+        // disable the select via the searchable-select loadError input.
+        if (prop.type === 'SECRET') {
+            return true;
+        }
+
         if (this.isDynamicValuesFetchFailed() || this.isDynamicValuesFetchEmpty()) {
             return false;
         }
@@ -340,9 +394,37 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     /**
+     * True when a SECRET property's secrets list is currently being loaded.
+     */
+    isSecretsLoading(): boolean {
+        return this.property()?.type === 'SECRET' && this.secretsLoading();
+    }
+
+    /**
+     * True when a SECRET property's secrets fetch reported an error.
+     */
+    hasSecretsError(): boolean {
+        return this.property()?.type === 'SECRET' && !!this.secretsError();
+    }
+
+    /**
      * Placeholder text for the searchable-select dropdown.
      */
     getSelectPlaceholder(): string {
+        const prop = this.property();
+        if (prop?.type === 'SECRET') {
+            if (this.secretsLoading()) {
+                return 'Loading secrets...';
+            }
+            if (this.secretsError()) {
+                return 'Failed to load secrets';
+            }
+            const list = this.availableSecrets();
+            if (list && list.length === 0) {
+                return 'No secrets available';
+            }
+            return 'Select a secret';
+        }
         if (this.isDynamicValuesLoading()) {
             return 'Loading values...';
         }
@@ -402,13 +484,27 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     /**
-     * Compute SearchableSelectOptions from whichever source is available:
-     * dynamic values when successfully fetched, otherwise static values.
+     * Pure computation of SearchableSelectOptions from whichever source is available.
+     * Has no side effects; all reactive updates (provider-rename rewrite, orphan
+     * clearance on value change) are handled by separate effects and subscriptions.
+     *
+     * - SECRET: options come from availableSecrets, valued by a composite key
+     *   (providerId::providerName::fullyQualifiedName) and grouped by provider
+     *   (or "Provider - Group" when a provider owns multiple groups). Saved
+     *   values that no longer match an available secret are surfaced as disabled
+     *   options; the "(no longer available)" suffix is suppressed while secrets
+     *   are still loading so as not to alarm the user prematurely.
+     * - Otherwise: dynamic values when successfully fetched, falling back to
+     *   the descriptor's static allowableValues.
      */
     private computeSelectOptions(): SearchableSelectOption<string>[] {
         const prop = this.property();
         if (!prop || prop.type === 'BOOLEAN') {
             return [];
+        }
+
+        if (prop.type === 'SECRET') {
+            return this.computeSecretSelectOptions();
         }
 
         let allowableValues: AllowableValue[] = [];
@@ -424,6 +520,59 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             value: av.allowableValue.value,
             label: av.allowableValue.displayName
         }));
+    }
+
+    private computeSecretSelectOptions(): SearchableSelectOption<string>[] {
+        const options: SearchableSelectOption<string>[] = [];
+        const secrets: Secret[] | null = this.availableSecrets();
+
+        if (secrets && secrets.length > 0) {
+            const providerGroups = new Map<string, Set<string>>();
+            for (const s of secrets) {
+                if (!providerGroups.has(s.providerName)) {
+                    providerGroups.set(s.providerName, new Set());
+                }
+                providerGroups.get(s.providerName)!.add(s.groupName);
+            }
+
+            for (const s of secrets) {
+                const groupCount = providerGroups.get(s.providerName)?.size ?? 1;
+                const group = groupCount > 1 ? `${s.providerName} - ${s.groupName}` : s.providerName;
+                options.push({
+                    value: buildSecretKey(s.providerId, s.providerName, s.fullyQualifiedName),
+                    label: s.name,
+                    description: s.description,
+                    group
+                });
+            }
+        }
+
+        const currentValue = this.formControl.value as string | null;
+        if (currentValue && secrets) {
+            const parsed = parseSecretKey(currentValue);
+            const matching = secrets.find(
+                (s) => s.providerId === parsed.providerId && s.fullyQualifiedName === parsed.fullyQualifiedName
+            );
+            if (!matching) {
+                options.push({
+                    value: currentValue,
+                    label: `${parsed.fullyQualifiedName} (no longer available)`,
+                    disabled: true,
+                    group: parsed.providerName
+                });
+            }
+        } else if (currentValue) {
+            const parsed = parseSecretKey(currentValue);
+            const loadCompleted = !this.secretsLoading() && !this.secretsError();
+            options.push({
+                value: currentValue,
+                label: loadCompleted ? `${parsed.fullyQualifiedName} (no longer available)` : parsed.fullyQualifiedName,
+                disabled: true,
+                group: parsed.providerName
+            });
+        }
+
+        return options;
     }
 
     private syncValidationState(): void {

@@ -18,12 +18,14 @@
 @if (prop) {
     @switch (prop.type) {
         @case ('BOOLEAN') {
-            <mat-checkbox [formControl]="formControl" data-qa="property-input-boolean">
-                <span class="text-sm">{{ prop.name }}</span>
+            <div class="flex flex-col">
+                <mat-slide-toggle [formControl]="formControl" labelPosition="before" data-qa="property-input-boolean">
+                    <span class="text-sm">{{ prop.name }}</span>
+                </mat-slide-toggle>
                 @if (prop.description) {
                     <span class="text-xs tertiary-color block">{{ prop.description }}</span>
                 }
-            </mat-checkbox>
+            </div>
         }
         @default {
             @if (shouldUseAssetUpload()) {
@@ -79,14 +81,18 @@
                         [searchPlaceholder]="'Search'"
                         [allowClear]="!prop.required"
                         [hint]="prop.description || ''"
-                        [showHint]="!!prop.description"
+                        [showHint]="!!prop.description && !hasSecretsError()"
                         [validationError]="getValidationErrorMessage()"
+                        [loadError]="hasSecretsError()"
+                        [loadErrorMessage]="'Failed to load secrets'"
                         data-qa="property-input-select">
                     </searchable-select>
-                    @if (isDynamicValuesLoading()) {
+                    @if (isDynamicValuesLoading() || isSecretsLoading()) {
                         <div class="flex items-center gap-2 mt-1" data-qa="property-input-loading">
                             <mat-progress-spinner diameter="14" mode="indeterminate"></mat-progress-spinner>
-                            <span class="text-xs tertiary-color">Loading values...</span>
+                            <span class="text-xs tertiary-color">
+                                {{ isSecretsLoading() ? 'Loading secrets...' : 'Loading values...' }}
+                            </span>
                         </div>
                     }
                 </div>
