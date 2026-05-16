@@ -36,7 +36,6 @@ import org.springframework.vault.support.SslConfiguration;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -123,7 +122,6 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
             }
         }
         this.keyValueBackend = keyValueBackend;
-        validateProperties(env);
 
         this.setApplicationContext(new HashiCorpVaultApplicationContext(env));
 
@@ -131,29 +129,6 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
                 ? super.sslConfiguration() : SslConfiguration.unconfigured();
 
         clientOptions = getClientOptions();
-    }
-
-    private void validateProperties(final ConfigurableEnvironment environment) {
-        try {
-            final String vaultUri = Objects.requireNonNull(environment.getProperty(VaultConfigurationKey.URI.key),
-                    "Missing required property " + VaultConfigurationKey.URI.key);
-            if (vaultUri.startsWith(HTTPS)) {
-                requireSslProperty("vault.ssl.key-store", environment);
-                requireSslProperty("vault.ssl.key-store-password", environment);
-                requireSslProperty("vault.ssl.key-store-type", environment);
-                requireSslProperty("vault.ssl.trust-store", environment);
-                requireSslProperty("vault.ssl.trust-store-password", environment);
-                requireSslProperty("vault.ssl.trust-store-type", environment);
-            }
-        } catch (final NullPointerException e) {
-            // Rethrow as IllegalArgumentException
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
-
-    }
-
-    private void requireSslProperty(final String propertyName, final ConfigurableEnvironment environment) {
-        Objects.requireNonNull(environment.getProperty(propertyName), propertyName + " is required with an https URI");
     }
 
     public KeyValueBackend getKeyValueBackend() {

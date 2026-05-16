@@ -32,7 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.springframework.core.env.PropertySource;
 
@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 @Tags({"hashicorp", "vault", "client"})
 @CapabilityDescription("A controller service for interacting with HashiCorp Vault.")
@@ -47,9 +48,7 @@ import java.util.Map;
 @DynamicProperties(
         @DynamicProperty(name = "A Spring Vault configuration property name",
                 value = "The property value",
-                description = "Allows any Spring Vault property keys to be specified, as described in " +
-                        "(https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration). " +
-                        "See Additional Details for more information.",
+                description = "Allows any Spring Vault property keys to be specified. See Additional Details for more information.",
                 expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT
         )
 )
@@ -171,7 +170,7 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
 
     static class DirectPropertySource extends PropertySource<ConfigurationContext> {
 
-        private static final String VAULT_SSL_KEY_PATTERN = "vault.ssl.(key.*|trust.*|enabledProtocols)";
+        private static final String SSL_CONTEXT_PROPERTY = SSLContext.class.getName();
 
         public DirectPropertySource(final String name, final ConfigurationContext source) {
             super(name, source);
@@ -179,35 +178,13 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
 
         @Override
         public Object getProperty(final String name) {
-            if (name.matches(VAULT_SSL_KEY_PATTERN)) {
-                return getSslProperty(name);
+            if (SSL_CONTEXT_PROPERTY.equals(name)) {
+                // Create SSLContext for property matching class
+                final SSLContextProvider sslContextProvider = getSource().getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+                return sslContextProvider == null ? null : sslContextProvider.createContext();
             }
 
             return getSource().getAllProperties().get(name);
-        }
-
-        private String getSslProperty(final String name) {
-            if (getSource().getProperty(SSL_CONTEXT_SERVICE).isSet()) {
-                final SSLContextService sslContextService = getSource().getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-                switch (name) {
-                    case "vault.ssl.key-store":
-                        return sslContextService.getKeyStoreFile();
-                    case "vault.ssl.key-store-password":
-                        return sslContextService.getKeyStorePassword();
-                    case "vault.ssl.key-store-type":
-                        return sslContextService.getKeyStoreType();
-                    case "vault.ssl.trust-store":
-                        return sslContextService.getTrustStoreFile();
-                    case "vault.ssl.trust-store-password":
-                        return sslContextService.getTrustStorePassword();
-                    case "vault.ssl.trust-store-type":
-                        return sslContextService.getTrustStoreType();
-                    case "vault.ssl.enabledProtocols":
-                        return sslContextService.getSslAlgorithm();
-                }
-            }
-
-            return null;
         }
     }
 }
