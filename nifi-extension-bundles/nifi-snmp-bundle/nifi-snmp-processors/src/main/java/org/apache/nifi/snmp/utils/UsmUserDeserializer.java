@@ -73,12 +73,23 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
                     "authentication protocol is specified.");
         }
 
+        OctetString localizationEngineID = null;
+        final JsonNode localizationEngineIDNode = node.get("localizationEngineID");
+        if (localizationEngineIDNode != null) {
+            if (localizationEngineIDNode.asText().contains(":")) {
+                localizationEngineID = OctetString.fromHexString(localizationEngineIDNode.asText());
+            } else {
+                localizationEngineID = OctetString.fromHexStringPairs(localizationEngineIDNode.asText());
+            }
+        }
+
         return new UsmUser(
                 new OctetString(securityName),
                 authProtocol,
                 authPassphrase,
                 privProtocol,
-                privPassphrase
+                privPassphrase,
+                localizationEngineID
         );
     }
 }
