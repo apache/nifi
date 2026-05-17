@@ -454,17 +454,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // parameter contexts that inherit from one another and neither the inheriting nor inherited parameter context exists.
         if (versionedParameterContexts != null) {
             versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
-
-            // After ensuring all contexts exist, add any missing parameters to all existing contexts from the proposed definitions.
-            // This is necessary because createParameterContextWithoutReferences skips contexts that already exist, so new parameters
-            // added to inherited contexts (e.g., a parent P2 inherited by the group's bound context P1) would otherwise be missed.
-            final ComponentIdGenerator componentIdGenerator = context.getComponentIdGenerator();
-            for (final Map.Entry<String, VersionedParameterContext> entry : versionedParameterContexts.entrySet()) {
-                final ParameterContext existingContext = getParameterContextByName(entry.getKey());
-                if (existingContext != null) {
-                    addMissingConfiguration(entry.getValue(), existingContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
-                }
-            }
         }
 
         updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
@@ -2404,6 +2393,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                                          final Map<String, VersionedParameterContext> versionedParameterContexts,
                                          final Map<String, ParameterProviderReference> parameterProviderReferences,
                                          final ComponentIdGenerator componentIdGenerator) {
+        addMissingConfiguration(versionedParameterContext, currentParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator, new HashSet<>());
+    }
+
+    private void addMissingConfiguration(final VersionedParameterContext versionedParameterContext, final ParameterContext currentParameterContext,
+                                         final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                         final Map<String, ParameterProviderReference> parameterProviderReferences,
+                                         final ComponentIdGenerator componentIdGenerator, final Set<String> visitedParameterContextIds) {
+        if (!visitedParameterContextIds.add(currentParameterContext.getIdentifier())) {
+            return;
+        }
+
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
@@ -2429,13 +2429,38 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             currentParameterContext.setDescription(versionedParameterContext.getDescription());
         }
 
-        // If the current parameter context doesn't have any inherited param contexts but the versioned one does,
-        // add the versioned ones.
-        if (currentParameterContext.getInheritedParameterContexts().isEmpty()
-                && versionedParameterContext.getInheritedParameterContexts() != null && !versionedParameterContext.getInheritedParameterContexts().isEmpty()) {
-            currentParameterContext.setInheritedParameterContexts(versionedParameterContext.getInheritedParameterContexts().stream()
-                .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts, parameterProviderReferences, componentIdGenerator))
-                .collect(Collectors.toList()));
+        final List<String> proposedInheritedNames = versionedParameterContext.getInheritedParameterContexts();
+        final List<ParameterContext> currentInheritedContexts = currentParameterContext.getInheritedParameterContexts();
+        if (proposedInheritedNames != null && !proposedInheritedNames.isEmpty()) {
+            if (currentInheritedContexts.isEmpty()) {
+                // The local parameter context has no inheritance configured yet, so adopt the versioned chain
+                // by selecting (or creating) a matching parameter context for each inherited name.
+                currentParameterContext.setInheritedParameterContexts(proposedInheritedNames.stream()
+                    .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts, parameterProviderReferences, componentIdGenerator))
+                    .collect(Collectors.toList()));
+            } else {
+                // Walk the local inheritance chain in lockstep with the versioned chain so updates to inherited
+                // contexts are applied to the contexts actually referenced by this parameter context, even when
+                // the local names were suffix-renamed at import time (for example, P (2) instead of P). Pairs that
+                // do not match by exact name or by name-with-suffix are skipped to avoid corrupting a chain that
+                // was rewired locally.
+                final int matchedDepth = Math.min(currentInheritedContexts.size(), proposedInheritedNames.size());
+                for (int i = 0; i < matchedDepth; i++) {
+                    final ParameterContext liveInheritedContext = currentInheritedContexts.get(i);
+                    final String proposedInheritedName = proposedInheritedNames.get(i);
+                    final VersionedParameterContext proposedInheritedContext = versionedParameterContexts == null ? null : versionedParameterContexts.get(proposedInheritedName);
+                    if (liveInheritedContext == null || proposedInheritedContext == null) {
+                        continue;
+                    }
+                    final String liveInheritedName = liveInheritedContext.getName();
+                    if (!liveInheritedName.equals(proposedInheritedName)
+                            && !ParameterContextNameUtils.isNameWithSuffix(liveInheritedName, proposedInheritedName)) {
+                        continue;
+                    }
+                    addMissingConfiguration(proposedInheritedContext, liveInheritedContext, versionedParameterContexts, parameterProviderReferences,
+                            componentIdGenerator, visitedParameterContextIds);
+                }
+            }
         }
 
         if (versionedParameterContext.getParameterProvider() != null && currentParameterContext.getParameterProvider() == null) {
