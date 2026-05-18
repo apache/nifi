@@ -13,12 +13,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-ignore:
-  # Reason: Referencing libraries bundle shaded version of Jackson
-  # Mitigating Factors: Jackson Async Parser not used
-  # Reference: com.hazelcast:hazelcast:5.6.0
-  # Reference: org.apache.parquet:parquet-jackson:1.17.0
-  - vulnerability: GHSA-72hv-8253-57qq
-    package:
-      name: jackson-core
-      version: 2.19.2
