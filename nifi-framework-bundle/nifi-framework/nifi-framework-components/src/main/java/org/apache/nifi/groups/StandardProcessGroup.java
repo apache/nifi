@@ -3339,7 +3339,9 @@ public final class StandardProcessGroup implements ProcessGroup {
      * one-to-one references to changed parameters. For example, if this group's context defines
      * parameter X with value {@code #{db_host}} and db_host is in the update map, then X is added
      * to the augmented map with the same old/new values, allowing components referencing X to be
-     * properly notified of the change.
+     * properly notified of the change. The referenced parameter may be any parameter visible in
+     * the bound context's effective scope (local, inherited from a user-managed context, or
+     * sourced from a Parameter Provider).
      */
     private Map<String, ParameterUpdate> augmentWithParameterValueReferences(final Map<String, ParameterUpdate> updatedParameters) {
         final ParameterContext context = getParameterContext();
@@ -3356,7 +3358,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             final Optional<Parameter> referencedParam = context.getParameter(referencedName);
-            if (referencedParam.isEmpty() || !referencedParam.get().isProvided()) {
+            if (referencedParam.isEmpty()) {
                 continue;
             }
 

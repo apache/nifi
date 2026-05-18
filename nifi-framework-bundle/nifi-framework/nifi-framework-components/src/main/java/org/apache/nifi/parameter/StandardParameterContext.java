@@ -440,10 +440,11 @@ public class StandardParameterContext implements ParameterContext {
     /**
      * Resolves one-to-one parameter value references within the effective parameter map.
      * If a parameter's entire value is exactly {@code #{referencedName}}, and the referenced parameter
-     * exists in the effective map, is provided by a parameter provider, and has matching sensitivity,
-     * the value is replaced with the referenced parameter's value. Only a single level of resolution
-     * is performed (no chaining): the lookup uses a snapshot of the pre-resolution values so that
-     * transitive references are not followed.
+     * exists in the effective map with matching sensitivity, the value is replaced with the referenced
+     * parameter's value. The referenced parameter may be any parameter visible in the merged effective
+     * scope -- it may come from the same context, from an inherited context, or be sourced from a
+     * Parameter Provider. Only a single level of resolution is performed (no chaining): the lookup uses
+     * a snapshot of the pre-resolution values so that transitive references are not followed.
      *
      * @param effectiveParameters the effective parameter map to resolve in place
      */
@@ -463,10 +464,6 @@ public class StandardParameterContext implements ParameterContext {
 
             final Parameter referencedParameter = originalParametersByName.get(referencedName);
             if (referencedParameter == null) {
-                continue;
-            }
-
-            if (!referencedParameter.isProvided()) {
                 continue;
             }
 

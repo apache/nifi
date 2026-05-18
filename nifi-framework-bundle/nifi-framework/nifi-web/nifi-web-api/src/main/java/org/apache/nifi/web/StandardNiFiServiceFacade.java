@@ -1682,8 +1682,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<String> updatedParameterNames = getUpdatedParameterNames(parameterContextDto);
 
         // Extend the updated parameter names with cascading names from parameter value references.
-        // If a context P inherits from the updated context S, and P has a local parameter X = #{Parameter_In_S},
-        // then X is effectively updated when Parameter_In_S changes.
+        // If a process group is bound to a context P whose local parameter X has the value #{Y}, and Y is
+        // any parameter visible in P's effective scope (local, inherited, or provider-sourced) that appears
+        // in the update set, then X is effectively updated as well.
         final Set<String> extendedParameterNames = extendWithParameterValueReferences(updatedParameterNames, groupsReferencingParameterContext);
 
         // Clear set of Affected Components for each Parameter. This parameter is read-only and it will be populated below.
@@ -1875,7 +1876,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     continue;
                 }
                 final Optional<Parameter> referencedParam = groupContext.getParameter(referencedName);
-                if (referencedParam.isPresent() && referencedParam.get().isProvided()) {
+                if (referencedParam.isPresent()) {
                     extended.add(entry.getKey().getName());
                 }
             }

@@ -1134,7 +1134,7 @@ public class TestStandardParameterContext {
     }
 
     @Test
-    public void testParameterValueReferenceNotResolvedIfNotProvided() {
+    public void testParameterValueReferenceResolvedFromInheritedUserParameter() {
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
 
         final ParameterContext s = createParameterContext("s", parameterContextLookup);
@@ -1146,11 +1146,11 @@ public class TestStandardParameterContext {
         p.setInheritedParameterContexts(List.of(s));
 
         final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
-        assertEquals("#{db_host}", effective.get(new ParameterDescriptor.Builder().name("host").build()).getValue());
+        assertEquals("myserver.example.com", effective.get(new ParameterDescriptor.Builder().name("host").build()).getValue());
     }
 
     @Test
-    public void testParameterValueReferenceSameContextNonProvidedNotResolved() {
+    public void testParameterValueReferenceSameContextUserParameterResolved() {
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
 
         final ParameterContext p = createParameterContext("p", parameterContextLookup);
@@ -1158,7 +1158,117 @@ public class TestStandardParameterContext {
         addParameter(p, "ref", "#{source}");
 
         final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
-        assertEquals("#{source}", effective.get(new ParameterDescriptor.Builder().name("ref").build()).getValue());
+        assertEquals("some_value", effective.get(new ParameterDescriptor.Builder().name("ref").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceResolvedAcrossMultiLevelInheritance() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "target", "deep_value");
+
+        final ParameterContext b = createParameterContext("b", parameterContextLookup);
+        b.setInheritedParameterContexts(List.of(c));
+
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        addParameter(a, "alias", "#{target}");
+        a.setInheritedParameterContexts(List.of(b));
+
+        final Map<ParameterDescriptor, Parameter> effective = a.getEffectiveParameters();
+        assertEquals("deep_value", effective.get(new ParameterDescriptor.Builder().name("alias").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceFromLowerPrioritySiblingToHigherPriority() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        addParameter(a, "paramInA", "valueA");
+
+        final ParameterContext b = createParameterContext("b", parameterContextLookup);
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "x", "#{paramInA}");
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        p.setInheritedParameterContexts(List.of(a, b, c));
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("valueA", effective.get(new ParameterDescriptor.Builder().name("x").build()).getValue());
+        assertEquals("valueA", effective.get(new ParameterDescriptor.Builder().name("paramInA").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceFromLowerPriorityIsHiddenWhenOverridden() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        addParameter(a, "paramInA", "valueA");
+        addParameter(a, "x", "fromA");
+
+        final ParameterContext b = createParameterContext("b", parameterContextLookup);
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "x", "#{paramInA}");
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        p.setInheritedParameterContexts(List.of(a, b, c));
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("fromA", effective.get(new ParameterDescriptor.Builder().name("x").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceFromLowerPriorityResolvesToHigherPriorityWhenNameOverlaps() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        addParameter(a, "paramInA", "valueFromA");
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "paramInA", "valueFromC");
+        addParameter(c, "x", "#{paramInA}");
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        p.setInheritedParameterContexts(List.of(a, c));
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("valueFromA", effective.get(new ParameterDescriptor.Builder().name("paramInA").build()).getValue());
+        assertEquals("valueFromA", effective.get(new ParameterDescriptor.Builder().name("x").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceNotResolvedWhenQueriedDirectlyOnChild() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        addParameter(a, "paramInA", "valueA");
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "x", "#{paramInA}");
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        p.setInheritedParameterContexts(List.of(a, c));
+
+        final Map<ParameterDescriptor, Parameter> effectiveP = p.getEffectiveParameters();
+        assertEquals("valueA", effectiveP.get(new ParameterDescriptor.Builder().name("x").build()).getValue());
+
+        final Map<ParameterDescriptor, Parameter> effectiveC = c.getEffectiveParameters();
+        assertEquals("#{paramInA}", effectiveC.get(new ParameterDescriptor.Builder().name("x").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceMutualReferencesStaySingleLevel() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        addParameter(p, "a", "#{b}");
+        addParameter(p, "b", "#{a}");
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("#{a}", effective.get(new ParameterDescriptor.Builder().name("a").build()).getValue());
+        assertEquals("#{b}", effective.get(new ParameterDescriptor.Builder().name("b").build()).getValue());
     }
 
     private static class HashMapParameterReferenceManager implements ParameterReferenceManager {
