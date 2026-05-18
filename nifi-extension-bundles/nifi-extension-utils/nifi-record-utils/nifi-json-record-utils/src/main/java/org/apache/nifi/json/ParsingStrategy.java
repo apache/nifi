@@ -26,7 +26,7 @@ public enum ParsingStrategy implements DescribedValue {
             "missing" decimal numbers to end with a decimal point (e.g. 123.),
             "missing value" in an array (i.e. sequence of two commas, without value in-between e.g. ["A",,"C"]),
             trailing comma in an array or member in an object, use of single quotes for quoting strings (i.e. use of an apostrophe)
-            and use of unquoted field names.""");
+            use of unquoted field names and use of unescaped control characters (ASCII characters with value less than 32).""");
 
     private final String displayName;
     private final String description;
