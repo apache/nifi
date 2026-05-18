@@ -49,6 +49,7 @@ public class YamlTreeReader extends JsonTreeReader {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
+        // Remove Parsing Strategy from potential addition through the parent JsonTreeReader property migration
         config.removeProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY.getName());
     }
 
