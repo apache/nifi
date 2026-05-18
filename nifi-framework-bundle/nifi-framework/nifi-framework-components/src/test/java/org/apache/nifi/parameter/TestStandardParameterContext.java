@@ -941,23 +941,6 @@ public class TestStandardParameterContext {
     }
 
     @Test
-    public void testExtractOneToOneParameterReference() {
-        assertEquals("db_host", ParameterContext.extractOneToOneParameterReference("#{db_host}"));
-        assertEquals("x", ParameterContext.extractOneToOneParameterReference("#{x}"));
-        assertEquals("a-b_c.d", ParameterContext.extractOneToOneParameterReference("#{a-b_c.d}"));
-
-        assertNull(ParameterContext.extractOneToOneParameterReference(null));
-        assertNull(ParameterContext.extractOneToOneParameterReference(""));
-        assertNull(ParameterContext.extractOneToOneParameterReference("abc"));
-        assertNull(ParameterContext.extractOneToOneParameterReference("#{"));
-        assertNull(ParameterContext.extractOneToOneParameterReference("#{}"));
-        assertNull(ParameterContext.extractOneToOneParameterReference("prefix#{db_host}"));
-        assertNull(ParameterContext.extractOneToOneParameterReference("#{db_host}suffix"));
-        assertNull(ParameterContext.extractOneToOneParameterReference("#{a}#{b}"));
-        assertNull(ParameterContext.extractOneToOneParameterReference("#{db_host}:3306"));
-    }
-
-    @Test
     public void testParameterValueReferenceResolution() {
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
 
@@ -977,6 +960,22 @@ public class TestStandardParameterContext {
         assertEquals("3306", effective.get(new ParameterDescriptor.Builder().name("port").build()).getValue());
         assertEquals("literal_value", effective.get(new ParameterDescriptor.Builder().name("plain").build()).getValue());
         assertEquals("myserver.example.com", effective.get(new ParameterDescriptor.Builder().name("db_host").build()).getValue());
+    }
+
+    @Test
+    public void testParameterValueReferenceResolvesQuotedName() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext s = createParameterContext("s", parameterContextLookup);
+        addParameter(s, "My Parameter", "expected_value");
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        addParameter(p, "alias", "#{'My Parameter'}");
+
+        p.setInheritedParameterContexts(List.of(s));
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("expected_value", effective.get(new ParameterDescriptor.Builder().name("alias").build()).getValue());
     }
 
     @Test
@@ -1097,9 +1096,8 @@ public class TestStandardParameterContext {
         addParameter(p, "x", "#{x}");
 
         final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
-        // Self-reference: x's value is "#{x}", extractOneToOneParameterReference gives "x",
-        // the referenced parameter is x itself with value "#{x}". One level of resolution
-        // replaces x with "#{x}" (the referenced parameter's value), so it stays as "#{x}".
+        // Self-reference: x's value is "#{x}". One level of resolution replaces x's value with the
+        // referenced parameter's value, which is still "#{x}", so it stays as "#{x}".
         assertEquals("#{x}", effective.get(new ParameterDescriptor.Builder().name("x").build()).getValue());
     }
 

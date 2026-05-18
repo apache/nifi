@@ -173,6 +173,7 @@ import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ParameterReferenceUtils;
 import org.apache.nifi.parameter.StandardParameterContext.Builder;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -1873,7 +1874,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 continue;
             }
             for (final Map.Entry<ParameterDescriptor, Parameter> entry : groupContext.getParameters().entrySet()) {
-                final String referencedName = ParameterContext.extractOneToOneParameterReference(entry.getValue().getValue());
+                final String referencedName = ParameterReferenceUtils.extractOneToOneParameterReference(entry.getValue().getValue());
                 if (referencedName == null || !updatedParameterNames.contains(referencedName)) {
                     continue;
                 }
@@ -1904,7 +1905,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (localParam == null) {
             return false;
         }
-        final String aliasTarget = ParameterContext.extractOneToOneParameterReference(localParam.getValue());
+        final String aliasTarget = ParameterReferenceUtils.extractOneToOneParameterReference(localParam.getValue());
         if (!contextParamName.equals(aliasTarget)) {
             return false;
         }

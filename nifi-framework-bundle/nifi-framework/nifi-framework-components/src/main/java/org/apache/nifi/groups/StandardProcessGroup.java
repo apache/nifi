@@ -81,6 +81,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterReferenceUtils;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.parameter.StandardParameterUpdate;
 import org.apache.nifi.processor.DataUnit;
@@ -3352,7 +3353,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         Map<String, ParameterUpdate> augmented = null;
         for (final Map.Entry<ParameterDescriptor, Parameter> entry : context.getParameters().entrySet()) {
             final Parameter localParam = entry.getValue();
-            final String referencedName = ParameterContext.extractOneToOneParameterReference(localParam.getValue());
+            final String referencedName = ParameterReferenceUtils.extractOneToOneParameterReference(localParam.getValue());
             if (referencedName == null) {
                 continue;
             }

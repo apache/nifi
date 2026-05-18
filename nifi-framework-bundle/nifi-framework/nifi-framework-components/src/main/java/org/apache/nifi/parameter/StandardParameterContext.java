@@ -457,7 +457,7 @@ public class StandardParameterContext implements ParameterContext {
         for (final Map.Entry<ParameterDescriptor, Parameter> entry : effectiveParameters.entrySet()) {
             final ParameterDescriptor descriptor = entry.getKey();
             final Parameter parameter = entry.getValue();
-            final String referencedName = ParameterContext.extractOneToOneParameterReference(parameter.getValue());
+            final String referencedName = ParameterReferenceUtils.extractOneToOneParameterReference(parameter.getValue());
             if (referencedName == null) {
                 continue;
             }

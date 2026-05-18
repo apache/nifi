@@ -188,22 +188,4 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      * @return True if this inherits from the given ParameterContext
      */
     boolean inheritsFrom(String parameterContextId);
-
-    /**
-     * Extracts the referenced parameter name from a one-to-one parameter value reference.
-     * A one-to-one reference is a parameter value whose entire content is exactly <code>#{parameterName}</code>
-     * with no surrounding text.
-     *
-     * @param value the parameter value to check
-     * @return the referenced parameter name if the value is a one-to-one reference, or null otherwise
-     */
-    static String extractOneToOneParameterReference(final String value) {
-        if (value == null || value.length() < 4) {
-            return null;
-        }
-        if (value.startsWith("#{") && value.endsWith("}") && value.indexOf('}') == value.length() - 1) {
-            return value.substring(2, value.length() - 1);
-        }
-        return null;
-    }
 }
