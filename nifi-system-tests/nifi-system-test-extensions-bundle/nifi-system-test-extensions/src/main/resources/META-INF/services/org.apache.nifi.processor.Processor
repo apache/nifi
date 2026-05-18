@@ -14,6 +14,7 @@
 # limitations under the License.
 
 org.apache.nifi.processors.tests.system.AssetReadingProcessor
+org.apache.nifi.processors.tests.system.BacklogReportingTestProcessor
 org.apache.nifi.processors.tests.system.ClassloaderIsolationWithServiceProperty
 org.apache.nifi.processors.tests.system.CloneAndTerminate
 org.apache.nifi.processors.tests.system.CountEvents

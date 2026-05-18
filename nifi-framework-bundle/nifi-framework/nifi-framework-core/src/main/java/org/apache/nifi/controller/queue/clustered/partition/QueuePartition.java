@@ -123,4 +123,16 @@ public interface QueuePartition {
      * @return The minimum lastQueueDate in milliseconds of all FlowFiles currently enqueued. If no FlowFile is enqueued, this returns 0.
      */
     long getMinLastQueueDate();
+
+    /**
+     * Acquires this partition's internal write-equivalent lock so that callers can freeze the
+     * partition's size and contents across multiple reads (for example while assembling a
+     * cluster-wide queue snapshot). Must be paired with {@link #unlockForSnapshot()} in a try/finally.
+     */
+    void lockForSnapshot();
+
+    /**
+     * Releases the lock previously acquired by {@link #lockForSnapshot()}.
+     */
+    void unlockForSnapshot();
 }

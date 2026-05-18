@@ -25,6 +25,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -57,6 +59,7 @@ import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.BacklogReportingProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -75,12 +78,14 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -117,7 +122,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @SeeAlso({PublishKafka.class})
-public class ConsumeKafka extends AbstractProcessor implements VerifiableProcessor {
+public class ConsumeKafka extends AbstractProcessor implements VerifiableProcessor, BacklogReportingProcessor {
 
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
     static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regular expression according to the Java Pattern syntax");
@@ -368,6 +373,14 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private volatile boolean maxUncommittedSizeConfigured;
     private volatile long maxUncommittedSize;
 
+    /**
+     * Most recent {@link Instant} at which {@link #getBacklog(ProcessContext)} observed the processor caught up.
+     * Stamped to {@code Instant.now()} when {@code getBacklog} computes a total lag of zero with
+     * {@link Backlog.Precision#EXACT} precision. Preserved across lifecycle stop so a stopped Processor still
+     * surfaces "Last caught up" in the UI. {@code null} when the Processor has never observed a caught up state.
+     */
+    private volatile Instant lastCaughtUpTimestamp;
+
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
 
@@ -539,6 +552,62 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         } finally {
             consumerService.setSessionContext(null);
         }
+    }
+
+    /**
+     * Reports backlog by querying committed and end offsets for the Processor's consumer group via the
+     * connection service's Admin client. The Admin-client path is used regardless of whether any
+     * consumers are pooled in {@link #consumerServices} or checked out by a running {@code onTrigger}
+     * task: the broker is the source of truth for the consumer group's committed offsets across all
+     * assigned partitions, so the reported lag covers the entire group rather than only the partitions
+     * owned by whichever consumer instances happen to be idle in this Processor at this moment. This
+     * also avoids any per-partition undercount that would occur if some assigned partitions were owned
+     * by checked-out consumers and others by pooled consumers. The Admin client does not join the
+     * consumer group, so reporting backlog does not trigger a rebalance against running consumers.
+     */
+    @Override
+    public Optional<Backlog> getBacklog(final ProcessContext context) throws BacklogReportingException {
+        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        if (connectionService == null) {
+            // Defensive: the Kafka Connection Service property is required, so the validator
+            // would normally have rejected the configuration before reaching this code path.
+            return Optional.empty();
+        }
+
+        final PollingContext backlogPollingContext = createPollingContext(context);
+        try {
+            final long totalLag = connectionService.getCommittedOffsetLag(backlogPollingContext);
+            return Optional.of(buildBacklog(totalLag));
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BacklogReportingException("Interrupted while determining Kafka backlog", e);
+        } catch (final Exception e) {
+            throw new BacklogReportingException("Failed to determine Kafka backlog", e);
+        }
+    }
+
+    private Backlog buildBacklog(final long total) {
+        final Backlog.Builder builder = Backlog.builder().precision(Backlog.Precision.EXACT);
+        // Always populate the records dimension, including the known-zero case. A populated zero is
+        // a positive statement ("the lag is exactly 0 records") that clients can render as "0";
+        // omitting the dimension would force clients to render the value as "unknown" alongside the
+        // lastCaughtUp timestamp, which is a misleading mixed signal for a caught-up consumer group.
+        builder.records(total);
+        if (total == 0L) {
+            final Instant caughtUpInstant = Instant.now();
+            lastCaughtUpTimestamp = caughtUpInstant;
+            builder.lastCaughtUp(caughtUpInstant);
+        } else {
+            final Instant priorCaughtUp = lastCaughtUpTimestamp;
+            if (priorCaughtUp != null) {
+                builder.lastCaughtUp(priorCaughtUp);
+            }
+        }
+
+        final Backlog backlog = builder.build();
+        getLogger().debug("Computed Kafka backlog records [{}] precision [{}] lastCaughtUp [{}]",
+                backlog.getRecordCount(), backlog.getPrecision(), backlog.getLastCaughtUp());
+        return backlog;
     }
 
     private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext, final ProcessSession session) {

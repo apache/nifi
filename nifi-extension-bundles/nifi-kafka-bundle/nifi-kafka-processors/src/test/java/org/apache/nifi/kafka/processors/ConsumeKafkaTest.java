@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors;
 
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
@@ -30,8 +31,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.nifi.kafka.processors.ConsumeKafka.CONNECTION_SERVICE;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.GROUP_ID;
@@ -39,7 +46,10 @@ import static org.apache.nifi.kafka.processors.ConsumeKafka.TOPICS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -139,6 +149,86 @@ class ConsumeKafkaTest {
         runner.setProperty(kafkaConnectionService, DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
         runner.setProperty(kafkaConnectionService, DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
         runner.enableControllerService(kafkaConnectionService);
+    }
+
+    @Test
+    public void testGetBacklogQueriesAdminClientRegardlessOfPoolState() throws Exception {
+        // getBacklog always queries committed/end offsets via the connection service's Admin
+        // client. The broker is the source of truth for the consumer group's committed offsets
+        // across every assigned partition, so the returned lag covers the entire group rather
+        // than only the partitions owned by whichever consumer instances happen to be pooled or
+        // checked out at this moment. Per-partition undercounts cannot occur because the consumer
+        // pool is not consulted on this path.
+        setConnectionService();
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        when(kafkaConnectionService.getCommittedOffsetLag(any())).thenReturn(42L);
+
+        // Reflectively place one consumer in the pool and mark one additional consumer as checked
+        // out by a running onTrigger task. The Admin-client answer must be returned even when the
+        // pool contains a consumer that could be inspected directly.
+        final Field consumerServicesField = ConsumeKafka.class.getDeclaredField("consumerServices");
+        consumerServicesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        final Queue<KafkaConsumerService> consumerServices = (Queue<KafkaConsumerService>) consumerServicesField.get(processor);
+        consumerServices.offer(kafkaConsumerService);
+
+        final Field activeConsumerCountField = ConsumeKafka.class.getDeclaredField("activeConsumerCount");
+        activeConsumerCountField.setAccessible(true);
+        final AtomicInteger activeConsumerCount = (AtomicInteger) activeConsumerCountField.get(processor);
+        activeConsumerCount.set(1);
+
+        final Optional<Backlog> backlog = processor.getBacklog(runner.getProcessContext());
+
+        assertTrue(backlog.isPresent());
+        assertEquals(OptionalLong.of(42L), backlog.get().getRecordCount());
+        assertEquals(Backlog.Precision.EXACT, backlog.get().getPrecision());
+        assertTrue(backlog.get().getLastCaughtUp().isEmpty());
+        // The pooled consumer must not be interrogated for partition state or lag; that path is
+        // bypassed entirely by the Admin-client design.
+        verify(kafkaConsumerService, never()).getPartitionStates();
+        verify(kafkaConsumerService, never()).currentLag(any());
+    }
+
+    @Test
+    public void testGetBacklogPopulatesZeroRecordsOnCaughtUp() throws Exception {
+        // A caught-up consumer group has an exactly-known lag of zero. The returned Backlog must
+        // populate the records dimension with that zero alongside lastCaughtUp, so that clients
+        // can render "0 records" rather than treating the record count as unknown.
+        setConnectionService();
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        when(kafkaConnectionService.getCommittedOffsetLag(any())).thenReturn(0L);
+
+        final Optional<Backlog> backlog = processor.getBacklog(runner.getProcessContext());
+
+        assertTrue(backlog.isPresent());
+        assertEquals(OptionalLong.of(0L), backlog.get().getRecordCount());
+        assertEquals(Backlog.Precision.EXACT, backlog.get().getPrecision());
+        assertTrue(backlog.get().getLastCaughtUp().isPresent());
+    }
+
+    @Test
+    public void testOnStoppedPreservesLastCaughtUp() throws Exception {
+        setConnectionService();
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        when(kafkaConnectionService.getCommittedOffsetLag(any())).thenReturn(0L).thenReturn(5L);
+
+        final Optional<Backlog> initialBacklog = processor.getBacklog(runner.getProcessContext());
+        assertTrue(initialBacklog.isPresent());
+        final Instant rememberedFirst = initialBacklog.get().getLastCaughtUp().orElse(null);
+        assertNotNull(rememberedFirst);
+
+        processor.onStopped();
+
+        final Optional<Backlog> afterStop = processor.getBacklog(runner.getProcessContext());
+        assertTrue(afterStop.isPresent());
+        // After the processor is stopped while non-zero lag exists, the remembered caught-up
+        // timestamp from the prior caught-up observation must still be surfaced — onStopped() must
+        // not clear lastCaughtUpTimestamp.
+        assertEquals(Optional.of(rememberedFirst), afterStop.get().getLastCaughtUp());
+        assertEquals(OptionalLong.of(5L), afterStop.get().getRecordCount());
     }
 
     private void setConnectionService() throws InitializationException {

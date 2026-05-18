@@ -105,6 +105,16 @@ public class RemoteQueuePartition implements QueuePartition {
     }
 
     @Override
+    public void lockForSnapshot() {
+        priorityQueue.lockForSnapshot();
+    }
+
+    @Override
+    public void unlockForSnapshot() {
+        priorityQueue.unlockForSnapshot();
+    }
+
+    @Override
     public long getTotalActiveQueuedDuration(long fromTimestamp) {
         return priorityQueue.getTotalQueuedDuration(fromTimestamp);
     }

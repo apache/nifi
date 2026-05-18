@@ -21,11 +21,13 @@ import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.QueueSnapshot;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -61,7 +63,27 @@ public class StandaloneConnectionFacade implements ConnectionFacade {
 
     @Override
     public QueueSnapshot getQueueSnapshot() {
-        throw new UnsupportedOperationException("Queue snapshots not yet implemented");
+        final FlowFileQueueSnapshot queueSnapshot = connection.getFlowFileQueue().getQueueSnapshot();
+        return new StandaloneQueueSnapshot(queueSnapshot.queueSize(), List.copyOf(queueSnapshot.activeFlowFiles()));
+    }
+
+    /** Adapts an atomically-captured {@link FlowFileQueueSnapshot} to the connector-facing {@link QueueSnapshot} contract. */
+    private record StandaloneQueueSnapshot(QueueSize queueSize, List<FlowFile> activeFlowFiles) implements QueueSnapshot {
+
+        @Override
+        public QueueSize getQueueSize() {
+            return queueSize;
+        }
+
+        @Override
+        public List<FlowFile> getActiveFlowFiles() {
+            return activeFlowFiles;
+        }
+
+        @Override
+        public boolean isActiveListExhaustive() {
+            return activeFlowFiles.size() == queueSize.getObjectCount();
+        }
     }
 
     @Override

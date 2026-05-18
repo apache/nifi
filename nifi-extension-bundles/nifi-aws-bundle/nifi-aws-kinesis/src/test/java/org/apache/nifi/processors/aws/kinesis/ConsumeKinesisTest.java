@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis;
 
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.logging.ComponentLog;
@@ -34,8 +35,12 @@ import software.amazon.awssdk.services.kinesis.model.Shard;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,15 +68,71 @@ class ConsumeKinesisTest {
     }
 
     private void setCommonProperties() throws Exception {
-        final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("creds", credentialsService);
-        runner.setProperty(credentialsService, AWSCredentialsProviderControllerService.ACCESS_KEY_ID, "AK_STUB");
-        runner.setProperty(credentialsService, AWSCredentialsProviderControllerService.SECRET_KEY, "SK_STUB");
-        runner.enableControllerService(credentialsService);
+        setCommonProperties(runner);
+    }
 
-        runner.setProperty(ConsumeKinesis.APPLICATION_NAME, "test-app");
-        runner.setProperty(ConsumeKinesis.STREAM_NAME, "test-stream");
-        runner.setProperty(ConsumeKinesis.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
+    private void setCommonProperties(final TestRunner targetRunner) throws Exception {
+        final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
+        targetRunner.addControllerService("creds", credentialsService);
+        targetRunner.setProperty(credentialsService, AWSCredentialsProviderControllerService.ACCESS_KEY_ID, "AK_STUB");
+        targetRunner.setProperty(credentialsService, AWSCredentialsProviderControllerService.SECRET_KEY, "SK_STUB");
+        targetRunner.enableControllerService(credentialsService);
+
+        targetRunner.setProperty(ConsumeKinesis.APPLICATION_NAME, "test-app");
+        targetRunner.setProperty(ConsumeKinesis.STREAM_NAME, "test-stream");
+        targetRunner.setProperty(ConsumeKinesis.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
+    }
+
+    @Test
+    void testPartialShardLagReportingPresumesUnreportedShardsAreBehind() throws Exception {
+        // The node owns three shards. Lag is reported only for shard-A (behind) and shard-B (caught up);
+        // shard-C never reports a lag value. getBacklog must count both shard-A (reported behind) and
+        // shard-C (not yet reported, so presumed behind) and return a lower-bound (AT_LEAST) estimate.
+        final Map<String, Long> someBehind = new LinkedHashMap<>();
+        someBehind.put("shard-A", 500L);
+        someBehind.put("shard-B", 0L);
+        final Backlog someBehindBacklog = reportBacklogWithShardLag(List.of("shard-A", "shard-B", "shard-C"), someBehind);
+        assertEquals(Backlog.Precision.AT_LEAST, someBehindBacklog.getPrecision());
+        assertEquals(OptionalLong.of(2L), someBehindBacklog.getFlowFileCount());
+        assertEquals(OptionalLong.of(2L), someBehindBacklog.getRecordCount());
+
+        // Every shard that has reported is caught up, but shard-C still has not reported. Because
+        // shard-C's true state is unknown, it is presumed behind, so getBacklog must not emit the exact
+        // caught-up Backlog, which would wrongly claim the whole stream is drained. It reports a
+        // conservative lower-bound of one (the presumed-behind shard-C) instead.
+        final Map<String, Long> allReportedCaughtUp = new LinkedHashMap<>();
+        allReportedCaughtUp.put("shard-A", 0L);
+        allReportedCaughtUp.put("shard-B", 0L);
+        final Backlog reportedCaughtUpBacklog = reportBacklogWithShardLag(List.of("shard-A", "shard-B", "shard-C"), allReportedCaughtUp);
+        assertEquals(Backlog.Precision.AT_LEAST, reportedCaughtUpBacklog.getPrecision());
+        assertEquals(OptionalLong.of(1L), reportedCaughtUpBacklog.getFlowFileCount());
+        assertEquals(OptionalLong.of(1L), reportedCaughtUpBacklog.getRecordCount());
+    }
+
+    @Test
+    void testShardLagReportingClaimsCaughtUpOnlyWhenEveryOwnedShardHasReportedZeroLag() throws Exception {
+        final Map<String, Long> allCaughtUp = new LinkedHashMap<>();
+        allCaughtUp.put("shard-A", 0L);
+        allCaughtUp.put("shard-B", 0L);
+        final Backlog backlog = reportBacklogWithShardLag(List.of("shard-A", "shard-B"), allCaughtUp);
+        assertEquals(Backlog.Precision.EXACT, backlog.getPrecision());
+        assertEquals(OptionalLong.of(0L), backlog.getFlowFileCount());
+        assertEquals(OptionalLong.of(0L), backlog.getRecordCount());
+    }
+
+    private Backlog reportBacklogWithShardLag(final List<String> ownedShardIds, final Map<String, Long> shardLag) throws Exception {
+        final KinesisShardManager mockShardManager = buildShardManager(ownedShardIds.toArray(new String[0]));
+        final LagReportingConsumeKinesis processor = new LagReportingConsumeKinesis(mockShardManager, shardLag);
+        final TestRunner lagRunner = TestRunners.newTestRunner(processor);
+        setCommonProperties(lagRunner);
+        lagRunner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        lagRunner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        lagRunner.run(1, false, true);
+
+        final Optional<Backlog> backlog = processor.getBacklog(lagRunner.getProcessContext());
+        assertTrue(backlog.isPresent());
+        return backlog.get();
     }
 
     @Test
@@ -512,6 +573,45 @@ class ConsumeKinesisTest {
                 client.enqueueResult(result);
             }
             return client;
+        }
+    }
+
+    static class LagReportingConsumeKinesis extends ConsumeKinesis {
+        private final KinesisShardManager mockShardManager;
+        private final Map<String, Long> shardLag;
+
+        LagReportingConsumeKinesis(final KinesisShardManager mockShardManager, final Map<String, Long> shardLag) {
+            this.mockShardManager = mockShardManager;
+            this.shardLag = shardLag;
+        }
+
+        @Override
+        protected KinesisShardManager createShardManager(final KinesisClient kinesisClient, final DynamoDbClient dynamoDbClient,
+                final ComponentLog logger, final String checkpointTableName, final String streamName) {
+            return mockShardManager;
+        }
+
+        @Override
+        protected KinesisConsumerClient createConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger,
+                final boolean efoMode) {
+            return new LagReportingConsumerClient(mock(KinesisClient.class), logger, shardLag);
+        }
+    }
+
+    static class LagReportingConsumerClient extends StubConsumerClient {
+        private final Map<String, Long> shardLag;
+
+        LagReportingConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger, final Map<String, Long> shardLag) {
+            super(kinesisClient, logger);
+            this.shardLag = shardLag;
+        }
+
+        @Override
+        void startFetches(final List<Shard> shards, final String streamName, final int batchSize,
+                final String initialStreamPosition, final KinesisShardManager shardManager) {
+            for (final Map.Entry<String, Long> entry : shardLag.entrySet()) {
+                recordShardLag(entry.getKey(), entry.getValue());
+            }
         }
     }
 

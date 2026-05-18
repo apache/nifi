@@ -24,6 +24,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.avro.AvroRecordSetWriter;
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
@@ -64,11 +65,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -808,6 +813,165 @@ class ConsumeKinesisIT {
         runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 0);
         final List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(ConsumeKinesis.REL_PARSE_FAILURE);
         assertEquals(3, failureFlowFiles.size(), "All corrupt records should route to parse failure");
+    }
+
+    @Test
+    void testBacklogReporting() throws Exception {
+        final String streamName = "backlog-test";
+        createStream(streamName);
+
+        runner.setProperty(ConsumeKinesis.STREAM_NAME, streamName);
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+        runner.setProperty(ConsumeKinesis.MAX_RECORDS_PER_REQUEST, "1");
+        runner.setProperty(ConsumeKinesis.MAX_BATCH_DURATION, "100 ms");
+
+        final ConsumeKinesis processor = (ConsumeKinesis) runner.getProcessor();
+
+        // Schedule the processor and wait until the polling threads have observed at least one
+        // empty GetRecords response per shard. Each empty response carries millisBehindLatest=0,
+        // which the polling client forwards to the backlog tracker so the shard transitions to
+        // "caught up" without any records ever having been fetched.
+        runner.run(1, false, true);
+
+        final Backlog emptyStreamCaughtUp = pollForBacklog(processor, runner, candidate ->
+                candidate.getPrecision() == Backlog.Precision.EXACT
+                        && candidate.getLastCaughtUp().isPresent()
+                        && candidate.getFlowFileCount().equals(OptionalLong.of(0L))
+                        && candidate.getRecordCount().equals(OptionalLong.of(0L))
+                        && candidate.getByteCount().equals(OptionalLong.of(0L)),
+                () -> runner.run(1, false, false));
+        assertTrue(emptyStreamCaughtUp.getLastCaughtUp().isPresent());
+
+        publishRecords(streamName, 3);
+        final Backlog caughtUpBacklog = drainUntilCaughtUp(processor, runner);
+        assertEquals(Backlog.Precision.EXACT, caughtUpBacklog.getPrecision());
+        assertEquals(OptionalLong.of(0L), caughtUpBacklog.getFlowFileCount());
+        assertEquals(OptionalLong.of(0L), caughtUpBacklog.getRecordCount());
+        assertEquals(OptionalLong.of(0L), caughtUpBacklog.getByteCount());
+        assertTrue(caughtUpBacklog.getLastCaughtUp().isPresent());
+        assertFalse(caughtUpBacklog.getLastCaughtUp().get().isBefore(emptyStreamCaughtUp.getLastCaughtUp().get()));
+
+        runner.run(1, true, false);
+    }
+
+    @Test
+    void testBacklogReportingWithEnhancedFanOut() throws Exception {
+        final String streamName = "backlog-efo-test";
+        createStream(streamName);
+
+        runner.setProperty(ConsumeKinesis.STREAM_NAME, streamName);
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "ENHANCED_FAN_OUT");
+        runner.setProperty(ConsumeKinesis.MAX_BATCH_DURATION, "100 ms");
+
+        final ConsumeKinesis processor = (ConsumeKinesis) runner.getProcessor();
+
+        // Schedule the processor and wait until the enhanced fan-out subscription's lag observer has
+        // reported a caught-up (millisBehindLatest=0) signal for the owned shard. This exercises the
+        // EnhancedFanOutClient lag-observer wiring that the shared-throughput backlog tests do not.
+        runner.run(1, false, true);
+
+        final Backlog emptyStreamCaughtUp = pollForBacklog(processor, runner, candidate ->
+                candidate.getPrecision() == Backlog.Precision.EXACT
+                        && candidate.getLastCaughtUp().isPresent()
+                        && candidate.getFlowFileCount().equals(OptionalLong.of(0L))
+                        && candidate.getRecordCount().equals(OptionalLong.of(0L))
+                        && candidate.getByteCount().equals(OptionalLong.of(0L)),
+                () -> runner.run(1, false, false));
+        assertTrue(emptyStreamCaughtUp.getLastCaughtUp().isPresent());
+
+        publishRecords(streamName, 3);
+        final Backlog caughtUpBacklog = drainUntilCaughtUp(processor, runner);
+        assertEquals(Backlog.Precision.EXACT, caughtUpBacklog.getPrecision());
+        assertEquals(OptionalLong.of(0L), caughtUpBacklog.getFlowFileCount());
+        assertEquals(OptionalLong.of(0L), caughtUpBacklog.getRecordCount());
+        assertEquals(OptionalLong.of(0L), caughtUpBacklog.getByteCount());
+        assertTrue(caughtUpBacklog.getLastCaughtUp().isPresent());
+        assertFalse(caughtUpBacklog.getLastCaughtUp().get().isBefore(emptyStreamCaughtUp.getLastCaughtUp().get()));
+
+        runner.run(1, true, false);
+    }
+
+    /**
+     * Validates the stopped-state contract for a processor that has never been scheduled and has therefore
+     * never observed a caught-up moment. The Kinesis service does not expose enough information from
+     * outside the running consumer to determine a reliable backlog quickly, so {@link Optional#empty()}
+     * is the documented response. The framework surfaces this to the UI as "no data available".
+     */
+    @Test
+    void testBacklogWhileStoppedWithoutPriorRunReturnsEmpty() throws Exception {
+        final String streamName = "stopped-never-run-test";
+        createStream(streamName);
+
+        runner.setProperty(ConsumeKinesis.STREAM_NAME, streamName);
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        final ConsumeKinesis processor = (ConsumeKinesis) runner.getProcessor();
+        final Optional<Backlog> reported = processor.getBacklog(runner.getProcessContext());
+        assertTrue(reported.isEmpty());
+    }
+
+    /**
+     * Validates that once the running processor has observed a caught-up moment, stopping the processor
+     * yields a {@link Backlog} that carries only the remembered {@code lastCaughtUp} timestamp — no
+     * numeric dimensions. The UI still shows "last caught up at X" even though the stopped processor
+     * cannot derive a fresh count from Kinesis.
+     */
+    @Test
+    void testBacklogWhileStoppedAfterCaughtUpReturnsLastCaughtUpOnly() throws Exception {
+        final String streamName = "stopped-caught-up-test";
+        createStream(streamName);
+
+        runner.setProperty(ConsumeKinesis.STREAM_NAME, streamName);
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+        runner.setProperty(ConsumeKinesis.MAX_RECORDS_PER_REQUEST, "1");
+        runner.setProperty(ConsumeKinesis.MAX_BATCH_DURATION, "100 ms");
+
+        publishRecords(streamName, 3);
+
+        runner.run(1, false, true);
+        final Backlog caughtUpBacklog = drainUntilCaughtUp((ConsumeKinesis) runner.getProcessor(), runner);
+        assertTrue(caughtUpBacklog.getLastCaughtUp().isPresent());
+        final Instant priorCaughtUp = caughtUpBacklog.getLastCaughtUp().get();
+
+        runner.run(1, true, false);
+
+        final ConsumeKinesis processor = (ConsumeKinesis) runner.getProcessor();
+        final Optional<Backlog> reported = processor.getBacklog(runner.getProcessContext());
+        assertTrue(reported.isPresent());
+        final Backlog backlog = reported.get();
+        assertTrue(backlog.getLastCaughtUp().isPresent());
+        assertFalse(backlog.getLastCaughtUp().get().isBefore(priorCaughtUp));
+        assertEquals(OptionalLong.empty(), backlog.getFlowFileCount());
+        assertEquals(OptionalLong.empty(), backlog.getByteCount());
+        assertEquals(OptionalLong.empty(), backlog.getRecordCount());
+    }
+
+    private Backlog pollForBacklog(final ConsumeKinesis processor, final TestRunner testRunner,
+                                   final Predicate<Backlog> condition, final Runnable preProbe) throws Exception {
+        final long deadline = System.currentTimeMillis() + 60_000;
+        Optional<Backlog> last = Optional.empty();
+        while (System.currentTimeMillis() < deadline) {
+            preProbe.run();
+            Thread.sleep(100);
+            final Optional<Backlog> probe = processor.getBacklog(testRunner.getProcessContext());
+            last = probe;
+            if (probe.isPresent() && condition.test(probe.get())) {
+                return probe.get();
+            }
+        }
+        throw new AssertionError("Timed out waiting for backlog matching condition; last observed value: " + last);
+    }
+
+    private Backlog drainUntilCaughtUp(final ConsumeKinesis processor, final TestRunner testRunner) throws Exception {
+        return pollForBacklog(processor, testRunner, candidate ->
+                candidate.getPrecision() == Backlog.Precision.EXACT
+                        && candidate.getFlowFileCount().equals(OptionalLong.of(0L))
+                        && candidate.getLastCaughtUp().isPresent(),
+                () -> testRunner.run(1, false, false));
     }
 
     private void addCredentialService(final TestRunner testRunner, final String serviceId) throws Exception {

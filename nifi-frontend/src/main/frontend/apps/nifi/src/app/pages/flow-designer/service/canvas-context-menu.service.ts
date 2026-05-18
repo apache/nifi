@@ -945,6 +945,28 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
+                    // View Backlog is authorized as a WRITE action on the Processor, so it requires
+                    // modify access (not just read access) to avoid offering an action that would fail with a 403.
+                    return (
+                        this.canvasUtils.isProcessor(selection) &&
+                        selection.datum().component.supportsBacklogReporting === true &&
+                        this.canvasUtils.canRead(selection) &&
+                        this.canvasUtils.canModify(selection)
+                    );
+                },
+                clazz: 'fa fa-list',
+                text: 'View Backlog',
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        FlowActions.openProcessorBacklogDialog({
+                            id: selectionData.id
+                        })
+                    );
+                }
+            },
+            {
+                condition: (selection: any) => {
                     return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-list',

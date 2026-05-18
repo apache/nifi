@@ -60,6 +60,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDependency;
@@ -283,6 +284,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -301,6 +303,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -316,6 +319,8 @@ public final class DtoFactory {
     @SuppressWarnings("rawtypes")
     private static final Comparator<Class> CLASS_NAME_COMPARATOR = (class1, class2) -> Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
     public static final String SENSITIVE_VALUE_MASK = "********";
+
+    private static final long BACKLOG_NOW_WINDOW_MILLISECONDS = 3000L;
 
     private BulletinRepository bulletinRepository;
     private ControllerServiceProvider controllerServiceProvider;
@@ -3387,6 +3392,66 @@ public final class DtoFactory {
         return documentedTypes;
     }
 
+    /**
+     * Maps a {@link Backlog} report from the nifi-api into a {@link BacklogDTO} suitable for REST
+     * clients. Each present numeric dimension is copied verbatim and accompanied by a formatted
+     * string (e.g., {@code "4.89 GB"}, {@code "1,025"}); absent dimensions map to {@code null} on
+     * both the raw and formatted fields, which the JSON serializer omits from the response. The
+     * {@code lastCaughtUp} instant is serialized as its {@link Instant#toString()} form (ISO-8601
+     * UTC) and accompanied by a relative-time string (e.g., {@code "5 mins ago"}, or {@code "now"}
+     * when all numeric dimensions are zero/absent and the timestamp falls within
+     * {@link #BACKLOG_NOW_WINDOW_MILLISECONDS} of the current server clock). Precision is the
+     * {@link Backlog.Precision#name() Backlog.Precision name}.
+     *
+     * @param backlog the source backlog
+     * @return a BacklogDTO mirroring the dimensions reported by {@code backlog}, or {@code null} if {@code backlog} is null
+     */
+    public BacklogDTO createBacklogDto(final Backlog backlog) {
+        if (backlog == null) {
+            return null;
+        }
+
+        final BacklogDTO dto = new BacklogDTO();
+        dto.setPrecision(backlog.getPrecision().name());
+
+        if (backlog.getFlowFileCount().isPresent()) {
+            final long flowFileCount = backlog.getFlowFileCount().getAsLong();
+            dto.setFlowFileCount(flowFileCount);
+            dto.setFormattedFlowFileCount(FormatUtils.formatCount(flowFileCount));
+        }
+        if (backlog.getByteCount().isPresent()) {
+            final long byteCount = backlog.getByteCount().getAsLong();
+            dto.setByteCount(byteCount);
+            dto.setFormattedByteCount(FormatUtils.formatDataSize(byteCount));
+        }
+        if (backlog.getRecordCount().isPresent()) {
+            final long recordCount = backlog.getRecordCount().getAsLong();
+            dto.setRecordCount(recordCount);
+            dto.setFormattedRecordCount(FormatUtils.formatCount(recordCount));
+        }
+        if (backlog.getLastCaughtUp().isPresent()) {
+            final Instant lastCaughtUp = backlog.getLastCaughtUp().get();
+            dto.setLastCaughtUp(lastCaughtUp.toString());
+            final boolean numericallyCaughtUp = isZeroOrAbsent(backlog.getFlowFileCount())
+                    && isZeroOrAbsent(backlog.getByteCount())
+                    && isZeroOrAbsent(backlog.getRecordCount());
+            dto.setFormattedLastCaughtUp(computeFormattedLastCaughtUp(lastCaughtUp, numericallyCaughtUp));
+        }
+        return dto;
+    }
+
+    private static String computeFormattedLastCaughtUp(final Instant lastCaughtUp, final boolean numericallyCaughtUp) {
+        final Instant now = Instant.now();
+        if (numericallyCaughtUp && Math.abs(now.toEpochMilli() - lastCaughtUp.toEpochMilli()) <= BACKLOG_NOW_WINDOW_MILLISECONDS) {
+            return "now";
+        }
+        return FormatUtils.formatRelativeTime(lastCaughtUp, now);
+    }
+
+    private static boolean isZeroOrAbsent(final OptionalLong value) {
+        return value.isEmpty() || value.getAsLong() == 0L;
+    }
+
     public ProcessorDTO createProcessorDto(final ProcessorNode node) {
         return createProcessorDto(node, false);
     }
@@ -3423,6 +3488,7 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(processorClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(node.isSupportsSensitiveDynamicProperties());
+        dto.setSupportsBacklogReporting(node.supportsBacklogReporting());
         dto.setRestricted(false);
         dto.setDeprecated(node.isDeprecated());
         dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
@@ -4523,6 +4589,7 @@ public final class DtoFactory {
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
         copy.setSupportsBatching(original.getSupportsBatching());
         copy.setSupportsSensitiveDynamicProperties(original.getSupportsSensitiveDynamicProperties());
+        copy.setSupportsBacklogReporting(original.getSupportsBacklogReporting());
         copy.setPersistsState(original.getPersistsState());
         copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setExtensionMissing(original.getExtensionMissing());

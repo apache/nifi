@@ -157,6 +157,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public FlowFileQueueSnapshot getQueueSnapshot() {
+        return queue.getQueueSnapshot();
+    }
+
+    @Override
     public long getTotalQueuedDuration(long fromTimestamp) {
         return queue.getTotalQueuedDuration(fromTimestamp);
     }

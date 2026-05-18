@@ -22,6 +22,8 @@ import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 
+import java.util.concurrent.ExecutionException;
+
 public interface KafkaConnectionService extends ControllerService {
 
     KafkaConsumerService getConsumerService(PollingContext pollingContext);
@@ -29,4 +31,25 @@ public interface KafkaConnectionService extends ControllerService {
     KafkaProducerService getProducerService(ProducerConfiguration producerConfiguration);
 
     String getBrokerUri();
+
+    /**
+     * Compute the total committed-offset lag (records remaining) for the consumer group and topics described
+     * by the supplied {@link PollingContext}. Uses a Kafka Admin client internally and does NOT create a
+     * consumer or join the consumer group, so calling this method does not trigger a group rebalance and is
+     * safe to invoke while other live consumers are reading from the same group.
+     *
+     * <p>For every partition of every topic that matches the supplied context, the value contributed to the
+     * total is {@code endOffset - committedOffset}. When the consumer group has no committed offset for a
+     * particular partition, the partition contributes its full {@code endOffset - beginningOffset} (i.e.
+     * every record in the partition is treated as backlog for that group). Partitions are discovered via
+     * {@code describeTopics} when the polling context lists explicit topic names, or via {@code listTopics}
+     * filtered by the polling context's topic pattern when a pattern is configured.</p>
+     *
+     * @param pollingContext describes the topics or topic pattern and the consumer group id to query.
+     * @return total records remaining for the configured consumer group across every partition of every
+     *         matched topic. A return value of {@code 0} means the group is currently caught up.
+     * @throws ExecutionException if any Kafka Admin operation fails
+     * @throws InterruptedException if the calling thread is interrupted while waiting for an Admin response
+     */
+    long getCommittedOffsetLag(PollingContext pollingContext) throws ExecutionException, InterruptedException;
 }
