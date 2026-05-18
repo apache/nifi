@@ -205,6 +205,17 @@ public class TestFlowDifferenceFilters {
                 "Property removed in component definition");
 
         assertTrue(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+
+        final FlowDifference parameterizationRemovedDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "#{SomeParam}",
+                null,
+                "Property parameterization removed in component definition");
+
+        assertTrue(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
     }
 
     @Test
@@ -231,6 +242,17 @@ public class TestFlowDifferenceFilters {
                 "Property still defined");
 
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+
+        final FlowDifference parameterizationRemovedDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "#{SomeParam}",
+                null,
+                "Parameterization removed but property still defined");
+
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
     }
 
     @Test
@@ -255,6 +277,16 @@ public class TestFlowDifferenceFilters {
                 null,
                 "Dynamic property removed");
         assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(difference, flowManager));
+
+        final FlowDifference parameterizationRemovedDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED,
+                localProcessor,
+                localProcessor,
+                propertyName,
+                "#{SomeParam}",
+                null,
+                "Dynamic property parameterization removed");
+        assertFalse(FlowDifferenceFilters.isStaticPropertyRemoved(parameterizationRemovedDifference, flowManager));
     }
 
     @Test
@@ -667,17 +699,24 @@ public class TestFlowDifferenceFilters {
 
         final String propertyName = "Table";
         final String instanceId = "processor-instance";
+        final String defaultValue = "defaultTable";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .defaultValue(defaultValue)
+                .build();
 
         Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
         Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(processorNode.getPropertyDescriptor(propertyName)).thenReturn(descriptor);
         Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
-                new PropertyDescriptor.Builder().name(propertyName).build(),
+                descriptor,
                 new PropertyDescriptor.Builder().name("Other Property").build()));
 
         final VersionedProcessor registryProcessor = new VersionedProcessor();
         final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
         final FlowDifference difference = new StandardFlowDifference(
-                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, "someValue", "Property added");
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, defaultValue, "Property added");
 
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
     }
@@ -690,16 +729,22 @@ public class TestFlowDifferenceFilters {
 
         final String propertyName = "New Service Property";
         final String instanceId = "service-instance";
+        final String defaultValue = "defaultServiceValue";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .defaultValue(defaultValue)
+                .build();
 
         Mockito.when(flowManager.getControllerServiceNode(instanceId)).thenReturn(controllerServiceNode);
         Mockito.when(controllerServiceNode.getComponent()).thenReturn(configurableComponent);
-        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
-                new PropertyDescriptor.Builder().name(propertyName).build()));
+        Mockito.when(controllerServiceNode.getPropertyDescriptor(propertyName)).thenReturn(descriptor);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(descriptor));
 
         final VersionedControllerService registryService = new VersionedControllerService();
         final InstantiatedVersionedControllerService localService = new InstantiatedVersionedControllerService(instanceId, "group-id");
         final FlowDifference difference = new StandardFlowDifference(
-                DifferenceType.PROPERTY_ADDED, registryService, localService, propertyName, null, "value", "Property added on service");
+                DifferenceType.PROPERTY_ADDED, registryService, localService, propertyName, null, defaultValue, "Property added on service");
 
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
     }
@@ -738,6 +783,119 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, "Table", null, "value", "Property added");
 
         assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testPropertySetByUserOnProcessorIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Table";
+        final String instanceId = "processor-instance";
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name(propertyName).build()));
+
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(propertyName);
+        versionedDescriptor.setDisplayName(propertyName);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setPropertyDescriptors(Map.of(propertyName, versionedDescriptor));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, "userValue", "Property set by user");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testPropertySetByUserOnControllerServiceIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ControllerServiceNode controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Service Property";
+        final String instanceId = "service-instance";
+
+        Mockito.when(flowManager.getControllerServiceNode(instanceId)).thenReturn(controllerServiceNode);
+        Mockito.when(controllerServiceNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(
+                new PropertyDescriptor.Builder().name(propertyName).build()));
+
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(propertyName);
+        versionedDescriptor.setDisplayName(propertyName);
+
+        final VersionedControllerService registryService = new VersionedControllerService();
+        registryService.setPropertyDescriptors(Map.of(propertyName, versionedDescriptor));
+
+        final InstantiatedVersionedControllerService localService = new InstantiatedVersionedControllerService(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryService, localService, propertyName, null, "userValue", "Property set by user");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testUserEditOfMigrationAddedPropertyIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Record Structure";
+        final String instanceId = "processor-instance";
+        final String defaultValue = "first-option";
+        final String userValue = "second-option";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .defaultValue(defaultValue)
+                .build();
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(processorNode.getPropertyDescriptor(propertyName)).thenReturn(descriptor);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(descriptor));
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, userValue, "User edited migration-added property");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
+    }
+
+    @Test
+    public void testMigrationAddedPropertyWithNonNullDefaultMatchingLocalValueIsEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final ConfigurableComponent configurableComponent = Mockito.mock(ConfigurableComponent.class);
+
+        final String propertyName = "Record Type";
+        final String instanceId = "processor-instance";
+        final String defaultValue = "default-option";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .defaultValue(defaultValue)
+                .build();
+
+        Mockito.when(flowManager.getProcessorNode(instanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getComponent()).thenReturn(configurableComponent);
+        Mockito.when(processorNode.getPropertyDescriptor(propertyName)).thenReturn(descriptor);
+        Mockito.when(configurableComponent.getPropertyDescriptors()).thenReturn(List.of(descriptor));
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor(instanceId, "group-id");
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED, registryProcessor, localProcessor, propertyName, null, defaultValue, "Property added by migration with default value");
+
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, null, flowManager));
     }
 
     @Test

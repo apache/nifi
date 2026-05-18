@@ -32,6 +32,7 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.ProcessGroupFactory;
 import org.apache.nifi.components.connector.StandardComponentBundleLookup;
@@ -306,7 +307,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
-            flowController.getReloadComponent(), flowController, nifiProperties, statelessGroupNodeFactory,
+            flowController.getReloadComponent(), flowController, flowController, nifiProperties, statelessGroupNodeFactory,
             flowController.getAssetManager(), connectorId);
 
         onProcessGroupAdded(group);
@@ -853,12 +854,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     @Override
     public List<ConnectorNode> getAllConnectors() {
-        return flowController.getConnectorRepository().getConnectors();
+        return flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY);
     }
 
     @Override
     public ConnectorNode getConnector(final String id) {
-        return flowController.getConnectorRepository().getConnector(id);
+        return flowController.getConnectorRepository().getConnector(id, ConnectorSyncMode.LOCAL_ONLY);
     }
 
     @Override

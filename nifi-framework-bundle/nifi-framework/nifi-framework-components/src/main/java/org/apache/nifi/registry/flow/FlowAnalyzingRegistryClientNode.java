@@ -333,11 +333,6 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
-    public boolean isRestricted() {
-        return node.isRestricted();
-    }
-
-    @Override
     public boolean isDeprecated() {
         return node.isDeprecated();
     }

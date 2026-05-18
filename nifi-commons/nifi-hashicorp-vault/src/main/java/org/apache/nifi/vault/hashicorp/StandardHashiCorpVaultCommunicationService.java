@@ -23,6 +23,7 @@ import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.vault.authentication.LifecycleAwareSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
@@ -32,12 +33,15 @@ import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBac
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.core.VaultTransitOperations;
 import org.springframework.vault.support.Ciphertext;
+import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.Plaintext;
 import org.springframework.vault.support.VaultResponseSupport;
 import org.springframework.web.client.RestOperations;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,11 +49,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import javax.net.ssl.SSLContext;
 
 /**
  * Implements the VaultCommunicationService using Spring Vault
  */
 public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaultCommunicationService, Closeable {
+    private static final String SSL_CONTEXT_PROPERTY = SSLContext.class.getName();
+
     private final LifecycleAwareSessionManager sessionManager;
     private final ThreadPoolTaskScheduler taskScheduler;
     private final VaultTemplate vaultTemplate;
@@ -70,7 +77,31 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
         taskScheduler.setDaemon(true);
         taskScheduler.afterPropertiesSet();
 
-        final ClientHttpRequestFactory clientHttpRequestFactory = ClientHttpRequestFactoryFactory.create(vaultConfiguration.clientOptions(), vaultConfiguration.sslConfiguration());
+        final ClientHttpRequestFactory clientHttpRequestFactory;
+
+        final ClientOptions clientOptions = vaultConfiguration.clientOptions();
+        final PropertySource<?> propertySource = propertySources[0];
+        final Object sslContextProperty = propertySource.getProperty(SSL_CONTEXT_PROPERTY);
+        if (sslContextProperty instanceof SSLContext sslContext) {
+            // Customize HttpClient construction with configured SSLContext
+            final HttpClient.Builder httpClientBuilder = HttpClient.newBuilder();
+            httpClientBuilder.connectTimeout(clientOptions.getConnectionTimeout());
+            httpClientBuilder.followRedirects(HttpClient.Redirect.ALWAYS);
+            httpClientBuilder.sslContext(sslContext);
+
+            final HttpClient httpClient = httpClientBuilder.build();
+            final JdkClientHttpRequestFactory jdkClientHttpRequestFactory = new JdkClientHttpRequestFactory(httpClient);
+            jdkClientHttpRequestFactory.setReadTimeout(clientOptions.getReadTimeout());
+            clientHttpRequestFactory = jdkClientHttpRequestFactory;
+        } else {
+            // Build with standard Spring Vault methods
+            try {
+                clientHttpRequestFactory = ClientHttpRequestFactoryFactory.JdkHttpClient.usingJdkHttpClient(clientOptions, vaultConfiguration.sslConfiguration());
+            } catch (final GeneralSecurityException | IOException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
+
         final RestOperations restOperations = VaultClients.createRestTemplate(vaultConfiguration.vaultEndpoint(), clientHttpRequestFactory);
 
         sessionManager = new LifecycleAwareSessionManager(vaultConfiguration.clientAuthentication(), taskScheduler, restOperations);
@@ -96,7 +127,7 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         sessionManager.destroy();
         taskScheduler.destroy();
     }

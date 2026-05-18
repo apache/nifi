@@ -63,6 +63,18 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!-- Override aircompressor 0.27 from iceberg-core -->
+            <dependency>
+                <groupId>io.airlift</groupId>
+                <artifactId>aircompressor</artifactId>
+                <version>2.0.3</version>
+            </dependency>
+            <!-- Override httpclient 5.6 from iceberg-core -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>5.6.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

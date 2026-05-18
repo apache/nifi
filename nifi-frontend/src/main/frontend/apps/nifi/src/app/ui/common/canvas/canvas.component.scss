@@ -1,0 +1,899 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+// Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
+$drop-shadow-color: black;
+
+// =============================================================================
+// STRUCTURAL STYLES (non-themed)
+// These styles define layout, fonts, sizes, animations, and cursor behaviors.
+// They only need to be included once.
+// =============================================================================
+@mixin styles() {
+    svg.canvas-svg {
+        width: 100%;
+        height: 100%;
+
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+
+        text.unset {
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        .moveable {
+            cursor: pointer;
+        }
+
+        /*
+          All components
+        */
+
+        g.component rect.border.unauthorized {
+            stroke-width: 3;
+            stroke-dasharray: 4;
+        }
+
+        g.component rect.border.ghost {
+            stroke-width: 3;
+            stroke-dasharray: 4;
+        }
+
+        g.component.selected rect.border {
+            stroke-width: 3;
+        }
+
+        text.stats-label {
+            font-size: 12px;
+        }
+
+        text.stats-value {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        text.stats-value tspan.size,
+        text.stats-value tspan.size,
+        text.stats-value tspan.public-ports {
+            font-weight: normal;
+        }
+
+        text.stats-info {
+            font-size: 12px;
+        }
+
+        text.bulletin-icon {
+            font-size: 13px;
+            font-family: FontAwesome;
+        }
+
+        text.active-thread-count-icon {
+            font-family: flowfont;
+            font-size: 12px;
+            text-anchor: end;
+        }
+
+        text.component-comments {
+            font-size: 10px;
+            font-family: FontAwesome;
+        }
+
+        text.active-thread-count {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        text.spin {
+            -webkit-animation-name: rotate;
+            -webkit-animation-duration: 2s;
+            -webkit-animation-iteration-count: infinite;
+            -webkit-animation-timing-function: linear;
+            -moz-animation-name: rotate;
+            -moz-animation-duration: 2s;
+            -moz-animation-iteration-count: infinite;
+            -moz-animation-timing-function: linear;
+            animation-name: rotate;
+            animation-duration: 2s;
+            animation-iteration-count: infinite;
+            animation-timing-function: linear;
+        }
+
+        @-webkit-keyframes rotate {
+            from {
+                -webkit-transform: rotate(0deg);
+            }
+            to {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @-moz-keyframes rotate {
+            from {
+                -moz-transform: rotate(0deg);
+            }
+            to {
+                -moz-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /*
+          Selection
+        */
+
+        g.component.connectable-destination rect.border {
+            stroke-width: 3;
+        }
+
+        rect.component-selection,
+        rect.drag-selection,
+        rect.label-drag {
+            stroke-opacity: 0.5;
+        }
+
+        text.add-connect {
+            cursor: pointer;
+            font-family: flowfont;
+            font-size: 28px;
+        }
+
+        /*
+          Processor
+        */
+
+        text.processor-name {
+            font-size: 14px;
+        }
+
+        text.processor-type {
+            font-size: 12px;
+        }
+
+        text.processor-bundle {
+            font-size: 10px;
+        }
+
+        text.processor-icon {
+            font-family: flowfont;
+            font-size: 30px;
+        }
+
+        circle.restricted-background,
+        circle.is-primary-background {
+            visibility: hidden;
+        }
+
+        text.restricted {
+            visibility: hidden;
+            font-family: FontAwesome;
+            font-size: 12px;
+        }
+
+        text.is-primary {
+            visibility: hidden;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        text.run-status-icon {
+            font-size: 14px;
+            transform-origin: 62px 18px 0;
+        }
+
+        /*
+          Connection
+        */
+
+        g.connection rect.border.unauthorized {
+            stroke-width: 1.5;
+            stroke-dasharray: 3, 3;
+        }
+
+        g.connection rect.border.full {
+            stroke-width: 1;
+        }
+
+        g.connection.selected rect.border {
+            stroke-width: 3;
+        }
+
+        path.connector {
+            fill: none;
+            pointer-events: none;
+            stroke-width: 3;
+            stroke-opacity: 0.5;
+            stroke-dasharray: 2;
+        }
+
+        path.connector.connectable {
+            stroke-width: 3;
+            stroke-dasharray: 4;
+        }
+
+        g.connection path.connection-path {
+            stroke-width: 2;
+            cursor: pointer;
+        }
+
+        g.connection path.connection-path.unauthorized {
+            stroke-dasharray: 3, 3;
+        }
+
+        text.connection-from-run-status,
+        text.connection-to-run-status,
+        text.expiration-icon,
+        text.load-balance-icon,
+        text.retry-icon,
+        text.penalized-icon {
+            font-family: FontAwesome;
+            font-size: 12px;
+        }
+
+        g.connection rect.backpressure-object > title > tspan,
+        g.connection rect.backpressure-data-size > title > tspan {
+            display: block;
+        }
+
+        g.connection rect.backpressure-percent {
+            pointer-events: none;
+        }
+
+        /* grouped connection */
+
+        g.connection.grouped path.connection-path,
+        g.connection.grouped rect.connection-label {
+            stroke-width: 3;
+        }
+
+        /* ghost connection */
+
+        g.connection.ghost path.connection-path,
+        g.connection.ghost rect.connection-label {
+            stroke-dasharray: 4;
+        }
+
+        g.connection path.connection-selection-path {
+            visibility: hidden;
+            stroke-width: 1;
+        }
+
+        g.connection path.connection-path-selectable {
+            visibility: hidden;
+            stroke-width: 20;
+            cursor: pointer;
+        }
+
+        g.connection.selected path.connection-selection-path {
+            visibility: visible;
+        }
+
+        g.connection rect.linepoint {
+            visibility: hidden;
+            stroke-width: 1;
+        }
+
+        g.connection.selected rect.linepoint {
+            visibility: visible;
+        }
+
+        g.connection rect.midpoint {
+            cursor: pointer;
+        }
+
+        g.connection rect.endpoint {
+            cursor: pointer;
+        }
+
+        /* labels */
+
+        g.label path.labelpoint {
+            stroke-width: 1;
+            cursor: se-resize;
+        }
+
+        /* funnels */
+
+        text.funnel-icon {
+            font-family: flowfont;
+            font-size: 30px;
+        }
+
+        /* ports */
+
+        text.port-name {
+            font-size: 14px;
+        }
+
+        text.port-icon {
+            font-family: flowfont;
+            font-size: 30px;
+        }
+
+        text.port-transmission-icon {
+            font-size: 15px;
+        }
+
+        /* active thread count */
+
+        text.active-thread-count {
+            font-size: 10px;
+        }
+
+        /* process groups */
+
+        text.process-group-name {
+            font-size: 14px;
+        }
+
+        text.version-control {
+            font-family: FontAwesome;
+            font-size: 18px;
+        }
+
+        text.process-group-contents-count {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        g.process-group.drop rect.border {
+            stroke-width: 3;
+        }
+
+        text.process-group-contents-icon {
+            font-size: 15px;
+        }
+
+        /* remote process group */
+
+        text.remote-process-group-name {
+            font-size: 14px;
+        }
+
+        text.remote-process-group-uri {
+            font-size: 12px;
+        }
+
+        text.remote-process-group-transmission-status {
+            font-size: 15px;
+        }
+
+        text.remote-process-group-transmission-secure {
+            font-family: FontAwesome;
+            font-size: 13px;
+        }
+
+        text.remote-process-group-last-refresh {
+            font-size: 10px;
+        }
+    }
+}
+
+// =============================================================================
+// THEMED STYLES (internal mixin)
+// These styles use CSS variables for colors. This mixin is included twice:
+// once for light mode and once under .darkMode for dark mode.
+// =============================================================================
+@mixin generate-theme() {
+    .canvas-background {
+        background-size: 14px 14px;
+        z-index: 1;
+        overflow: hidden;
+        background-color: var(--mat-sys-background);
+        background-image:
+            linear-gradient(to right, var(--nf-canvas-background) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--nf-canvas-background) 1px, transparent 1px);
+    }
+
+    /* svg styles */
+
+    svg.canvas-svg {
+        /*
+          All components
+        */
+
+        g.component {
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        .transparent {
+            fill: transparent;
+        }
+
+        g.component rect.body {
+            fill: var(--mat-sys-background);
+        }
+
+        rect.banner {
+            fill: var(--nf-banner);
+        }
+
+        rect.odd {
+            fill: var(--nf-odd);
+        }
+
+        rect.even {
+            fill: var(--nf-even);
+        }
+
+        rect.row-border {
+            fill: var(--mat-sys-outline);
+        }
+
+        g.component rect.body.unauthorized {
+            fill: var(--mat-sys-background);
+        }
+
+        g.component rect.border,
+        g.connections rect.border {
+            stroke: var(--mat-sys-outline);
+            stroke-width: var(
+                --nf-canvas-border-stroke-width
+            ); // Dark mode gets a wider stroke to provide contrast between the canvas and components
+        }
+
+        g.component rect.border.unauthorized {
+            stroke: var(--mat-sys-error) !important;
+        }
+
+        g.component rect.border.ghost {
+            stroke: var(--nf-neutral) !important;
+        }
+
+        g.component rect.processor-icon-container.unauthorized {
+            fill: var(--mat-sys-background);
+        }
+
+        g.component.selected rect.border {
+            stroke: var(--mat-sys-primary) !important;
+        }
+
+        text.stats-label {
+            color: var(--mat-sys-on-surface);
+            fill: var(--mat-sys-on-surface);
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        text.stats-value {
+            fill: var(--mat-sys-tertiary);
+        }
+
+        text.stats-info {
+            fill: var(--mat-sys-primary);
+        }
+
+        text.bulletin-icon {
+            &.info,
+            &.debug,
+            &.trace {
+                fill: var(--mat-sys-on-primary);
+            }
+        }
+
+        text.bulletin-icon {
+            &.error {
+                fill: var(--mat-sys-on-error);
+            }
+        }
+
+        text.bulletin-icon {
+            &.warning {
+                fill: var(--nf-caution-contrast);
+            }
+        }
+
+        rect.bulletin-background {
+            &.error {
+                fill: var(--mat-sys-error);
+            }
+            &.warning {
+                fill: var(--nf-caution-default);
+            }
+            &.info,
+            &.debug,
+            &.trace {
+                fill: var(--nf-success-default);
+            }
+        }
+
+        text.component-comments {
+            fill: var(--mat-sys-primary);
+            stroke: var(--mat-sys-outline);
+        }
+
+        /*
+          Selection
+        */
+
+        g.component.connectable-destination rect.border {
+            stroke: #00ff00;
+        }
+
+        rect.component-selection,
+        rect.drag-selection,
+        rect.label-drag {
+            stroke: var(--mat-sys-primary);
+            fill: transparent;
+        }
+
+        text.add-connect {
+            fill: var(--mat-sys-primary);
+        }
+
+        /*
+          Processor
+        */
+        #component-drop-shadow feFlood {
+            flood-color: $drop-shadow-color;
+        }
+
+        rect.processor-read-write-stats {
+            fill: var(--mat-sys-background);
+        }
+
+        rect.processor-stats-border {
+            fill: var(--mat-sys-outline);
+        }
+
+        text.processor-preview-text {
+            font-size: 10px;
+            font-weight: 600;
+            fill: var(--mat-sys-on-primary-container);
+        }
+
+        rect.processor-preview-badge {
+            fill: var(--mat-sys-primary-container);
+        }
+
+        text.processor-name {
+            fill: var(--mat-sys-on-surface);
+        }
+
+        text.processor-type {
+            fill: var(--mat-sys-primary);
+        }
+
+        circle.is-primary-background {
+            stroke: var(--mat-sys-on-background);
+            fill: var(--mat-sys-background);
+        }
+
+        text.is-primary {
+            fill: var(--mat-sys-on-background);
+        }
+
+        text.processor-bundle {
+            fill: var(--nf-neutral);
+        }
+
+        rect.processor-icon-container {
+            fill: var(--mat-sys-background);
+        }
+
+        circle.restricted-background {
+            fill: var(--mat-sys-background);
+        }
+
+        text.restricted {
+            fill: var(--mat-sys-error);
+        }
+
+        /*
+          Connection
+        */
+        #connection-full-drop-shadow feFlood {
+            flood-color: var(--mat-sys-error);
+        }
+
+        g.connection {
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        g.connection rect.body {
+            fill: var(--mat-sys-background);
+        }
+
+        g.connection rect.body.unauthorized {
+            fill: var(--mat-sys-background);
+        }
+
+        g.connection rect.border.unauthorized {
+            stroke: var(--mat-sys-error);
+        }
+
+        g.connection rect.border.full {
+            stroke: var(--mat-sys-tertiary);
+        }
+
+        g.connection.selected rect.border {
+            stroke: #e3a300;
+        }
+
+        path.connector {
+            stroke: #bf0822;
+        }
+
+        path.connector.connectable {
+            stroke: #00ff00;
+        }
+
+        g.connection path.connection-path {
+            fill: none;
+            stroke: var(--mat-sys-on-surface);
+            filter: drop-shadow(0 3px 6px var(--mat-sys-background));
+        }
+
+        g.connection path.connection-path.full {
+            stroke: var(--mat-sys-error);
+        }
+
+        g.connection path.connection-path.unauthorized {
+            stroke: var(--mat-sys-error);
+        }
+
+        g.connection rect.backpressure-tick {
+            fill: transparent;
+        }
+
+        g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
+        g.connection rect.backpressure-tick.object-prediction.prediction-down {
+            fill: var(--mat-sys-background);
+        }
+
+        g.connection rect.backpressure-tick.data-size-prediction,
+        g.connection rect.backpressure-tick.object-prediction {
+            fill: var(--mat-sys-outline);
+        }
+
+        g.connection rect.backpressure-tick.data-size-prediction.not-configured,
+        g.connection rect.backpressure-tick.object-prediction.not-configured,
+        g.connection rect.backpressure-tick.data-size-prediction.prediction-down.not-configured,
+        g.connection rect.backpressure-tick.object-prediction.prediction-down.not-configured {
+            fill: transparent;
+        }
+
+        g.connection rect.backpressure-tick.not-configured {
+            fill: var(--nf-neutral);
+        }
+
+        g.connection rect.backpressure-object,
+        g.connection rect.backpressure-data-size {
+            fill: var(--mat-sys-outline);
+        }
+
+        g.connection rect.backpressure-object.not-configured,
+        g.connection rect.backpressure-data-size.not-configured {
+            fill: transparent;
+        }
+
+        g.connection rect.backpressure-percent {
+            fill: var(--nf-success-default);
+        }
+
+        g.connection rect.backpressure-percent.warning {
+            fill: #e3a300;
+        }
+
+        g.connection rect.backpressure-percent.error {
+            fill: var(--mat-sys-error);
+        }
+
+        /* ghost connection */
+
+        g.connection.ghost path.connection-path,
+        g.connection.ghost rect.connection-label {
+            stroke: var(--nf-neutral);
+        }
+
+        g.connection path.connection-selection-path {
+            stroke: #e3a300;
+            fill: none;
+        }
+
+        g.connection path.connection-path-selectable {
+            fill: none;
+        }
+
+        g.connection rect.startpoint {
+            stroke: #bf0822;
+            fill: #bf0822;
+        }
+
+        g.connection rect.midpoint {
+            stroke: #e3a300;
+            fill: #e3a300;
+        }
+
+        g.connection rect.endpoint {
+            stroke: #0000ff;
+            fill: #0000ff;
+        }
+
+        /* labels */
+
+        g.label path.resizable-triangle {
+            fill: var(--nf-resizable-triangle);
+            stroke: var(--nf-resizable-triangle);
+        }
+
+        /* funnels */
+
+        text.funnel-icon {
+            fill: var(--mat-sys-tertiary);
+        }
+
+        /* ports */
+
+        text.port-name {
+            color: var(--mat-sys-on-surface);
+            fill: var(--mat-sys-on-surface);
+        }
+
+        text.port-icon {
+            fill: var(--mat-sys-tertiary);
+        }
+
+        /* process groups */
+
+        rect.process-group-stats-in-out {
+            fill: var(--mat-sys-background);
+        }
+
+        rect.process-group-stats-border {
+            fill: var(--mat-sys-outline);
+        }
+
+        rect.process-group-banner,
+        rect.remote-process-group-banner {
+            fill: var(--mat-sys-secondary);
+        }
+
+        text.process-group-contents-count {
+            fill: var(--mat-sys-tertiary);
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        g.process-group.drop rect.border {
+            stroke: #0000ff;
+        }
+
+        /* remote process group */
+
+        rect.remote-process-group-stats-border {
+            fill: var(--mat-sys-outline);
+        }
+
+        rect.remote-process-group-received-stats {
+            fill: var(--mat-sys-background);
+        }
+
+        text.remote-process-group-uri {
+            fill: var(--mat-sys-primary);
+        }
+
+        text.remote-process-group-transmission-secure {
+            fill: var(--mat-sys-primary);
+        }
+
+        text.remote-process-group-last-refresh {
+            fill: var(--mat-sys-primary);
+        }
+
+        rect.remote-process-group-transmission-status-background-fill,
+        rect.version-control-background-fill {
+            visibility: hidden;
+            fill: var(--mat-sys-background);
+        }
+
+        rect.remote-process-group-transmission-status-background,
+        rect.version-control-background {
+            visibility: hidden;
+            &.neutral {
+                background-color: var(--mat-sys-surface-container-high);
+                fill: var(--mat-sys-surface-container-high);
+            }
+            &.active {
+                background-color: var(--mat-sys-primary-container);
+                fill: var(--mat-sys-primary-container);
+            }
+            &.critical {
+                background-color: var(--mat-sys-error-container);
+                fill: var(--mat-sys-error-container);
+            }
+            &.caution {
+                background-color: var(--nf-caution-default);
+                fill: var(--nf-caution-default);
+            }
+            &.success {
+                background-color: var(--nf-success-default);
+                fill: var(--nf-success-default);
+            }
+            &.info {
+                background-color: var(--mat-sys-primary-container);
+                fill: var(--mat-sys-primary-container);
+            }
+        }
+
+        text.remote-process-group-transmission-status,
+        text.version-control {
+            &.neutral {
+                color: var(--mat-sys-on-surface);
+                fill: var(--mat-sys-on-surface);
+            }
+            &.active {
+                color: var(--mat-sys-on-primary-container);
+                fill: var(--mat-sys-on-primary-container);
+            }
+            &.critical {
+                color: var(--mat-sys-on-error-container);
+                fill: var(--mat-sys-on-error-container);
+            }
+            &.caution {
+                color: var(--mat-sys-on-surface);
+                fill: var(--mat-sys-on-surface);
+            }
+            &.success {
+                color: var(--mat-sys-on-primary);
+                fill: var(--mat-sys-on-primary);
+            }
+            &.info {
+                color: var(--mat-sys-on-primary-container);
+                fill: var(--mat-sys-on-primary-container);
+            }
+        }
+
+        text.remote-process-group-transmission-status {
+            &.neutral.transmitting {
+                color: var(--nf-success-variant);
+                fill: var(--nf-success-variant);
+            }
+        }
+    }
+}
+
+// IMPORTANT: ::ng-deep is required for all D3 canvas styles because the SVG elements
+// (g.component, rect.border, text.stats-label, path, etc.) are created dynamically
+// via D3 in canvas.component.ts, NOT declared in the component template. Angular's
+// ViewEncapsulation.Emulated only adds scoping attributes (_ngcontent-xxx) to
+// template-defined elements. Dynamically created D3/SVG elements don't receive these
+// attributes, so normal scoped styles won't match them. ::ng-deep disables the
+// encapsulation attribute requirement for descendant selectors, allowing styles
+// to target these dynamically generated SVG elements.
+//
+// Include structural styles (fonts, sizes, animations) as well as themed styles (colors via CSS variables) for both light and dark modes
+:host ::ng-deep {
+    @include styles();
+
+    // Light mode styles
+    @include generate-theme();
+
+    // Dark mode styles (same styles, scoped to .darkMode)
+    .darkMode {
+        @include generate-theme();
+    }
+}

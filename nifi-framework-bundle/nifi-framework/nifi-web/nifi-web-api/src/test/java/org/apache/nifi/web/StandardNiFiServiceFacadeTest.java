@@ -37,6 +37,7 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
@@ -1576,7 +1577,7 @@ public class StandardNiFiServiceFacadeTest {
         final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
         final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.getIdentifier()).thenReturn(managedGroupId);
@@ -1589,7 +1590,7 @@ public class StandardNiFiServiceFacadeTest {
         final SearchResultsDTO results = serviceFacade.searchConnector(connectorId, searchQuery);
 
         assertNotNull(results);
-        verify(connectorDAO).getConnector(connectorId);
+        verify(connectorDAO).getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         verify(connectorNode).getActiveFlowContext();
         verify(flowContext).getManagedProcessGroup();
         verify(controllerFacade).searchConnector(searchQuery, managedProcessGroup);
@@ -1809,7 +1810,7 @@ public class StandardNiFiServiceFacadeTest {
         final Processor processor = mock(Processor.class);
         final StateMap localStateMap = mock(StateMap.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findProcessor(processorId)).thenReturn(processorNode);
@@ -1824,7 +1825,7 @@ public class StandardNiFiServiceFacadeTest {
 
         assertNotNull(result);
         assertEquals(processorId, result.getComponentId());
-        verify(connectorDAO).getConnector(connectorId);
+        verify(connectorDAO).getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         verify(managedProcessGroup).findProcessor(processorId);
         verify(componentStateDAO).getState(processorNode, Scope.LOCAL);
     }
@@ -1841,7 +1842,7 @@ public class StandardNiFiServiceFacadeTest {
         final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
         final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findProcessor(processorId)).thenReturn(null);
@@ -1862,12 +1863,11 @@ public class StandardNiFiServiceFacadeTest {
         final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
         final ProcessorNode processorNode = mock(ProcessorNode.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findProcessor(processorId)).thenReturn(processorNode);
 
-        // Should not throw
         serviceFacade.verifyCanClearConnectorProcessorState(connectorId, processorId);
 
         verify(processorNode).verifyCanClearState();
@@ -1892,7 +1892,7 @@ public class StandardNiFiServiceFacadeTest {
         final Processor processor = mock(Processor.class);
         final StateMap localStateMap = mock(StateMap.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findProcessor(processorId)).thenReturn(processorNode);
@@ -1929,7 +1929,7 @@ public class StandardNiFiServiceFacadeTest {
         final ControllerService controllerService = mock(ControllerService.class);
         final StateMap localStateMap = mock(StateMap.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(controllerServiceNode);
@@ -1944,7 +1944,7 @@ public class StandardNiFiServiceFacadeTest {
 
         assertNotNull(result);
         assertEquals(controllerServiceId, result.getComponentId());
-        verify(connectorDAO).getConnector(connectorId);
+        verify(connectorDAO).getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         verify(managedProcessGroup).findControllerService(controllerServiceId, false, true);
         verify(componentStateDAO).getState(controllerServiceNode, Scope.LOCAL);
     }
@@ -1961,7 +1961,7 @@ public class StandardNiFiServiceFacadeTest {
         final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
         final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(null);
@@ -1982,12 +1982,11 @@ public class StandardNiFiServiceFacadeTest {
         final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
         final ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(controllerServiceNode);
 
-        // Should not throw
         serviceFacade.verifyCanClearConnectorControllerServiceState(connectorId, controllerServiceId);
 
         verify(controllerServiceNode).verifyCanClearState();
@@ -2012,7 +2011,7 @@ public class StandardNiFiServiceFacadeTest {
         final ControllerService controllerService = mock(ControllerService.class);
         final StateMap localStateMap = mock(StateMap.class);
 
-        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(controllerServiceNode);

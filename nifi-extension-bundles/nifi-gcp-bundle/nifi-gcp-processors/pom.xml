@@ -132,7 +132,7 @@
         <dependency>
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-drive</artifactId>
-            <version>v3-rev20260322-2.0.0</version>
+            <version>v3-rev20260428-2.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.tdunning</groupId>
@@ -145,7 +145,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-json-utils</artifactId>
+            <artifactId>nifi-json-validator</artifactId>
             <version>2.10.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

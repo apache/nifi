@@ -17,7 +17,9 @@
 
 .use-case {
     mat-panel-title {
-        @apply truncate;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         display: block;
     }
 }

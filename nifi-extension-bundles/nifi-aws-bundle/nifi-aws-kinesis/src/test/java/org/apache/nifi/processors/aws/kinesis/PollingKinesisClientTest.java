@@ -194,6 +194,7 @@ class PollingKinesisClientTest {
     void testExpiredIteratorRecoveryDoesNotDeliverSameShardOutOfOrder() throws Exception {
         final AtomicInteger getRecordsCallCount = new AtomicInteger();
         final AtomicInteger getShardIteratorCallCount = new AtomicInteger();
+        final CountDownLatch firstResultPolled = new CountDownLatch(1);
 
         when(mockShardManager.readCheckpoint(anyString())).thenReturn("100");
         when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenAnswer(invocation -> {
@@ -211,11 +212,14 @@ class PollingKinesisClientTest {
                         .nextShardIterator("iter-1a")
                         .millisBehindLatest(0L)
                         .build();
-                case "iter-1a" -> GetRecordsResponse.builder()
-                        .records(record("300", "B"))
-                        .nextShardIterator("iter-1b")
-                        .millisBehindLatest(0L)
-                        .build();
+                case "iter-1a" -> {
+                    firstResultPolled.await(10, TimeUnit.SECONDS);
+                    yield GetRecordsResponse.builder()
+                            .records(record("300", "B"))
+                            .nextShardIterator("iter-1b")
+                            .millisBehindLatest(0L)
+                            .build();
+                }
                 case "iter-1b" -> throw ExpiredIteratorException.builder().message("expired").build();
                 case "iter-2" -> GetRecordsResponse.builder()
                         .records(record("200", "A-replay"))
@@ -236,11 +240,7 @@ class PollingKinesisClientTest {
         assertNotNull(firstResult, "Initial result must be available");
         assertEquals(new BigInteger("200"), firstResult.firstSequenceNumber());
 
-        final long newerQueuedDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (System.nanoTime() < newerQueuedDeadline && getRecordsCallCount.get() < 2) {
-            Thread.sleep(20);
-        }
-        Thread.sleep(50);
+        firstResultPolled.countDown();
 
         final long replayQueuedDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (System.nanoTime() < replayQueuedDeadline && (getShardIteratorCallCount.get() < 2 || getRecordsCallCount.get() < 4)) {

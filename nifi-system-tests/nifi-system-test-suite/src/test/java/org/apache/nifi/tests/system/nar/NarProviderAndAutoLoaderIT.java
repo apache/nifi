@@ -71,7 +71,7 @@ public class NarProviderAndAutoLoaderIT extends NiFiSystemIT {
         final ProcessorEntity terminateFlowFile = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(updatedGetClassLoaderInfo, terminateFlowFile, "success");
 
-        getNifiClient().getProcessorClient().runProcessorOnce(updatedGetClassLoaderInfo);
+        getClientUtil().runProcessorOnce(updatedGetClassLoaderInfo);
         waitForQueueCount(connection.getId(), 1);
 
         final String flowFileContent = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);

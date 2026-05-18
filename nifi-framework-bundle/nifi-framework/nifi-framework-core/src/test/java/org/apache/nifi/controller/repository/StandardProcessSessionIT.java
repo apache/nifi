@@ -1601,7 +1601,10 @@ public class StandardProcessSessionIT {
 
         // attempt to read the data.
         final FlowFile ff1 = session.get();
-        assertThrows(MissingFlowFileException.class, () -> session.read(ff1, InputStream::read));
+        final MissingFlowFileException ex = assertThrows(MissingFlowFileException.class,
+                () -> session.read(ff1, InputStream::read));
+        assertTrue(ex.getMessage().contains("12345678-1234-1234-1234-123456789012"));
+        assertTrue(ex.getMessage().contains("rolling back"));
     }
 
     @Test
@@ -1775,7 +1778,10 @@ public class StandardProcessSessionIT {
         session.get();
         final FlowFile ff2 = session.get();
 
-        assertThrows(MissingFlowFileException.class, () -> session.read(ff2, InputStream::read));
+        final MissingFlowFileException ex = assertThrows(MissingFlowFileException.class,
+                () -> session.read(ff2, InputStream::read));
+        assertTrue(ex.getMessage().contains("12345678-1234-1234-1234-123456789012"));
+        assertTrue(ex.getMessage().contains("rolling back"));
     }
 
     @Test
@@ -2196,6 +2202,32 @@ public class StandardProcessSessionIT {
         }
 
         assertArrayEquals(new byte[]{'1', '2', '3'}, buff);
+
+        newSession.remove(flowFile);
+        newSession.commit();
+        session.commit();
+    }
+
+    @Test
+    public void testMigrateToDelegatingSessionWrapper() {
+        FlowFile flowFile = session.create();
+        flowFile = session.write(flowFile, out -> out.write("contents".getBytes(StandardCharsets.UTF_8)));
+
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+
+        // Simulate the framework path that wraps a Session through WeakHashMapProcessSessionFactory: the
+        // Processor receives the wrapper, and other framework code that holds the underlying StandardProcessSession
+        // must still be able to migrate FlowFiles to it.
+        final WeakHashMapProcessSessionFactory wrappingFactory = new WeakHashMapProcessSessionFactory(() -> newSession);
+        final ProcessSession wrapperSession = wrappingFactory.createSession();
+
+        assertTrue(session.isFlowFileKnown(flowFile));
+        assertFalse(newSession.isFlowFileKnown(flowFile));
+
+        session.migrate(wrapperSession, Collections.singleton(flowFile));
+
+        assertFalse(session.isFlowFileKnown(flowFile));
+        assertTrue(newSession.isFlowFileKnown(flowFile));
 
         newSession.remove(flowFile);
         newSession.commit();
@@ -2931,6 +2963,64 @@ public class StandardProcessSessionIT {
         final FlowFile ff2 = session.get();
         assertEquals(originalContent.length, ff2.getSize());
         assertEquals(originalClaim, ((FlowFileRecord) ff2).getContentClaim());
+    }
+
+    @Test
+    public void testRemoveFlowFileProducesDeleteRecordWithCorrectClaim() throws IOException {
+        final ContentClaim contentClaim = contentRepo.create("Hello, World!".getBytes(StandardCharsets.UTF_8));
+        assertEquals(1, contentRepo.getClaimantCount(contentClaim));
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(contentClaim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(13L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        session.remove(flowFile);
+        session.commit();
+
+        final List<RepositoryRecord> repositoryUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repositoryUpdates.size());
+
+        final RepositoryRecord deleteRecord = repositoryUpdates.getFirst();
+        assertEquals(RepositoryRecordType.DELETE, deleteRecord.getType());
+        assertEquals(contentClaim, deleteRecord.getCurrentClaim());
+        assertEquals(contentClaim, deleteRecord.getOriginalClaim());
+        assertEquals(0, contentRepo.getClaimantCount(contentClaim));
+    }
+
+    @Test
+    public void testOverwriteContentProducesUpdateRecordWithOriginalClaim() throws IOException {
+        final ContentClaim originalClaim = contentRepo.create("Original large content".getBytes(StandardCharsets.UTF_8));
+        assertEquals(1, contentRepo.getClaimantCount(originalClaim));
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(originalClaim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(22L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        flowFile = session.write(flowFile, out -> out.write("New small content".getBytes(StandardCharsets.UTF_8)));
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.commit();
+
+        final List<RepositoryRecord> repositoryUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repositoryUpdates.size());
+
+        final RepositoryRecord updateRecord = repositoryUpdates.getFirst();
+        assertEquals(RepositoryRecordType.UPDATE, updateRecord.getType());
+        assertNotEquals(originalClaim, updateRecord.getCurrentClaim());
+        assertEquals(originalClaim, updateRecord.getOriginalClaim());
+        assertEquals(0, contentRepo.getClaimantCount(originalClaim));
+        assertEquals(1, contentRepo.getClaimantCount(updateRecord.getCurrentClaim()));
     }
 
     public void configureRetry(final Connectable connectable, final int retryCount, final BackoffMechanism backoffMechanism,

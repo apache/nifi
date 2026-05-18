@@ -18,22 +18,16 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
-import org.apache.nifi.web.api.dto.RequiredPermissionDTO;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class CurrentUserEndpointMergerTest {
 
@@ -50,11 +44,7 @@ public class CurrentUserEndpointMergerTest {
         userNode1.setTenantsPermissions(buildPermissions(false, true));
         userNode1.setConnectorsPermissions(buildPermissions(true, false));
 
-        final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode1 = new HashSet<>();
-        componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, true));
-        componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.WRITE_FILESYSTEM, false, true));
-        componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.READ_FILESYSTEM, true, true));
-        userNode1.setComponentRestrictionPermissions(componentRestrictionsNode1);
+        userNode1.setComponentRestrictionPermissions(Collections.emptySet());
 
         final NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", 8000, "localhost", 8001, "localhost", 9006, "localhost", 8002, 8003, false);
         final CurrentUserEntity userNode2 = new CurrentUserEntity();
@@ -67,11 +57,7 @@ public class CurrentUserEndpointMergerTest {
         userNode2.setTenantsPermissions(buildPermissions(true, true));
         userNode2.setConnectorsPermissions(buildPermissions(false, true));
 
-        final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode2 = new HashSet<>();
-        componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, false));
-        componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.WRITE_FILESYSTEM, true, false));
-        componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.EXECUTE_CODE, true, true));
-        userNode2.setComponentRestrictionPermissions(componentRestrictionsNode2);
+        userNode2.setComponentRestrictionPermissions(Collections.emptySet());
 
         final Map<NodeIdentifier, CurrentUserEntity> entityMap = new HashMap<>();
         entityMap.put(nodeId1, userNode1);
@@ -97,17 +83,7 @@ public class CurrentUserEndpointMergerTest {
         assertFalse(userNode1.getConnectorsPermissions().getCanRead());
         assertFalse(userNode1.getConnectorsPermissions().getCanWrite());
 
-        userNode1.getComponentRestrictionPermissions().forEach(componentRestriction -> {
-            if (RequiredPermission.ACCESS_KEYTAB.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId())) {
-                assertTrue(componentRestriction.getPermissions().getCanRead());
-                assertFalse(componentRestriction.getPermissions().getCanWrite());
-            } else if (RequiredPermission.WRITE_FILESYSTEM.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId())) {
-                assertFalse(componentRestriction.getPermissions().getCanRead());
-                assertFalse(componentRestriction.getPermissions().getCanWrite());
-            } else {
-                fail();
-            }
-        });
+        assertTrue(userNode1.getComponentRestrictionPermissions().isEmpty());
     }
 
     private PermissionsDTO buildPermissions(final boolean canRead, final boolean canWrite) {
@@ -117,14 +93,4 @@ public class CurrentUserEndpointMergerTest {
         return permissionsDto;
     }
 
-    private ComponentRestrictionPermissionDTO buildComponentRestriction(final RequiredPermission requiredPermission, final boolean canRead, final boolean canWrite) {
-        final RequiredPermissionDTO requiredPermissionDto = new RequiredPermissionDTO();
-        requiredPermissionDto.setId(requiredPermission.getPermissionIdentifier());
-        requiredPermissionDto.setLabel(requiredPermission.getPermissionLabel());
-
-        final ComponentRestrictionPermissionDTO componentRestrictionPermissionDto = new ComponentRestrictionPermissionDTO();
-        componentRestrictionPermissionDto.setRequiredPermission(requiredPermissionDto);
-        componentRestrictionPermissionDto.setPermissions(buildPermissions(canRead, canWrite));
-        return componentRestrictionPermissionDto;
-    }
 }

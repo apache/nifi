@@ -89,7 +89,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
 
     public static final PropertyDescriptor STARTING_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("Starting Field Name")
-            .description("Skips forward to the given nested JSON field (array or object) to begin processing.")
+            .description("Skips forward to the given nested field (array or object) to begin processing.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
@@ -97,7 +97,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
 
     public static final PropertyDescriptor SCHEMA_APPLICATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Schema Application Strategy")
-            .description("Specifies whether the schema is defined for the whole JSON or for the selected part starting from \"Starting Field Name\".")
+            .description("Specifies whether the schema is defined for the whole document or for the selected part starting from \"Starting Field Name\".")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(SchemaApplicationStrategy.SELECTED_PART.getValue())

@@ -1022,7 +1022,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
                     @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                     @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                    @SecurityRequirement(name = "Write - if the template contains any restricted components - /restricted-components"),
                     @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
@@ -1092,7 +1091,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
                     @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                     @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                    @SecurityRequirement(name = "Write - if the template contains any restricted components - /restricted-components"),
                     @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )

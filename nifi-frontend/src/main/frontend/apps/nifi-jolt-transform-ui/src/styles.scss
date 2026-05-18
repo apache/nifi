@@ -17,6 +17,9 @@
 
 @use '@angular/material' as mat;
 @use 'sass:map';
+@use 'sass:meta';
+@use 'tailwindcss';
+@use 'libs/shared/src/assets/styles/tailwind-theme';
 @use 'libs/shared/src/assets/styles/app' as app;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'app/pages/jolt-transform-json-ui/feature/jolt-transform-json-ui.component-theme' as jolt-transform-json-ui;
@@ -24,12 +27,13 @@
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 
-@use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer base {
+    @include meta.load-css('font-awesome');
+}
+
+@source #{"'libs/shared/src'"};
 
 // only include these once (not needed for dark mode)
 @include app.styles();

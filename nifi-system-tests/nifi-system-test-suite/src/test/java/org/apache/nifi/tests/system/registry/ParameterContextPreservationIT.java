@@ -23,6 +23,8 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
@@ -70,6 +72,15 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
     private static final String PARAMETER_DESCRIPTION_V2 = "Description for version 2";
     private static final String CONTEXT_DESCRIPTION_V1 = "Context description v1";
     private static final String CONTEXT_DESCRIPTION_V2 = "Context description v2";
+    private static final String COUNT_PARAMETER_NAME = "countStart";
+    private static final String COUNT_PARAMETER_VALUE = "0";
+    private static final String COUNT_PARAMETER_REFERENCE = "#{" + COUNT_PARAMETER_NAME + "}";
+    private static final String COUNT_PARAMETER_DESCRIPTION_V1 = "Counter start description v1";
+    private static final String COUNT_PARAMETER_DESCRIPTION_V2 = "Counter start description v2";
+    private static final String COUNT_SERVICE_TYPE = "StandardCountService";
+    private static final String COUNT_SERVICE_START_VALUE_PROPERTY = "Start Value";
+    private static final String CONTROLLER_SERVICE_STATE_ENABLED = "ENABLED";
+    private static final String CONTROLLER_SERVICE_STATE_DISABLED = "DISABLED";
 
     @Test
     void testNewProcessGroupUsesCorrectParameterContextDuringUpgrade() throws NiFiClientException, IOException, InterruptedException {
@@ -235,15 +246,100 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
     }
 
     /**
-     * Verifies that parameter descriptions are updated when upgrading a versioned process group from one version
-     * to the next, even when the parameter value itself remains unchanged.
+     * Verifies that a new parameter introduced by a new flow version is applied only to the parameter context
+     * actually bound to the upgraded process group, even when the local flow has multiple deployments of the
+     * same versioned flow with REPLACE-strategy suffix-renamed parameter contexts (P, P (1), P (2)).
+     *
+     * Scenario: Flow F has parameter context P. F is imported three times with the REPLACE strategy, producing
+     * deployments bound to P, P (1), and P (2) respectively. Version 2 of F adds parameter Z to P. Upgrading
+     * the third deployment must apply Z only to P (2); P and P (1) must remain unchanged.
+     */
+    @Test
+    void testNewParameterAppliedOnlyToBoundSuffixedContextDuringUpgrade() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ParameterContextEntity sourceParamContextP = util.createParameterContext(PARAMETER_CONTEXT_NAME, Map.of(PARAMETER_NAME, PARAMETER_VALUE));
+        final ProcessGroupEntity sourceGroupA = util.createProcessGroup(GROUP_A_NAME, "root");
+        util.setParameterContext(sourceGroupA.getId(), sourceParamContextP);
+
+        final ProcessorEntity processor = util.createProcessor(PROCESSOR_TYPE, sourceGroupA.getId());
+        util.updateProcessorProperties(processor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
+        util.setAutoTerminatedRelationships(processor, RELATIONSHIP_SUCCESS);
+
+        final VersionControlInformationEntity vciV1 = util.startVersionControl(sourceGroupA, clientEntity, TEST_FLOWS_BUCKET, FLOW_NAME);
+        final String flowId = vciV1.getVersionControlInformation().getFlowId();
+
+        final String paramZName = "paramZ";
+        final String paramZValue = "valueZ";
+        final ParameterContextEntity currentSourceP = getNifiClient().getParamContextClient().getParamContext(sourceParamContextP.getId(), false);
+        final ParameterContextUpdateRequestEntity sourceUpdate = util.updateParameterContext(currentSourceP,
+                Map.of(PARAMETER_NAME, PARAMETER_VALUE, paramZName, paramZValue));
+        util.waitForParameterContextRequestToComplete(sourceParamContextP.getId(), sourceUpdate.getRequest().getRequestId());
+
+        final ProcessGroupEntity sourceGroupARefreshed = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroupA.getId());
+        util.saveFlowVersion(sourceGroupARefreshed, clientEntity, vciV1);
+
+        final ProcessGroupEntity sourceForStopVc = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroupA.getId());
+        getNifiClient().getVersionsClient().stopVersionControl(sourceForStopVc);
+        util.deleteAll(sourceGroupA.getId());
+        final ProcessGroupEntity sourceToDelete = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroupA.getId());
+        getNifiClient().getProcessGroupClient().deleteProcessGroup(sourceToDelete);
+
+        final ParameterContextEntity sourceContextToDelete = getNifiClient().getParamContextClient().getParamContext(sourceParamContextP.getId(), false);
+        getNifiClient().getParamContextClient().deleteParamContext(sourceParamContextP.getId(),
+                String.valueOf(sourceContextToDelete.getRevision().getVersion()));
+
+        final ProcessGroupEntity importedA1 = importFlowWithReplaceParameterContext(clientEntity.getId(), flowId, VERSION_1);
+        final String paramContextId1 = getNifiClient().getProcessGroupClient().getProcessGroup(importedA1.getId())
+                .getComponent().getParameterContext().getId();
+
+        final ProcessGroupEntity importedA2 = importFlowWithReplaceParameterContext(clientEntity.getId(), flowId, VERSION_1);
+        final String paramContextId2 = getNifiClient().getProcessGroupClient().getProcessGroup(importedA2.getId())
+                .getComponent().getParameterContext().getId();
+
+        final ProcessGroupEntity importedA3 = importFlowWithReplaceParameterContext(clientEntity.getId(), flowId, VERSION_1);
+        final String paramContextId3 = getNifiClient().getProcessGroupClient().getProcessGroup(importedA3.getId())
+                .getComponent().getParameterContext().getId();
+
+        assertNotEquals(paramContextId1, paramContextId2);
+        assertNotEquals(paramContextId2, paramContextId3);
+        assertNotEquals(paramContextId1, paramContextId3);
+
+        assertFalse(getParameterNames(getNifiClient().getParamContextClient().getParamContext(paramContextId1, false)).contains(paramZName));
+        assertFalse(getParameterNames(getNifiClient().getParamContextClient().getParamContext(paramContextId2, false)).contains(paramZName));
+        assertFalse(getParameterNames(getNifiClient().getParamContextClient().getParamContext(paramContextId3, false)).contains(paramZName));
+
+        util.changeFlowVersion(importedA3.getId(), VERSION_2);
+
+        final ParameterContextEntity context3AfterUpgrade = getNifiClient().getParamContextClient().getParamContext(paramContextId3, false);
+        assertTrue(getParameterNames(context3AfterUpgrade).contains(paramZName),
+                "paramZ should be added to the parameter context bound to the upgraded deployment");
+
+        final ParameterContextEntity context1AfterUpgrade = getNifiClient().getParamContextClient().getParamContext(paramContextId1, false);
+        assertFalse(getParameterNames(context1AfterUpgrade).contains(paramZName),
+                "paramZ should not leak into the canonical parameter context bound to a different deployment");
+
+        final ParameterContextEntity context2AfterUpgrade = getNifiClient().getParamContextClient().getParamContext(paramContextId2, false);
+        assertFalse(getParameterNames(context2AfterUpgrade).contains(paramZName),
+                "paramZ should not leak into the suffixed parameter context bound to a different deployment");
+    }
+
+    /**
+     * Verifies that parameter and parameter context descriptions are updated when upgrading a versioned
+     * process group from one version to the next, even when the parameter value itself remains unchanged
+     * and the parameter is referenced by a Controller Service that is currently ENABLED on the target.
+     * Description-only updates do not affect runtime behavior, so referencing components should not have
+     * to be disabled for the upgrade to succeed.
      */
     @Test
     void testParameterDescriptionUpdatedDuringVersionUpgrade() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
-        final Set<ParameterEntity> parameterEntitiesV1 = Set.of(util.createParameterEntity(PARAMETER_NAME, PARAMETER_DESCRIPTION_V1, false, PARAMETER_VALUE));
+        final Set<ParameterEntity> parameterEntitiesV1 = Set.of(
+                util.createParameterEntity(PARAMETER_NAME, PARAMETER_DESCRIPTION_V1, false, PARAMETER_VALUE),
+                util.createParameterEntity(COUNT_PARAMETER_NAME, COUNT_PARAMETER_DESCRIPTION_V1, false, COUNT_PARAMETER_VALUE));
         final ParameterContextEntity paramContext = getNifiClient().getParamContextClient().createParamContext(
             util.createParameterContextEntity(PARAMETER_CONTEXT_NAME, CONTEXT_DESCRIPTION_V1, parameterEntitiesV1));
 
@@ -254,12 +350,23 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         util.updateProcessorProperties(processor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
         util.setAutoTerminatedRelationships(processor, RELATIONSHIP_SUCCESS);
 
+        final ControllerServiceEntity sourceService = util.createControllerService(COUNT_SERVICE_TYPE, groupA.getId());
+        util.updateControllerServiceProperties(sourceService, Map.of(COUNT_SERVICE_START_VALUE_PROPERTY, COUNT_PARAMETER_REFERENCE));
+
         final VersionControlInformationEntity vciV1 = util.startVersionControl(groupA, clientEntity, TEST_FLOWS_BUCKET, DESCRIPTION_UPDATE_FLOW_NAME);
         final String flowId = vciV1.getVersionControlInformation().getFlowId();
 
-        // Update the parameter description (keeping the same value) and context description, then save as version 2
+        // Enable the Controller Service on the source side so updating the parameter description exercises
+        // the "description-only update while a referencing service is ENABLED" path on both source and target.
+        final ControllerServiceEntity sourceServiceForEnable = getNifiClient().getControllerServicesClient().getControllerService(sourceService.getId());
+        util.enableControllerService(sourceServiceForEnable);
+        util.waitForControllerServicesEnabled(groupA.getId(), List.of(sourceService.getId()));
+
+        // Update both parameter descriptions (keeping values unchanged) plus the context description, then save as version 2
         final ParameterContextEntity currentContext = getNifiClient().getParamContextClient().getParamContext(paramContext.getId(), false);
-        final Set<ParameterEntity> parameterEntitiesV2 = Set.of(util.createParameterEntity(PARAMETER_NAME, PARAMETER_DESCRIPTION_V2, false, PARAMETER_VALUE));
+        final Set<ParameterEntity> parameterEntitiesV2 = Set.of(
+                util.createParameterEntity(PARAMETER_NAME, PARAMETER_DESCRIPTION_V2, false, PARAMETER_VALUE),
+                util.createParameterEntity(COUNT_PARAMETER_NAME, COUNT_PARAMETER_DESCRIPTION_V2, false, COUNT_PARAMETER_VALUE));
         final ParameterContextEntity entityUpdate = util.createParameterContextEntity(PARAMETER_CONTEXT_NAME, CONTEXT_DESCRIPTION_V2, parameterEntitiesV2);
         entityUpdate.setId(currentContext.getId());
         entityUpdate.setRevision(currentContext.getRevision());
@@ -271,6 +378,10 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         util.saveFlowVersion(refreshedGroupA, clientEntity, vciV1);
 
         // Clean up the original flow
+        final ControllerServiceEntity sourceServiceForDisable = getNifiClient().getControllerServicesClient().getControllerService(sourceService.getId());
+        util.disableControllerService(sourceServiceForDisable);
+        util.waitForControllerServiceState(groupA.getId(), CONTROLLER_SERVICE_STATE_DISABLED, List.of(sourceService.getId()));
+
         final ProcessGroupEntity groupAForStopVc = getNifiClient().getProcessGroupClient().getProcessGroup(groupA.getId());
         getNifiClient().getVersionsClient().stopVersionControl(groupAForStopVc);
         util.deleteAll(groupA.getId());
@@ -288,22 +399,34 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
 
         // Verify version 1 descriptions
         final ParameterContextEntity importedContext = getNifiClient().getParamContextClient().getParamContext(importedContextId, false);
-        final String descriptionAfterV1 = getParameterDescription(importedContext, PARAMETER_NAME);
-        assertEquals(PARAMETER_DESCRIPTION_V1, descriptionAfterV1);
+        assertEquals(PARAMETER_DESCRIPTION_V1, getParameterDescription(importedContext, PARAMETER_NAME));
+        assertEquals(COUNT_PARAMETER_DESCRIPTION_V1, getParameterDescription(importedContext, COUNT_PARAMETER_NAME));
         assertEquals(CONTEXT_DESCRIPTION_V1, importedContext.getComponent().getDescription());
 
-        // Upgrade from version 1 to version 2
+        // Enable the imported Controller Service before the upgrade. With the description-only fix, the
+        // subsequent upgrade must succeed without requiring the service to be disabled first.
+        final ControllerServicesEntity servicesInImportedGroup = getNifiClient().getFlowClient().getControllerServices(importedGroup.getId());
+        assertEquals(1, servicesInImportedGroup.getControllerServices().size());
+        final ControllerServiceEntity importedService = servicesInImportedGroup.getControllerServices().iterator().next();
+        util.enableControllerService(importedService);
+        util.waitForControllerServicesEnabled(importedGroup.getId(), List.of(importedService.getId()));
+
+        // Upgrade from version 1 to version 2 while the referencing Controller Service is ENABLED
         util.changeFlowVersion(importedGroup.getId(), VERSION_2);
 
         // Verify descriptions were updated to version 2
         final ParameterContextEntity contextAfterUpgrade = getNifiClient().getParamContextClient().getParamContext(importedContextId, false);
-        final String descriptionAfterV2 = getParameterDescription(contextAfterUpgrade, PARAMETER_NAME);
-        assertEquals(PARAMETER_DESCRIPTION_V2, descriptionAfterV2);
+        assertEquals(PARAMETER_DESCRIPTION_V2, getParameterDescription(contextAfterUpgrade, PARAMETER_NAME));
+        assertEquals(COUNT_PARAMETER_DESCRIPTION_V2, getParameterDescription(contextAfterUpgrade, COUNT_PARAMETER_NAME));
         assertEquals(CONTEXT_DESCRIPTION_V2, contextAfterUpgrade.getComponent().getDescription());
 
-        // Verify the value was not changed
-        final String valueAfterUpgrade = getParameterValue(contextAfterUpgrade, PARAMETER_NAME);
-        assertEquals(PARAMETER_VALUE, valueAfterUpgrade);
+        // Verify the parameter values were not changed
+        assertEquals(PARAMETER_VALUE, getParameterValue(contextAfterUpgrade, PARAMETER_NAME));
+        assertEquals(COUNT_PARAMETER_VALUE, getParameterValue(contextAfterUpgrade, COUNT_PARAMETER_NAME));
+
+        // Verify the Controller Service remained ENABLED throughout the upgrade
+        final ControllerServiceEntity serviceAfterUpgrade = getNifiClient().getControllerServicesClient().getControllerService(importedService.getId());
+        assertEquals(CONTROLLER_SERVICE_STATE_ENABLED, serviceAfterUpgrade.getComponent().getState());
     }
 
     private String getParameterDescription(final ParameterContextEntity context, final String parameterName) {

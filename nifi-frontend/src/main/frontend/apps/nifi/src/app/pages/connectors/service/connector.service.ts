@@ -22,7 +22,8 @@ import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ConnectorsResponse, CreateConnectorRequest } from '../state';
 import { ConnectorEntity } from '@nifi/shared';
-import { DropRequestEntity } from '../../flow-designer/state/queue';
+import { SearchResultsEntity } from '../../../state/shared';
+import { DropRequestEntity } from '../../../state/empty-queue';
 
 @Injectable({ providedIn: 'root' })
 export class ConnectorService {
@@ -34,6 +35,10 @@ export class ConnectorService {
 
     getConnectors(): Observable<ConnectorsResponse> {
         return this.httpClient.get<ConnectorsResponse>(`${ConnectorService.API}/flow/connectors`);
+    }
+
+    getConnector(connectorId: string): Observable<ConnectorEntity> {
+        return this.httpClient.get<ConnectorEntity>(`${ConnectorService.API}/connectors/${connectorId}`);
     }
 
     createConnector(createConnectorRequest: CreateConnectorRequest): Observable<ConnectorEntity> {
@@ -105,6 +110,29 @@ export class ConnectorService {
             params
         });
     }
+
+    getConnectorFlow(connectorId: string, processGroupId: string): Observable<any> {
+        return this.httpClient.get(
+            `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}`
+        );
+    }
+
+    getConnectorControllerServices(connectorId: string, processGroupId: string): Observable<any> {
+        return this.httpClient.get(
+            `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}/controller-services`
+        );
+    }
+
+    searchConnector(connectorId: string, query: string): Observable<SearchResultsEntity> {
+        return this.httpClient.get<SearchResultsEntity>(
+            `${ConnectorService.API}/connectors/${connectorId}/search-results`,
+            { params: { q: query } }
+        );
+    }
+
+    // ========================================================================================
+    // Purge Methods
+    // ========================================================================================
 
     createPurgeRequest(connectorId: string): Observable<DropRequestEntity> {
         return this.httpClient.post<DropRequestEntity>(

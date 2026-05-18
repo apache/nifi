@@ -187,6 +187,30 @@ public class NiFiClientUtil {
         return getProcessorClient().startProcessor(currentEntity);
     }
 
+    /**
+     * Runs the given Processor exactly one time. Waits for the Processor's validation to settle before issuing the
+     * run request so that recent modifications to the Processor, its inbound or outbound Connections, or any
+     * referenced Controller Service are reflected in the Processor's validation status. If validation settles to
+     * INVALID, an {@link IllegalStateException} is thrown immediately rather than waiting indefinitely; the toolkit
+     * client's run-once endpoint silently does nothing for an invalid Processor, so failing fast prevents flaky
+     * downstream assertions about FlowFiles that were never produced.
+     *
+     * @param currentEntity the Processor to run once
+     * @return the updated Processor entity returned by the run-once API call
+     */
+    public ProcessorEntity runProcessorOnce(final ProcessorEntity currentEntity) throws NiFiClientException, IOException, InterruptedException {
+        waitForValidationCompleted(currentEntity);
+
+        final ProcessorEntity refreshed = getProcessorClient().getProcessor(currentEntity.getId());
+        final String validationStatus = refreshed.getComponent().getValidationStatus();
+        if (ProcessorDTO.INVALID.equalsIgnoreCase(validationStatus)) {
+            throw new IllegalStateException(String.format("Processor %s is INVALID and cannot be run once. Validation errors: %s",
+                    currentEntity.getId(), refreshed.getComponent().getValidationErrors()));
+        }
+
+        return getProcessorClient().runProcessorOnce(currentEntity);
+    }
+
     public void stopProcessor(final ProcessorEntity currentEntity) throws NiFiClientException, IOException, InterruptedException {
         currentEntity.setDisconnectedNodeAcknowledged(true);
         getProcessorClient().stopProcessor(currentEntity);
@@ -1154,9 +1178,15 @@ public class NiFiClientUtil {
         final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2);
         logger.info("Waiting for Processor {} to reach state {}", processorId, expectedState);
 
+        String lastObservedState = null;
+        String lastObservedPhysicalState = null;
+        Integer lastObservedActiveThreadCount = null;
+        Integer lastObservedTerminatedThreadCount = null;
+
         while (System.currentTimeMillis() < maxTimestamp) {
             final ProcessorEntity entity = getProcessorClient().getProcessor(processorId);
             final String state = entity.getComponent().getState();
+            lastObservedState = state;
 
             // We've reached the desired state if the state equal the expected state, OR if we expect stopped and the state is disabled (because disabled implies stopped)
             final boolean desiredStateReached = expectedState.equals(state) || ("STOPPED".equalsIgnoreCase(expectedState) && "DISABLED".equalsIgnoreCase(state));
@@ -1169,8 +1199,28 @@ public class NiFiClientUtil {
             final ProcessorStatusSnapshotDTO snapshotDto = entity.getStatus().getAggregateSnapshot();
             final Integer activeThreadCount = snapshotDto.getActiveThreadCount();
             final Integer terminatedThreadCount = snapshotDto.getTerminatedThreadCount();
+            lastObservedActiveThreadCount = activeThreadCount;
+            lastObservedTerminatedThreadCount = terminatedThreadCount;
 
             if ("RUNNING".equals(expectedState) || (activeThreadCount == 0 && terminatedThreadCount == 0)) {
+                // The logical state masks the framework's physical STOPPING state as STOPPED. The framework's
+                // verifyCanStart check evaluates the physical state, so when the caller is waiting for STOPPED
+                // we additionally require the physical state to have settled to STOPPED or DISABLED. Without
+                // this, a tight loop of runProcessorOnce + waitForStoppedProcessor can race against an
+                // in-flight stop transition and the next start request fails with "cannot be started because
+                // it is not stopped. Current state is STOPPING".
+                if ("STOPPED".equalsIgnoreCase(expectedState)) {
+                    final String physicalState = entity.getComponent().getPhysicalState();
+                    lastObservedPhysicalState = physicalState;
+                    final boolean physicalStateSettled = physicalState == null
+                            || "STOPPED".equalsIgnoreCase(physicalState)
+                            || "DISABLED".equalsIgnoreCase(physicalState);
+                    if (!physicalStateSettled) {
+                        Thread.sleep(10L);
+                        continue;
+                    }
+                }
+
                 logger.info("Processor {} is now in desired state of {} with {} active threads and {} terminated threads",
                     processorId, expectedState, activeThreadCount, terminatedThreadCount);
                 return;
@@ -1178,6 +1228,9 @@ public class NiFiClientUtil {
 
             Thread.sleep(10L);
         }
+
+        throw new IOException(String.format("Timed out waiting for Processor %s to reach state of %s. Last observed state=%s, physicalState=%s, activeThreadCount=%s, terminatedThreadCount=%s",
+                processorId, expectedState, lastObservedState, lastObservedPhysicalState, lastObservedActiveThreadCount, lastObservedTerminatedThreadCount));
     }
 
     public ReportingTaskEntity waitForReportingTaskState(final String reportingTaskId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {

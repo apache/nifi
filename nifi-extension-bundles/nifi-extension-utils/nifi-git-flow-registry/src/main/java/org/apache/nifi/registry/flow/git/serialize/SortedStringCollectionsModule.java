@@ -29,7 +29,7 @@ import java.util.Set;
 
 public class SortedStringCollectionsModule extends SimpleModule {
 
-    final Set<String> fieldsToSkipSorting = Set.of("inheritedParameterContexts");
+    final Set<String> fieldsToSkipSorting = Set.of("inheritedParameterContexts", "prioritizers");
 
     @Override
     public void setupModule(final SetupContext context) {

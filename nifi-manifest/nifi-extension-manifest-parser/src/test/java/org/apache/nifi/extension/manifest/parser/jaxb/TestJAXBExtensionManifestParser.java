@@ -29,7 +29,6 @@ import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.extension.manifest.ResourceType;
-import org.apache.nifi.extension.manifest.Restriction;
 import org.apache.nifi.extension.manifest.TransportProtocol;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,17 +81,6 @@ public class TestJAXBExtensionManifestParser {
 
         assertNotNull(putHdfsExtension.getProperties());
         assertEquals(15, putHdfsExtension.getProperties().size());
-
-        assertNull(putHdfsExtension.getRestricted().getGeneralRestrictionExplanation());
-
-        final List<Restriction> restrictions = putHdfsExtension.getRestricted().getRestrictions();
-        assertNotNull(restrictions);
-        assertEquals(1, restrictions.size());
-
-        final Restriction restriction = restrictions.stream().findFirst().orElse(null);
-        assertEquals("write filesystem", restriction.getRequiredPermission());
-        assertEquals("Provides operator the ability to delete any file that NiFi has access to in HDFS or\n" +
-                "                            the local filesystem.", restriction.getExplanation().trim());
     }
 
     @Test

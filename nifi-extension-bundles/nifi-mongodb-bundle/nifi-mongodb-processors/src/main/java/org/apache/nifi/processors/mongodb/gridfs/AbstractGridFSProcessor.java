@@ -81,12 +81,12 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
 
     static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
-        .description("When there is a failure processing the flowfile, it goes to this relationship.")
+        .description("When there is a failure processing the FlowFile, it goes to this relationship.")
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
-        .description("When the operation succeeds, the flowfile is sent to this relationship.")
+        .description("When the operation succeeds, the FlowFile is sent to this relationship.")
         .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(

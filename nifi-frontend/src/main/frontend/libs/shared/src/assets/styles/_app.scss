@@ -262,25 +262,15 @@
         min-height: 2.25rem;
     }
 
-    // mat-select mat-option ellipsis
-    .mat-mdc-option .mdc-list-item__primary-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap !important;
-    }
-
-    // markdown styles
-
-    .mat-typography.text-base markdown {
-        h1 {
-            margin: 0 0 16px;
-            line-height: 28px;
-            font-size: 20px;
-            font-weight: 700;
-        }
+    .mat-typography.text-base {
+        font-family: var(--mat-sys-body-medium-font);
+        line-height: var(--mat-sys-body-medium-line-height);
+        font-size: var(--mat-sys-body-medium-size);
+        font-weight: var(--mat-sys-body-medium-weight);
+        letter-spacing: normal;
 
         h2 {
-            margin: 0 0 16px;
+            margin: unset;
             line-height: 28px;
             font-size: 18px;
             font-weight: 700;
@@ -289,8 +279,8 @@
         h3 {
             margin: 0 0 16px;
             line-height: 28px;
-            font-size: 18px;
-            font-weight: 400;
+            font-size: 20px;
+            font-weight: 700;
         }
 
         h4 {
@@ -300,17 +290,115 @@
             font-weight: 400;
         }
 
-        h5 {
+        a {
+            letter-spacing: normal;
+        }
+
+        .mdc-text-field--outlined .mdc-floating-label {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-select {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-option {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-form-field {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-tree-node,
+        .mat-nested-tree-node {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-header-cell {
+            font-weight: 700;
+        }
+
+        .mat-expansion-panel-header {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+            font-weight: 700;
+        }
+
+        .mat-expansion-panel-content {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: 20px;
+        }
+
+        .mat-mdc-menu-content,
+        .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
+            --mat-menu-item-label-text-weight: var(--mat-sys-body-medium-weight);
+        }
+
+        .mdc-list-item__primary-text {
+            font-size: var(--mat-sys-body-medium-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-drawer {
+            color: var(--mat-app-text-color);
+        }
+    }
+
+    // markdown styles
+    .mat-typography.text-base markdown {
+        h1 {
+            margin: 16px 0;
+            line-height: 28px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        h2 {
+            margin: 16px 0;
+            line-height: 28px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        h3 {
+            margin: 16px 0;
+            line-height: 28px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        h4 {
             margin: unset;
             line-height: 20px;
             font-size: 14px;
+            font-weight: 600;
+        }
+
+        h5 {
+            margin: unset;
+            line-height: 20px;
+            font-size: 12px;
             font-weight: 400;
         }
 
         h6 {
             margin: unset;
             line-height: 12px;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 400;
         }
 
@@ -322,6 +410,10 @@
         ol {
             list-style: auto outside;
             margin: 1em;
+        }
+
+        p {
+            margin: 8px 0;
         }
 
         table {
@@ -358,7 +450,6 @@
             ul {
                 list-style-type: disc;
                 list-style-position: inside;
-
                 text-wrap: wrap;
                 word-break: break-all;
             }
@@ -514,116 +605,6 @@
         }
     }
 
-    .mat-typography.text-base {
-        font-family: var(--mat-sys-body-medium-font);
-        line-height: var(--mat-sys-body-medium-line-height);
-        font-size: var(--mat-sys-body-medium-size);
-        font-weight: var(--mat-sys-body-medium-weight);
-        letter-spacing: normal;
-
-        h2 {
-            margin: unset;
-            line-height: 28px;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        h3 {
-            margin: 0 0 16px;
-            line-height: 28px;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        h4 {
-            margin: unset;
-            line-height: 20px;
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        a {
-            letter-spacing: normal;
-        }
-
-        .mdc-text-field--outlined .mdc-floating-label {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-select {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-card-title {
-            font-size: 18px;
-            letter-spacing: normal;
-            line-height: 28px;
-            font-weight: 700;
-        }
-
-        .mat-mdc-card-subtitle {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: 20px;
-            font-weight: 400;
-        }
-
-        .mat-mdc-option {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-form-field {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-tree-node,
-        .mat-nested-tree-node {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-mdc-header-cell {
-            font-weight: 700;
-        }
-
-        .mat-expansion-panel-header {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-            font-weight: 700;
-        }
-
-        .mat-expansion-panel-content {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: 20px;
-        }
-
-        .mat-mdc-menu-content,
-        .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
-            --mat-menu-item-label-text-weight: var(--mat-sys-body-medium-weight);
-        }
-
-        .mdc-list-item__primary-text {
-            font-size: var(--mat-sys-body-medium-size);
-            letter-spacing: normal;
-            line-height: normal;
-        }
-
-        .mat-drawer {
-            color: var(--mat-app-text-color);
-        }
-    }
-
     .mat-datepicker-content {
         box-shadow:
             0px 2px 4px -1px rgba(0, 0, 0, 0.2),
@@ -665,4 +646,156 @@
     .markdown-clipboard-toolbar.hover {
         opacity: 1;
     }
+
+    .searchable-overlay {
+        .mat-mdc-form-field {
+            width: 100%;
+        }
+
+        .search-filter {
+            .mdc-text-field--focused {
+                outline: none;
+                border-radius: 6px;
+                border-color: var(--mat-sys-primary);
+            }
+
+            @include mat.form-field-overrides(
+                (
+                    outlined-container-shape: 6px
+                )
+            );
+
+            button.primary-icon-button {
+                @include mat.icon-button-overrides(
+                    (
+                        state-layer-size: 16px,
+                        icon-size: 10px
+                    )
+                );
+            }
+
+            .fa {
+                display: flex;
+                justify-content: center;
+                color: inherit;
+            }
+        }
+
+        &.mat-mdc-select-panel,
+        .mat-mdc-menu-content {
+            padding: 0 0 8px 0;
+        }
+    }
+
+    //form-field
+    .mat-mdc-form-field-icon-prefix {
+        .fa {
+            font-size: 16px;
+            color: var(--themed-reusable-text-primary);
+            padding: 0 4px 0 0;
+        }
+    }
+
+    .mdc-text-field--outlined,
+    .mat-mdc-form-field-has-icon-prefix .mat-mdc-text-field-wrapper {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    // mat-select
+    @include mat.select-overrides(
+        (
+            trigger-text-size: var(--mat-sys-body-medium-size),
+            trigger-text-line-height: 16px,
+            trigger-text-tracking: normal
+        )
+    );
+
+    // mat-select panel appearance
+    .mat-mdc-select-panel {
+        margin-top: 8px;
+        border-color: var(--mat-sys-outline);
+        border-width: 1px;
+        border-top-left-radius: 6px !important;
+        border-top-right-radius: 6px !important;
+        border-bottom-left-radius: 6px;
+        border-bottom-right-radius: 6px;
+    }
+
+    // mat-option
+    .mat-mdc-option[disabled] {
+        color: var(--mat-sys-on-surface-variant);
+        opacity: 1;
+    }
+
+    // mat-select mat-option sizing, alignment, typography
+    .mat-mdc-option {
+        min-height: 32px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        padding-left: 12px;
+        padding-right: 12px;
+        font-weight: 400;
+
+        .mdc-list-item__primary-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap !important;
+            font-weight: 500;
+            color: inherit;
+        }
+
+        .fa {
+            font-size: 16px;
+            min-width: 16px;
+            flex: 0 0 16px;
+            color: inherit;
+            margin-right: 4px;
+        }
+    }
+
+    /* progress-bar status overrides */
+
+    .progress-bar-success {
+        @include mat.progress-bar-overrides(
+            (
+                active-indicator-color: var(--nf-success-default)
+            )
+        );
+    }
+
+    .progress-bar-caution {
+        @include mat.progress-bar-overrides(
+            (
+                active-indicator-color: var(--nf-caution-default)
+            )
+        );
+    }
+
+    .progress-bar-error {
+        @include mat.progress-bar-overrides(
+            (
+                active-indicator-color: var(--mat-sys-error)
+            )
+        );
+    }
+
+    // buttons
+    .mdc-button:disabled {
+        pointer-events: auto;
+        cursor: not-allowed;
+    }
+
+    // mat-card
+    @include mat.card-overrides(
+        (
+            title-text-size: 16px,
+            title-text-line-height: 20px,
+            title-text-weight: 600,
+            subtitle-text-size: 14px,
+            subtitle-text-line-height: 20px,
+            subtitle-text-tracking: normal,
+            subtitle-text-weight: 400
+        )
+    );
 }

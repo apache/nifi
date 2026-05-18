@@ -276,7 +276,60 @@ class BitbucketRepositoryClientTest {
     }
 
     @Test
-    void testCreateContentDataCenterUnchanged() throws FlowRegistryException {
+    void testCreateContentDataCenterWithExpectedCommitSha() throws FlowRegistryException {
+        stubDataCenterGetAndPutChains();
+
+        final BitbucketRepositoryClient dcClient = buildDataCenterClient();
+        final GitCreateContentRequest request = createRequest(null, EXPECTED_FILE_COMMIT);
+        final String commitSha = dcClient.createContent(request);
+        assertEquals(RESULT_COMMIT_SHA, commitSha);
+    }
+
+    @Test
+    void testCreateContentDataCenterFallsBackToExistingContentSha() throws FlowRegistryException {
+        stubDataCenterGetAndPutChains();
+
+        final BitbucketRepositoryClient dcClient = buildDataCenterClient();
+        final GitCreateContentRequest request = createRequest("existing-content-sha", null);
+        final String commitSha = dcClient.createContent(request);
+        assertEquals(RESULT_COMMIT_SHA, commitSha);
+    }
+
+    @Test
+    void testCreateContentDataCenterPrefersExpectedCommitShaOverExistingContentSha() throws FlowRegistryException {
+        stubDataCenterGetAndPutChains();
+
+        final BitbucketRepositoryClient dcClient = buildDataCenterClient();
+        final GitCreateContentRequest request = createRequest("existing-content-sha", EXPECTED_FILE_COMMIT);
+        final String commitSha = dcClient.createContent(request);
+        assertEquals(RESULT_COMMIT_SHA, commitSha);
+    }
+
+    @Test
+    void testCreateContentDataCenterNoBothShas() throws FlowRegistryException {
+        stubDataCenterGetAndPutChains();
+
+        final BitbucketRepositoryClient dcClient = buildDataCenterClient();
+        final GitCreateContentRequest request = createRequest(null, null);
+        final String commitSha = dcClient.createContent(request);
+        assertEquals(RESULT_COMMIT_SHA, commitSha);
+    }
+
+    private BitbucketRepositoryClient buildDataCenterClient() throws FlowRegistryException {
+        return BitbucketRepositoryClient.builder()
+                .clientId("test-client")
+                .apiUrl("https://bitbucket.example.com")
+                .formFactor(BitbucketFormFactor.DATA_CENTER)
+                .authenticationType(BitbucketAuthenticationType.ACCESS_TOKEN)
+                .accessToken("test-token")
+                .projectKey("TEST")
+                .repoName("test-repo")
+                .webClient(webClientProvider)
+                .logger(logger)
+                .build();
+    }
+
+    private void stubDataCenterGetAndPutChains() {
         final HttpRequestUriSpec getSpec = mock(HttpRequestUriSpec.class);
         final HttpRequestBodySpec dcGetBody = mock(HttpRequestBodySpec.class);
         lenient().when(webClientService.get()).thenReturn(getSpec);
@@ -302,21 +355,5 @@ class BitbucketRepositoryClientTest {
         lenient().when(putAfterHeaders.header(anyString(), anyString())).thenReturn(putAfterHeaders);
         final HttpResponseEntity putResponse = mockResponse(HttpURLConnection.HTTP_OK, "{}");
         lenient().when(putAfterHeaders.retrieve()).thenReturn(putResponse);
-
-        final BitbucketRepositoryClient dcClient = BitbucketRepositoryClient.builder()
-                .clientId("test-client")
-                .apiUrl("https://bitbucket.example.com")
-                .formFactor(BitbucketFormFactor.DATA_CENTER)
-                .authenticationType(BitbucketAuthenticationType.ACCESS_TOKEN)
-                .accessToken("test-token")
-                .projectKey("TEST")
-                .repoName("test-repo")
-                .webClient(webClientProvider)
-                .logger(logger)
-                .build();
-
-        final GitCreateContentRequest request = createRequest(null, EXPECTED_FILE_COMMIT);
-        final String commitSha = dcClient.createContent(request);
-        assertEquals(RESULT_COMMIT_SHA, commitSha);
     }
 }

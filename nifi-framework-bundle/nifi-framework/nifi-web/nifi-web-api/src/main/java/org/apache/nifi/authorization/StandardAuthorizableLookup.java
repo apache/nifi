@@ -17,7 +17,6 @@
 package org.apache.nifi.authorization;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
@@ -26,14 +25,13 @@ import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.authorization.resource.VersionedComponentAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
@@ -78,9 +76,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
@@ -124,6 +124,58 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
+    /**
+     * Matches persisted policy resource identifiers for legacy restricted-components (including former per-permission suffixes).
+     */
+    private static final Pattern LEGACY_RESTRICTED_COMPONENTS_RESOURCE_PATTERN = Pattern.compile("^/restricted-components(/.*)?$");
+
+    private static final Resource LEGACY_RESTRICTED_COMPONENTS_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return "/restricted-components";
+        }
+
+        @Override
+        public String getName() {
+            return "Restricted Components (legacy)";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "legacy restricted components policy";
+        }
+    };
+
+    /**
+     * Authorizable for legacy {@code /restricted-components} policies after {@code ResourceType.RestrictedComponents} removal.
+     * Always approves authorization checks so existing policies do not break resolution.
+     */
+    private static final Authorizable LEGACY_RESTRICTED_COMPONENTS_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return LEGACY_RESTRICTED_COMPONENTS_RESOURCE;
+        }
+
+        @Override
+        public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+            if (user == null) {
+                return AuthorizationResult.denied("Unknown user.");
+            }
+            return AuthorizationResult.approved();
+        }
+
+        @Override
+        public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+            if (user == null) {
+                throw new AccessDeniedException("Unknown user.");
+            }
+        }
+    };
 
     private static final Authorizable RESOURCE_AUTHORIZABLE = new Authorizable() {
         @Override
@@ -567,6 +619,10 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public Authorizable getAuthorizableFromResource(final String resource) {
+        if (LEGACY_RESTRICTED_COMPONENTS_RESOURCE_PATTERN.matcher(resource).matches()) {
+            return LEGACY_RESTRICTED_COMPONENTS_AUTHORIZABLE;
+        }
+
         // parse the resource type
         final ResourceType resourceType = ResourceType.fromRawValue(resource);
         if (resourceType == null) {
@@ -598,21 +654,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                     final String componentId = StringUtils.substringAfter(resource, nestedResourceType.getValue()).substring(1);
                     return getAccessPolicyByResource(nestedResourceType, componentId);
                 }
-            case RestrictedComponents:
-                final String slashRequiredPermission = StringUtils.substringAfter(resource, resourceType.getValue());
-
-                if (slashRequiredPermission.startsWith("/")) {
-                    final RequiredPermission requiredPermission = RequiredPermission.valueOfPermissionIdentifier(slashRequiredPermission.substring(1));
-
-                    if (requiredPermission == null) {
-                        throw new ResourceNotFoundException("Unrecognized resource: " + resource);
-                    }
-
-                    return getRestrictedComponents(requiredPermission);
-                } else {
-                    return getRestrictedComponents();
-                }
-
             default:
                 return getAccessPolicy(resourceType, resource);
         }
@@ -620,7 +661,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public Authorizable getConnector(final String connectorId) {
-        return connectorDAO.getConnector(connectorId);
+        return connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
     }
 
     private Authorizable handleResourceTypeContainingOtherResourceType(final String resource, final ResourceType resourceType) {
@@ -819,16 +860,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getRestrictedComponents() {
-        return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable();
-    }
-
-    @Override
-    public Authorizable getRestrictedComponents(final RequiredPermission requiredPermission) {
-        return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(requiredPermission);
-    }
-
-    @Override
     public Authorizable getSystem() {
         return SYSTEM_AUTHORIZABLE;
     }
@@ -882,16 +913,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public boolean isRestricted() {
-            return configurableComponent.getClass().isAnnotationPresent(Restricted.class);
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(configurableComponent.getClass());
-        }
-
-        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return null;
         }
@@ -940,16 +961,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public boolean isRestricted() {
-            return processorNode.isRestricted();
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(processorNode.getComponentClass());
-        }
-
-        @Override
         public ParameterContext getParameterContext() {
             return processorNode.getProcessGroup().getParameterContext();
         }
@@ -995,16 +1006,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Authorizable getAuthorizable() {
             return controllerServiceNode;
-        }
-
-        @Override
-        public boolean isRestricted() {
-            return controllerServiceNode.isRestricted();
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(controllerServiceNode.getComponentClass());
         }
 
         @Override
@@ -1057,16 +1058,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public boolean isRestricted() {
-            return reportingTaskNode.isRestricted();
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(reportingTaskNode.getComponentClass());
-        }
-
-        @Override
         public ParameterContext getParameterContext() {
             return null;
         }
@@ -1112,16 +1103,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Authorizable getAuthorizable() {
             return flowAnalysisRuleNode;
-        }
-
-        @Override
-        public boolean isRestricted() {
-            return flowAnalysisRuleNode.isRestricted();
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(flowAnalysisRuleNode.getComponentClass());
         }
 
         @Override
@@ -1173,16 +1154,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public boolean isRestricted() {
-            return parameterProviderNode.isRestricted();
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(parameterProviderNode.getComponentClass());
-        }
-
-        @Override
         public ParameterContext getParameterContext() {
             return null;
         }
@@ -1228,16 +1199,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Authorizable getAuthorizable() {
             return flowRegistryClientNode;
-        }
-
-        @Override
-        public boolean isRestricted() {
-            return flowRegistryClientNode.isRestricted();
-        }
-
-        @Override
-        public Set<Authorizable> getRestrictedAuthorizables() {
-            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(flowRegistryClientNode.getComponentClass());
         }
 
         @Override

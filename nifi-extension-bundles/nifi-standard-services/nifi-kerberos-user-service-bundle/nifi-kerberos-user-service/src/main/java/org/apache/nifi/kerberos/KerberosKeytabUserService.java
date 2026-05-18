@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.kerberos;
 
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -37,9 +34,7 @@ import java.util.List;
         + "(as opposed to specifying the principal and keytab directly in the processor) an administrator is able to choose which users are allowed to "
         + "use which keytabs and principals. This provides a more robust security model for multi-tenant use cases.")
 @Tags({"Kerberos", "Keytab", "Principal", "Credentials", "Authentication", "Security"})
-@Restricted(restrictions = {
-        @Restriction(requiredPermission = RequiredPermission.ACCESS_KEYTAB, explanation = "Allows user to define a Keytab and principal that can then be used by other components.")
-})
+
 public class KerberosKeytabUserService extends AbstractKerberosUserService implements SelfContainedKerberosUserService {
 
     static final PropertyDescriptor KEYTAB = new PropertyDescriptor.Builder()

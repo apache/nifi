@@ -188,11 +188,55 @@ class ConfigVerificationResultMergerTest {
         assertEquals("OK", results.get(0).getExplanation());
     }
 
+    @Test
+    void testSingleNodeSubjectPreserved() {
+        final ConfigVerificationResultMerger merger = new ConfigVerificationResultMerger();
+        merger.addNodeResults(NODE_1, List.of(createResult("Step 1", Outcome.FAILED, "Connection refused", "Hostname")));
+
+        final List<ConfigVerificationResultDTO> results = merger.computeAggregateResults();
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals("Hostname", results.get(0).getSubject());
+    }
+
+    @Test
+    void testMultiNodeAgreeSubjectPreserved() {
+        final ConfigVerificationResultMerger merger = new ConfigVerificationResultMerger();
+        merger.addNodeResults(NODE_1, List.of(createResult("Step 1", Outcome.SUCCESSFUL, "Connected", "Hostname")));
+        merger.addNodeResults(NODE_2, List.of(createResult("Step 1", Outcome.SUCCESSFUL, "Connected", "Hostname")));
+
+        final List<ConfigVerificationResultDTO> results = merger.computeAggregateResults();
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals("Hostname", results.get(0).getSubject());
+    }
+
+    @Test
+    void testMultiNodeDisagreeSubjectFromSelectedResult() {
+        final ConfigVerificationResultMerger merger = new ConfigVerificationResultMerger();
+        merger.addNodeResults(NODE_1, List.of(createResult("Step 1", Outcome.SUCCESSFUL, "Connected", "Hostname")));
+        merger.addNodeResults(NODE_2, List.of(createResult("Step 1", Outcome.FAILED, "Connection refused", "Port")));
+
+        final List<ConfigVerificationResultDTO> results = merger.computeAggregateResults();
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(Outcome.FAILED.name(), results.get(0).getOutcome());
+        assertEquals("Port", results.get(0).getSubject());
+    }
+
     private static ConfigVerificationResultDTO createResult(final String stepName, final Outcome outcome, final String explanation) {
+        return createResult(stepName, outcome, explanation, null);
+    }
+
+    private static ConfigVerificationResultDTO createResult(final String stepName, final Outcome outcome, final String explanation, final String subject) {
         final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
         dto.setVerificationStepName(stepName);
         dto.setOutcome(outcome.name());
         dto.setExplanation(explanation);
+        dto.setSubject(subject);
         return dto;
     }
 }

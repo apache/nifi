@@ -20,8 +20,6 @@ import groovy.lang.GroovyShell;
 import groovy.lang.Script;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,7 +29,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -75,20 +72,14 @@ import java.util.Set;
         Script validation includes a timeout of 5 minutes to avoid potential issues with dynamic dependency resolution.
         """
 )
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.EXECUTE_CODE,
-                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
-        }
-)
+
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso(classNames = {"org.apache.nifi.processors.script.ExecuteScript"})
 @SupportsSensitiveDynamicProperties
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
-        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value. "
                 + "Use `CTL.` to access any controller services, `SQL.` to access any DBCPServices, `RecordReader.` to access RecordReaderFactory instances, or "
                 + "`RecordWriter.` to access any RecordSetWriterFactory instances.")
@@ -450,10 +441,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(processSession, toFailureOnError);
+        FlowFile flowFile = null;
         if (toFailureOnError) {
             // FlowFile must be read otherwise if there is a failure before the script is executed, a
             // never ending loop occurs since the GroovyProcessSessionWrap has nothing to send to the failure relationship.
-            FlowFile flowFile = session.get();
+            flowFile = session.get();
             if (flowFile == null) {
                 return;
             }
@@ -466,7 +458,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
         try {
             Script script = getGroovyScript(); //compilation must be moved to validation
-            Map bindings = script.getBinding().getVariables();
+            Map<String, Object> bindings = script.getBinding().getVariables();
 
             bindings.clear();
             Map<String, String> attributes = new HashMap<>();
@@ -510,6 +502,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             bindings.put("RecordReader", recordReader);
             bindings.put("RecordWriter", recordSetWriter);
 
+            // Must perform rollback to allow the script access to the FlowFile.
+            if (flowFile != null) {
+                session.rollback();
+            }
+
             script.run();
             bindings.clear();
 
@@ -519,6 +516,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             getLogger().error(t.toString(), t);
             onFailSQL(sql);
             if (toFailureOnError) {
+                // FlowFile must be retrieved in order send to the failure relationship as it may not have been retrieved in the script.
+                session.get();
                 //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
                 session.revertReceivedTo(REL_FAILURE, StackTraceUtils.deepSanitize(t));
             } else {
@@ -590,7 +589,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     /** simple HashMap with exception on access of non-existent key */
     private static class AccessMap extends HashMap<String, Object> {
-        private String parentKey;
+        private final String parentKey;
         AccessMap(String parentKey) {
             this.parentKey = parentKey;
         }

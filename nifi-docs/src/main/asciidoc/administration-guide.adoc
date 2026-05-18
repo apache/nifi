@@ -2875,8 +2875,8 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.authorizer.configuration.file`*|This is the location of the file that specifies how authorizers are defined.  The default value is `./conf/authorizers.xml`.
 |`nifi.login.identity.provider.configuration.file`*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only considered if `nifi.security.user.login.identity.provider` is configured with a provider identifier. The default value is `./conf/login-identity-providers.xml`.
-|`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is.
 |`nifi.restore.directory`|The location that certain providers (e.g. UserGroupProviders) will look for previous configurations to restore from. There is no default value.
+|`nifi.nar.library.directory`|The location of the nar library. The default value is `./lib` and probably should be left as is. +
  +
 *NOTE*: Additional library directories can be specified by using the `nifi.nar.library.directory.` prefix with unique suffixes and separate paths as values. +
  +
@@ -3029,6 +3029,7 @@ For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` 
 |`nifi.content.repository.archive.enabled`|To enable content archiving, set this to `true` and specify a value for the `nifi.content.repository.archive.max.usage.percentage` property above. Content archiving enables the provenance UI to view or replay content that is no longer in a dataflow queue. By default, archiving is enabled.
 |`nifi.content.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.content.repository.archive.cleanup.frequency`| The frequency with which to schedule the content archive clean up task. The default value is `1 Minute`. A value lower than `1 Second` is not allowed.
+|`nifi.content.claim.truncation.enabled`|When a Content Repository file is shared by many FlowFiles (see `nifi.content.claim.max.appendable.size`), the file cannot be deleted until every FlowFile that references it has been removed. If the last FlowFile written to such a file is itself large and is removed while earlier FlowFiles in the same file are still in use, NiFi can truncate the file at the offset where that final FlowFile began, reclaiming the disk space it occupied without touching any of the earlier FlowFiles. Truncation only ever applies to this trailing FlowFile; it is not a general defragmentation mechanism and does not reclaim space from FlowFiles in the middle of the file. When `nifi.content.repository.archive.enabled` is `false`, truncation runs whenever a trailing FlowFile becomes eligible. When archiving is enabled, truncation runs only while the container is under archive disk pressure (see `nifi.content.repository.archive.max.usage.percentage`), so that archiving handles reclamation under normal conditions and truncation supplements it when the archive cannot keep up. Set this property to `false` to disable tail-claim truncation entirely; doing so is always safe and simply forfeits this disk-reclamation optimization. The default value is `true`.
 |====
 
 === Provenance Repository
@@ -4064,17 +4065,13 @@ Restart NiFi and the custom processor should now be available when adding a new 
 
 This section describes the process to use the Autoloading feature for custom processors.
 
-To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`.
+To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`. Prior to starting NiFi, ensure that this directory exists and has appropriate permissions for the nifi user and group.
 
 For example:
 
    nifi.nar.library.autoload.directory=./extensions
 
-Ensure that this directory exists and has appropriate permissions for the nifi user and group.
-
-Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/extensions`.
-
-Ensure that the file has appropriate permissions for the nifi user and group.
+Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/extensions`. Prior to copying a nar to the autoload directory, ensure that the file has appropriate permissions for the nifi user and group.
 
 Refresh the browser page and the custom processor should now be available when adding a new Processor to your flow.
 

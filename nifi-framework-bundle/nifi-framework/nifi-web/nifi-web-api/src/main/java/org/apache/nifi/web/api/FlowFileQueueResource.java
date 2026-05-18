@@ -66,7 +66,7 @@ import org.springframework.stereotype.Controller;
 import java.net.URI;
 
 /**
- * RESTful endpoint for managing a flowfile queue.
+ * RESTful endpoint for managing a FlowFile queue.
  */
 @Controller
 @Path("/flowfile-queues")
@@ -77,17 +77,17 @@ public class FlowFileQueueResource extends ApplicationResource {
     private Authorizer authorizer;
 
     /**
-     * Populate the URIs for the specified flowfile listing.
+     * Populate the URIs for the specified FlowFile listing.
      *
      * @param connectionId connection
-     * @param flowFileListing flowfile listing
+     * @param flowFileListing FlowFile listing
      * @return dto
      */
     public ListingRequestDTO populateRemainingFlowFileListingContent(final String connectionId, final ListingRequestDTO flowFileListing) {
         // uri of the listing
         flowFileListing.setUri(generateResourceUri("flowfile-queues", connectionId, "listing-requests", flowFileListing.getId()));
 
-        // uri of each flowfile
+        // uri of each FlowFile
         if (flowFileListing.getFlowFileSummaries() != null) {
             for (final FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
                 populateRemainingFlowFileContent(connectionId, flowFile);
@@ -97,10 +97,10 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     /**
-     * Populate the URIs for the specified flowfile.
+     * Populate the URIs for the specified FlowFile.
      *
      * @param connectionId the connection id
-     * @param flowFile the flowfile
+     * @param flowFile the FlowFile
      * @return the dto
      */
     public FlowFileSummaryDTO populateRemainingFlowFileContent(final String connectionId, final FlowFileSummaryDTO flowFile) {
@@ -109,11 +109,11 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     /**
-     * Gets the specified flowfile from the specified connection.
+     * Gets the specified FlowFile from the specified connection.
      *
      * @param connectionId The connection id
-     * @param flowFileUuid The flowfile uuid
-     * @param clusterNodeId The cluster node id where the flowfile resides
+     * @param flowFileUuid The FlowFile uuid
+     * @param clusterNodeId The cluster node id where the FlowFile resides
      * @return a flowFileDTO
      * @throws InterruptedException if interrupted
      */
@@ -142,7 +142,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("id") final String connectionId,
             @Parameter(
-                    description = "The flowfile uuid.",
+                    description = "The FlowFile uuid.",
                     required = true
             )
             @PathParam("flowfile-uuid") final String flowFileUuid,
@@ -167,9 +167,9 @@ public class FlowFileQueueResource extends ApplicationResource {
             }
         }
 
-        // NOTE - deferred authorization so we can consider flowfile attributes in the access decision
+        // NOTE - deferred authorization so we can consider FlowFile attributes in the access decision
 
-        // get the flowfile
+        // get the FlowFile
         final FlowFileDTO flowfileDto = serviceFacade.getFlowFile(connectionId, flowFileUuid);
         populateRemainingFlowFileContent(connectionId, flowfileDto);
 
@@ -181,11 +181,11 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     /**
-     * Gets the content for the specified flowfile in the specified connection.
+     * Gets the content for the specified FlowFile in the specified connection.
      *
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
-     * @param flowFileUuid The flowfile uuid
+     * @param flowFileUuid The FlowFile uuid
      * @param clusterNodeId The cluster node id
      * @return The content stream
      */
@@ -224,7 +224,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             )
             @PathParam("id") final String connectionId,
             @Parameter(
-                    description = "The flowfile uuid.",
+                    description = "The FlowFile uuid.",
                     required = true
             )
             @PathParam("flowfile-uuid") final String flowFileUuid,
@@ -249,7 +249,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             }
         }
 
-        // NOTE - deferred authorization so we can consider flowfile attributes in the access decision
+        // NOTE - deferred authorization so we can consider FlowFile attributes in the access decision
 
         // get the uri of the request
         final String uri = generateResourceUri("flowfile-queues", connectionId, "flowfiles", flowFileUuid, "content");

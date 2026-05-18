@@ -28,10 +28,10 @@
             <!-- Node Column -->
             <ng-container matColumnDef="node">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Node</div>
+                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Node</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatNode(item)">
-                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">{{ formatNode(item) }}</div>
+                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">{{ formatNode(item) }}</div>
                 </td>
             </ng-container>
 
@@ -39,7 +39,7 @@
             <ng-container matColumnDef="transferred">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
                     <div
-                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1"
+                        class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1"
                         title="Count / data size transferred to and from connections in the last 5 min">
                         <span
                             [ngClass]="{
@@ -64,7 +64,7 @@
             <!-- Input column -->
             <ng-container matColumnDef="in">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Count / data size in the last 5 minutes">
-                    <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                         <span [ngClass]="{ underline: multiSort.active === 'in' && multiSort.sortValueIndex === 0 }"
                             >In</span
                         >
@@ -82,7 +82,7 @@
             <!-- Read Write column -->
             <ng-container matColumnDef="readWrite">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Data size in the last 5 minutes">
-                    <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                         <span
                             [ngClass]="{
                                 underline: multiSort.active === 'readWrite' && multiSort.sortValueIndex === 0
@@ -107,7 +107,7 @@
             <!-- Output column -->
             <ng-container matColumnDef="out">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Count / data size in the last 5 minutes">
-                    <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                         <span [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0 }"
                             >Out</span
                         >
@@ -125,7 +125,7 @@
             <!-- Sent column -->
             <ng-container matColumnDef="sent">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Count / data size in the last 5 minutes">
-                    <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                         <span [ngClass]="{ underline: multiSort.active === 'sent' && multiSort.sortValueIndex === 0 }"
                             >Sent</span
                         >
@@ -143,7 +143,7 @@
             <!-- Received column -->
             <ng-container matColumnDef="received">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Count / data size in the last 5 minutes">
-                    <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                         <span
                             [ngClass]="{ underline: multiSort.active === 'received' && multiSort.sortValueIndex === 0 }"
                             >Received</span

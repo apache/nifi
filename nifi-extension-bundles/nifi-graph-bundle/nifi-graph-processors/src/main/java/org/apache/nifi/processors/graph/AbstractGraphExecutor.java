@@ -57,7 +57,7 @@ abstract class AbstractGraphExecutor extends AbstractProcessor {
             .description("Failed FlowFiles are routed to this relationship").build();
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
-            .description("If there is an input flowfile, the original input flowfile will be " +
+            .description("If there is an input FlowFile, the original input FlowFile will be " +
                     "written to this relationship if the operation succeeds.")
             .build();
 

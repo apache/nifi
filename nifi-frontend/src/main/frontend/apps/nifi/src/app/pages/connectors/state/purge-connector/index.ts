@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DropRequestEntity } from '../../../flow-designer/state/queue';
+import { DropRequestEntity } from '../../../../state/empty-queue';
 import { ConnectorEntity } from '@nifi/shared';
 
 export const purgeConnectorFeatureKey = 'purgeConnector';

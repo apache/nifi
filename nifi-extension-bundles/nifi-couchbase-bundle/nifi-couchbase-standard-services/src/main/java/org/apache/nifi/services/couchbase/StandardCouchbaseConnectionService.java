@@ -32,7 +32,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -75,7 +75,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("Service supporting SSL communication configuration. The service is using one-way SSL, so only the trust store properties will be used")
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor PERSISTENCE_STRATEGY = new PropertyDescriptor.Builder()
@@ -110,11 +110,11 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
 
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         ClusterOptions clusterOptions = ClusterOptions.clusterOptions(username, password);
 
-        if (sslContextService != null && sslContextService.isTrustStoreConfigured()) {
-            final List<X509Certificate> certificates = Arrays.asList(sslContextService.createTrustManager().getAcceptedIssuers());
+        if (sslContextProvider != null) {
+            final List<X509Certificate> certificates = Arrays.asList(sslContextProvider.createTrustManager().getAcceptedIssuers());
 
             final ClusterEnvironment environment = ClusterEnvironment.builder()
                     .securityConfig(security -> security

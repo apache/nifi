@@ -89,11 +89,6 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
     }
 
     @Override
-    public boolean isRestricted() {
-        return false;
-    }
-
-    @Override
     public boolean isDeprecated() {
         return false;
     }

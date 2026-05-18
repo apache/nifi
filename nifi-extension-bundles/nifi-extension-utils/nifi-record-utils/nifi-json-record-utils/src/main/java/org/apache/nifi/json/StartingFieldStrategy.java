@@ -25,7 +25,7 @@ public enum StartingFieldStrategy implements DescribedValue {
     ),
     NESTED_FIELD(
             "Nested Field",
-            "Skips forward to the given nested JSON field (array or object) to begin processing."
+            "Skips forward to the given nested field (array or object) to begin processing."
     );
 
     private final String displayName;

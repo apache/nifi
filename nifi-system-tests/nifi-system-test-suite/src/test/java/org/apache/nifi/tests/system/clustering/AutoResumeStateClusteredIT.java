@@ -33,6 +33,16 @@ public class AutoResumeStateClusteredIT extends NiFiSystemIT {
         return createTwoNodeInstanceFactory();
     }
 
+    @Override
+    protected boolean isDestroyEnvironmentAfterEachTest() {
+        return true;
+    }
+
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        return false;
+    }
+
     @Test
     public void testRestartWithAutoResumeStateFalse() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");

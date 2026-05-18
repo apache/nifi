@@ -1501,11 +1501,23 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             throw new IllegalArgumentException("Must supply at least one FlowFile to migrate");
         }
 
-        if (!(newOwner instanceof StandardProcessSession)) {
+        // Look through any framework-internal Session wrappers (such as the one used to keep an
+        // ActiveProcessSessionFactory reachable for the offload/terminate path) so the underlying
+        // StandardProcessSession can be located.
+        ProcessSession resolvedOwner = newOwner;
+        while (resolvedOwner instanceof DelegatingProcessSession delegating) {
+            resolvedOwner = delegating.getDelegate();
+        }
+
+        if (!(resolvedOwner instanceof StandardProcessSession standardOwner)) {
             throw new IllegalArgumentException("Cannot migrate from a StandardProcessSession to a " + newOwner.getClass());
         }
 
-        migrate((StandardProcessSession) newOwner, flowFiles);
+        if (standardOwner == this) {
+            throw new IllegalArgumentException("Cannot migrate FlowFiles from a Process Session to itself");
+        }
+
+        migrate(standardOwner, flowFiles);
     }
 
     private synchronized void migrate(final StandardProcessSession newOwner, Collection<FlowFile> flowFiles) {
@@ -2057,8 +2069,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         attrs.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
         attrs.put(CoreAttributes.UUID.key(), uuid);
 
-        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
+        final long entryDate = System.currentTimeMillis();
+        final long id = context.getNextFlowFileSequence();
+        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(id)
             .addAttributes(attrs)
+            // Set Lineage Start to Entry Date and use Identifier as Lineage Start Index for unambiguous ordering
+            .entryDate(entryDate)
+            .lineageStart(entryDate, id)
             .build();
         final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(fFile, attrs, false);
@@ -3009,6 +3026,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
             ensureNotAppending(newClaim);
 
+            // Build an OutputStream that we can return to the caller. Note that the returned OutputStream is wrapped with multiple layers
+            // of OutputStream, each with its own purpose. This layering is important for driving the capabilities that are necessary at the
+            // framework level. For example, we intercept flushes and closes to ensure that the framework is able to efficiently manage what
+            // gets written to the Content Repository and manage the full lifecycle of the Content Repository's OutputStream. When the
+            // ProcessSession is committed or rolled back, we ensure that the underlying streams are closed and flushed appropriately.
             final OutputStream rawStream = claimCache.write(newClaim);
             final OutputStream nonFlushable = new NonFlushableOutputStream(rawStream);
             final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable);
@@ -3146,6 +3168,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
 
             ensureNotAppending(newClaim);
+
+            // Build an OutputStream that we can return to the caller. Note that the returned OutputStream is wrapped with multiple layers
+            // of OutputStream, each with its own purpose. This layering is important for driving the capabilities that are necessary at the
+            // framework level. For example, we intercept flushes and closes to ensure that the framework is able to efficiently manage what
+            // gets written to the Content Repository and manage the full lifecycle of the Content Repository's OutputStream. When the
+            // ProcessSession is committed or rolled back, we ensure that the underlying streams are closed and flushed appropriately.
             try (final OutputStream stream = claimCache.write(newClaim);
                 final NonFlushableOutputStream nonFlushableOutputStream = new NonFlushableOutputStream(stream);
                 final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushableOutputStream);
@@ -3433,6 +3461,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 claimCache.flush(currClaim.getResourceClaim());
             }
 
+            // Build a InputStream and OutputStream that we can return to the caller. Note that the returned streams are wrapped with multiple layers,
+            // each with its own purpose. This layering is important for driving the capabilities that are necessary at the
+            // framework level. For example, we intercept flushes and closes to ensure that the framework is able to efficiently manage what
+            // gets written to the Content Repository and manage the full lifecycle of the Content Repository's OutputStream. When the
+            // ProcessSession is committed or rolled back, we ensure that the underlying streams are closed and flushed appropriately.
             try (final InputStream is = getInputStream(source, currClaim, record.getCurrentClaimOffset(), true);
                 final InputStream limitedIn = new LimitedInputStream(is, source.getSize());
                 final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
@@ -3718,13 +3751,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         if (missingClaim == registeredClaim) {
             suspectRecord.markForAbort();
+            LOG.warn("Unable to find content for {}; dropping FlowFile", suspectRecord.getCurrent(), nfe);
             rollback();
-            throw new MissingFlowFileException("Unable to find content for FlowFile", nfe);
+            throw new MissingFlowFileException("Unable to find content for " + suspectRecord.getCurrent() + "; dropping FlowFile", nfe);
         }
 
         if (missingClaim == transientClaim) {
             rollback();
-            throw new MissingFlowFileException("Unable to find content for FlowFile", nfe);
+            throw new MissingFlowFileException("Unable to find in-flight content for " + suspectRecord.getCurrent() + "; rolling back", nfe);
         }
     }
 

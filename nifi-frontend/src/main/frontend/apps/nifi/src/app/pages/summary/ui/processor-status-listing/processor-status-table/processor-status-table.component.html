@@ -42,7 +42,7 @@
                             <!-- Name Column -->
                             <ng-container matColumnDef="name">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                                     <div class="flex align-middle">
@@ -53,7 +53,7 @@
                                                 P
                                             </div>
                                         }
-                                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                        <div class="flex-1 text-ellipsis overflow-hidden whitespace-nowrap">
                                             {{ formatName(item) }}
                                         </div>
                                     </div>
@@ -63,10 +63,10 @@
                             <!-- Type column -->
                             <ng-container matColumnDef="type">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Type</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatType(item)">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">
                                         {{ formatType(item) }}
                                     </div>
                                 </td>
@@ -75,7 +75,7 @@
                             <!-- Process Group column -->
                             <ng-container matColumnDef="processGroup">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Process Group</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Process Group</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatProcessGroup(item)">
                                     {{ formatProcessGroup(item) }}
@@ -112,8 +112,7 @@
                                     *matHeaderCellDef
                                     mat-sort-header
                                     title="Count / data size in the last 5 minutes">
-                                    <div
-                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                                         <span
                                             [ngClass]="{
                                                 underline: multiSort.active === 'in' && multiSort.sortValueIndex === 0
@@ -141,8 +140,7 @@
                                     *matHeaderCellDef
                                     mat-sort-header
                                     title="Data size in the last 5 minutes">
-                                    <div
-                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                                         <span
                                             [ngClass]="{
                                                 underline:
@@ -173,8 +171,7 @@
                                     *matHeaderCellDef
                                     mat-sort-header
                                     title="Count / data size in the last 5 minutes">
-                                    <div
-                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                                         <span
                                             [ngClass]="{
                                                 underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0
@@ -202,8 +199,7 @@
                                     *matHeaderCellDef
                                     mat-sort-header
                                     title="Count / duration in the last 5 minutes">
-                                    <div
-                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                    <div class="inline-block overflow-hidden text-ellipsis whitespace-nowrap space-x-1">
                                         <span
                                             [ngClass]="{
                                                 underline:

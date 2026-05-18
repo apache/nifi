@@ -56,10 +56,10 @@ import java.util.stream.Stream;
 
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "application/json"),
-        @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
-        @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
-        @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output flowfile"),
-        @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
+        @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output FlowFile"),
+        @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output FlowFile"),
+        @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output FlowFile"),
+        @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output FlowFile"),
         @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)

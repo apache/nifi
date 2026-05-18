@@ -21,6 +21,7 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
@@ -224,11 +225,19 @@ public class TestFileSystemSwapManager {
         }
 
         @Override
+        public void markTruncatable(final ContentClaim claim) {
+        }
+
+        @Override
         public void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements) {
         }
 
         @Override
         public void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements, long timeout, TimeUnit unit) {
+        }
+
+        @Override
+        public void drainTruncatableClaims(final Collection<ContentClaim> destination, final int maxElements) {
         }
 
         @Override
@@ -242,6 +251,20 @@ public class TestFileSystemSwapManager {
         @Override
         public boolean isDestructable(final ResourceClaim claim) {
             return false;
+        }
+
+        @Override
+        public void incrementTruncationReferenceCount(final ContentClaim claim) {
+        }
+
+        @Override
+        public int decrementTruncationReferenceCount(final ContentClaim claim) {
+            return 0;
+        }
+
+        @Override
+        public int getTruncationReferenceCount(final ContentClaim claim) {
+            return 0;
         }
     }
 

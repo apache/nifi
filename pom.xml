@@ -122,18 +122,18 @@
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.42.30</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.44.5</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
-        <azure.sdk.bom.version>1.3.5</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
+        <azure.sdk.bom.version>1.3.6</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.11.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.21.0</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.22.0</org.apache.commons.codec.version>
         <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
         <org.apache.commons.compress.version>1.28.0</org.apache.commons.compress.version>
-        <org.apache.commons.configuration.version>2.14.0</org.apache.commons.configuration.version>
+        <org.apache.commons.configuration.version>2.15.0</org.apache.commons.configuration.version>
         <org.apache.commons.csv.version>1.14.1</org.apache.commons.csv.version>
-        <org.apache.commons.io.version>2.21.0</org.apache.commons.io.version>
+        <org.apache.commons.io.version>2.22.0</org.apache.commons.io.version>
         <org.apache.commons.lang3.version>3.20.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.13.0</org.apache.commons.net.version>
         <org.apache.commons.text.version>1.15.0</org.apache.commons.text.version>
@@ -143,7 +143,7 @@
         <ozone.version>1.4.1</ozone.version>
 
         <!-- Kubernetes -->
-        <io.fabric8.kubernetes.client.version>7.6.1</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>7.7.0</io.fabric8.kubernetes.client.version>
 
         <!-- Data access -->
         <commons.dbcp2.version>2.14.0</commons.dbcp2.version>
@@ -152,29 +152,29 @@
         <!-- Data formats and serialization -->
         <kafka-clients.version>4.2.0</kafka-clients.version>
         <avro.version>1.12.1</avro.version>
-        <com.github.luben.zstd-jni.version>1.5.7-7</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-8</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>3.0.0</com.jayway.jsonpath.version>
-        <gson.version>2.13.2</gson.version>
+        <gson.version>2.14.0</gson.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
-        <jackson.bom.version>2.21.2</jackson.bom.version>
-        <jackson3.bom.version>3.1.1</jackson3.bom.version>
+        <jackson.bom.version>2.21.3</jackson.bom.version>
+        <jackson3.bom.version>3.1.3</jackson3.bom.version>
         <json.smart.version>2.6.0</json.smart.version>
         <snakeyaml.version>2.6</snakeyaml.version>
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
-        <groovy.version>5.0.5</groovy.version>
-        <kotlin.version>2.3.20</kotlin.version>
+        <groovy.version>5.0.6</groovy.version>
+        <kotlin.version>2.3.21</kotlin.version>
 
         <!-- Logging and observability -->
-        <log4j2.version>2.25.4</log4j2.version>
+        <log4j2.version>2.26.0</log4j2.version>
         <logback.version>1.5.32</logback.version>
-        <org.slf4j.version>2.0.17</org.slf4j.version>
+        <org.slf4j.version>2.0.18</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.4.version>4.2.12.Final</netty.4.version>
+        <netty.4.version>4.2.13.Final</netty.4.version>
         <okhttp.version>5.3.2</okhttp.version>
         <okio.version>3.17.0</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
@@ -183,11 +183,11 @@
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.9</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.37</nimbus-oauth2-oidc.version>
-        <org.bouncycastle.version>1.83</org.bouncycastle.version>
+        <nimbus-oauth2-oidc.version>11.37.1</nimbus-oauth2-oidc.version>
+        <org.bouncycastle.version>1.84</org.bouncycastle.version>
 
         <!-- Utilities -->
-        <caffeine.version>3.2.3</caffeine.version>
+        <caffeine.version>3.2.4</caffeine.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
 
         <!-- Web and API frameworks -->
@@ -196,20 +196,20 @@
         <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
         <jakarta.xml.bind-api.version>4.0.5</jakarta.xml.bind-api.version>
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
-        <jaxb.runtime.version>4.0.7</jaxb.runtime.version>
+        <jaxb.runtime.version>4.0.8</jaxb.runtime.version>
         <jersey.bom.version>4.0.2</jersey.bom.version>
-        <jetty.version>12.1.8</jetty.version>
+        <jetty.version>12.1.9</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.security.version>7.0.4</spring.security.version>
-        <spring.version>7.0.6</spring.version>
-        <swagger.annotations.version>2.2.46</swagger.annotations.version>
+        <spring.security.version>7.0.5</spring.security.version>
+        <spring.version>7.0.7</spring.version>
+        <swagger.annotations.version>2.2.50</swagger.annotations.version>
 
         <!-- Testing and quality -->
         <junit.version>6.0.3</junit.version>
         <mockito.version>5.23.0</mockito.version>
-        <pmd.version>7.23.0</pmd.version>
-        <checkstyle.version>13.4.0</checkstyle.version>
-        <testcontainers.version>2.0.4</testcontainers.version>
+        <pmd.version>7.24.0</pmd.version>
+        <checkstyle.version>13.4.2</checkstyle.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.14</jacoco.version>
     </properties>
     <dependencyManagement>
@@ -605,7 +605,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.22.1</version>
+                <version>1.22.2</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -838,12 +838,12 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.46</version>
+                    <version>2.2.50</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
                     <artifactId>swagger-codegen-maven-plugin</artifactId>
-                    <version>3.0.78</version>
+                    <version>3.0.80</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -913,7 +913,7 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <version>3.9.14</version>
+                                    <version>3.9.15</version>
                                 </requireMavenVersion>
                                 <requireReleaseDeps>
                                     <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>

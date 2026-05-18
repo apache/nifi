@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.flow;
 
-import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -158,11 +157,6 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     @Override
     public Class<?> getComponentClass() {
         return client.get().getComponent().getClass();
-    }
-
-    @Override
-    public boolean isRestricted() {
-        return getComponentClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override

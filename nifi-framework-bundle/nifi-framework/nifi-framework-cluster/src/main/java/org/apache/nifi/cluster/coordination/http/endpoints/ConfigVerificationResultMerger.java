@@ -105,6 +105,7 @@ public class ConfigVerificationResultMerger {
             resultDto.setVerificationStepName(stepName);
             resultDto.setOutcome(selected.result().getOutcome());
             resultDto.setExplanation(aggregateExplanation);
+            resultDto.setSubject(selected.result().getSubject());
 
             aggregateResults.add(resultDto);
         }

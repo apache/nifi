@@ -335,7 +335,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(12, policies.size());
+        assertEquals(11, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -375,7 +375,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(8, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -415,7 +415,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(8, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -448,7 +448,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminGroupName, adminGroup.getName());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(12, policies.size());
+        assertEquals(11, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -489,7 +489,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminGroupName, adminGroup.getName());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(8, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -530,7 +530,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminGroupName, adminGroup.getName());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(8, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -571,7 +571,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(Set.of(adminUser.getIdentifier()), adminGroup.getUsers());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(12, policies.size());
+        assertEquals(11, policies.size());
         // admin user is a member of admin group; no need to grant access right to the user itself
         final Set<String> usersWithPolicies = policies.stream()
                 .flatMap(policy -> policy.getUsers().stream())

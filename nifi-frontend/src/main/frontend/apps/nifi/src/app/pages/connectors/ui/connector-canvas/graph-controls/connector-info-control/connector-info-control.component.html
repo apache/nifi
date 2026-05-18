@@ -1,0 +1,110 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<mat-expansion-panel
+    [hideToggle]="true"
+    [expanded]="!connectorCollapsed"
+    (opened)="toggleCollapsed(false)"
+    (closed)="toggleCollapsed(true)">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            <div class="flex items-center gap-x-2">
+                <div class="w-5 fa fa-plug primary-color"></div>
+                <div>Connector</div>
+            </div>
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="connector-info-control flex flex-col gap-y-2">
+        @if (connectorEntity(); as entity) {
+            <connector-detail-header [connector]="entity" [condensed]="true"></connector-detail-header>
+            <div class="flex items-center gap-x-1">
+                @if (canRead()) {
+                    <button
+                        mat-icon-button
+                        class="primary-icon-button"
+                        type="button"
+                        matTooltip="Details"
+                        aria-label="Details"
+                        data-qa="connector-panel-view-details"
+                        (click)="viewDetails()">
+                        <i class="fa fa-info-circle"></i>
+                    </button>
+                }
+                @if (showConfigureButton()) {
+                    <button
+                        mat-icon-button
+                        class="primary-icon-button"
+                        type="button"
+                        [disabled]="!canConfigure()"
+                        [matTooltip]="canConfigure() ? 'Configure' : getConfigureDisabledReason()"
+                        aria-label="Configure"
+                        data-qa="connector-panel-configure"
+                        (click)="configureConnector()">
+                        <i class="fa fa-cog"></i>
+                    </button>
+                }
+                @if (showOperateButtons()) {
+                    <button
+                        mat-icon-button
+                        class="primary-icon-button"
+                        type="button"
+                        [disabled]="!canStart()"
+                        [matTooltip]="canStart() ? 'Start' : getStartDisabledReason()"
+                        aria-label="Start"
+                        data-qa="connector-panel-start"
+                        (click)="startConnector()">
+                        <i class="fa fa-play"></i>
+                    </button>
+                    <button
+                        mat-icon-button
+                        class="primary-icon-button"
+                        type="button"
+                        [disabled]="!canStop()"
+                        [matTooltip]="canStop() ? 'Stop' : getStopDisabledReason()"
+                        aria-label="Stop"
+                        data-qa="connector-panel-stop"
+                        (click)="stopConnector()">
+                        <i class="fa fa-stop"></i>
+                    </button>
+                }
+            </div>
+            @if (showDrain() || showCancelDrain()) {
+                <div class="flex gap-1 flex-wrap">
+                    @if (showDrain()) {
+                        <button
+                            mat-stroked-button
+                            type="button"
+                            [disabled]="!canDrain()"
+                            data-qa="connector-panel-drain"
+                            (click)="drainConnector()">
+                            Drain
+                        </button>
+                    } @else if (showCancelDrain()) {
+                        <button
+                            mat-stroked-button
+                            type="button"
+                            [disabled]="!canCancelDrain()"
+                            data-qa="connector-panel-cancel-drain"
+                            (click)="cancelDrain()">
+                            Cancel Drain
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </div>
+</mat-expansion-panel>

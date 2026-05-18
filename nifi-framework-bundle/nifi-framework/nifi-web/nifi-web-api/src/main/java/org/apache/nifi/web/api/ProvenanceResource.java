@@ -371,12 +371,12 @@ public class ProvenanceResource extends ApplicationResource {
     }
 
     /**
-     * Submits a lineage request based on an event or a flowfile uuid.
+     * Submits a lineage request based on an event or a FlowFile uuid.
      * <p>
      * When querying for the lineage of an event you must specify the eventId and the eventDirection. The eventDirection must be 'parents' or 'children' and specifies whether we are going up or down
-     * the flowfile ancestry. The uuid cannot be specified in these cases.
+     * the FlowFile ancestry. The uuid cannot be specified in these cases.
      * <p>
-     * When querying for the lineage of a flowfile you must specify the uuid. The eventId and eventDirection cannot be specified in this case.
+     * When querying for the lineage of a FlowFile you must specify the uuid. The eventId and eventDirection cannot be specified in this case.
      *
      * @param requestLineageEntity A lineageEntity
      * @return A lineageEntity
@@ -477,7 +477,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the lineage with the specified id.
      *
-     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
+     * @param clusterNodeId The id of node in the cluster that the event/FlowFile originated from. This is only required when clustered.
      * @param id The id of the lineage
      * @return A lineageEntity
      */
@@ -533,7 +533,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Deletes the lineage with the specified id.
      *
-     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
+     * @param clusterNodeId The id of node in the cluster that the event/FlowFile originated from. This is only required when clustered.
      * @param id The id of the lineage
      * @return A lineageEntity
      */

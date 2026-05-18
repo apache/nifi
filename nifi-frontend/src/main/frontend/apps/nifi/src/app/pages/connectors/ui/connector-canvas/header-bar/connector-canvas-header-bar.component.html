@@ -1,0 +1,46 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="h-8 connector-header-bar border-b select-none">
+    <div class="flex items-center h-full justify-between">
+        <div class="flex items-center h-full">
+            <button
+                class="h-8 w-8 border-r pointer"
+                data-qa="toggle-graph-controls"
+                (click)="toggleGraphControls.emit()"
+                [title]="graphControlsOpen() ? 'Close graph controls' : 'Open graph controls'">
+                <i
+                    class="primary-color fa"
+                    [ngClass]="{
+                        'fa-chevron-right': !graphControlsOpen(),
+                        'fa-chevron-left': graphControlsOpen()
+                    }"></i>
+            </button>
+            <div class="flex items-center px-5">
+                <a class="primary-color cursor-pointer" data-qa="back-to-connectors" (click)="backToConnectors.emit()">
+                    <i class="fa fa-arrow-left mr-2"></i>Installed Connectors
+                </a>
+            </div>
+        </div>
+        <canvas-header-search
+            class="self-stretch"
+            [searchFn]="searchFn"
+            [selectedComponentId]="selectedComponentId()"
+            (goToComponent)="onGoToComponent($event)">
+        </canvas-header-search>
+    </div>
+</div>

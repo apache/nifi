@@ -18,21 +18,26 @@ package org.apache.nifi.processors.jslt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationStrategy.ENTIRE_FLOWFILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,12 +45,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestJSLTTransformJSON {
 
     private TestRunner runner = TestRunners.newTestRunner(new JSLTTransformJSON());
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Path RESOURCE_DIR = Paths.get("src/test/resources");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @BeforeEach
     public void setup() {
-        runner = TestRunners.newTestRunner(new JSLTTransformJSON());
+        runner = TestRunners.newTestRunner(JSLTTransformJSON.class);
     }
 
     @Test
@@ -64,7 +69,6 @@ public class TestJSLTTransformJSON {
 
     @Test
     public void testInvalidJSLTTransform() {
-        final TestRunner runner = TestRunners.newTestRunner(new JSLTTransformJSON());
         final String invalidTransform = "invalid";
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, invalidTransform);
         runner.assertNotValid();
@@ -169,6 +173,42 @@ public class TestJSLTTransformJSON {
         runTransform("inputWithNull.json", "simpleTransform.json", "simpleOutputWithNull.json");
     }
 
+    @ParameterizedTest
+    @MethodSource("multilineArgs")
+    public void testSimpleJSLTOnMultilineJson(String singleJsonFile, String transformFile, String expectedOutFile) throws IOException {
+        final String newLine = "\n";
+        final String singleLine = minifyJson(singleJsonFile);
+        final int numberOfLines = 3;
+        final String multilineJson = String.join(newLine, Collections.nCopies(numberOfLines, singleLine));
+        final String transform = getResource(transformFile);
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
+        runner.setProperty(JSLTTransformJSON.INPUT_FORMAT, JSLTTransformJSON.InputFormat.JSON_LINES);
+        runner.enqueue(multilineJson);
+
+        runner.run();
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
+
+        final String expectedLine = minifyJson(expectedOutFile);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).getFirst();
+
+        final String[] lines = flowFile.getContent().split(newLine);
+        assertEquals(numberOfLines, lines.length);
+
+        for (String line : lines) {
+            final JsonNode actual = OBJECT_MAPPER.readTree(line);
+            final JsonNode expected = OBJECT_MAPPER.readTree(expectedLine);
+            assertEquals(expected, actual);
+        }
+    }
+
+    private static Stream<Arguments> multilineArgs() {
+        return Stream.of(
+                Arguments.argumentSet("JSON Object", "input.json", "simpleTransform.json", "simpleOutput.json"),
+                Arguments.argumentSet("JSON Array", "inputArray.json", "arrayTransform.json", "arrayOutput.json")
+        );
+    }
+
     // This test verifies transformCache cleanup does not throw an exception
     @Test
     public void testShutdown() {
@@ -186,8 +226,8 @@ public class TestJSLTTransformJSON {
 
     private void assertContentEquals(final MockFlowFile flowFile, final String expectedJson) {
         try {
-            final JsonNode flowFileNode = objectMapper.readTree(flowFile.getContent());
-            final JsonNode expectedNode = objectMapper.readTree(expectedJson);
+            final JsonNode flowFileNode = OBJECT_MAPPER.readTree(flowFile.getContent());
+            final JsonNode expectedNode = OBJECT_MAPPER.readTree(expectedJson);
             assertEquals(expectedNode, flowFileNode);
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
@@ -210,14 +250,18 @@ public class TestJSLTTransformJSON {
         return runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).getFirst();
     }
 
+    private String minifyJson(final String fileName) throws IOException {
+        final String originalJson = getResource(fileName);
+        final Object jsonObject = OBJECT_MAPPER.readValue(originalJson, Object.class);
+        final String minifiedJson = OBJECT_MAPPER.writeValueAsString(jsonObject);
+
+        return minifiedJson;
+    }
+
     private String getResource(final String fileName) {
-        final String path = String.format("/%s", fileName);
-        try (
-                final InputStream inputStream = Objects.requireNonNull(getClass().getResourceAsStream(path), "Resource not found");
-                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-                ) {
-            StreamUtils.copy(inputStream, outputStream);
-            return outputStream.toString();
+        final Path resource = RESOURCE_DIR.resolve(fileName);
+        try {
+            return Files.readString(resource);
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }

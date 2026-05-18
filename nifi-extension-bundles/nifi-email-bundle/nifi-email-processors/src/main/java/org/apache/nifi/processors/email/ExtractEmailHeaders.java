@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SideEffectFree
 @Tags({"split", "email"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Using the flowfile content as source of data, extract header from an RFC compliant  email file adding the relevant attributes to the flowfile. " +
+@CapabilityDescription("Using the FlowFile content as source of data, extract header from an RFC compliant  email file adding the relevant attributes to the FlowFile. " +
         "This processor does not perform extensive RFC validation but still requires a bare minimum compliance with RFC 2822")
 @WritesAttributes({
         @WritesAttribute(attribute = "email.headers.bcc.*", description = "Each individual BCC recipient (if available)"),
@@ -89,7 +89,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
 
     public static final PropertyDescriptor CAPTURED_HEADERS = new PropertyDescriptor.Builder()
             .name("Additional Header List")
-            .description("COLON separated list of additional headers to be extracted from the flowfile content." +
+            .description("COLON separated list of additional headers to be extracted from the FlowFile content." +
                     "NOTE the header key is case insensitive and will be matched as lower-case." +
                     " Values will respect email contents.")
             .required(false)

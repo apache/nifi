@@ -37,6 +37,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
@@ -44,6 +45,8 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
+import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
+import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
 import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -61,6 +64,7 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
@@ -83,6 +87,8 @@ import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
+import java.lang.ref.Reference;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,6 +107,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -710,5 +717,139 @@ public class TestStandardProcessScheduler {
     private StandardProcessScheduler createScheduler() {
         return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
             stateMgrProvider, nifiProperties, new StandardLifecycleStateManager());
+    }
+
+    /**
+     * Verifies that {@link StandardProcessScheduler#terminateProcessor(ProcessorNode)} causes any
+     * {@link ActiveProcessSessionFactory} retained on the {@link LifecycleState} to have its active
+     * sessions rolled back, even when no Processor thread is currently in flight.
+     *
+     * Reproduces the scenario in which a Processor that extends {@code AbstractSessionFactoryProcessor}
+     * has cleanly returned from {@code onTrigger} but stashed the Session in a member field; the Session
+     * remains unacknowledged on its incoming queue and offload of the node hangs unless terminate causes
+     * a rollback through the LifecycleState's retained factories.
+     */
+    @Test
+    @Timeout(30)
+    public void testTerminateProcessorRollsBackRetainedSessionWhenNoActiveThreads() throws Exception {
+        final TerminationTestHarness harness = createTerminationTestHarness();
+        final ProcessorNode procNode = createSimpleProcessorNode(harness);
+
+        final LifecycleState lifecycleState = harness.lifecycleStateManager().getOrRegisterLifecycleState(procNode.getIdentifier(), false, false);
+
+        final ProcessSession retainedSession = Mockito.mock(ProcessSession.class);
+        final ProcessSessionFactory delegateFactory = Mockito.mock(ProcessSessionFactory.class);
+        when(delegateFactory.createSession()).thenReturn(retainedSession);
+
+        final WeakHashMapProcessSessionFactory retainedFactory = new WeakHashMapProcessSessionFactory(delegateFactory);
+        lifecycleState.incrementActiveThreadCount(retainedFactory);
+        final ProcessSession sessionWrapper = retainedFactory.createSession();
+        lifecycleState.decrementActiveThreadCount();
+
+        assertEquals(0, lifecycleState.getActiveThreadCount());
+        assertEquals(ScheduledState.STOPPED, procNode.getScheduledState());
+
+        harness.scheduler().terminateProcessor(procNode);
+
+        Mockito.verify(retainedSession).rollback();
+        // Keep the Session wrapper reachable through verification so that the factory's WeakHashMap
+        // entry tracking it cannot be cleared by the GC before terminateActiveSessions() iterates it.
+        Reference.reachabilityFence(sessionWrapper);
+        Reference.reachabilityFence(retainedFactory);
+
+        harness.scheduler().shutdown();
+    }
+
+    /**
+     * Verifies that the stop background poll loop in {@code StandardProcessorNode.stop()} exits cleanly
+     * once {@link LifecycleState#terminate()} has been invoked, instead of rescheduling itself every
+     * 100ms forever in the component lifecycle thread pool.
+     *
+     * Without the fix, {@code LifecycleState.terminate()} resets the active thread count to zero, which
+     * the poll loop interprets as "still waiting for threads to drain" (it is comparing against 1, which
+     * represents the stop background thread itself), so it keeps rescheduling and leaks one polling task
+     * per terminated processor.
+     */
+    @Test
+    @Timeout(30)
+    public void testStopBackgroundPollLoopExitsAfterLifecycleStateTerminated() throws Exception {
+        final TerminationTestHarness harness = createTerminationTestHarness();
+        final ProcessorNode procNode = createSimpleProcessorNode(harness);
+
+        final LifecycleState lifecycleState = harness.lifecycleStateManager().getOrRegisterLifecycleState(procNode.getIdentifier(), false, false);
+        lifecycleState.setScheduled(true);
+        // Represents an in-flight onTrigger thread that is wedged and will not return on its own.
+        lifecycleState.incrementActiveThreadCount(null);
+
+        // The stop sequence requires the Processor to be in RUNNING; reflectively force it there since this
+        // test does not run a real scheduling agent.
+        forceScheduledState(procNode, ScheduledState.RUNNING);
+
+        harness.scheduler().stopProcessor(procNode, ProcessorStopLifecycleMethods.TRIGGER_ONSTOPPED);
+
+        // Allow the first poll iteration to run and reschedule itself at +100ms.
+        Thread.sleep(50L);
+
+        harness.scheduler().terminateProcessor(procNode);
+
+        // Wait long enough for the previously rescheduled poll iteration to fire after termination, then
+        // assert that the polling task is not continuing to reschedule itself in the executor queue.
+        Thread.sleep(500L);
+
+        final long deadline = System.currentTimeMillis() + 500L;
+        while (System.currentTimeMillis() < deadline) {
+            final int queueSize = harness.componentLifeCyclePool().getQueue().size();
+            assertFalse(queueSize > 0, "Stop polling task continued to reschedule after LifecycleState termination; queue size = " + queueSize);
+            Thread.sleep(20L);
+        }
+
+        harness.scheduler().shutdown();
+    }
+
+    private TerminationTestHarness createTerminationTestHarness() {
+        final FlowController flowController = Mockito.mock(FlowController.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(flowController.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
+        when(flowController.getControllerServiceProvider()).thenReturn(serviceProvider);
+
+        final LifecycleStateManager lifecycleStateManager = new StandardLifecycleStateManager();
+        final FlowEngine componentLifeCyclePool = new FlowEngine(2, "Termination Test", true);
+
+        final StandardProcessScheduler localScheduler = new StandardProcessScheduler(componentLifeCyclePool, flowController,
+            stateMgrProvider, nifiProperties, lifecycleStateManager);
+        localScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
+
+        return new TerminationTestHarness(localScheduler, lifecycleStateManager, componentLifeCyclePool);
+    }
+
+    private ProcessorNode createSimpleProcessorNode(final TerminationTestHarness harness) {
+        final String uuid = UUID.randomUUID().toString();
+        final Processor processor = new NoOpProcessor();
+        processor.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
+
+        final TerminationAwareLogger logger = Mockito.mock(TerminationAwareLogger.class);
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), logger);
+        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid,
+            new StandardValidationContextFactory(serviceProvider), harness.scheduler(), serviceProvider, Mockito.mock(ReloadComponent.class),
+            Mockito.mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
+        rootGroup.addProcessor(procNode);
+        return procNode;
+    }
+
+    private static void forceScheduledState(final ProcessorNode procNode, final ScheduledState targetState) throws Exception {
+        final Field scheduledStateField = ProcessorNode.class.getDeclaredField("scheduledState");
+        scheduledStateField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        final AtomicReference<ScheduledState> scheduledStateRef = (AtomicReference<ScheduledState>) scheduledStateField.get(procNode);
+        scheduledStateRef.set(targetState);
+    }
+
+    public static class NoOpProcessor extends AbstractProcessor {
+        @Override
+        public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        }
+    }
+
+    private record TerminationTestHarness(StandardProcessScheduler scheduler, LifecycleStateManager lifecycleStateManager, FlowEngine componentLifeCyclePool) {
     }
 }

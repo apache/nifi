@@ -20,21 +20,19 @@ import org.apache.nifi.security.crypto.key.DerivedKey;
 import org.apache.nifi.security.crypto.key.DerivedKeyProvider;
 import org.apache.nifi.security.crypto.key.DerivedKeySpec;
 import org.apache.nifi.security.crypto.key.DerivedSecretKey;
-import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.digests.SHA512Digest;
-import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
-import org.bouncycastle.crypto.params.KeyParameter;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 /**
- * PBKDF2 implementation of Derived Key Provider based on Bouncy Castle components with HMAC SHA-512 pseudorandom function
+ * PBKDF2 implementation of Derived Key Provider with HMAC SHA-512 pseudorandom function
  */
 public class Pbkdf2DerivedKeyProvider implements DerivedKeyProvider<Pbkdf2DerivedKeyParameterSpec> {
-    private static final Charset PASSWORD_CHARACTER_SET = StandardCharsets.UTF_8;
+    private static final String ALGORITHM = "PBKDF2WithHmacSHA512";
 
     private static final int BITS = 8;
 
@@ -54,18 +52,27 @@ public class Pbkdf2DerivedKeyProvider implements DerivedKeyProvider<Pbkdf2Derive
     }
 
     private byte[] getDerivedKeyBytes(final DerivedKeySpec<Pbkdf2DerivedKeyParameterSpec> derivedKeySpec) {
-        final Digest digest = new SHA512Digest();
-        final PKCS5S2ParametersGenerator generator = new PKCS5S2ParametersGenerator(digest);
-
-        final byte[] password = new String(derivedKeySpec.getPassword()).getBytes(PASSWORD_CHARACTER_SET);
         final Pbkdf2DerivedKeyParameterSpec parameterSpec = derivedKeySpec.getParameterSpec();
         final byte[] salt = parameterSpec.getSalt();
         final int iterations = parameterSpec.getIterations();
-        generator.init(password, salt, iterations);
-
         final int derivedKeyLengthBits = derivedKeySpec.getDerivedKeyLength() * BITS;
-        final CipherParameters cipherParameters = generator.generateDerivedParameters(derivedKeyLengthBits);
-        final KeyParameter keyParameter = (KeyParameter) cipherParameters;
-        return keyParameter.getKey();
+
+        final PBEKeySpec keySpec = new PBEKeySpec(derivedKeySpec.getPassword(), salt, iterations, derivedKeyLengthBits);
+        final SecretKeyFactory secretKeyFactory = getSecretKeyFactory();
+
+        try {
+            final SecretKey secretKey = secretKeyFactory.generateSecret(keySpec);
+            return secretKey.getEncoded();
+        } catch (final InvalidKeySpecException e) {
+            throw new IllegalStateException("PBKDF2 key generation failed", e);
+        }
+    }
+
+    private SecretKeyFactory getSecretKeyFactory() {
+        try {
+            return SecretKeyFactory.getInstance(ALGORITHM);
+        } catch (final NoSuchAlgorithmException e) {
+            throw new IllegalStateException("PBKDF2 algorithm not found", e);
+        }
     }
 }

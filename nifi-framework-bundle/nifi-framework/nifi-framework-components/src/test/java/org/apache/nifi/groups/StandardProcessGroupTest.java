@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
@@ -59,9 +60,11 @@ class StandardProcessGroupTest {
     private static final String PARENT_ID_PATH = "/87654321-1234/12345678-4321";
     private static final String PARENT_NAME = "ParentGroup";
     private static final String PARENT_NAME_PATH = "/ParentGroup/TestGroup";
+    private static final String PARENT_REGISTERED_FLOW_IDENTIFIER_PATH = "/87654321-4321:1.0.0/UNREGISTERED";
 
     private static final String REGISTERED_FLOW_IDENTIFIER = "87654321-4321";
     private static final String REGISTERED_FLOW_VERSION = "1.0.0";
+    private static final String REGISTERED_FLOW_IDENTIFIER_PATH = "/87654321-4321:1.0.0";
 
     @Mock
     private ControllerServiceProvider controllerServiceProvider;
@@ -86,6 +89,9 @@ class StandardProcessGroupTest {
 
     @Mock
     private NodeTypeProvider nodeTypeProvider;
+
+    @Mock
+    private ClusterTopologyProvider clusterTopologyProvider;
 
     @Mock
     private NiFiProperties properties;
@@ -128,6 +134,7 @@ class StandardProcessGroupTest {
                 flowManager,
                 reloadComponent,
                 nodeTypeProvider,
+                clusterTopologyProvider,
                 properties,
                 statelessGroupNodeFactory,
                 assetManager,
@@ -178,6 +185,34 @@ class StandardProcessGroupTest {
     }
 
     @Test
+    void testGetLoggingAttributesWithParentVersionControlInformation() {
+        processGroup.setName(NAME);
+
+        when(versionControlInformation.getFlowIdentifier()).thenReturn(REGISTERED_FLOW_IDENTIFIER);
+        when(versionControlInformation.getVersion()).thenReturn(REGISTERED_FLOW_VERSION);
+
+        when(parentProcessGroup.getIdentifier()).thenReturn(PARENT_ID);
+        when(parentProcessGroup.getName()).thenReturn(PARENT_NAME);
+        when(parentProcessGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+        processGroup.setParent(parentProcessGroup);
+
+        final Map<String, String> loggingAttributes = processGroup.getLoggingAttributes();
+
+        assertNotNull(loggingAttributes);
+        assertFalse(loggingAttributes.isEmpty());
+
+        final Map<String, String> expected = Map.of(
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID.getAttribute(), ID,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID_PATH.getAttribute(), PARENT_ID_PATH,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute(), NAME,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME_PATH.getAttribute(), PARENT_NAME_PATH,
+                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_IDENTIFIER_PATH.getAttribute(), PARENT_REGISTERED_FLOW_IDENTIFIER_PATH
+        );
+
+        assertEquals(expected, loggingAttributes);
+    }
+
+    @Test
     void testGetLoggingAttributesWithVersionControlInformation() {
         processGroup.setName(NAME);
 
@@ -197,7 +232,8 @@ class StandardProcessGroupTest {
                 StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute(), NAME,
                 StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME_PATH.getAttribute(), NAME_PATH,
                 StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_IDENTIFIER.getAttribute(), REGISTERED_FLOW_IDENTIFIER,
-                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_VERSION.getAttribute(), REGISTERED_FLOW_VERSION
+                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_VERSION.getAttribute(), REGISTERED_FLOW_VERSION,
+                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_IDENTIFIER_PATH.getAttribute(), REGISTERED_FLOW_IDENTIFIER_PATH
         );
 
         assertEquals(expected, loggingAttributes);

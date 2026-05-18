@@ -27,8 +27,6 @@ import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -36,7 +34,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -69,11 +66,7 @@ import java.util.stream.Stream;
     @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
-@Restricted(restrictions = {
-    @Restriction(
-        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
-        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
-})
+
 public class FetchHDFS extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()

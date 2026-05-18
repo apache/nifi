@@ -23,6 +23,7 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
@@ -85,21 +86,24 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public boolean hasConnector(final String id) {
-        return getConnectorRepository().getConnector(id) != null;
+        return getConnectorRepository().getConnector(id, ConnectorSyncMode.LOCAL_ONLY) != null;
     }
 
     @Override
     public ConnectorNode getConnector(final String id) {
-        final ConnectorNode connector = getConnectorRepository().getConnector(id);
-        if (connector == null) {
-            throw new ResourceNotFoundException("Could not find Connector with ID " + id);
-        }
-        return connector;
+        // Public read returned to clients; must reflect the latest configuration from the provider.
+        return requireConnector(id, ConnectorSyncMode.SYNC_WITH_PROVIDER);
+    }
+
+    @Override
+    public ConnectorNode getConnector(final String id, final ConnectorSyncMode syncMode) {
+        return requireConnector(id, syncMode);
     }
 
     @Override
     public List<ConnectorNode> getConnectors() {
-        return getConnectorRepository().getConnectors();
+        // Public read returned to clients; must reflect the latest configuration from the provider.
+        return getConnectorRepository().getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
     }
 
     @Override
@@ -111,7 +115,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void updateConnector(final ConnectorDTO connectorDTO) {
-        final ConnectorNode connector = getConnector(connectorDTO.getId());
+        final ConnectorNode connector = requireConnector(connectorDTO.getId(), ConnectorSyncMode.LOCAL_ONLY);
         if (connectorDTO.getName() != null) {
             getConnectorRepository().updateConnector(connector, connectorDTO.getName());
         }
@@ -125,43 +129,43 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void startConnector(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().startConnector(connector);
     }
 
     @Override
     public void stopConnector(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().stopConnector(connector);
     }
 
     @Override
     public void drainFlowFiles(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         connector.drainFlowFiles();
     }
 
     @Override
     public void cancelDrainFlowFiles(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         connector.cancelDrainFlowFiles();
     }
 
     @Override
     public void verifyCancelDrainFlowFile(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         connector.verifyCancelDrainFlowFiles();
     }
 
     @Override
     public void verifyPurgeFlowFiles(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         connector.verifyCanPurgeFlowFiles();
     }
 
     @Override
     public void purgeFlowFiles(final String id, final String requestor) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         try {
             connector.purgeFlowFiles(requestor).get();
         } catch (final InterruptedException e) {
@@ -174,17 +178,25 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void updateConnectorConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
-        final ConnectorNode connector = getConnector(id);
+        // ConnectorRepository.configureConnector consults the provider directly when merging the step,
+        // so a sync at the lookup would be redundant.
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
 
-        // Convert DTO to domain object - flatten all property groups into a single StepConfiguration
         final StepConfiguration stepConfiguration = convertToStepConfiguration(configurationStepDto);
 
-        // Update the connector configuration through the repository
         try {
             getConnectorRepository().configureConnector(connector, configurationStepName, stepConfiguration);
         } catch (final Exception e) {
             throw new IllegalStateException("Failed to update connector configuration: " + e, e);
         }
+    }
+
+    private ConnectorNode requireConnector(final String id, final ConnectorSyncMode syncMode) {
+        final ConnectorNode connector = getConnectorRepository().getConnector(id, syncMode);
+        if (connector == null) {
+            throw new ResourceNotFoundException("Could not find Connector with ID " + id);
+        }
+        return connector;
     }
 
     private StepConfiguration convertToStepConfiguration(final ConfigurationStepConfigurationDTO dto) {
@@ -222,7 +234,9 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void applyConnectorUpdate(final String id, final ConnectorUpdateContext updateContext) {
-        final ConnectorNode connector = getConnector(id);
+        // ConnectorRepository.applyUpdate calls syncAssetsFromProvider internally, which refreshes
+        // the connector from the provider; a sync at the lookup would be redundant.
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         try {
             getConnectorRepository().applyUpdate(connector, updateContext);
         } catch (final Exception e) {
@@ -232,19 +246,20 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void discardWorkingConfiguration(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        // The working configuration is being thrown away; reading the latest from the provider first serves no purpose.
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().discardWorkingConfiguration(connector);
     }
 
     @Override
     public void verifyCanVerifyConfigurationStep(final String id, final String configurationStepName) {
-        // Verify that the connector exists
-        getConnector(id);
+        requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
     }
 
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
-        final ConnectorNode connector = getConnector(id);
+        // syncAssetsFromProvider below performs the provider sync, so the lookup itself does not need to.
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().syncAssetsFromProvider(connector);
         final StepConfiguration stepConfiguration = convertToStepConfiguration(configurationStepDto);
         return connector.verifyConfigurationStep(configurationStepName, stepConfiguration);
@@ -252,7 +267,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public List<DescribedValue> fetchAllowableValues(final String id, final String stepName, final String propertyName, final String filter) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         if (filter == null || filter.isEmpty()) {
             return connector.fetchAllowableValues(stepName, propertyName);
         } else {
@@ -262,7 +277,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void verifyCreateAsset(final String id) {
-        getConnector(id);
+        requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
     }
 
     @Override

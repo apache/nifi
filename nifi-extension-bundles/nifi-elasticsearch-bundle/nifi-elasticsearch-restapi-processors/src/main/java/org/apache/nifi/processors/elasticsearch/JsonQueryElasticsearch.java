@@ -40,9 +40,9 @@ import java.util.concurrent.TimeUnit;
 
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "application/json"),
-    @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
+    @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output FlowFile"),
+    @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output FlowFile"),
+    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output FlowFile"),
     @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 @Tags({"elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "query", "read", "get", "json"})
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
         "Elasticsearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
-        "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
+        "processor, it will use the FlowFile's content for the query. Care should be taken on the size of the query because the entire response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting FlowFiles.")
 @SeeAlso(PaginatedJsonQueryElasticsearch.class)
 @DynamicProperties({

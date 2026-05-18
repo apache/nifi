@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.flowanalysis;
 
-import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -69,11 +68,6 @@ public class StandardFlowAnalysisRuleNode extends AbstractFlowAnalysisRuleNode i
     @Override
     public Resource getResource() {
         return ResourceFactory.getComponentResource(ResourceType.FlowAnalysisRule, getIdentifier(), getName());
-    }
-
-    @Override
-    public boolean isRestricted() {
-        return getFlowAnalysisRule().getClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override

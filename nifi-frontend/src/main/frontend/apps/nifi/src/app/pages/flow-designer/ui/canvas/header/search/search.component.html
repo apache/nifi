@@ -202,28 +202,28 @@
                             [delayClose]="false"></i>
                         @if (header === 'Parameters') {
                             <a
-                                class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                 [title]="result.name"
                                 [routerLink]="['/parameter-contexts', result.parentGroup.id]">
                                 {{ result.name }}
                             </a>
                         } @else if (header === 'Parameter Contexts') {
                             <a
-                                class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                 [title]="result.name"
                                 [routerLink]="['/parameter-contexts', result.id]">
                                 {{ result.name }}
                             </a>
                         } @else if (header === 'Parameter Providers') {
                             <a
-                                class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                 [title]="result.name"
                                 [routerLink]="['/settings', 'parameter-providers', result.parentGroup.id]">
                                 {{ result.name }}
                             </a>
                         } @else if (header === 'Controller Services') {
                             <a
-                                class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                 [title]="result.name"
                                 [routerLink]="[
                                     '/process-groups',
@@ -236,7 +236,7 @@
                         } @else {
                             @if (!result.parentGroup) {
                                 <a
-                                    class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="result.name"
                                     [routerLink]="['/process-groups', result.id]">
                                     {{ result.name }}
@@ -244,7 +244,7 @@
                             } @else {
                                 @if (result.parentGroup.id === currentProcessGroupId) {
                                     <a
-                                        class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                        class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                         (click)="componentLinkClicked(path, result.id)"
                                         [title]="result.name"
                                         [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
@@ -252,7 +252,7 @@
                                     </a>
                                 } @else {
                                     <a
-                                        class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                        class="w-full text-ellipsis overflow-hidden whitespace-nowrap"
                                         [title]="result.name"
                                         [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
                                         {{ result.name ? result.name : result.id }}

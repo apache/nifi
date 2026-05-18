@@ -42,7 +42,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeComponentAnalysis;
 import org.apache.nifi.authorization.AuthorizeComponentReference;
+import org.apache.nifi.authorization.AuthorizeConfigVerification;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -1194,7 +1196,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 configurationAnalysis,
                 lookup -> {
                     final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
-                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final Map<String, String> properties = configurationAnalysis.getConfigurationAnalysis().getProperties();
+                    AuthorizeComponentAnalysis.authorize(authorizer, lookup, parameterProvider, properties, parameterProvider.getParameterContext());
                 },
                 () -> {
                 },
@@ -1227,7 +1230,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     "issuing a GET request to /parameter-providers/{serviceId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
                     "/parameter-providers/{providerId}/verification-requests/{requestId}.",
             security = {
-                    @SecurityRequirement(name = "Read - /parameter-providers/{uuid}")
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response submitConfigVerificationRequest(
@@ -1260,13 +1264,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return withWriteLock(
                 serviceFacade,
                 parameterProviderConfigRequest,
-                lookup -> {
-                    final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
-                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                },
-                () -> {
-                    serviceFacade.verifyCanVerifyParameterProviderConfig(parameterProviderId);
-                },
+                lookup -> AuthorizeConfigVerification.authorize(authorizer, lookup, lookup.getParameterProvider(parameterProviderId), requestDto.getProperties()),
+                () -> serviceFacade.verifyCanVerifyParameterProviderConfig(parameterProviderId),
                 entity -> performAsyncConfigVerification(entity, user)
         );
     }

@@ -38,16 +38,16 @@ import java.util.List;
 
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "application/json"),
-    @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output flowfile"),
-    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
+    @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output FlowFile"),
+    @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output FlowFile"),
+    @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output FlowFile"),
+    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output FlowFile"),
     @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "query", "scroll", "page", "read", "json"})
 @CapabilityDescription("A processor that allows the user to run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
-        "It will use the flowfile's content for the query unless the QUERY attribute is populated. " +
+        "It will use the FlowFile's content for the query unless the QUERY attribute is populated. " +
         "Search After/Point in Time queries must include a valid \"sort\" field.")
 @SeeAlso({JsonQueryElasticsearch.class, ConsumeElasticsearch.class, SearchElasticsearch.class})
 @DynamicProperties({

@@ -43,7 +43,6 @@ import org.apache.nifi.c2.protocol.component.api.PropertyListenPortDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyResourceDefinition;
 import org.apache.nifi.c2.protocol.component.api.Relationship;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
-import org.apache.nifi.c2.protocol.component.api.Restriction;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
 import org.apache.nifi.c2.protocol.component.api.UseCase;
@@ -68,7 +67,6 @@ import org.apache.nifi.extension.manifest.ListenPortDefinition;
 import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
-import org.apache.nifi.extension.manifest.Restricted;
 import org.apache.nifi.extension.manifest.Stateful;
 import org.apache.nifi.extension.manifest.SystemResourceConsideration;
 import org.apache.nifi.logging.LogLevel;
@@ -81,11 +79,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -623,17 +619,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             extensionComponent.setProvidedApiImplementations(providedApiTypes);
         }
 
-        final Restricted restricted = extension.getRestricted();
-        if (restricted != null) {
-            extensionComponent.setRestricted(true);
-            extensionComponent.setRestrictedExplanation(restricted.getGeneralRestrictionExplanation());
-            if (restricted.getRestrictions() != null) {
-                final Set<Restriction> explicitRestrictions = new HashSet<>();
-                restricted.getRestrictions().forEach(r -> explicitRestrictions.add(createRestriction(r)));
-                extensionComponent.setExplicitRestrictions(explicitRestrictions);
-            }
-        }
-
         final Stateful stateful = extension.getStateful();
         if (stateful != null) {
             final org.apache.nifi.c2.protocol.component.api.Stateful componentStateful = new org.apache.nifi.c2.protocol.component.api.Stateful();
@@ -674,13 +659,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             case LOCAL -> Scope.LOCAL;
             case CLUSTER -> Scope.CLUSTER;
         };
-    }
-
-    private Restriction createRestriction(final org.apache.nifi.extension.manifest.Restriction extensionRestriction) {
-        final Restriction restriction = new Restriction();
-        restriction.setExplanation(extensionRestriction.getExplanation());
-        restriction.setRequiredPermission(extensionRestriction.getRequiredPermission());
-        return restriction;
     }
 
     private DefinedType createProvidedApiType(final ProvidedServiceAPI providedServiceApi) {

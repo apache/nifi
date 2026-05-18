@@ -47,6 +47,7 @@ import {
     loadConnectorsListing,
     loadConnectorsListingError,
     loadConnectorsListingSuccess,
+    navigateToConfigureConnector,
     openNewConnectorDialog,
     promptConnectorDeletion,
     promptDiscardConnectorConfig,
@@ -761,21 +762,24 @@ describe('ConnectorsListingEffects', () => {
     });
 
     describe('navigateToConfigureConnector$', () => {
-        it('should show TODO alert', () =>
+        it('should navigate to connector configure route', () =>
             new Promise<void>((resolve) => {
-                setup().then(({ effects, actions$ }) => {
-                    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(vi.fn());
+                setup().then(({ effects, actions$, mockRouter }) => {
                     const mockConnector = createMockConnector();
                     actions$(
-                        of({
-                            type: '[Connectors Listing] Navigate To Configure Connector',
-                            request: { id: mockConnector.id, connector: mockConnector }
-                        })
+                        of(
+                            navigateToConfigureConnector({
+                                request: { id: mockConnector.id, connector: mockConnector }
+                            })
+                        )
                     );
 
                     effects.navigateToConfigureConnector$.subscribe(() => {
-                        expect(alertSpy).toHaveBeenCalled();
-                        alertSpy.mockRestore();
+                        expect(mockRouter.navigate).toHaveBeenCalledWith([
+                            '/connectors',
+                            mockConnector.id,
+                            'configure'
+                        ]);
                         resolve();
                     });
                 });

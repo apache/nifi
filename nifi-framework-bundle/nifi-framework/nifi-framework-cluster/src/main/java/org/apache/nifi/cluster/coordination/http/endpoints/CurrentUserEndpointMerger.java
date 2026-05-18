@@ -56,6 +56,7 @@ public class CurrentUserEndpointMerger extends AbstractSingleEntityEndpoint<Curr
                 mergePermissions(clientEntity.getSystemPermissions(), entity.getSystemPermissions());
                 mergePermissions(clientEntity.getTenantsPermissions(), entity.getTenantsPermissions());
                 mergePermissions(clientEntity.getConnectorsPermissions(), entity.getConnectorsPermissions());
+                mergePermissions(clientEntity.getRestrictedComponentsPermissions(), entity.getRestrictedComponentsPermissions());
 
                 final Set<ComponentRestrictionPermissionDTO> clientEntityComponentRestrictionsPermissions = clientEntity.getComponentRestrictionPermissions();
                 final Set<ComponentRestrictionPermissionDTO> entityComponentRestrictionsPermissions = entity.getComponentRestrictionPermissions();

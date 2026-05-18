@@ -28,6 +28,7 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
@@ -416,15 +417,12 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 versionedExternalFlow.setParameterContexts(versionedParameterContextMap);
                 versionedExternalFlow.setFlowContents(versionedFlow.getRootGroup());
 
-                // Inherit Parameter Providers and Connectors first. Because Connectors are a bit different, in that updates could result in Exceptions being thrown,
-                // due to the fact that they manipulate the flow, and changes can be aborted, we handle them first. This way, if there's any Exception,
-                // we can fail before updating parts of the flow that are not managed by Connectors.
-                // Because Connectors may depend on Parameter Providers, we need to ensure that we inherit Parameter Providers first.
+                // Inherit root-level Controller Services first so that Parameter Providers backed by
+                // them are VALID when Connectors begin resolving SecretReferences and so that any other
+                // controller-level component that references a root CS sees it in its target state.
+                inheritControllerServices(controller, versionedFlow, affectedComponentSet);
                 inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritConnectors(controller, versionedFlow);
-
-                // Inherit controller-level components.
-                inheritControllerServices(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
                 inheritFlowAnalysisRules(controller, versionedFlow, affectedComponentSet);
@@ -1058,7 +1056,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        for (final ConnectorNode existingConnector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode existingConnector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             if (!proposedConnectorIds.contains(existingConnector.getIdentifier())) {
                 logger.info("Connector [{}] (state={}) is no longer part of the proposed flow. Stopping and removing.",
                         existingConnector.getIdentifier(), existingConnector.getCurrentState());

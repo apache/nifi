@@ -1,0 +1,320 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<div class="searchable-select">
+    <mat-form-field subscriptSizing="dynamic">
+        <mat-select
+            panelClass="searchable-overlay"
+            [disabled]="loadError()"
+            [placeholder]="placeholder()"
+            [multiple]="multiple()"
+            [value]="matSelectValue"
+            [disableOptionCentering]="true"
+            (openedChange)="selectionPanelToggled($event)"
+            (valueChange)="onValueChanged($event)"
+            (keydown)="onMatSelectKeydown($event)"
+            [typeaheadDebounceInterval]="0"
+            [disableRipple]="false">
+            <mat-select-trigger>
+                <div class="select-trigger flex items-center justify-between w-full">
+                    <span class="flex-1 truncate">{{ displayValueSignal() }}</span>
+                    @if (shouldShowClearButton()) {
+                        <button
+                            type="button"
+                            mat-icon-button
+                            aria-label="Clear selection"
+                            (click)="clearSelection($event)"
+                            (keydown)="onClearSelectionKeydown($event)"
+                            class="shrink-0 primary-icon-button mr-2 rounded size-4 p-0">
+                            <i class="fa fa-times text-xs clear-search-filter"></i>
+                        </button>
+                    }
+                </div>
+            </mat-select-trigger>
+            <div class="search-filter-container">
+                <mat-form-field class="search-filter" subscriptSizing="dynamic">
+                    <div class="flex items-center">
+                        <i class="fa fa-search mr-2 leading-none text-inherit" matPrefix aria-hidden="true"></i>
+
+                        <input
+                            #searchInput
+                            [(ngModel)]="searchString"
+                            matInput
+                            [placeholder]="searchPlaceholder()"
+                            [attr.aria-label]="a11ySearchLabel()"
+                            role="combobox"
+                            aria-expanded="true"
+                            aria-autocomplete="list"
+                            [attr.aria-owns]="optionsListId"
+                            (keydown)="onSearchInputKeydown($event)" />
+
+                        @if (searchString) {
+                            <button
+                                #clearSearchBtn
+                                type="button"
+                                data-qa="searchable-select-clear-search-btn"
+                                [attr.aria-label]="a11yClearSearchLabel()"
+                                (keydown)="focusSearchAndOrClear($event)"
+                                (click)="focusSearchAndOrClear($event)"
+                                mat-icon-button
+                                class="primary-icon-button ml-2">
+                                <i class="fa fa-times text-xs text-inherit clear-search-filter" matSuffix></i>
+                            </button>
+                        }
+                    </div>
+                </mat-form-field>
+            </div>
+
+            <!-- Unified ghost options for both virtual and non-virtual modes -->
+            @for (ghostOption of getGhostOptions(); track ghostOption.value) {
+                <multi-select-option
+                    [value]="ghostOption.value"
+                    [disabled]="disabled || ghostOption.disabled"
+                    class="ghost-option"
+                    style="display: none; position: absolute; visibility: hidden">
+                    @if (ghostOption.svgIcon) {
+                        <mat-icon class="shrink-0" [svgIcon]="ghostOption.svgIcon"></mat-icon>
+                    }
+                    <div class="flex flex-col gap-y-1 w-full">
+                        <div
+                            class="truncate"
+                            [ngClass]="ghostOption.labelCssClasses"
+                            data-qa="searchable-select-option-label"
+                            ellipsisTooltip>
+                            {{ ghostOption.label }}
+                        </div>
+                        @if (ghostOption.description) {
+                            <div class="text-sm tertiary-color">
+                                {{ ghostOption.description }}
+                            </div>
+                        }
+                    </div>
+                </multi-select-option>
+            }
+
+            @if (searchInProgress && !loadError()) {
+                <div class="flex w-full items-center justify-center py-2 px-3" role="note" aria-live="polite">
+                    <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
+                </div>
+            } @else {
+                @if (enableVirtualScrolling()) {
+                    <!-- Virtual scrolling for user interaction -->
+                    <cdk-virtual-scroll-viewport
+                        #virtualScrollViewport
+                        [itemSize]="virtualScrollItemSize()"
+                        [minBufferPx]="virtualScrollMinBufferPx()"
+                        [maxBufferPx]="virtualScrollMaxBufferPx()"
+                        class="virtual-scroll-viewport w-full"
+                        [style.height]="getVirtualScrollHeight()"
+                        [id]="optionsListId"
+                        role="listbox">
+                        <ng-container
+                            *cdkVirtualFor="
+                                let item of getVirtualVisibleItems();
+                                trackBy: trackByVirtualItem;
+                                let virtualIndex = index
+                            ">
+                            @if (isFooterItem(item)) {
+                                <div
+                                    class="flex w-full items-center justify-center py-2 px-3"
+                                    [style.height.px]="virtualScrollItemSize()"
+                                    role="note"
+                                    aria-live="polite">
+                                    @if (isMoreItem(item)) {
+                                        <div class="truncate tertiary-color" ellipsisTooltip>
+                                            More options available
+                                        </div>
+                                    } @else {
+                                        <span class="truncate error-color" ellipsisTooltip>
+                                            {{ loadErrorMessage() }}
+                                        </span>
+                                    }
+                                </div>
+                            } @else if (isGroupHeaderItem(item)) {
+                                <div
+                                    class="tertiary-color pt-3 pr-1 pb-1 pl-3 flex text-sm font-semibold"
+                                    [class.border-t]="!isFirstGroupHeader(item)"
+                                    [style.height.px]="virtualScrollItemSize()"
+                                    role="presentation">
+                                    {{ getGroupHeaderLabel(item) }}
+                                </div>
+                            } @else {
+                                <multi-select-option
+                                    [value]="getItemValue(item)"
+                                    [disabled]="disabled || getItemDisabled(item)"
+                                    [virtuallySelected]="isVirtualOptionSelected(getItemValue(item))"
+                                    [id]="
+                                        isOptionActiveByValue(getItemValue(item))
+                                            ? activeOptionId
+                                            : getOptionId(virtualIndex)
+                                    "
+                                    [attr.aria-selected]="isVirtualOptionSelected(getItemValue(item))"
+                                    [class.mat-mdc-option-active]="isOptionActiveByValue(getItemValue(item))"
+                                    role="option">
+                                    @if (getItemSvgIcon(item)) {
+                                        <mat-icon class="shrink-0" [svgIcon]="getItemSvgIcon(item)"></mat-icon>
+                                    }
+                                    <div class="flex flex-col gap-y-1 w-full">
+                                        <div
+                                            class="truncate"
+                                            [ngClass]="getItemLabelCss(item)"
+                                            data-qa="searchable-select-option-label"
+                                            ellipsisTooltip>
+                                            {{ getItemLabel(item) }}
+                                        </div>
+                                        @if (getItemDescription(item)) {
+                                            <div class="text-sm tertiary-color">
+                                                {{ getItemDescription(item) }}
+                                            </div>
+                                        }
+                                    </div>
+                                </multi-select-option>
+                            }
+                        </ng-container>
+                        @if (getVisibleOptions().length === 0) {
+                            <multi-select-option
+                                [value]="null"
+                                disabled
+                                style="display: none; position: absolute; visibility: hidden"></multi-select-option>
+                        }
+                    </cdk-virtual-scroll-viewport>
+                } @else {
+                    <!-- Standard implementation (non-virtual) -->
+                    <div [id]="optionsListId" role="listbox">
+                        @if (hasGroupedOptions() && groupedOptions(); as groups) {
+                            @for (group of groups; track group.groupId; let isLast = $last) {
+                                <div
+                                    [class.border-b]="!isLast"
+                                    role="group"
+                                    [attr.aria-labelledby]="group.groupLabel ? getGroupHeaderId(group.groupId) : null">
+                                    @if (group.groupLabel) {
+                                        <div
+                                            class="pt-3 pr-1 pb-1 pl-3 tertiary-color flex items-center text-sm font-semibold"
+                                            [id]="getGroupHeaderId(group.groupId)"
+                                            role="presentation">
+                                            {{ group.groupLabel }}
+                                        </div>
+                                    }
+                                    @for (option of group.options; track option.value; let optIdx = $index) {
+                                        <multi-select-option
+                                            [value]="option.value"
+                                            [disabled]="disabled || option.disabled"
+                                            [id]="getOptionId(group.groupId + '-' + optIdx)"
+                                            [class.mat-mdc-option-active]="isOptionActiveByValue(option.value)"
+                                            role="option">
+                                            @if (option.svgIcon) {
+                                                <mat-icon class="shrink-0" [svgIcon]="option.svgIcon"></mat-icon>
+                                            }
+                                            <div class="flex flex-col gap-y-1 w-full">
+                                                <div
+                                                    class="truncate"
+                                                    [ngClass]="option.labelCssClasses"
+                                                    data-qa="searchable-select-option-label"
+                                                    ellipsisTooltip>
+                                                    {{ option.label }}
+                                                </div>
+                                                @if (option.description) {
+                                                    <div class="text-sm tertiary-color">
+                                                        {{ option.description }}
+                                                    </div>
+                                                }
+                                            </div>
+                                        </multi-select-option>
+                                    }
+                                </div>
+                            }
+                        } @else {
+                            @for (option of filteredOptions(); track option.value; let i = $index) {
+                                @if (!option.hidden) {
+                                    <multi-select-option
+                                        [value]="option.value"
+                                        [disabled]="disabled || option.disabled"
+                                        [id]="getOptionId(i)"
+                                        [class.mat-mdc-option-active]="activeTemplateIndex() === i"
+                                        role="option">
+                                        @if (option.svgIcon) {
+                                            <mat-icon class="shrink-0" [svgIcon]="option.svgIcon"></mat-icon>
+                                        }
+                                        <div class="flex flex-col gap-y-1 w-full">
+                                            <div
+                                                class="truncate"
+                                                [ngClass]="option.labelCssClasses"
+                                                data-qa="searchable-select-option-label"
+                                                ellipsisTooltip>
+                                                {{ option.label }}
+                                            </div>
+                                            @if (option.description) {
+                                                <div class="text-sm tertiary-color">
+                                                    {{ option.description }}
+                                                </div>
+                                            }
+                                        </div>
+                                    </multi-select-option>
+                                }
+                            }
+                        }
+                        @if (filteredLength === 0) {
+                            <multi-select-option
+                                [value]="null"
+                                disabled
+                                style="display: none; position: absolute; visibility: hidden"></multi-select-option>
+                        }
+
+                        @if (asyncSearchEnabled() && filteredLength !== 0 && asyncSearchOptionsHaveMore()) {
+                            <div
+                                class="flex w-full items-center justify-center py-2 px-3"
+                                role="note"
+                                aria-live="polite">
+                                <div class="truncate tertiary-color" ellipsisTooltip>More options available</div>
+                            </div>
+                        }
+                        @if (loadError() && filteredLength === 0) {
+                            <div
+                                class="flex w-full items-center justify-center py-2 px-3"
+                                role="note"
+                                aria-live="polite">
+                                <span class="truncate error-color" ellipsisTooltip>
+                                    {{ loadErrorMessage() }}
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+                @if (filteredLength === 0 && !loadError()) {
+                    <div class="flex w-full items-center justify-center py-2 px-3" role="note" aria-live="polite">
+                        <div class="truncate tertiary-color" ellipsisTooltip>No results</div>
+                    </div>
+                }
+            }
+        </mat-select>
+
+        @if (validationError() && !verificationError()) {
+            <mat-error class="mt-[-8px] tracking-[0.4px]">{{ validationError() }}</mat-error>
+        }
+
+        @if (hint() && showHint() && !validationError() && !verificationError()) {
+            <mat-hint class="tracking-[0.4px]">{{ hint() }}</mat-hint>
+        }
+    </mat-form-field>
+
+    @if (verificationError()) {
+        <mat-error class="mt-[-8px] tracking-[0.4px]" data-qa="verification-error">{{ verificationError() }}</mat-error>
+    }
+
+    @if (loadError()) {
+        <mat-error class="mt-[-8px] tracking-[0.4px]">{{ loadErrorMessage() || 'Failed to load options' }}</mat-error>
+    }
+</div>

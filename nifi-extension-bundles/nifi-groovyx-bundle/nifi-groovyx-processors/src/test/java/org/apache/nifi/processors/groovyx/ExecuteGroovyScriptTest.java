@@ -576,7 +576,7 @@ public class ExecuteGroovyScriptTest {
         runner.assertValid();
 
         runner.setEnvironmentVariableValue("test", "cannot be converted to a date");
-        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+        runner.enqueue("test content");
 
         runner.run();
 
@@ -585,6 +585,52 @@ public class ExecuteGroovyScriptTest {
         flowFile.assertAttributeExists(ProcessSessionWrap.ERROR_MESSAGE);
         flowFile.assertAttributeExists(ProcessSessionWrap.ERROR_STACKTRACE);
         assertTrue(flowFile.getAttribute(ProcessSessionWrap.ERROR_MESSAGE).contains("IllegalAttributeException"));
+    }
+
+    @Test
+    void testTransferToFailureStrategyWhereScriptHandlesRelationship() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, """
+                def ff = session.get()
+                if (!ff) return
+                session.transfer(ff, REL_SUCCESS)
+                """);
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, ExecuteGroovyScript.TRANSFER_TO_FAILURE);
+        runner.assertValid();
+
+        runner.enqueue("test content");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testTransferToFailureStrategyWhereScriptFailsBeforeSessionGet() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, """
+                throw new RuntimeException("fail before session.get")
+                """);
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, ExecuteGroovyScript.TRANSFER_TO_FAILURE);
+        runner.assertValid();
+        runner.enqueue("test content");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testTransferToFailureStrategyWhereScriptFailsAfterSessionGet() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, """
+                session.get()
+                throw new RuntimeException("fail after session.get")
+                """);
+        runner.setProperty(ExecuteGroovyScript.FAIL_STRATEGY, ExecuteGroovyScript.TRANSFER_TO_FAILURE);
+        runner.assertValid();
+        runner.enqueue("test content");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_FAILURE, 1);
     }
 
     @Test
@@ -611,7 +657,7 @@ public class ExecuteGroovyScriptTest {
         String expectedContent = string;
 
         if (windows) {
-            expectedContent = expectedContent.replaceAll("\n", "\r\n");
+            expectedContent = expectedContent.replace("\n", "\r\n");
         }
 
         return expectedContent;

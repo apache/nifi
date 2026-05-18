@@ -498,9 +498,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             addUserToAccessPolicy(policies, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdmin.getIdentifier(), WRITE);
         }
 
-        // grant the user write to restricted components
-        addUserToAccessPolicy(policies, ResourceType.RestrictedComponents.getValue(), initialAdmin.getIdentifier(), WRITE);
-
         // grant the user read/write access to the /tenants resource
         addUserToAccessPolicy(policies, ResourceType.Tenant.getValue(), initialAdmin.getIdentifier(), READ);
         addUserToAccessPolicy(policies, ResourceType.Tenant.getValue(), initialAdmin.getIdentifier(), WRITE);
@@ -534,9 +531,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             addGroupToAccessPolicy(policies, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdminGroup.getIdentifier(), READ);
             addGroupToAccessPolicy(policies, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, initialAdminGroup.getIdentifier(), WRITE);
         }
-
-        // grant the group write to restricted components
-        addGroupToAccessPolicy(policies, ResourceType.RestrictedComponents.getValue(), initialAdminGroup.getIdentifier(), WRITE);
 
         // grant the group read/write access to the /tenants resource
         addGroupToAccessPolicy(policies, ResourceType.Tenant.getValue(), initialAdminGroup.getIdentifier(), READ);

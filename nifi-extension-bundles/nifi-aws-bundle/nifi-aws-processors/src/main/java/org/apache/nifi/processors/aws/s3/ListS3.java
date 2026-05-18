@@ -127,9 +127,9 @@ import static org.apache.nifi.processors.aws.s3.util.S3Util.sanitizeETag;
         @WritesAttribute(attribute = "s3.storeClass", description = "The storage class of the object"),
         @WritesAttribute(attribute = "s3.version", description = "The version of the object, if applicable"),
         @WritesAttribute(attribute = "s3.tag.___", description = "If 'Write Object Tags' is set to 'True', the tags associated to the S3 object that is being listed " +
-                "will be written as part of the flowfile attributes"),
+                "will be written as part of the FlowFile attributes"),
         @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
-                "will be written as part of the flowfile attributes")})
+                "will be written as part of the FlowFile attributes")})
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 

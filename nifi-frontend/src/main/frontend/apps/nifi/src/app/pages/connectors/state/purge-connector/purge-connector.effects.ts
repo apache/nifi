@@ -28,7 +28,7 @@ import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
-import { DropRequest } from '../../../flow-designer/state/queue';
+import { DropRequest } from '../../../../state/empty-queue';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { selectPurgeConnectorId, selectPurgeDropRequestEntity } from './purge-connector.selectors';

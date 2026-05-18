@@ -36,7 +36,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { catchError, EMPTY, Observable, of, take } from 'rxjs';
@@ -49,7 +48,8 @@ import {
     NiFiCommon,
     TextTip,
     NifiTooltipDirective,
-    CloseOnEscapeDialog
+    CloseOnEscapeDialog,
+    NifiSpinnerDirective
 } from '@nifi/shared';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

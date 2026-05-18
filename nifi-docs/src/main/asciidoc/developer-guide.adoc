@@ -665,19 +665,10 @@ Node but has now had its Primary Node role revoked).
 [[restricted]]
 === Restricted
 
-A Restricted component is one that can be used to execute arbitrary unsanitized code provided by the operator
-through the NiFi REST API/UI or can be used to obtain or alter data on the NiFi host system using the NiFi OS
-credentials. These components could be used by an otherwise authorized NiFi user to go beyond the intended use of
-the application, escalate privilege, or could expose data about the internals of the NiFi process or the host
-system. All of these capabilities should be considered privileged, and admins should be aware of these
-capabilities and explicitly enable them for a subset of trusted users.
-
-A Processor, Controller Service, or Reporting Task can be marked with the @Restricted annotation. This
-will result in the component being treated as restricted and will require a user to be explicitly added to the
-list of users who can access restricted components. Once a user is permitted to access restricted components,
-they will be allowed to create and modify those components assuming all other permissions are permitted.
-Without access to restricted components, a user will still be aware these types of components exist but will
-be unable to create or modify them even with otherwise sufficient permissions.
+The `Restricted` class annotation has been removed (see https://issues.apache.org/jira/browse/NIP-24[NIP-24]).
+NiFi no longer treats components as a separate "restricted" category for authorization based on this annotation.
+Document sensitive capabilities in the component's capability description and use standard authorization policies
+as appropriate for your deployment.
 
 [[state_manager]]
 === State Manager
@@ -1949,39 +1940,30 @@ that references a Controller Service as such:
 
 [source,java]
 ----
-public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-  .name("SSL Context Service")
-  .description("Specified the SSL Context Service that can be used to create secure connections")
+public static final PropertyDescriptor SSL_CONTEXT_PROVIDER = new PropertyDescriptor.Builder()
+  .name("SSL Context Provider")
+  .description("Specifies the service for securing connections encrypted with Transport Layer Security")
   .required(true)
-  .identifiesControllerService(SSLContextService.class)
+  .identifiesControllerService(SSLContextProvider.class)
   .build();
 ----
 
 Using this method, the user will be prompted to supply the SSL Context
-Service that should be used. This is
+Provider that should be used. This is
 done by providing the user with a drop-down menu from which they are
-able to choose any of the `SSLContextService`
-configurations that have been configured, regardless of the implementation.
+able to choose any of the `SSLContextProvider`
+instances that have been configured, regardless of the implementation.
 
 In order to make use of this service, the Processor can use code such as:
 
 [source,java]
 ----
-final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE)
-  .asControllerService(SSLContextService.class);
+final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_PROVIDER)
+  .asControllerService(SSLContextProvider.class);
 ----
 
-Note here that `SSLContextService` is an interface that extends
-ControllerService. The only implementation
-at this time is the `StandardSSLContextService`. However, the
-Processor developer need not worry about this
-detail.
-
-
-
-
-
-
+Note here that `SSLContextProvider` is an interface that extends
+ControllerService.
 
 == Reporting Tasks
 
@@ -2528,7 +2510,7 @@ far less complicated. Note here that the
 This is done so that any NAR that has a dependency on
 `my-controller-service-api-nar` will also be able to access
 all of the Controller Services that are provided by the
-`nifi-standard-services-api-nar`, such as the `SSLContextService`.
+`nifi-standard-services-api-nar`, such as the `SSLContextProvider`.
 In this same vein, it is not necessary to create a different
 "service-api" NAR for each service. Instead, it often
 makes sense to have a single "service-api" NAR that encapsulates the

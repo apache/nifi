@@ -101,11 +101,13 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         // first complete any batches from previous executions
+        boolean completedAny = false;
         FlowFileMessageBatch batch;
         while ((batch = completeBatches.poll()) != null) {
             batch.completeSession();
+            completedAny = true;
         }
 
         // create a session and try to get a FlowFile, if none available then close any idle senders
@@ -113,6 +115,12 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
         final FlowFile flowFile = session.get();
 
         if (flowFile == null) {
+            // The processor is annotated with @TriggerWhenEmpty so onTrigger is invoked even with no input,
+            // allowing async send callbacks to drain completeBatches. Yield when nothing was drained to avoid
+            // a busy scheduling loop on an idle processor.
+            if (!completedAny) {
+                context.yield();
+            }
             return;
         }
 

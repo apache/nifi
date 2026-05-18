@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +49,14 @@ public class ParameterProviderSecretsManager implements SecretsManager {
     private FlowManager flowManager;
     private Duration cacheDuration;
     private final Map<String, CachedSecret> secretCache = new ConcurrentHashMap<>();
+
+    // Per-ParameterProvider-id deduplication for the WARN log emitted whenever a SecretReference
+    // resolution is skipped because its backing provider is not VALID. An entry is present for any
+    // provider id we have already surfaced via WARN; the value is the status that was warned about
+    // so the same WARN is not repeated until the status either changes or the provider returns to
+    // VALID. Entries for providers that no longer exist in the flow are pruned at the top of
+    // getSecretProviders() so the map stays bounded across many flow synchronizations.
+    private final Map<String, ValidationStatus> lastWarnedStatus = new ConcurrentHashMap<>();
 
     private record CachedSecret(Secret secret, long timestampNanos) {
     }
@@ -78,17 +87,41 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
     @Override
     public Set<SecretProvider> getSecretProviders() {
+        final Set<ParameterProviderNode> parameterProviderNodes = flowManager.getAllParameterProviders();
+
+        // Drop dedup entries for any Parameter Provider that no longer exists in the flow so the map
+        // does not grow unbounded when providers are created INVALID and deleted before going VALID.
+        final Set<String> currentProviderIds = new HashSet<>();
+        for (final ParameterProviderNode parameterProviderNode : parameterProviderNodes) {
+            final String providerId = parameterProviderNode.getIdentifier();
+            if (providerId != null) {
+                currentProviderIds.add(providerId);
+            }
+        }
+        lastWarnedStatus.keySet().retainAll(currentProviderIds);
+
         final Set<SecretProvider> providers = new HashSet<>();
-        for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+        for (final ParameterProviderNode parameterProviderNode : parameterProviderNodes) {
             ValidationStatus validationStatus = parameterProviderNode.getValidationStatus();
             if (validationStatus != ValidationStatus.VALID) {
                 validationStatus = parameterProviderNode.performValidation();
             }
             if (validationStatus != ValidationStatus.VALID) {
-                logger.debug("Will not use Parameter Provider {} as a Secret Provider because it is not valid", parameterProviderNode.getName());
+                logSkippedInvalidProvider(parameterProviderNode, validationStatus);
                 continue;
             }
 
+            // Clear the WARN-dedup state for this provider and surface a paired INFO so each
+            // earlier WARN has an explicit recovery line operators can correlate against.
+            final String providerId = parameterProviderNode.getIdentifier();
+            if (providerId != null) {
+                final ValidationStatus priorWarnedStatus = lastWarnedStatus.remove(providerId);
+                if (priorWarnedStatus != null) {
+                    logger.info("Parameter Provider [{}] (id={}) returned to VALID after being logged as {};"
+                                    + " SecretReferences backed by this provider will resolve again",
+                            parameterProviderNode.getName(), providerId, priorWarnedStatus);
+                }
+            }
             providers.add(new ParameterProviderSecretProvider(parameterProviderNode));
         }
 
@@ -142,35 +175,40 @@ public class ParameterProviderSecretsManager implements SecretsManager {
     private Map<SecretReference, Secret> fetchSecretsWithoutCache(final Set<SecretReference> secretReferences) {
         final Set<SecretProvider> providers = getSecretProviders();
 
-        // Partition secret references by Provider
+        // Partition secret references by Provider. References whose provider is non-VALID or absent
+        // are recorded with a null Secret so that callers receive an explicit entry for every input.
         final Map<SecretProvider, Set<SecretReference>> referencesByProvider = new HashMap<>();
+        final Map<SecretReference, Secret> secrets = new HashMap<>();
         for (final SecretReference secretReference : secretReferences) {
             final SecretProvider provider = findProvider(secretReference, providers);
-            referencesByProvider.computeIfAbsent(provider, k -> new HashSet<>()).add(secretReference);
+            if (provider == null) {
+                secrets.put(secretReference, null);
+            } else {
+                referencesByProvider.computeIfAbsent(provider, k -> new HashSet<>()).add(secretReference);
+            }
         }
 
-        final Map<SecretReference, Secret> secrets = new HashMap<>();
         for (final Map.Entry<SecretProvider, Set<SecretReference>> entry : referencesByProvider.entrySet()) {
             final SecretProvider provider = entry.getKey();
             final Set<SecretReference> references = entry.getValue();
 
-            // If no provider found, be sure to map to a null Secret rather than skipping
-            if (provider == null) {
+            final List<String> secretNames = references.stream()
+                .map(SecretReference::getFullyQualifiedName)
+                .filter(Objects::nonNull)
+                .toList();
+            if (!secretNames.isEmpty()) {
+                final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
+                final Map<String, Secret> secretsByName = retrievedSecrets.stream()
+                    .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
+
+                for (final SecretReference secretReference : references) {
+                    final Secret secret = secretsByName.get(secretReference.getFullyQualifiedName());
+                    secrets.put(secretReference, secret);
+                }
+            } else {
                 for (final SecretReference secretReference : references) {
                     secrets.put(secretReference, null);
                 }
-                continue;
-            }
-
-            final List<String> secretNames = new ArrayList<>();
-            references.forEach(ref -> secretNames.add(ref.getFullyQualifiedName()));
-            final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
-            final Map<String, Secret> secretsByName = retrievedSecrets.stream()
-                .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
-
-            for (final SecretReference secretReference : references) {
-                final Secret secret = secretsByName.get(secretReference.getFullyQualifiedName());
-                secrets.put(secretReference, secret);
             }
         }
 
@@ -183,6 +221,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
         // Partition references into cache hits vs. misses that need fetching
         final Map<SecretProvider, Set<SecretReference>> uncachedByProvider = new HashMap<>();
+
         for (final SecretReference secretReference : secretReferences) {
             final String fqn = secretReference.getFullyQualifiedName();
 
@@ -196,7 +235,11 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             }
 
             final SecretProvider provider = findProvider(secretReference, providers);
-            uncachedByProvider.computeIfAbsent(provider, k -> new HashSet<>()).add(secretReference);
+            if (provider == null) {
+                results.put(secretReference, null);
+            } else {
+                uncachedByProvider.computeIfAbsent(provider, k -> new HashSet<>()).add(secretReference);
+            }
         }
 
         // Batch fetch uncached secrets grouped by provider
@@ -204,26 +247,27 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             final SecretProvider provider = entry.getKey();
             final Set<SecretReference> references = entry.getValue();
 
-            if (provider == null) {
+            final List<String> secretNames = references.stream()
+                .map(SecretReference::getFullyQualifiedName)
+                .filter(Objects::nonNull)
+                .toList();
+            if (!secretNames.isEmpty()) {
+                final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
+                final Map<String, Secret> secretsByName = retrievedSecrets.stream()
+                    .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
+
+                for (final SecretReference secretReference : references) {
+                    final String fqn = secretReference.getFullyQualifiedName();
+                    final Secret secret = secretsByName.get(fqn);
+                    results.put(secretReference, secret);
+
+                    if (secret != null && fqn != null) {
+                        cacheSecret(fqn, secret);
+                    }
+                }
+            } else {
                 for (final SecretReference secretReference : references) {
                     results.put(secretReference, null);
-                }
-                continue;
-            }
-
-            final List<String> secretNames = new ArrayList<>();
-            references.forEach(ref -> secretNames.add(ref.getFullyQualifiedName()));
-            final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
-            final Map<String, Secret> secretsByName = retrievedSecrets.stream()
-                .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
-
-            for (final SecretReference secretReference : references) {
-                final String fqn = secretReference.getFullyQualifiedName();
-                final Secret secret = secretsByName.get(fqn);
-                results.put(secretReference, secret);
-
-                if (secret != null && fqn != null) {
-                    cacheSecret(fqn, secret);
                 }
             }
         }
@@ -247,6 +291,25 @@ public class ParameterProviderSecretsManager implements SecretsManager {
         if (!cacheDuration.isZero() && fqn != null && secret != null) {
             secretCache.put(fqn, new CachedSecret(secret, System.nanoTime()));
         }
+    }
+
+    private void logSkippedInvalidProvider(final ParameterProviderNode parameterProviderNode, final ValidationStatus status) {
+        final String providerId = parameterProviderNode.getIdentifier();
+        if (providerId == null) {
+            return;
+        }
+
+        // Treat a null status (e.g., a mock or transient lookup failure) as INVALID for deduplication
+        // purposes so the tracked status is always well-defined.
+        final ValidationStatus effectiveStatus = status == null ? ValidationStatus.INVALID : status;
+        final ValidationStatus priorStatus = lastWarnedStatus.put(providerId, effectiveStatus);
+        if (priorStatus == effectiveStatus) {
+            return;
+        }
+
+        logger.warn("Skipping Parameter Provider [{}] (id={}) as a Secret Provider because its current validation status is {}; "
+                        + "SecretReferences backed by this provider will resolve to null until it returns to VALID",
+                parameterProviderNode.getName(), providerId, effectiveStatus);
     }
 
     private SecretProvider findProvider(final SecretReference secretReference, final Set<SecretProvider> providers) {

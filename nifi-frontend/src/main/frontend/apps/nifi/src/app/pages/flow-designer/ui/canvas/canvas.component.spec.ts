@@ -24,7 +24,7 @@ import { initialState as flowInitialState } from '../../state/flow/flow.reducer'
 import { ContextMenu } from '../../../../ui/common/context-menu/context-menu.component';
 import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 import { selectBreadcrumbs } from '../../state/flow/flow.selectors';
-import { BreadcrumbEntity } from '../../state/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
 import { MockComponent } from 'ng-mocks';
 import { GraphControls } from './graph-controls/graph-controls.component';
 import { HeaderComponent } from './header/header.component';
@@ -48,8 +48,6 @@ import { controllerServicesFeatureKey } from '../../state/controller-services';
 import { initialState as initialControllerServicesState } from '../../state/controller-services/controller-services.reducer';
 import { parameterFeatureKey } from '../../state/parameter';
 import { initialState as initialParameterState } from '../../state/parameter/parameter.reducer';
-import { queueFeatureKey } from '../../../queue/state';
-import { initialState as initialQueueState } from '../../state/queue/queue.reducer';
 import { flowAnalysisFeatureKey } from '../../state/flow-analysis';
 import { initialState as initialFlowAnalysisState } from '../../state/flow-analysis/flow-analysis.reducer';
 import { selectUrl } from '@nifi/shared';
@@ -98,7 +96,6 @@ describe('Canvas', () => {
                             [transformFeatureKey]: initialTransformState,
                             [controllerServicesFeatureKey]: initialControllerServicesState,
                             [parameterFeatureKey]: initialParameterState,
-                            [queueFeatureKey]: initialQueueState,
                             [flowAnalysisFeatureKey]: initialFlowAnalysisState
                         }
                     },

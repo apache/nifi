@@ -24,7 +24,7 @@
     <artifactId>nifi-scripting-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <ant.version>1.10.16</ant.version>
+        <ant.version>1.10.17</ant.version>
     </properties>
     <modules>
         <module>nifi-scripting-processors</module>

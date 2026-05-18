@@ -1,0 +1,55 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// THEMED STYLES (internal mixin)
+// These styles use CSS variables for colors. This mixin is included twice:
+// once for light mode and once under .darkMode for dark mode, mirroring the
+// pattern used by canvas.component.scss.
+@mixin generate-theme() {
+    .birdseye-container {
+        background: var(--mat-sys-background);
+        width: 100%;
+        height: 175px;
+        overflow: hidden;
+        box-sizing: content-box;
+
+        canvas,
+        svg {
+            position: absolute;
+            overflow: hidden;
+        }
+
+        rect.birdseye-brush {
+            stroke: var(--mat-sys-primary);
+            fill: transparent;
+        }
+    }
+}
+
+// ::ng-deep is required because the canvas, svg, and rect elements are created dynamically in
+// birdseye.component.ts via document.createElement() and D3, NOT declared in the component
+// template. Angular's ViewEncapsulation.Emulated only adds scoping attributes to template-defined
+// elements; dynamically created elements don't receive those attributes, so normal scoped styles
+// won't match them. ::ng-deep disables the encapsulation requirement for descendant selectors.
+:host ::ng-deep {
+    @include generate-theme();
+
+    // Dark mode styles (same styles, scoped to .darkMode)
+    .darkMode {
+        @include generate-theme();
+    }
+}

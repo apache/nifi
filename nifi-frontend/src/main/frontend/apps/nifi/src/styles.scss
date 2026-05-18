@@ -17,7 +17,10 @@
 
 @use '@angular/material' as mat;
 @use 'sass:map';
+@use 'sass:meta';
 
+@use 'tailwindcss';
+@use 'libs/shared/src/assets/styles/tailwind-theme';
 @use 'libs/shared/src/assets/styles/app' as app;
 @use 'libs/shared/src/assets/styles/prism-theme' as prism-theme;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
@@ -32,7 +35,7 @@
     birdseye-control;
 @use 'app/pages/flow-designer/ui/canvas/graph-controls/operation-control/operation-control.component-theme' as
     operation-control;
-@use 'app/pages/flow-designer/ui/canvas/items/processor/edit-processor/edit-processor.component-theme' as edit-processor;
+@use 'app/ui/common/component-dialogs/edit-processor/edit-processor.component-theme' as edit-processor;
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
@@ -57,16 +60,18 @@
 @use 'libs/shared/src/components/map-table/editors/text-editor/text-editor.component-theme' as text-editor;
 @use 'app/ui/common/overlapping-connections-banner/overlapping-connections-banner.component-theme' as
     overlapping-connections-banner;
+@use 'app/pages/connectors/ui/connector-canvas/connector-canvas.component-theme' as connector-canvas;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 
-@use 'font-awesome';
 @use 'libs/shared/src/assets/themes/material';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer base {
+    @include meta.load-css('font-awesome');
+}
+
+@source #{"'libs/shared/src'"};
 
 // only include these once (not needed for dark mode)
 @include app.styles();
@@ -104,6 +109,7 @@ html {
     @include text-editor.generate-theme();
     @include resizable.generate-theme();
     @include overlapping-connections-banner.generate-theme();
+    @include connector-canvas.generate-theme();
 
     .darkMode {
         @include app.generate-material-theme();
@@ -137,5 +143,6 @@ html {
         @include text-editor.generate-theme();
         @include resizable.generate-theme();
         @include overlapping-connections-banner.generate-theme();
+        @include connector-canvas.generate-theme();
     }
 }

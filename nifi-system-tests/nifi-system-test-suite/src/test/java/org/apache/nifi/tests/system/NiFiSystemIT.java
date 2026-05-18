@@ -318,7 +318,20 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
 
             if (System.currentTimeMillis() > maxTime) {
-                throw new RuntimeException("Waited up to 60 seconds for all nodes to connect but only " + connectedNodeCount + " nodes connected");
+                String nodeDetails = "";
+                try {
+                    final ClusterEntity clusterEntity = client.getControllerClient().getNodes();
+                    final Collection<NodeDTO> nodes = clusterEntity.getCluster().getNodes();
+                    final StringBuilder details = new StringBuilder();
+                    for (final NodeDTO node : nodes) {
+                        details.append(String.format("%n  Node [%s:%d] Status=%s", node.getAddress(), node.getApiPort(), node.getStatus()));
+                    }
+                    nodeDetails = details.toString();
+                } catch (final Exception e) {
+                    nodeDetails = " (failed to retrieve node details: " + e.getMessage() + ")";
+                }
+                throw new RuntimeException("Waited up to 60 seconds for all " + expectedNumberOfNodes
+                    + " nodes to connect but only " + connectedNodeCount + " nodes connected. Node states:" + nodeDetails);
             }
 
             try {
@@ -434,6 +447,25 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
             Thread.sleep(delayMillis);
         }
+    }
+
+    protected void waitFor(final ExceptionalBooleanSupplier condition, final long delayMillis, final String description) throws InterruptedException {
+        logger.info("Waiting for {}", description);
+        boolean result = false;
+        while (!result) {
+            try {
+                result = condition.getAsBoolean();
+            } catch (final InterruptedException ie) {
+                throw ie;
+            } catch (final Exception e) {
+                logEverySecond("Waiting for {} but condition check threw {}: {}", description, e.getClass().getSimpleName(), e.getMessage());
+            }
+
+            if (!result) {
+                Thread.sleep(delayMillis);
+            }
+        }
+        logger.info("Wait successful for {}", description);
     }
 
     protected void waitForNodeStatus(final NodeDTO nodeDto, final String status) throws InterruptedException {
@@ -669,6 +701,30 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
         nodeEntity.getNode().setStatus(NodeConnectionState.CONNECTING.name());
         getNifiClient().getControllerClient().connectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
+    }
+
+    /**
+     * Removes a node from the cluster and waits until the cluster coordinator no longer reports the node.
+     * Mutating cluster requests (such as deleting a component) reject while a non-CONNECTED node is still
+     * known to the coordinator, so callers that need to issue follow-up mutating requests must wait for
+     * the removal to be reflected in the cluster state rather than relying on the synchronous response of
+     * {@code deleteNode} alone.
+     *
+     * @param nodeIndex the 1-based index of the node
+     */
+    protected void removeNodeFromCluster(final int nodeIndex) throws NiFiClientException, IOException, InterruptedException {
+        final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
+        final int expectedPort = getClientApiPort() + nodeIndex - 1;
+        getNifiClient().getControllerClient().deleteNode(nodeEntity.getNode().getNodeId());
+
+        waitFor(() -> {
+            try {
+                return getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream()
+                        .noneMatch(dto -> dto.getApiPort() == expectedPort);
+            } catch (final Exception e) {
+                return false;
+            }
+        });
     }
 
     protected NodeEntity getNodeEntity(final int nodeIndex) throws NiFiClientException, IOException {

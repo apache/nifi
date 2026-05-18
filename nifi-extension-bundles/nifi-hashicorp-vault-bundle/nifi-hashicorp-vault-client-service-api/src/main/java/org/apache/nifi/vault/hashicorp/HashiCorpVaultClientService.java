@@ -25,7 +25,7 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 /**
  * Provides a HashiCorpVaultCommunicationService.
@@ -70,10 +70,9 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("vault.ssl.context.service")
             .displayName("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections to the " +
-                    "HashiCorp Vault server.")
+            .description("SSL Context Provider for TLS encrypted communication with HashiCorp Vault Server")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .dependsOn(CONFIGURATION_STRATEGY, DIRECT_PROPERTIES)
             .build();
 

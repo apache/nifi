@@ -496,11 +496,6 @@ public class TestAbstractComponentNode {
         }
 
         @Override
-        public boolean isRestricted() {
-            return false;
-        }
-
-        @Override
         public boolean isDeprecated() {
             return false;
         }

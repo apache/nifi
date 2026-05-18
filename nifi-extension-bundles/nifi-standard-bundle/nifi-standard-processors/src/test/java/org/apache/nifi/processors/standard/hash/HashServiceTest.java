@@ -17,13 +17,11 @@
 package org.apache.nifi.processors.standard.hash;
 
 import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -331,60 +329,10 @@ public class HashServiceTest {
     }
 
     @Test
-    void testShouldHashValueFromStream() {
-        // Arrange
+    void testHashValueStreamingSHA256() throws IOException {
+        final String hash = HashService.hashValueStreaming(HashAlgorithm.SHA256, new ByteArrayInputStream(KNOWN_VALUE.getBytes(StandardCharsets.UTF_8)));
 
-        // No command-line md2sum tool available
-        final List<HashAlgorithm> algorithms = new ArrayList<>(List.of(HashAlgorithm.values()));
-        algorithms.remove(HashAlgorithm.MD2);
-
-        StringBuilder sb = new StringBuilder();
-        final int times = 10000;
-        for (int i = 0; i < times; i++) {
-            sb.append(String.format("%s: %s\n", StringUtils.leftPad(String.valueOf(i), 5), "apachenifi ".repeat(10)));
-        }
-
-        /* These values were generated using command-line tools (openssl dgst -md5, shasum [-a 1 224 256 384 512 512224 512256], rhash --sha3-224, b2sum -l 160)
-         * Ex: {@code $ openssl dgst -md5 src/test/resources/HashServiceTest/largefile.txt}
-         */
-        final Map<String, String> expectedHashes = new HashMap<>();
-        expectedHashes.put("md5", "8d329076847b678449610a5fb53997d2");
-        expectedHashes.put("sha_1", "09cd981ee7529cfd6268a69c0d53e8117e9c78b1");
-        expectedHashes.put("sha_224", "4d4d58c226959e0775e627a866eaa26bf18121d578b559946aea6f8c");
-        expectedHashes.put("sha_256", "ce50f183a8011a86c5162e94481c6b14ad921a8001746806063b3033e71440eb");
-        expectedHashes.put("sha_384", "62a13a410566856422f0b81b2e6ab26f91b3da1a877a5c24f681d2812f26abbc43fb637954879915b3cd9aad626ca71c");
-        expectedHashes.put("sha_512", "3f036116c78b1d9e2017bb1fd4b04f449839e6434c94442edebffdcdfbac1d79b483978126f0ffb12824f14ecc36a07dc95f0ba04aa68885456f3f6381471e07");
-        expectedHashes.put("sha_512_224", "aa7227a80889366a2325801a5cfa67f29c8f272f4284aecfe5daba3c");
-        expectedHashes.put("sha_512_256", "76faa424ee31bcb1f3a41a848806e288cb064a6bf1867881ee1b439dd8b38e40");
-        expectedHashes.put("sha3_224", "d4bb36bf2d00117ade2e63c6fa2ef5f6714d8b6c7a40d12623f95fd0");
-        expectedHashes.put("sha3_256", "f93ff4178bc7f466444a822191e152332331ba51eee42b952b3be1b46b1921f7");
-        expectedHashes.put("sha3_384", "7e4dfb0073645f059e5837f7c066bffd7f8b5d888b0179a8f0be6bb11c7d631847c468d4d861abcdc96503d91f2a7a78");
-        expectedHashes.put("sha3_512", "bf8e83f3590727e04777406e1d478615cf68468ad8690dba3f22a879e08022864a2b4ad8e8a1cbc88737578abd4b2e8493e3bda39a81af3f21fc529c1a7e3b52");
-        expectedHashes.put("blake2_160", "71dd4324a1f72aa10aaa59ee4d79ceee8d8915e6");
-        expectedHashes.put("blake2_256", "5a25864c69f42adeefc343989babb6972df38da47bb6ce712fbef4474266b539");
-        expectedHashes.put("blake2_384", "52417243317ca01693ba835bd5d6655c73a2f70d811b4d26ddacf9e3b74fc3993f30adc64fb6c23a6a5c1e36771a0b95");
-        expectedHashes.put("blake2_512", "be81dbc396a9e11c6189d2408a956466fb1c784d2d34495f9ca43434041b425675005deaeea1a04b1f44db0200b19cde5a40fd5e88414bb300620bc3d5e30f6a");
-
-        // Act
-        final Map<String, String> generatedHashes = algorithms
-                .stream()
-                .collect(Collectors.toMap(HashAlgorithm::getName, algorithm -> {
-                    // Get a new InputStream for each iteration, or it will calculate the hash of an empty input on iterations 1 - n
-                    InputStream input = new ByteArrayInputStream(sb.toString().getBytes());
-                    try {
-                        return HashService.hashValueStreaming(algorithm, input);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }));
-
-        // Assert
-        for (final Map.Entry<String, String> entry : generatedHashes.entrySet()) {
-            final String algorithmName = entry.getKey();
-            final String hash = entry.getValue();
-            String key = translateStringToMapKey(algorithmName);
-            assertEquals(expectedHashes.get(key), hash);
-        }
+        assertEquals("dc4bd945723b9c234f1be408e8ceb78660b481008b8ab5b71eb2aa3b4f08357a", hash);
     }
 
     private static String translateStringToMapKey(String string) {

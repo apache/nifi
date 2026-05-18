@@ -40,7 +40,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeComponentAnalysis;
 import org.apache.nifi.authorization.AuthorizeComponentReference;
+import org.apache.nifi.authorization.AuthorizeConfigVerification;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -53,11 +55,9 @@ import org.apache.nifi.cluster.coordination.http.replication.UploadRequest;
 import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.stream.io.MaxLengthInputStream;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -285,8 +285,7 @@ public class ControllerResource extends ApplicationResource {
             },
             security = {
                     @SecurityRequirement(name = "Write - /controller"),
-                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @SecurityRequirement(name = "Write - if the Parameter Provider is restricted - /restricted-components")
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response createParameterProvider(
@@ -437,8 +436,7 @@ public class ControllerResource extends ApplicationResource {
             },
             security = {
                     @SecurityRequirement(name = "Write - /controller"),
-                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @SecurityRequirement(name = "Write - if the Reporting Task is restricted - /restricted-components")
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response createReportingTask(
@@ -544,12 +542,6 @@ public class ControllerResource extends ApplicationResource {
                 importRequestEntity,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
-
-                    final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(requestSnapshot, serviceFacade);
-                    restrictedComponents.forEach(restrictedComponent -> {
-                        final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-                        authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-                    });
                 },
                 () -> {
                     // Nothing to verify
@@ -587,8 +579,7 @@ public class ControllerResource extends ApplicationResource {
             },
             security = {
                     @SecurityRequirement(name = "Write - /controller"),
-                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @SecurityRequirement(name = "Write - if the Flow Analysis Rule is restricted - /restricted-components")
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response createFlowAnalysisRule(
@@ -1231,7 +1222,11 @@ public class ControllerResource extends ApplicationResource {
         return withWriteLock(
                 serviceFacade,
                 configurationAnalysis,
-                lookup -> authorizeController(RequestAction.READ),
+                lookup -> {
+                    authorizeController(RequestAction.READ);
+                    final ComponentAuthorizable authorizable = lookup.getFlowAnalysisRule(flowAnalysisRuleId);
+                    AuthorizeComponentAnalysis.authorizeProposedReferences(authorizer, lookup, authorizable, configurationAnalysis.getConfigurationAnalysis().getProperties(), null);
+                },
                 () -> {
                 },
                 entity -> {
@@ -1263,7 +1258,9 @@ public class ControllerResource extends ApplicationResource {
                     "issuing a GET request to /flow-analysis-rules/{taskId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
                     "/flow-analysis-rules/{serviceId}/verification-requests/{requestId}.",
             security = {
-                    @SecurityRequirement(name = "Read - /flow-analysis-rules/{uuid}")
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response submitFlowAnalysisRuleConfigVerificationRequest(
@@ -1297,7 +1294,7 @@ public class ControllerResource extends ApplicationResource {
         return withWriteLock(
                 serviceFacade,
                 flowAnalysisRuleConfigRequest,
-                lookup -> authorizeController(RequestAction.READ),
+                lookup -> AuthorizeConfigVerification.authorize(authorizer, lookup, lookup.getFlowAnalysisRule(flowAnalysisRuleId), requestDto.getProperties(), lookup.getController()),
                 () -> serviceFacade.verifyCanVerifyFlowAnalysisRuleConfig(flowAnalysisRuleId),
                 entity -> performAsyncFlowAnalysisRuleConfigVerification(entity, user)
         );
@@ -1575,8 +1572,8 @@ public class ControllerResource extends ApplicationResource {
                 serviceFacade,
                 configurationAnalysis,
                 lookup -> {
-                    final Authorizable authorizable = lookup.getFlowRegistryClient(registryClientId).getAuthorizable();
-                    authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final ComponentAuthorizable registryClient = lookup.getFlowRegistryClient(registryClientId);
+                    AuthorizeComponentAnalysis.authorize(authorizer, lookup, registryClient, configurationAnalysis.getConfigurationAnalysis().getProperties(), null);
                 },
                 () -> {
                 },
@@ -1607,7 +1604,8 @@ public class ControllerResource extends ApplicationResource {
                     + "/controller/registry-clients/{clientId}/config/verification-requests/{requestId} for status and "
                     + "DELETE the request once verification completes.",
             security = {
-                    @SecurityRequirement(name = "Read - /controller")
+                    @SecurityRequirement(name = "Write - /controller/registry-clients/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response submitRegistryClientConfigVerificationRequest(
@@ -1641,10 +1639,7 @@ public class ControllerResource extends ApplicationResource {
         return withWriteLock(
                 serviceFacade,
                 registryClientConfigRequest,
-                lookup -> {
-                    final Authorizable authorizable = lookup.getFlowRegistryClient(registryClientId).getAuthorizable();
-                    authorizable.authorize(authorizer, RequestAction.READ, user);
-                },
+                lookup -> AuthorizeConfigVerification.authorize(authorizer, lookup, lookup.getFlowRegistryClient(registryClientId), requestDto.getProperties()),
                 () -> serviceFacade.verifyCanVerifyFlowRegistryClientConfig(registryClientId),
                 entity -> performAsyncRegistryClientConfigVerification(entity, user)
         );
@@ -2421,8 +2416,7 @@ public class ControllerResource extends ApplicationResource {
             },
             security = {
                     @SecurityRequirement(name = "Write - /controller"),
-                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @SecurityRequirement(name = "Write - if the Controller Service is restricted - /restricted-components")
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response createControllerService(

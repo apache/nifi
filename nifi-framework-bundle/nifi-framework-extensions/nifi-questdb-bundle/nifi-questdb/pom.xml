@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.questdb</groupId>
             <artifactId>questdb</artifactId>
-            <version>9.3.4</version>
+            <version>9.3.5</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

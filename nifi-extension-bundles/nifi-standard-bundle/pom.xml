@@ -96,7 +96,7 @@
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
                 <artifactId>brotli4j</artifactId>
-                <version>1.22.0</version>
+                <version>1.23.0</version>
             </dependency>
             <dependency>
                 <groupId>org.tukaani</groupId>
@@ -209,7 +209,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.5.0-jre</version>
+                <version>33.6.0-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>

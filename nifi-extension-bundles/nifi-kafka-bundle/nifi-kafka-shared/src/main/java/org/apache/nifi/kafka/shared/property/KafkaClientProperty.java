@@ -23,15 +23,7 @@ public enum KafkaClientProperty {
     SASL_JAAS_CONFIG("sasl.jaas.config"),
     SASL_LOGIN_CLASS("sasl.login.class"),
     SASL_CLIENT_CALLBACK_HANDLER_CLASS("sasl.client.callback.handler.class"),
-    SASL_LOGIN_CALLBACK_HANDLER_CLASS("sasl.login.callback.handler.class"),
-
-    SSL_KEYSTORE_LOCATION("ssl.keystore.location"),
-    SSL_KEYSTORE_PASSWORD("ssl.keystore.password"),
-    SSL_KEYSTORE_TYPE("ssl.keystore.type"),
-    SSL_KEY_PASSWORD("ssl.key.password"),
-    SSL_TRUSTSTORE_LOCATION("ssl.truststore.location"),
-    SSL_TRUSTSTORE_PASSWORD("ssl.truststore.password"),
-    SSL_TRUSTSTORE_TYPE("ssl.truststore.type");
+    SASL_LOGIN_CALLBACK_HANDLER_CLASS("sasl.login.callback.handler.class");
 
     private final String property;
 

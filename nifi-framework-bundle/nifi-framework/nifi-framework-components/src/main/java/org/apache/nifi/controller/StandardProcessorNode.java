@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -291,11 +290,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public Resource getResource() {
         return ResourceFactory.getComponentResource(ResourceType.Processor, getIdentifier(), getName());
-    }
-
-    @Override
-    public boolean isRestricted() {
-        return getProcessor().getClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override
@@ -1030,7 +1024,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     final String classloaderIsolationKey = getClassLoaderIsolationKey(context);
 
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentClass().getName(), getIdentifier(), bundle, classpathUrls, false,
                                 classloaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
                         final VerifiableProcessor tempVerifiable = verifiableComponentFactory.createProcessor(this, detectedClassLoader);
@@ -1528,6 +1522,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         } else {
             final String procName = processorRef.get().getProcessor().toString();
             procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
+            LOG.info("Cannot start {}: current scheduledState={}, current desiredState={}, requested scheduledState={}, requested desiredState={}",
+                    this, currentState, getDesiredState(), scheduledState, desiredState);
         }
     }
 
@@ -1657,7 +1653,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final Callable<Void> startupTask = () -> {
             final ScheduledState currentScheduleState = scheduledState.get();
             if (currentScheduleState == ScheduledState.STOPPING || currentScheduleState == ScheduledState.STOPPED || getDesiredState() == ScheduledState.STOPPED) {
-                LOG.debug("{} is stopped. Will not call @OnScheduled lifecycle methods or begin trigger onTrigger() method", StandardProcessorNode.this);
+                LOG.info("Aborting start of {}: scheduledState={}, desiredState={}, validationStatus={}",
+                        StandardProcessorNode.this, currentScheduleState, getDesiredState(), getValidationStatus());
                 schedulingAgentCallback.onTaskComplete();
                 completeStopAction();
                 return null;
@@ -1674,13 +1671,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     return null;
                 }
 
-                LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 5 seconds", StandardProcessorNode.this);
-
                 final long attempt = startupAttemptCount.getAndIncrement();
-                if (attempt % 7200 == 0) {
+                if (attempt == 0) {
+                    final ValidationState validationState = getValidationState();
+                    LOG.info("Cannot start {} because Processor is currently not valid (Validation State is {}: {}). Will continue trying to start.",
+                            StandardProcessorNode.this, validationState, validationState.getValidationErrors());
+                } else if (attempt % 7200 == 0) {
                     final ValidationState validationState = getValidationState();
                     procLog.warn("Encountering difficulty starting. (Validation State is {}: {}). Will continue trying to start.",
                             validationState, validationState.getValidationErrors());
+                } else {
+                    LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 500 ms", StandardProcessorNode.this);
                 }
 
                 // re-initiate the entire process
@@ -1864,6 +1865,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
+                    boolean cleanupHandled = false;
                     try {
                         if (lifecycleState.isScheduled()) {
                             schedulingAgent.unschedule(StandardProcessorNode.this, lifecycleState);
@@ -1889,6 +1891,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     LOG.debug("Will not trigger @OnStopped methods of {} because ProcessorStopLifecycleMethods.isTriggerOnStopped() = false", this);
                                 }
                             } finally {
+                                cleanupHandled = true;
                                 lifecycleState.decrementActiveThreadCount();
                                 completeStopAction();
 
@@ -1911,12 +1914,34 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     }
                                 }
                             }
+                        } else if (lifecycleState.isTerminated()) {
+                            // Termination was requested while the stop sequence was waiting for active threads to drain.
+                            // LifecycleState.terminate() reset the active thread count to zero, so the count==1
+                            // condition above will never be reached and rescheduling would loop forever. Complete the
+                            // stop action and exit. completeStopAction() is idempotent if procNode.terminate() already
+                            // invoked it.
+                            LOG.debug("Stop sequence for {} aborted because LifecycleState was terminated", this);
+                            cleanupHandled = true;
+                            completeStopAction();
                         } else {
                             // Not all of the active threads have finished. Try again in 100 milliseconds.
                             executor.schedule(this, 100, TimeUnit.MILLISECONDS);
+                            cleanupHandled = true;
                         }
                     } catch (final Exception e) {
                         LOG.warn("Failed while shutting down processor {}", processor, e);
+
+                        // If an exception escaped before the normal completion path ran (for example because
+                        // schedulingAgent.unschedule or an @OnUnscheduled method threw), the active thread count
+                        // increment performed at the top of stop() must still be reversed and the stop future must
+                        // still be completed. Otherwise the processor remains permanently in STOPPING.
+                        if (!cleanupHandled) {
+                            try {
+                                lifecycleState.decrementActiveThreadCount();
+                            } finally {
+                                completeStopAction();
+                            }
+                        }
                     }
                 }
             });

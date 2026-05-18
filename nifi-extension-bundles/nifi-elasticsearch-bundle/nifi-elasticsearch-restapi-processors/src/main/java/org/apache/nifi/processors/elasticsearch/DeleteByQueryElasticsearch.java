@@ -40,7 +40,7 @@ import java.util.List;
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @SupportsBatching
 @Tags({ "elastic", "elasticsearch", "elasticsearch7", "elasticsearch8", "elasticsearch9", "delete", "query"})
-@CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
+@CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a FlowFile body " +
         "or from the Query parameter.")
 @DynamicProperties({
         @DynamicProperty(

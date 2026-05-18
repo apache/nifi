@@ -41,6 +41,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.ProcessGroupFlowFileActivity;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -195,6 +196,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
     private final NodeTypeProvider nodeTypeProvider;
+    private final ClusterTopologyProvider clusterTopologyProvider;
     private final AssetManager assetManager;
     private final StatelessGroupNode statelessGroupNode;
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
@@ -221,7 +223,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
     private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
     private static final String PATH_SEPARATOR = "/";
+    private static final String VERSION_SEPARATOR = ":";
     private static final String STANDARD_PROCESS_GROUP_NAME = "StandardProcessGroup";
+    private static final String UNREGISTERED_PATH_SEGMENT = "UNREGISTERED";
 
     private final Map<String, String> loggingAttributes = new ConcurrentHashMap<>();
     private volatile String logFileSuffix;
@@ -230,6 +234,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
+                                final ClusterTopologyProvider clusterTopologyProvider,
                                 final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory,
                                 final AssetManager assetManager, final String connectorId) {
 
@@ -244,6 +249,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.flowManager = flowManager;
         this.reloadComponent = reloadComponent;
         this.nodeTypeProvider = nodeTypeProvider;
+        this.clusterTopologyProvider = clusterTopologyProvider;
         this.assetManager = assetManager;
         this.connectorId = connectorId;
 
@@ -4112,6 +4118,9 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private VersionedFlowSynchronizationContext createGroupSynchronizationContext(final ComponentIdGenerator componentIdGenerator, final ComponentScheduler componentScheduler,
                                                                                   final FlowMappingOptions flowMappingOptions) {
+        final int localNodeOrdinal = clusterTopologyProvider.getLocalNodeOrdinal();
+        final int connectedNodeCount = clusterTopologyProvider.getConnectedNodeCount();
+
         return new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)
             .flowManager(flowManager)
@@ -4123,6 +4132,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             .processContextFactory(this::createProcessContext)
             .configurationContextFactory(this::createConfigurationContext)
             .assetManager(assetManager)
+            .stateManagerProvider(stateManagerProvider)
+            .localNodeOrdinal(localNodeOrdinal)
+            .connectedNodeCount(connectedNodeCount)
             .build();
     }
 
@@ -4701,6 +4713,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         idPathBuilder.append(PATH_SEPARATOR);
         idPathBuilder.append(id);
 
+        final StringBuilder registeredFlowIdentifierPathBuilder = new StringBuilder();
+        final VersionControlInformation versionControlInformation = getVersionControlInformation();
+        boolean versionControlFound = appendRegisteredFlowIdentifierVersion(registeredFlowIdentifierPathBuilder, versionControlInformation);
+
         ProcessGroup parentProcessGroup = getParent();
         while (parentProcessGroup != null) {
             namePathBuilder.insert(0, PATH_SEPARATOR);
@@ -4708,6 +4724,12 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             idPathBuilder.insert(0, PATH_SEPARATOR);
             idPathBuilder.insert(1, parentProcessGroup.getIdentifier());
+
+            final VersionControlInformation parentVersionControlInformation = parentProcessGroup.getVersionControlInformation();
+            final boolean parentVersionControlFound = appendRegisteredFlowIdentifierVersion(registeredFlowIdentifierPathBuilder, parentVersionControlInformation);
+            if (parentVersionControlFound) {
+                versionControlFound = true;
+            }
 
             parentProcessGroup = parentProcessGroup.getParent();
         }
@@ -4717,6 +4739,32 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final String namePath = namePathBuilder.toString();
         loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME_PATH.attribute, namePath);
+
+        if (versionControlFound) {
+            final String registeredFlowIdentifierPath = registeredFlowIdentifierPathBuilder.toString();
+            loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_IDENTIFIER_PATH.attribute, registeredFlowIdentifierPath);
+        }
+    }
+
+    private boolean appendRegisteredFlowIdentifierVersion(final StringBuilder pathBuilder, final VersionControlInformation versionControlInformation) {
+        final boolean versionControlFound;
+
+        pathBuilder.insert(0, PATH_SEPARATOR);
+        if (versionControlInformation == null) {
+            versionControlFound = false;
+            pathBuilder.insert(1, UNREGISTERED_PATH_SEGMENT);
+        } else {
+            versionControlFound = true;
+
+            final String version = versionControlInformation.getVersion();
+            pathBuilder.insert(1, version);
+            pathBuilder.insert(1, VERSION_SEPARATOR);
+
+            final String flowIdentifier = versionControlInformation.getFlowIdentifier();
+            pathBuilder.insert(1, flowIdentifier);
+        }
+
+        return versionControlFound;
     }
 
     enum LoggingAttribute {
@@ -4729,6 +4777,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         PROCESS_GROUP_NAME_PATH("processGroupNamePath"),
 
         REGISTERED_FLOW_IDENTIFIER("registeredFlowIdentifier"),
+
+        REGISTERED_FLOW_IDENTIFIER_PATH("registeredFlowIdentifierPath"),
 
         REGISTERED_FLOW_VERSION("registeredFlowVersion");
 

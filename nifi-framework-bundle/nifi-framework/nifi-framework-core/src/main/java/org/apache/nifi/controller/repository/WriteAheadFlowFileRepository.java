@@ -21,7 +21,9 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.repository.schema.FieldCache;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -98,6 +100,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private final List<File> flowFileRepositoryPaths = new ArrayList<>();
     private final ScheduledExecutorService checkpointExecutor;
     private final int maxCharactersToCache;
+    private final long truncationThreshold;
+    private final boolean truncationEnabled;
 
     private volatile Collection<SerializedRepositoryRecord> recoveredRecords = null;
     private final Set<ResourceClaim> orphanedResourceClaims = Collections.synchronizedSet(new HashSet<>());
@@ -132,6 +136,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     // before the data is destroyed, it's okay because the data will be unknown to the Content Repository, so it will be destroyed
     // on restart.
     private final ConcurrentMap<Integer, BlockingQueue<ResourceClaim>> claimsAwaitingDestruction = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, BlockingQueue<ContentClaim>> claimsAwaitingTruncation = new ConcurrentHashMap<>();
 
     /**
      * default no args constructor for service loading only.
@@ -143,6 +148,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         nifiProperties = null;
         retainOrphanedFlowFiles = true;
         maxCharactersToCache = 0;
+        truncationThreshold = Long.MAX_VALUE;
+        truncationEnabled = false;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
@@ -153,6 +160,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         retainOrphanedFlowFiles = orphanedFlowFileProperty == null || Boolean.parseBoolean(orphanedFlowFileProperty);
 
         this.maxCharactersToCache = nifiProperties.getIntegerProperty(FLOWFILE_REPO_CACHE_SIZE, DEFAULT_CACHE_SIZE);
+        final long maxAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
+        // Cap the truncation threshold at 1 MB so that claims larger than 1 MB are always eligible
+        // for truncation regardless of how large maxAppendableClaimSize is configured.
+        truncationThreshold = Math.min(1_000_000, maxAppendableClaimLength);
+        truncationEnabled = nifiProperties.isContentClaimTruncationEnabled();
 
         final String directoryName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
         flowFileRepositoryPaths.add(new File(directoryName));
@@ -447,33 +459,48 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // The below code is not entirely thread-safe, but we are OK with that because the results aren't really harmful.
         // Specifically, if two different threads call updateRepository with DELETE records for the same Content Claim,
         // it's quite possible for claimant count to be 0 below, which results in two different threads adding the Content
-        // Claim to the 'claimsAwaitDestruction' map. As a result, we can call #markDestructable with the same ContentClaim
+        // Claim to the 'claimsAwaitingDestruction' map. As a result, we can call #markDestructable with the same ContentClaim
         // multiple times, and the #markDestructable method is not necessarily idempotent.
         // However, the result of this is that the FileSystem Repository may end up trying to remove the content multiple times.
         // This does not, however, cause problems, as ContentRepository should handle this
         // This does indicate that some refactoring should probably be performed, though, as this is not a very clean interface.
-        final Set<ResourceClaim> claimsToAdd = new HashSet<>();
+        final Set<ResourceClaim> destructableClaims = new HashSet<>();
+        final Set<ContentClaim> truncatableClaims = new HashSet<>();
 
         final Set<String> swapLocationsAdded = new HashSet<>();
         final Set<String> swapLocationsRemoved = new HashSet<>();
 
         for (final RepositoryRecord record : repositoryRecords) {
-            updateClaimCounts(record);
+            updateResourceClaimCounts(record);
+            updateTruncationEligibleClaimCounts(record);
 
+            final ContentClaim contentClaim = record.getCurrentClaim();
+            final boolean claimChanged = !Objects.equals(record.getOriginalClaim(), contentClaim);
             if (record.getType() == RepositoryRecordType.DELETE) {
-                // For any DELETE record that we have, if claim is destructible, mark it so
-                if (record.getCurrentClaim() != null && isDestructable(record.getCurrentClaim())) {
-                    claimsToAdd.add(record.getCurrentClaim().getResourceClaim());
+                // For any DELETE record that we have, if claim is destructible or truncatable, mark it so
+                if (isDestructable(contentClaim)) {
+                    destructableClaims.add(contentClaim.getResourceClaim());
+                } else if (isTruncationAllowed(contentClaim)) {
+                    truncatableClaims.add(contentClaim);
                 }
 
-                // If the original claim is different than the current claim and the original claim is destructible, mark it so
-                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && isDestructable(record.getOriginalClaim())) {
-                    claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
+                // If the original claim is different than the current claim and the original claim is destructible
+                // or truncatable, mark it so
+                if (claimChanged) {
+                    if (isDestructable(record.getOriginalClaim())) {
+                        destructableClaims.add(record.getOriginalClaim().getResourceClaim());
+                    } else if (isTruncationAllowed(record.getOriginalClaim())) {
+                        truncatableClaims.add(record.getOriginalClaim());
+                    }
                 }
             } else if (record.getType() == RepositoryRecordType.UPDATE) {
                 // if we have an update, and the original is no longer needed, mark original as destructible
-                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && isDestructable(record.getOriginalClaim())) {
-                    claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
+                if (claimChanged) {
+                    if (isDestructable(record.getOriginalClaim())) {
+                        destructableClaims.add(record.getOriginalClaim().getResourceClaim());
+                    } else if (isTruncationAllowed(record.getOriginalClaim())) {
+                        truncatableClaims.add(record.getOriginalClaim());
+                    }
                 }
             } else if (record.getType() == RepositoryRecordType.SWAP_OUT) {
                 final String swapLocation = record.getSwapLocation();
@@ -497,13 +524,16 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
         }
 
-        // Once the content claim counts have been updated for all records, collect any transient claims that are eligible for destruction
+        // Once the content claim counts have been updated for all records, collect any transient
+        // claims that are eligible for destruction or truncation
         for (final RepositoryRecord record : repositoryRecords) {
             final List<ContentClaim> transientClaims = record.getTransientClaims();
             if (transientClaims != null) {
                 for (final ContentClaim transientClaim : transientClaims) {
                     if (isDestructable(transientClaim)) {
-                        claimsToAdd.add(transientClaim.getResourceClaim());
+                        destructableClaims.add(transientClaim.getResourceClaim());
+                    } else if (isTruncationAllowed(transientClaim)) {
+                        truncatableClaims.add(transientClaim);
                     }
                 }
             }
@@ -517,23 +547,19 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
         }
 
-        if (!claimsToAdd.isEmpty()) {
-            // Get / Register a Set<ContentClaim> for the given Partition Index
-            final Integer partitionKey = Integer.valueOf(partitionIndex);
-            BlockingQueue<ResourceClaim> claimQueue = claimsAwaitingDestruction.get(partitionKey);
-            if (claimQueue == null) {
-                claimQueue = new LinkedBlockingQueue<>();
-                final BlockingQueue<ResourceClaim> existingClaimQueue = claimsAwaitingDestruction.putIfAbsent(partitionKey, claimQueue);
-                if (existingClaimQueue != null) {
-                    claimQueue = existingClaimQueue;
-                }
-            }
+        if (!destructableClaims.isEmpty()) {
+            // Get / Register a Set<ResourceClaim> for the given Partition Index
+            final BlockingQueue<ResourceClaim> claimQueue = claimsAwaitingDestruction.computeIfAbsent(partitionIndex, key -> new LinkedBlockingQueue<>());
+            claimQueue.addAll(destructableClaims);
+        }
 
-            claimQueue.addAll(claimsToAdd);
+        if (!truncatableClaims.isEmpty()) {
+            final BlockingQueue<ContentClaim> claimQueue = claimsAwaitingTruncation.computeIfAbsent(partitionIndex, key -> new LinkedBlockingQueue<>());
+            claimQueue.addAll(truncatableClaims);
         }
     }
 
-    private void updateClaimCounts(final RepositoryRecord record) {
+    private void updateResourceClaimCounts(final RepositoryRecord record) {
         final ContentClaim currentClaim = record.getCurrentClaim();
         final ContentClaim originalClaim = record.getOriginalClaim();
 
@@ -553,6 +579,68 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
         claimManager.decrementClaimantCount(claim.getResourceClaim());
+    }
+
+    private boolean isTruncationEligibleClaim(final ContentClaim claim) {
+        return truncationEnabled && claim != null && claim.getOffset() > 0 && claim.getLength() > truncationThreshold;
+    }
+
+    private void incrementContentClaimReference(final ContentClaim claim) {
+        if (!isTruncationEligibleClaim(claim)) {
+            return;
+        }
+        claimManager.incrementTruncationReferenceCount(claim);
+    }
+
+    private int decrementContentClaimReference(final ContentClaim claim) {
+        if (!isTruncationEligibleClaim(claim)) {
+            return -1;
+        }
+        return claimManager.decrementTruncationReferenceCount(claim);
+    }
+
+    int getContentClaimReferenceCount(final ContentClaim claim) {
+        if (!isTruncationEligibleClaim(claim)) {
+            return 0;
+        }
+        return claimManager.getTruncationReferenceCount(claim);
+    }
+
+    private boolean isTruncationAllowed(final ContentClaim claim) {
+        return truncationEnabled && claim != null && claim.isTruncationCandidate() && getContentClaimReferenceCount(claim) <= 0;
+    }
+
+    private void updateTruncationEligibleClaimCounts(final RepositoryRecord record) {
+        final ContentClaim currentClaim = record.getCurrentClaim();
+
+        switch (record.getType()) {
+            case CREATE:
+                incrementContentClaimReference(currentClaim);
+                break;
+            case DELETE:
+            case CONTENTMISSING:
+                if (record.isContentModified()) {
+                    decrementContentClaimReference(record.getOriginalClaim());
+                } else {
+                    decrementContentClaimReference(currentClaim);
+                }
+                break;
+            case UPDATE:
+                if (record.isContentModified()) {
+                    decrementContentClaimReference(record.getOriginalClaim());
+                    incrementContentClaimReference(currentClaim);
+                }
+                break;
+            default:
+                // SWAP_OUT, SWAP_IN, and CLEANUP_TRANSIENT_CLAIMS intentionally do not change the truncation reference count.
+                // SWAP_OUT/SWAP_IN are balanced: SWAP_OUT does not decrement because the FlowFile still exists (on disk in a
+                // swap file), so SWAP_IN must not increment either. CLEANUP_TRANSIENT_CLAIMS describes claims that were
+                // never the current claim of a FlowFile reflected by a CREATE or UPDATE record (e.g., a claim written to and
+                // then replaced by a subsequent session.write, or a claim abandoned by a session rollback), so the reference
+                // count was never incremented for them in the first place. The outer updateContentClaims loop is still
+                // responsible for checking isDestructable / isTruncationAllowed on these transient claims.
+                break;
+        }
     }
 
     protected static String normalizeSwapLocation(final String swapLocation) {
@@ -579,16 +667,28 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void onSync(final int partitionIndex) {
-        final BlockingQueue<ResourceClaim> claimQueue = claimsAwaitingDestruction.get(partitionIndex);
-        if (claimQueue == null) {
-            return;
+        final BlockingQueue<ResourceClaim> destructionClaimQueue = claimsAwaitingDestruction.get(partitionIndex);
+        if (destructionClaimQueue != null) {
+            final Set<ResourceClaim> claimsToDestroy = new HashSet<>();
+            destructionClaimQueue.drainTo(claimsToDestroy);
+
+            for (final ResourceClaim claim : claimsToDestroy) {
+                markDestructable(claim);
+            }
         }
 
-        final Set<ResourceClaim> claimsToDestroy = new HashSet<>();
-        claimQueue.drainTo(claimsToDestroy);
+        final BlockingQueue<ContentClaim> truncationClaimQueue = claimsAwaitingTruncation.get(partitionIndex);
+        if (truncationClaimQueue != null) {
+            final Set<ContentClaim> claimsToTruncate = new HashSet<>();
+            truncationClaimQueue.drainTo(claimsToTruncate);
 
-        for (final ResourceClaim claim : claimsToDestroy) {
-            markDestructable(claim);
+            for (final ContentClaim claim : claimsToTruncate) {
+                if (isTruncationAllowed(claim)) {
+                    claimManager.markTruncatable(claim);
+                } else {
+                    logger.debug("Skipping markTruncatable for {} during onSync because truncation is no longer allowed", claim);
+                }
+            }
         }
     }
 
@@ -600,6 +700,19 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             for (final ResourceClaim claim : claimsToDestroy) {
                 markDestructable(claim);
+            }
+        }
+
+        for (final BlockingQueue<ContentClaim> claimQueue : claimsAwaitingTruncation.values()) {
+            final Set<ContentClaim> claimsToTruncate = new HashSet<>();
+            claimQueue.drainTo(claimsToTruncate);
+
+            for (final ContentClaim claim : claimsToTruncate) {
+                if (isTruncationAllowed(claim)) {
+                    claimManager.markTruncatable(claim);
+                } else {
+                    logger.debug("Skipping markTruncatable for {} during onGlobalSync because truncation is no longer allowed", claim);
+                }
             }
         }
     }
@@ -747,6 +860,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             queueMap.put(queue.getIdentifier(), queue);
         }
 
+        final Set<StandardContentClaim> truncationEligibleClaims = new HashSet<>();
+        final Map<ResourceClaim, ContentClaim> latestContentClaimByResourceClaim = new HashMap<>();
+
         final List<SerializedRepositoryRecord> dropRecords = new ArrayList<>();
         int numFlowFilesMissingQueue = 0;
         long maxId = 0;
@@ -777,6 +893,15 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
 
             final ContentClaim claim = record.getContentClaim();
+
+            // Track the latest Content Claim for each Resource Claim so that we can determine which claims are eligible for truncation.
+            if (claim != null) {
+                final ContentClaim latestContentClaim = latestContentClaimByResourceClaim.get(claim.getResourceClaim());
+                if (latestContentClaim == null || claim.getOffset() > latestContentClaim.getOffset()) {
+                    latestContentClaimByResourceClaim.put(claim.getResourceClaim(), claim);
+                }
+            }
+
             final FlowFileQueue flowFileQueue = queueMap.get(queueId);
             final boolean orphaned = flowFileQueue == null;
             if (orphaned) {
@@ -788,6 +913,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                             + "FlowFile Queue in the flow. However, it will remain in the FlowFile Repository in case the flow containing this queue is later restored.", recordId, queueId);
                     } else {
                         claimManager.incrementClaimantCount(claim.getResourceClaim());
+                        incrementContentClaimReference(claim);
                         orphanedResourceClaims.add(claim.getResourceClaim());
                         logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. "
                                 + "This FlowFile will not be restored to any FlowFile Queue in the flow. However, it will remain in the FlowFile Repository in "
@@ -806,7 +932,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
                 continue;
             } else if (claim != null) {
+                if (isTruncationEligibleClaim(claim) && claim instanceof final StandardContentClaim standardContentClaim) {
+                    truncationEligibleClaims.add(standardContentClaim);
+                }
+
                 claimManager.incrementClaimantCount(claim.getResourceClaim());
+                incrementContentClaimReference(claim);
             }
 
             flowFileQueue.put(record.getFlowFileRecord());
@@ -814,6 +945,38 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         // If recoveredRecords has been populated it need to be nulled out now because it is no longer useful and can be garbage collected.
         recoveredRecords = null;
+
+        // Mark truncation candidates only when truncation is enabled and there are no recovered
+        // swap files. Swapped-out FlowFiles are excluded from wal.recoverRecords(), so their
+        // content claim references are not reflected in truncationEligibleClaimReferenceCounts.
+        // Marking candidates here could lead to premature truncation of claims still referenced
+        // by swapped FlowFiles.
+        if (truncationEnabled && recoveredSwapLocations.isEmpty()) {
+            final Set<ContentClaim> markedCandidates = new HashSet<>();
+            for (final StandardContentClaim eligible : truncationEligibleClaims) {
+                final ContentClaim latestForResource = latestContentClaimByResourceClaim.get(eligible.getResourceClaim());
+                if (Objects.equals(eligible, latestForResource)) {
+                    eligible.setTruncationCandidate(true);
+                    markedCandidates.add(eligible);
+                }
+            }
+
+            // During recovery, multiple FlowFiles sharing the same logical ContentClaim may hold
+            // different object instances. The loop above only marks the instance that was added to
+            // truncationEligibleClaims. Propagate the flag to all other matching instances so that
+            // truncation works regardless of which FlowFile is deleted last.
+            if (!markedCandidates.isEmpty()) {
+                for (final SerializedRepositoryRecord record : recordList) {
+                    final ContentClaim claim = record.getContentClaim();
+                    if (claim instanceof final StandardContentClaim standardContentClaim && !standardContentClaim.isTruncationCandidate() && markedCandidates.contains(claim)) {
+                        standardContentClaim.setTruncationCandidate(true);
+                    }
+                }
+            }
+        } else {
+            logger.info("Skipping truncation candidate marking because {} swap files were recovered; " +
+                "content claims referenced by swapped FlowFiles are not counted", recoveredSwapLocations.size());
+        }
 
         // Set the AtomicLong to 1 more than the max ID so that calls to #getNextFlowFileSequence() will
         // return the appropriate number.
@@ -881,7 +1044,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     @Override
-    public long getMaxFlowFileIdentifier() throws IOException {
+    public long getMaxFlowFileIdentifier() {
         // flowFileSequenceGenerator is 1 more than the MAX so that we can call #getAndIncrement on the AtomicLong
         return flowFileSequenceGenerator.get() - 1;
     }

@@ -50,6 +50,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     private static final String ZOOKEEPER_SSL_QUORUM = "sslQuorum";
     private static final String ZOOKEEPER_PORT_UNIFICATION = "portUnification";
     private static final String ZOOKEEPER_SERVER_CNXN_FACTORY = "serverCnxnFactory";
+    private static final String ZOOKEEPER_ADMIN_ENABLE_SERVER = "admin.enableServer";
     private final QuorumPeerConfig quorumPeerConfig;
     private volatile boolean started = false;
 
@@ -272,6 +273,9 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
         // Port unification allows both secure and insecure connections - setting to false means only secure connections will be allowed.
         zkProperties.setProperty(ZOOKEEPER_PORT_UNIFICATION, Boolean.FALSE.toString());
+
+        // Disable ZooKeeper Admin Server to avoid resource consumption and dependency issues
+        zkProperties.setProperty(ZOOKEEPER_ADMIN_ENABLE_SERVER, Boolean.FALSE.toString());
 
         // Recreate and reload the adjusted properties to ensure they're still valid for ZK:
         peerConfig = new QuorumPeerConfig();

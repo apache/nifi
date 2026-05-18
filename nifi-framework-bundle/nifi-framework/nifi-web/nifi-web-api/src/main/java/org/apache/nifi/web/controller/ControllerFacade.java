@@ -43,7 +43,6 @@ import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.Secret;
@@ -150,7 +149,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.text.Collator;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1078,10 +1076,6 @@ public class ControllerFacade implements Authorizable {
 
         // add each parameter context
         flowController.getFlowManager().getParameterContextManager().getParameterContexts().forEach(parameterContext -> resources.add(parameterContext.getResource()));
-
-        // restricted components
-        resources.add(ResourceFactory.getRestrictedComponentsResource());
-        Arrays.stream(RequiredPermission.values()).forEach(requiredPermission -> resources.add(ResourceFactory.getRestrictedComponentsResource(requiredPermission)));
 
         final ProcessGroup root = getRootGroup();
 

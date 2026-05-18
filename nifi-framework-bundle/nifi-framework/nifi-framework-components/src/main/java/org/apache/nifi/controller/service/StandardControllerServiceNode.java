@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -196,11 +195,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     public Resource getResource() {
         return ResourceFactory.getComponentResource(ResourceType.ControllerService, getIdentifier(), getName());
-    }
-
-    @Override
-    public boolean isRestricted() {
-        return getControllerServiceImplementation().getClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override

@@ -33,7 +33,7 @@
         <module>nifi-hl7-query-language</module>
         <module>nifi-json-schema-api</module>
         <module>nifi-json-schema-shared</module>
-        <module>nifi-json-utils</module>
+        <module>nifi-json-validator</module>
         <module>nifi-jetty-configuration</module>
         <module>nifi-kubernetes-client</module>
         <module>nifi-metrics</module>
@@ -71,7 +71,7 @@
         <module>nifi-connector-common</module>
     </modules>
     <properties>
-        <guava.version>33.5.0-jre</guava.version>
+        <guava.version>33.6.0-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>

@@ -24,6 +24,7 @@ export interface ComponentStateRequest {
     componentType: ComponentType;
     componentId: string;
     canClear: boolean;
+    connectorId?: string;
 }
 
 export interface LoadComponentStateRequest {
@@ -80,6 +81,7 @@ export interface ComponentStateState {
     componentName: string | null;
     componentType: ComponentType | null;
     componentId: string | null;
+    connectorId: string | null;
     componentState: ComponentState | null;
     canClear: boolean | null;
     clearing: boolean;

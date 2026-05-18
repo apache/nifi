@@ -275,7 +275,6 @@ public class DtoFactoryTest {
         when(serviceNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
         when(serviceNode.getState()).thenReturn(ControllerServiceState.DISABLED);
         when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
-        when(serviceNode.isRestricted()).thenReturn(false);
         when(serviceNode.isDeprecated()).thenReturn(false);
         when(serviceNode.isExtensionMissing()).thenReturn(true); // ghost component
         when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
@@ -315,7 +314,6 @@ public class DtoFactoryTest {
         when(serviceNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
         when(serviceNode.getState()).thenReturn(ControllerServiceState.DISABLED);
         when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
-        when(serviceNode.isRestricted()).thenReturn(false);
         when(serviceNode.isDeprecated()).thenReturn(false);
         when(serviceNode.isExtensionMissing()).thenReturn(false); // not ghost
         when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
@@ -356,7 +354,6 @@ public class DtoFactoryTest {
         when(serviceNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
         when(serviceNode.getState()).thenReturn(ControllerServiceState.DISABLED);
         when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
-        when(serviceNode.isRestricted()).thenReturn(false);
         when(serviceNode.isDeprecated()).thenReturn(false);
         when(serviceNode.isExtensionMissing()).thenReturn(false); // not ghost
         when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
@@ -395,7 +392,6 @@ public class DtoFactoryTest {
         when(clientNode.getAnnotationData()).thenReturn(null);
         when(clientNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
         when(clientNode.isBranchingSupported()).thenReturn(false);
-        when(clientNode.isRestricted()).thenReturn(false);
         when(clientNode.isDeprecated()).thenReturn(false);
         when(clientNode.isExtensionMissing()).thenReturn(true); // ghost component
         when(clientNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());

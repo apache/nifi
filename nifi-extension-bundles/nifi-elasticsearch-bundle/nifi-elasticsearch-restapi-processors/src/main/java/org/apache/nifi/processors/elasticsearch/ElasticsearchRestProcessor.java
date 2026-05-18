@@ -92,8 +92,8 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
     PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("Query")
             .description("A query in JSON syntax, not Lucene syntax. Ex: {\"query\":{\"match\":{\"somefield\":\"somevalue\"}}}. " +
-                    "If this parameter is not set, the query will be read from the flowfile content. " +
-                    "If the query (property and flowfile content) is empty, a default empty JSON Object will be used, " +
+                    "If this parameter is not set, the query will be read from the FlowFile content. " +
+                    "If the query (property and FlowFile content) is empty, a default empty JSON Object will be used, " +
                     "which will result in a \"match_all\" query in Elasticsearch.")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY)
             .required(false)
@@ -174,7 +174,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
 
     PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("Query Attribute")
-            .description("If set, the executed query will be set on each result flowfile in the specified attribute.")
+            .description("If set, the executed query will be set on each result FlowFile in the specified attribute.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
             .required(false)

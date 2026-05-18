@@ -55,6 +55,7 @@ import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.StandardConnectorConfigurationProviderInitializationContext;
@@ -249,6 +250,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -274,7 +276,7 @@ import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider {
+public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider, ClusterTopologyProvider {
     private static final String STANDARD_PYTHON_BRIDGE_IMPLEMENTATION_CLASS = "org.apache.nifi.py4j.StandardPythonBridge";
 
     // default repository implementations
@@ -1050,7 +1052,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return connection;
         }
 
-        for (final ConnectorNode connector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
             if (flowContext != null) {
                 final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
@@ -1077,7 +1079,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return remoteGroupPort;
         }
 
-        for (final ConnectorNode connector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
             final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
             if (flowContext != null) {
                 final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
@@ -1507,7 +1509,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 LOG.info("Starting {} Connectors", startConnectorsAfterInitialization.size());
                 for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
                     try {
-                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier(), ConnectorSyncMode.LOCAL_ONLY);
                         if (existingConnector == null) {
                             LOG.debug("Will not start {} because it no longer exists", connectorNode);
                             continue;
@@ -1539,7 +1541,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 // Explicitly stop Connectors so that their state is properly transitioned from UPDATED to STOPPED.
                 for (final ConnectorNode connectorNode : startConnectorsAfterInitialization) {
                     try {
-                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier());
+                        final ConnectorNode existingConnector = connectorRepository.getConnector(connectorNode.getIdentifier(), ConnectorSyncMode.LOCAL_ONLY);
                         if (existingConnector != null) {
                             connectorRepository.stopConnector(connectorNode);
                         }
@@ -2960,6 +2962,43 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public int getLocalNodeOrdinal() {
+        final List<NodeIdentifier> sortedConnectedNodes = getSortedConnectedNodeIdentifiers();
+        if (sortedConnectedNodes.isEmpty()) {
+            return 0;
+        }
+
+        final NodeIdentifier localNodeId = getNodeId();
+        if (localNodeId == null) {
+            return 0;
+        }
+
+        for (int i = 0; i < sortedConnectedNodes.size(); i++) {
+            if (sortedConnectedNodes.get(i).equals(localNodeId)) {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    @Override
+    public int getConnectedNodeCount() {
+        final List<NodeIdentifier> sortedConnectedNodes = getSortedConnectedNodeIdentifiers();
+        return sortedConnectedNodes.isEmpty() ? 1 : sortedConnectedNodes.size();
+    }
+
+    private List<NodeIdentifier> getSortedConnectedNodeIdentifiers() {
+        if (!isClustered() || clusterCoordinator == null) {
+            return Collections.emptyList();
+        }
+
+        return clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED).stream()
+                .sorted(Comparator.comparing(NodeIdentifier::getApiAddress).thenComparingInt(NodeIdentifier::getApiPort))
+                .toList();
     }
 
     @Override

@@ -21,7 +21,7 @@ import { EditRemotePortComponent } from './edit-remote-port.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { EditComponentDialogRequest } from '../../../state/flow';
+import { EditComponentDialogRequest } from '../../../../../state/shared';
 import { ComponentType } from '@nifi/shared';
 import { initialState } from '../../../state/manage-remote-ports/manage-remote-ports.reducer';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';

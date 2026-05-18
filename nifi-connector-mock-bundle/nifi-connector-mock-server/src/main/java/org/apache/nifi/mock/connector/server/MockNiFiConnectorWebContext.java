@@ -19,6 +19,7 @@ package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.web.NiFiConnectorWebContext;
 
@@ -38,7 +39,8 @@ public class MockNiFiConnectorWebContext implements NiFiConnectorWebContext {
     @Override
     @SuppressWarnings("unchecked")
     public <T> ConnectorWebContext<T> getConnectorWebContext(final String connectorId) throws IllegalArgumentException {
-        final ConnectorNode connectorNode = connectorRepository.getConnector(connectorId);
+        // Test runner: there is no real ConnectorConfigurationProvider in this context, so syncing would be wasted work.
+        final ConnectorNode connectorNode = connectorRepository.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         if (connectorNode == null) {
             throw new IllegalArgumentException("Unable to find connector with id: " + connectorId);
         }

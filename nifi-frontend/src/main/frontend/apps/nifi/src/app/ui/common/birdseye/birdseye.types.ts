@@ -1,0 +1,54 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ComponentType } from '@nifi/shared';
+import { Dimension, Position } from '../canvas/canvas.types';
+
+/**
+ * Simplified component data for birdseye rendering
+ */
+export interface BirdseyeComponentData {
+    id: string;
+    type: ComponentType;
+    position: Position;
+    dimensions: Dimension;
+    /**
+     * Optional hex color (e.g. '#aabbcc') used to fill this component on the birdseye. When
+     * present it overrides the type-based palette so a user-configured background color on a
+     * processor or label is reflected on the minimap, keeping the overview visually
+     * consistent with what the user sees on the canvas.
+     */
+    fillColor?: string;
+}
+
+/**
+ * Canvas transform state
+ */
+export interface BirdseyeTransform {
+    translate: Position;
+    scale: number;
+}
+
+/**
+ * Bounding box for component calculations
+ */
+export interface BirdseyeBounds {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+}

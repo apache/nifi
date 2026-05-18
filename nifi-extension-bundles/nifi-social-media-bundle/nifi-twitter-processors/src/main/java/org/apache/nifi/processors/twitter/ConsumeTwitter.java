@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -64,6 +65,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type set to application/json"),
         @WritesAttribute(attribute = "tweets", description = "The number of Tweets in the FlowFile"),
 })
+@DeprecationNotice(reason = "NIFI-15882 The twitter-api-java-sdk is no longer maintained")
 public class ConsumeTwitter extends AbstractProcessor {
 
     static final AllowableValue ENDPOINT_SAMPLE = new AllowableValue(StreamEndpoint.SAMPLE_ENDPOINT.getEndpointName(),

@@ -20,7 +20,7 @@ import * as FlowActions from './flow.actions';
 import { of, ReplaySubject, take, throwError } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ComponentHistoryEntity } from '../../../../state/shared';
-import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
+import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { FlowEffects } from './flow.effects';
 import { provideMockActions } from '@ngrx/effects/testing';
@@ -33,14 +33,16 @@ import {
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
+    flowFeatureKey,
+    MoveToFrontRequest
+} from './index';
+import {
     DisableComponentRequest,
     EnableComponentRequest,
-    flowFeatureKey,
-    MoveToFrontRequest,
     StartComponentRequest,
     StopComponentRequest,
     UpdateProcessorRequest
-} from './index';
+} from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../../state/current-user/current-user.reducer';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
@@ -73,10 +75,10 @@ import { controllerServicesFeatureKey } from '../controller-services';
 import * as fromControllerServices from '../controller-services/controller-services.reducer';
 import { parameterFeatureKey } from '../parameter';
 import * as fromParameter from '../parameter/parameter.reducer';
-import { queueFeatureKey } from '../../../queue/state';
-import * as fromQueue from '../queue/queue.reducer';
 import { flowAnalysisFeatureKey } from '../flow-analysis';
 import * as fromFlowAnalysis from '../flow-analysis/flow-analysis.reducer';
+import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
+import { firstValueFrom } from 'rxjs';
 
 describe('FlowEffects', () => {
     let action$: ReplaySubject<Action>;
@@ -799,7 +801,6 @@ describe('FlowEffects', () => {
                             [transformFeatureKey]: fromTransform.initialState,
                             [controllerServicesFeatureKey]: fromControllerServices.initialState,
                             [parameterFeatureKey]: fromParameter.initialState,
-                            [queueFeatureKey]: fromQueue.initialState,
                             [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
                         }
                     },
@@ -1206,6 +1207,85 @@ describe('FlowEffects', () => {
                     request: { id: childGroupId }
                 })
             );
+        });
+    });
+
+    describe('refreshAfterQueueEmptied$', () => {
+        it('should dispatch loadConnection when the queueEmptied originates from the flow designer with a connectionId', async () => {
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-current');
+            store.refreshState();
+
+            action$.next(
+                EmptyQueueActions.queueEmptied({
+                    connectionId: 'conn-1',
+                    processGroupId: null,
+                    source: 'flow-designer'
+                })
+            );
+
+            const result = await firstValueFrom(effects.refreshAfterQueueEmptied$.pipe(take(1)));
+
+            expect(result).toEqual(FlowActions.loadConnection({ id: 'conn-1' }));
+        });
+
+        it('should dispatch loadProcessGroup when emptying queues for the currently viewed process group', async () => {
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-current');
+            store.refreshState();
+
+            action$.next(
+                EmptyQueueActions.queueEmptied({
+                    connectionId: null,
+                    processGroupId: 'pg-current',
+                    source: 'flow-designer'
+                })
+            );
+
+            const result = await firstValueFrom(effects.refreshAfterQueueEmptied$.pipe(take(1)));
+
+            expect(result).toEqual(
+                FlowActions.loadProcessGroup({
+                    request: { id: 'pg-current', transitionRequired: false }
+                })
+            );
+        });
+
+        it('should dispatch loadChildProcessGroup when emptying queues for a non-current process group', async () => {
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-current');
+            store.refreshState();
+
+            action$.next(
+                EmptyQueueActions.queueEmptied({
+                    connectionId: null,
+                    processGroupId: 'pg-child',
+                    source: 'flow-designer'
+                })
+            );
+
+            const result = await firstValueFrom(effects.refreshAfterQueueEmptied$.pipe(take(1)));
+
+            expect(result).toEqual(FlowActions.loadChildProcessGroup({ request: { id: 'pg-child' } }));
+        });
+
+        it('should ignore queueEmptied actions originating from other sources', async () => {
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-current');
+            store.refreshState();
+
+            const emissions: Action[] = [];
+            const subscription = effects.refreshAfterQueueEmptied$.subscribe((action) => emissions.push(action));
+
+            action$.next(
+                EmptyQueueActions.queueEmptied({
+                    connectionId: 'conn-1',
+                    processGroupId: null,
+                    source: 'connector-canvas'
+                })
+            );
+
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+            subscription.unsubscribe();
+
+            expect(emissions).toEqual([]);
         });
     });
 

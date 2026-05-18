@@ -78,6 +78,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StandardConnectorNode implements ConnectorNode {
@@ -332,18 +333,30 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void setConfiguration(final String stepName, final StepConfiguration configuration, final boolean forceOnConfigurationStepConfigured) throws FlowUpdateException {
-        // Update properties and check if the configuration changed.
         final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, configuration);
         if (updateResult == ConfigurationUpdateResult.NO_CHANGES && !forceOnConfigurationStepConfigured) {
             return;
         }
+        notifyStepConfigured(stepName);
+    }
 
-        // If there were changes, trigger Processor to be notified of the change.
+    @Override
+    public void replaceWorkingConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        // The configuration provider's view is authoritative: any property absent from the provided
+        // configuration is removed from the step.
+        final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().replaceProperties(stepName, configuration);
+        if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
+            return;
+        }
+        notifyStepConfigured(stepName);
+    }
+
+    private void notifyStepConfigured(final String stepName) throws FlowUpdateException {
         final Connector connector = connectorDetails.getConnector();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), getIdentifier())) {
             logger.debug("Notifying {} of configuration change for configuration step {}", this, stepName);
             connector.onConfigurationStepConfigured(stepName, workingFlowContext);
-            logger.debug("Successfully set configuration for step {} on {}", stepName, this);
+            logger.debug("Successfully notified {} of configuration change for step {}", this, stepName);
         } catch (final FlowUpdateException e) {
             throw e;
         } catch (final Exception e) {
@@ -860,34 +873,26 @@ public class StandardConnectorNode implements ConnectorNode {
         workingFlowContext = flowContextFactory.createWorkingFlowContext(identifier,
             connectorDetails.getComponentLog(), activeFlowContext.getConfigurationContext(), activeFlowContext.getBundle());
 
-        getComponentLog().info("Working Flow Context has been recreated");
+        getComponentLog().info("Working Flow Context has been set");
 
-        synchronizeWorkingFlowParameters();
-    }
-
-    /**
-     * Re-triggers {@link Connector#onConfigurationStepConfigured} for every configured step in
-     * the working flow context. This ensures that flow parameters derived from the configuration
-     * (e.g., resolved asset paths) are fresh, even when the working context was just recreated
-     * from the active flow whose parameter values may be stale.
-     *
-     * <p>Skipped when {@code initializationContext} is {@code null} because the connector has
-     * not yet been initialized and there is no flow to update.</p>
-     */
-    private void synchronizeWorkingFlowParameters() {
+        // Re-fire onConfigurationStepConfigured for every step so flow parameters derived from the
+        // configuration (e.g., resolved asset paths, secret values) are refreshed against the new
+        // working context. Step failures are logged so the remaining steps can still be refreshed.
+        // Skipped before the connector has been initialized because there is no flow to update yet.
         if (initializationContext == null) {
             return;
         }
-
         final ConnectorConfiguration config = workingFlowContext.getConfigurationContext().toConnectorConfiguration();
         for (final NamedStepConfiguration stepConfig : config.getNamedStepConfigurations()) {
             try {
                 setConfiguration(stepConfig.stepName(), stepConfig.configuration(), true);
             } catch (final Exception e) {
-                logger.warn("Failed to synchronize working flow parameters for step [{}] of {}",
+                logger.warn("Failed to refresh resolved configuration for step [{}] of {}",
                     stepConfig.stepName(), this, e);
             }
         }
+
+        getComponentLog().info("Working Flow Context configuration has been refreshed");
     }
 
     @Override
@@ -910,19 +915,8 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
         logger.debug("Verifying configuration step {} for {}", stepName, this);
-        final List<SecretReference> invalidSecretRefs = new ArrayList<>();
-        final List<AssetReference> invalidAssetRefs = new ArrayList<>();
-        final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationOverrides, invalidSecretRefs, invalidAssetRefs);
-
         final List<ConfigVerificationResult> results = new ArrayList<>();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-
-            final DescribedValueProvider allowableValueProvider = (step, propertyName) -> fetchAllowableValues(step, propertyName, workingFlowContext);
-
-            final MutableConnectorConfigurationContext configContext = workingFlowContext.getConfigurationContext().createWithOverrides(stepName, resolvedPropertyOverrides);
-            final ConnectorConfiguration connectorConfig = configContext.toConnectorConfiguration();
-            final ParameterContextFacade paramContext = workingFlowContext.getParameterContext();
-            final ConnectorValidationContext validationContext = new StandardConnectorValidationContext(connectorConfig, allowableValueProvider, paramContext);
 
             final Optional<ConfigurationStep> optionalStep = getConfigurationStep(stepName);
             if (optionalStep.isEmpty()) {
@@ -935,6 +929,16 @@ public class StandardConnectorNode implements ConnectorNode {
             }
 
             final ConfigurationStep configurationStep = optionalStep.get();
+            final List<SecretReference> invalidSecretRefs = new ArrayList<>();
+            final List<AssetReference> invalidAssetRefs = new ArrayList<>();
+            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides, invalidSecretRefs, invalidAssetRefs);
+
+            final DescribedValueProvider allowableValueProvider = (step, propertyName) -> fetchAllowableValues(step, propertyName, workingFlowContext);
+
+            final MutableConnectorConfigurationContext configContext = workingFlowContext.getConfigurationContext().createWithOverrides(stepName, resolvedPropertyOverrides);
+            final ConnectorConfiguration connectorConfig = configContext.toConnectorConfiguration();
+            final ParameterContextFacade paramContext = workingFlowContext.getParameterContext();
+            final ConnectorValidationContext validationContext = new StandardConnectorValidationContext(connectorConfig, allowableValueProvider, paramContext);
 
             final List<ValidationResult> validationResults = new ArrayList<>();
             validatePropertyReferences(configurationStep, configurationOverrides, validationResults);
@@ -981,21 +985,30 @@ public class StandardConnectorNode implements ConnectorNode {
             .build();
     }
 
-    private Map<String, String> resolvePropertyReferences(final StepConfiguration configurationOverrides, final List<SecretReference> invalidSecretRefs,
-                                                          final List<AssetReference> invalidAssetRefs) {
+    private Map<String, String> resolvePropertyReferences(final ConfigurationStep configurationStep, final StepConfiguration configurationOverrides,
+                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs) {
 
         final Map<String, String> resolvedProperties = new HashMap<>();
+        final Map<String, ConnectorPropertyDescriptor> descriptorLookup = buildPropertyDescriptorLookup(configurationStep);
 
         try {
             // Secret References can be expensive to lookup so we don't want to call getSecret() for each one. Instead, we
             // want to find all Secrets by Provider and then call fetchSecrets() once per Provider.
-            final Set<SecretReference> secretReferences = configurationOverrides.getPropertyValues().values().stream()
-                .filter(Objects::nonNull)
-                .filter(ref -> ref.getValueType() == ConnectorValueType.SECRET_REFERENCE)
-                .map(ref -> (SecretReference) ref)
+            // Structurally-empty SECRET_REFERENCE entries (a typed reference with no FQN/secretName) are skipped here so the
+            // connector's own required-property validation produces "<name> is required" instead of "[null] could not be found".
+            final Set<SecretReference> secretReferences = configurationOverrides.getPropertyValues().entrySet().stream()
+                .filter(entry -> entry.getValue() != null && entry.getValue().getValueType() == ConnectorValueType.SECRET_REFERENCE)
+                .filter(entry -> !isEmptySecretReference((SecretReference) entry.getValue()))
+                .filter(entry -> {
+                    final ConnectorPropertyDescriptor descriptor = descriptorLookup.get(entry.getKey());
+                    return descriptor == null || isPropertyDependencySatisfied(descriptor, descriptorLookup::get, configurationOverrides);
+                })
+                .map(entry -> (SecretReference) entry.getValue())
                 .collect(Collectors.toSet());
 
-            final Map<SecretReference, Secret> secretsByReference = initializationContext.getSecretsManager().getSecrets(secretReferences);
+            final Map<SecretReference, Secret> secretsByReference = secretReferences.isEmpty()
+                ? Map.of()
+                : initializationContext.getSecretsManager().getSecrets(secretReferences);
             secretsByReference.forEach((ref, secret) -> {
                 if (secret == null) {
                     invalidSecretRefs.add(ref);
@@ -1010,9 +1023,24 @@ public class StandardConnectorNode implements ConnectorNode {
                     continue;
                 }
 
+                final ConnectorPropertyDescriptor descriptor = descriptorLookup.get(propertyName);
+                if (descriptor != null && !isPropertyDependencySatisfied(descriptor, descriptorLookup::get, configurationOverrides)) {
+                    // Omit values for properties that are not applicable so merged configuration does not retain stale overrides
+                    // (createWithOverrides removes keys when the override value is null).
+                    resolvedProperties.put(propertyName, null);
+                    continue;
+                }
+
                 // We've already looked up secrets above, so use the cached value here.
                 if (valueReference.getValueType() == ConnectorValueType.SECRET_REFERENCE) {
                     final SecretReference secretReference = (SecretReference) valueReference;
+                    if (isEmptySecretReference(secretReference)) {
+                        // A typed-but-empty SECRET_REFERENCE acts like an unset property. The connector's own
+                        // validateConfigurationStep emits "<name> is required" for required properties, which is a more
+                        // actionable message than "[null] could not be found" from secret resolution.
+                        resolvedProperties.put(propertyName, null);
+                        continue;
+                    }
                     final Secret secret = secretsByReference.get(secretReference);
                     final String resolvedValue = (secret == null) ? null : secret.getValue();
                     resolvedProperties.put(propertyName, resolvedValue);
@@ -1031,6 +1059,109 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         return resolvedProperties;
+    }
+
+    private static Map<String, ConnectorPropertyDescriptor> buildPropertyDescriptorLookup(final ConfigurationStep configurationStep) {
+        final Map<String, ConnectorPropertyDescriptor> lookup = new HashMap<>();
+        for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+            for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                lookup.put(descriptor.getName(), descriptor);
+            }
+        }
+        return lookup;
+    }
+
+    /**
+     * Returns the configured String value of a controlling property for the purposes of evaluating a
+     * {@link ConnectorPropertyDependency} against a raw {@link StepConfiguration} payload.
+     *
+     * <p>This is an approximation of the value lookup performed inside
+     * {@code AbstractConnector.isDependencySatisfied(...)}, scoped to the framework's pre-resolution data model. It
+     * intentionally diverges from the connector-side implementation in two cases:
+     * <ul>
+     *   <li>A {@link StringLiteralValue} whose {@link StringLiteralValue#getValue() value} is {@code null} falls back to
+     *       {@link ConnectorPropertyDescriptor#getDefaultValue() the descriptor default}, whereas the connector-side
+     *       implementation treats a null literal value as no value (and would mark the dependency unsatisfied).</li>
+     *   <li>{@link AssetReference} and {@link SecretReference} controlling properties are treated as having no
+     *       String value (returns {@code null}, which renders the dependency unsatisfied), whereas the connector-side
+     *       implementation works against a {@code ConnectorPropertyValue} whose value has already been resolved.</li>
+     * </ul>
+     * Both divergences are acceptable because controlling properties (the property a dependency points at) are, in
+     * practice, {@code STRING_LITERAL} values drawn from a fixed set of allowable values — typically an enum of strategies
+     * or modes. They are not asset or secret references, and a typed-but-null literal can only occur when the controlling
+     * property has been explicitly cleared, in which case treating it as the descriptor default matches the user's intent
+     * for the typical "switch back to the default mode" UX.
+     */
+    private static String getConfiguredValueForDependency(final StepConfiguration stepConfig, final ConnectorPropertyDescriptor descriptor) {
+        final ConnectorValueReference ref = stepConfig.getPropertyValue(descriptor.getName());
+        if (ref == null) {
+            return descriptor.getDefaultValue();
+        }
+        if (ref instanceof StringLiteralValue stringLiteralValue) {
+            final String value = stringLiteralValue.getValue();
+            return value != null ? value : descriptor.getDefaultValue();
+        }
+        return null;
+    }
+
+    private static boolean isPropertyDependencySatisfied(final ConnectorPropertyDescriptor propertyDescriptor,
+            final Function<String, ConnectorPropertyDescriptor> propertyDescriptorLookup, final StepConfiguration stepConfig) {
+        return isPropertyDependencySatisfied(propertyDescriptor, propertyDescriptorLookup, stepConfig, new HashSet<>());
+    }
+
+    /**
+     * A {@link SecretReference} is structurally empty when neither the fully qualified name nor the simple secret name is
+     * populated. Such references cannot be resolved against any {@link org.apache.nifi.components.connector.secrets.SecretsManager}
+     * and represent an unset property — typically a placeholder emitted by an external configuration provider before the user
+     * has filled in the value. Treating these the same as a missing value lets connector-level validation surface the more
+     * actionable "is required" message instead of a "[null] could not be found" failure.
+     */
+    private static boolean isEmptySecretReference(final SecretReference secretReference) {
+        return secretReference.getFullyQualifiedName() == null && secretReference.getSecretName() == null;
+    }
+
+    // TODO: consider extracting to a utility class in nifi-api that can be shared with AbstractConnector.isDependencySatisfied()
+    private static boolean isPropertyDependencySatisfied(final ConnectorPropertyDescriptor propertyDescriptor,
+            final Function<String, ConnectorPropertyDescriptor> propertyDescriptorLookup, final StepConfiguration stepConfig, final Set<String> propertiesSeen) {
+
+        final Set<ConnectorPropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        if (dependencies.isEmpty()) {
+            return true;
+        }
+
+        final boolean added = propertiesSeen.add(propertyDescriptor.getName());
+        if (!added) {
+            return false;
+        }
+
+        try {
+            for (final ConnectorPropertyDependency dependency : dependencies) {
+                final String dependencyName = dependency.getPropertyName();
+
+                final ConnectorPropertyDescriptor dependencyDescriptor = propertyDescriptorLookup.apply(dependencyName);
+                if (dependencyDescriptor == null) {
+                    return false;
+                }
+
+                final String dependencyValue = getConfiguredValueForDependency(stepConfig, dependencyDescriptor);
+                if (dependencyValue == null) {
+                    return false;
+                }
+
+                if (!isPropertyDependencySatisfied(dependencyDescriptor, propertyDescriptorLookup, stepConfig, propertiesSeen)) {
+                    return false;
+                }
+
+                final Set<String> dependentValues = dependency.getDependentValues();
+                if (dependentValues != null && !dependentValues.contains(dependencyValue)) {
+                    return false;
+                }
+            }
+
+            return true;
+        } finally {
+            propertiesSeen.remove(propertyDescriptor.getName());
+        }
     }
 
     private String resolvePropertyReference(final ConnectorValueReference valueReference) throws IOException {
@@ -1506,17 +1637,18 @@ public class StandardConnectorNode implements ConnectorNode {
             // Check for invalid Secret and Asset references
             final List<SecretReference> invalidSecrets = new ArrayList<>();
             final List<AssetReference> invalidAssets = new ArrayList<>();
-            resolvePropertyReferences(stepConfiguration, invalidSecrets, invalidAssets);
+            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets);
             addInvalidReferenceResults(allResults, invalidSecrets, invalidAssets);
         }
     }
 
     private void addInvalidReferenceResults(final List<ValidationResult> results, final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs) {
         for (final SecretReference invalidSecretRef : invalidSecretRefs) {
+            final String secretName = invalidSecretRef.getFullyQualifiedName() != null ? invalidSecretRef.getFullyQualifiedName() : invalidSecretRef.getSecretName();
             results.add(new ValidationResult.Builder()
                 .subject("Secret Reference")
                 .valid(false)
-                .explanation("The referenced secret [" + invalidSecretRef.getFullyQualifiedName() + "] could not be found")
+                .explanation("The referenced secret [" + secretName + "] could not be found")
                 .build());
         }
 
@@ -1530,8 +1662,13 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void validatePropertyReferences(final ConfigurationStep step, final StepConfiguration stepConfig, final List<ValidationResult> allResults) {
+        final Map<String, ConnectorPropertyDescriptor> descriptorLookup = buildPropertyDescriptorLookup(step);
         for (final ConnectorPropertyGroup propertyGroup : step.getPropertyGroups()) {
             for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                if (!isPropertyDependencySatisfied(descriptor, descriptorLookup::get, stepConfig)) {
+                    continue;
+                }
+
                 final PropertyType propertyType = descriptor.getType();
                 final ConnectorValueReference reference = stepConfig.getPropertyValue(descriptor.getName());
 
@@ -1574,7 +1711,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 }
             }
             case SecretReference secretReference -> {
-                if (secretReference.getSecretName() == null) {
+                if (isEmptySecretReference(secretReference)) {
                     return true;
                 }
             }

@@ -1,0 +1,149 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<mat-card
+    appearance="outlined"
+    class="asset-upload-container flex flex-col gap-3 p-4 min-h-[100px] rounded-lg"
+    [class.disabled]="disabled"
+    [class.has-error]="hasError"
+    [class.has-content]="assets.length > 0 || uploadProgress.length > 0"
+    dragAndDrop
+    [allowMultipleFiles]="multiple"
+    [allowedFileTypes]="allowedFileTypes"
+    [maxFileSize]="maxFileSize"
+    (filesDropped)="onFilesDropped($event)"
+    (invalidDrop)="onInvalidDrop($event)"
+    data-qa="asset-drop-zone">
+    @if (assets.length === 0 && uploadProgress.length === 0) {
+        <div class="flex flex-col items-center justify-center gap-3">
+            <div class="flex items-center gap-2">
+                <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                <span class="tertiary-color">Drag and drop a file here</span>
+            </div>
+            <button
+                mat-stroked-button
+                type="button"
+                [disabled]="disabled"
+                (click)="openFileBrowser()"
+                data-qa="browse-files-button">
+                Browse
+            </button>
+        </div>
+    }
+
+    @if (assets.length > 0 || uploadProgress.length > 0) {
+        <div class="flex flex-col gap-4">
+            @for (asset of assets; track trackByAssetId($index, asset)) {
+                @if (asset.missingContent) {
+                    <div
+                        class="asset-item-missing-content flex items-center justify-between gap-3 px-3 py-2 border rounded-md min-h-[44px]"
+                        data-qa="uploaded-asset-missing-content">
+                        <div class="flex items-start gap-2 min-w-0 flex-1">
+                            <i
+                                class="fa fa-warning caution-color shrink-0"
+                                aria-hidden="true"
+                                data-qa="asset-missing-warning-icon"></i>
+                            <div class="text-sm caution-color min-w-0">Asset content is missing</div>
+                        </div>
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="primary-icon-button shrink-0"
+                            [disabled]="disabled"
+                            matTooltip="Delete"
+                            aria-label="Delete asset"
+                            (click)="onDeleteAsset(asset, $event)"
+                            data-qa="delete-asset-button">
+                            <i class="fa fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                } @else {
+                    <div
+                        class="flex items-center justify-between px-3 py-2 border rounded-md min-h-[44px]"
+                        data-qa="uploaded-asset">
+                        <div class="truncate" ellipsisTooltip>{{ asset.name }}</div>
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="primary-icon-button shrink-0"
+                            [disabled]="disabled"
+                            matTooltip="Delete"
+                            aria-label="Delete asset"
+                            (click)="onDeleteAsset(asset, $event)"
+                            data-qa="delete-asset-button">
+                            <i class="fa fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                }
+            }
+
+            @for (progress of uploadProgress; track trackByFilename($index, progress)) {
+                <div
+                    class="progress-item flex items-center justify-between gap-4 px-3 py-2 rounded-md border min-h-[44px]"
+                    [class.error]="progress.status === 'error'"
+                    data-qa="upload-progress">
+                    <div class="truncate min-w-0">
+                        <span>{{ progress.filename }}</span>
+                    </div>
+                    <div class="flex flex-row items-center gap-2 shrink-0 w-40">
+                        <mat-progress-bar
+                            mode="determinate"
+                            [value]="progress.status === 'error' ? 100 : progress.percentComplete"
+                            [class.progress-bar-error]="progress.status === 'error'">
+                        </mat-progress-bar>
+                        @if (progress.status === 'active') {
+                            <span class="tertiary-color font-medium">{{ progress.percentComplete }}%</span>
+                        }
+                        @if (progress.status === 'error') {
+                            <button
+                                mat-icon-button
+                                type="button"
+                                class="primary-icon-button shrink-0"
+                                [matTooltip]="progress.error || 'Upload failed'"
+                                aria-label="Dismiss failed upload"
+                                (click)="onDismissFailedUpload(progress, $event)"
+                                data-qa="dismiss-failed-upload-button">
+                                <i class="fa fa-times error-color" aria-hidden="true"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+            <hr />
+            <div class="flex items-center justify-center">
+                <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="disabled"
+                    (click)="openFileBrowser()"
+                    data-qa="browse-files-button">
+                    Browse
+                </button>
+            </div>
+        </div>
+    }
+
+    <input
+        #fileInput
+        type="file"
+        class="hidden"
+        [accept]="acceptAttribute"
+        [multiple]="multiple"
+        [disabled]="disabled"
+        (change)="onFileInputChange($event)"
+        data-qa="file-input" />
+</mat-card>

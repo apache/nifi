@@ -25,8 +25,9 @@ import { CanvasUtils } from '../canvas-utils.service';
 import { moveComponents, showOkDialog, updatePositions } from '../../state/flow/flow.actions';
 import { Client } from '../../../../service/client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MoveComponentRequest, UpdateComponentRequest } from '../../state/flow';
+import { MoveComponentRequest } from '../../state/flow';
 import { Position } from '../../state/shared';
+import { UpdateComponentRequest } from '../../../../state/shared';
 import { ComponentType } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 

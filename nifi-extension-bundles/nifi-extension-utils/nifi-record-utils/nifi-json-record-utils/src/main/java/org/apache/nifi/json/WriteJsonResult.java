@@ -67,17 +67,24 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final String mimeType;
     private final boolean prettyPrint;
     private final boolean allowScientificNotation;
+    private final boolean serializedInputHandlingEnabled;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
             final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
-        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json", false);
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json", false, true);
     }
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
         final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
         final String mimeType, final boolean allowScientificNotation) throws IOException {
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, mimeType, allowScientificNotation, true);
+    }
+
+    public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
+        final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
+        final String mimeType, final boolean allowScientificNotation, final boolean serializedInputHandlingEnabled) throws IOException {
 
         super(out);
         this.logger = logger;
@@ -87,6 +94,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.outputGrouping = outputGrouping;
         this.mimeType = mimeType;
         this.allowScientificNotation = allowScientificNotation;
+        this.serializedInputHandlingEnabled = serializedInputHandlingEnabled;
 
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
@@ -170,7 +178,30 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         return WriteResult.of(incrementRecordCount(), attributes);
     }
 
+    /**
+     * Determines whether the record's original serialized JSON bytes can be emitted verbatim as a throughput optimization,
+     * bypassing field-by-field re-serialization. All of the following conditions must hold for the fast path to apply:
+     * <ol>
+     *   <li>The caller enabled the optimization (the {@code serializedInputHandlingEnabled} constructor argument is {@code true}).</li>
+     *   <li>The record carries a {@link SerializedForm} produced by the upstream reader. Today this is only set by
+     *       {@code JsonTreeRowRecordReader}; readers such as {@code JsonPathRowRecordReader} that transform the input
+     *       cannot reuse their input bytes and therefore never trigger the fast path.</li>
+     *   <li>The serialized form's MIME type matches the writer's configured MIME type and the reader's record schema is
+     *       equal to the writer's record schema (no projection, no field renames, no type coercion).</li>
+     *   <li>The cached bytes are a {@code String}.</li>
+     *   <li>The cached bytes' pretty-print state matches the writer's {@code prettyPrint} setting.</li>
+     *   <li>If scientific notation is disabled on the writer, the cached bytes do not contain scientific notation.</li>
+     * </ol>
+     * When the fast path is taken, the writer emits the cached bytes via {@link JsonGenerator#writeRawValue(String)} and
+     * therefore does <em>not</em> apply the writer's Timestamp Format, Date Format, Time Format, or Suppress Null Values
+     * settings to that record. Operators that need those writer-side properties to be honored uniformly must construct
+     * this writer with {@code serializedInputHandlingEnabled = false}.
+     */
     private boolean isUseSerializeForm(final Record record, final RecordSchema writeSchema) {
+        if (!serializedInputHandlingEnabled) {
+            return false;
+        }
+
         final Optional<SerializedForm> serializedForm = record.getSerializedForm();
         if (serializedForm.isEmpty()) {
             return false;

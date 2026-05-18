@@ -71,7 +71,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
-        .description("The original input flowfile goes to this relationship if the query does not cause an error")
+        .description("The original input FlowFile goes to this relationship if the query does not cause an error")
         .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(

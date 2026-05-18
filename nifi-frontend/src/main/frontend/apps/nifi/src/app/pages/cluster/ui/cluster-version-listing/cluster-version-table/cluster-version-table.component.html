@@ -39,7 +39,7 @@
                             <!-- Node Address -->
                             <ng-container matColumnDef="address">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Node Address">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Node Address</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Node Address</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatNodeAddress(item)">
                                     {{ formatNodeAddress(item) }}
@@ -49,7 +49,7 @@
                             <!-- NiFi Version -->
                             <ng-container matColumnDef="nifiVersion">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="NiFi Version">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">NiFi Version</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">NiFi Version</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.versionInfo.niFiVersion">
                                     {{ item.snapshot.versionInfo.niFiVersion }}
@@ -59,7 +59,7 @@
                             <!-- Java Vendor -->
                             <ng-container matColumnDef="javaVendor">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Java Vendor">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Java Vendor</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Java Vendor</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.versionInfo.javaVendor">
                                     {{ item.snapshot.versionInfo.javaVendor }}
@@ -69,7 +69,7 @@
                             <!-- Java Version -->
                             <ng-container matColumnDef="javaVersion">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="Java Version">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Java Version</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">Java Version</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.versionInfo.javaVersion">
                                     {{ item.snapshot.versionInfo.javaVersion }}
@@ -79,7 +79,7 @@
                             <!-- OS Name -->
                             <ng-container matColumnDef="osName">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="OS Name">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">OS Name</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">OS Name</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.versionInfo.osName">
                                     {{ item.snapshot.versionInfo.osName }}
@@ -89,7 +89,7 @@
                             <!-- OS Version -->
                             <ng-container matColumnDef="osVersion">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="OS Version">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">OS Version</div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">OS Version</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.versionInfo.osVersion">
                                     {{ item.snapshot.versionInfo.osVersion }}
@@ -99,9 +99,7 @@
                             <!-- OS Architecture -->
                             <ng-container matColumnDef="osArchitecture">
                                 <th mat-header-cell *matHeaderCellDef mat-sort-header title="OS Architecture">
-                                    <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        OS Architecture
-                                    </div>
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap">OS Architecture</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="item.snapshot.versionInfo.osArchitecture">
                                     {{ item.snapshot.versionInfo.osArchitecture }}

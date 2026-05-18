@@ -67,6 +67,15 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     public static final AllowableValue OUTPUT_ONELINE = new AllowableValue("output-oneline", "One Line Per Object",
             "Output records with one JSON object per line, delimited by a newline character");
 
+    public static final AllowableValue HANDLING_ENABLED = new AllowableValue("ENABLED", "Enabled",
+            """
+                    The writer may emit the input reader's original JSON bytes verbatim when it can do so safely, as a throughput optimization. \
+                    Timestamp Format, Date Format, Time Format, and Suppress Null Values may not be applied to those records.""");
+    public static final AllowableValue HANDLING_DISABLED = new AllowableValue("DISABLED", "Disabled",
+            """
+                    The writer re-serializes every record from typed field values, so Timestamp Format, Date Format, Time Format, and Suppress Null \
+                    Values are honored uniformly.""");
+
     public static final String COMPRESSION_FORMAT_GZIP = "gzip";
     public static final String COMPRESSION_FORMAT_BZIP2 = "bzip2";
     public static final String COMPRESSION_FORMAT_XZ_LZMA2 = "xz-lzma2";
@@ -123,6 +132,17 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
             .dependsOn(COMPRESSION_FORMAT, COMPRESSION_FORMAT_GZIP)
             .build();
+    public static final PropertyDescriptor SERIALIZED_JSON_INPUT_HANDLING = new PropertyDescriptor.Builder()
+            .name("Serialized JSON Input Handling")
+            .description("""
+                    When enabled, the writer may emit the input reader's original JSON bytes verbatim when it can do so safely, as a \
+                    throughput optimization. In that case, the Timestamp Format, Date Format, Time Format, and Suppress Null Values properties may not be \
+                    applied to those records. When disabled, the writer re-serializes every record so that these properties are honored uniformly.""")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(HANDLING_ENABLED, HANDLING_DISABLED)
+            .defaultValue(HANDLING_ENABLED.getValue())
+            .required(true)
+            .build();
 
     private volatile boolean prettyPrint;
     private volatile boolean allowScientificNotation;
@@ -130,6 +150,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     private volatile OutputGrouping outputGrouping;
     private volatile String compressionFormat;
     private volatile int compressionLevel;
+    private volatile boolean serializedInputHandlingEnabled;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -140,6 +161,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         properties.add(OUTPUT_GROUPING);
         properties.add(COMPRESSION_FORMAT);
         properties.add(COMPRESSION_LEVEL);
+        properties.add(SERIALIZED_JSON_INPUT_HANDLING);
         return properties;
     }
 
@@ -197,6 +219,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
 
         this.compressionFormat = context.getProperty(COMPRESSION_FORMAT).getValue();
         this.compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+        this.serializedInputHandlingEnabled = HANDLING_ENABLED.getValue().equals(context.getProperty(SERIALIZED_JSON_INPUT_HANDLING).getValue());
     }
 
     @Override
@@ -241,7 +264,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         }
 
         return new WriteJsonResult(logger, schema, getSchemaAccessWriter(schema, variables), compressionOut, prettyPrint, nullSuppression, outputGrouping,
-                getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), mimeType, allowScientificNotation);
+                getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), mimeType, allowScientificNotation, serializedInputHandlingEnabled);
     }
 
 }

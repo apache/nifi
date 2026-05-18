@@ -1,0 +1,43 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ng-content select="mat-icon"></ng-content>
+
+<!--full width minus the 36px needed for the checkbox and its margin-->
+<span class="w-[calc(100%-36px)] mdc-list-item__primary-text" #text><ng-content></ng-content></span>
+
+<!-- Render checkmark at the end for selection (normal or virtual). -->
+@if (shouldShowCheckmark) {
+    <mat-pseudo-checkbox
+        class="mat-mdc-option-pseudo-checkbox"
+        [disabled]="disabled"
+        state="checked"
+        aria-hidden="true"
+        appearance="minimal"></mat-pseudo-checkbox>
+}
+
+<!-- See a11y notes inside optgroup.ts for context behind this element. -->
+@if (group && group._inert) {
+    <span class="cdk-visually-hidden">({{ group.label }})</span>
+}
+
+<div
+    class="mat-mdc-option-ripple mat-focus-indicator"
+    aria-hidden="true"
+    mat-ripple
+    [matRippleTrigger]="_getHostElement()"
+    [matRippleDisabled]="disabled || disableRipple"></div>

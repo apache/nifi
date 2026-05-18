@@ -20,8 +20,6 @@ import jakarta.jms.Session;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -30,7 +28,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -95,14 +92,7 @@ import java.util.stream.Stream;
                 "properties of the processor. For more information, see the Additional Details page.",
         expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES,
-                        explanation = "Client Library Location can reference resources over HTTP"
-                )
-        }
-)
+
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     public static final String JMS_MESSAGETYPE = "jms.messagetype";

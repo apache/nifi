@@ -24,13 +24,12 @@ import { Client } from '../../../../../service/client.service';
 import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
 import { selectSaving } from '../../../state/general/general.selectors';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, TextTip, NifiSpinnerDirective } from '@nifi/shared';
 import { AsyncPipe } from '@angular/common';
 import { MatFormField } from '@angular/material/form-field';
 import { MatLabel } from '@angular/material/select';
 import { MatInput } from '@angular/material/input';
 import { MatButton } from '@angular/material/button';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'general-form',

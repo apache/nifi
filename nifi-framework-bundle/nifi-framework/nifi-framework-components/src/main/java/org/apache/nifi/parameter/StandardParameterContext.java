@@ -818,9 +818,11 @@ public class StandardParameterContext implements ParameterContext {
         for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
+            final Parameter currentParameter = currentParameters.get(new ParameterDescriptor.Builder().name(parameterName).build());
+
             if (parameter == null) {
                 // parameter is being deleted.
-                validateReferencingComponents(parameterName, null, duringUpdate);
+                validateReferencingComponents(parameterName, currentParameter, null, duringUpdate);
                 continue;
             }
 
@@ -829,7 +831,7 @@ public class StandardParameterContext implements ParameterContext {
             }
 
             validateSensitiveFlag(currentParameters, parameter);
-            validateReferencingComponents(parameterName, parameter, duringUpdate);
+            validateReferencingComponents(parameterName, currentParameter, parameter, duringUpdate);
         }
     }
 
@@ -854,15 +856,18 @@ public class StandardParameterContext implements ParameterContext {
         }
     }
 
-    private void validateReferencingComponents(final String parameterName, final Parameter parameter, final boolean duringUpdate) {
+    private void validateReferencingComponents(final String parameterName, final Parameter currentParameter, final Parameter parameter, final boolean duringUpdate) {
         final boolean isDeletion = (parameter == null);
         final String action = isDeletion ? "remove" : "update";
+        final boolean runtimeAffectingChange = isRuntimeAffectingChange(currentParameter, parameter);
+        final boolean enforceReferencingState = isDeletion || (duringUpdate && runtimeAffectingChange);
+
         for (final ProcessorNode procNode : parameterReferenceManager.getProcessorsReferencing(this, parameterName)) {
             if (procNode.isExtensionMissing()) {
                 continue;
             }
 
-            if (procNode.isRunning() && (isDeletion || duringUpdate)) {
+            if (procNode.isRunning() && enforceReferencingState) {
                 throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by " + procNode + ", which is currently running");
             }
 
@@ -877,7 +882,7 @@ public class StandardParameterContext implements ParameterContext {
             }
 
             final ControllerServiceState serviceState = serviceNode.getState();
-            if (serviceState != ControllerServiceState.DISABLED && (isDeletion || duringUpdate)) {
+            if (serviceState != ControllerServiceState.DISABLED && enforceReferencingState) {
                 throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by "
                         + serviceNode + ", which currently has a state of " + serviceState);
             }
@@ -886,6 +891,24 @@ public class StandardParameterContext implements ParameterContext {
                 validateParameterSensitivity(parameter, serviceNode);
             }
         }
+    }
+
+    /**
+     * Determines whether an update from {@code currentParameter} to {@code proposedParameter} would affect the runtime
+     * behavior of components that reference the parameter. Metadata-only changes such as description or tag updates do
+     * not affect runtime behavior and therefore do not require referencing components to be stopped or disabled.
+     */
+    private boolean isRuntimeAffectingChange(final Parameter currentParameter, final Parameter proposedParameter) {
+        if (currentParameter == null || proposedParameter == null) {
+            return true;
+        }
+        if (currentParameter.getDescriptor().isSensitive() != proposedParameter.getDescriptor().isSensitive()) {
+            return true;
+        }
+        if (!Objects.equals(currentParameter.getValue(), proposedParameter.getValue())) {
+            return true;
+        }
+        return !Objects.equals(currentParameter.getReferencedAssets(), proposedParameter.getReferencedAssets());
     }
 
     private void validateParameterSensitivity(final Parameter parameter, final ComponentNode componentNode) {

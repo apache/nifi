@@ -45,8 +45,7 @@ import {
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, TextTip } from '@nifi/shared';
-import { ControllerServiceEntity } from '../../../../state/shared';
-import { BreadcrumbEntity } from '../../state/shared';
+import { BreadcrumbEntity, ControllerServiceEntity } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { NiFiState } from '../../../../state';

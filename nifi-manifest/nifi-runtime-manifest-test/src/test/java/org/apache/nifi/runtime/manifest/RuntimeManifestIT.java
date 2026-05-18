@@ -26,10 +26,8 @@ import org.apache.nifi.c2.protocol.component.api.PropertyDependency;
 import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
 import org.apache.nifi.c2.protocol.component.api.Relationship;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
-import org.apache.nifi.c2.protocol.component.api.Restriction;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.junit.jupiter.api.Test;
@@ -89,7 +87,7 @@ class RuntimeManifestIT {
         assertFalse(bundles.isEmpty());
 
         assertProcessorDefinitionFound(bundles);
-        assertRestrictionsFound(bundles);
+        assertGetFileRestrictionMetadataAbsent(bundles);
 
         // Verify TailFile definition which has properties with dependencies
         final ProcessorDefinition tailFileDefinition = getProcessorDefinition(bundles, "nifi-standard-nar",
@@ -231,19 +229,12 @@ class RuntimeManifestIT {
         assertEquals(Set.of(Scope.LOCAL, Scope.CLUSTER), definition.getStateful().getScopes());
     }
 
-    private void assertRestrictionsFound(final List<Bundle> bundles) {
+    private void assertGetFileRestrictionMetadataAbsent(final List<Bundle> bundles) {
         final ProcessorDefinition processorDefinition = getProcessorDefinition(bundles, "nifi-standard-nar", "org.apache.nifi.processors.standard.GetFile");
-        assertNotNull(processorDefinition.isRestricted());
-        assertTrue(processorDefinition.isRestricted());
+        assertNull(processorDefinition.isRestricted());
+        assertNull(processorDefinition.getRestrictedExplanation());
+        assertNull(processorDefinition.getExplicitRestrictions());
         assertFalse(processorDefinition.isAdditionalDetails());
-
-        final Set<Restriction> restrictions = processorDefinition.getExplicitRestrictions();
-        assertNotNull(restrictions);
-        assertEquals(2, restrictions.size());
-
-        final Restriction restriction = restrictions.stream().findFirst().orElse(null);
-        assertEquals(RequiredPermission.READ_FILESYSTEM.getPermissionLabel(), restriction.getRequiredPermission());
-        assertNotNull(restriction.getExplanation());
     }
 
     private PropertyDescriptor getPropertyDescriptor(final ProcessorDefinition processorDefinition, final String propName) {

@@ -17,6 +17,8 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,10 +26,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
-import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +41,14 @@ class AuthorizeComponentReferenceTest {
     private static final String COMPONENT_TYPE = ComponentAuthorizable.class.getName();
 
     private static final BundleDTO COMPONENT_BUNDLE = new BundleDTO();
+
+    private static final String CONTROLLER_SERVICE_PROPERTY = "Controller Service";
+
+    private static final String CONTROLLER_SERVICE_ID = "controller-service-id";
+
+    private static final String PARAMETER_PROPERTY = "text";
+
+    private static final String PARAMETER_REFERENCE = "#{param}";
 
     @Mock
     private Authorizer authorizer;
@@ -48,10 +60,19 @@ class AuthorizeComponentReferenceTest {
     private ComponentAuthorizable componentAuthorizable;
 
     @Mock
-    private Authorizable restrictedAuthorizable;
+    private Authorizable parameterContext;
 
     @Mock
-    private Authorizable parameterContext;
+    private PropertyDescriptor controllerServicePropertyDescriptor;
+
+    @Mock
+    private PropertyDescriptor nonControllerServicePropertyDescriptor;
+
+    @Mock
+    private ComponentAuthorizable referencedControllerService;
+
+    @Mock
+    private Authorizable referencedControllerServiceAuthorizable;
 
     @Test
     void testAuthorizeComponentConfigurationComponentType() {
@@ -70,13 +91,32 @@ class AuthorizeComponentReferenceTest {
     }
 
     @Test
-    void testAuthorizeComponentConfigurationRestricted() {
-        when(componentAuthorizable.isRestricted()).thenReturn(true);
-        when(componentAuthorizable.getRestrictedAuthorizables()).thenReturn(Set.of(restrictedAuthorizable));
+    void testAuthorizeComponentConfigurationDeniedReferencedControllerService() {
+        doReturn(MockControllerService.class).when(controllerServicePropertyDescriptor).getControllerServiceDefinition();
+        when(componentAuthorizable.getPropertyDescriptor(eq(CONTROLLER_SERVICE_PROPERTY))).thenReturn(controllerServicePropertyDescriptor);
+        when(componentAuthorizable.getValue(eq(controllerServicePropertyDescriptor))).thenReturn(null);
+        when(authorizableLookup.getControllerService(eq(CONTROLLER_SERVICE_ID))).thenReturn(referencedControllerService);
+        when(referencedControllerService.getAuthorizable()).thenReturn(referencedControllerServiceAuthorizable);
+        doThrow(new AccessDeniedException("denied")).when(referencedControllerServiceAuthorizable).authorize(eq(authorizer), eq(RequestAction.READ), any());
 
-        AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, authorizableLookup, componentAuthorizable, null, null);
+        final Map<String, String> properties = Map.of(CONTROLLER_SERVICE_PROPERTY, CONTROLLER_SERVICE_ID);
 
-        verify(restrictedAuthorizable).authorize(eq(authorizer), eq(RequestAction.WRITE), any());
-        verify(componentAuthorizable, never()).cleanUpResources();
+        assertThrows(AccessDeniedException.class,
+                () -> AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, authorizableLookup, componentAuthorizable, properties, parameterContext));
+    }
+
+    @Test
+    void testAuthorizeComponentConfigurationDeniedParameterContextReference() {
+        when(componentAuthorizable.getPropertyDescriptor(eq(PARAMETER_PROPERTY))).thenReturn(nonControllerServicePropertyDescriptor);
+        doThrow(new AccessDeniedException("denied")).when(parameterContext).authorize(eq(authorizer), eq(RequestAction.READ), any());
+
+        final Map<String, String> properties = Map.of(PARAMETER_PROPERTY, PARAMETER_REFERENCE);
+
+        assertThrows(AccessDeniedException.class,
+                () -> AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, authorizableLookup, componentAuthorizable, properties, parameterContext));
+    }
+
+    private static class MockControllerService extends AbstractControllerService {
+
     }
 }

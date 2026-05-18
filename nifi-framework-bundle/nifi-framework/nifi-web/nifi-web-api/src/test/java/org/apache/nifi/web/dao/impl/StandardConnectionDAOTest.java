@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
@@ -92,7 +93,7 @@ class StandardConnectionDAOTest {
         when(rootGroup.findConnection(NON_EXISTENT_ID)).thenReturn(null);
 
         // Setup connector managed group
-        when(connectorRepository.getConnectors()).thenReturn(List.of(connectorNode));
+        when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(connectorNode));
         when(connectorNode.getActiveFlowContext()).thenReturn(frameworkFlowContext);
         when(frameworkFlowContext.getManagedProcessGroup()).thenReturn(connectorManagedGroup);
         when(connectorManagedGroup.findConnection(CONNECTOR_CONNECTION_ID)).thenReturn(connectorConnection);
@@ -184,7 +185,7 @@ class StandardConnectionDAOTest {
         final Connection connectionInSecondConnector = org.mockito.Mockito.mock(Connection.class);
         final String secondConnectorConnectionId = "second-connector-connection-id";
 
-        when(connectorRepository.getConnectors()).thenReturn(List.of(connectorNode, connectorNode2));
+        when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(connectorNode, connectorNode2));
         when(connectorNode2.getActiveFlowContext()).thenReturn(flowContext2);
         when(flowContext2.getManagedProcessGroup()).thenReturn(managedGroup2);
         when(managedGroup2.findConnection(secondConnectorConnectionId)).thenReturn(connectionInSecondConnector);

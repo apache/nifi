@@ -19,7 +19,7 @@ import { Component, inject } from '@angular/core';
 import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
-import { Breadcrumbs } from '../../common/breadcrumbs/breadcrumbs.component';
+import { Breadcrumbs } from '../../../../../ui/common/breadcrumbs/breadcrumbs.component';
 import { AsyncPipe } from '@angular/common';
 
 @Component({

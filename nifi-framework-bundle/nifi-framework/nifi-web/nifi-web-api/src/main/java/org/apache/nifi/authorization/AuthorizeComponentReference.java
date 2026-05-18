@@ -25,7 +25,7 @@ import java.util.Map;
 
 public final class AuthorizeComponentReference {
     /**
-     * Authorize configuration of specified Component Type including restrictions and referenced Controller Services
+     * Authorize configuration of specified Component Type including referenced Controller Services
      *
      * @param authorizer Authorizer responsible for handling decisions
      * @param authorizableLookup Authorizable Lookup for resolving referenced Controller Services
@@ -54,7 +54,7 @@ public final class AuthorizeComponentReference {
     }
 
     /**
-     * Authorize configuration of specified Component including restrictions and referenced Controller Services
+     * Authorize configuration of specified Component including referenced Controller Services
      *
      * @param authorizer Authorizer responsible for handling decisions
      * @param authorizableLookup Authorizable Lookup for resolving referenced Controller Services
@@ -70,12 +70,6 @@ public final class AuthorizeComponentReference {
             final Authorizable parameterContext
     ) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        if (componentAuthorizable.isRestricted()) {
-            componentAuthorizable.getRestrictedAuthorizables().forEach(restrictionAuthorizable ->
-                    restrictionAuthorizable.authorize(authorizer, RequestAction.WRITE, user)
-            );
-        }
 
         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, componentAuthorizable, authorizer, authorizableLookup);
 

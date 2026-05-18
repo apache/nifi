@@ -22,8 +22,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,7 +29,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordWriter;
@@ -69,11 +66,7 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
         @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute."),
         @WritesAttribute(attribute = "record.count", description = "The number of records written to the Parquet file")
 })
-@Restricted(restrictions = {
-    @Restriction(
-        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
-        explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem.")
-})
+
 public class PutParquet extends AbstractPutHDFSRecord {
 
     public static final PropertyDescriptor REMOVE_CRC_FILES = new PropertyDescriptor.Builder()

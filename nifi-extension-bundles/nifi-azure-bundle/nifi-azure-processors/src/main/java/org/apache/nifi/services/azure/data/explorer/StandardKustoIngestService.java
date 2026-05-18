@@ -59,7 +59,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Tags({"Azure", "Data", "Explorer", "ADX", "Kusto", "ingest", "azure"})
-@CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
+@CapabilityDescription("Sends batches of FlowFile content or stream FlowFile content to an Azure ADX cluster.")
 public class StandardKustoIngestService extends AbstractControllerService implements KustoIngestService {
 
     public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()

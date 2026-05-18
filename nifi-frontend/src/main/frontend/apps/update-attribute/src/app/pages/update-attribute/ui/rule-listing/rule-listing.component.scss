@@ -31,7 +31,9 @@
         }
 
         mat-panel-description {
-            @apply truncate;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             display: block;
             margin-top: auto;
             margin-bottom: auto;
@@ -40,7 +42,9 @@
 
     .editable-header {
         mat-panel-title {
-            @apply truncate;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             display: block;
             margin-top: auto;
             margin-bottom: auto;

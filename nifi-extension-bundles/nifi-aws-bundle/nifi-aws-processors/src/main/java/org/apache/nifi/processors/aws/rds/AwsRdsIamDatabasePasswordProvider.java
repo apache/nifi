@@ -29,6 +29,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -53,6 +54,8 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.isDynamicRegion;
         """)
 public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService implements DatabasePasswordProvider {
 
+    private static final String URI_ENDPOINT_FORMAT = "tcp://%s";
+
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("AWS Credentials Provider Service")
             .description("Controller Service that provides the AWS credentials used to sign IAM authentication requests.")
@@ -60,15 +63,24 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
             .required(true)
             .build();
 
+    static final PropertyDescriptor TOKEN_REQUEST_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("Token Request Endpoint")
+            .description("Token Request Endpoint in hostname:port format used for IAM token signing, overriding the hostname and port from the JDBC URL.")
+            .required(false)
+            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
-            CUSTOM_REGION
+            CUSTOM_REGION,
+            TOKEN_REQUEST_ENDPOINT
     );
 
     private volatile AwsCredentialsProvider awsCredentialsProvider;
     private volatile RdsUtilities rdsUtilities;
     private volatile Region awsRegion;
+    private volatile ParsedEndpoint tokenRequestEndpoint;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -95,6 +107,7 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
         awsCredentialsProvider = credentialsService.getAwsCredentialsProvider();
         awsRegion = getRegion(context);
         rdsUtilities = createRdsUtilities(awsRegion, awsCredentialsProvider);
+        tokenRequestEndpoint = getTokenRequestEndpoint(context);
     }
 
     @OnDisabled
@@ -102,15 +115,23 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
         awsCredentialsProvider = null;
         rdsUtilities = null;
         awsRegion = null;
+        tokenRequestEndpoint = null;
     }
 
     @Override
     public char[] getPassword(final DatabasePasswordRequestContext requestContext) {
         Objects.requireNonNull(requestContext, "Database Password Request Context required");
 
-        final ParsedEndpoint parsedEndpoint = parseEndpoint(requestContext.getJdbcUrl());
-        final String hostname = resolveHostname(parsedEndpoint, requestContext.getJdbcUrl());
-        final int port = resolvePort(parsedEndpoint);
+        final String hostname;
+        final int port;
+        if (tokenRequestEndpoint == null) {
+            final ParsedEndpoint jdbcEndpoint = parseEndpoint(requestContext.getJdbcUrl());
+            hostname = resolveHostname(jdbcEndpoint, requestContext.getJdbcUrl());
+            port = resolvePort(jdbcEndpoint);
+        } else {
+            hostname = tokenRequestEndpoint.hostname();
+            port = tokenRequestEndpoint.port();
+        }
         final String username = resolveUsername(requestContext.getDatabaseUser());
 
         final GenerateAuthenticationTokenRequest tokenRequest = GenerateAuthenticationTokenRequest.builder()
@@ -158,6 +179,21 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
             throw new ProcessException("Database Username not configured and referencing DBCP service did not provide a username");
         }
         return username;
+    }
+
+    private ParsedEndpoint getTokenRequestEndpoint(final ConfigurationContext context) {
+        return context.getProperty(TOKEN_REQUEST_ENDPOINT).isSet()
+                ? parseTokenRequestEndpoint(context.getProperty(TOKEN_REQUEST_ENDPOINT).getValue())
+                : null;
+    }
+
+    private ParsedEndpoint parseTokenRequestEndpoint(final String endpoint) {
+        try {
+            final URI uri = URI.create(URI_ENDPOINT_FORMAT.formatted(endpoint));
+            return new ParsedEndpoint(uri.getHost(), uri.getPort());
+        } catch (final IllegalArgumentException e) {
+            throw new ProcessException("Failed to parse Token Request Endpoint [%s] as hostname:port".formatted(endpoint), e);
+        }
     }
 
     private ParsedEndpoint parseEndpoint(final String jdbcUrl) {

@@ -319,10 +319,9 @@ export class ConnectorsListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(navigateToConfigureConnector),
-                tap(() => {
-                    window.alert(
-                        'TODO: Configure connector is not yet implemented. This feature will be ported in a future iteration.'
-                    );
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/connectors', request.id, 'configure']);
                 })
             ),
         { dispatch: false }
@@ -360,6 +359,7 @@ export class ConnectorsListingEffects {
                         data: { connector }
                     });
 
+                    // Pass saving observable to dialog
                     dialogRef.componentInstance.saving$ = this.store.select(selectSaving);
 
                     dialogRef.componentInstance.rename
@@ -381,6 +381,7 @@ export class ConnectorsListingEffects {
             ofType(renameConnector),
             map((action) => action.request),
             switchMap((request) => {
+                // Create updated connector with new name
                 const updatedConnector = {
                     ...request.connector,
                     component: {
@@ -436,10 +437,9 @@ export class ConnectorsListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(navigateToViewConnector),
-                tap(() => {
-                    window.alert(
-                        'TODO: View connector canvas is not yet implemented. This feature will be ported in a future iteration.'
-                    );
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/connectors', request.connectorId, 'canvas', request.processGroupId]);
                 })
             ),
         { dispatch: false }
@@ -451,7 +451,7 @@ export class ConnectorsListingEffects {
                 ofType(navigateToViewConnectorDetails),
                 tap(() => {
                     window.alert(
-                        'TODO: View connector details is not yet implemented. This feature will be ported in a future iteration.'
+                        'TODO: View connector details is not yet implemented. This feature will be implemented in a future iteration.'
                     );
                 })
             ),

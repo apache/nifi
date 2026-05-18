@@ -34,8 +34,6 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -1655,7 +1653,7 @@ public final class DtoFactory {
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(reportingTaskNode.isSupportsSensitiveDynamicProperties());
-        dto.setRestricted(reportingTaskNode.isRestricted());
+        dto.setRestricted(false);
         dto.setDeprecated(reportingTaskNode.isDeprecated());
         dto.setExtensionMissing(reportingTaskNode.isExtensionMissing());
         // Enable changing version on ghost reporting tasks when at least one compatible bundle exists
@@ -1744,7 +1742,7 @@ public final class DtoFactory {
         dto.setAnnotationData(parameterProviderNode.getAnnotationData());
         dto.setComments(parameterProviderNode.getComments());
         dto.setPersistsState(parameterProviderNode.getParameterProvider().getClass().isAnnotationPresent(Stateful.class));
-        dto.setRestricted(parameterProviderNode.isRestricted());
+        dto.setRestricted(false);
         dto.setDeprecated(parameterProviderNode.isDeprecated());
         dto.setExtensionMissing(parameterProviderNode.isExtensionMissing());
         // Enable changing version on ghost parameter providers when at least one compatible bundle exists
@@ -1857,7 +1855,7 @@ public final class DtoFactory {
         dto.setBulletinLevel(controllerServiceNode.getBulletinLevel().name());
         dto.setPersistsState(controllerServiceClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(controllerServiceNode.isSupportsSensitiveDynamicProperties());
-        dto.setRestricted(controllerServiceNode.isRestricted());
+        dto.setRestricted(false);
         dto.setDeprecated(controllerServiceNode.isDeprecated());
         dto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
         // Enable changing version on ghost controller services when at least one compatible bundle exists
@@ -3095,49 +3093,6 @@ public final class DtoFactory {
         return dto;
     }
 
-    private boolean isRestricted(final Class<?> cls) {
-        return cls.isAnnotationPresent(Restricted.class);
-    }
-
-    private String getUsageRestriction(final Class<?> cls) {
-        final Restricted restricted = cls.getAnnotation(Restricted.class);
-
-        if (restricted == null) {
-            return null;
-        }
-
-        if (StringUtils.isBlank(restricted.value())) {
-            return null;
-        }
-
-        return restricted.value();
-    }
-
-    private Set<ExplicitRestrictionDTO> getExplicitRestrictions(final Class<?> cls) {
-        final Restricted restricted = cls.getAnnotation(Restricted.class);
-
-        if (restricted == null) {
-            return null;
-        }
-
-        final Restriction[] restrictions = restricted.restrictions();
-
-        if (restrictions == null || restrictions.length == 0) {
-            return null;
-        }
-
-        return Arrays.stream(restrictions).map(restriction -> {
-            final RequiredPermissionDTO requiredPermission = new RequiredPermissionDTO();
-            requiredPermission.setId(restriction.requiredPermission().getPermissionIdentifier());
-            requiredPermission.setLabel(restriction.requiredPermission().getPermissionLabel());
-
-            final ExplicitRestrictionDTO usageRestriction = new ExplicitRestrictionDTO();
-            usageRestriction.setRequiredPermission(requiredPermission);
-            usageRestriction.setExplanation(restriction.explanation());
-            return usageRestriction;
-        }).collect(Collectors.toSet());
-    }
-
     private String getDeprecationReason(final Class<?> cls) {
         final DeprecationNotice deprecationNotice = cls.getAnnotation(DeprecationNotice.class);
         return deprecationNotice == null ? null : deprecationNotice.reason();
@@ -3210,10 +3165,6 @@ public final class DtoFactory {
             for (final String tag : tagsAnnotation.value()) {
                 tags.add(tag);
             }
-        }
-
-        if (cls.isAnnotationPresent(Restricted.class)) {
-            tags.add("restricted");
         }
 
         return tags;
@@ -3303,9 +3254,9 @@ public final class DtoFactory {
             dto.setBundle(createBundleDto(coordinate));
             dto.setControllerServiceApis(createControllerServiceApiDto(cls));
             dto.setDescription(getCapabilityDescription(cls));
-            dto.setRestricted(isRestricted(cls));
-            dto.setUsageRestriction(getUsageRestriction(cls));
-            dto.setExplicitRestrictions(getExplicitRestrictions(cls));
+            dto.setRestricted(false);
+            dto.setUsageRestriction(null);
+            dto.setExplicitRestrictions(null);
             dto.setDeprecationReason(getDeprecationReason(cls));
             dto.setTags(getTags(cls));
             types.add(dto);
@@ -3444,7 +3395,7 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(processorClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(node.isSupportsSensitiveDynamicProperties());
-        dto.setRestricted(node.isRestricted());
+        dto.setRestricted(false);
         dto.setDeprecated(node.isDeprecated());
         dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
         dto.setExtensionMissing(node.isExtensionMissing());
@@ -5038,7 +4989,7 @@ public final class DtoFactory {
         dto.setAnnotationData(flowRegistryClientNode.getAnnotationData());
         dto.setSupportsSensitiveDynamicProperties(flowRegistryClientNode.isSupportsSensitiveDynamicProperties());
         dto.setSupportsBranching(flowRegistryClientNode.isBranchingSupported());
-        dto.setRestricted(flowRegistryClientNode.isRestricted());
+        dto.setRestricted(false);
         dto.setDeprecated(flowRegistryClientNode.isDeprecated());
         dto.setExtensionMissing(flowRegistryClientNode.isExtensionMissing());
         // Enable changing version on ghost flow registry clients when at least one compatible bundle exists
@@ -5075,7 +5026,7 @@ public final class DtoFactory {
                 propertyValue = descriptor.getDefaultValue();
             }
 
-            // set the property valueControllerResource
+            // set the property value
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
@@ -5115,7 +5066,7 @@ public final class DtoFactory {
         dto.setComments(flowAnalysisRuleNode.getComments());
         dto.setPersistsState(flowAnalysisRuleClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(flowAnalysisRuleNode.isSupportsSensitiveDynamicProperties());
-        dto.setRestricted(flowAnalysisRuleNode.isRestricted());
+        dto.setRestricted(false);
         dto.setDeprecated(flowAnalysisRuleNode.isDeprecated());
         dto.setExtensionMissing(flowAnalysisRuleNode.isExtensionMissing());
         // Enable changing version on ghost flow analysis rules when at least one compatible bundle exists

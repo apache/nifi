@@ -21,12 +21,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStandardResourceClaimManager {
 
@@ -55,5 +58,146 @@ public class TestStandardResourceClaimManager {
         assertNull(future.getNow(null));
         manager.drainDestructableClaims(new ArrayList<>(), 1);
         assertSame(completedObject, future.get());
+    }
+
+    @Test
+    public void testMarkTruncatableSkipsDestructableResourceClaim() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+
+        // Create a resource claim with claimant count 0 and mark it destructable
+        final ResourceClaim rc = manager.newResourceClaim("container", "section", "id1", false, false);
+        manager.markDestructable(rc);
+
+        // Create a content claim on that resource claim
+        final StandardContentClaim contentClaim = new StandardContentClaim(rc, 0);
+        contentClaim.setLength(1024);
+        contentClaim.setTruncationCandidate(true);
+
+        // markTruncatable should skip this because the resource claim is already destructable
+        manager.markTruncatable(contentClaim);
+
+        // Drain truncatable claims - should be empty
+        final List<ContentClaim> truncated = new ArrayList<>();
+        manager.drainTruncatableClaims(truncated, 10);
+        assertTrue(truncated.isEmpty(), "Truncatable claims should be empty because the resource claim is destructable");
+    }
+
+    @Test
+    public void testMarkTruncatableAndDrainRespectsMaxElements() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+
+        // Create 5 truncatable claims, each on a distinct resource claim with a positive claimant count
+        for (int i = 0; i < 5; i++) {
+            final ResourceClaim rc = manager.newResourceClaim("container", "section", "id-" + i, false, false);
+            // Give each resource claim a positive claimant count so it's not destructable
+            manager.incrementClaimantCount(rc);
+
+            final StandardContentClaim cc = new StandardContentClaim(rc, 0);
+            cc.setLength(1024);
+            cc.setTruncationCandidate(true);
+            manager.markTruncatable(cc);
+        }
+
+        // Drain with maxElements=3
+        final List<ContentClaim> batch1 = new ArrayList<>();
+        manager.drainTruncatableClaims(batch1, 3);
+        assertEquals(3, batch1.size(), "First drain should return exactly 3 claims");
+
+        // Drain again - should get remaining 2
+        final List<ContentClaim> batch2 = new ArrayList<>();
+        manager.drainTruncatableClaims(batch2, 10);
+        assertEquals(2, batch2.size(), "Second drain should return the remaining 2 claims");
+    }
+
+    @Test
+    public void testTruncationReferenceCountLifecycle() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = manager.newResourceClaim("container", "section", "id1", false, false);
+        final StandardContentClaim claim = new StandardContentClaim(resourceClaim, 1024);
+        claim.setLength(5_000_000);
+
+        assertEquals(0, manager.getTruncationReferenceCount(claim));
+
+        manager.incrementTruncationReferenceCount(claim);
+        assertEquals(1, manager.getTruncationReferenceCount(claim));
+
+        manager.incrementTruncationReferenceCount(claim);
+        assertEquals(2, manager.getTruncationReferenceCount(claim));
+
+        assertEquals(1, manager.decrementTruncationReferenceCount(claim));
+        assertEquals(1, manager.getTruncationReferenceCount(claim));
+
+        assertEquals(0, manager.decrementTruncationReferenceCount(claim));
+        assertEquals(0, manager.getTruncationReferenceCount(claim));
+    }
+
+    @Test
+    public void testDecrementTruncationReferenceCountBelowZeroRemainsAtZero() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = manager.newResourceClaim("container", "section", "id1", false, false);
+        final StandardContentClaim claim = new StandardContentClaim(resourceClaim, 1024);
+        claim.setLength(5_000_000);
+
+        manager.incrementTruncationReferenceCount(claim);
+        manager.incrementTruncationReferenceCount(claim);
+        manager.decrementTruncationReferenceCount(claim);
+        manager.decrementTruncationReferenceCount(claim);
+
+        assertEquals(0, manager.getTruncationReferenceCount(claim));
+
+        // Decrementing again should still return 0 and not go negative
+        assertEquals(0, manager.decrementTruncationReferenceCount(claim));
+        assertEquals(0, manager.getTruncationReferenceCount(claim));
+    }
+
+    @Test
+    public void testMarkTruncatableSkipsClaimWithPositiveTruncationReferenceCount() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = manager.newResourceClaim("container", "section", "id1", false, false);
+        manager.incrementClaimantCount(resourceClaim);
+
+        final StandardContentClaim claim = new StandardContentClaim(resourceClaim, 1024);
+        claim.setLength(5_000_000);
+        claim.setTruncationCandidate(true);
+
+        manager.incrementTruncationReferenceCount(claim);
+
+        manager.markTruncatable(claim);
+
+        final List<ContentClaim> truncated = new ArrayList<>();
+        manager.drainTruncatableClaims(truncated, 10);
+        assertTrue(truncated.isEmpty(), "Claim should not be truncatable while truncation reference count is positive");
+
+        // After decrementing the reference count to zero, markTruncatable should succeed
+        manager.decrementTruncationReferenceCount(claim);
+        manager.markTruncatable(claim);
+
+        truncated.clear();
+        manager.drainTruncatableClaims(truncated, 10);
+        assertFalse(truncated.isEmpty(), "Claim should be truncatable after truncation reference count reaches zero");
+        assertTrue(truncated.contains(claim));
+    }
+
+    @Test
+    public void testPurgeClearsTruncationReferenceCounts() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+        final ResourceClaim resourceClaim = manager.newResourceClaim("container", "section", "id1", false, false);
+        final StandardContentClaim claim = new StandardContentClaim(resourceClaim, 1024);
+        claim.setLength(5_000_000);
+
+        manager.incrementTruncationReferenceCount(claim);
+        assertEquals(1, manager.getTruncationReferenceCount(claim));
+
+        manager.purge();
+        assertEquals(0, manager.getTruncationReferenceCount(claim));
+    }
+
+    @Test
+    public void testTruncationReferenceCountNullSafety() {
+        final StandardResourceClaimManager manager = new StandardResourceClaimManager();
+
+        manager.incrementTruncationReferenceCount(null);
+        assertEquals(0, manager.getTruncationReferenceCount(null));
+        assertEquals(0, manager.decrementTruncationReferenceCount(null));
     }
 }

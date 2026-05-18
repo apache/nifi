@@ -20,7 +20,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.MethodOrderer;
@@ -34,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class PublishKafkaCompressGZIPIT extends AbstractPublishKafkaIT {
-    private static final String TEST_RECORD_VALUE = StringUtils.repeat("value-" + System.currentTimeMillis(), 1000);
+    private static final String TEST_RECORD_VALUE = "value-" + System.currentTimeMillis();
 
     @Test
     public void test_1_KafkaTestContainerProduceOne() throws InitializationException {

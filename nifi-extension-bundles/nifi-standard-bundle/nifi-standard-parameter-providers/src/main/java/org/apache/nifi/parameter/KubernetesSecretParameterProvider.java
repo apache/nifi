@@ -17,14 +17,11 @@
 package org.apache.nifi.parameter;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -58,13 +55,6 @@ import java.util.stream.Collectors;
         "The content of the file becomes the parameter value.  Since Kubernetes mounted Secrets are base64-encoded, the " +
         "parameter provider defaults to Base64-decoding the value of the parameter from the file.")
 
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
-        }
-)
 public class KubernetesSecretParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
     private static final int MAX_SIZE_LIMIT = 8096;
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;

@@ -18,14 +18,11 @@ package org.apache.nifi.lookup;
 
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -48,13 +45,7 @@ import java.util.concurrent.ConcurrentMap;
 @Tags({"lookup", "cache", "enrich", "join", "csv", "reloadable", "key", "value"})
 @CapabilityDescription("A reloadable CSV file-based lookup service. The first line of the csv file is considered as " +
         "header.")
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
-        }
-)
+
 public class SimpleCsvFileLookupService extends AbstractCSVLookupService implements StringLookupService {
 
     private static final Set<String> REQUIRED_KEYS = Set.of(KEY);

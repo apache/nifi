@@ -484,7 +484,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         waitFor(() -> {
             final ControllerServiceDTO updatedNode2SleepService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(sleepService.getId()).getComponent();
             return updatedNode2SleepService.getState().equals("ENABLED");
-        });
+        }, 100L, "SleepService to be ENABLED on Node 2");
 
         final Set<ControllerServiceEntity> groupServices = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getControllerServices(group.getId()).getControllerServices();
         assertEquals(1, groupServices.size());
@@ -499,13 +499,13 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         waitFor(() -> {
             final ControllerServiceDTO updatedNode2CountService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(countService.getId()).getComponent();
             return updatedNode2CountService.getState().equals("ENABLED");
-        });
+        }, 100L, "CountService to be ENABLED on Node 2");
 
         waitFor(() -> {
             final ProcessorDTO updatedNode2CountProc = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(node2CountProc.getId()).getComponent();
             final String processorState = updatedNode2CountProc.getState();
             return RUNNING_STATE.equals(processorState);
-        });
+        }, 100L, "CountFlowFiles processor to be RUNNING on Node 2");
 
         final PortDTO node2InputPort = node2GroupContents.getInputPorts().iterator().next().getComponent();
         assertEquals(inPort.getId(), node2InputPort.getId());
@@ -513,7 +513,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         waitFor(() -> {
             final PortDTO updatedNode2InputPort = getNifiClient().getInputPortClient(DO_NOT_REPLICATE).getInputPort(node2InputPort.getId()).getComponent();
             return updatedNode2InputPort.getState().equals(RUNNING_STATE);
-        });
+        }, 100L, "Input Port to be RUNNING on Node 2");
 
         final PortDTO node2OutputPort = node2GroupContents.getOutputPorts().iterator().next().getComponent();
         assertEquals(outPort.getId(), node2OutputPort.getId());
@@ -521,12 +521,12 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         waitFor(() -> {
             final PortDTO updatedNode2OutputPort = getNifiClient().getOutputPortClient(DO_NOT_REPLICATE).getOutputPort(node2OutputPort.getId()).getComponent();
             return updatedNode2OutputPort.getState().equals(RUNNING_STATE);
-        });
+        }, 100L, "Output Port to be RUNNING on Node 2");
 
         waitFor(() -> {
             final ReportingTaskEntity updatedNode2ReportingTask = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE).getReportingTask(reportingTask.getId());
             return updatedNode2ReportingTask.getComponent().getState().equals(RUNNING_STATE);
-        });
+        }, 100L, "ReportingTask to be RUNNING on Node 2");
     }
 
     @Test

@@ -25,18 +25,14 @@ import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.AuthorizeParameterProviders;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -229,7 +225,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      * @param lookup A lookup instance to use for retrieving components for authorization purposes
      * @param user the user to authorize
      * @param groupId the id of the process group being evaluated
-     * @param flowSnapshot the new flow contents to examine for restricted components
+     * @param flowSnapshot the new flow contents to authorize
      */
     protected void authorizeFlowUpdate(final AuthorizableLookup lookup, final NiFiUser user, final String groupId,
                                        final RegisteredFlowSnapshot flowSnapshot, final Set<String> unresolvedControllerServices,
@@ -240,13 +236,6 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 false, true, false, true);
         authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true,
                 false, true, false, false);
-
-        final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
-        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents, serviceFacade);
-        restrictedComponents.forEach(restrictedComponent -> {
-            final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-            authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-        });
 
         final Map<String, VersionedParameterContext> parameterContexts = flowSnapshot.getParameterContexts();
         if (parameterContexts != null) {

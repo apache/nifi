@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.parameter;
 
-import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -132,11 +131,6 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     @Override
     public Resource getResource() {
         return ResourceFactory.getComponentResource(ResourceType.ParameterProvider, getIdentifier(), getName());
-    }
-
-    @Override
-    public boolean isRestricted() {
-        return getParameterProvider().getClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override

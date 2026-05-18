@@ -47,6 +47,12 @@ import static org.mockito.Mockito.when;
 
 public class TestStandardParameterContext {
 
+    private static final String PARAM_NAME_ABC = "abc";
+    private static final String PARAM_VALUE = "value";
+    private static final String PARAM_VALUE_UPDATED = "new-value";
+    private static final String DESCRIPTION_ORIGINAL = "original description";
+    private static final String DESCRIPTION_UPDATED = "updated description";
+
     @Test
     public void testUpdatesApply() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
@@ -547,6 +553,59 @@ public class TestStandardParameterContext {
         setControllerServiceState(serviceNode, ControllerServiceState.DISABLING);
 
         assertThrows(IllegalStateException.class, () -> b.setInheritedParameterContexts(Collections.emptyList()));
+    }
+
+    @Test
+    public void testDescriptionOnlyUpdateAllowedWhileReferencingProcessorRunning() {
+        final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final ParameterContext context = createStandardParameterContext(referenceManager);
+        final ProcessorNode procNode = getProcessorNode(PARAM_NAME_ABC, referenceManager);
+
+        final ParameterDescriptor originalDescriptor = new ParameterDescriptor.Builder().name(PARAM_NAME_ABC).description(DESCRIPTION_ORIGINAL).build();
+        context.setParameters(Collections.singletonMap(PARAM_NAME_ABC, createParameter(originalDescriptor, PARAM_VALUE)));
+
+        startProcessor(procNode);
+
+        final ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name(PARAM_NAME_ABC).description(DESCRIPTION_UPDATED).build();
+        context.setParameters(Collections.singletonMap(PARAM_NAME_ABC, createParameter(updatedDescriptor, PARAM_VALUE)));
+
+        final Parameter updatedParam = context.getParameter(PARAM_NAME_ABC).get();
+        assertEquals(DESCRIPTION_UPDATED, updatedParam.getDescriptor().getDescription());
+        assertEquals(PARAM_VALUE, updatedParam.getValue());
+
+        // Changing the value while the processor is running is still rejected
+        final Parameter valueChanged = createParameter(updatedDescriptor, PARAM_VALUE_UPDATED);
+        assertThrows(IllegalStateException.class, () -> context.setParameters(Collections.singletonMap(PARAM_NAME_ABC, valueChanged)));
+        assertEquals(PARAM_VALUE, context.getParameter(PARAM_NAME_ABC).get().getValue());
+    }
+
+    @Test
+    public void testDescriptionOnlyUpdateAllowedWhileReferencingServiceEnabled() {
+        final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final ParameterContext context = createStandardParameterContext(referenceManager);
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        setControllerServiceState(serviceNode, ControllerServiceState.DISABLED);
+        referenceManager.addControllerServiceReference(PARAM_NAME_ABC, serviceNode);
+
+        final ParameterDescriptor originalDescriptor = new ParameterDescriptor.Builder().name(PARAM_NAME_ABC).description(DESCRIPTION_ORIGINAL).build();
+        context.setParameters(Collections.singletonMap(PARAM_NAME_ABC, createParameter(originalDescriptor, PARAM_VALUE)));
+
+        for (final ControllerServiceState state : EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.ENABLING, ControllerServiceState.DISABLING)) {
+            setControllerServiceState(serviceNode, state);
+
+            final String newDescription = "updated while " + state;
+            final ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name(PARAM_NAME_ABC).description(newDescription).build();
+            context.setParameters(Collections.singletonMap(PARAM_NAME_ABC, createParameter(updatedDescriptor, PARAM_VALUE)));
+
+            final Parameter updatedParam = context.getParameter(PARAM_NAME_ABC).get();
+            assertEquals(newDescription, updatedParam.getDescriptor().getDescription());
+            assertEquals(PARAM_VALUE, updatedParam.getValue());
+
+            // Attempting to change the value while the referencing service is active still fails
+            final Parameter valueChange = createParameter(updatedDescriptor, PARAM_VALUE_UPDATED + "-" + state);
+            assertThrows(IllegalStateException.class, () -> context.setParameters(Collections.singletonMap(PARAM_NAME_ABC, valueChange)));
+            assertEquals(PARAM_VALUE, context.getParameter(PARAM_NAME_ABC).get().getValue());
+        }
     }
 
     @Test

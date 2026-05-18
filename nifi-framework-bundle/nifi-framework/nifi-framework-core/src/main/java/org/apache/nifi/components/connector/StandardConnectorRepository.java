@@ -22,6 +22,7 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
@@ -189,6 +190,12 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         // Determine effective name, working config, and ScheduledState
         final ConnectorWorkingConfiguration providerConfig = directive.getWorkingConfiguration();
+
+        // Enrich provider-sourced SECRET_REFERENCE values with providerId before they are compared
+        // against the in-memory configuration or passed into inheritConfiguration.
+        if (providerConfig != null) {
+            resolveSecretReferencesFromProvider(providerConfig.getWorkingFlowConfiguration());
+        }
 
         final String effectiveName = (providerConfig != null && providerConfig.getName() != null)
                 ? providerConfig.getName()
@@ -452,19 +459,23 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public ConnectorNode getConnector(final String identifier) {
+    public ConnectorNode getConnector(final String identifier, final ConnectorSyncMode syncMode) {
+        Objects.requireNonNull(syncMode, "syncMode is required");
         final ConnectorNode connector = connectors.get(identifier);
-        if (connector != null) {
+        if (connector != null && syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
             syncFromProvider(connector);
         }
         return connector;
     }
 
     @Override
-    public List<ConnectorNode> getConnectors() {
+    public List<ConnectorNode> getConnectors(final ConnectorSyncMode syncMode) {
+        Objects.requireNonNull(syncMode, "syncMode is required");
         final List<ConnectorNode> connectorList = List.copyOf(connectors.values());
-        for (final ConnectorNode connector : connectorList) {
-            syncFromProvider(connector);
+        if (syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
+            for (final ConnectorNode connector : connectorList) {
+                syncFromProvider(connector);
+            }
         }
         return connectorList;
     }
@@ -658,7 +669,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void updateConnector(final ConnectorNode connector, final String name) {
         if (configurationProvider != null) {
-            final ConnectorWorkingConfiguration workingConfiguration = buildWorkingConfiguration(connector);
+            // Load the latest provider state so that other in-flight working changes are not overwritten by a rename.
+            final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connector.getIdentifier());
+            final ConnectorWorkingConfiguration workingConfiguration = externalConfig.orElseGet(() -> buildWorkingConfiguration(connector));
             workingConfiguration.setName(name);
             configurationProvider.save(connector.getIdentifier(), workingConfiguration);
         }
@@ -800,11 +813,26 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         final List<VersionedConfigurationStep> workingFlowConfiguration = config.getWorkingFlowConfiguration();
-        if (workingFlowConfiguration != null) {
-            final MutableConnectorConfigurationContext workingConfigContext = connector.getWorkingFlowContext().getConfigurationContext();
-            for (final VersionedConfigurationStep step : workingFlowConfiguration) {
-                final StepConfiguration stepConfiguration = toStepConfiguration(step);
-                workingConfigContext.replaceProperties(step.getName(), stepConfiguration);
+
+        if (workingFlowConfiguration == null) {
+            return;
+        }
+
+        // Enrich provider-sourced SECRET_REFERENCE values with providerId before they are
+        // converted into the in-memory ConnectorValueReference graph.
+        resolveSecretReferencesFromProvider(workingFlowConfiguration);
+
+        // Replace each step's working configuration on the connector. Routing through the connector
+        // (rather than touching the configuration context directly) ensures it is notified via
+        // onConfigurationStepConfigured when raw or resolved property values changed, so the embedded
+        // flow's Parameter Context picks up new values (e.g., rotated secrets) without an explicit save.
+        for (final VersionedConfigurationStep step : workingFlowConfiguration) {
+            final StepConfiguration stepConfiguration = toStepConfiguration(step);
+            try {
+                connector.replaceWorkingConfiguration(step.getName(), stepConfiguration);
+            } catch (final Exception e) {
+                logger.warn("Failed to replace working configuration for step [{}] on {} during sync from provider; continuing with remaining steps",
+                        step.getName(), connector, e);
             }
         }
     }
@@ -928,5 +956,79 @@ public class StandardConnectorRepository implements ConnectorRepository {
             case SECRET_REFERENCE -> new SecretReference(versionedReference.getProviderId(), versionedReference.getProviderName(),
                 versionedReference.getSecretName(), versionedReference.getFullyQualifiedSecretName());
         };
+    }
+
+    /**
+     * Resolves the {@code providerId} on SECRET_REFERENCE entries that arrive from a
+     * {@link ConnectorConfigurationProvider} with only {@code providerName} populated. Provider
+     * implementations may legitimately omit {@code providerId} because it is a runtime-assigned
+     * UUID; the framework alone has the {@link FlowManager} state needed to map a provider name
+     * back to its identifier. Other fields (such as {@code secretName}) are the responsibility of
+     * the provider and pass through unchanged.
+     *
+     * <p>This is invoked at the two boundaries where provider-sourced configuration enters the
+     * framework (the working config returned by {@link ConnectorConfigurationProvider#load(String)}
+     * and the working config returned by {@link ConnectorConfigurationProvider#getSyncDirective}).</p>
+     *
+     * <p>Mutates the supplied references in place. References that already have a non-null
+     * {@code providerId} are left alone. References whose {@code providerName} cannot be
+     * unambiguously resolved are also left with a {@code null} {@code providerId} so that the UI
+     * can surface the SECRET_REFERENCE as invalid; see {@link #findProviderIdByName(String)}.</p>
+     *
+     * @param steps the configuration steps loaded from the provider; may be {@code null} or empty
+     */
+    private void resolveSecretReferencesFromProvider(final List<VersionedConfigurationStep> steps) {
+        if (steps == null) {
+            return;
+        }
+        logger.debug("Resolving SECRET_REFERENCE providerIds across {} configuration step(s)", steps.size());
+        steps.stream()
+                .filter(Objects::nonNull)
+                .map(VersionedConfigurationStep::getProperties)
+                .filter(Objects::nonNull)
+                .flatMap(properties -> properties.values().stream())
+                .filter(Objects::nonNull)
+                .filter(ref -> ConnectorValueType.SECRET_REFERENCE.name().equals(ref.getValueType()))
+                .filter(ref -> ref.getProviderId() == null)
+                .filter(ref -> ref.getProviderName() != null)
+                .forEach(ref -> ref.setProviderId(findProviderIdByName(ref.getProviderName())));
+    }
+
+    /**
+     * Resolves a parameter provider id by name, but only when the name unambiguously identifies a
+     * single provider in the current flow. If zero or more than one parameter provider matches the
+     * given name, returns {@code null} so that the SECRET_REFERENCE will be surfaced as invalid in
+     * the UI and the user can re-configure it explicitly.
+     *
+     * <p>Package-private for testing. Production callers should access this method via
+     * {@link #resolveSecretReferencesFromProvider}.</p>
+     *
+     * @param providerName the parameter provider name to resolve; may be {@code null}
+     * @return the matching parameter provider identifier when exactly one provider has the given
+     *         name; {@code null} when {@code providerName} is {@code null}, no provider matches,
+     *         or multiple providers share the name
+     */
+    String findProviderIdByName(final String providerName) {
+        if (flowManager == null || providerName == null) {
+            return null;
+        }
+        final List<String> matches = new ArrayList<>();
+        for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+            if (providerName.equals(parameterProviderNode.getName())) {
+                matches.add(parameterProviderNode.getIdentifier());
+            }
+        }
+        if (matches.isEmpty()) {
+            logger.warn("No parameter provider found with name [{}]; SECRET_REFERENCE providerId will remain null", providerName);
+            return null;
+        }
+        if (matches.size() > 1) {
+            logger.warn("Multiple ({}) parameter providers found with name [{}] (ids={}); SECRET_REFERENCE providerId cannot be unambiguously resolved and will remain null",
+                    matches.size(), providerName, matches);
+            return null;
+        }
+        final String resolvedId = matches.getFirst();
+        logger.debug("Resolved parameter provider name [{}] to id [{}]", providerName, resolvedId);
+        return resolvedId;
     }
 }

@@ -70,10 +70,10 @@ public class AttributesToCSV extends AbstractProcessor {
     private static final String OUTPUT_MIME_TYPE = "text/csv";
     private static final String SPLIT_REGEX = OUTPUT_SEPARATOR + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
-    static final AllowableValue OUTPUT_OVERWRITE_CONTENT = new AllowableValue("flowfile-content", "flowfile-content", "The resulting CSV string will be placed into the content of the flowfile." +
-            "Existing flowfile context will be overwritten. 'CSVData' will not be written to at all (neither null nor empty string).");
-    static final AllowableValue OUTPUT_NEW_ATTRIBUTE = new AllowableValue("flowfile-attribute", "flowfile-attribute", "The resulting CSV string will be placed into a new flowfile" +
-            " attribute named 'CSVData'.  The content of the flowfile will not be changed.");
+    static final AllowableValue OUTPUT_OVERWRITE_CONTENT = new AllowableValue("flowfile-content", "flowfile-content", "The resulting CSV string will be placed into the content of the FlowFile." +
+            "Existing FlowFile context will be overwritten. 'CSVData' will not be written to at all (neither null nor empty string).");
+    static final AllowableValue OUTPUT_NEW_ATTRIBUTE = new AllowableValue("flowfile-attribute", "flowfile-attribute", "The resulting CSV string will be placed into a new FlowFile" +
+            " attribute named 'CSVData'.  The content of the FlowFile will not be changed.");
 
     public static final PropertyDescriptor ATTRIBUTES_LIST = new PropertyDescriptor.Builder()
             .name("Attribute List")
@@ -102,8 +102,8 @@ public class AttributesToCSV extends AbstractProcessor {
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
-            .description("Control if CSV value is written as a new flowfile attribute 'CSVData' " +
-                    "or written in the flowfile content.")
+            .description("Control if CSV value is written as a new FlowFile attribute 'CSVData' " +
+                    "or written in the FlowFile content.")
             .required(true)
             .allowableValues(OUTPUT_NEW_ATTRIBUTE, OUTPUT_OVERWRITE_CONTENT)
             .defaultValue(OUTPUT_NEW_ATTRIBUTE.getDisplayName())
@@ -206,14 +206,14 @@ public class AttributesToCSV extends AbstractProcessor {
                 }
             }
         } else {
-            //the user did not give a list of attributes, take all the attributes from the flowfile
+            //the user did not give a list of attributes, take all the attributes from the FlowFile
             result.putAll(ffAttributes);
         }
 
         //now glue on the core attributes if the user wants them.
         if (includeCoreAttributes) {
             for (String coreAttribute : coreAttributes) {
-                //make sure this coreAttribute is applicable to this flowfile.
+                //make sure this coreAttribute is applicable to this FlowFile.
                 String val = ff.getAttribute(coreAttribute);
                 if (ffAttributes.containsKey(coreAttribute)) {
                     if (!StringUtils.isEmpty(val)) {

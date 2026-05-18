@@ -44,6 +44,11 @@ export const selectCanClear = createSelector(selectComponentStateState, (state: 
 
 export const selectClearing = createSelector(selectComponentStateState, (state: ComponentStateState) => state.clearing);
 
+export const selectConnectorId = createSelector(
+    selectComponentStateState,
+    (state: ComponentStateState) => state.connectorId
+);
+
 export const selectDropStateKeySupported = createSelector(
     selectComponentState,
     (componentState: ComponentState | null) => componentState?.dropStateKeySupported ?? false

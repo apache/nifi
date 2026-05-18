@@ -34,13 +34,19 @@ import {
     Property
 } from '../../../../../state/shared';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import {
     EditReportingTaskDialogRequest,
     ReportingTaskEntity,
     UpdateReportingTaskRequest
 } from '../../../state/reporting-tasks';
-import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective, ComponentType } from '@nifi/shared';
+import {
+    NifiTooltipDirective,
+    NiFiCommon,
+    TextTip,
+    CopyDirective,
+    ComponentType,
+    NifiSpinnerDirective
+} from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import {
     ConfigVerificationResult,

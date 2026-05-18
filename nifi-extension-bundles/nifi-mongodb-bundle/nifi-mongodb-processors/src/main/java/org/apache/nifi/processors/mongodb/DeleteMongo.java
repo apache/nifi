@@ -47,12 +47,12 @@ import java.util.stream.Stream;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({ "delete", "mongo", "mongodb" })
 @CapabilityDescription(
-    "Executes a delete query against a MongoDB collection. The query is provided in the body of the flowfile " +
+    "Executes a delete query against a MongoDB collection. The query is provided in the body of the FlowFile " +
     "and the user can select whether it will delete one or many documents that match it."
 )
 @ReadsAttribute(
     attribute = "mongodb.delete.mode",
-    description = "Configurable parameter for controlling delete mode on a per-flowfile basis. The process must be " +
+    description = "Configurable parameter for controlling delete mode on a per FlowFile basis. The process must be " +
             "configured to use this option. Acceptable values are 'one' and 'many.'"
 )
 public class DeleteMongo extends AbstractMongoProcessor {
@@ -75,7 +75,7 @@ public class DeleteMongo extends AbstractMongoProcessor {
 
     static final PropertyDescriptor FAIL_ON_NO_DELETE = new PropertyDescriptor.Builder()
             .name("Fail When Nothing Is Deleted")
-            .description("Determines whether to send the flowfile to the success or failure relationship if nothing is successfully deleted.")
+            .description("Determines whether to send the FlowFile to the success or failure relationship if nothing is successfully deleted.")
             .allowableValues(YES_FAIL, NO_FAIL)
             .defaultValue("true")
             .addValidator(Validator.VALID)

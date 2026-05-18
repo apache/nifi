@@ -66,6 +66,16 @@ export class ControllerServiceTable {
     @Input() currentUser!: CurrentUser;
     @Input() canModifyParent!: (entity: ControllerServiceEntity) => boolean;
 
+    /**
+     * When true, the row action menu is restricted to view-only entries
+     * (View Configuration, View State, View Documentation). Mutating actions
+     * such as Edit, Enable, Disable, Change Version, Delete, Clear Bulletins,
+     * Advanced UI, and Manage Access Policies are suppressed regardless of
+     * the underlying entity permissions. Used by the connector canvas
+     * controller services view.
+     */
+    @Input() readOnly = false;
+
     @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() viewControllerServiceDocumentation: EventEmitter<ControllerServiceEntity> =

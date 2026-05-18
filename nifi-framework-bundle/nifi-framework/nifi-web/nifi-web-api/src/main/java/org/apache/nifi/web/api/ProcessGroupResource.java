@@ -50,7 +50,6 @@ import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.AuthorizeParameterProviders;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
-import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -59,19 +58,19 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
-import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -146,7 +145,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -294,7 +292,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Read - /process-groups/{uuid}")
+                    @SecurityRequirement(name = "Read - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid} - Only required when includeComponentState is true")
             }
     )
     public Response exportProcessGroup(
@@ -305,19 +304,35 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             @PathParam("id") final String groupId,
             @Parameter(description = "If referenced services from outside the target group should be included")
             @QueryParam("includeReferencedServices")
-            @DefaultValue("false") boolean includeReferencedServices) {
-        // authorize access
+            @DefaultValue("false") final boolean includeReferencedServices,
+            @Parameter(description = "If component state should be included in the exported flow definition. "
+                    + "Requires all processors to be stopped and all controller services to be disabled.")
+            @QueryParam("includeComponentState")
+            @DefaultValue("false") final boolean includeComponentState) {
+
+        // When exporting with component state in a cluster, replicate to all nodes so that each contributes its
+        // LOCAL state. The framework's ExportProcessGroupEndpointMerger combines the per-node localNodeStates.
+        if (includeComponentState && isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access — exporting with component state requires WRITE (state access requires write permission)
+        final RequestAction requiredAction = includeComponentState ? RequestAction.WRITE : RequestAction.READ;
         serviceFacade.authorizeAccess(lookup -> {
-            // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
+            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, requiredAction, true,
                     false, false, false, true);
         });
 
         // get the versioned flow
-        final RegisteredFlowSnapshot currentVersionedFlowSnapshot = includeReferencedServices
-                ? serviceFacade.getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(groupId)
-                : serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
+        final RegisteredFlowSnapshot currentVersionedFlowSnapshot;
+        if (includeComponentState) {
+            currentVersionedFlowSnapshot = serviceFacade.getCurrentFlowSnapshotByGroupId(groupId, includeReferencedServices, true);
+        } else if (includeReferencedServices) {
+            currentVersionedFlowSnapshot = serviceFacade.getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(groupId);
+        } else {
+            currentVersionedFlowSnapshot = serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
+        }
 
         // determine the name of the attachment - possible issues with spaces in file names
         final VersionedProcessGroup currentVersionedProcessGroup = currentVersionedFlowSnapshot.getFlowContents();
@@ -1042,9 +1057,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         // Step 2: Retrieve flow from Flow Registry
         // Step 3: Resolve Bundle info
         // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
-        // Step 5: If any of the components is a Restricted Component, then we must authorize the user
-        //         for write access to the RestrictedComponents resource
-        // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
+        // Step 5: Replicate the request or call serviceFacade.updateProcessGroup
 
         final Set<String> unresolvedControllerServices = new HashSet<>();
         final Set<String> unresolvedParameterProviders = new HashSet<>();
@@ -1257,8 +1270,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             },
             security = {
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
-                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @SecurityRequirement(name = "Write - if the Processor is restricted - /restricted-components")
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response createProcessor(
@@ -2352,8 +2364,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             },
             security = {
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
-                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components"),
-                    @SecurityRequirement(name = "Write - if the snippet contains any restricted Processors - /restricted-components")
+                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components")
             }
     )
     public Response copySnippet(
@@ -2383,20 +2394,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
                     final SnippetAuthorizable snippet = authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId(), false, true, true);
 
-                    final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-                    };
-
-                    // consider each processor. note - this request will not create new controller services so we do not need to check
-                    // for if there are not restricted controller services. it will however, need to authorize the user has access
-                    // to any referenced services and this is done within authorizeSnippetUsage above.
                     // Also ensure that user has READ permissions to the Parameter Contexts in order to copy them.
-                    snippet.getSelectedProcessors().forEach(authorizeRestricted);
                     for (final ProcessGroupAuthorizable groupAuthorizable : snippet.getSelectedProcessGroups()) {
-                        groupAuthorizable.getEncapsulatedProcessors().forEach(authorizeRestricted);
-
                         final ParameterContext parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
                         if (parameterContext != null) {
                             parameterContext.authorize(authorizer, RequestAction.READ, user);
@@ -2474,8 +2473,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             },
             security = {
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
-                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @SecurityRequirement(name = "Write - if the Controller Service is restricted - /restricted-components")
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response createControllerService(
@@ -2579,7 +2577,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
                     @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                     @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                    @SecurityRequirement(name = "Write - if the snapshot contains any restricted components - /restricted-components"),
                     @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
@@ -2604,6 +2601,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied");
         }
 
+        if (containsComponentState(versionedFlowSnapshot.getFlowContents())) {
+            throw new IllegalArgumentException("Cannot replace an existing Process Group with a flow definition that contains component state. "
+                    + "Component state can only be restored when uploading a flow definition as a new Process Group.");
+        }
+
         // remove any registry-specific versioning content which could be present if the flow was exported from registry
         versionedFlowSnapshot.setFlow(null);
         versionedFlowSnapshot.setBucket(null);
@@ -2626,6 +2628,31 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         for (final VersionedProcessGroup innerVersionedProcessGroup : versionedProcessGroup.getProcessGroups()) {
             sanitizeRegistryInfo(innerVersionedProcessGroup);
         }
+    }
+
+    private boolean containsComponentState(final VersionedProcessGroup group) {
+        if (group.getProcessors() != null) {
+            for (final VersionedProcessor processor : group.getProcessors()) {
+                if (processor.getComponentState() != null) {
+                    return true;
+                }
+            }
+        }
+        if (group.getControllerServices() != null) {
+            for (final VersionedControllerService service : group.getControllerServices()) {
+                if (service.getComponentState() != null) {
+                    return true;
+                }
+            }
+        }
+        if (group.getProcessGroups() != null) {
+            for (final VersionedProcessGroup child : group.getProcessGroups()) {
+                if (containsComponentState(child)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -2988,13 +3015,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    // if the pasted content contains restricted components, ensure the user is allowed those restrictions
-                    final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedProcessGroup, serviceFacade);
-                    restrictedComponents.forEach(restrictedComponent -> {
-                        final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-                        authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-                    });
-
                     // authorize controller services
                     AuthorizeControllerServiceReference.authorizeUnresolvedControllerServiceReferences(groupId, unresolvedControllerServices, authorizer, lookup, user);
 
@@ -3274,6 +3294,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("Versioned Flow Snapshot must be supplied.");
         }
 
+        if (containsComponentState(requestFlowSnapshot.getFlowContents())) {
+            throw new IllegalArgumentException("Cannot replace an existing Process Group with a flow definition that contains component state. "
+                    + "Component state can only be restored when uploading a flow definition as a new Process Group.");
+        }
+
         // Perform the request
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, importEntity);
@@ -3456,7 +3481,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Authorizes access to a Parameter Context and RestrictedComponents resource.
+     * Authorizes access to a Parameter Context when referenced by the process group entity.
      *
      * @param groupId the group id string
      * @param processGroupEntity the ProcessGroupEntity
@@ -3473,16 +3498,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
         }
 
-        // if any of the components is a Restricted Component, then we must authorize the user
-        // for write access to the RestrictedComponents resource
         final RegisteredFlowSnapshot versionedFlowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
         if (versionedFlowSnapshot != null) {
-            final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
-            restrictedComponents.forEach(restrictedComponent -> {
-                final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-                authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-            });
-
             final Map<String, VersionedParameterContext> parameterContexts = versionedFlowSnapshot.getParameterContexts();
             if (parameterContexts != null) {
                 parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));

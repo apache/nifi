@@ -16,15 +16,12 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -67,14 +64,7 @@ import java.util.List;
         "Additional options include access key / secret key pairs, credentials file, named profile, assume role credentials, " +
         "and OAuth2 OIDC Web Identity-based temporary credentials using the same Assume Role properties.")
 @Tags({ "aws", "credentials", "provider" })
-@Restricted(
-    restrictions = {
-        @Restriction(
-            requiredPermission = RequiredPermission.ACCESS_ENVIRONMENT_CREDENTIALS,
-            explanation = "The default configuration can read environment variables and system properties for credentials"
-        )
-    }
-)
+
 public class AWSCredentialsProviderControllerService extends AbstractControllerService implements AwsCredentialsProviderService {
 
     // Obsolete property names

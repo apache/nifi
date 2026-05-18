@@ -292,7 +292,18 @@ public final class StandardConnection implements Connection {
             return;
         }
 
-        if (previousDestination.isRunning() && !(previousDestination instanceof Funnel || previousDestination instanceof LocalPort)) {
+        // Allow destination changes when the current destination is a Funnel, a LocalPort, or a
+        // RemoteGroupPort. Funnels and LocalPorts cannot be stopped/started so they are exempt.
+        // RemoteGroupPort represents an S2S ingress point: re-routing its incoming connections
+        // during cluster reconnect synchronization (e.g., temporarily pointing to a dummy Funnel)
+        // is safe because the RPG does not hold per-FlowFile processing state the way a Processor
+        // does. Without this exemption, StandardVersionedComponentSynchronizer throws
+        // IllegalStateException when a running RPG with versionedComponentId=null is encountered
+        // during updateConnectionDestinations(), leaving the node permanently disconnected.
+        // (NIFI-15906)
+        if (previousDestination.isRunning() && !(previousDestination instanceof Funnel
+                || previousDestination instanceof LocalPort
+                || previousDestination instanceof RemoteGroupPort)) {
             throw new IllegalStateException("Cannot change destination of Connection because the current destination ([%s]) is running".formatted(previousDestination));
         }
 

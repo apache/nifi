@@ -19,15 +19,12 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression;
@@ -66,12 +63,7 @@ import java.util.Set;
     }
 )
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-@Restricted(
-        restrictions = {
-                @Restriction(requiredPermission = RequiredPermission.READ_FILESYSTEM, explanation = "Provides operator the ability to read from any file that NiFi has access to."),
-                @Restriction(requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES, explanation = "File Resource can reference resources over HTTP/HTTPS")
-        }
-)
+
 public class GetFileResource extends AbstractProcessor {
 
     public static final PropertyDescriptor FILE_RESOURCE = new PropertyDescriptor.Builder()

@@ -33,8 +33,6 @@ import { controllerServicesFeatureKey } from '../../../state/controller-services
 import { initialState as initialControllerServicesState } from '../../../state/controller-services/controller-services.reducer';
 import { parameterFeatureKey } from '../../../state/parameter';
 import { initialState as initialParameterState } from '../../../state/parameter/parameter.reducer';
-import { queueFeatureKey } from '../../../../queue/state';
-import { initialState as initialQueueState } from '../../../state/queue/queue.reducer';
 import { flowAnalysisFeatureKey } from '../../../state/flow-analysis';
 import { initialState as initialFlowAnalysisState } from '../../../state/flow-analysis/flow-analysis.reducer';
 import { selectFlowState } from '../../../state/flow/flow.selectors';
@@ -74,7 +72,6 @@ describe('ChangeColorDialog', () => {
                             [transformFeatureKey]: initialTransformState,
                             [controllerServicesFeatureKey]: initialControllerServicesState,
                             [parameterFeatureKey]: initialParameterState,
-                            [queueFeatureKey]: initialQueueState,
                             [flowAnalysisFeatureKey]: initialFlowAnalysisState
                         }
                     },

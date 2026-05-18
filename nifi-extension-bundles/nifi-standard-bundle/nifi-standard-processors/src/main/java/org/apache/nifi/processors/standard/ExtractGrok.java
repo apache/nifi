@@ -23,8 +23,6 @@ import io.krakens.grok.api.GrokCompiler;
 import io.krakens.grok.api.Match;
 import io.krakens.grok.api.exception.GrokException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -34,7 +32,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -74,17 +71,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
     "adding the results as attributes or replacing the content of the FlowFile with a JSON " +
     "notation of the matched content")
 @WritesAttributes({
-    @WritesAttribute(attribute = "grok.XXX", description = "When operating in flowfile-attribute mode, each of the Grok identifier that is matched in the flowfile " +
+    @WritesAttribute(attribute = "grok.XXX", description = "When operating in flowfile-attribute mode, each of the Grok identifier that is matched in the FlowFile " +
         "will be added as an attribute, prefixed with \"grok.\" For example," +
         "if the grok identifier \"timestamp\" is matched, then the value will be added to an attribute named \"grok.timestamp\"")})
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES,
-                        explanation = "Patterns can reference resources over HTTP"
-                )
-        }
-)
+
 public class ExtractGrok extends AbstractProcessor {
 
     public static final String FLOWFILE_ATTRIBUTE = "flowfile-attribute";
@@ -119,10 +109,10 @@ public class ExtractGrok extends AbstractProcessor {
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
         .name("Destination")
-        .description("Control if Grok output value is written as a new flowfile attributes, in this case " +
-            "each of the Grok identifier that is matched in the flowfile will be added as an attribute, " +
-            "prefixed with \"grok.\" or written in the flowfile content. Writing to flowfile content " +
-            "will overwrite any existing flowfile content.")
+        .description("Control if Grok output value is written as a new FlowFile attributes, in this case " +
+            "each of the Grok identifier that is matched in the FlowFile will be added as an attribute, " +
+            "prefixed with \"grok.\" or written in the FlowFile content. Writing to FlowFile content " +
+            "will overwrite any existing FlowFile content.")
         .required(true)
         .allowableValues(FLOWFILE_ATTRIBUTE, FLOWFILE_CONTENT)
         .defaultValue(FLOWFILE_ATTRIBUTE)

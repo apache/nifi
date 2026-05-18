@@ -17,19 +17,23 @@
 
 @use '@angular/material' as mat;
 @use 'sass:map';
+@use 'sass:meta';
 
+@use 'tailwindcss';
+@use 'libs/shared/src/assets/styles/tailwind-theme';
 @use 'libs/shared/src/assets/styles/app' as app;
 @use 'app/ui/header/header.component-theme' as header;
 @use 'app/pages/login/feature/login.component-theme' as login;
 
-@use 'font-awesome';
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 @use 'libs/shared/src/assets/themes/material';
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer base {
+    @include meta.load-css('font-awesome');
+}
+
+@source #{"'libs/shared/src'"};
 
 // only include these once (not needed for dark mode)
 @include app.styles();

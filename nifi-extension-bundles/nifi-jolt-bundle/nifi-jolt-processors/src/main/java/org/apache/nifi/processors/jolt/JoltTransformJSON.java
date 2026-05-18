@@ -24,8 +24,6 @@ import io.joltcommunity.jolt.JsonUtil;
 import io.joltcommunity.jolt.JsonUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -33,7 +31,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -64,13 +61,7 @@ import java.util.stream.Stream;
 @Tags({"json", "jolt", "transform", "chainr", "shift", "default", "remove", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "mime.type", description = "Set to application/json or application/jsonl based on configuration")
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.EXECUTE_CODE,
-                        explanation = "Enables configuration of custom code for Jolt Transforms")
-        }
-)
+
 @CapabilityDescription("""
         Reformat JSON to JSON using a Jolt Transform with Domain Specific Language manipulation instructions.
         The JOLT Community Edition documentation provides examples of supported operations and syntax standards.

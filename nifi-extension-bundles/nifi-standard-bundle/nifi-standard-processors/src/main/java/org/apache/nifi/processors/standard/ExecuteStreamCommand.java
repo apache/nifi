@@ -23,8 +23,6 @@ import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -34,7 +32,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
@@ -162,13 +159,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
         @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command"),
         @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Output MIME Type' property is set and 'Output Destination Attribute' is not set")})
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.EXECUTE_CODE,
-                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
-        }
-)
+
 public class ExecuteStreamCommand extends AbstractProcessor {
 
     public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder()

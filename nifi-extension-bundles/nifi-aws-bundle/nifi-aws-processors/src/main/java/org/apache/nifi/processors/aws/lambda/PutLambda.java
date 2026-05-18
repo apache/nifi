@@ -201,11 +201,11 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
     }
 
     /**
-     * Populate exception attributes in the flow file
+     * Populate exception attributes in the FlowFile
      * @param session process session
-     * @param flowFile the flow file
+     * @param flowFile the FlowFile
      * @param exception exception thrown during invocation
-     * @return FlowFile the updated flow file
+     * @return FlowFile the updated FlowFile
      */
     private FlowFile populateExceptionAttributes(final ProcessSession session, FlowFile flowFile,
             final AwsServiceException exception) {

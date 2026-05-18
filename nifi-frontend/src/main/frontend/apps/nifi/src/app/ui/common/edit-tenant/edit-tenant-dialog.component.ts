@@ -34,12 +34,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon, CloseOnEscapeDialog, Revision } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog, Revision, NifiSpinnerDirective } from '@nifi/shared';
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 

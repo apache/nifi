@@ -19,7 +19,6 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
-import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Observable, of } from 'rxjs';
 import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
 import {
@@ -41,7 +40,8 @@ import {
     NifiTooltipDirective,
     CopyDirective,
     ParameterContextReferenceEntity,
-    ComponentType
+    ComponentType,
+    NifiSpinnerDirective
 } from '@nifi/shared';
 import {
     ConfigVerificationResult,

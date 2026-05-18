@@ -27,7 +27,6 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
 import { EditParameterContextRequest } from '../../../../pages/parameter-contexts/state/parameter-context-listing';
-import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { Client } from '../../../../service/client.service';
 import { ParameterTable } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/parameter-table/parameter-table.component';
 import {
@@ -44,7 +43,14 @@ import { ParameterReferences } from '../../parameter-references/parameter-refere
 import { RouterLink } from '@angular/router';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { TabbedDialog, TABBED_DIALOG_ID } from '../../tabbed-dialog/tabbed-dialog.component';
-import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective, Parameter } from '@nifi/shared';
+import {
+    NiFiCommon,
+    TextTip,
+    NifiTooltipDirective,
+    CopyDirective,
+    Parameter,
+    NifiSpinnerDirective
+} from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 
@@ -61,7 +67,6 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
         MatOptionModule,
         MatSelectModule,
         AsyncPipe,
-        NifiSpinnerDirective,
         NifiSpinnerDirective,
         ParameterTable,
         ProcessGroupReferences,

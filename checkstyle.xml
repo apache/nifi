@@ -52,7 +52,7 @@
             <property name="processJavadoc" value="true"/>
         </module>
         <module name="CustomImportOrder">
-            <property name="customImportOrderRules" value="THIRD_PARTY_PACKAGE###SPECIAL_IMPORTS###STANDARD_JAVA_PACKAGE###STATIC"/>
+            <property name="customImportOrderRules" value="THIRD_PARTY_PACKAGE,SPECIAL_IMPORTS,STANDARD_JAVA_PACKAGE,STATIC"/>
             <property name="sortImportsInGroupAlphabetically" value="true"/>
             <property name="separateLineBetweenGroups" value="true"/>
             <property name="standardPackageRegExp" value="^(java|javax)\."/>

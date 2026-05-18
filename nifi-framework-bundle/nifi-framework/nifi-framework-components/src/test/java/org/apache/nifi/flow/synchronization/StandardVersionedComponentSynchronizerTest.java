@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -613,6 +614,85 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processorA, times(1)).terminate();
         verify(processorA, times(1)).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
         verify(processorA, times(1)).setName(versionedProcessor.getName());
+    }
+
+    private ProcessorNode createMappableProcessor(final ProcessGroup processGroup) {
+        final ProcessorNode processor = createMockProcessor();
+        when(processor.getProcessGroup()).thenReturn(processGroup);
+        when(processor.getVersionedComponentId()).thenReturn(Optional.of(UUID.randomUUID().toString()));
+        when(processor.getBulletinLevel()).thenReturn(LogLevel.WARN);
+        when(processor.getCanonicalClassName()).thenReturn("org.apache.nifi.processors.Test");
+        when(processor.getAutoTerminatedRelationships()).thenReturn(Collections.emptySet());
+        when(processor.getMaxConcurrentTasks()).thenReturn(1);
+        when(processor.getExecutionNode()).thenReturn(ExecutionNode.ALL);
+        when(processor.getPenalizationPeriod()).thenReturn("30 sec");
+        when(processor.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processor.getRunDuration(TimeUnit.MILLISECONDS)).thenReturn(0L);
+        when(processor.getSchedulingPeriod()).thenReturn("0 sec");
+        when(processor.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
+        when(processor.getYieldPeriod()).thenReturn("1 sec");
+        when(processor.getRetryCount()).thenReturn(10);
+        when(processor.getRetriedRelationships()).thenReturn(Collections.emptySet());
+        when(processor.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
+        when(processor.getMaxBackoffPeriod()).thenReturn("10 mins");
+        when(processor.getRelationships()).thenReturn(Collections.emptySet());
+        return processor;
+    }
+
+    @Test
+    public void testGroupSynchronizeStopsRunningProcessorBeforeUpdate() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final ProcessorNode runningProcessor = createMappableProcessor(processGroup);
+        when(runningProcessor.isRunning()).thenReturn(true);
+        when(runningProcessor.getScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.RUNNING);
+        when(processGroup.stopProcessor(runningProcessor)).thenReturn(CompletableFuture.completedFuture(null));
+        when(processGroup.getProcessors()).thenReturn(List.of(runningProcessor));
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setIdentifier(runningProcessor.getVersionedComponentId().orElse(runningProcessor.getIdentifier()));
+        versionedProcessor.setProperties(Collections.singletonMap("abc", "updated-value"));
+        versionedProcessor.setScheduledState(ScheduledState.RUNNING);
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier("pg-v1");
+        versionedGroup.setProcessors(Set.of(versionedProcessor));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
+
+        verify(processGroup, atLeast(1)).stopProcessor(runningProcessor);
+        verify(runningProcessor).setProperties(eq(Collections.singletonMap("abc", "updated-value")), eq(true), anySet());
+        verify(processGroup, atLeast(1)).startProcessor(runningProcessor, false);
+    }
+
+    @Test
+    public void testGroupSynchronizeDoesNotRestartProcessorWhenProposedStateNotRunning() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final ProcessorNode runningProcessor = createMappableProcessor(processGroup);
+        when(runningProcessor.isRunning()).thenReturn(true);
+        when(runningProcessor.getScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.RUNNING);
+        when(processGroup.stopProcessor(runningProcessor)).thenReturn(CompletableFuture.completedFuture(null));
+        when(processGroup.getProcessors()).thenReturn(List.of(runningProcessor));
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setIdentifier(runningProcessor.getVersionedComponentId().orElse(runningProcessor.getIdentifier()));
+        versionedProcessor.setProperties(Collections.singletonMap("abc", "updated-value"));
+        versionedProcessor.setScheduledState(ScheduledState.ENABLED);
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier("pg-v1");
+        versionedGroup.setProcessors(Set.of(versionedProcessor));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
+
+        verify(processGroup, atLeast(1)).stopProcessor(runningProcessor);
+        verify(runningProcessor).setProperties(eq(Collections.singletonMap("abc", "updated-value")), eq(true), anySet());
+        verify(processGroup, never()).startProcessor(runningProcessor, false);
     }
 
     @Test

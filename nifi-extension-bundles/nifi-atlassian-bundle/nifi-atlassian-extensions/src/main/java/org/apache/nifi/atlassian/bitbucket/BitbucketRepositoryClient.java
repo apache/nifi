@@ -511,10 +511,10 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
         }
 
-        // Use expectedCommitSha for atomic commit - Bitbucket DC will reject if the file has changed since this commit
         final String expectedCommitSha = request.getExpectedCommitSha();
-        if (expectedCommitSha != null && !expectedCommitSha.isBlank()) {
-            multipartBuilder.addPart(FIELD_SOURCE_COMMIT_ID, StandardHttpContentType.TEXT_PLAIN, expectedCommitSha.getBytes(StandardCharsets.UTF_8));
+        final String sourceCommitId = (expectedCommitSha != null && !expectedCommitSha.isBlank()) ? expectedCommitSha : request.getExistingContentSha();
+        if (sourceCommitId != null && !sourceCommitId.isBlank()) {
+            multipartBuilder.addPart(FIELD_SOURCE_COMMIT_ID, StandardHttpContentType.TEXT_PLAIN, sourceCommitId.getBytes(StandardCharsets.UTF_8));
         }
 
         final HttpUriBuilder uriBuilder = getRepositoryUriBuilder().addPathSegment("browse");

@@ -48,6 +48,8 @@ import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControll
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -80,6 +82,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -368,6 +371,112 @@ public class PutBigQueryTest {
     }
 
     @Test
+    void testUnmatchedFieldWarnLogsAndWrites() {
+        when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        when(writeStream.getTableSchema()).thenReturn(myTableSchema);
+        when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
+            .thenReturn(ApiFutures.immediateFuture(AppendRowsResponse.newBuilder().setAppendResult(mock(AppendRowsResponse.AppendResult.class)).build()));
+
+        runner.setProperty(PutBigQuery.UNMATCHED_FIELD_BEHAVIOR, UnmatchedFieldBehavior.WARN);
+
+        final String unknownProperty = "myUnknownProperty";
+        runner.enqueue(CSV_HEADER + ",unknownField\nmyId,myValue," + unknownProperty);
+        runner.run();
+
+        verify(streamWriter).append(protoRowsCaptor.capture(), offsetCaptor.capture());
+        final ProtoRows rows = protoRowsCaptor.getValue();
+        assertEquals(1, rows.getSerializedRowsCount());
+        assertFalse(rows.getSerializedRowsList().getFirst().toString().contains(unknownProperty));
+
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS);
+        assertUnmatchedFieldWarningLogged(runner);
+    }
+
+    @Test
+    void testUnmatchedFieldFailRoutesToFailure() {
+        when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        when(writeStream.getTableSchema()).thenReturn(myTableSchema);
+
+        runner.setProperty(PutBigQuery.UNMATCHED_FIELD_BEHAVIOR, UnmatchedFieldBehavior.FAIL);
+        runner.setProperty(PutBigQuery.SKIP_INVALID_ROWS, "false");
+
+        runner.enqueue(CSV_HEADER + ",unknownField\nmyId,myValue,extraField");
+        runner.run();
+
+        verify(streamWriter, never()).append(any(ProtoRows.class), anyLong());
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_FAILURE);
+    }
+
+    @Test
+    void testUnmatchedFieldFailIgnoresSkipInvalidRows() {
+        when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        when(writeStream.getTableSchema()).thenReturn(myTableSchema);
+
+        runner.setProperty(PutBigQuery.UNMATCHED_FIELD_BEHAVIOR, UnmatchedFieldBehavior.FAIL);
+        runner.setProperty(PutBigQuery.SKIP_INVALID_ROWS, "true");
+
+        runner.enqueue(CSV_HEADER + ",unknownField\nidOne,valueOne,extraField");
+        runner.run();
+
+        verify(streamWriter, never()).append(any(ProtoRows.class), anyLong());
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_FAILURE);
+    }
+
+    @Test
+    void testUnmatchedFieldInNestedStructLogsDottedPath() throws InitializationException {
+        when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
+
+        final TableFieldSchema nestedKnown = mock(TableFieldSchema.class);
+        when(nestedKnown.getName()).thenReturn("known");
+        when(nestedKnown.getType()).thenReturn(TableFieldSchema.Type.STRING);
+        when(nestedKnown.getMode()).thenReturn(TableFieldSchema.Mode.NULLABLE);
+
+        final TableFieldSchema parent = mock(TableFieldSchema.class);
+        when(parent.getName()).thenReturn("parent");
+        when(parent.getType()).thenReturn(TableFieldSchema.Type.STRUCT);
+        when(parent.getMode()).thenReturn(TableFieldSchema.Mode.NULLABLE);
+        when(parent.getFieldsList()).thenReturn(List.of(nestedKnown));
+
+        final TableSchema schemaWithStruct = mock(TableSchema.class);
+        when(schemaWithStruct.getFieldsList()).thenReturn(List.of(parent));
+
+        when(writeStream.getTableSchema()).thenReturn(schemaWithStruct);
+        when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
+            .thenReturn(ApiFutures.immediateFuture(AppendRowsResponse.newBuilder().setAppendResult(mock(AppendRowsResponse.AppendResult.class)).build()));
+
+        decorateWithNestedStructJsonReader(runner);
+
+        runner.setProperty(PutBigQuery.UNMATCHED_FIELD_BEHAVIOR, UnmatchedFieldBehavior.WARN);
+
+        runner.enqueue("""
+                {"parent":{"known":"ok","unexpected":"oops"}}
+                """);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS);
+        assertUnmatchedFieldPathLogged(runner, "parent.unexpected");
+    }
+
+    private static void assertUnmatchedFieldWarningLogged(final TestRunner runner) {
+        final MockComponentLog logger = runner.getLogger();
+        final boolean found = logger.getWarnMessages().stream()
+                .map(LogMessage::getMsg)
+                .anyMatch(msg -> msg != null && msg.contains("not present in BigQuery table schema"));
+        assertTrue(found, "Expected a warning about unmatched fields, got: " + logger.getWarnMessages());
+    }
+
+    private static void assertUnmatchedFieldPathLogged(final TestRunner runner, final String expectedPath) {
+        final MockComponentLog logger = runner.getLogger();
+        final boolean found = logger.getWarnMessages().stream()
+                .map(LogMessage::getMsg)
+                .anyMatch(msg -> msg != null && msg.contains(expectedPath));
+        assertTrue(found, "Expected warning to reference path '" + expectedPath + "', got: " + logger.getWarnMessages());
+    }
+
+    @Test
     void testSchema() throws Exception {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
 
@@ -559,6 +668,36 @@ public class PutBigQueryTest {
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordReaderSchema);
         runner.enableControllerService(jsonReader);
+    }
+
+    private void decorateWithNestedStructJsonReader(TestRunner runner) throws InitializationException {
+        String recordReaderSchema = """
+                {
+                  "name": "nested",
+                  "namespace": "nifi.examples",
+                  "type": "record",
+                  "fields": [
+                    {
+                      "name": "parent",
+                      "type": {
+                        "type": "record",
+                        "name": "ParentRecord",
+                        "fields": [
+                          {"name": "known", "type": ["null", "string"], "default": null},
+                          {"name": "unexpected", "type": ["null", "string"], "default": null}
+                        ]
+                      }
+                    }
+                  ]
+                }""";
+
+        JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("nestedJsonReader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordReaderSchema);
+        runner.enableControllerService(jsonReader);
+
+        runner.setProperty(PutBigQuery.RECORD_READER, "nestedJsonReader");
     }
 
     private TableSchema mockTableSchema(String name1, TableFieldSchema.Type type1, String name2, TableFieldSchema.Type type2) {

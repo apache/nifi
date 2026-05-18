@@ -16,31 +16,15 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.parameter.ParameterContext;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * Authorizable for a component that references a ControllerService.
  */
 public interface ComponentAuthorizable extends AuthorizableHolder {
-    /**
-     * Returns whether or not the underlying configurable component is restricted.
-     *
-     * @return whether or not the underlying configurable component is restricted
-     */
-    boolean isRestricted();
-
-    /**
-     * Returns all component restriction authorizables for this component.
-     *
-     * @return all component restriction authorizables
-     */
-    Set<Authorizable> getRestrictedAuthorizables();
-
     /**
      * @return the Parameter Context that is bound to this component's Process Group, as an Authorizable, or <code>null</code> if no Parameter Context is bound
      */

@@ -39,7 +39,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeComponentAnalysis;
 import org.apache.nifi.authorization.AuthorizeComponentReference;
+import org.apache.nifi.authorization.AuthorizeConfigVerification;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -671,7 +673,7 @@ public class ProcessorResource extends ApplicationResource {
                 configurationAnalysis,
                 lookup -> {
                     final ComponentAuthorizable processor = lookup.getProcessor(processorId);
-                    processor.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    AuthorizeComponentAnalysis.authorize(authorizer, lookup, processor, configurationAnalysis.getConfigurationAnalysis().getProperties(), processor.getParameterContext());
                 },
                 () -> {
                 },
@@ -703,7 +705,8 @@ public class ProcessorResource extends ApplicationResource {
                     "issuing a GET request to /processors/{processorId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
                     "/processors/{processorId}/verification-requests/{requestId}.",
             security = {
-                    @SecurityRequirement(name = "Read - /processors/{uuid}")
+                    @SecurityRequirement(name = "Write - /processors/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     public Response submitProcessorVerificationRequest(
@@ -736,13 +739,8 @@ public class ProcessorResource extends ApplicationResource {
         return withWriteLock(
                 serviceFacade,
                 processorConfigRequest,
-                lookup -> {
-                    final ComponentAuthorizable processor = lookup.getProcessor(processorId);
-                    processor.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                },
-                () -> {
-                    serviceFacade.verifyCanVerifyProcessorConfig(processorId);
-                },
+                lookup -> AuthorizeConfigVerification.authorize(authorizer, lookup, lookup.getProcessor(processorId), requestDto.getProperties()),
+                () -> serviceFacade.verifyCanVerifyProcessorConfig(processorId),
                 entity -> performAsyncConfigVerification(entity, user)
         );
     }

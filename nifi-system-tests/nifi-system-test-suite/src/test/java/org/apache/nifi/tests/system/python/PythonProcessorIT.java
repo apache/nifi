@@ -287,7 +287,7 @@ public class PythonProcessorIT extends NiFiSystemIT {
     }
 
     private void runProcessorOnce(final ProcessorEntity processorEntity) throws NiFiClientException, IOException, InterruptedException {
-        getNifiClient().getProcessorClient().runProcessorOnce(processorEntity);
+        getClientUtil().runProcessorOnce(processorEntity);
         getClientUtil().waitForStoppedProcessor(processorEntity.getId());
     }
 }
