@@ -306,6 +306,7 @@ NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it i
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *Replay last event*: This option will replay the last Provenance event, effectively requeuing the last FlowFile that was processed by the Processor (see <<replay_flowfile>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
+- *View Backlog*: For Processors that support reporting backlog against an external system (such as a queue or topic), this option displays the current backlog information. Because computing backlog may require querying the external system, this action requires *modify the component* access, not merely *view the component* access.
 - *View usage*: This option takes the user to the Processor's usage documentation.
 - *View connections->Upstream*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.

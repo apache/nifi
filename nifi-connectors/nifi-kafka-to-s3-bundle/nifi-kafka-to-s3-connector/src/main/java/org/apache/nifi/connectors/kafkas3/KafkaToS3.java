@@ -20,10 +20,13 @@ package org.apache.nifi.connectors.kafkas3;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AbstractConnector;
+import org.apache.nifi.components.connector.BacklogReportingConnector;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConnectorConfigurationContext;
 import org.apache.nifi.components.connector.FlowUpdateException;
@@ -41,6 +44,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -51,7 +55,7 @@ import java.util.stream.Collectors;
 @CapabilityDescription("Provides the ability to ingest data from Apache Kafka topics, merge it together into an object of reasonable " +
                        "size, and write that data to Amazon S3.")
 @Tags({"kafka", "s3"})
-public class KafkaToS3 extends AbstractConnector {
+public class KafkaToS3 extends AbstractConnector implements BacklogReportingConnector {
 
     private static final List<ConfigurationStep> configurationSteps = List.of(
         KafkaConnectionStep.KAFKA_CONNECTION_STEP,
@@ -146,6 +150,20 @@ public class KafkaToS3 extends AbstractConnector {
         return Collections.emptyList();
     }
 
+    @Override
+    public Optional<Backlog> getBacklog(final FlowContext activeFlowContext) throws BacklogReportingException {
+        final Optional<ProcessorFacade> consumeKafkaProcessor = findConsumeKafkaProcessor(activeFlowContext);
+        if (consumeKafkaProcessor.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return consumeKafkaProcessor.get().getBacklog();
+    }
+
+    private Optional<ProcessorFacade> findConsumeKafkaProcessor(final FlowContext flowContext) {
+        return findProcessors(flowContext.getRootGroup(), processor -> processor.getDefinition().getType().endsWith("ConsumeKafka")).stream().findFirst();
+    }
+
     private List<ConfigVerificationResult> verifyKafkaParsability(final FlowContext workingFlowContext, final VersionedExternalFlow flow) {
         // Enable Controller Services necessary for parsing records.
         // We determine which Controller Services are referenced by the flow and enable them, but we do not use
@@ -170,8 +188,7 @@ public class KafkaToS3 extends AbstractConnector {
         }
 
         try {
-            final ProcessorFacade consumeKafkaFacade = findProcessors(rootGroup,
-                processor -> processor.getDefinition().getType().endsWith("ConsumeKafka")).getFirst();
+            final ProcessorFacade consumeKafkaFacade = findConsumeKafkaProcessor(workingFlowContext).orElseThrow();
 
             final List<ConfigVerificationResult> configVerificationResults = consumeKafkaFacade.verify(flow, Map.of());
             for (final ConfigVerificationResult result : configVerificationResults) {

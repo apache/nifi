@@ -263,8 +263,14 @@ final class PollingKinesisClient extends KinesisConsumerClient {
                     }
 
                     final List<software.amazon.awssdk.services.kinesis.model.Record> records = response.records();
+                    final Long millisBehindLatest = response.millisBehindLatest();
+                    if (millisBehindLatest != null) {
+                        // Notify the backlog tracker on every successful poll, including empty polls. Empty
+                        // polls are the only way a caught-up shard transitions from "behind" back to 0.
+                        recordShardLag(shardId, millisBehindLatest);
+                    }
                     if (!records.isEmpty()) {
-                        final long millisBehind = response.millisBehindLatest() != null ? response.millisBehindLatest() : -1;
+                        final long millisBehind = millisBehindLatest != null ? millisBehindLatest : -1;
                         queuePermitConsumed = enqueueIfActive(shardId, state, createFetchResult(shardId, records, millisBehind));
                     }
 

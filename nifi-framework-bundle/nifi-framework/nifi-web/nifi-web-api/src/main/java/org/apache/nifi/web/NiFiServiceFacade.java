@@ -30,6 +30,7 @@ import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
@@ -105,6 +106,7 @@ import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.BacklogEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
@@ -850,6 +852,39 @@ public interface NiFiServiceFacade {
      * @return the diagnostics information for the processor
      */
     ProcessorDiagnosticsEntity getProcessorDiagnostics(String id);
+
+    /**
+     * Verifies that the Processor with the given id is in an appropriate state to be asked for a backlog report.
+     *
+     * @param processorId the id of the Processor
+     */
+    void verifyCanReportProcessorBacklog(String processorId);
+
+    /**
+     * Returns a backlog snapshot for the Processor with the given id. Callers must invoke
+     * {@link #verifyCanReportProcessorBacklog(String)} before invoking this method.
+     *
+     * @param processorId the id of the Processor
+     * @return the backlog entity; the wrapped DTO is null when the Processor returns {@link Optional#empty()}
+     * @throws BacklogReportingException if the Processor attempts to determine its backlog and fails
+     */
+    BacklogEntity getProcessorBacklog(String processorId) throws BacklogReportingException;
+
+    /**
+     * Verifies that the Connector with the given id can be asked for a connector-scope backlog report.
+     *
+     * @param connectorId the id of the Connector
+     */
+    void verifyCanReportConnectorBacklog(String connectorId);
+
+    /**
+     * Returns a backlog snapshot for the Connector with the given id, computed against the Connector's active flow.
+     *
+     * @param connectorId the id of the Connector
+     * @return the backlog entity; the wrapped DTO is null when the Connector returns {@link Optional#empty()}
+     * @throws BacklogReportingException if the Connector attempts to determine its backlog and fails
+     */
+    BacklogEntity getConnectorBacklog(String connectorId) throws BacklogReportingException;
 
     /**
      * Gets the processor status.

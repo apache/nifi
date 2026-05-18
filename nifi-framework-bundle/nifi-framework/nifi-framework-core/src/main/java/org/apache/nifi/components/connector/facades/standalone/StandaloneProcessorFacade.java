@@ -179,6 +179,16 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
         return null;
     }
 
+    @Override
+    public boolean reportsBacklog() {
+        return processorNode.supportsBacklogReporting();
+    }
+
+    @Override
+    public Optional<Backlog> getBacklog() throws BacklogReportingException {
+        final ProcessContext processContext = componentContextProvider.createProcessContext(processorNode, parameterContext);
+        return processorNode.getReportedBacklog(processContext);
+    }
 
     @Override
     public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments) throws InvocationFailedException {
@@ -210,16 +220,6 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
         } catch (final JsonProcessingException e) {
             throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
         }
-    }
-
-    @Override
-    public boolean reportsBacklog() {
-        return false;
-    }
-
-    @Override
-    public Optional<Backlog> getBacklog() throws BacklogReportingException {
-        return Optional.empty();
     }
 
     @Override

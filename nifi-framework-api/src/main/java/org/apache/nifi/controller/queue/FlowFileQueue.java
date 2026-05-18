@@ -98,6 +98,20 @@ public interface FlowFileQueue {
     QueueSize size();
 
     /**
+     * Returns an atomic, point-in-time view of this queue's total {@link QueueSize} and the
+     * FlowFiles currently held in this node's active in-memory queue. Implementations freeze every
+     * partition that contributes to the {@link QueueSize} for the duration of the call, so the
+     * active list and the {@link QueueSize} are mutually consistent. When
+     * {@code snapshot.activeFlowFiles().size()} equals {@code snapshot.queueSize().getObjectCount()},
+     * the active list is exhaustive. Any difference is accounted for by FlowFiles that are swapped to
+     * disk, assigned to remote partitions (destined for other cluster nodes), or in the rebalancing
+     * partition (being redistributed).
+     *
+     * @return a non-null snapshot of the queue's size and active in-memory FlowFiles
+     */
+    FlowFileQueueSnapshot getQueueSnapshot();
+
+    /**
      * @param fromTimestamp The timestamp in milliseconds from which to calculate durations. This will typically be the current timestamp.
      * @return the sum in milliseconds of how long all FlowFiles within this queue have currently been in this queue.
      */

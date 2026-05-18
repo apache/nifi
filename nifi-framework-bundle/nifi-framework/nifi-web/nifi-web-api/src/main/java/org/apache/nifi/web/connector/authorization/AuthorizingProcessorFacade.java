@@ -108,7 +108,7 @@ public class AuthorizingProcessorFacade implements ProcessorFacade {
 
     @Override
     public Optional<Backlog> getBacklog() throws BacklogReportingException {
-        authContext.authorizeRead();
+        authContext.authorizeWrite();
         return delegate.getBacklog();
     }
 

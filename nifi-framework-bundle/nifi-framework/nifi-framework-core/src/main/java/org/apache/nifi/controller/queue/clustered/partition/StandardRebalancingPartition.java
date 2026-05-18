@@ -76,6 +76,16 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
+    public void lockForSnapshot() {
+        queue.lockForSnapshot();
+    }
+
+    @Override
+    public void unlockForSnapshot() {
+        queue.unlockForSnapshot();
+    }
+
+    @Override
     public long getTotalActiveQueuedDuration(long fromTimestamp) {
         return queue.getTotalQueuedDuration(fromTimestamp);
     }

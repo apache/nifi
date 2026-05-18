@@ -32,6 +32,9 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.Backlog.Precision;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -45,6 +48,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.processor.BacklogReportingProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -83,6 +87,7 @@ import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -90,6 +95,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -131,7 +137,7 @@ import static org.apache.nifi.processors.aws.s3.util.S3Util.sanitizeETag;
         @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
                 "will be written as part of the FlowFile attributes")})
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
+public class ListS3 extends AbstractS3Processor implements VerifiableProcessor, BacklogReportingProcessor {
 
     public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
         "This strategy tracks the latest timestamp of listed entity to determine new/updated entities." +
@@ -334,6 +340,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     private volatile Long minObjectAgeMilliseconds;
     private volatile Long maxObjectAgeMilliseconds;
 
+    /**
+     * The most recent moment at which {@link #getBacklog(ProcessContext)} observed that the bucket was fully
+     * caught up. Held in memory for the JVM lifetime — preserved across stop/start cycles so that a stopped
+     * Processor still reports its last-known caught-up moment, and surfaced on every subsequent backlog
+     * response (including responses where the backlog has since grown back above zero). Reset only when the
+     * JVM restarts.
+     */
+    private volatile Instant lastCaughtUpTimestamp;
+
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
         justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
@@ -374,7 +389,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     @OnScheduled
-    public void initObjectAgeThresholds(ProcessContext context) {
+    public void initObjectAgeThresholds(final ProcessContext context) {
         minObjectAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         maxObjectAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
     }
@@ -500,6 +515,77 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
         }
+    }
+
+    /**
+     * <p>
+     *     Reports backlog against the configured S3 bucket. The two tracking strategies
+     *     ({@link #BY_TIMESTAMPS} and {@link #BY_ENTITIES}) compare the configured state of the
+     *     processor to the listing of the bucket and report the unprocessed objects as remaining
+     *     work.
+     * </p>
+     *
+     * <p>
+     *     The {@link #NO_TRACKING} strategy is intentionally and unconditionally treated as
+     *     {@link Backlog#caughtUp()}. In that mode the processor keeps no persistent state about
+     *     which objects it has previously listed: every invocation re-lists the configured prefix
+     *     from scratch and emits every matching object. There is therefore no notion of an
+     *     "unprocessed set" that backlog could measure — the set is empty by definition, not by
+     *     observation. Querying S3 to "verify" that fact would not produce different information,
+     *     because any object the query found would, by definition, be emitted on the very next
+     *     invocation and is not part of any backlog.
+     * </p>
+     *
+     * <p>
+     *     This is intentionally different from {@link #BY_TIMESTAMPS} and {@link #BY_ENTITIES},
+     *     which do maintain "what has been listed" state in {@link Scope#CLUSTER cluster-scoped}
+     *     state and where backlog has a meaningful definition (objects on the bucket whose
+     *     identifiers/timestamps are not yet recorded in that state). Callers that want a Backlog
+     *     derived from an actual bucket listing must configure one of those strategies.
+     * </p>
+     */
+    @Override
+    public Optional<Backlog> getBacklog(final ProcessContext context) throws BacklogReportingException {
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        if (NO_TRACKING.getValue().equals(listingStrategy)) {
+            // No Tracking has no "unprocessed" set by design; see the method javadoc for the rationale.
+            final Backlog backlog = Backlog.caughtUp();
+            getLogger().debug("Computed S3 backlog using {} strategy: {}", NO_TRACKING.getDisplayName(), backlog);
+            return Optional.of(backlog);
+        }
+
+        final S3Client client;
+        final String bucketName;
+        try {
+            client = getClient(context);
+            bucketName = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
+        } catch (final RuntimeException e) {
+            throw new BacklogReportingException("Failed to create S3 client or resolve bucket name while reporting backlog", e);
+        }
+
+        final long currentTime = System.currentTimeMillis();
+        final List<ObjectVersion> backlogCandidates;
+        try {
+            backlogCandidates = listBacklogCandidates(context, client, currentTime);
+        } catch (final RuntimeException e) {
+            throw new BacklogReportingException("Failed to list S3 bucket " + bucketName + " while reporting backlog", e);
+        }
+
+        final Backlog backlog;
+        try {
+            if (BY_TIMESTAMPS.getValue().equals(listingStrategy)) {
+                backlog = getTimestampTrackingBacklog(context, backlogCandidates);
+            } else if (BY_ENTITIES.getValue().equals(listingStrategy)) {
+                backlog = getEntityTrackingBacklog(context, client, bucketName, currentTime, backlogCandidates);
+            } else {
+                throw new BacklogReportingException("Unknown listing strategy: " + listingStrategy);
+            }
+        } catch (final IOException | RuntimeException e) {
+            throw new BacklogReportingException("Failed to derive " + listingStrategy + " backlog for S3 bucket " + bucketName, e);
+        }
+
+        getLogger().debug("Computed S3 backlog using {} strategy: {}", listingStrategy, backlog);
+        return Optional.of(backlog);
     }
 
     private void listNoTracking(ProcessContext context, ProcessSession session) {
@@ -715,9 +801,144 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         justElectedPrimaryNode = false;
     }
 
+    private Backlog getTimestampTrackingBacklog(final ProcessContext context, final List<ObjectVersion> backlogCandidates) throws IOException {
+        final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+        if (stateMap.getStateVersion().isEmpty() || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX + "0") == null) {
+            getLogger().debug("No timestamp tracking state recorded; every S3 object that satisfies the listing filters is unread, so the backlog equals the candidate count");
+            return buildBacklog(backlogCandidates.size(), Precision.EXACT);
+        }
+
+        final long currentTimestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
+        final Set<String> currentKeys = extractKeys(stateMap);
+
+        long backlogObjectCount = 0L;
+        for (final ObjectVersion objectVersion : backlogCandidates) {
+            final long lastModified = objectVersion.lastModified().toEpochMilli();
+            if (lastModified < currentTimestamp || (lastModified == currentTimestamp && currentKeys.contains(objectVersion.key()))) {
+                continue;
+            }
+
+            backlogObjectCount++;
+        }
+
+        return buildBacklog(backlogObjectCount, Precision.EXACT);
+    }
+
+    private Backlog getEntityTrackingBacklog(final ProcessContext context, final S3Client client, final String bucketName, final long currentTime, final List<ObjectVersion> backlogCandidates) {
+        final ListedS3VersionSummaryTracker s3Tracker = (listedEntityTracker instanceof final ListedS3VersionSummaryTracker tracker) ? tracker : null;
+        if (s3Tracker == null || !s3Tracker.hasTrackedEntities()) {
+            return buildBacklog(backlogCandidates.size(), Precision.EXACT);
+        }
+
+        final long trackingWindowMilliseconds = context.getProperty(TRACKING_TIME_WINDOW).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final long minimumTrackedTimestamp = currentTime - trackingWindowMilliseconds;
+        long backlogObjectCount = 0L;
+        for (final ObjectVersion objectVersion : backlogCandidates) {
+            final long lastModified = objectVersion.lastModified().toEpochMilli();
+            if (lastModified < minimumTrackedTimestamp) {
+                continue;
+            }
+
+            final String entityIdentifier = getBacklogEntityIdentifier(objectVersion);
+            if (s3Tracker.isBacklogEntity(entityIdentifier, lastModified, objectVersion.size())) {
+                backlogObjectCount++;
+            }
+        }
+
+        return buildBacklog(backlogObjectCount, Precision.EXACT);
+    }
+
+    /**
+     * Builds a {@link Backlog} from a freshly-computed object count. When the count is zero the
+     * remembered {@link #lastCaughtUpTimestamp} is refreshed to "now". The remembered timestamp — whether
+     * just-refreshed or carried over from an earlier caught-up moment — is always attached to the result so
+     * that a non-zero backlog still surfaces "the last time this Processor was caught up".
+     */
+    private Backlog buildBacklog(final long backlogObjectCount, final Precision precision) {
+        if (backlogObjectCount == 0L) {
+            lastCaughtUpTimestamp = Instant.now();
+        }
+
+        final Backlog.Builder backlogBuilder = Backlog.builder()
+                .flowFiles(backlogObjectCount)
+                .precision(precision);
+
+        final Instant rememberedCaughtUp = lastCaughtUpTimestamp;
+        if (rememberedCaughtUp != null) {
+            backlogBuilder.lastCaughtUp(rememberedCaughtUp);
+        }
+
+        return backlogBuilder.build();
+    }
+
+    /**
+     * Identifies a backlog candidate by S3 key and version ID. When Use Versions is enabled, {@code
+     * objectVersion} comes from {@link S3VersionBucketLister}, which always populates a version ID: either
+     * a real version ID for a versioned bucket, or the literal string {@code "null"} that S3 assigns to
+     * objects in a bucket that has never had versioning enabled. When Use Versions is disabled, {@code
+     * objectVersion} is synthesized from a plain object listing that carries no version information, so
+     * the version ID is absent from the resulting identifier.
+     */
+    private String getBacklogEntityIdentifier(final ObjectVersion objectVersion) {
+        return objectVersion.key() + "_" + objectVersion.versionId();
+    }
+
+    private List<ObjectVersion> listBacklogCandidates(final ProcessContext context, final S3Client client, final long currentTime) {
+        // Use the same S3BucketLister abstraction the normal onTrigger path uses, so backlog
+        // reporting sees the same objects/versions the processor would actually emit. This honors
+        // both Use Versions (which switches to ListObjectVersions and therefore surfaces
+        // non-current versions) and List Type (1 vs 2, which selects ListObjects vs ListObjectsV2).
+        // Reporting backlog from a hard-coded ListObjectsV2 would otherwise under-count work in a
+        // versioned bucket because it would ignore non-current versions the processor can still emit.
+        final S3BucketLister bucketLister = getS3BucketLister(context, client);
+        final List<ObjectVersion> matchingObjects = new ArrayList<>();
+        do {
+            final List<ObjectVersion> page = bucketLister.listVersions();
+            for (final ObjectVersion objectVersion : page) {
+                if (includeObjectInListing(objectVersion, currentTime)) {
+                    matchingObjects.add(objectVersion);
+                }
+            }
+            bucketLister.setNextMarker();
+        } while (bucketLister.isTruncated());
+
+        return matchingObjects;
+    }
+
     private class ListedS3VersionSummaryTracker extends ListedEntityTracker<ListableEntityWrapper<ObjectVersion>> {
         public ListedS3VersionSummaryTracker() {
             super(getIdentifier(), getLogger(), RecordObjectWriter.RECORD_SCHEMA);
+        }
+
+        boolean hasTrackedEntities() {
+            return alreadyListedEntities != null && !alreadyListedEntities.isEmpty();
+        }
+
+        /**
+         * Determines whether an object should be counted as backlog for the Tracking Entities strategy,
+         * applying the same rule the real listing path uses in {@link ListedEntityTracker}'s
+         * {@code trackEntities}: an object is unprocessed work when it has never been tracked, when its
+         * last-modified timestamp is newer than the tracked timestamp, or when its size differs from the
+         * tracked size. This catches an object that was already tracked but has since been overwritten in
+         * place with a new timestamp or size, which the running processor would re-list and re-emit. The
+         * timestamp and size come from the object listing that already enumerated the candidate, so no
+         * additional S3 request is made.
+         */
+        boolean isBacklogEntity(final String entityIdentifier, final long lastModifiedTimestamp, final long size) {
+            if (alreadyListedEntities == null) {
+                return true;
+            }
+
+            final ListedEntity alreadyListedEntity = alreadyListedEntities.get(entityIdentifier);
+            if (alreadyListedEntity == null) {
+                return true;
+            }
+
+            if (lastModifiedTimestamp > alreadyListedEntity.getTimestamp()) {
+                return true;
+            }
+
+            return size != alreadyListedEntity.getSize();
         }
 
         @Override

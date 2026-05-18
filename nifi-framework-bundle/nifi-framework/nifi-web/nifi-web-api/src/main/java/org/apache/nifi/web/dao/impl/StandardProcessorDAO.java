@@ -18,6 +18,8 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -41,6 +43,7 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -67,6 +70,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -400,6 +404,25 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     public void verifyConfigVerification(final String processorId) {
         final ProcessorNode processor = locateProcessor(processorId);
         processor.verifyCanPerformVerification();
+    }
+
+    @Override
+    public void verifyReportBacklog(final String processorId) {
+        locateProcessor(processorId).verifyCanReportBacklog();
+    }
+
+    @Override
+    public Optional<Backlog> getBacklog(final String processorId) throws BacklogReportingException {
+        // Callers are required to invoke verifyReportBacklog first (the REST layer does this via
+        // NiFiServiceFacade.verifyCanReportProcessorBacklog). Re-verifying here would duplicate the
+        // capability/state check that the verify step already performed.
+        final ProcessorNode processor = locateProcessor(processorId);
+        final Processor componentProcessor = processor.getProcessor();
+        final Class<?> componentClass = componentProcessor == null ? null : componentProcessor.getClass();
+        final ProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(),
+                flowController.getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, flowController);
+
+        return processor.getReportedBacklog(processContext);
     }
 
     @Override

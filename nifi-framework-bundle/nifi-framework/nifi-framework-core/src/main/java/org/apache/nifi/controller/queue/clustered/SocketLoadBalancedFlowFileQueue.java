@@ -28,6 +28,7 @@ import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
@@ -545,6 +546,49 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public QueueSize size() {
         return totalSize.get();
+    }
+
+    /**
+     * Returns an atomic, point-in-time snapshot of this queue by freezing every partition on this node for the
+     * duration of the call. The {@code partitionReadLock} prevents cluster-topology changes from replacing the
+     * partition array, and each partition's {@link QueuePartition#lockForSnapshot()} blocks that partition's puts,
+     * polls, swaps, and drops. Because the local partition, every remote partition, and the rebalancing partition
+     * are all frozen, the summed {@link QueueSize} and the captured local active list are consistent with each other.
+     */
+    @Override
+    public FlowFileQueueSnapshot getQueueSnapshot() {
+        partitionReadLock.lock();
+        try {
+            final List<QueuePartition> partitionsToSnapshot = new ArrayList<>(queuePartitions.length + 1);
+            Collections.addAll(partitionsToSnapshot, queuePartitions);
+            partitionsToSnapshot.add(rebalancingPartition);
+
+            final List<QueuePartition> lockedPartitions = new ArrayList<>(partitionsToSnapshot.size());
+            try {
+                for (final QueuePartition partition : partitionsToSnapshot) {
+                    partition.lockForSnapshot();
+                    lockedPartitions.add(partition);
+                }
+
+                long objectCount = 0L;
+                long byteCount = 0L;
+                for (final QueuePartition partition : partitionsToSnapshot) {
+                    final QueueSize partitionSize = partition.size();
+                    objectCount += partitionSize.getObjectCount();
+                    byteCount += partitionSize.getByteCount();
+                }
+
+                final FlowFileQueueSnapshot localSnapshot = localPartition.getQueueSnapshot();
+                final QueueSize totalQueueSize = new QueueSize(Math.toIntExact(objectCount), byteCount);
+                return new FlowFileQueueSnapshot(totalQueueSize, localSnapshot.activeFlowFiles());
+            } finally {
+                for (int i = lockedPartitions.size() - 1; i >= 0; i--) {
+                    lockedPartitions.get(i).unlockForSnapshot();
+                }
+            }
+        } finally {
+            partitionReadLock.unlock();
+        }
     }
 
     @Override

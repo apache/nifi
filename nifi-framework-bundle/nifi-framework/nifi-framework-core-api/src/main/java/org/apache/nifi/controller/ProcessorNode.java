@@ -19,6 +19,8 @@ package org.apache.nifi.controller;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.InvocationFailedException;
 import org.apache.nifi.components.connector.components.ConnectorMethod;
@@ -42,6 +44,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -138,6 +141,43 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
             throw new IllegalStateException("Cannot perform verification because the Processor is not stopped");
         }
     }
+
+    /**
+     * Indicates whether the wrapped Processor implements {@code BacklogReportingProcessor}. This is a
+     * cheap capability check that does not call into the extension and never throws.
+     *
+     * @return {@code true} if the wrapped Processor implements {@code BacklogReportingProcessor}; {@code false} otherwise
+     */
+    public abstract boolean supportsBacklogReporting();
+
+    /**
+     * Invokes the wrapped Processor's backlog reporting method when it implements {@code BacklogReportingProcessor}.
+     * The method is invoked with the Processor's NAR ClassLoader active. Callers must invoke
+     * {@link #verifyCanReportBacklog()} (or an equivalent precondition check) before calling this method;
+     * the contract here is "report the backlog if you can".
+     *
+     * <p>
+     *     The supplied {@link ProcessContext} must be non-null and must be built fresh by the caller for
+     *     each invocation. The framework intentionally does not reuse the live scheduled context here so
+     *     that the Processor's backlog query is isolated from its running state and can be answered even
+     *     when the Processor is stopped.
+     * </p>
+     *
+     * @param context a non-null {@link ProcessContext} built fresh by the caller for this invocation
+     * @return the Processor's reported backlog, or {@link Optional#empty()} if the Processor does not implement
+     *         {@code BacklogReportingProcessor} or currently has nothing to report
+     * @throws BacklogReportingException if the Processor attempted to determine its backlog and failed
+     */
+    public abstract Optional<Backlog> getReportedBacklog(ProcessContext context) throws BacklogReportingException;
+
+    /**
+     * Verifies that the Processor is in an appropriate state to be asked for a backlog. The Processor must
+     * be valid, must not be disabled, and must implement {@code BacklogReportingProcessor}. Failures throw
+     * {@link IllegalStateException} with a message describing the failed precondition
+     *
+     * @throws IllegalStateException if the Processor cannot be asked for a backlog
+     */
+    public abstract void verifyCanReportBacklog();
 
     public abstract List<ConfigVerificationResult> verifyConfiguration(ProcessContext processContext, ComponentLog logger, Map<String, String> attributes, ExtensionManager extensionManager,
         ParameterLookup parameterLookup);

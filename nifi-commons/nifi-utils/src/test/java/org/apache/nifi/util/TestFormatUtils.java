@@ -177,6 +177,61 @@ public class TestFormatUtils {
         assertEquals(expected, FormatUtils.formatHoursMinutesSeconds(sourceDuration, sourceUnit));
     }
 
+    @ParameterizedTest
+    @MethodSource("getRelativeTimeArguments")
+    public void testFormatRelativeTime(final long differenceMillis, final String expected) {
+        final Instant reference = Instant.parse("2026-05-15T10:00:00Z");
+        final Instant from = reference.minusMillis(differenceMillis);
+        assertEquals(expected, FormatUtils.formatRelativeTime(from, reference));
+    }
+
+    private static Stream<Arguments> getRelativeTimeArguments() {
+        final long second = 1_000L;
+        final long minute = 60L * second;
+        final long hour = 60L * minute;
+        final long day = 24L * hour;
+        final long week = 7L * day;
+        final long month = 30L * day;
+        final long year = 365L * day;
+        return Stream.of(
+            Arguments.of(0L, "1 sec ago"),
+            Arguments.of(500L, "1 sec ago"),
+            Arguments.of(second, "1 sec ago"),
+            Arguments.of(45L * second, "45 secs ago"),
+            Arguments.of(minute, "1 min ago"),
+            Arguments.of(2L * minute, "2 mins ago"),
+            Arguments.of(59L * minute, "59 mins ago"),
+            Arguments.of(hour, "1 hour ago"),
+            Arguments.of(5L * hour, "5 hours ago"),
+            Arguments.of(day, "yesterday"),
+            Arguments.of(2L * day, "2 days ago"),
+            Arguments.of(6L * day, "6 days ago"),
+            Arguments.of(week, "1 week ago"),
+            Arguments.of(3L * week, "3 weeks ago"),
+            Arguments.of(month, "1 month ago"),
+            Arguments.of(6L * month, "6 months ago"),
+            Arguments.of(year, "1 year ago"),
+            Arguments.of(3L * year, "3 years ago"),
+            // Half-unit boundary values: a difference that rounds up to a full next unit must be
+            // promoted to that unit rather than rendering an overflowed count in the smaller unit.
+            Arguments.of(minute - second / 2 - 1L, "59 secs ago"),
+            Arguments.of(minute - second / 2, "1 min ago"),
+            Arguments.of(hour - minute / 2 - second, "59 mins ago"),
+            Arguments.of(hour - minute / 2, "1 hour ago"),
+            Arguments.of(day - hour / 2 - minute, "23 hours ago"),
+            Arguments.of(day - hour / 2, "yesterday"),
+            Arguments.of(week - day / 2 - hour, "6 days ago"),
+            Arguments.of(week - day / 2, "1 week ago"),
+            Arguments.of(month - week / 2, "4 weeks ago"),
+            // Negative offset (from is after to): future-tense rendering
+            Arguments.of(-1L * second, "in 1 sec"),
+            Arguments.of(-2L * minute, "in 2 mins"),
+            Arguments.of(-1L * day, "tomorrow"),
+            Arguments.of(-3L * day, "in 3 days"),
+            Arguments.of(-1L * year, "in 1 year")
+        );
+    }
+
     private static Stream<Arguments> getFormatTime() {
         return Stream.of(Arguments.of(0L, TimeUnit.DAYS, "00:00:00.000"),
             Arguments.of(1L, TimeUnit.HOURS, "01:00:00.000"),

@@ -42,6 +42,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -74,6 +75,8 @@ import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
 import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.AssetDTO;
+import org.apache.nifi.web.api.dto.BacklogDTO;
+import org.apache.nifi.web.api.dto.BacklogRequestDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
@@ -84,6 +87,8 @@ import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.BacklogEntity;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
@@ -118,6 +123,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -131,6 +137,7 @@ public class ConnectorResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ConnectorResource.class);
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
     private static final String PURGE_REQUEST_TYPE = "purge-request";
+    private static final String BACKLOG_REQUEST_TYPE = "backlog-request";
     private static final String FILENAME_HEADER = "Filename";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
@@ -146,6 +153,8 @@ public class ConnectorResource extends ApplicationResource {
             new AsyncRequestManager<>(100, 1L, "Connector Configuration Step Verification");
 
     private final RequestManager<ConnectorEntity, Void> purgeRequestManager = new AsyncRequestManager<>(100, 1L, "Connector FlowFile Purge");
+
+    private final RequestManager<String, BacklogDTO> backlogRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Connector Backlog Thread");
 
     @Context
     private ServletContext servletContext;
@@ -2804,6 +2813,251 @@ public class ConnectorResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    // -----------------
+    // Backlog
+    // -----------------
+
+    /**
+     * Initiates an asynchronous request to determine the current backlog for the specified Connector.
+     *
+     * <p>Determining backlog typically requires the Connector to issue a request to an external source system,
+     * which may take an indeterminate amount of time or may never complete if the source system is unavailable.
+     * Rather than blocking the HTTP request thread, this endpoint immediately returns a {@link BacklogRequestEntity}
+     * and performs the determination in the background. The client should poll
+     * {@code GET /connectors/{id}/backlog-requests/{requestId}} until the request completes, and then issue a
+     * {@code DELETE} to the same URI. Deleting the request before it completes cancels the background
+     * determination.</p>
+     *
+     * @param connectorId the connector id
+     * @return a BacklogRequestEntity describing the newly created request
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/backlog-requests")
+    @Operation(
+            summary = "Initiates a request to determine the current backlog for a Connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = BacklogRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "This will initiate the process of determining the backlog for a Connector. This may be a long-running task. As a result, this endpoint will immediately return a " +
+                    "BacklogRequestEntity, and the process of determining the backlog will occur asynchronously in the background. The client may then periodically poll the status of the " +
+                    "request by issuing a GET request to /connectors/{id}/backlog-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE " +
+                    "request to /connectors/{id}/backlog-requests/{requestId}.",
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response submitConnectorBacklogRequest(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
+        }
+
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(connectorId);
+
+        // A replicated write request is a two-phase commit: the framework replicates the same POST to every
+        // node once for validation and again for execution. withWriteLock() only invokes the action below
+        // during the execution phase (or immediately, when not part of a two-phase commit), so the backlog
+        // request is submitted exactly once per node instead of once during validation and once during
+        // execution, which would otherwise create two requests and cause the second submission to conflict
+        // with the first.
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                lookup -> {
+                    final Authorizable connector = lookup.getConnector(connectorId);
+                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanReportConnectorBacklog(connectorId),
+                (connectorEntity) -> performAsyncBacklog(connectorEntity.getId(), NiFiUserUtils.getNiFiUser())
+        );
+    }
+
+    /**
+     * Returns the current status of the specified backlog request.
+     *
+     * @param connectorId the connector id
+     * @param requestId the backlog request id
+     * @return a BacklogRequestEntity describing the current status of the request
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/backlog-requests/{requestId}")
+    @Operation(
+            summary = "Returns the Backlog Request with the given ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = BacklogRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Returns the Backlog Request with the given ID. Once a Backlog Request has been created by performing a POST to /connectors/{id}/backlog-requests, "
+                    + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+                    + "current state of the request, and the backlog once the request is complete.",
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can get it")
+            }
+    )
+    public Response getConnectorBacklogRequest(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The ID of the Backlog Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current user is the user that submitted this request
+        final AsynchronousWebRequest<String, BacklogDTO> asyncRequest = backlogRequestManager.getRequest(BACKLOG_REQUEST_TYPE, requestId, user);
+        final BacklogRequestEntity entity = createBacklogRequestEntity(asyncRequest, requestId);
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Cancels and/or removes the specified backlog request.
+     *
+     * @param connectorId the connector id
+     * @param requestId the backlog request id
+     * @return a BacklogRequestEntity describing the final status of the request
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/backlog-requests/{requestId}")
+    @Operation(
+            summary = "Deletes the Backlog Request with the given ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = BacklogRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Deletes the Backlog Request with the given ID. After a request is created, it is expected that the client will properly clean up the request by DELETE'ing "
+                    + "it once the backlog determination has completed. If the request is deleted before it completes, the background determination is cancelled.",
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can remove it")
+            }
+    )
+    public Response deleteConnectorBacklogRequest(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The ID of the Backlog Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final boolean executionPhase = isExecutionPhase(httpServletRequest);
+
+        if (!twoPhaseRequest || executionPhase) {
+            // request manager will ensure that the current user is the user that submitted this request
+            final AsynchronousWebRequest<String, BacklogDTO> asyncRequest = backlogRequestManager.removeRequest(BACKLOG_REQUEST_TYPE, requestId, user);
+
+            if (!asyncRequest.isComplete()) {
+                asyncRequest.cancel();
+            }
+
+            final BacklogRequestEntity entity = createBacklogRequestEntity(asyncRequest, requestId);
+            return generateOkResponse(entity).build();
+        }
+
+        if (isValidationPhase(httpServletRequest)) {
+            backlogRequestManager.getRequest(BACKLOG_REQUEST_TYPE, requestId, user);
+            return generateContinueResponse().build();
+        } else if (isCancellationPhase(httpServletRequest)) {
+            return generateOkResponse().build();
+        } else {
+            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+        }
+    }
+
+    private Response performAsyncBacklog(final String connectorId, final NiFiUser user) {
+        final String requestId = generateUuid();
+        logger.debug("Generated Backlog Request with ID {} for Connector {}", requestId, connectorId);
+
+        final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Determining Backlog"));
+        final AsynchronousWebRequest<String, BacklogDTO> request = new StandardAsynchronousWebRequest<>(requestId, connectorId, connectorId, user, updateSteps);
+
+        final Consumer<AsynchronousWebRequest<String, BacklogDTO>> backlogTask = asyncRequest -> {
+            final Thread currentThread = Thread.currentThread();
+            asyncRequest.setCancelCallback(currentThread::interrupt);
+
+            try {
+                final BacklogEntity backlogEntity = serviceFacade.getConnectorBacklog(connectorId);
+                asyncRequest.markStepComplete(backlogEntity.getBacklog());
+            } catch (final Exception e) {
+                logger.error("Failed to determine backlog for Connector {}", connectorId, e);
+                asyncRequest.fail(describeBacklogFailure(e));
+            }
+        };
+
+        backlogRequestManager.submitRequest(BACKLOG_REQUEST_TYPE, requestId, request, backlogTask);
+
+        final BacklogRequestEntity resultsEntity = createBacklogRequestEntity(request, requestId);
+        return generateOkResponse(resultsEntity).build();
+    }
+
+    /**
+     * Builds a failure explanation for a backlog determination that includes both the top-level exception
+     * message and, when it differs, the message of the deepest cause in the exception chain. The top-level
+     * message alone is often a generic wrapper while the root cause carries the actionable detail (for
+     * example a Kafka {@code TimeoutException} explaining which call timed out), so both are surfaced to
+     * the user.
+     *
+     * @param e the exception raised while determining backlog
+     * @return an explanation combining the top-level message with the root cause message, when they differ
+     */
+    private static String describeBacklogFailure(final Exception e) {
+        final String topLevelMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        if (e.getCause() == null) {
+            return topLevelMessage;
+        }
+
+        final String rootCauseMessage = ExceptionUtils.getRootCauseMessage(e);
+        if (rootCauseMessage == null || rootCauseMessage.isBlank()) {
+            return topLevelMessage;
+        }
+        return topLevelMessage + " (" + rootCauseMessage + ")";
+    }
+
+    private BacklogRequestEntity createBacklogRequestEntity(final AsynchronousWebRequest<String, BacklogDTO> asyncRequest, final String requestId) {
+        final String connectorId = asyncRequest.getRequest();
+
+        final BacklogRequestDTO dto = new BacklogRequestDTO();
+        dto.setComponentId(connectorId);
+        dto.setRequestId(requestId);
+        dto.setUri(generateResourceUri("connectors", connectorId, "backlog-requests", requestId));
+        dto.setSubmissionTime(asyncRequest.getLastUpdated());
+        dto.setLastUpdated(asyncRequest.getLastUpdated());
+        dto.setComplete(asyncRequest.isComplete());
+        dto.setFailureReason(asyncRequest.getFailureReason());
+        dto.setPercentCompleted(asyncRequest.getPercentComplete());
+        dto.setState(asyncRequest.getState());
+        dto.setBacklog(asyncRequest.getResults());
+
+        final BacklogRequestEntity entity = new BacklogRequestEntity();
+        entity.setRequest(dto);
+        return entity;
     }
 
     // -----------------

@@ -21,6 +21,7 @@ import { of, ReplaySubject, take, throwError } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ComponentHistoryEntity } from '../../../../state/shared';
 import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
+import { ProcessorBacklogDialog } from '../../ui/canvas/items/processor/backlog-dialog/backlog-dialog.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { FlowEffects } from './flow.effects';
 import { provideMockActions } from '@ngrx/effects/testing';
@@ -37,6 +38,7 @@ import {
     MoveToFrontRequest
 } from './index';
 import {
+    BacklogRequestEntity,
     DisableComponentRequest,
     EnableComponentRequest,
     StartComponentRequest,
@@ -830,7 +832,8 @@ describe('FlowEffects', () => {
                         updateComponent: vi.fn(),
                         createConnection: vi.fn(),
                         createLabel: vi.fn(),
-                        clearBulletinsForProcessGroup: vi.fn()
+                        clearBulletinsForProcessGroup: vi.fn(),
+                        submitProcessorBacklogRequest: vi.fn()
                     }
                 },
                 {
@@ -1491,6 +1494,56 @@ describe('FlowEffects', () => {
                     }
                 }
             });
+        });
+    });
+
+    describe('openProcessorBacklogDialog$', () => {
+        const PROCESSOR_ID = 'proc-1';
+
+        it('submits a backlog request and opens the dialog with the resulting request entity', () => {
+            const requestEntity: BacklogRequestEntity = {
+                request: {
+                    requestId: 'req-1',
+                    uri: `https://localhost:4200/nifi-api/processors/${PROCESSOR_ID}/backlog-requests/req-1`,
+                    componentId: PROCESSOR_ID,
+                    complete: false,
+                    percentCompleted: 0
+                }
+            };
+
+            vi.spyOn(flowService, 'submitProcessorBacklogRequest').mockReturnValue(of(requestEntity));
+
+            effects.openProcessorBacklogDialog$.subscribe();
+            action$.next(FlowActions.openProcessorBacklogDialog({ id: PROCESSOR_ID }));
+
+            expect(flowService.submitProcessorBacklogRequest).toHaveBeenCalledWith(PROCESSOR_ID);
+            expect(dialog.open).toHaveBeenCalledWith(
+                ProcessorBacklogDialog,
+                expect.objectContaining({
+                    minWidth: '36rem',
+                    maxWidth: '36rem',
+                    width: '36rem',
+                    data: { processorId: PROCESSOR_ID, requestEntity }
+                })
+            );
+        });
+
+        it('opens the dialog with an error message when the submit request fails', () => {
+            const errorHelper = TestBed.inject(ErrorHelper);
+            vi.spyOn(errorHelper, 'getErrorString').mockReturnValue('submit failed');
+            vi.spyOn(flowService, 'submitProcessorBacklogRequest').mockReturnValue(
+                throwError(() => new HttpErrorResponse({ status: 500 }))
+            );
+
+            effects.openProcessorBacklogDialog$.subscribe();
+            action$.next(FlowActions.openProcessorBacklogDialog({ id: PROCESSOR_ID }));
+
+            expect(dialog.open).toHaveBeenCalledWith(
+                ProcessorBacklogDialog,
+                expect.objectContaining({
+                    data: { processorId: PROCESSOR_ID, errorMessage: 'submit failed' }
+                })
+            );
         });
     });
 });

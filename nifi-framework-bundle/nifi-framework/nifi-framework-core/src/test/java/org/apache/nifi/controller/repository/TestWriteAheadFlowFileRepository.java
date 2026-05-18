@@ -23,6 +23,7 @@ import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueSize;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -181,6 +182,11 @@ public class TestWriteAheadFlowFileRepository {
             @Override
             public QueueSize size() {
                 return null;
+            }
+
+            @Override
+            public FlowFileQueueSnapshot getQueueSnapshot() {
+                return new FlowFileQueueSnapshot(new QueueSize(0, 0L), List.of());
             }
 
             @Override

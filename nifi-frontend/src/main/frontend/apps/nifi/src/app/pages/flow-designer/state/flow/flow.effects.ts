@@ -36,6 +36,7 @@ import {
     asyncScheduler,
     catchError,
     combineLatest,
+    exhaustMap,
     filter,
     from,
     interval,
@@ -63,6 +64,7 @@ import {
     PasteRequestContext,
     PasteRequestEntity,
     ProcessGroupFlowEntity,
+    ProcessorBacklogDialogRequest,
     SaveVersionDialogRequest,
     SaveVersionRequest,
     SelectedComponent,
@@ -158,6 +160,7 @@ import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialo
 import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-dialog/change-version-dialog';
 import { ChangeVersionProgressDialog } from '../../ui/canvas/items/flow/change-version-progress-dialog/change-version-progress-dialog';
 import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dialog/local-changes-dialog';
+import { ProcessorBacklogDialog } from '../../ui/canvas/items/processor/backlog-dialog/backlog-dialog.component';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
@@ -3169,6 +3172,35 @@ export class FlowEffects {
                         }
                     });
                 })
+            ),
+        { dispatch: false }
+    );
+
+    openProcessorBacklogDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openProcessorBacklogDialog),
+                map((action) => action.id),
+                exhaustMap((id) =>
+                    this.flowService.submitProcessorBacklogRequest(id).pipe(
+                        map((requestEntity) => ({ processorId: id, requestEntity }) as ProcessorBacklogDialogRequest),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of({
+                                processorId: id,
+                                errorMessage: this.errorHelper.getErrorString(errorResponse)
+                            } as ProcessorBacklogDialogRequest)
+                        ),
+                        tap((request) => {
+                            this.dialog.open(ProcessorBacklogDialog, {
+                                ...MEDIUM_DIALOG,
+                                minWidth: '36rem',
+                                maxWidth: '36rem',
+                                width: '36rem',
+                                data: request
+                            });
+                        })
+                    )
+                )
             ),
         { dispatch: false }
     );

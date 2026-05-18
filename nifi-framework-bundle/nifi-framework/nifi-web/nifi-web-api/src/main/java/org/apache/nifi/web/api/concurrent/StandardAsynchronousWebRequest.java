@@ -145,6 +145,18 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
 
     @Override
     public synchronized void fail(final String explanation) {
+        // Once the request has been cancelled, its failure reason is fixed. Without this check, a background
+        // task that is in the middle of handling its own interruption when cancel() runs could call fail()
+        // with its own explanation immediately afterward, overwriting the "cancelled by user" explanation the
+        // caller of cancel() expects to see.
+        if (isCancelled()) {
+            return;
+        }
+
+        applyFailure(explanation);
+    }
+
+    private void applyFailure(final String explanation) {
         this.failureReason = Objects.requireNonNull(explanation);
         this.complete = true;
         this.results = null;
@@ -168,12 +180,19 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
 
     @Override
     public void cancel() {
-        this.cancelled = true;
-        percentComplete = 100;
-        fail("Request cancelled by user");
+        // The cancel callback is invoked outside the synchronized block so that a callback which itself
+        // interacts with this request (for example, by checking isComplete() from another thread) cannot
+        // be blocked waiting on a lock held by this method.
+        final Runnable callback;
+        synchronized (this) {
+            this.cancelled = true;
+            percentComplete = 100;
+            applyFailure("Request cancelled by user");
+            callback = cancelCallback;
+        }
 
-        if (cancelCallback != null) {
-            cancelCallback.run();
+        if (callback != null) {
+            callback.run();
         }
     }
 

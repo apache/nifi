@@ -22,6 +22,7 @@ import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -153,6 +154,21 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     @Override
     public List<FlowFileRecord> getListableFlowFiles() {
         return priorityQueue.getActiveFlowFiles();
+    }
+
+    @Override
+    public FlowFileQueueSnapshot getQueueSnapshot() {
+        return priorityQueue.getQueueSnapshot();
+    }
+
+    @Override
+    public void lockForSnapshot() {
+        priorityQueue.lockForSnapshot();
+    }
+
+    @Override
+    public void unlockForSnapshot() {
+        priorityQueue.unlockForSnapshot();
     }
 
     @Override

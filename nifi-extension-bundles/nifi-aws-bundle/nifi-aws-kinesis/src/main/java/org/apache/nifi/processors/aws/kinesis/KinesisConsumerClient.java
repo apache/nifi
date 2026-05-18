@@ -56,6 +56,7 @@ abstract class KinesisConsumerClient {
 
     private volatile long lastDiagnosticLogNanos;
     private volatile Instant timestampForInitialPosition;
+    private volatile ShardLagObserver shardLagObserver = (shardId, millisBehindLatest) -> { };
 
     KinesisConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger) {
         this.kinesisClient = kinesisClient;
@@ -68,6 +69,26 @@ abstract class KinesisConsumerClient {
 
     Instant getTimestampForInitialPosition() {
         return timestampForInitialPosition;
+    }
+
+    /**
+     * Registers a callback that is invoked from the fetch threads (polling or EFO) with the
+     * {@code millisBehindLatest} value reported by Kinesis on every successful poll, including
+     * polls that returned no records. This is the only signal by which a shard transitions back
+     * to "caught up" from the backlog tracker's point of view; without it, a previously-observed
+     * lag would persist in the tracker until the next poll that happened to also return records.
+     */
+    void setShardLagObserver(final ShardLagObserver observer) {
+        this.shardLagObserver = observer == null ? (shardId, millisBehindLatest) -> { } : observer;
+    }
+
+    protected void recordShardLag(final String shardId, final long millisBehindLatest) {
+        shardLagObserver.observe(shardId, millisBehindLatest);
+    }
+
+    @FunctionalInterface
+    interface ShardLagObserver {
+        void observe(String shardId, long millisBehindLatest);
     }
 
     void initialize(final KinesisAsyncClient asyncClient, final String streamName, final String consumerName) {
