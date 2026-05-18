@@ -159,7 +159,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
         super.migrateProperties(config);
 
         if (config.isPropertySet(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS)) {
-            final String allowCommentsRawValue = config.getRawPropertyValue(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS).orElse("");
+            final String allowCommentsRawValue = config.getRawPropertyValue(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS).orElse(Boolean.FALSE.toString());
             final boolean allowComments = Boolean.parseBoolean(allowCommentsRawValue);
             if (allowComments) {
                 config.setProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY, ParsingStrategy.LENIENT.getValue());
