@@ -77,6 +77,13 @@ class TestChannel implements Channel {
     private long deliveryTag = 0L;
     private final BitSet acknowledgments = new BitSet();
     private final BitSet nacks = new BitSet();
+    private int basicAckCount;
+    private long lastBasicAckDeliveryTag;
+    private boolean lastBasicAckMultiple;
+    private int basicNackCount;
+    private long lastBasicNackDeliveryTag;
+    private boolean lastBasicNackMultiple;
+    private boolean lastBasicNackRequeue;
     private int prefetchCount = 0;
 
     public TestChannel(Map<String, String> exchangeToRoutingKeyMappings,
@@ -485,19 +492,54 @@ class TestChannel implements Channel {
     @Override
     public void basicAck(long deliveryTag, boolean multiple) throws IOException {
         acknowledgments.set((int) deliveryTag);
+        basicAckCount++;
+        lastBasicAckDeliveryTag = deliveryTag;
+        lastBasicAckMultiple = multiple;
     }
 
     public boolean isAck(final int deliveryTag) {
         return acknowledgments.get(deliveryTag);
     }
 
+    public int getBasicAckCount() {
+        return basicAckCount;
+    }
+
+    public long getLastBasicAckDeliveryTag() {
+        return lastBasicAckDeliveryTag;
+    }
+
+    public boolean isLastBasicAckMultiple() {
+        return lastBasicAckMultiple;
+    }
+
     @Override
     public void basicNack(long deliveryTag, boolean multiple, boolean requeue) throws IOException {
         nacks.set((int) deliveryTag);
+        basicNackCount++;
+        lastBasicNackDeliveryTag = deliveryTag;
+        lastBasicNackMultiple = multiple;
+        lastBasicNackRequeue = requeue;
     }
 
     public boolean isNack(final int deliveryTag) {
         return nacks.get(deliveryTag);
+    }
+
+    public int getBasicNackCount() {
+        return basicNackCount;
+    }
+
+    public long getLastBasicNackDeliveryTag() {
+        return lastBasicNackDeliveryTag;
+    }
+
+    public boolean isLastBasicNackMultiple() {
+        return lastBasicNackMultiple;
+    }
+
+    public boolean isLastBasicNackRequeue() {
+        return lastBasicNackRequeue;
     }
 
     @Override

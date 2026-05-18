@@ -22,9 +22,13 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.MessageProperties;
 import org.apache.nifi.amqp.processors.ConsumeAMQP.OutputHeaderFormat;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -40,12 +44,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ConsumeAMQPTest {
 
@@ -63,6 +75,7 @@ public class ConsumeAMQPTest {
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
             runner.setProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE, "false");
+            runner.setProperty(ConsumeAMQP.BATCH_SIZE, "10");
 
             runner.run();
 
@@ -75,8 +88,74 @@ public class ConsumeAMQPTest {
             worldFF.assertContentEquals("world");
 
             // A single cumulative ack should be used
-            assertFalse(((TestChannel) connection.createChannel()).isAck(0));
-            assertTrue(((TestChannel) connection.createChannel()).isAck(1));
+            final TestChannel channel = (TestChannel) connection.createChannel();
+            assertFalse(channel.isAck(0));
+            assertTrue(channel.isAck(1));
+            assertEquals(1, channel.getBasicAckCount());
+            assertEquals(1L, channel.getLastBasicAckDeliveryTag());
+            assertTrue(channel.isLastBasicAckMultiple());
+            assertEquals(0, channel.getBasicNackCount());
+        }
+    }
+
+    @Test
+    public void testMessageNackedOnSessionCommitFailure() throws TimeoutException, IOException {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class));
+             AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", false, 0, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
+            sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
+
+            final ConsumeAMQP proc = new LocalConsumeAMQP(connection);
+            final TestRunner runner = initTestRunner(proc);
+            runner.setProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE, "false");
+            runner.setProperty(ConsumeAMQP.BATCH_SIZE, "10");
+
+            final RuntimeException commitFailure = new RuntimeException("commit failed");
+            final ProcessSession session = failingCommitSession(commitFailure);
+
+            final RuntimeException thrown = assertThrows(RuntimeException.class,
+                    () -> proc.processResource(connection, consumer, runner.getProcessContext(), session));
+            assertSame(commitFailure, thrown);
+
+            final TestChannel channel = (TestChannel) connection.createChannel();
+            assertEquals(0, channel.getBasicAckCount());
+            assertFalse(channel.isNack(0));
+            assertTrue(channel.isNack(1));
+            assertEquals(1, channel.getBasicNackCount());
+            assertEquals(1L, channel.getLastBasicNackDeliveryTag());
+            assertTrue(channel.isLastBasicNackMultiple());
+            assertTrue(channel.isLastBasicNackRequeue());
+        }
+    }
+
+    @Test
+    public void testAutoAcknowledgeDoesNotIssueManualAcknowledgements() throws TimeoutException, IOException {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
+            sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
+
+            ConsumeAMQP proc = new LocalConsumeAMQP(connection);
+            TestRunner runner = initTestRunner(proc);
+            runner.setProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE, "true");
+            runner.setProperty(ConsumeAMQP.BATCH_SIZE, "10");
+
+            runner.run();
+
+            runner.assertTransferCount(ConsumeAMQP.REL_SUCCESS, 2);
+
+            final TestChannel channel = (TestChannel) connection.createChannel();
+            assertEquals(0, channel.getBasicAckCount());
+            assertEquals(0, channel.getBasicNackCount());
         }
     }
 
@@ -399,6 +478,23 @@ public class ConsumeAMQPTest {
         runner.setProperty(ConsumeAMQP.USER, "user");
         runner.setProperty(ConsumeAMQP.PASSWORD, "password");
         return runner;
+    }
+
+    private ProcessSession failingCommitSession(final RuntimeException commitFailure) {
+        final ProcessSession session = mock(ProcessSession.class);
+        final FlowFile flowFile = new MockFlowFile(1L);
+
+        when(session.create()).thenReturn(flowFile);
+        when(session.write(eq(flowFile), any(OutputStreamCallback.class))).thenReturn(flowFile);
+        when(session.putAllAttributes(eq(flowFile), anyMap())).thenReturn(flowFile);
+        when(session.getProvenanceReporter()).thenReturn(mock(ProvenanceReporter.class));
+        doAnswer(invocation -> {
+            final Consumer<Throwable> onFailure = invocation.getArgument(1);
+            onFailure.accept(commitFailure);
+            throw commitFailure;
+        }).when(session).commitAsync(any(Runnable.class), any());
+
+        return session;
     }
 
     public static class LocalConsumeAMQP extends ConsumeAMQP {
