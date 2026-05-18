@@ -40,7 +40,7 @@ public class OidcServiceTest {
     public static final String TEST_STATE = "test-state";
 
     @Test
-    public void testOidcNotEnabledCreateState() throws Exception {
+    public void testOidcNotEnabledCreateState() {
         final OidcService service = getServiceWithNoOidcSupport();
         assertThrows(IllegalStateException.class, () -> service.createState(TEST_REQUEST_IDENTIFIER));
     }
@@ -53,7 +53,7 @@ public class OidcServiceTest {
     }
 
     @Test
-    public void testOidcNotEnabledValidateState() throws Exception {
+    public void testOidcNotEnabledValidateState() {
         final OidcService service = getServiceWithNoOidcSupport();
         assertThrows(IllegalStateException.class, () -> service.isStateValid(TEST_REQUEST_IDENTIFIER, new State(TEST_STATE)));
     }
@@ -82,7 +82,7 @@ public class OidcServiceTest {
     }
 
     @Test
-    public void testOidcNotEnabledExchangeCode() throws Exception {
+    public void testOidcNotEnabledExchangeCode() {
         final OidcService service = getServiceWithNoOidcSupport();
         assertThrows(IllegalStateException.class, () -> service.exchangeAuthorizationCodeForLoginAuthenticationToken(TEST_REQUEST_IDENTIFIER, getAuthorizationCodeGrant()));
     }
@@ -95,7 +95,7 @@ public class OidcServiceTest {
     }
 
     @Test
-    public void testOidcNotEnabledGetJwt() throws Exception {
+    public void testOidcNotEnabledGetJwt() {
         final OidcService service = getServiceWithNoOidcSupport();
         assertThrows(IllegalStateException.class, () -> service.getJwt(TEST_REQUEST_IDENTIFIER));
     }

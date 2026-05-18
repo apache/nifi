@@ -31,6 +31,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -70,8 +71,9 @@ public class OidcService {
 
         identityProvider.initializeProvider();
         this.identityProvider = identityProvider;
-        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
-        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
+        final Duration expirationDuration = Duration.of(duration, units.toChronoUnit());
+        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(expirationDuration).build();
+        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(expirationDuration).build();
     }
 
     /**
