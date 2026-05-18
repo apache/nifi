@@ -58,6 +58,7 @@ public class JsonParserFactory implements TokenParserFactory {
             objectMapper.enable(JsonReadFeature.ALLOW_TRAILING_DECIMAL_POINT_FOR_NUMBERS.mappedFeature());
             objectMapper.enable(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature());
             objectMapper.enable(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature());
+            objectMapper.enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature());
         }
         jsonFactory = objectMapper.getFactory();
         jsonFactory.setStreamReadConstraints(streamReadConstraints);
