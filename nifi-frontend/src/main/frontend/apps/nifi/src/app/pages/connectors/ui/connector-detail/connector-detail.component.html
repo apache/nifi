@@ -60,7 +60,7 @@
                 referrerpolicy="strict-origin-when-cross-origin"
                 (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
         } @else if (connector) {
-            <connector-details-content [connector]="connector"></connector-details-content>
+            <connector-details-content class="w-full h-full" [connector]="connector"></connector-details-content>
         }
     </div>
 </div>
