@@ -18,11 +18,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ConnectorDetail } from './connector-detail.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import {
-    SystemTokensService,
-    ConnectorEntity,
-    ConnectorConfigurationService
-} from '@nifi/shared';
+import { SystemTokensService, ConnectorEntity, ConnectorConfigurationService } from '@nifi/shared';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ConnectorDetailsContent } from '../connector-details-content/connector-details-content.component';
@@ -112,7 +108,8 @@ describe('ConnectorDetail', () => {
         };
 
         const mockConnectorMessageHost = {
-            startListening: vi.fn()
+            startListening: vi.fn(),
+            stopListening: vi.fn()
         };
 
         await TestBed.configureTestingModule({
@@ -264,20 +261,20 @@ describe('ConnectorDetail', () => {
             );
         });
 
-        it('should mark invalid URLs as unsafe', async () => {
-            const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        it('should reject URLs with non-http/https schemes', async () => {
+            const { component } = await setup();
+            component.connector = createMockConnector();
 
-            try {
-                const { component } = await setup();
-                component.connector = createMockConnector();
-                const invalidUrl = 'javascript:alert("xss")';
-                const result = (component as any).getFrameSource(invalidUrl);
+            expect((component as any).getFrameSource('javascript:alert("xss")')).toBeNull();
+            expect((component as any).getFrameSource('data:text/html,<h1>hi</h1>')).toBeNull();
+            expect((component as any).getFrameSource('ftp://example.com/file')).toBeNull();
+        });
 
-                expect(result).toBeTruthy();
-                expect(result.changingThisBreaksApplicationSecurity).toContain('unsafe:');
-            } finally {
-                consoleWarnSpy.mockRestore();
-            }
+        it('should reject malformed URLs', async () => {
+            const { component } = await setup();
+            component.connector = createMockConnector();
+
+            expect((component as any).getFrameSource('not-a-valid-url')).toBeNull();
         });
     });
 
@@ -347,6 +344,29 @@ describe('ConnectorDetail', () => {
             store.refreshState();
 
             expect(connectorConfigurationService.getConnector).toHaveBeenCalledTimes(2);
+        });
+
+        it('should stop listening before loading the next connector', async () => {
+            const firstConnector = createMockConnector({
+                component: {
+                    ...createMockConnector().component,
+                    detailsUrl: 'http://localhost:4200/custom-details'
+                }
+            });
+            const secondConnector = createMockConnector({ id: 'test-connector-2' });
+
+            const { component, connectorConfigurationService, connectorMessageHost, store } = await setup({
+                connectorResponse: firstConnector
+            });
+
+            component.ngOnInit();
+            expect(connectorMessageHost.startListening).toHaveBeenCalledTimes(1);
+
+            connectorConfigurationService.getConnector.mockReturnValue(of(secondConnector));
+            store.overrideSelector(selectConnectorIdFromRoute, 'test-connector-2');
+            store.refreshState();
+
+            expect(connectorMessageHost.stopListening).toHaveBeenCalled();
         });
     });
 

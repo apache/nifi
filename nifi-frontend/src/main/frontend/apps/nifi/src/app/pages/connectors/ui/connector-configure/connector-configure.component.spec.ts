@@ -154,7 +154,8 @@ describe('ConnectorConfigure', () => {
         };
 
         const mockConnectorMessageHost = {
-            startListening: vi.fn()
+            startListening: vi.fn(),
+            stopListening: vi.fn()
         };
 
         const mockClusterConnectionService = {
@@ -290,31 +291,37 @@ describe('ConnectorConfigure', () => {
             component = fixture.componentInstance;
         });
 
-        it('should sanitize and trust valid URLs', () => {
+        it('should trust valid http/https URLs', () => {
             const validUrl = 'http://localhost:4200/custom-config';
             const result = (component as unknown as { getFrameSource(url: string): unknown }).getFrameSource(validUrl);
 
             expect(result).toBeTruthy();
         });
 
-        it('should return null when sanitizer returns null', () => {
-            vi.spyOn(domSanitizer, 'sanitize').mockReturnValue(null);
+        it('should reject URLs with non-http/https schemes', () => {
+            const getFrameSource = (url: string) =>
+                (component as unknown as { getFrameSource(url: string): unknown }).getFrameSource(url);
 
-            const url = 'some-invalid-url';
-            const result = (component as unknown as { getFrameSource(url: string): unknown }).getFrameSource(url);
+            expect(getFrameSource('javascript:alert("xss")')).toBeNull();
+            expect(getFrameSource('data:text/html,<h1>hi</h1>')).toBeNull();
+            expect(getFrameSource('ftp://example.com/file')).toBeNull();
+        });
+
+        it('should reject malformed URLs', () => {
+            const result = (component as unknown as { getFrameSource(url: string): unknown }).getFrameSource(
+                'not-a-valid-url'
+            );
 
             expect(result).toBeNull();
         });
 
-        it('should use two-step sanitization process', () => {
-            const sanitizeSpy = vi.spyOn(domSanitizer, 'sanitize');
+        it('should bypass security trust for validated URLs', () => {
             const bypassSpy = vi.spyOn(domSanitizer, 'bypassSecurityTrustResourceUrl');
 
             const url = 'http://localhost:4200/custom-config';
             (component as unknown as { getFrameSource(url: string): void }).getFrameSource(url);
 
-            expect(sanitizeSpy).toHaveBeenCalled();
-            expect(bypassSpy).toHaveBeenCalled();
+            expect(bypassSpy).toHaveBeenCalledWith(expect.stringContaining(url));
         });
     });
 
@@ -518,6 +525,25 @@ describe('ConnectorConfigure', () => {
             component.ngOnInit();
 
             expect(connectorMessageHost.startListening).not.toHaveBeenCalled();
+        });
+
+        it('should stop listening before loading the next connector', () => {
+            connectorConfigurationService.getConnector.mockReturnValue(of(mockConnectorWithCustomUrl));
+            fixture = TestBed.createComponent(ConnectorConfigure);
+            component = fixture.componentInstance;
+
+            component.ngOnInit();
+            expect(connectorMessageHost.startListening).toHaveBeenCalledTimes(1);
+
+            const secondConnector: ConnectorEntity = {
+                ...mockConnectorWithCustomUrl,
+                id: 'test-connector-2'
+            };
+            connectorConfigurationService.getConnector.mockReturnValue(of(secondConnector));
+            store.overrideSelector(selectConnectorIdFromRoute, 'test-connector-2');
+            store.refreshState();
+
+            expect(connectorMessageHost.stopListening).toHaveBeenCalled();
         });
     });
 });

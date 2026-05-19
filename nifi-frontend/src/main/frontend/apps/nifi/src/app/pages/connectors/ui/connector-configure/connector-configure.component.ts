@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, DestroyRef, ElementRef, OnInit, SecurityContext, viewChild, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, viewChild, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { NiFiState } from '../../../../state';
@@ -119,6 +119,7 @@ export class ConnectorConfigure implements OnInit {
             .pipe(
                 filter((connectorId) => connectorId != null),
                 switchMap((connectorId) => {
+                    this.connectorMessageHost.stopListening();
                     this.loading = true;
                     this.frameSource = null;
                     this.connector = null;
@@ -189,13 +190,16 @@ export class ConnectorConfigure implements OnInit {
         const connectorId = this.connector?.id;
         const urlWithParams = connectorId ? `${configurationUrl}?connectorId=${connectorId}` : configurationUrl;
 
-        const sanitizedUrl = this.domSanitizer.sanitize(SecurityContext.URL, urlWithParams);
-
-        if (sanitizedUrl) {
-            return this.domSanitizer.bypassSecurityTrustResourceUrl(sanitizedUrl);
+        try {
+            const parsed = new URL(urlWithParams);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                return null;
+            }
+        } catch {
+            return null;
         }
 
-        return null;
+        return this.domSanitizer.bypassSecurityTrustResourceUrl(urlWithParams);
     }
 
     returnToConnectorListing(): void {
