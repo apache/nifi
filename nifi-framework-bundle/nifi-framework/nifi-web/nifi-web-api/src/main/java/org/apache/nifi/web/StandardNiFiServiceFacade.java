@@ -173,6 +173,7 @@ import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ParameterReferenceUtils;
 import org.apache.nifi.parameter.StandardParameterContext.Builder;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -1681,6 +1682,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<String> updatedParameterNames = getUpdatedParameterNames(parameterContextDto);
 
+        // Extend the updated parameter names with cascading names from parameter value references.
+        // If a process group is bound to a context P whose local parameter X has the value #{Y}, and Y is
+        // any parameter visible in P's effective scope (local, inherited, or provider-sourced) that appears
+        // in the update set, then X is effectively updated as well.
+        final Set<String> extendedParameterNames = extendWithParameterValueReferences(updatedParameterNames, groupsReferencingParameterContext);
+
         // Clear set of Affected Components for each Parameter. This parameter is read-only and it will be populated below.
         for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
             parameterEntity.getParameter().setReferencingComponents(new HashSet<>());
@@ -1698,10 +1705,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
             }
 
+            final ParameterContext groupContext = group.getParameterContext();
+
             for (final ProcessorNode processor : group.getProcessors()) {
                 if (includeInactive || processor.isRunning()) {
                     final Set<String> referencedParams = processor.getReferencedParameterNames();
-                    final boolean referencesUpdatedParam = referencedParams.stream().anyMatch(updatedParameterNames::contains);
+                    final boolean referencesUpdatedParam = referencedParams.stream().anyMatch(extendedParameterNames::contains);
 
                     if (referencesUpdatedParam) {
                         affectedComponents.add(processor);
@@ -1711,7 +1720,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         for (final String referencedParam : referencedParams) {
                             for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
                                 final ParameterDTO paramDto = paramEntity.getParameter();
-                                if (referencedParam.equals(paramDto.getName())) {
+                                if (referencesContextParameter(referencedParam, paramDto.getName(), groupContext)) {
                                     paramDto.getReferencingComponents().add(affectedComponentEntity);
                                 }
                             }
@@ -1723,13 +1732,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             for (final ControllerServiceNode service : group.getControllerServices(false)) {
                 if (includeInactive || service.isActive()) {
                     final Set<String> referencedParams = service.getReferencedParameterNames();
-                    final Set<String> updatedReferencedParams = referencedParams.stream().filter(updatedParameterNames::contains).collect(Collectors.toSet());
+                    final Set<String> updatedReferencedParams = referencedParams.stream().filter(extendedParameterNames::contains).collect(Collectors.toSet());
 
                     final List<ParameterDTO> affectedParameterDtos = new ArrayList<>();
                     for (final String referencedParam : referencedParams) {
                         for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
                             final ParameterDTO paramDto = paramEntity.getParameter();
-                            if (referencedParam.equals(paramDto.getName())) {
+                            if (referencesContextParameter(referencedParam, paramDto.getName(), groupContext)) {
                                 affectedParameterDtos.add(paramDto);
                             }
                         }
@@ -1855,6 +1864,52 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return updatedParameters;
+    }
+
+    private Set<String> extendWithParameterValueReferences(final Set<String> updatedParameterNames, final List<ProcessGroup> groupsReferencingParameterContext) {
+        final Set<String> extended = new HashSet<>(updatedParameterNames);
+        for (final ProcessGroup group : groupsReferencingParameterContext) {
+            final ParameterContext groupContext = group.getParameterContext();
+            if (groupContext == null) {
+                continue;
+            }
+            for (final Map.Entry<ParameterDescriptor, Parameter> entry : groupContext.getParameters().entrySet()) {
+                final String referencedName = ParameterReferenceUtils.extractOneToOneParameterReference(entry.getValue().getValue());
+                if (referencedName == null || !updatedParameterNames.contains(referencedName)) {
+                    continue;
+                }
+                final Optional<Parameter> referencedParam = groupContext.getParameter(referencedName);
+                if (referencedParam.isPresent()) {
+                    extended.add(entry.getKey().getName());
+                }
+            }
+        }
+        return extended;
+    }
+
+    /**
+     * Returns true if a component property's reference to {@code referencedParamName} is logically equivalent to
+     * referencing {@code contextParamName} in the updated context. This is true either when the names match directly
+     * or when {@code groupContext} contains a local parameter named {@code referencedParamName} whose value is the
+     * one-to-one parameter reference {@code #{contextParamName}} (i.e. an alias). The alias case lets the affected
+     * component be linked to the source parameter being updated, even when the property text uses the alias name.
+     */
+    private boolean referencesContextParameter(final String referencedParamName, final String contextParamName, final ParameterContext groupContext) {
+        if (referencedParamName.equals(contextParamName)) {
+            return true;
+        }
+        if (groupContext == null) {
+            return false;
+        }
+        final Parameter localParam = groupContext.getParameters().get(new ParameterDescriptor.Builder().name(referencedParamName).build());
+        if (localParam == null) {
+            return false;
+        }
+        final String aliasTarget = ParameterReferenceUtils.extractOneToOneParameterReference(localParam.getValue());
+        if (!contextParamName.equals(aliasTarget)) {
+            return false;
+        }
+        return groupContext.getParameter(contextParamName).isPresent();
     }
 
     @Override

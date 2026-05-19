@@ -1047,6 +1047,29 @@ Sensitive properties may only reference sensitive Parameters. This is important 
 The value of a sensitive property must be set to a single Parameter reference. For example, values of `+#{password}123+` and `+#{password}#{suffix}+` are not allowed. Sending `+#{password}123+` would lead to exposing part of the sensitive property's value. This is in contrast to a non-sensitive property, where a value such as `+#{path}/child/file.txt+` is valid.
 
 
+[[parameter-value-references]]
+===== Parameter Value References
+
+A Parameter's *value* may itself be a reference to another Parameter. When a Parameter's value is exactly `+#{otherParameter}+` (or `+#{'Other Parameter'}+` for names containing characters that are otherwise disallowed in unquoted references, such as spaces), the referencing Parameter is treated as a one-to-one alias of the referenced Parameter: at resolution time the alias's effective value is replaced with the referenced Parameter's value.
+
+This is a one-to-one alias only. The Parameter's value must be a single reference and nothing else: literal text combined with a reference (`+jdbc://#{db_host}:3306+`) or multiple references (`+#{a}#{b}+`) are left as-is and not treated as aliases.
+
+The referenced Parameter may be any Parameter visible in the bound Parameter Context's effective scope: a Parameter defined in the same Context, a Parameter inherited from another Parameter Context, or a Parameter sourced from a <<Parameter Providers,Parameter Provider>>. The referencing and referenced Parameters must have the same sensitivity; otherwise the reference is left unresolved.
+
+Resolution is performed a single level deep -- aliases of aliases are not followed. For example, if Parameter `A` has value `+#{B}+` and Parameter `B` has value `+#{C}+`, then `A` resolves to the literal value `+#{C}+`, not to the value of `C`.
+
+Updating the referenced Parameter's value cascades transparently: components configured with the alias are identified as affected components and are stopped, validated, and restarted as part of the Parameter Context update, just as if they had referenced the underlying Parameter directly.
+
+To illustrate, assume a Parameter Context `Shared` defines `db_host` with value `myserver.example.com`, and a Parameter Context `App` inherits from `Shared` and defines an alias `host` with value `+#{db_host}+`. A processor bound to `App` configured with `+#{host}+` resolves to `myserver.example.com`.
+
+|====
+| *Aliasing Parameter (in App)* | *Referenced Parameter (in Shared)* | *Effective Property Value*
+| `host` = `+#{db_host}+` | `db_host` = `myserver.example.com` | `myserver.example.com`
+| `password` = `+#{secret_value}+` (sensitive) | `secret_value` = `s3cr3t` (sensitive) | `s3cr3t`
+| `url` = `+jdbc://#{db_host}:3306+` | `db_host` = `myserver.example.com` | `+jdbc://#{db_host}:3306+` (not an alias - literal text plus reference)
+|====
+
+
 ==== Parameter Providers
 
 Parameter Providers allow parameters to be stored in sources external to NiFi (e.g. HashiCorp Vault). The parameters of a Parameter Provider can be fetched and applied to all referencing Parameter Contexts.

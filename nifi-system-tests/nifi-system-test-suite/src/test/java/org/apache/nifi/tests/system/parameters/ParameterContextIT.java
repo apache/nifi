@@ -1295,6 +1295,117 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertNotNull(assetFromListing);
     }
 
+    @Test
+    public void testParameterValueReferenceUpdatePropagation() throws NiFiClientException, IOException, InterruptedException {
+        // Create a parameter provider for context S with a parameter db_host
+        ParameterProviderEntity parameterProvider = createParameterProvider("PropertiesParameterProvider");
+        parameterProvider = updateParameterProviderProperties(parameterProvider, Collections.singletonMap("parameters", "db_host=0 sec"));
+
+        final String parameterGroupName = "Parameters";
+        final String sContextName = "S_Context";
+        final ParameterContextEntity sContextEntity = createParameterContextEntity(sContextName, "Inherited provider context",
+                Collections.emptySet(), Collections.emptyList(), parameterProvider, parameterGroupName);
+        final ParameterContextEntity createdS = getNifiClient().getParamContextClient().createParamContext(sContextEntity);
+
+        // Fetch and apply parameters from the provider so db_host becomes a provided parameter
+        final ParameterGroupConfigurationEntity groupConfiguration = new ParameterGroupConfigurationEntity();
+        groupConfiguration.setSynchronized(true);
+        groupConfiguration.setGroupName(parameterGroupName);
+        groupConfiguration.setParameterContextName(sContextName);
+        groupConfiguration.setParameterSensitivities(Collections.singletonMap("db_host", ParameterSensitivity.NON_SENSITIVE));
+        fetchAndWaitForAppliedParameters(parameterProvider, Collections.singletonList(groupConfiguration));
+
+        // Create parent context P with parameter host = #{db_host}, inheriting from S
+        final Set<ParameterEntity> pParams = new HashSet<>();
+        pParams.add(createParameterEntity("host", null, false, "#{db_host}"));
+        final ParameterContextEntity pContextEntity = createParameterContextEntity("P_Context", "Parent context",
+                pParams, Collections.singletonList(createdS), null, null);
+        final ParameterContextEntity createdP = getNifiClient().getParamContextClient().createParamContext(pContextEntity);
+
+        // Bind the root process group to P
+        setParameterContext("root", createdP);
+
+        // Create a processor that references #{host}
+        ProcessorEntity processorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".Sleep", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+        final String processorId = processorEntity.getId();
+
+        final ProcessorConfigDTO config = processorEntity.getComponent().getConfig();
+        config.setProperties(Collections.singletonMap("Validate Sleep Time", "#{host}"));
+        config.setAutoTerminatedRelationships(Collections.singleton("success"));
+        getNifiClient().getProcessorClient().updateProcessor(processorEntity);
+
+        // host resolves to "0 sec" (from the provider), so the processor should be valid
+        waitForValidProcessor(processorId);
+
+        // Start the processor
+        getClientUtil().startProcessor(processorEntity);
+        waitForRunningProcessor(processorId);
+
+        try {
+            // Update db_host via the provider to a new value
+            parameterProvider = updateParameterProviderProperties(parameterProvider, Collections.singletonMap("parameters", "db_host=1 sec"));
+            fetchAndWaitForAppliedParameters(parameterProvider, Collections.singletonList(groupConfiguration));
+
+            // Processor should be running again after the parameter update completes
+            waitForRunningProcessor(processorId);
+        } finally {
+            getClientUtil().stopProcessor(processorEntity);
+            getNifiClient().getProcessorClient().deleteProcessor(processorId, processorEntity.getRevision().getClientId(), 3);
+        }
+    }
+
+    @Test
+    public void testParameterValueReferenceUserManagedUpdatePropagation() throws NiFiClientException, IOException, InterruptedException {
+        // Create user-managed inherited context S with a parameter db_host (no parameter provider involved)
+        final Set<ParameterEntity> sParams = new HashSet<>();
+        sParams.add(createParameterEntity("db_host", null, false, "0 sec"));
+        final ParameterContextEntity sContextEntity = createParameterContextEntity("S_UserContext", "User-managed inherited context",
+                sParams, Collections.emptyList(), null, null);
+        final ParameterContextEntity createdS = getNifiClient().getParamContextClient().createParamContext(sContextEntity);
+
+        // Create parent context P with parameter host = #{db_host}, inheriting from S
+        final Set<ParameterEntity> pParams = new HashSet<>();
+        pParams.add(createParameterEntity("host", null, false, "#{db_host}"));
+        final ParameterContextEntity pContextEntity = createParameterContextEntity("P_UserContext", "Parent context with alias",
+                pParams, Collections.singletonList(createdS), null, null);
+        final ParameterContextEntity createdP = getNifiClient().getParamContextClient().createParamContext(pContextEntity);
+
+        setParameterContext("root", createdP);
+
+        ProcessorEntity processorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".Sleep", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+        final String processorId = processorEntity.getId();
+
+        final ProcessorConfigDTO config = processorEntity.getComponent().getConfig();
+        config.setProperties(Collections.singletonMap("Validate Sleep Time", "#{host}"));
+        config.setAutoTerminatedRelationships(Collections.singleton("success"));
+        getNifiClient().getProcessorClient().updateProcessor(processorEntity);
+
+        // host resolves to "0 sec" via the alias to db_host in S, so the processor should validate
+        waitForValidProcessor(processorId);
+
+        getClientUtil().startProcessor(processorEntity);
+        waitForRunningProcessor(processorId);
+
+        try {
+            // Update db_host on S via a regular parameter context PUT (no provider)
+            final ParameterContextUpdateRequestEntity updateRequestEntity = updateParameterContext(createdS, "db_host", "1 sec");
+
+            // The processor references #{host}, which aliases #{db_host}; it must appear as an affected component
+            final Set<AffectedComponentEntity> affectedComponents = updateRequestEntity.getRequest().getReferencingComponents();
+            final Set<String> affectedComponentIds = affectedComponents.stream()
+                    .map(AffectedComponentEntity::getId)
+                    .collect(Collectors.toSet());
+            assertTrue(affectedComponentIds.contains(processorId));
+
+            getClientUtil().waitForParameterContextRequestToComplete(createdS.getId(), updateRequestEntity.getRequest().getRequestId());
+
+            waitForRunningProcessor(processorId);
+        } finally {
+            getClientUtil().stopProcessor(processorEntity);
+            getNifiClient().getProcessorClient().deleteProcessor(processorId, processorEntity.getRevision().getClientId(), 3);
+        }
+    }
+
     protected void assertAsset(final AssetEntity asset, final String expectedName) {
         assertNotNull(asset);
         assertNotNull(asset.getAsset());

@@ -81,6 +81,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterReferenceUtils;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.parameter.StandardParameterUpdate;
 import org.apache.nifi.processor.DataUnit;
@@ -3326,11 +3327,54 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
         readLock.lock();
         try {
-            getProcessors().forEach(proc -> proc.onParametersModified(updatedParameters));
-            getControllerServices(false).forEach(cs -> cs.onParametersModified(updatedParameters));
+            final Map<String, ParameterUpdate> effectiveUpdates = augmentWithParameterValueReferences(updatedParameters);
+            getProcessors().forEach(proc -> proc.onParametersModified(effectiveUpdates));
+            getControllerServices(false).forEach(cs -> cs.onParametersModified(effectiveUpdates));
         } finally {
             readLock.unlock();
         }
+    }
+
+    /**
+     * Augments the given parameter update map with entries for local parameters whose values are
+     * one-to-one references to changed parameters. For example, if this group's context defines
+     * parameter X with value {@code #{db_host}} and db_host is in the update map, then X is added
+     * to the augmented map with the same old/new values, allowing components referencing X to be
+     * properly notified of the change. The referenced parameter may be any parameter visible in
+     * the bound context's effective scope (local, inherited from a user-managed context, or
+     * sourced from a Parameter Provider).
+     */
+    private Map<String, ParameterUpdate> augmentWithParameterValueReferences(final Map<String, ParameterUpdate> updatedParameters) {
+        final ParameterContext context = getParameterContext();
+        if (context == null) {
+            return updatedParameters;
+        }
+
+        Map<String, ParameterUpdate> augmented = null;
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : context.getParameters().entrySet()) {
+            final Parameter localParam = entry.getValue();
+            final String referencedName = ParameterReferenceUtils.extractOneToOneParameterReference(localParam.getValue());
+            if (referencedName == null) {
+                continue;
+            }
+
+            final Optional<Parameter> referencedParam = context.getParameter(referencedName);
+            if (referencedParam.isEmpty()) {
+                continue;
+            }
+
+            final ParameterUpdate referencedUpdate = updatedParameters.get(referencedName);
+            if (referencedUpdate != null && localParam.getDescriptor().isSensitive() == referencedUpdate.isSensitive()) {
+                if (augmented == null) {
+                    augmented = new HashMap<>(updatedParameters);
+                }
+                augmented.put(localParam.getDescriptor().getName(),
+                        new StandardParameterUpdate(localParam.getDescriptor().getName(),
+                                referencedUpdate.getPreviousValue(), referencedUpdate.getUpdatedValue(),
+                                localParam.getDescriptor().isSensitive()));
+            }
+        }
+        return augmented != null ? augmented : updatedParameters;
     }
 
     private Map<String, ParameterUpdate> mapParameterUpdates(final ParameterContext previousParameterContext, final ParameterContext updatedParameterContext) {

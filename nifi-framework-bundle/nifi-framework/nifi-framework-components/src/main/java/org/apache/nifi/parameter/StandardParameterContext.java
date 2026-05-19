@@ -346,7 +346,9 @@ public class StandardParameterContext implements ParameterContext {
     public Map<ParameterDescriptor, Parameter> getEffectiveParameters() {
         readLock.lock();
         try {
-            return this.getEffectiveParameters(inheritedParameterContexts);
+            final Map<ParameterDescriptor, Parameter> effective = getMergedEffectiveParameters(inheritedParameterContexts, this.parameters);
+            resolveParameterValueReferences(effective);
+            return effective;
         } finally {
             readLock.unlock();
         }
@@ -358,7 +360,8 @@ public class StandardParameterContext implements ParameterContext {
         Objects.requireNonNull(inheritedParameterContexts, "Inherited parameter contexts must be specified");
 
         final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
-        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts, getProposedParameters(parameterUpdates));
+        final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getMergedEffectiveParameters(inheritedParameterContexts, getProposedParameters(parameterUpdates));
+        resolveParameterValueReferences(effectiveProposedParameters);
 
         return getEffectiveParameterUpdates(currentEffectiveParameters, effectiveProposedParameters);
     }
@@ -370,7 +373,9 @@ public class StandardParameterContext implements ParameterContext {
      * @return The view of the parameters with all overriding applied
      */
     private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final Map<ParameterDescriptor, Parameter> proposedParameters) {
-        return getEffectiveParameters(this.inheritedParameterContexts, proposedParameters);
+        final Map<ParameterDescriptor, Parameter> effective = getMergedEffectiveParameters(this.inheritedParameterContexts, proposedParameters);
+        resolveParameterValueReferences(effective);
+        return effective;
     }
 
     /**
@@ -380,29 +385,98 @@ public class StandardParameterContext implements ParameterContext {
      * @return The view of the parameters with all overriding applied
      */
     private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final List<ParameterContext> parameterContexts) {
-        return getEffectiveParameters(parameterContexts, this.parameters);
+        final Map<ParameterDescriptor, Parameter> effective = getMergedEffectiveParameters(parameterContexts, this.parameters);
+        resolveParameterValueReferences(effective);
+        return effective;
     }
 
-    private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final List<ParameterContext> parameterContexts,
-                                                                       final Map<ParameterDescriptor, Parameter> proposedParameters) {
-        return getEffectiveParameters(parameterContexts, proposedParameters, new HashMap<>());
+    private Map<ParameterDescriptor, Parameter> getMergedEffectiveParameters(final List<ParameterContext> parameterContexts,
+                                                                             final Map<ParameterDescriptor, Parameter> proposedParameters) {
+        return getMergedEffectiveParameters(parameterContexts, proposedParameters, new HashMap<>());
     }
 
-    private Map<ParameterDescriptor, Parameter> getEffectiveParameters(final List<ParameterContext> parameterContexts,
-                                                                       final Map<ParameterDescriptor, Parameter> proposedParameters,
-                                                                       final Map<ParameterDescriptor, List<Parameter>> allOverrides) {
+    /**
+     * Merges parameters from inherited contexts with the proposed (local) parameters, applying
+     * override priority. Does NOT resolve parameter value references -- callers that need resolved
+     * values must call {@link #resolveParameterValueReferences} on the result.
+     */
+    private Map<ParameterDescriptor, Parameter> getMergedEffectiveParameters(final List<ParameterContext> parameterContexts,
+                                                                             final Map<ParameterDescriptor, Parameter> proposedParameters,
+                                                                             final Map<ParameterDescriptor, List<Parameter>> allOverrides) {
         final Map<ParameterDescriptor, Parameter> effectiveParameters = new LinkedHashMap<>();
 
-        // Loop backwards so that the first ParameterContext in the list will override any parameters later in the list
         for (int i = parameterContexts.size() - 1; i >= 0; i--) {
-            ParameterContext parameterContext = parameterContexts.get(i);
-            combineOverrides(allOverrides, overrideParameters(effectiveParameters, parameterContext.getEffectiveParameters(), parameterContext));
+            final ParameterContext parameterContext = parameterContexts.get(i);
+            final Map<ParameterDescriptor, Parameter> inheritedParameters = getUnresolvedEffectiveParameters(parameterContext);
+            combineOverrides(allOverrides, overrideParameters(effectiveParameters, inheritedParameters, parameterContext));
         }
 
-        // Finally, override all child parameters with our own
         combineOverrides(allOverrides, overrideParameters(effectiveParameters, proposedParameters, this));
 
         return effectiveParameters;
+    }
+
+    /**
+     * Returns the merged effective parameters from a context without applying parameter value
+     * reference resolution. For StandardParameterContext instances this avoids double-resolution
+     * when building a parent context's effective parameter set.
+     */
+    private static Map<ParameterDescriptor, Parameter> getUnresolvedEffectiveParameters(final ParameterContext parameterContext) {
+        if (parameterContext instanceof StandardParameterContext standardContext) {
+            return standardContext.getMergedEffectiveParametersReadLocked();
+        }
+        return parameterContext.getEffectiveParameters();
+    }
+
+    private Map<ParameterDescriptor, Parameter> getMergedEffectiveParametersReadLocked() {
+        readLock.lock();
+        try {
+            return getMergedEffectiveParameters(inheritedParameterContexts, this.parameters);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
+     * Resolves one-to-one parameter value references within the effective parameter map.
+     * If a parameter's entire value is exactly {@code #{referencedName}}, and the referenced parameter
+     * exists in the effective map with matching sensitivity, the value is replaced with the referenced
+     * parameter's value. The referenced parameter may be any parameter visible in the merged effective
+     * scope -- it may come from the same context, from an inherited context, or be sourced from a
+     * Parameter Provider. Only a single level of resolution is performed (no chaining): the lookup uses
+     * a snapshot of the pre-resolution values so that transitive references are not followed.
+     *
+     * @param effectiveParameters the effective parameter map to resolve in place
+     */
+    private void resolveParameterValueReferences(final Map<ParameterDescriptor, Parameter> effectiveParameters) {
+        final Map<String, Parameter> originalParametersByName = new HashMap<>();
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : effectiveParameters.entrySet()) {
+            originalParametersByName.put(entry.getKey().getName(), entry.getValue());
+        }
+
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : effectiveParameters.entrySet()) {
+            final ParameterDescriptor descriptor = entry.getKey();
+            final Parameter parameter = entry.getValue();
+            final String referencedName = ParameterReferenceUtils.extractOneToOneParameterReference(parameter.getValue());
+            if (referencedName == null) {
+                continue;
+            }
+
+            final Parameter referencedParameter = originalParametersByName.get(referencedName);
+            if (referencedParameter == null) {
+                continue;
+            }
+
+            if (descriptor.isSensitive() != referencedParameter.getDescriptor().isSensitive()) {
+                continue;
+            }
+
+            final Parameter resolvedParameter = new Parameter.Builder()
+                    .fromParameter(parameter)
+                    .value(referencedParameter.getValue())
+                    .build();
+            entry.setValue(resolvedParameter);
+        }
     }
 
     private void combineOverrides(final Map<ParameterDescriptor, List<Parameter>> existingOverrides, final Map<ParameterDescriptor, List<Parameter>> newOverrides) {
