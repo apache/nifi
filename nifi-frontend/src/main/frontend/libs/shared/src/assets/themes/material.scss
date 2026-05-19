@@ -18,16 +18,28 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@use '@fontsource/inter' as inter-normal;
-@use '@fontsource/inter/400.css' as inter-400;
-@use '@fontsource/inter/400-italic.css' as inter-italic;
-@use '@fontsource/inter/700.css' as inter-700;
-
-@layer base {
-    @font-face {
-        font-family: 'Inter';
-    }
-}
+@use './components/button' as buttons;
+@use './components/card' as card;
+@use './components/checkbox' as checkbox;
+@use './components/date-picker' as date-picker;
+@use './components/dialog' as dialog;
+@use './components/drag-and-drop' as drag-and-drop;
+@use './components/expansion-panel' as expansion;
+@use './components/form-field' as form-field;
+@use './components/markdown' as markdown;
+@use './components/menu' as menu;
+@use './components/option' as option;
+@use './components/paginator' as paginator;
+@use './components/progress-bar' as progress-bar;
+@use './components/progress-spinner' as progress-spinner;
+@use './components/searchable-overlay' as searchable-overlay;
+@use './components/sidenav' as sidenav;
+@use './components/skeleton' as skeleton;
+@use './components/snackbar' as snackbar;
+@use './components/status-variant' as status-variant;
+@use './components/tab' as tab;
+@use './components/tree' as tree;
+@use './components/typography' as typography;
 
 :root {
     /* Material Design color palettes and typography for light mode. These are used by Angular Material SASS api's to define the theme for all Angular Material components. These variable should NOT be referenced outside of the theme file. */
@@ -262,151 +274,6 @@
             inverse-tertiary: var(--md-ref-palette-tertiary-80)
         )
     );
-
-    @include mat.sidenav-overrides(
-        (
-            container-width: auto,
-            container-shape: 0
-        )
-    );
-
-    @include mat.expansion-overrides(
-        (
-            container-shape: 6px,
-            header-expanded-state-height: 50px
-        )
-    );
-
-    @include mat.menu-overrides(
-        (
-            divider-top-spacing: 0,
-            divider-bottom-spacing: 0
-        )
-    );
-
-    @include mat.dialog-overrides(
-        (
-            content-padding: 20px 24px,
-            headline-padding: 0 24px 9px,
-            container-shape: 6px
-        )
-    );
-
-    @include mat.icon-button-overrides(
-        (
-            state-layer-size: 36px,
-            icon-size: 14px
-        )
-    );
-
-    @include mat.button-overrides(
-        (
-            filled-container-shape: 4px,
-            filled-label-text-tracking: normal,
-            filled-label-text-weight: 400,
-            outlined-container-shape: 4px,
-            outlined-label-text-tracking: normal,
-            outlined-label-text-weight: 400,
-            outlined-horizontal-padding: 15px,
-            outlined-container-height: 32px,
-            text-container-shape: 4px,
-            text-label-text-tracking: normal,
-            text-label-text-weight: 400
-        )
-    );
-
-    @include mat.tabs-overrides(
-        (
-            label-text-tracking: normal,
-            label-text-weight: 400,
-            container-height: 36px
-        )
-    );
-
-    @include mat.snack-bar-overrides(
-        (
-            button-color: var(--md-ref-palette-secondary-80)
-        )
-    );
-
-    .tertiary-checkbox {
-        @include mat.checkbox-overrides(
-            (
-                selected-icon-color: var(--md-ref-palette-tertiary-40)
-            )
-        );
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-overrides(
-            (
-                icon-color: var(--md-ref-palette-primary-40)
-            )
-        );
-    }
-
-    .error-button {
-        @include mat.button-overrides(
-            (
-                filled-container-color: var(--md-ref-palette-error-40),
-                filled-label-text-color: var(--md-ref-palette-error-100)
-            )
-        );
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-overrides(
-            (
-                active-indicator-color: var(--md-ref-palette-tertiary-40)
-            )
-        );
-    }
-
-    // NOTE: The following styles are for the status badge and status banner components. The `.status-variant` class should only be applied to a div or span element that should adhear to the variant color and background.
-    .status-variant {
-        &.neutral {
-            color: var(--mat-sys-on-surface);
-            background-color: var(--mat-sys-surface-dim);
-        }
-        &.critical {
-            color: var(--mat-sys-on-error);
-            background-color: var(--mat-sys-error);
-        }
-        &.caution {
-            color: var(--nf-caution-contrast);
-            background-color: var(--nf-caution-default);
-        }
-        &.success {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-default);
-        }
-        &.info {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-variant);
-        }
-
-        .fa {
-            &.neutral {
-                color: var(--mat-sys-on-surface);
-            }
-
-            &.critical {
-                color: var(--mat-sys-on-error);
-            }
-
-            &.caution {
-                color: var(--nf-caution-contrast);
-            }
-
-            &.success {
-                color: var(--nf-success-contrast);
-            }
-
-            &.info {
-                color: var(--nf-success-contrast);
-            }
-        }
-    }
 }
 
 // Note: Color palettes are generated from primary: #6750a4
@@ -801,149 +668,27 @@ html {
             inverse-tertiary: var(--md-ref-palette-tertiary-70)
         )
     );
-
-    @include mat.sidenav-overrides(
-        (
-            container-width: auto,
-            container-shape: 0
-        )
-    );
-
-    @include mat.expansion-overrides(
-        (
-            container-shape: 6px,
-            header-expanded-state-height: 50px
-        )
-    );
-
-    @include mat.menu-overrides(
-        (
-            divider-top-spacing: 0,
-            divider-bottom-spacing: 0
-        )
-    );
-
-    @include mat.dialog-overrides(
-        (
-            content-padding: 20px 24px,
-            headline-padding: 0 24px 9px,
-            container-shape: 6px
-        )
-    );
-
-    @include mat.icon-button-overrides(
-        (
-            state-layer-size: 36px,
-            icon-size: 14px
-        )
-    );
-
-    @include mat.button-overrides(
-        (
-            filled-container-shape: 4px,
-            filled-label-text-tracking: normal,
-            filled-label-text-weight: 400,
-            outlined-container-shape: 4px,
-            outlined-label-text-tracking: normal,
-            outlined-label-text-weight: 400,
-            outlined-horizontal-padding: 15px,
-            outlined-container-height: 32px,
-            text-container-shape: 4px,
-            text-label-text-tracking: normal,
-            text-label-text-weight: 400
-        )
-    );
-
-    @include mat.tabs-overrides(
-        (
-            label-text-tracking: normal,
-            label-text-weight: 400,
-            container-height: 36px
-        )
-    );
-
-    @include mat.snack-bar-overrides(
-        (
-            button-color: #004849
-        )
-    );
-
-    .tertiary-checkbox {
-        @include mat.checkbox-overrides(
-            (
-                selected-icon-color: var(--md-ref-palette-tertiary-70)
-            )
-        );
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-overrides(
-            (
-                icon-color: var(--md-ref-palette-primary-80)
-            )
-        );
-    }
-
-    .error-button {
-        @include mat.button-overrides(
-            (
-                filled-container-color: var(--md-ref-palette-error-50),
-                filled-label-text-color: var(--md-ref-palette-error-100)
-            )
-        );
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-overrides(
-            (
-                active-indicator-color: var(--md-ref-palette-tertiary-70)
-            )
-        );
-    }
-
-    // NOTE: The following styles are for the status badge and status banner components. The `.status-variant` class should only be applied to a div or span element that should adhear to the variant color and background.
-    .status-variant {
-        &.neutral {
-            color: var(--mat-sys-on-surface);
-            background-color: var(--mat-sys-surface-dim);
-        }
-        &.critical {
-            color: var(--mat-sys-on-error);
-            background-color: var(--mat-sys-error);
-        }
-        &.caution {
-            color: var(--nf-caution-contrast);
-            background-color: var(--nf-caution-default);
-        }
-        &.success {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-default);
-        }
-        &.info {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-variant);
-        }
-
-        .fa {
-            &.neutral {
-                color: var(--mat-sys-on-surface);
-            }
-
-            &.critical {
-                color: var(--mat-sys-on-error);
-            }
-
-            &.caution {
-                color: var(--nf-caution-contrast);
-            }
-
-            &.success {
-                color: var(--nf-success-contrast);
-            }
-
-            &.info {
-                color: var(--nf-success-contrast);
-            }
-        }
-    }
 }
+
+@include buttons.generate-material-theme();
+@include card.generate-material-theme();
+@include checkbox.generate-material-theme();
+@include date-picker.generate-material-theme();
+@include dialog.generate-material-theme();
+@include drag-and-drop.generate-material-theme();
+@include expansion.generate-material-theme();
+@include form-field.generate-material-theme();
+@include markdown.generate-material-theme();
+@include menu.generate-material-theme();
+@include option.generate-material-theme();
+@include paginator.generate-material-theme();
+@include progress-bar.generate-material-theme();
+@include progress-spinner.generate-material-theme();
+@include searchable-overlay.generate-material-theme();
+@include sidenav.generate-material-theme();
+@include skeleton.generate-material-theme();
+@include snackbar.generate-material-theme();
+@include status-variant.generate-material-theme();
+@include tab.generate-material-theme();
+@include tree.generate-material-theme();
+@include typography.generate-material-theme();

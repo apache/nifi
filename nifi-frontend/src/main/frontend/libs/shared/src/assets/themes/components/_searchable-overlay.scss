@@ -1,0 +1,108 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+
+@mixin generate-material-theme() {
+    :root {
+        .searchable-overlay {
+            .mat-mdc-form-field {
+                width: 100%;
+            }
+
+            .mat-mdc-option {
+                min-height: 32px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                padding-left: 12px;
+                padding-right: 12px;
+
+                .mdc-list-item__primary-text {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap !important;
+                }
+
+                .fa {
+                    font-size: 16px;
+                    min-width: 16px;
+                    flex: 0 0 16px;
+                    color: inherit;
+                    margin-right: 4px;
+                }
+            }
+
+            .mat-mdc-form-field-icon-prefix {
+                .fa {
+                    font-size: 16px;
+                    color: var(--mat-app-text-color);
+                    padding: 0 4px 0 0;
+                }
+            }
+
+            .search-filter {
+                .mdc-text-field--focused {
+                    outline: none;
+                    border-radius: 6px;
+                    border-color: var(--mat-sys-primary);
+                }
+
+                @include mat.form-field-overrides(
+                    (
+                        outlined-container-shape: 6px
+                    )
+                );
+
+                button.primary-icon-button {
+                    @include mat.icon-button-overrides(
+                        (
+                            state-layer-size: 16px,
+                            icon-size: 10px
+                        )
+                    );
+                }
+
+                .fa {
+                    display: flex;
+                    justify-content: center;
+                    color: inherit;
+                }
+            }
+
+            &.mat-mdc-select-panel,
+            .mat-mdc-menu-content {
+                padding: 0 0 8px 0;
+            }
+        }
+    }
+
+    .darkMode {
+        .searchable-overlay {
+            .mat-mdc-form-field-icon-prefix {
+                .fa {
+                    color: var(--mat-app-text-color);
+                }
+            }
+
+            .search-filter {
+                .mdc-text-field--focused {
+                    border-color: var(--mat-sys-primary);
+                }
+            }
+        }
+    }
+}

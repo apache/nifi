@@ -23,6 +23,12 @@
     .mat-mdc-form-field {
         width: 100%;
     }
+
+    .mdc-text-field--outlined,
+    .mat-mdc-form-field-has-icon-prefix .mat-mdc-text-field-wrapper {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
 }
 
 .searchable-overlay {

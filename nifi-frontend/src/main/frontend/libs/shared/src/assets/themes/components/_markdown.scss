@@ -1,0 +1,176 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+
+@mixin generate-material-theme() {
+    :root {
+        .mat-typography.text-base markdown {
+            h1 {
+                margin: 16px 0;
+                line-height: 28px;
+                font-size: 20px;
+                font-weight: 700;
+            }
+
+            h2 {
+                margin: 16px 0;
+                line-height: 28px;
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            h3 {
+                margin: 16px 0;
+                line-height: 28px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            h4 {
+                margin: unset;
+                line-height: 20px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            h5 {
+                margin: unset;
+                line-height: 20px;
+                font-size: 12px;
+                font-weight: 400;
+            }
+
+            h6 {
+                margin: unset;
+                line-height: 12px;
+                font-size: 10px;
+                font-weight: 400;
+            }
+
+            ul {
+                list-style: disc outside;
+                margin: 1em;
+            }
+
+            ol {
+                list-style: auto outside;
+                margin: 1em;
+            }
+
+            p {
+                margin: 8px 0;
+            }
+
+            table {
+                display: table;
+                border-width: 1px;
+                margin-bottom: 1em;
+                width: 100%;
+                table-layout: fixed;
+                text-align: left;
+                border-collapse: separate;
+                border-spacing: 0;
+
+                th {
+                    user-select: none;
+                }
+
+                td,
+                th {
+                    border-bottom-width: 1px;
+                    border-bottom-style: solid;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    cursor: default;
+                    text-wrap: wrap;
+                    padding: 8px;
+                    word-break: break-word;
+                }
+
+                th {
+                    text-transform: uppercase;
+                }
+
+                ul {
+                    list-style-type: disc;
+                    list-style-position: inside;
+                    text-wrap: wrap;
+                    word-break: break-all;
+                }
+            }
+        }
+
+        .markdown-clipboard-toolbar {
+            opacity: 0;
+            transition: opacity 250ms ease-out;
+        }
+
+        .markdown-clipboard-toolbar.hover {
+            opacity: 1;
+        }
+
+        * {
+            markdown {
+                table {
+                    th {
+                        @extend .neutral-contrast !optional;
+                    }
+
+                    tbody {
+                        tr:hover {
+                            background-color: var(
+                                --mat-menu-item-hover-state-layer-color,
+                                color-mix(
+                                    in srgb,
+                                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                                    transparent
+                                )
+                            ) !important;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    .darkMode {
+        * {
+            markdown {
+                table {
+                    th {
+                        @extend .neutral-contrast !optional;
+                    }
+
+                    tbody {
+                        tr:hover {
+                            background-color: var(
+                                --mat-menu-item-hover-state-layer-color,
+                                color-mix(
+                                    in srgb,
+                                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                                    transparent
+                                )
+                            ) !important;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

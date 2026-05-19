@@ -18,6 +18,26 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
+// ---------------------------------------------------------------------------
+// OPTION 1: Do nothing to use Angular Material with no component overrides
+// ---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+// OPTION 2: Reuse NiFi's existing component customizations
+// ---------------------------------------------------------------------------
+// Import partials from ./components/ and call their generate-material-theme()
+// mixin. These encapsulate the overrides used by the default NiFi theme
+// (material.scss). You can import as many or as few as you need.
+@use './components/dialog' as dialog;
+
+// ---------------------------------------------------------------------------
+// OPTION 3: Write your own component overrides from scratch
+// ---------------------------------------------------------------------------
+// Angular Material exposes per-component *-overrides() mixins that accept a
+// map of token overrides. Each component has its own set of tokens.
+//
+// To discover available tokens for a component, consult the Angular Material
+// source or docs: https://material.angular.io/guide/theming#component-styles
 @layer base {
     //fonts are loaded by the browser
     @font-face {
@@ -257,45 +277,6 @@
             inverse-tertiary: var(--md-ref-palette-tertiary-80)
         )
     );
-
-    @include mat.snack-bar-overrides(
-        (
-            button-color: var(--md-ref-palette-secondary-80)
-        )
-    );
-
-    .tertiary-checkbox {
-        @include mat.checkbox-overrides(
-            (
-                selected-icon-color: var(--md-ref-palette-tertiary-40)
-            )
-        );
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-overrides(
-            (
-                icon-color: var(--md-ref-palette-primary-40)
-            )
-        );
-    }
-
-    .error-button {
-        @include mat.button-overrides(
-            (
-                filled-container-color: var(--md-ref-palette-error-40),
-                filled-label-text-color: var(--md-ref-palette-error-100)
-            )
-        );
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-overrides(
-            (
-                active-indicator-color: var(--md-ref-palette-tertiary-40)
-            )
-        );
-    }
 }
 
 // Note: Color palettes are generated from primary: #6750a4
@@ -694,43 +675,6 @@ html {
             inverse-tertiary: var(--md-ref-palette-tertiary-70)
         )
     );
-
-    @include mat.snack-bar-overrides(
-        (
-            button-color: #004849
-        )
-    );
-
-    .tertiary-checkbox {
-        @include mat.checkbox-overrides(
-            (
-                selected-icon-color: var(--md-ref-palette-tertiary-70)
-            )
-        );
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-overrides(
-            (
-                icon-color: var(--md-ref-palette-primary-80)
-            )
-        );
-    }
-
-    .error-button {
-        @include mat.button-overrides(
-            (
-                filled-container-color: var(--md-ref-palette-error-50),
-                filled-label-text-color: var(--md-ref-palette-error-100)
-            )
-        );
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-overrides(
-            (
-                active-indicator-color: var(--md-ref-palette-tertiary-70)
-            )
-        );
-    }
 }
+
+@include dialog.generate-material-theme();
