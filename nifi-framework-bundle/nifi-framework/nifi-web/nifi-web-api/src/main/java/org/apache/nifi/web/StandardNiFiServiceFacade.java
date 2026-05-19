@@ -4720,6 +4720,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return Result.Approved.equals(result.getResult());
     }
 
+    /**
+     * Locates the {@link ProcessGroup} that owns the bulletin, including connector-managed groups.
+     * When the group cannot be found, returns {@code null} so authorization falls back to the
+     * global {@link AuthorizableLookup}.
+     */
+    private ProcessGroup resolveOwningProcessGroupForBulletin(final Bulletin bulletin) {
+        final String groupId = bulletin.getGroupId();
+        if (groupId == null) {
+            return null;
+        }
+
+        try {
+            return processGroupDAO.getProcessGroup(groupId, true);
+        } catch (final ResourceNotFoundException e) {
+            // Owning group was removed; fall back to global authorizable lookup.
+            return null;
+        }
+    }
+
     private Authorizable resolveBulletinAuthorizable(final String sourceId, final ComponentType type, final ProcessGroup group) {
         if (group != null) {
             final Authorizable found = switch (type) {
@@ -4774,7 +4793,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinEntity> bulletinEntities = new ArrayList<>();
         for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious();) {
             final Bulletin bulletin = bulletinIter.previous();
-            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, true), authorizeBulletin(bulletin)));
+            final ProcessGroup owningGroup = resolveOwningProcessGroupForBulletin(bulletin);
+            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, true), authorizeBulletin(bulletin, owningGroup)));
         }
 
         // create the bulletin board

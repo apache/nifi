@@ -87,6 +87,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
+import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.services.FlowService;
@@ -94,6 +95,8 @@ import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.web.api.dto.BulletinBoardDTO;
+import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
@@ -1091,6 +1094,42 @@ public class StandardNiFiServiceFacadeTest {
                 "Bulletin canRead should be false when the source cannot be resolved by either lookup");
     }
 
+    /**
+     * The bulletin board authorizes each row independently of process group flow responses. Connector-managed
+     * sources must resolve through the bulletin's owning group (including connector-managed process groups)
+     * or the board reports {@code canRead=false} even when the user can read the connector.
+     */
+    @Test
+    public void testGetBulletinBoard_BulletinAuthorizedViaOwningProcessGroupWhenAuthorizableLookupMisses() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn(groupId);
+
+        final ProcessorNode approvingProcessor = approvingProcessorNode();
+        when(processGroup.findProcessor(PROCESSOR_ID_2)).thenReturn(approvingProcessor);
+        when(processGroupDAO.getProcessGroup(groupId, true)).thenReturn(processGroup);
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
+        serviceFacadeSpy.setBulletinRepository(bulletinRepository);
+
+        bulletinRepository.addBulletin(
+                BulletinFactory.createBulletin(groupId, GROUP_NAME_1, PROCESSOR_ID_2,
+                        ComponentType.PROCESSOR, PROCESSOR_NAME_2,
+                        BULLETIN_CATEGORY, BULLETIN_SEVERITY, BULLETIN_MESSAGE_2, PATH_TO_GROUP_1));
+
+        final BulletinBoardDTO board = serviceFacadeSpy.getBulletinBoard(new BulletinQueryDTO());
+
+        assertNotNull(board);
+        assertEquals(1, board.getBulletins().size());
+        assertTrue(board.getBulletins().get(0).getCanRead(),
+                "Bulletin board canRead should be true when the source is resolved via the owning ProcessGroup");
+        verify(processGroupDAO).getProcessGroup(groupId, true);
+    }
+
     private ProcessGroupEntity invokeUpdateProcessGroupWithBulletin(final String groupId, final ProcessGroup processGroup,
                                                                     final String sourceId, final String sourceName, final String message) {
         final ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
@@ -1241,6 +1280,11 @@ public class StandardNiFiServiceFacadeTest {
         @Override
         public void addBulletin(Bulletin bulletin) {
             bulletinList.add(bulletin);
+        }
+
+        @Override
+        public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
+            return new ArrayList<>(bulletinList);
         }
 
         @Override
