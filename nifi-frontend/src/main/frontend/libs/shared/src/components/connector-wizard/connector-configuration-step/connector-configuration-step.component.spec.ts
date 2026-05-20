@@ -17,10 +17,12 @@
 
 import { Component, forwardRef, input, NO_ERRORS_SCHEMA, output, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SharedConnectorConfigurationStep } from './connector-configuration-step.component';
 import { ConnectorPropertyInput } from '../../connector-property-input/connector-property-input.component';
+import { StatusBanner } from '../../status-banner/status-banner.component';
 import { ConnectorWizardStore } from '../connector-wizard.store';
 import { CONNECTOR_WIZARD_CONFIG } from '../connector-wizard.types';
 import { ConnectorConfigurationService } from '../../../services/connector-configuration.service';
@@ -175,6 +177,7 @@ class StubConnectorPropertyInput implements ControlValueAccessor {
     readonly assetFilesSelected = output<File[]>();
     readonly assetDeleteRequested = output<AssetInfo>();
     readonly dismissFailedUploadRequested = output<UploadProgressInfo>();
+    readonly stringListOrphansStripped = output<{ propertyName: string; removed: string[] }>();
 
     writeValue(): void {
         /* stub */
@@ -452,6 +455,130 @@ describe('SharedConnectorConfigurationStep', () => {
             const stepConfig = makeStepConfig('test-step', [makeProp('tags', { type: 'STRING_LIST' })]);
             const { component } = await setup({ stepConfig, unsavedValues: { tags: ['x', 'y'] } });
             expect(component.stepForm.get('tags')?.value).toEqual(['x', 'y']);
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════
+    // STRING_LIST orphan strip banner
+    // ═══════════════════════════════════════════════════════
+
+    describe('STRING_LIST orphan strip banner', () => {
+        it('appends one caution-banner entry per strip event with removed values', async () => {
+            const { component } = await setup();
+
+            component.onStringListOrphansStripped({
+                propertyName: 'topics',
+                removed: ['gone-a', 'gone-b']
+            });
+            expect(component.stringListOrphanStripBannerEntries()).toHaveLength(1);
+            const first = component.stringListOrphanStripBannerEntries()[0];
+            expect(first.propertyName).toBe('topics');
+            expect(first.removedVisible).toEqual(['gone-a', 'gone-b']);
+            expect(first.hiddenRemovedCount).toBe(0);
+
+            component.onStringListOrphansStripped({
+                propertyName: 'other',
+                removed: ['x']
+            });
+            expect(component.stringListOrphanStripBannerEntries()).toHaveLength(2);
+            const second = component.stringListOrphanStripBannerEntries()[1];
+            expect(second.propertyName).toBe('other');
+            expect(second.removedVisible).toEqual(['x']);
+        });
+
+        it('replaces an existing entry when the same property strips a second time', async () => {
+            const { component } = await setup();
+
+            component.onStringListOrphansStripped({
+                propertyName: 'topics',
+                removed: ['gone-a']
+            });
+            component.onStringListOrphansStripped({
+                propertyName: 'topics',
+                removed: ['gone-a', 'gone-b']
+            });
+
+            expect(component.stringListOrphanStripBannerEntries()).toHaveLength(1);
+            expect(component.stringListOrphanStripBannerEntries()[0].removedVisible).toEqual(['gone-a', 'gone-b']);
+        });
+
+        it('caps visible removed values and reports hidden count', async () => {
+            const { component } = await setup();
+            const removed = Array.from({ length: 25 }, (_, i) => `v-${i}`);
+            component.onStringListOrphansStripped({
+                propertyName: 'p',
+                removed
+            });
+            const entry = component.stringListOrphanStripBannerEntries()[0];
+            expect(entry.removedVisible).toHaveLength(20);
+            expect(entry.hiddenRemovedCount).toBe(5);
+        });
+
+        it('clears orphan strip banner entries on dismiss', async () => {
+            const { component } = await setup();
+
+            component.onStringListOrphansStripped({
+                propertyName: 'a',
+                removed: ['gone']
+            });
+            expect(component.stringListOrphanStripBannerEntries().length).toBeGreaterThan(0);
+            component.onDismissStringListOrphanStripBanner();
+            expect(component.stringListOrphanStripBannerEntries()).toEqual([]);
+        });
+
+        it('clears orphan strip banner entries when the form is (re)initialized', async () => {
+            const { component } = await setup();
+
+            component.onStringListOrphansStripped({
+                propertyName: 'a',
+                removed: ['gone']
+            });
+            expect(component.stringListOrphanStripBannerEntries().length).toBeGreaterThan(0);
+
+            (component as unknown as { initializeForm: () => void }).initializeForm();
+
+            expect(component.stringListOrphanStripBannerEntries()).toEqual([]);
+        });
+
+        it('renders caution StatusBanner in the template when a property strips orphans', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('topics', { type: 'STRING_LIST' })]);
+            const { fixture } = await setup({ stepConfig, stepName: 'test-step' });
+
+            const stub = fixture.debugElement.query(By.directive(StubConnectorPropertyInput));
+            stub.componentInstance.stringListOrphansStripped.emit({
+                propertyName: 'topics',
+                removed: ['gone-a', 'gone-b']
+            });
+            fixture.detectChanges();
+
+            expect(fixture.nativeElement.querySelector('[data-qa="string-list-orphan-strip-banner"]')).toBeTruthy();
+            const statusBanner = fixture.debugElement.query(By.directive(StatusBanner));
+            expect(statusBanner).toBeTruthy();
+            expect(statusBanner.componentInstance.variant).toBe('caution');
+            expect(fixture.nativeElement.textContent).toContain('no longer available and have been removed');
+            expect(fixture.nativeElement.textContent).toContain('topics');
+            expect(fixture.nativeElement.textContent).toContain('gone-a');
+        });
+
+        it('removes orphan strip banner from the DOM when dismiss is triggered', async () => {
+            const stepConfig = makeStepConfig('test-step', [makeProp('topics', { type: 'STRING_LIST' })]);
+            const { fixture } = await setup({ stepConfig, stepName: 'test-step' });
+
+            const stub = fixture.debugElement.query(By.directive(StubConnectorPropertyInput));
+            stub.componentInstance.stringListOrphansStripped.emit({
+                propertyName: 'topics',
+                removed: ['gone']
+            });
+            fixture.detectChanges();
+
+            expect(fixture.nativeElement.querySelector('[data-qa="string-list-orphan-strip-banner"]')).toBeTruthy();
+
+            const statusBanner = fixture.debugElement.query(By.directive(StatusBanner));
+            statusBanner.triggerEventHandler('dismiss', undefined);
+            fixture.detectChanges();
+
+            expect(fixture.nativeElement.querySelector('[data-qa="string-list-orphan-strip-banner"]')).toBeNull();
+            expect(fixture.debugElement.query(By.directive(StatusBanner))).toBeNull();
         });
     });
 

@@ -15,8 +15,4 @@
   limitations under the License.
 -->
 
-@if (messages(); as msgs) {
-    <div [class]="panelClass()">
-        <error-banner [messages]="msgs" [allowDismiss]="true" (dismiss)="dismiss()"></error-banner>
-    </div>
-}
+<banner [messages]="messages()" [variant]="variant()" (dismiss)="dismiss()" [panelClass]="panelClass()"></banner>

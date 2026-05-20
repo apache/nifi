@@ -16,8 +16,8 @@
  */
 
 import { Component, computed, input, OnDestroy, inject } from '@angular/core';
-import { ErrorBanner } from '../../error-banner/error-banner.component';
-type StatusVariant = 'critical' | 'warning' | 'info' | 'success';
+import { Banner } from '../../banner/banner.component';
+import { StatusVariant } from '../../../types';
 import { ConnectorWizardStore } from '../connector-wizard.store';
 
 /**
@@ -26,14 +26,13 @@ import { ConnectorWizardStore } from '../connector-wizard.store';
 @Component({
     selector: 'wizard-context-banner',
     standalone: true,
-    imports: [ErrorBanner],
+    imports: [Banner],
     templateUrl: './wizard-context-banner.component.html',
     styleUrl: './wizard-context-banner.component.scss'
 })
 export class WizardContextBanner implements OnDestroy {
     private wizardStore = inject(ConnectorWizardStore);
 
-    /** Preserved for API compatibility; ErrorBanner is always error-styled. */
     readonly variant = input<StatusVariant>('critical');
     readonly panelClass = input<string | undefined>('mb-4');
     readonly persistOnDestroy = input(false);

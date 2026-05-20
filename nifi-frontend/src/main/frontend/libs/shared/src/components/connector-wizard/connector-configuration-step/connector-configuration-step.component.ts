@@ -27,7 +27,8 @@ import {
     ChangeDetectorRef,
     viewChild,
     Injector,
-    Signal
+    Signal,
+    signal
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn } from '@angular/forms';
@@ -42,7 +43,10 @@ import { SidePanelContainerComponent } from '../../side-panel-container/side-pan
 import { UploadService } from '../../../services/upload.service';
 import { ConnectorConfigurationService } from '../../../services/connector-configuration.service';
 import { ConnectorPropertyInput } from '../../connector-property-input/connector-property-input.component';
+import { StringListOrphansStrippedEvent } from '../../connector-property-input/connector-property-input.types';
 import { ErrorBanner } from '../../error-banner/error-banner.component';
+import { StatusBanner } from '../../status-banner/status-banner.component';
+import { StatusBannerDescriptionDirective } from '../../status-banner/status-banner.directives';
 import { fromValueReference, toValueReference, SecretReferenceOptions } from '../../../services/value-reference.helper';
 import {
     AssetInfo,
@@ -75,6 +79,16 @@ import { WizardStepDocumentationPanel } from '../wizard-step-documentation-panel
  */
 const VERIFICATION_ERROR_KEY = 'verificationError';
 
+/** Max removed values listed per property before a "… and N more" line. */
+const STRING_LIST_ORPHAN_STRIP_MAX_VISIBLE_VALUES = 20;
+
+/** One caution-banner block: property label plus values stripped from the form control. */
+export interface StringListOrphanStripBannerEntry {
+    propertyName: string;
+    removedVisible: string[];
+    hiddenRemovedCount: number;
+}
+
 @Component({
     selector: 'shared-connector-configuration-step',
     standalone: true,
@@ -89,7 +103,9 @@ const VERIFICATION_ERROR_KEY = 'verificationError';
         WizardContextBanner,
         WizardStepDocumentationPanel,
         MatProgressSpinner,
-        ErrorBanner
+        ErrorBanner,
+        StatusBanner,
+        StatusBannerDescriptionDirective
     ],
     templateUrl: './connector-configuration-step.component.html',
     styleUrls: ['./connector-configuration-step.component.scss']
@@ -142,6 +158,12 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
     stepForm!: FormGroup;
     formReady = false;
+
+    /**
+     * Local caution-banner blocks when STRING_LIST multi-select auto-strips values
+     * no longer in the loaded allowables list (one entry per strip event / property).
+     */
+    readonly stringListOrphanStripBannerEntries = signal<StringListOrphanStripBannerEntry[]>([]);
 
     // Upload progress tracking (local as it's transient UI state)
     uploadProgressByProperty: Map<string, UploadProgressInfo[]> = new Map();
@@ -343,6 +365,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
         const stepData = this.stepConfiguration?.();
 
         if (!stepData) {
+            this.stringListOrphanStripBannerEntries.set([]);
             this.stepForm = this.fb.group({});
             this.formReady = true;
             return;
@@ -350,6 +373,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
         // Clear local progress state when re-initializing
         this.uploadProgressByProperty.clear();
+        this.stringListOrphanStripBannerEntries.set([]);
 
         const unsavedValues: Record<string, ConnectorPropertyFormValue> =
             this.wizardStore.unsavedStepValues()[this.stepName()] ?? {};
@@ -1209,6 +1233,39 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
     onDismissGeneralVerificationErrors(): void {
         this.wizardStore.setStepVerificationResults({ stepName: this.stepName(), results: [] });
+    }
+
+    /**
+     * Append (or replace) a caution-banner block when STRING_LIST multi-select
+     * auto-strips values that are no longer in the loaded allowables list.
+     */
+    onStringListOrphansStripped(event: StringListOrphansStrippedEvent): void {
+        const entry = this.toStringListOrphanStripBannerEntry(event);
+        this.stringListOrphanStripBannerEntries.update((prev) => {
+            const existingIndex = prev.findIndex((e) => e.propertyName === entry.propertyName);
+            if (existingIndex === -1) {
+                return [...prev, entry];
+            }
+            const next = prev.slice();
+            next[existingIndex] = entry;
+            return next;
+        });
+    }
+
+    onDismissStringListOrphanStripBanner(): void {
+        this.stringListOrphanStripBannerEntries.set([]);
+    }
+
+    private toStringListOrphanStripBannerEntry(
+        event: StringListOrphansStrippedEvent
+    ): StringListOrphanStripBannerEntry {
+        const removedVisible = event.removed.slice(0, STRING_LIST_ORPHAN_STRIP_MAX_VISIBLE_VALUES);
+        const hiddenRemovedCount = Math.max(0, event.removed.length - removedVisible.length);
+        return {
+            propertyName: event.propertyName,
+            removedVisible,
+            hiddenRemovedCount
+        };
     }
 
     /**
