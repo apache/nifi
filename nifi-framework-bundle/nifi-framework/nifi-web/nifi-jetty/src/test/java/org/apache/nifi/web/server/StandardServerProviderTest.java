@@ -22,6 +22,7 @@ import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.handler.HeaderWriterHandler;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
@@ -83,7 +84,11 @@ class StandardServerProviderTest {
 
     private static final String PUBLIC_HOST = "nifi.apache.org";
 
-    private static final String PUBLIC_UNKNOWN_HOST = "nifi.staged.apache.org";
+    private static final String PUBLIC_STAGED_HOST = "nifi.staged.apache.org";
+
+    private static final String PROXY_HOST_PROPERTY = "nifi.apache.org,nifi.staged.apache.org:8443";
+
+    private static final String PUBLIC_UNKNOWN_HOST = "nifi.unknown.apache.org";
 
     private static final String ALLOW_RESTRICTED_HEADERS_PROPERTY = "jdk.httpclient.allowRestrictedHeaders";
 
@@ -174,7 +179,7 @@ class StandardServerProviderTest {
     void testGetServerHttpsRequestsCompleted() throws Exception {
         final Properties applicationProperties = new Properties();
         applicationProperties.setProperty(NiFiProperties.WEB_HTTPS_PORT, RANDOM_PORT);
-        applicationProperties.setProperty(NiFiProperties.WEB_PROXY_HOST, PUBLIC_HOST);
+        applicationProperties.setProperty(NiFiProperties.WEB_PROXY_HOST, PROXY_HOST_PROPERTY);
         final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
 
         final StandardServerProvider provider = new StandardServerProvider(sslContext);
@@ -254,6 +259,24 @@ class StandardServerProviderTest {
                 .header(HOST_HEADER, PUBLIC_HOST)
                 .build();
         assertResponseStatusCode(httpClient, alternativeNameRequest, HttpStatus.MOVED_TEMPORARILY_302);
+
+        final HttpRequest proxyHostRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.PROXY_HOST.getHeader(), localhostUri.getHost())
+                .build();
+        assertResponseStatusCode(httpClient, proxyHostRequest, HttpStatus.MOVED_TEMPORARILY_302);
+
+        final HttpRequest proxyHostPublicHostRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.PROXY_HOST.getHeader(), PUBLIC_HOST)
+                .build();
+        assertResponseStatusCode(httpClient, proxyHostPublicHostRequest, HttpStatus.MOVED_TEMPORARILY_302);
+
+        final HttpRequest forwardedHostRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_STAGED_HOST)
+                .build();
+        assertResponseStatusCode(httpClient, forwardedHostRequest, HttpStatus.MOVED_TEMPORARILY_302);
     }
 
     void assertBadRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
@@ -276,6 +299,18 @@ class StandardServerProviderTest {
                 .header(HOST_HEADER, LOCALHOST_HTTP_PORT)
                 .build();
         assertResponseStatusCode(httpClient, localhostPortRequest, HttpStatus.MISDIRECTED_REQUEST_421);
+
+        final HttpRequest publicUnknownProxyHostRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.PROXY_HOST.getHeader(), PUBLIC_UNKNOWN_HOST)
+                .build();
+        assertResponseStatusCode(httpClient, publicUnknownProxyHostRequest, HttpStatus.MISDIRECTED_REQUEST_421);
+
+        final HttpRequest publicUnknownForwardedHostRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_UNKNOWN_HOST)
+                .build();
+        assertResponseStatusCode(httpClient, publicUnknownForwardedHostRequest, HttpStatus.MISDIRECTED_REQUEST_421);
     }
 
     void assertStandardResponseHeadersFound(final HttpResponse<Void> response) {
