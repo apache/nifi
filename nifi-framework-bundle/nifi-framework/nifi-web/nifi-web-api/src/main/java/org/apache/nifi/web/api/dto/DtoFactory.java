@@ -1522,7 +1522,7 @@ public final class DtoFactory {
         dto.setBoundProcessGroups(boundGroups);
 
         final Set<ParameterEntity> parameterEntities = new LinkedHashSet<>();
-        final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getEffectiveParameters()
+        final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getRawEffectiveParameters()
                 : parameterContext.getParameters();
         for (final Parameter parameter : parameters.values()) {
             parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup));

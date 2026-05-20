@@ -1406,6 +1406,42 @@ public class ParameterContextIT extends NiFiSystemIT {
         }
     }
 
+    @Test
+    public void testParameterAliasDisplayedAsRawValue() throws NiFiClientException, IOException {
+        final Set<ParameterEntity> sParams = new HashSet<>();
+        sParams.add(createParameterEntity("db_host", null, false, "myserver.example.com"));
+        final ParameterContextEntity sContextEntity = createParameterContextEntity("S_RawDisplay", "Inherited context",
+                sParams, Collections.emptyList(), null, null);
+        final ParameterContextEntity createdS = getNifiClient().getParamContextClient().createParamContext(sContextEntity);
+
+        final Set<ParameterEntity> pParams = new HashSet<>();
+        pParams.add(createParameterEntity("host", null, false, "#{db_host}"));
+        final ParameterContextEntity pContextEntity = createParameterContextEntity("P_RawDisplay", "Parent context with alias",
+                pParams, Collections.singletonList(createdS), null, null);
+        final ParameterContextEntity createdP = getNifiClient().getParamContextClient().createParamContext(pContextEntity);
+
+        final ParameterContextEntity fetched = getNifiClient().getParamContextClient().getParamContext(createdP.getId(), true);
+        final Set<ParameterEntity> parameters = fetched.getComponent().getParameters();
+
+        final ParameterDTO hostDto = parameters.stream()
+                .map(ParameterEntity::getParameter)
+                .filter(p -> "host".equals(p.getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(hostDto);
+        assertFalse(hostDto.getInherited() != null && hostDto.getInherited());
+        assertEquals("#{db_host}", hostDto.getValue());
+
+        final ParameterDTO dbHostDto = parameters.stream()
+                .map(ParameterEntity::getParameter)
+                .filter(p -> "db_host".equals(p.getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(dbHostDto);
+        assertTrue(dbHostDto.getInherited());
+        assertEquals("myserver.example.com", dbHostDto.getValue());
+    }
+
     protected void assertAsset(final AssetEntity asset, final String expectedName) {
         assertNotNull(asset);
         assertNotNull(asset.getAsset());
