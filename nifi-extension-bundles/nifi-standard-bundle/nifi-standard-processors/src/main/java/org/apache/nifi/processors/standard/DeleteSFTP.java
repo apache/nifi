@@ -211,7 +211,8 @@ public class DeleteSFTP extends AbstractProcessor {
                         filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
                         final Path filePath = directoryPath.resolve(filename).normalize();
 
-                        if (!directoryPath.equals(filePath.getParent())) {
+                        final Path fileParent = filePath.getParent();
+                        if (!directoryPath.equals(fileParent == null ? Paths.get("") : fileParent)) {
                             final String errorMessage = "Attempting to delete file at path '%s' which is not a direct child of the directory '%s'"
                                     .formatted(filePath, directoryPath);
 
