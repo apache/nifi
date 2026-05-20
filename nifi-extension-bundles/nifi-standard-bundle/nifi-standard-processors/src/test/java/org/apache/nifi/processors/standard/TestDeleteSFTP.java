@@ -155,6 +155,18 @@ class TestDeleteSFTP {
     }
 
     @Test
+    void deletesFileWhenDirectoryPathIsDot() throws IOException {
+        final Path fileToDelete = Files.writeString(sshServerRootPath.resolve("test.txt"), "some text");
+        enqueue(".", fileToDelete.getFileName().toString());
+        assertExists(fileToDelete);
+
+        runner.run();
+
+        assertNotExists(fileToDelete);
+        runner.assertAllFlowFilesTransferred(DeleteSFTP.REL_SUCCESS, 1);
+    }
+
+    @Test
     void sendsFlowFileToFailureWhenFileIsNotADirectChildOfTheDirectory() throws IOException {
         final Path directoryPath = Files.createDirectories(sshServerRootPath.resolve("rel/path"));
         final String filename = "../sibling.txt";
