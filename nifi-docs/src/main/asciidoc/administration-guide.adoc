@@ -2758,10 +2758,16 @@ documentation of the proxy for guidance for your deployment environment and use 
 
 * Additional NiFi proxy configuration must be updated to allow expected Host and context paths HTTP headers.
 
-** By default, if NiFi is running securely it will only accept HTTP requests with a Host header matching the host[:port] that it is bound to. If NiFi is to accept requests directed to a different
-host[:port] the expected values need to be configured. This may be required when running behind a proxy or in a containerized environment. This is configured in a comma
-separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. `localhost:18443, proxyhost:443`). IPv6 addresses are accepted. Please refer to
-RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
+** When configured with HTTPS enabled, the name in the `Host` header must match one of the DNS Subject Alternative Names
+included on the configured server X.509 certificate. The framework server also validates the name provided in the Server
+Name Indication extension during the TLS handshake against the configured server certificate. The server returns an HTTP
+400 Bad Request status when the requested `Host` header does not meet these requirements.
+
+** The application supports providing alternative host addresses through either the `X-ProxyHost` or `X-Forwarded-Host`
+headers. The host address provided in one of these headers must be configured in the `nifi.web.proxy.host` property.
+The application uses the provided alternative host address to construct URLs that match the public address of the
+reverse proxy. The server returns an HTTP 421 Misdirected Request status when the requested proxy header value is not
+listed in the proxy host address property.
 
 ** NiFi will only accept HTTP requests with a X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header if the value is allowed in the `nifi.web.proxy.context.path` property in
 _nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header value that is not
@@ -3520,10 +3526,16 @@ The value can be set to `h2` to require HTTP/2 and disable HTTP/1.1.
 |`nifi.web.jetty.working.directory`|The location of the Jetty working directory. The default value is `./work/jetty`.
 |`nifi.web.jetty.threads`|The number of Jetty threads. The default value is `200`.
 |`nifi.web.max.header.size`|The maximum size allowed for request and response headers. The default value is `16 KB`.
-|`nifi.web.proxy.host`|A comma separated list of allowed HTTP Host header values to consider when NiFi is running securely and will be receiving requests to a different host[:port] than it is bound to.
-For example, when running in a Docker container or behind a proxy (e.g. localhost:18443, proxyhost:443). By default, this value is blank meaning NiFi should only allow requests sent to the
-host[:port] that NiFi is bound to.
-Requests containing an invalid port in the Host or authority header return an HTTP 421 Misdirected Request status.
+|`nifi.web.proxy.host`|A comma-separated list of allowed header values to consider when the application is running with
+HTTPS enabled and receives requests through a reverse proxy. Each value may include a domain name such as
+`nifi.apache.org` or a domain name with a port number such as `nifi.apache.org:8443`.
+
+Requests containing an invalid port in the `Host` or authority header return an HTTP 421 Misdirected Request status.
+Requests containing an `X-ProxyHost` or `X-Forwarded-Host` header with a value not listed in this property return an HTTP
+421 Misdirected Request status.
+
+Reverse proxy servers are responsible for filtering input request headers and providing allowed proxy host values to the
+application. Proxy host header values must be limited to including the domain name, without the port number.
 |`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header values to consider. By default, this value is
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
 |`nifi.web.max.content.size`|The maximum size (HTTP `Content-Length`) for PUT and POST requests. No default value is set for backward compatibility. Providing a value for this property enables the `Content-Length` filter on all incoming API requests (except Site-to-Site and cluster communications). A suggested value is `20 MB`.
