@@ -21,9 +21,13 @@ import org.eclipse.jetty.http.HttpException;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpURI;
+import org.eclipse.jetty.io.Connection;
+import org.eclipse.jetty.io.EndPoint;
+import org.eclipse.jetty.server.ConnectionMetaData;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Request;
 
+import java.security.cert.X509Certificate;
 import java.util.Objects;
 import java.util.Set;
 
@@ -32,6 +36,8 @@ import java.util.Set;
  */
 public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customizer {
     private static final String MISDIRECTED_REQUEST_REASON = "Invalid Proxy Host Requested";
+
+    private static final String REQUEST_REPLICATED_HEADER = "request-replicated";
 
     private static final Set<String> SUPPORTED_PROXY_HOST_HEADERS = Set.of(
             ProxyHeader.PROXY_HOST.getHeader(),
@@ -65,6 +71,24 @@ public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customi
     }
 
     private Request customizeSecureRequest(final Request request) {
+        final X509Certificate peerCertificate = findPeerCertificate(request);
+
+        // Requests not authenticated with Client Certificates require header validation
+        if (peerCertificate == null) {
+            processProxyHostHeaders(request);
+        } else {
+            // Requests authenticated with Client Certificates but not indicated as replicated require header validation
+            final HttpFields requestHeaders = request.getHeaders();
+            final String requestReplicated = requestHeaders.get(REQUEST_REPLICATED_HEADER);
+            if (requestReplicated == null) {
+                processProxyHostHeaders(request);
+            }
+        }
+
+        return request;
+    }
+
+    private void processProxyHostHeaders(final Request request) {
         final HttpURI requestUri = request.getHttpURI();
         final String requestHost = requestUri.getHost();
 
@@ -85,7 +109,24 @@ public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customi
 
             throw new HttpException.RuntimeException(HttpStatus.MISDIRECTED_REQUEST_421, MISDIRECTED_REQUEST_REASON);
         }
+    }
 
-        return request;
+    private X509Certificate findPeerCertificate(final Request request) {
+        final X509Certificate peerCertificate;
+        final ConnectionMetaData connectionMetaData = request.getConnectionMetaData();
+        final Connection connection = connectionMetaData.getConnection();
+        final EndPoint endPoint = connection.getEndPoint();
+        final EndPoint.SslSessionData sslSessionData = endPoint.getSslSessionData();
+        if (sslSessionData == null) {
+            peerCertificate = null;
+        } else {
+            final X509Certificate[] peerCertificates = sslSessionData.peerCertificates();
+            if (peerCertificates == null || peerCertificates.length == 0) {
+                peerCertificate = null;
+            } else {
+                peerCertificate = peerCertificates[0];
+            }
+        }
+        return peerCertificate;
     }
 }

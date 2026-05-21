@@ -82,6 +82,8 @@ class StandardServerProviderTest {
 
     private static final String HOST_HEADER = "Host";
 
+    private static final String REQUEST_REPLICATED_HEADER = "request-replicated";
+
     private static final String PUBLIC_HOST = "nifi.apache.org";
 
     private static final String PUBLIC_STAGED_HOST = "nifi.staged.apache.org";
@@ -106,6 +108,8 @@ class StandardServerProviderTest {
 
     private static SSLContext sslContext;
 
+    private static SSLContext sslContextWithoutClientCertificates;
+
     @BeforeAll
     static void setConfiguration() throws Exception {
         final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
@@ -118,6 +122,10 @@ class StandardServerProviderTest {
                 .keyStore(keyStore)
                 .trustStore(keyStore)
                 .keyPassword(PROTECTION_PARAMETER)
+                .build();
+
+        sslContextWithoutClientCertificates = new StandardSslContextBuilder()
+                .trustStore(keyStore)
                 .build();
 
         // Allow Restricted Headers for testing TLS SNI
@@ -190,20 +198,64 @@ class StandardServerProviderTest {
         assertHttpsConnectorFound(server);
 
         try {
-            server.start();
-
-            assertFalse(server.isFailed());
-
-            while (server.isStarting()) {
-                TimeUnit.MILLISECONDS.sleep(250);
-            }
-
-            assertTrue(server.isStarted());
-
+            startServer(server);
             final URI uri = server.getURI();
             assertHttpsRequestsCompleted(uri);
         } finally {
             server.stop();
+        }
+    }
+
+    @Timeout(15)
+    @Test
+    void testGetServerHttpsWithoutClientCertificates() throws Exception {
+        final Properties applicationProperties = new Properties();
+        applicationProperties.setProperty(NiFiProperties.WEB_HTTPS_PORT, RANDOM_PORT);
+        // Set placeholder property to disable requiring Client Certificates
+        applicationProperties.setProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, Boolean.TRUE.toString());
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
+
+        final StandardServerProvider provider = new StandardServerProvider(sslContext);
+
+        final Server server = provider.getServer(properties);
+
+        assertStandardConfigurationFound(server);
+        assertHttpsConnectorFound(server);
+
+        try {
+            startServer(server);
+            final URI uri = server.getURI();
+            assertHttpsRequestsWithoutClientCertificates(uri);
+        } finally {
+            server.stop();
+        }
+    }
+
+    private void startServer(final Server server) throws Exception {
+        server.start();
+
+        assertFalse(server.isFailed());
+
+        while (server.isStarting()) {
+            TimeUnit.MILLISECONDS.sleep(250);
+        }
+
+        assertTrue(server.isStarted());
+    }
+
+    void assertHttpsRequestsWithoutClientCertificates(final URI serverUri) throws IOException, InterruptedException {
+        try (HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(TIMEOUT)
+                .sslContext(sslContextWithoutClientCertificates)
+                .build()
+        ) {
+            final URI localhostUri = UriComponentsBuilder.fromUri(serverUri).host(LOCALHOST_NAME).build().toUri();
+
+            assertFrontendRedirectRequestsCompleted(httpClient, localhostUri);
+            assertBadRequestsCompleted(httpClient, localhostUri);
+            assertMisdirectedRequestsCompleted(httpClient, localhostUri);
+
+            assertReplicatedRequestCompleted(httpClient, localhostUri, HttpStatus.MISDIRECTED_REQUEST_421);
         }
     }
 
@@ -219,7 +271,18 @@ class StandardServerProviderTest {
             assertRedirectRequestsCompleted(httpClient, localhostUri);
             assertBadRequestsCompleted(httpClient, localhostUri);
             assertMisdirectedRequestsCompleted(httpClient, localhostUri);
+
+            assertReplicatedRequestCompleted(httpClient, localhostUri, HttpStatus.MOVED_TEMPORARILY_302);
         }
+    }
+
+    void assertReplicatedRequestCompleted(final HttpClient httpClient, final URI localhostUri, final int statusCodeExpected) throws IOException, InterruptedException {
+        final HttpRequest proxyHostRequestReplicatedRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.PROXY_HOST.getHeader(), PUBLIC_UNKNOWN_HOST)
+                .header(REQUEST_REPLICATED_HEADER, Boolean.TRUE.toString())
+                .build();
+        assertResponseStatusCode(httpClient, proxyHostRequestReplicatedRequest, statusCodeExpected);
     }
 
     void assertFrontendRedirectRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
