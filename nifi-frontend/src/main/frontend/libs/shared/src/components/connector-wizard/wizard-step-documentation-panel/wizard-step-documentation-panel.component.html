@@ -36,7 +36,7 @@
         } @else if (getErrorMessage()) {
             <div class="error-container flex flex-col items-center justify-center gap-4 p-8" data-qa="markdown-error">
                 <i class="fa fa-warning error-color text-4xl" aria-hidden="true"></i>
-                <p class="text-base text-center wrap-anywhere">{{ getErrorMessage() }}</p>
+                <div class="text-center wrap-anywhere">{{ getErrorMessage() }}</div>
             </div>
         } @else if (getStepDocumentation()) {
             <div class="markdown-content" data-qa="markdown-content">
@@ -45,7 +45,7 @@
         } @else {
             <div class="empty-container flex flex-col items-center justify-center gap-4 p-8" data-qa="markdown-empty">
                 <i class="fa fa-info-circle text-4xl opacity-50" aria-hidden="true"></i>
-                <p class="text-base text-center opacity-70">No documentation available.</p>
+                <div class="text-center unset">No documentation available.</div>
             </div>
         }
     </div>

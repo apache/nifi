@@ -52,7 +52,7 @@
                             mode="indeterminate"
                             diameter="40"
                             data-qa="step-spinner"></mat-progress-spinner>
-                        <p class="text-base" data-qa="step-loading-message">Loading step configuration...</p>
+                        <div data-qa="step-loading-message">Loading step configuration...</div>
                     </div>
                 } @else {
                     @let config = stepConfiguration();
@@ -137,7 +137,7 @@
                     } @else {
                         <!-- No Data State -->
                         <div class="flex items-center justify-center p-8">
-                            <p class="text-base opacity-70">No configuration data available for this step.</p>
+                            <div class="unset">No configuration data available for this step.</div>
                         </div>
                     }
                 }

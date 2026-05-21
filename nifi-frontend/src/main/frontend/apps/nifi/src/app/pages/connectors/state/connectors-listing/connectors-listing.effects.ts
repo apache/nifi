@@ -449,10 +449,8 @@ export class ConnectorsListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(navigateToViewConnectorDetails),
-                tap(() => {
-                    window.alert(
-                        'TODO: View connector details is not yet implemented. This feature will be implemented in a future iteration.'
-                    );
+                tap((action) => {
+                    this.router.navigate(['/connectors', action.id, 'detail']);
                 })
             ),
         { dispatch: false }

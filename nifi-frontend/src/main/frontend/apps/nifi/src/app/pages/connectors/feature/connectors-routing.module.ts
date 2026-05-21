@@ -19,6 +19,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Connectors } from './connectors.component';
 import { ConnectorConfigure } from '../ui/connector-configure/connector-configure.component';
+import { ConnectorDetail } from '../ui/connector-detail/connector-detail.component';
 
 const routes: Routes = [
     {
@@ -29,6 +30,10 @@ const routes: Routes = [
     {
         path: ':id/configure',
         component: ConnectorConfigure
+    },
+    {
+        path: ':id/detail',
+        component: ConnectorDetail
     },
     {
         path: '',

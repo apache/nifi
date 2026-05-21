@@ -19,15 +19,20 @@
     <header class="nifi-header">
         <navigation></navigation>
     </header>
-    <context-error-banner class="wizard-context-banner" [context]="ErrorContextKey.CONNECTORS"></context-error-banner>
-    <div class="flex flex-1 overflow-hidden">
+    @if (!backNavigation() && !loading && !errorMessage) {
+        <div class="pl-5 pt-2">
+            <a (click)="returnToConnectorListing()" data-qa="fallback-back-link">
+                <i class="fa fa-arrow-left mr-2" aria-hidden="true"></i>Installed connectors
+            </a>
+        </div>
+    }
+    <context-error-banner [context]="ErrorContextKey.CONNECTORS"></context-error-banner>
+    <div class="flex flex-1 min-h-0 overflow-y-auto">
         @if (loading) {
-            <!-- Loading state -->
             <div class="flex-1 flex items-center justify-center">
                 <span *nifiSpinner="loading" data-qa="loading-spinner"></span>
             </div>
         } @else if (errorMessage) {
-            <!-- Error State (Permission Error, API Error, Not Found, etc.) -->
             <div class="flex-1 flex items-center justify-center" data-qa="error-container">
                 <div class="flex flex-col items-center gap-y-4">
                     <i class="fa fa-warning error-color text-4xl" data-qa="error-icon" aria-hidden="true"></i>
@@ -38,28 +43,24 @@
                 </div>
             </div>
         } @else if (frameSource) {
-            <!-- Custom configuration UI in iframe -->
             <!--
                 Sandbox flags:
                   allow-scripts        — run the embedded connector app
-                  allow-forms          — submit configuration forms
                   allow-same-origin    — postMessage, style injection, API calls
                   allow-popups         — open external doc links via target="_blank"
                   allow-popups-to-escape-sandbox — opened tabs run without sandbox restrictions
+                  (allow-forms omitted — read-only details view)
             -->
             <iframe
                 #iframeRef
                 class="flex-1 border-none"
                 [src]="frameSource"
-                [title]="'Custom configuration for ' + (connector?.component?.name || 'connector')"
-                sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                [title]="'Custom details for ' + (connector?.component?.name || 'connector')"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                 referrerpolicy="strict-origin-when-cross-origin"
                 (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
         } @else if (connector) {
-            <!-- Generic configuration wizard -->
-            <connector-wizard [connector]="connector" (navigateBack)="returnToConnectorListing()">
-                <div wizardHeaderContent>{{ connector.component.name }}</div>
-            </connector-wizard>
+            <connector-details-content class="w-full h-full" [connector]="connector"></connector-details-content>
         }
     </div>
 </div>
