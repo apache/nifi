@@ -56,7 +56,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
             sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
@@ -87,7 +87,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
             sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
@@ -118,7 +118,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
             sender.publish("world".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
             sender.publish("good-bye".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
@@ -153,7 +153,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
@@ -184,7 +184,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
@@ -219,7 +219,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
@@ -251,7 +251,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
@@ -288,7 +288,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
@@ -318,7 +318,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
@@ -352,7 +352,7 @@ public class ConsumeAMQPTest {
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), builderBasicProperties.build(), "key1", "myExchange");
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);

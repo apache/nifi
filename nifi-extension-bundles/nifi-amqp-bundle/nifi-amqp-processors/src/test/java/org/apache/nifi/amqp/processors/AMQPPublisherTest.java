@@ -39,14 +39,14 @@ public class AMQPPublisherTest {
 
     @Test
     public void failOnNullConnection() {
-        assertThrows(IllegalArgumentException.class, () -> new AMQPPublisher(null, null));
+        assertThrows(IllegalArgumentException.class, () -> new AMQPPublisher(null, null, false));
     }
 
     @Test
     public void failPublishIfChannelClosed() {
         assertThrows(AMQPRollbackException.class, () -> {
             Connection conn = new TestConnection(null, null);
-            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class), false)) {
                 conn.close();
                 sender.publish("oleg".getBytes(), null, "foo", "");
             }
@@ -57,7 +57,7 @@ public class AMQPPublisherTest {
     public void failPublishIfChannelFails() {
         assertThrows(AMQPException.class, () -> {
             TestConnection conn = new TestConnection(null, null);
-            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class), false)) {
                 ((TestChannel) conn.createChannel()).corruptChannel();
                 sender.publish("oleg".getBytes(), null, "foo", "");
             }
@@ -73,7 +73,7 @@ public class AMQPPublisherTest {
 
         Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class), false)) {
             sender.publish("hello".getBytes(), null, "key1", "myExchange");
         }
 
@@ -95,7 +95,7 @@ public class AMQPPublisherTest {
         ReturnListener retListener = mock(ReturnListener.class);
         connection.createChannel().addReturnListener(retListener);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, new MockComponentLog("foo", ""))) {
+        try (AMQPPublisher sender = new AMQPPublisher(connection, new MockComponentLog("foo", ""), false)) {
             sender.publish("hello".getBytes(), null, "key1", "myExchange");
         }
 
@@ -111,38 +111,29 @@ public class AMQPPublisherTest {
      * to REL_FAILURE instead of surfacing as an unhandled processor error.
      */
     @Test
-    public void failPublishWhenBrokerClosesChannelDuringConfirm() {
+    public void failPublishWhenBrokerClosesChannelDuringConfirmInAtLeastOnce() {
         assertThrows(AMQPException.class, () -> {
             TestConnection conn = new TestConnection(null, null);
             conn.getTestChannel().setSimulateShutdownOnConfirm(true);
-            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class), true)) {
                 sender.publish("hello".getBytes(), null, "foo", "");
             }
         });
     }
 
-    /**
-     * Verifies that a broker NACK (waitForConfirms returns false) throws {@link AMQPException}
-     * so the FlowFile routes to REL_FAILURE.
-     */
     @Test
-    public void failPublishWhenBrokerNacksMessage() {
+    public void failPublishWhenBrokerNacksMessageInAtLeastOnce() {
         assertThrows(AMQPException.class, () -> {
             TestConnection conn = new TestConnection(null, null);
             conn.getTestChannel().setSimulateNackOnConfirm(true);
-            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
+            try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class), true)) {
                 sender.publish("hello".getBytes(), null, "foo", "");
             }
         });
     }
 
-    /**
-     * Verifies that when the broker returns a message as undeliverable (basic.return, e.g., no
-     * queue bound to the exchange/routing-key), an {@link AMQPException} is thrown so the FlowFile
-     * routes to REL_FAILURE rather than silently to REL_SUCCESS.
-     */
     @Test
-    public void failPublishWhenMessageReturnedAsUndeliverable() {
+    public void failPublishWhenMessageReturnedAsUndeliverableInAtLeastOnce() {
         assertThrows(AMQPException.class, () -> {
             Map<String, List<String>> routingMap = new HashMap<>();
             routingMap.put("key1", Arrays.asList("queue1"));
@@ -150,14 +141,29 @@ public class AMQPPublisherTest {
             exchangeToRoutingKeymap.put("myExchange", "key1");
 
             TestConnection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
-            // Fire return listener synchronously so it is guaranteed to run before waitForConfirms()
             conn.getTestChannel().setSimulateSynchronousReturn(true);
 
-            try (AMQPPublisher sender = new AMQPPublisher(conn, new MockComponentLog("id", ""))) {
-                // Wrong routing key → broker returns the message as undeliverable
+            try (AMQPPublisher sender = new AMQPPublisher(conn, new MockComponentLog("id", ""), true)) {
                 sender.publish("hello".getBytes(), null, "wrongKey", "myExchange");
             }
         });
+    }
+
+    @Test
+    public void succeedsPublishWhenMessageUndeliverableInAtMostOnceMode() throws Exception {
+        Map<String, List<String>> routingMap = new HashMap<>();
+        routingMap.put("key1", Arrays.asList("queue1"));
+        Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
+        exchangeToRoutingKeymap.put("myExchange", "key1");
+
+        TestConnection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        conn.getTestChannel().setSimulateSynchronousReturn(true);
+
+        try (AMQPPublisher sender = new AMQPPublisher(conn, new MockComponentLog("id", ""), false)) {
+            // In AT_MOST_ONCE mode, undeliverable messages only produce a warning — no exception
+            sender.publish("hello".getBytes(), null, "wrongKey", "myExchange");
+        }
+        conn.close();
     }
 
 }

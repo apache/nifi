@@ -35,12 +35,14 @@ import java.util.concurrent.atomic.AtomicReference;
 final class AMQPPublisher extends AMQPWorker {
 
     private final String connectionString;
+    private final boolean useConfirms;
 
     /**
      * Stores the broker's return reason when a message is published with mandatory=true
      * but the broker cannot route it to any queue. Written by the AMQP I/O thread via
      * {@link UndeliverableMessageLogger} and read by the publishing thread after
      * {@link com.rabbitmq.client.Channel#waitForConfirms} synchronizes the two.
+     * Only populated when {@link #useConfirms} is true.
      */
     private final AtomicReference<String> undeliverableReturnReason = new AtomicReference<>(null);
 
@@ -48,21 +50,23 @@ final class AMQPPublisher extends AMQPWorker {
      * Creates an instance of this publisher
      *
      * @param connection instance of AMQP {@link Connection}
+     * @param useConfirms when true, enables RabbitMQ Publisher Confirms so that
+     *                    {@link #publish} waits for a broker ack/nack and reliably
+     *                    detects undeliverable messages; when false, the original
+     *                    fire-and-forget behaviour is used for maximum throughput
      */
-    AMQPPublisher(Connection connection, ComponentLog processorLog) {
+    AMQPPublisher(Connection connection, ComponentLog processorLog, boolean useConfirms) {
         super(connection, processorLog);
+        this.useConfirms = useConfirms;
         getChannel().addReturnListener(new UndeliverableMessageLogger());
         this.connectionString = connection.toString();
 
-        // Enable Publisher Confirms on this channel so that waitForConfirms() can be used
-        // after basicPublish() to create a synchronization point. This ensures that any
-        // basic.return frame sent by the broker (for mandatory messages it cannot route)
-        // will have been processed by the ReturnListener before waitForConfirms() returns,
-        // allowing undeliverable messages to be reliably detected and routed to REL_FAILURE.
-        try {
-            getChannel().confirmSelect();
-        } catch (final IOException e) {
-            throw new AMQPException("Failed to enable Publisher Confirms on AMQP channel", e);
+        if (useConfirms) {
+            try {
+                getChannel().confirmSelect();
+            } catch (final IOException e) {
+                throw new AMQPException("Failed to enable Publisher Confirms on AMQP channel", e);
+            }
         }
 
         processorLog.info("Successfully connected AMQPPublisher to {}", this.connectionString);
@@ -101,38 +105,31 @@ final class AMQPPublisher extends AMQPWorker {
             throw new AMQPException("Failed to publish message to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
         }
 
-        // Wait for the broker's publish confirm (ack/nack). Because the broker sends a basic.return
-        // frame BEFORE the corresponding confirm frame for mandatory messages it cannot route,
-        // UndeliverableMessageLogger.handleReturn() is guaranteed to have run by the time
-        // waitForConfirms() returns. This makes undeliverable-message detection reliable.
-        //
-        // If the exchange does not exist, the broker closes the channel with a 404 NOT_FOUND
-        // channel.close frame, which causes waitForConfirms() to throw ShutdownSignalException.
-        // We catch it here and convert it to AMQPException so the FlowFile routes to REL_FAILURE
-        // instead of surfacing as an unhandled processor error.
-        try {
-            if (!getChannel().waitForConfirms(5_000L)) {
-                throw new AMQPException("Broker negatively acknowledged (NACK) message published to Exchange '"
-                        + exchange + "' with Routing Key '" + routingKey + "'");
+        if (useConfirms) {
+            // Wait for the broker's publish confirm (ack/nack). Because the broker sends a basic.return
+            // frame BEFORE the corresponding confirm frame for mandatory messages it cannot route,
+            // UndeliverableMessageLogger.handleReturn() is guaranteed to have run by the time
+            // waitForConfirms() returns. This makes undeliverable-message detection reliable.
+            try {
+                if (!getChannel().waitForConfirms(5_000L)) {
+                    throw new AMQPException("Broker negatively acknowledged (NACK) message published to Exchange '"
+                            + exchange + "' with Routing Key '" + routingKey + "'");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AMQPException("Interrupted while waiting for publish confirmation from broker", e);
+            } catch (TimeoutException e) {
+                throw new AMQPException("Timed out waiting for publish confirmation from broker for Exchange '"
+                        + exchange + "' with Routing Key '" + routingKey + "'", e);
+            } catch (ShutdownSignalException e) {
+                throw new AMQPException("Broker closed channel while waiting for publish confirmation — "
+                        + "Exchange '" + exchange + "' may not exist: " + e.getMessage(), e);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new AMQPException("Interrupted while waiting for publish confirmation from broker", e);
-        } catch (TimeoutException e) {
-            throw new AMQPException("Timed out waiting for publish confirmation from broker for Exchange '"
-                    + exchange + "' with Routing Key '" + routingKey + "'", e);
-        } catch (ShutdownSignalException e) {
-            // Broker closed the channel — most commonly because the exchange does not exist (404)
-            // or the vhost was deleted. Convert to AMQPException so PublishAMQP routes to REL_FAILURE.
-            throw new AMQPException("Broker closed channel while waiting for publish confirmation — "
-                    + "Exchange '" + exchange + "' may not exist: " + e.getMessage(), e);
-        }
 
-        // If the broker returned the message (e.g., no queue bound to the exchange/routing-key),
-        // surface it as a hard failure so the caller can route to REL_FAILURE instead of REL_SUCCESS.
-        final String returnReason = undeliverableReturnReason.get();
-        if (returnReason != null) {
-            throw new AMQPException("Message returned as undeliverable by broker — " + returnReason);
+            final String returnReason = undeliverableReturnReason.get();
+            if (returnReason != null) {
+                throw new AMQPException(returnReason);
+            }
         }
     }
 
@@ -143,21 +140,25 @@ final class AMQPPublisher extends AMQPWorker {
 
     /**
      * Listens for messages returned by the broker when they cannot be routed to any queue
-     * (mandatory=true publish with no matching binding). Previously this listener only logged
-     * a warning, causing PublishAMQP to silently route the FlowFile to REL_SUCCESS even though
-     * the message was never delivered. (NIFI-15483)
+     * (mandatory=true publish with no matching binding).
      *
-     * Now it stores the return reason in {@link #undeliverableReturnReason} so that
-     * {@link #publish} can detect it after {@code waitForConfirms()} synchronizes the two
-     * threads and throw an {@link AMQPException} to trigger REL_FAILURE routing.
+     * In {@link PublishAMQP.DeliveryGuarantee#AT_MOST_ONCE} mode (the default), this listener
+     * only logs a warning — matching the original behaviour.
+     *
+     * In {@link PublishAMQP.DeliveryGuarantee#AT_LEAST_ONCE} mode, the return reason is also
+     * stored in {@link #undeliverableReturnReason} so that {@link #publish} can detect it after
+     * {@code waitForConfirms()} synchronizes the two threads and throw an {@link AMQPException}
+     * to trigger REL_FAILURE routing.
      */
     private final class UndeliverableMessageLogger implements ReturnListener {
         @Override
         public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) throws IOException {
-            final String reason = "exchange='" + exchangeName + "' routingKey='" + routingKey
-                    + "' replyCode=" + replyCode + " replyText='" + replyText + "'";
-            undeliverableReturnReason.set(reason);
-            processorLog.warn("Message returned as undeliverable by broker: {}", reason);
+            final String reason = "Message returned as undeliverable by broker: exchange='" + exchangeName
+                    + "' routingKey='" + routingKey + "' replyCode=" + replyCode + " replyText='" + replyText + "'";
+            if (useConfirms) {
+                undeliverableReturnReason.set(reason);
+            }
+            processorLog.warn(reason);
         }
     }
 }
