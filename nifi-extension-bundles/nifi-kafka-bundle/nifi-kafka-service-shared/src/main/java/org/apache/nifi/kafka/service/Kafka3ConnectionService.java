@@ -22,6 +22,7 @@ import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.KafkaShareConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
@@ -45,11 +46,15 @@ import org.apache.nifi.kafka.service.api.common.ServiceConfiguration;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
+import org.apache.nifi.kafka.service.api.consumer.share.KafkaShareConsumerService;
+import org.apache.nifi.kafka.service.api.consumer.share.ShareAcknowledgementMode;
+import org.apache.nifi.kafka.service.api.consumer.share.ShareGroupContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.consumer.Kafka3AssignmentService;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.consumer.Subscription;
+import org.apache.nifi.kafka.service.consumer.share.Kafka4ShareConsumerService;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
 import org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler;
 import org.apache.nifi.kafka.service.security.StandardSslEngineFactory;
@@ -258,6 +263,39 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             final Subscription subscription = createSubscription(pollingContext);
             return new Kafka3ConsumerService(getLogger(), consumer, subscription);
         }
+    }
+
+    @Override
+    public KafkaShareConsumerService getShareConsumerService(final ShareGroupContext shareGroupContext) {
+        Objects.requireNonNull(shareGroupContext, "Share Group Context required");
+
+        final Properties properties = new Properties();
+        properties.putAll(consumerProperties);
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, shareGroupContext.getGroupId());
+
+        // Configurations rejected by ShareConsumerConfig.SHARE_GROUP_UNSUPPORTED_CONFIGS in
+        // Kafka 4.2+. Remove rather than override so KafkaShareConsumer construction does not
+        // throw ConfigException on properties carried over from the classic-consumer setup.
+        // Keep this list in sync with org.apache.kafka.clients.consumer.ShareConsumerConfig
+        // when upgrading the kafka-clients dependency.
+        properties.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+        properties.remove(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
+        properties.remove(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG);
+        properties.remove(ConsumerConfig.ISOLATION_LEVEL_CONFIG);
+        properties.remove(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG);
+        properties.remove(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG);
+        properties.remove(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG);
+        properties.remove(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG);
+        properties.remove(ConsumerConfig.GROUP_PROTOCOL_CONFIG);
+        properties.remove(ConsumerConfig.GROUP_REMOTE_ASSIGNOR_CONFIG);
+
+        final ShareAcknowledgementMode acknowledgementMode = shareGroupContext.getAcknowledgementMode();
+        properties.put(ConsumerConfig.SHARE_ACKNOWLEDGEMENT_MODE_CONFIG, acknowledgementMode.getValue());
+
+        final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
+        final KafkaShareConsumer<byte[], byte[]> shareConsumer = new KafkaShareConsumer<>(properties, deserializer, deserializer);
+
+        return new Kafka4ShareConsumerService(getLogger(), shareConsumer, acknowledgementMode, shareGroupContext.getTopics());
     }
 
     private Subscription createSubscription(final PollingContext pollingContext) {
