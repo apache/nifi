@@ -22,7 +22,6 @@ import { StatusVariant } from '../../types';
 
 @Component({
     selector: 'status-banner',
-    standalone: true,
     imports: [MatIconButton, NgClass],
     templateUrl: './status-banner.component.html',
     styleUrl: './status-banner.component.scss'
@@ -36,15 +35,15 @@ export class StatusBanner {
     getBannerIcon(variant: StatusVariant): string {
         switch (variant) {
             case 'success':
-                return 'fa-check-circle';
-            case 'active':
+                return 'fa-check-circle-o';
             case 'info':
             case 'neutral':
                 return 'fa-info-circle';
             case 'critical':
             case 'caution':
+                return 'fa-warning';
             default:
-                return 'fa-exclamation-triangle';
+                return 'fa-warning';
         }
     }
 

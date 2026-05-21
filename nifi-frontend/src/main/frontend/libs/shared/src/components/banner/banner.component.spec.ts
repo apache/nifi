@@ -39,7 +39,7 @@ describe('Banner', () => {
     it('should show single message', () => {
         fixture.componentRef.setInput('messages', ['Test message']);
         fixture.detectChanges();
-        const messageElement = fixture.nativeElement.querySelector('div.error-banner-message');
+        const messageElement = fixture.nativeElement.querySelector('[data-qa="banner-message"]');
         expect(messageElement).toBeTruthy();
         expect(messageElement.textContent).toContain('Test message');
     });
@@ -47,7 +47,7 @@ describe('Banner', () => {
     it('should show multiple messages', () => {
         fixture.componentRef.setInput('messages', ['Test message 1', 'Test message 2']);
         fixture.detectChanges();
-        const messageElements = fixture.nativeElement.querySelectorAll('li.error-banner-message');
+        const messageElements = fixture.nativeElement.querySelectorAll('[data-qa="banner-message-item"]');
         expect(messageElements.length).toBe(2);
         expect(messageElements[0].textContent).toContain('Test message 2');
         expect(messageElements[1].textContent).toContain('Test message 1');
@@ -56,7 +56,7 @@ describe('Banner', () => {
     it('should show deduplicated messages', () => {
         fixture.componentRef.setInput('messages', ['Test message 1', 'Test message 1', 'Test message 2']);
         fixture.detectChanges();
-        const messageElements = fixture.nativeElement.querySelectorAll('li.error-banner-message');
+        const messageElements = fixture.nativeElement.querySelectorAll('[data-qa="banner-message-item"]');
         expect(messageElements.length).toBe(2);
         expect(messageElements[0].textContent).toContain('Test message 2');
         expect(messageElements[1].textContent).toContain('Test message 1');

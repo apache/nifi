@@ -17,7 +17,9 @@
 
 <div class="status-banner-container status-variant p-4 flex gap-x-2 text-sm rounded-lg" [class]="variant">
     <i class="fa fa-2x" [ngClass]="getBannerIcon(variant)" [class]="variant" aria-hidden="true"></i>
-    <div class="status-banner-text-container flex flex-col flex-1 gap-y-1 break-words" [class]="variant">
+    <div
+        class="status-banner-text-container flex flex-col flex-1 gap-y-1 break-words max-h-[560px] overflow-auto"
+        [class]="variant">
         <ng-content select="[statusBannerTitle]"></ng-content>
         <ng-content select="[statusBannerDescription]"></ng-content>
         <span class="status-banner-unscoped-content">

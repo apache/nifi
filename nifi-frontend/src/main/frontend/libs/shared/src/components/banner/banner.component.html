@@ -16,15 +16,18 @@
 -->
 
 @if (messages && messages.length > 0) {
-    <div class="banner-container" [class]="panelClass">
+    <div class="banner-container" [class]="panelClass" data-qa="banner">
         <status-banner [allowDismiss]="allowDismiss" (dismiss)="dismissClicked()" [variant]="variant">
             <div class="flex-1 flex gap-4">
                 @if (messages.length === 1) {
-                    <div class="error-banner-message">{{ messages[0] }}</div>
+                    <div class="break-words" data-qa="banner-message">{{ messages[0] }}</div>
                 } @else {
-                    <ul [class.!list-none]="deduplicatedMessages.length === 1">
+                    <ul
+                        class="list-disc list-inside"
+                        [class.!list-none]="deduplicatedMessages.length === 1"
+                        data-qa="banner-message-list">
                         @for (message of deduplicatedMessages; track message) {
-                            <li class="error-banner-message">
+                            <li class="break-words" data-qa="banner-message-item">
                                 <span>{{ message }}</span>
                             </li>
                         }

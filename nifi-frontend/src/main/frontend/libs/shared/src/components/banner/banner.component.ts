@@ -21,7 +21,6 @@ import { StatusBanner } from '../status-banner/status-banner.component';
 
 @Component({
     selector: 'banner',
-    standalone: true,
     imports: [StatusBanner],
     templateUrl: './banner.component.html',
     styleUrl: './banner.component.scss',

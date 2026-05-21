@@ -43,15 +43,13 @@ describe('StatusBanner', () => {
 
     it('should show the correct FA icon class for each variant', () => {
         const checkCircle: StatusVariant[] = ['success'];
-        expect(checkCircle.every((variant) => component.getBannerIcon(variant) === 'fa-check-circle')).toBe(true);
+        expect(checkCircle.every((variant) => component.getBannerIcon(variant) === 'fa-check-circle-o')).toBe(true);
 
-        const infoCircle: StatusVariant[] = ['active', 'info', 'neutral'];
+        const infoCircle: StatusVariant[] = ['info', 'neutral'];
         expect(infoCircle.every((variant) => component.getBannerIcon(variant) === 'fa-info-circle')).toBe(true);
 
-        const triangleWarning: StatusVariant[] = ['critical', 'caution'];
-        expect(triangleWarning.every((variant) => component.getBannerIcon(variant) === 'fa-exclamation-triangle')).toBe(
-            true
-        );
+        const warning: StatusVariant[] = ['critical', 'caution', 'active'];
+        expect(warning.every((variant) => component.getBannerIcon(variant) === 'fa-warning')).toBe(true);
     });
 
     it('should emit dismiss event when dismiss is clicked', () => {

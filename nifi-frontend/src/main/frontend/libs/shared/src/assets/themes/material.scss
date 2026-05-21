@@ -384,6 +384,28 @@
             color: var(--nf-success-contrast);
             background-color: var(--nf-success-variant);
         }
+
+        .fa {
+            &.neutral {
+                color: var(--mat-sys-on-surface);
+            }
+
+            &.critical {
+                color: var(--mat-sys-on-error);
+            }
+
+            &.caution {
+                color: var(--nf-caution-contrast);
+            }
+
+            &.success {
+                color: var(--nf-success-contrast);
+            }
+
+            &.info {
+                color: var(--nf-success-contrast);
+            }
+        }
     }
 }
 
@@ -900,6 +922,28 @@ html {
         &.info {
             color: var(--nf-success-contrast);
             background-color: var(--nf-success-variant);
+        }
+
+        .fa {
+            &.neutral {
+                color: var(--mat-sys-on-surface);
+            }
+
+            &.critical {
+                color: var(--mat-sys-on-error);
+            }
+
+            &.caution {
+                color: var(--nf-caution-contrast);
+            }
+
+            &.success {
+                color: var(--nf-success-contrast);
+            }
+
+            &.info {
+                color: var(--nf-success-contrast);
+            }
         }
     }
 }
