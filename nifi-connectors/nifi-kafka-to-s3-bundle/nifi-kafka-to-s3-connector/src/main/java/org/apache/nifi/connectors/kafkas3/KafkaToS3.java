@@ -130,7 +130,7 @@ public class KafkaToS3 extends AbstractConnector {
         }
         if (stepName.equals(KafkaTopicsStep.STEP_NAME)) {
             final List<ConfigVerificationResult> results = new ArrayList<>();
-            results.addAll(verifyTopicsExists(workingFlowContext));
+            results.addAll(verifyTopicsExists(workingFlowContext, configurationContext));
             results.addAll(verifyKafkaParsability(workingFlowContext, flow));
             return results;
         }
@@ -179,7 +179,7 @@ public class KafkaToS3 extends AbstractConnector {
     }
 
 
-    private List<ConfigVerificationResult> verifyTopicsExists(final FlowContext workingFlowContext) {
+    List<ConfigVerificationResult> verifyTopicsExists(final FlowContext workingFlowContext, final ConnectorConfigurationContext configurationContext) {
         final List<String> topicsAvailable;
         try {
             topicsAvailable = getAvailableTopics(workingFlowContext);
@@ -192,25 +192,25 @@ public class KafkaToS3 extends AbstractConnector {
         }
 
         final Set<String> topicNames = new HashSet<>(topicsAvailable);
-        final List<String> specifiedTopics = workingFlowContext.getConfigurationContext().getProperty(KafkaTopicsStep.STEP_NAME,
+        final List<String> specifiedTopics = configurationContext.getProperty(KafkaTopicsStep.STEP_NAME,
             KafkaTopicsStep.TOPIC_NAMES.getName()).asList();
         final String missingTopics = specifiedTopics.stream()
             .filter(topic -> !topicNames.contains(topic))
             .collect(Collectors.joining(", "));
 
-        if (!missingTopics.isEmpty()) {
-            return List.of(new ConfigVerificationResult.Builder()
-                .verificationStepName("Verify Kafka topics exist")
-                .outcome(Outcome.FAILED)
-                .explanation("The following topics do not exist in the Kafka cluster: " + missingTopics)
-                .build());
-        } else {
+        if (missingTopics.isEmpty()) {
             return List.of(new ConfigVerificationResult.Builder()
                 .verificationStepName("Verify Kafka topics exist")
                 .outcome(Outcome.SUCCESSFUL)
                 .explanation("All specified topics exist in the Kafka cluster")
                 .build());
         }
+
+        return List.of(new ConfigVerificationResult.Builder()
+            .verificationStepName("Verify Kafka topics exist")
+            .outcome(Outcome.FAILED)
+            .explanation("The following topics do not exist in the Kafka cluster: " + missingTopics)
+            .build());
     }
 
     private List<ConfigVerificationResult> verifyKafkaConnectivity(final FlowContext workingFlowContext, final VersionedExternalFlow flow) {
@@ -256,7 +256,7 @@ public class KafkaToS3 extends AbstractConnector {
     }
 
     @SuppressWarnings("unchecked")
-    private List<String> getAvailableTopics(final FlowContext flowContext) {
+    List<String> getAvailableTopics(final FlowContext flowContext) {
         // If Kafka Brokers not yet set, return empty list
         final ConnectorConfigurationContext config = flowContext.getConfigurationContext();
         if (!config.getProperty(KafkaConnectionStep.KAFKA_CONNECTION_STEP, KafkaConnectionStep.KAFKA_BROKERS).isSet()) {
