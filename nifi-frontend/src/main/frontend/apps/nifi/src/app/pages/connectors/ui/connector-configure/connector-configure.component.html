@@ -58,7 +58,7 @@
         } @else if (connector) {
             <!-- Generic configuration wizard -->
             <connector-wizard [connector]="connector" (navigateBack)="returnToConnectorListing()">
-                <div wizardHeaderContent>{{ connector.component.name }}</div>
+                <div class="truncate" ellipsisTooltip wizardHeaderContent>{{ connector.component.name }}</div>
             </connector-wizard>
         }
     </div>
