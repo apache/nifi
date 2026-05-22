@@ -70,6 +70,7 @@ multi-select-option {
     }
 
     &:hover:not(.mdc-list-item--disabled) {
+        cursor: pointer;
         background-color: var(
             --mat-option-hover-state-layer-color,
             color-mix(
@@ -99,6 +100,11 @@ multi-select-option {
         .mdc-list-item__primary-text {
             color: var(--mat-option-selected-state-label-text-color, var(--mat-sys-on-secondary-container));
         }
+    }
+
+    &.mdc-list-item.mdc-list-item--disabled {
+        cursor: default;
+        color: var(--nf-disabled);
     }
 
     // When hover/focus/active overrides the selected background, revert the checkmark
