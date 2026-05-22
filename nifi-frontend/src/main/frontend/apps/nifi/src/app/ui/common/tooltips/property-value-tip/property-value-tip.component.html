@@ -25,9 +25,15 @@
                 <tr>
                     <td class="font-bold pr-4 leading-4">{{ param.name }}</td>
                     <td class="line-clamp-[10] leading-4 pl-4 whitespace-pre font-mono text-sm">
-                        <div class="truncate max-w-xs">
-                            {{ param.value }}
-                        </div>
+                        @if (param.value === null || param.value === undefined) {
+                            <div class="unset neutral-color">No value set</div>
+                        } @else if (param.value === '') {
+                            <div class="unset neutral-color">Empty string set</div>
+                        } @else {
+                            <div class="truncate max-w-xs">
+                                {{ param.value }}
+                            </div>
+                        }
                     </td>
                 </tr>
             }

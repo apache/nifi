@@ -176,4 +176,92 @@ describe('PropertyValueTip', () => {
             expect(component.parameterReferences.length).toBe(0);
         });
     });
+
+    describe('parameter value rendering', () => {
+        function buildDescriptor(overrides: Partial<any> = {}) {
+            return {
+                name: 'prop',
+                displayName: 'Prop',
+                description: 'desc',
+                required: false,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: true,
+                expressionLanguageScope: '',
+                dependencies: [],
+                ...overrides
+            };
+        }
+
+        function getParameterValueCellText(): string {
+            const cells = fixture.nativeElement.querySelectorAll('table td');
+            return cells[1]?.textContent?.trim() ?? '';
+        }
+
+        it('renders "No value set" when the referenced parameter value is null', () => {
+            const data: PropertyValueTipInput = {
+                property: {
+                    property: 'prop',
+                    value: '#{PARAM_A}',
+                    descriptor: buildDescriptor()
+                },
+                parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: null } }]
+            };
+
+            fixture.componentRef.setInput('data', data);
+            fixture.detectChanges();
+
+            expect(getParameterValueCellText()).toBe('No value set');
+        });
+
+        it('renders "No value set" when the referenced parameter value is undefined', () => {
+            const data: PropertyValueTipInput = {
+                property: {
+                    property: 'prop',
+                    value: '#{PARAM_A}',
+                    descriptor: buildDescriptor()
+                },
+                parameters: [
+                    { parameter: { name: 'PARAM_A', description: '', sensitive: false, value: undefined as any } }
+                ]
+            };
+
+            fixture.componentRef.setInput('data', data);
+            fixture.detectChanges();
+
+            expect(getParameterValueCellText()).toBe('No value set');
+        });
+
+        it('renders "Empty string set" when the referenced parameter value is an empty string', () => {
+            const data: PropertyValueTipInput = {
+                property: {
+                    property: 'prop',
+                    value: '#{PARAM_A}',
+                    descriptor: buildDescriptor()
+                },
+                parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: '' } }]
+            };
+
+            fixture.componentRef.setInput('data', data);
+            fixture.detectChanges();
+
+            expect(getParameterValueCellText()).toBe('Empty string set');
+        });
+
+        it('renders the value when the referenced parameter has a non-empty value', () => {
+            const data: PropertyValueTipInput = {
+                property: {
+                    property: 'prop',
+                    value: '#{PARAM_A}',
+                    descriptor: buildDescriptor()
+                },
+                parameters: [{ parameter: { name: 'PARAM_A', description: '', sensitive: false, value: 'hello' } }]
+            };
+
+            fixture.componentRef.setInput('data', data);
+            fixture.detectChanges();
+
+            expect(getParameterValueCellText()).toBe('hello');
+        });
+    });
 });

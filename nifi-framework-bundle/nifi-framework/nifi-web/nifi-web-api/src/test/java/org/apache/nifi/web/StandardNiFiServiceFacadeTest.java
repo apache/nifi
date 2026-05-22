@@ -71,6 +71,8 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryUtil;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -104,6 +106,7 @@ import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -118,6 +121,7 @@ import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -2245,5 +2249,101 @@ public class StandardNiFiServiceFacadeTest {
         assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent(), "Component should be populated when clusterNodeRequest is true");
         assertEquals("RUNNING", entity.getComponent().getState());
+    }
+
+    @Test
+    public void testGetConnectorParameterContextReturnsEntityWhenContextBound() {
+        final String connectorId = "connector-id";
+        final String processGroupId = "process-group-id";
+        final String parameterContextId = "parameter-context-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        final RevisionManager revisionManager = mock(RevisionManager.class);
+        final EntityFactory entityFactory = new EntityFactory();
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+        serviceFacade.setRevisionManager(revisionManager);
+        serviceFacade.setEntityFactory(entityFactory);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ProcessGroup targetProcessGroup = mock(ProcessGroup.class);
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessGroup(processGroupId)).thenReturn(targetProcessGroup);
+        when(targetProcessGroup.getParameterContext()).thenReturn(parameterContext);
+        when(parameterContext.getIdentifier()).thenReturn(parameterContextId);
+
+        final ParameterContextDTO parameterContextDto = new ParameterContextDTO();
+        parameterContextDto.setId(parameterContextId);
+        parameterContextDto.setName("context-name");
+        when(dtoFactory.createParameterContextDto(eq(parameterContext), eq(revisionManager), eq(true), any(ParameterContextLookup.class)))
+                .thenReturn(parameterContextDto);
+        when(dtoFactory.createPermissionsDto(eq(parameterContext), any())).thenReturn(null);
+        when(dtoFactory.createRevisionDTO(any(Revision.class))).thenReturn(new RevisionDTO());
+        when(revisionManager.getRevision(parameterContextId)).thenReturn(new Revision(1L, null, parameterContextId));
+
+        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
+
+        assertNotNull(entity);
+        assertEquals(parameterContextId, entity.getId());
+
+        final ArgumentCaptor<ParameterContextLookup> lookupCaptor = ArgumentCaptor.forClass(ParameterContextLookup.class);
+        verify(dtoFactory).createParameterContextDto(eq(parameterContext), eq(revisionManager), eq(true), lookupCaptor.capture());
+        assertNotNull(lookupCaptor.getValue());
+        assertNull(lookupCaptor.getValue().getParameterContext("any-id"));
+        assertFalse(lookupCaptor.getValue().hasParameterContext("any-id"));
+    }
+
+    @Test
+    public void testGetConnectorParameterContextReturnsNullWhenNoBoundContext() {
+        final String connectorId = "connector-id";
+        final String processGroupId = "process-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        final ProcessGroup targetProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessGroup(processGroupId)).thenReturn(targetProcessGroup);
+        when(targetProcessGroup.getParameterContext()).thenReturn(null);
+
+        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
+
+        assertNull(entity);
+        Mockito.verifyNoInteractions(dtoFactory);
+    }
+
+    @Test
+    public void testGetConnectorParameterContextThrowsWhenProcessGroupNotFound() {
+        final String connectorId = "connector-id";
+        final String processGroupId = "missing-process-group";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessGroup(processGroupId)).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorParameterContext(connectorId, processGroupId));
     }
 }

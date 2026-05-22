@@ -22,12 +22,13 @@ import * as ConnectorCanvasActions from './connector-canvas.actions';
 export const connectorCanvasReducer = createReducer(
     initialConnectorCanvasState,
 
-    on(ConnectorCanvasActions.loadConnectorFlow, (state, { processGroupId }) => ({
+    on(ConnectorCanvasActions.loadConnectorFlow, (state, { connectorId, processGroupId }) => ({
         ...state,
+        connectorId,
         processGroupId,
         loadingStatus: 'loading' as const,
         error: null,
-        ...(processGroupId !== state.processGroupId
+        ...(connectorId !== state.connectorId || processGroupId !== state.processGroupId
             ? {
                   labels: [],
                   funnels: [],
@@ -36,7 +37,8 @@ export const connectorCanvasReducer = createReducer(
                   remoteProcessGroups: [],
                   processGroups: [],
                   processors: [],
-                  connections: []
+                  connections: [],
+                  parameterContext: null
               }
             : {})
     })),
@@ -96,5 +98,15 @@ export const connectorCanvasReducer = createReducer(
     on(ConnectorCanvasActions.setSkipTransform, (state, { skipTransform }) => ({
         ...state,
         skipTransform
+    })),
+
+    on(ConnectorCanvasActions.loadConnectorParameterContextSuccess, (state, { parameterContext }) => ({
+        ...state,
+        parameterContext
+    })),
+
+    on(ConnectorCanvasActions.loadConnectorParameterContextFailure, (state) => ({
+        ...state,
+        parameterContext: null
     }))
 );

@@ -22,7 +22,18 @@ import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import { asyncScheduler, interval, NEVER, Observable, of } from 'rxjs';
-import { catchError, filter, map, switchMap, take, takeUntil, tap, throttleTime } from 'rxjs/operators';
+import {
+    catchError,
+    distinctUntilChanged,
+    filter,
+    map,
+    startWith,
+    switchMap,
+    take,
+    takeUntil,
+    tap,
+    throttleTime
+} from 'rxjs/operators';
 import { ComponentType, ComponentTypeNamePipe, LARGE_DIALOG, MEDIUM_DIALOG, NiFiCommon, XL_DIALOG } from '@nifi/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectPrioritizerTypes } from '../../../../state/extension-types/extension-types.selectors';
@@ -34,6 +45,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { BackNavigation } from '../../../../state/navigation';
 import { EditComponentDialogRequest, EditConnectionDialogRequest } from '../../../../state/shared';
 import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
@@ -43,6 +55,8 @@ import { EditLabel } from '../../../../ui/common/component-dialogs/edit-label/ed
 import { EditProcessGroup } from '../../../../ui/common/component-dialogs/edit-process-group/edit-process-group.component';
 import { EditRemoteProcessGroup } from '../../../../ui/common/component-dialogs/edit-remote-process-group/edit-remote-process-group.component';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
+import * as ConnectorControllerServicesActions from '../connector-controller-services/connector-controller-services.actions';
+import { bindConnectorParameterContext } from './bind-connector-parameter-context';
 import { SelectedComponent } from './connector-canvas.actions';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
@@ -159,6 +173,107 @@ export class ConnectorCanvasEffects {
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlowSuccess),
             map(() => ConnectorCanvasActions.loadConnectorFlowComplete())
+        )
+    );
+
+    /**
+     * Request the parameter context bound to the loaded process group whenever the
+     * connector canvas or controller-services page reports a successful load. The
+     * backend returns 204 No Content when no bound context exists, which surfaces as
+     * a null parameter context on the canvas state.
+     *
+     * The controller-services route is a sibling of the canvas route, not a child, so
+     * deep-linking directly to `/connectors/:id/canvas/:pgId/controller-services`
+     * never activates the canvas component and thus never emits
+     * {@link loadConnectorFlowSuccess}. Listening to both trigger actions in a single
+     * pipeline keeps that deep-link case covered. {@link distinctUntilChanged} keyed
+     * on connectorId + processGroupId dedupes the polling refire on the canvas page
+     * and the canvas → controller-services transition within the same process group;
+     * navigating to a different process group (or to a different connector with the
+     * same process group id) changes the key and triggers a fresh fetch.
+     *
+     * NgRx effects are application-level singletons, so the inner `distinctUntilChanged`
+     * would otherwise accumulate the last (connectorId, processGroupId) pair across the
+     * entire app lifetime — silently suppressing the re-fetch when a user navigates
+     * away from a connector and back into the same one. Wrapping the inner pipeline in
+     * `switchMap` over `resetConnectorCanvasState` (which fires on canvas ngOnDestroy)
+     * tears down and rebuilds the inner subscription, clearing the stale "previous"
+     * reference so the next load-success emission is always treated as a first
+     * emission. `startWith(null)` is required so the inner pipeline is subscribed on
+     * app startup without waiting for the first reset.
+     */
+    loadConnectorParameterContextOnLoadSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.resetConnectorCanvasState),
+            startWith(null),
+            switchMap(() =>
+                this.actions$.pipe(
+                    ofType(
+                        ConnectorCanvasActions.loadConnectorFlowSuccess,
+                        ConnectorControllerServicesActions.loadConnectorControllerServicesSuccess
+                    ),
+                    map((action) => {
+                        if (action.type === ConnectorCanvasActions.loadConnectorFlowSuccess.type) {
+                            return {
+                                connectorId: action.connectorId,
+                                processGroupId: action.processGroupId,
+                                errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                            };
+                        }
+                        return {
+                            connectorId: action.response.connectorId,
+                            processGroupId: action.response.processGroupId,
+                            errorContext: ErrorContextKey.CONTROLLER_SERVICES
+                        };
+                    }),
+                    filter(
+                        (
+                            target
+                        ): target is { connectorId: string; processGroupId: string; errorContext: ErrorContextKey } =>
+                            target.processGroupId !== null && target.processGroupId !== undefined
+                    ),
+                    distinctUntilChanged(
+                        (previous, current) =>
+                            previous.connectorId === current.connectorId &&
+                            previous.processGroupId === current.processGroupId
+                    ),
+                    map((target) => ConnectorCanvasActions.loadConnectorParameterContext(target))
+                )
+            )
+        )
+    );
+
+    loadConnectorParameterContext$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.loadConnectorParameterContext),
+            switchMap((action) =>
+                this.connectorService.getConnectorParameterContext(action.connectorId, action.processGroupId).pipe(
+                    map((parameterContext) =>
+                        ConnectorCanvasActions.loadConnectorParameterContextSuccess({ parameterContext })
+                    ),
+                    catchError((error) =>
+                        of(
+                            ConnectorCanvasActions.loadConnectorParameterContextFailure({
+                                errorContext: {
+                                    errors: [this.errorHelper.getErrorString(error)],
+                                    context: action.errorContext
+                                }
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    /**
+     * Surface parameter context load failures via a banner so the user sees that
+     * parameter references in the canvas property tables will not resolve.
+     */
+    loadConnectorParameterContextFailure$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.loadConnectorParameterContextFailure),
+            map((action) => ErrorActions.addBannerError({ errorContext: action.errorContext }))
         )
     );
 
@@ -583,12 +698,19 @@ export class ConnectorCanvasEffects {
         instance.propertyVerificationResults$ = this.store.select(selectPropertyVerificationResults);
         instance.propertyVerificationStatus$ = this.store.select(selectPropertyVerificationStatus);
 
-        // provide no-op stubs for callbacks not needed in read-only mode
+        // Provide no-op stubs for callbacks not needed in read-only mode. `goToParameter` is
+        // intentionally left undefined so the property table hides the "Go to Parameter" affordance
+        // for the connector canvas, while parameter values still render in the value tip.
         instance.createNewProperty = () => NEVER;
         instance.createNewService = () => NEVER;
         instance.convertToParameter = () => NEVER;
-        instance.goToParameter = () => undefined;
         instance.goToService = () => undefined;
+
+        // EditProcessor only exposes `parameterContext`; the underlying property table
+        // disables parameter affordances on its own when parameterContext is undefined.
+        bindConnectorParameterContext(this.store, dialogRef.afterClosed(), (parameterContext) => {
+            instance.parameterContext = parameterContext ?? undefined;
+        });
     }
 
     private openReadOnlyConnectionDialog(request: EditComponentDialogRequest): void {

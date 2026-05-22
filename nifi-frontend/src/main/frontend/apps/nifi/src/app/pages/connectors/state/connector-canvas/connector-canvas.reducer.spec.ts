@@ -19,6 +19,7 @@ import { connectorCanvasReducer } from './connector-canvas.reducer';
 import { ConnectorCanvasState, initialConnectorCanvasState } from './index';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import { ErrorContextKey } from '../../../../state/error';
+import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
 
 describe('connectorCanvasReducer', () => {
     function createPopulatedState(overrides: Partial<ConnectorCanvasState> = {}): ConnectorCanvasState {
@@ -94,6 +95,30 @@ describe('connectorCanvasReducer', () => {
             expect(result.outputPorts).toEqual(previousState.outputPorts);
             expect(result.remoteProcessGroups).toEqual(previousState.remoteProcessGroups);
             expect(result.processGroups).toEqual(previousState.processGroups);
+        });
+
+        it('should clear component data when navigating to a different connector with the same process group id', () => {
+            const previousState = createPopulatedState({
+                connectorId: 'connector-1',
+                processGroupId: 'pg-current'
+            });
+
+            const result = connectorCanvasReducer(
+                previousState,
+                ConnectorCanvasActions.loadConnectorFlow({ connectorId: 'connector-2', processGroupId: 'pg-current' })
+            );
+
+            expect(result.connectorId).toBe('connector-2');
+            expect(result.processGroupId).toBe('pg-current');
+            expect(result.labels).toEqual([]);
+            expect(result.funnels).toEqual([]);
+            expect(result.inputPorts).toEqual([]);
+            expect(result.outputPorts).toEqual([]);
+            expect(result.remoteProcessGroups).toEqual([]);
+            expect(result.processGroups).toEqual([]);
+            expect(result.processors).toEqual([]);
+            expect(result.connections).toEqual([]);
+            expect(result.parameterContext).toBeNull();
         });
     });
 
@@ -199,6 +224,69 @@ describe('connectorCanvasReducer', () => {
             );
 
             expect(result.skipTransform).toBe(true);
+        });
+    });
+
+    describe('parameter context', () => {
+        const sampleParameterContext = createParameterContextFixture();
+
+        it('should clear parameter context when navigating to a different process group', () => {
+            const previousState = createPopulatedState({
+                processGroupId: 'pg-current',
+                parameterContext: sampleParameterContext
+            });
+
+            const result = connectorCanvasReducer(
+                previousState,
+                ConnectorCanvasActions.loadConnectorFlow({ connectorId: 'connector-1', processGroupId: 'pg-other' })
+            );
+
+            expect(result.parameterContext).toBeNull();
+        });
+
+        it('should preserve parameter context when refreshing the same process group', () => {
+            const previousState = createPopulatedState({
+                processGroupId: 'pg-current',
+                parameterContext: sampleParameterContext
+            });
+
+            const result = connectorCanvasReducer(
+                previousState,
+                ConnectorCanvasActions.loadConnectorFlow({ connectorId: 'connector-1', processGroupId: 'pg-current' })
+            );
+
+            expect(result.parameterContext).toBe(sampleParameterContext);
+        });
+
+        it('should store the parameter context on load success', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState(),
+                ConnectorCanvasActions.loadConnectorParameterContextSuccess({
+                    parameterContext: sampleParameterContext
+                })
+            );
+
+            expect(result.parameterContext).toBe(sampleParameterContext);
+        });
+
+        it('should store a null parameter context on load success', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ parameterContext: sampleParameterContext }),
+                ConnectorCanvasActions.loadConnectorParameterContextSuccess({ parameterContext: null })
+            );
+
+            expect(result.parameterContext).toBeNull();
+        });
+
+        it('should reset parameter context on load failure', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ parameterContext: sampleParameterContext }),
+                ConnectorCanvasActions.loadConnectorParameterContextFailure({
+                    errorContext: { context: ErrorContextKey.CONNECTORS, errors: ['boom'] }
+                })
+            );
+
+            expect(result.parameterContext).toBeNull();
         });
     });
 });

@@ -17,12 +17,13 @@
 
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ConnectorsResponse, CreateConnectorRequest } from '../state';
 import { ConnectorEntity } from '@nifi/shared';
-import { SearchResultsEntity } from '../../../state/shared';
+import { ParameterContextEntity, SearchResultsEntity } from '../../../state/shared';
 import { DropRequestEntity } from '../../../state/empty-queue';
 
 @Injectable({ providedIn: 'root' })
@@ -121,6 +122,18 @@ export class ConnectorService {
         return this.httpClient.get(
             `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}/controller-services`
         );
+    }
+
+    getConnectorParameterContext(
+        connectorId: string,
+        processGroupId: string
+    ): Observable<ParameterContextEntity | null> {
+        return this.httpClient
+            .get<ParameterContextEntity>(
+                `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}/parameter-context`,
+                { observe: 'response' }
+            )
+            .pipe(map((response) => (response.status === 204 ? null : response.body)));
     }
 
     searchConnector(connectorId: string, query: string): Observable<SearchResultsEntity> {

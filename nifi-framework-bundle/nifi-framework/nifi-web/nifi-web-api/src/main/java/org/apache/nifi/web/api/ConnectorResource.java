@@ -93,6 +93,7 @@ import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
@@ -1871,6 +1872,59 @@ public class ConnectorResource extends ApplicationResource {
         entity.setControllerServices(controllerServices);
 
         // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the parameter context bound to the specified process group within a connector.
+     *
+     * @param connectorId The id of the connector
+     * @param processGroupId The process group id within the connector's hierarchy
+     * @return A parameterContextEntity, or 204 No Content if the process group has no bound parameter context
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{connectorId}/flow/process-groups/{processGroupId}/parameter-context")
+    @Operation(
+            summary = "Gets the parameter context bound to a process group within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ParameterContextEntity.class))),
+                    @ApiResponse(responseCode = "204", description = "The specified process group has no bound parameter context."),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            },
+            description = "Returns the parameter context (with effective parameters, including those inherited from other contexts) bound to the " +
+                    "specified process group within the connector's hierarchy. Sensitive parameter values are masked. Returns 204 No Content if the " +
+                    "process group has no bound parameter context."
+    )
+    public Response getParameterContextForConnectorProcessGroup(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("connectorId") final String connectorId,
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("processGroupId") final String processGroupId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access to the connector
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
+        if (entity == null) {
+            return Response.noContent().build();
+        }
+
         return generateOkResponse(entity).build();
     }
 

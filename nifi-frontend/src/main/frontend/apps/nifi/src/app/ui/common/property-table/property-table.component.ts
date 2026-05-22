@@ -96,7 +96,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
-    @Input() goToParameter!: (parameter: string) => void;
+    @Input() goToParameter?: (parameter: string) => void;
     @Input() convertToParameter!: (
         name: string,
         sensitive: boolean,
@@ -520,7 +520,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         // TODO - currently parameter context route does not support navigating
         // directly to a specific parameter so the parameter context link
         // is not item specific.
-        if (this.parameterContext && item.value) {
+        if (this.parameterContext && this.goToParameter && item.value) {
             return this.parameterContext.permissions.canRead && PropertyTable.PARAM_REF_REGEX.test(item.value);
         }
 
@@ -528,7 +528,9 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     goToParameterClicked(item: PropertyItem): void {
-        // @ts-ignore
+        if (!this.goToParameter || item.value == null) {
+            return;
+        }
         this.goToParameter(item.value);
     }
 

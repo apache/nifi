@@ -17,8 +17,8 @@
 
 import { createAction, props } from '@ngrx/store';
 import { ComponentType } from '@nifi/shared';
-import { BreadcrumbEntity } from '../../../../state/shared';
-import { ErrorContext } from '../../../../state/error';
+import { BreadcrumbEntity, ParameterContextEntity } from '../../../../state/shared';
+import { ErrorContext, ErrorContextKey } from '../../../../state/error';
 
 /**
  * Selected component for route-based selection
@@ -92,6 +92,29 @@ export const startConnectorCanvasPolling = createAction('[Connector Canvas] Star
  * by other effects that need to suppress polling around a destructive operation).
  */
 export const stopConnectorCanvasPolling = createAction('[Connector Canvas] Stop Connector Canvas Polling');
+
+/**
+ * Load the parameter context bound to the current process group within the connector.
+ *
+ * `errorContext` identifies which page-scoped error banner should surface a failure.
+ * The triggering effect (loadConnectorParameterContextOnLoadSuccess$) sets this based
+ * on whether the load was kicked off by the canvas or the controller-services page,
+ * so a failure renders on the banner the user is actually looking at.
+ */
+export const loadConnectorParameterContext = createAction(
+    '[Connector Canvas] Load Connector Parameter Context',
+    props<{ connectorId: string; processGroupId: string; errorContext: ErrorContextKey }>()
+);
+
+export const loadConnectorParameterContextSuccess = createAction(
+    '[Connector Canvas] Load Connector Parameter Context Success',
+    props<{ parameterContext: ParameterContextEntity | null }>()
+);
+
+export const loadConnectorParameterContextFailure = createAction(
+    '[Connector Canvas] Load Connector Parameter Context Failure',
+    props<{ errorContext: ErrorContext }>()
+);
 
 export const enterProcessGroup = createAction(
     '[Connector Canvas] Enter Process Group',

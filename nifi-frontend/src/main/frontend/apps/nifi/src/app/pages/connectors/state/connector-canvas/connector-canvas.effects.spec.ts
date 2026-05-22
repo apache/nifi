@@ -20,9 +20,12 @@ import { provideMockActions } from '@ngrx/effects/testing';
 import { Action } from '@ngrx/store';
 import { Router } from '@angular/router';
 import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
+import { toArray } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
 import { MatDialog } from '@angular/material/dialog';
+import { ParameterContextEntity } from '../../../../state/shared';
+import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
 import { ConnectorCanvasEffects } from './connector-canvas.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -36,21 +39,28 @@ import {
     loadConnectorFlowComplete,
     loadConnectorFlowFailure,
     loadConnectorFlowSuccess,
+    loadConnectorParameterContext,
+    loadConnectorParameterContextFailure,
+    loadConnectorParameterContextSuccess,
     navigateToControllerService,
     navigateToControllerServices,
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateWithoutTransform,
     reloadConnectorFlow,
+    resetConnectorCanvasState,
     selectComponents,
     startConnectorCanvasPolling,
     stopConnectorCanvasPolling,
     viewComponentConfiguration
 } from './connector-canvas.actions';
+import { loadConnectorControllerServicesSuccess } from '../connector-controller-services/connector-controller-services.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { queueEmptied } from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectConnectorId,
     selectConnectorIdFromRoute,
+    selectConnectorParameterContext,
     selectLoadingStatus,
     selectParentProcessGroupId,
     selectProcessGroupId,
@@ -70,6 +80,9 @@ describe('ConnectorCanvasEffects', () => {
             processGroupIdFromRoute?: string | null;
             documentVisibility?: DocumentVisibility;
             loadingStatus?: 'pending' | 'loading' | 'success' | 'error';
+            parameterContext?: ParameterContextEntity | null;
+            parameterContextResponse?: ParameterContextEntity | null;
+            parameterContextError?: unknown;
         } = {}
     ) {
         let actions$: Observable<Action>;
@@ -85,8 +98,19 @@ describe('ConnectorCanvasEffects', () => {
 
         // Mock services
         const mockConnectorService = {
-            getConnectorFlow: vi.fn()
+            getConnectorFlow: vi.fn(),
+            getConnectorParameterContext: vi.fn()
         };
+
+        if (options.parameterContextError !== undefined) {
+            mockConnectorService.getConnectorParameterContext.mockReturnValue(
+                throwError(() => options.parameterContextError)
+            );
+        } else {
+            mockConnectorService.getConnectorParameterContext.mockReturnValue(
+                of(options.parameterContextResponse ?? null)
+            );
+        }
 
         const mockErrorHelper = {
             getErrorString: vi.fn().mockReturnValue('Error message'),
@@ -97,8 +121,18 @@ describe('ConnectorCanvasEffects', () => {
             navigate: vi.fn().mockResolvedValue(true)
         };
 
+        const afterClosed$ = new Subject<unknown>();
+        const mockDialogRef = {
+            componentInstance: {} as {
+                parameterContext?: ParameterContextEntity | null;
+                supportsParameters?: boolean;
+                goToParameter?: (parameter: string) => void;
+                [key: string]: any;
+            },
+            afterClosed: () => afterClosed$.asObservable()
+        };
         const mockDialog = {
-            open: vi.fn().mockReturnValue({ componentInstance: {} })
+            open: vi.fn().mockReturnValue(mockDialogRef)
         };
 
         await TestBed.configureTestingModule({
@@ -117,6 +151,10 @@ describe('ConnectorCanvasEffects', () => {
                         {
                             selector: selectDocumentVisibilityState,
                             value: { documentVisibility, changedTimestamp: 0 }
+                        },
+                        {
+                            selector: selectConnectorParameterContext,
+                            value: options.parameterContext ?? null
                         }
                     ]
                 }),
@@ -140,7 +178,9 @@ describe('ConnectorCanvasEffects', () => {
             mockConnectorService,
             mockErrorHelper,
             mockRouter,
-            mockDialog
+            mockDialog,
+            mockDialogRef,
+            afterClosed$
         };
     }
 
@@ -566,6 +606,46 @@ describe('ConnectorCanvasEffects', () => {
             const [, config] = (mockDialog.open as Mock).mock.calls[0];
             expect(config.data.entity.operatePermissions).toBeDefined();
             expect(config.data.entity.operatePermissions.canWrite).toBe(false);
+        });
+
+        it('wires parameter context onto the EditProcessor dialog when one is bound', async () => {
+            const parameterContext = createParameterContextFixture({
+                component: { id: 'pc-1', name: 'Bound PC', parameters: [] }
+            });
+            const { effects, actions$, mockDialogRef } = await setup({ parameterContext });
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            expect(mockDialogRef.componentInstance.parameterContext).toBe(parameterContext);
+            // Read-only mode in nifi-frontend deliberately does NOT set supportsParameters
+            // on EditProcessor (EditProcessor lacks that input). Pin this behavior.
+            expect(mockDialogRef.componentInstance.supportsParameters).toBeUndefined();
+            // The property table hides "Go to Parameter" when this callback is undefined,
+            // while still rendering parameter values in the value tip.
+            expect(mockDialogRef.componentInstance.goToParameter).toBeUndefined();
+        });
+
+        it('leaves parameterContext undefined on the EditProcessor dialog when no PC is bound', async () => {
+            const { effects, actions$, mockDialogRef } = await setup({ parameterContext: null });
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            expect(mockDialogRef.componentInstance.parameterContext).toBeUndefined();
+            expect(mockDialogRef.componentInstance.goToParameter).toBeUndefined();
         });
     });
 
@@ -1078,6 +1158,296 @@ describe('ConnectorCanvasEffects', () => {
 
             // No additional emissions after stop.
             expect(emitted).toEqual([reloadConnectorFlow()]);
+        });
+    });
+
+    describe('loadConnectorParameterContextOnLoadSuccess$', () => {
+        function flowSuccessAction(connectorId: string, processGroupId: string | null) {
+            return loadConnectorFlowSuccess({
+                connectorId,
+                processGroupId,
+                parentProcessGroupId: null,
+                breadcrumb: null,
+                labels: [],
+                funnels: [],
+                inputPorts: [],
+                outputPorts: [],
+                remoteProcessGroups: [],
+                processGroups: [],
+                processors: [],
+                connections: []
+            });
+        }
+
+        function controllerServicesSuccessAction(connectorId: string, processGroupId: string) {
+            return loadConnectorControllerServicesSuccess({
+                response: {
+                    connectorId,
+                    processGroupId,
+                    controllerServices: [],
+                    breadcrumb: null,
+                    loadedTimestamp: '2024-01-01T00:00:00.000Z'
+                }
+            });
+        }
+
+        it('should dispatch loadConnectorParameterContext scoped to CONNECTOR_CANVAS after flow load success', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(of(flowSuccessAction('connector-123', 'pg-abc')));
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$);
+            expect(result).toEqual(
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            );
+        });
+
+        it('should dispatch loadConnectorParameterContext scoped to CONTROLLER_SERVICES after controller services load success (deep link)', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(of(controllerServicesSuccessAction('connector-123', 'pg-abc')));
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$);
+            expect(result).toEqual(
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONTROLLER_SERVICES
+                })
+            );
+        });
+
+        it('should not dispatch when processGroupId is null', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(of(flowSuccessAction('connector-123', null)));
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('should dispatch only once when polling refires loadConnectorFlowSuccess for the same process group', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(
+                of(
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    flowSuccessAction('connector-123', 'pg-abc')
+                )
+            );
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+
+        it('should dedupe canvas → controller-services transition within the same process group', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(
+                of(
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    controllerServicesSuccessAction('connector-123', 'pg-abc')
+                )
+            );
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+
+        it('should dispatch again when the process group changes', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(
+                of(
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    flowSuccessAction('connector-123', 'pg-xyz')
+                )
+            );
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                }),
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-xyz',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+
+        it('should dispatch again when the connector changes even if the process group id is the same', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(of(flowSuccessAction('connector-123', 'pg-abc'), flowSuccessAction('connector-456', 'pg-abc')));
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                }),
+                loadConnectorParameterContext({
+                    connectorId: 'connector-456',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+
+        it('should re-arm distinctUntilChanged after resetConnectorCanvasState so the same connector/PG can re-fetch', async () => {
+            // NgRx effects are app-singleton-scoped, so the inner distinctUntilChanged must be
+            // rebuilt when the canvas tears down (component ngOnDestroy → resetConnectorCanvasState).
+            // Without this, navigating away from a connector and back into the same one would
+            // silently suppress the parameter-context re-fetch.
+            const { effects, actions$ } = await setup();
+            actions$(
+                of(
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    resetConnectorCanvasState(),
+                    flowSuccessAction('connector-123', 'pg-abc')
+                )
+            );
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                }),
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+    });
+
+    describe('loadConnectorParameterContext$', () => {
+        const parameterContext = createParameterContextFixture();
+
+        it('should dispatch success with the parameter context returned by the service', async () => {
+            const { effects, actions$, mockConnectorService } = await setup({
+                parameterContextResponse: parameterContext
+            });
+            actions$(
+                of(
+                    loadConnectorParameterContext({
+                        connectorId: 'connector-123',
+                        processGroupId: 'pg-abc',
+                        errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContext$);
+
+            expect(mockConnectorService.getConnectorParameterContext).toHaveBeenCalledWith('connector-123', 'pg-abc');
+            expect(result).toEqual(loadConnectorParameterContextSuccess({ parameterContext }));
+        });
+
+        it('should dispatch success with null when the service returns null (HTTP 204)', async () => {
+            const { effects, actions$ } = await setup({ parameterContextResponse: null });
+            actions$(
+                of(
+                    loadConnectorParameterContext({
+                        connectorId: 'connector-123',
+                        processGroupId: 'pg-abc',
+                        errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContext$);
+            expect(result).toEqual(loadConnectorParameterContextSuccess({ parameterContext: null }));
+        });
+
+        it('should dispatch failure using the errorContext carried on the action', async () => {
+            const errorResponse = new HttpErrorResponse({ error: 'boom', status: 500, statusText: 'ISE' });
+            const { effects, actions$ } = await setup({ parameterContextError: errorResponse });
+            actions$(
+                of(
+                    loadConnectorParameterContext({
+                        connectorId: 'connector-123',
+                        processGroupId: 'pg-abc',
+                        errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContext$);
+
+            expect(result).toEqual(
+                loadConnectorParameterContextFailure({
+                    errorContext: {
+                        errors: ['Error message'],
+                        context: ErrorContextKey.CONNECTOR_CANVAS
+                    }
+                })
+            );
+        });
+
+        it('should propagate CONTROLLER_SERVICES error context for CS-triggered loads', async () => {
+            const errorResponse = new HttpErrorResponse({ error: 'boom', status: 500, statusText: 'ISE' });
+            const { effects, actions$ } = await setup({ parameterContextError: errorResponse });
+            actions$(
+                of(
+                    loadConnectorParameterContext({
+                        connectorId: 'connector-123',
+                        processGroupId: 'pg-abc',
+                        errorContext: ErrorContextKey.CONTROLLER_SERVICES
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContext$);
+
+            expect(result).toEqual(
+                loadConnectorParameterContextFailure({
+                    errorContext: {
+                        errors: ['Error message'],
+                        context: ErrorContextKey.CONTROLLER_SERVICES
+                    }
+                })
+            );
+        });
+    });
+
+    describe('loadConnectorParameterContextFailure$', () => {
+        it('should dispatch addBannerError with the failure error context', async () => {
+            const { effects, actions$ } = await setup();
+            const errorContext = {
+                errors: ['Unable to load parameter context'],
+                context: ErrorContextKey.CONNECTORS
+            };
+            actions$(of(loadConnectorParameterContextFailure({ errorContext })));
+
+            const result = await firstValueFrom(effects.loadConnectorParameterContextFailure$);
+
+            expect(result).toEqual(ErrorActions.addBannerError({ errorContext }));
         });
     });
 });
