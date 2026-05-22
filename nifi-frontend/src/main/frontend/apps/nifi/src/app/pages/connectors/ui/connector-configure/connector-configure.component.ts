@@ -34,7 +34,8 @@ import {
     CONNECTOR_WIZARD_CONFIG,
     ParentToConnectorMessage,
     SystemTokensService,
-    NifiSpinnerDirective
+    NifiSpinnerDirective,
+    EllipsisTooltipDirective
 } from '@nifi/shared';
 import { catchError, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -72,7 +73,14 @@ function connectorWizardConfigFactory(): ConnectorWizardConfig {
 @Component({
     selector: 'connector-configure',
     standalone: true,
-    imports: [Navigation, ConnectorWizard, MatButton, ContextErrorBanner, NifiSpinnerDirective],
+    imports: [
+        Navigation,
+        ConnectorWizard,
+        MatButton,
+        ContextErrorBanner,
+        NifiSpinnerDirective,
+        EllipsisTooltipDirective
+    ],
     templateUrl: './connector-configure.component.html',
     styleUrls: ['./connector-configure.component.scss'],
     providers: [
