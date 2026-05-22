@@ -424,6 +424,66 @@ public class TestWaitNotifyProtocol {
 
     }
 
+    @Test
+    public void testCompleteRemovesSignalFromCache() throws Exception {
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
+        doAnswer(invocation -> {
+            cacheEntries.remove(invocation.getArguments()[0]);
+            return true;
+        }).when(cache).remove(any(), any());
+
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
+        final String signalId = "signal-id";
+
+        protocol.notify(signalId, "a", 1, null);
+        assertTrue(cacheEntries.containsKey(signalId));
+
+        final Signal signal = protocol.getSignal(signalId);
+        assertNotNull(signal);
+
+        protocol.complete(signal);
+        assertFalse(cacheEntries.containsKey(signalId));
+    }
+
+    @Test
+    public void testCompleteThrowsOnConcurrentModification() throws Exception {
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
+
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
+        final String signalId = "signal-id";
+
+        // Notify creates the signal at revision 1.
+        protocol.notify(signalId, "a", 1, null);
+        final Signal signalBeforeRace = protocol.getSignal(signalId);
+        assertNotNull(signalBeforeRace);
+
+        // Simulate a concurrent Notify that updates the signal, bumping the revision.
+        protocol.notify(signalId, "a", 1, null);
+
+        // complete() with a stale signal should detect the version mismatch and throw.
+        assertThrows(ConcurrentModificationException.class, () -> protocol.complete(signalBeforeRace));
+
+        // The entry must still be present — complete() must NOT have removed it.
+        assertTrue(cacheEntries.containsKey(signalId));
+    }
+
+    @Test
+    public void testCompleteThrowsWhenAlreadyRemoved() throws Exception {
+        doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
+
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
+        final String signalId = "signal-id";
+
+        protocol.notify(signalId, "a", 1, null);
+        final Signal signal = protocol.getSignal(signalId);
+
+        // Remove the entry from the cache directly, simulating concurrent removal by another process.
+        cacheEntries.remove(signalId);
+
+        // complete() on a signal that was concurrently removed should throw ConcurrentModificationException.
+        assertThrows(ConcurrentModificationException.class, () -> protocol.complete(signal));
+    }
+
     public void assertValueEquals(String expected, String value) throws Exception {
         assertEquals(mapper.readTree(expected), mapper.readTree(value));
     }

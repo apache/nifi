@@ -46,6 +46,7 @@ import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -558,7 +559,7 @@ public class Wait extends AbstractProcessor {
         // Update signal if needed.
         try {
             if (waitCompleted) {
-                protocol.complete(signalId);
+                protocol.complete(signal);
                 if (logger.isDebugEnabled()) {
                     logger.debug("Completed wait for signalId='{}' and removed signal from cache", signalId);
                 }
@@ -570,6 +571,10 @@ public class Wait extends AbstractProcessor {
                 }
             }
 
+        } catch (final ConcurrentModificationException e) {
+            logger.warn("Concurrent modification detected for signal [{}], rolling back session to retry: {}", signalId, e.getMessage());
+            session.rollback();
+            throw new ProcessException(String.format("Concurrent modification detected while updating signal %s", signalId), e);
         } catch (final IOException e) {
             session.rollback();
             throw new ProcessException(String.format("Unable to communicate with cache while updating %s due to %s", signalId, e), e);

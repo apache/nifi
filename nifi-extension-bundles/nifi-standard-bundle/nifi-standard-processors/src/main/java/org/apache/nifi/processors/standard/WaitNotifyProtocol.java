@@ -199,8 +199,11 @@ public class WaitNotifyProtocol {
                 signal.counts.put(counterName, count);
             });
 
-            if (replace(signal)) {
+            try {
+                replace(signal);
                 return signal;
+            } catch (final ConcurrentModificationException ignored) {
+                // CAS failed; retry with fresh signal state after backoff.
             }
 
             long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
@@ -238,7 +241,7 @@ public class WaitNotifyProtocol {
 
     /**
      * Retrieve a stored Signal in the cache engine.
-     * If a caller gets satisfied with the returned Signal state and finish waiting, it should call {@link #complete(String)}
+     * If a caller gets satisfied with the returned Signal state and finish waiting, it should call {@link #complete(Signal)}
      * to complete the Wait Notify protocol.
      * @param signalId a key in the underlying cache engine
      * @return A Signal instance
@@ -281,14 +284,44 @@ public class WaitNotifyProtocol {
 
     /**
      * Finish protocol and remove the cache entry.
-     * @param signalId a key in the underlying cache engine
+     *
+     * <p>This method performs a best-effort version check before removing the entry. If the signal
+     * was concurrently modified by a Notify processor after the caller last read it, a
+     * {@link ConcurrentModificationException} is thrown so the caller can roll back and retry
+     * rather than silently discarding the concurrent notification.</p>
+     *
+     * <p>Note: there is a small inherent TOCTOU window between the version re-fetch and the
+     * remove call. A {@link AtomicDistributedMapCacheClient} API extension for atomic
+     * compare-and-delete would eliminate this entirely, but this approach covers the common case.</p>
+     *
+     * @param signal the Signal obtained from the most recent {@link #getSignal(String)} call;
+     *               its cached revision is used to detect concurrent modifications
      * @throws IOException thrown when it failed interacting with the cache engine
+     * @throws ConcurrentModificationException thrown if the signal was concurrently modified
+     *         or removed since the caller last read it
      */
-    public void complete(final String signalId) throws IOException {
+    public void complete(final Signal signal) throws IOException, ConcurrentModificationException {
+        final String signalId = signal.identifier;
+
+        // Re-fetch to detect concurrent updates since the signal was last read.
+        final Signal current = getSignal(signalId);
+        if (current == null) {
+            throw new ConcurrentModificationException(String.format(
+                    "Failed to complete signal [%s]: signal was concurrently removed.", signalId));
+        }
+
+        final Object expectedRevision = signal.cachedEntry != null ? signal.cachedEntry.getRevision().orElse(null) : null;
+        final Object actualRevision = current.cachedEntry.getRevision().orElse(null);
+        if (expectedRevision != null && !expectedRevision.equals(actualRevision)) {
+            throw new ConcurrentModificationException(String.format(
+                    "Failed to complete signal [%s]: signal was concurrently modified (expected revision %s, found %s).",
+                    signalId, expectedRevision, actualRevision));
+        }
+
         cache.remove(signalId, stringSerializer);
     }
 
-    public boolean replace(final Signal signal) throws IOException {
+    public void replace(final Signal signal) throws IOException, ConcurrentModificationException {
 
         final String signalJson = objectMapper.writeValueAsString(signal);
         if (signal.cachedEntry == null) {
@@ -296,7 +329,10 @@ public class WaitNotifyProtocol {
         } else {
             signal.cachedEntry.setValue(signalJson);
         }
-        return cache.replace(signal.cachedEntry, stringSerializer, stringSerializer);
+        if (!cache.replace(signal.cachedEntry, stringSerializer, stringSerializer)) {
+            throw new ConcurrentModificationException(String.format(
+                    "Failed to update signal [%s] in cache due to concurrent modification.", signal.identifier));
+        }
 
     }
 }
