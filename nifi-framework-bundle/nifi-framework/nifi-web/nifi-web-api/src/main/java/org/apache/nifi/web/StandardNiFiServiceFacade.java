@@ -3965,8 +3965,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         // Connector-managed parameter contexts (and any contexts they inherit from) are not registered with the
-        // global flow's ParameterContextManager. The DTO factory now resolves a parameter's source context by
-        // walking the in-memory inheritance graph on the supplied context, so an empty lookup is sufficient here.
+        // global flow's ParameterContextManager, so a DAO-backed lookup would fail to resolve inherited parameters.
+        // The DTO factory walks the in-memory inheritance graph reachable from the supplied context to resolve
+        // parameter source contexts for connector-managed flows, making an empty lookup safe here.
         return createParameterContextEntity(parameterContext, true, NiFiUserUtils.getNiFiUser(), ParameterContextLookup.EMPTY);
     }
 

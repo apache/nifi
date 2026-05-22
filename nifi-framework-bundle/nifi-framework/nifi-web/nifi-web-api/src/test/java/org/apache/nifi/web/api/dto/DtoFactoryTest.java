@@ -889,6 +889,51 @@ public class DtoFactoryTest {
     }
 
     @Test
+    void testCreateParameterDtoFallsBackToCurrentContextWhenSourceNotReachableInGraphAndLookupIsEmpty() {
+        final String contextId = "context-1";
+        final String externalId = "context-external";
+
+        final ParameterContext parameterContext = createMockParameterContext(contextId, "context-1-name", Collections.emptyList());
+
+        final Parameter parameter = new Parameter.Builder()
+                .name("param-name")
+                .value("param-value")
+                .parameterContextId(externalId)
+                .build();
+
+        final DtoFactory dtoFactory = newDtoFactoryForParameters();
+        final ParameterDTO dto = dtoFactory.createParameterDto(parameterContext, parameter, mock(RevisionManager.class), ParameterContextLookup.EMPTY);
+
+        assertFalse(dto.getInherited());
+        assertEquals(contextId, dto.getParameterContext().getId());
+    }
+
+    @Test
+    void testCreateParameterDtoResolvesSourceContextFromDiamondInheritanceGraph() {
+        final String contextAId = "context-a";
+        final String contextBId = "context-b";
+        final String contextCId = "context-c";
+        final String contextDId = "context-d";
+
+        final ParameterContext contextD = createMockParameterContext(contextDId, "context-d-name", Collections.emptyList());
+        final ParameterContext contextB = createMockParameterContext(contextBId, "context-b-name", List.of(contextD));
+        final ParameterContext contextC = createMockParameterContext(contextCId, "context-c-name", List.of(contextD));
+        final ParameterContext contextA = createMockParameterContext(contextAId, "context-a-name", List.of(contextB, contextC));
+
+        final Parameter parameter = new Parameter.Builder()
+                .name("param-name")
+                .value("param-value")
+                .parameterContextId(contextDId)
+                .build();
+
+        final DtoFactory dtoFactory = newDtoFactoryForParameters();
+        final ParameterDTO dto = dtoFactory.createParameterDto(contextA, parameter, mock(RevisionManager.class), ParameterContextLookup.EMPTY);
+
+        assertTrue(dto.getInherited());
+        assertEquals(contextDId, dto.getParameterContext().getId());
+    }
+
+    @Test
     void testCreateParameterDtoInheritanceGraphHandlesCycles() {
         final String childId = "context-child";
         final String parentId = "context-parent";

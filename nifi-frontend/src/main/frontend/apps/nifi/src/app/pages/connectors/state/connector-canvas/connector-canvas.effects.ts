@@ -27,6 +27,7 @@ import {
     distinctUntilChanged,
     filter,
     map,
+    startWith,
     switchMap,
     take,
     takeUntil,
@@ -188,38 +189,57 @@ export class ConnectorCanvasEffects {
      * pipeline keeps that deep-link case covered. {@link distinctUntilChanged} keyed
      * on connectorId + processGroupId dedupes the polling refire on the canvas page
      * and the canvas → controller-services transition within the same process group;
-     * navigating to a different process group changes the key and triggers a fresh
-     * fetch.
+     * navigating to a different process group (or to a different connector with the
+     * same process group id) changes the key and triggers a fresh fetch.
+     *
+     * NgRx effects are application-level singletons, so the inner `distinctUntilChanged`
+     * would otherwise accumulate the last (connectorId, processGroupId) pair across the
+     * entire app lifetime — silently suppressing the re-fetch when a user navigates
+     * away from a connector and back into the same one. Wrapping the inner pipeline in
+     * `switchMap` over `resetConnectorCanvasState` (which fires on canvas ngOnDestroy)
+     * tears down and rebuilds the inner subscription, clearing the stale "previous"
+     * reference so the next load-success emission is always treated as a first
+     * emission. `startWith(null)` is required so the inner pipeline is subscribed on
+     * app startup without waiting for the first reset.
      */
     loadConnectorParameterContextOnLoadSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(
-                ConnectorCanvasActions.loadConnectorFlowSuccess,
-                ConnectorControllerServicesActions.loadConnectorControllerServicesSuccess
-            ),
-            map((action) => {
-                if (action.type === ConnectorCanvasActions.loadConnectorFlowSuccess.type) {
-                    return {
-                        connectorId: action.connectorId,
-                        processGroupId: action.processGroupId,
-                        errorContext: ErrorContextKey.CONNECTOR_CANVAS
-                    };
-                }
-                return {
-                    connectorId: action.response.connectorId,
-                    processGroupId: action.response.processGroupId,
-                    errorContext: ErrorContextKey.CONTROLLER_SERVICES
-                };
-            }),
-            filter(
-                (target): target is { connectorId: string; processGroupId: string; errorContext: ErrorContextKey } =>
-                    target.processGroupId !== null && target.processGroupId !== undefined
-            ),
-            distinctUntilChanged(
-                (previous, current) =>
-                    previous.connectorId === current.connectorId && previous.processGroupId === current.processGroupId
-            ),
-            map((target) => ConnectorCanvasActions.loadConnectorParameterContext(target))
+            ofType(ConnectorCanvasActions.resetConnectorCanvasState),
+            startWith(null),
+            switchMap(() =>
+                this.actions$.pipe(
+                    ofType(
+                        ConnectorCanvasActions.loadConnectorFlowSuccess,
+                        ConnectorControllerServicesActions.loadConnectorControllerServicesSuccess
+                    ),
+                    map((action) => {
+                        if (action.type === ConnectorCanvasActions.loadConnectorFlowSuccess.type) {
+                            return {
+                                connectorId: action.connectorId,
+                                processGroupId: action.processGroupId,
+                                errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                            };
+                        }
+                        return {
+                            connectorId: action.response.connectorId,
+                            processGroupId: action.response.processGroupId,
+                            errorContext: ErrorContextKey.CONTROLLER_SERVICES
+                        };
+                    }),
+                    filter(
+                        (
+                            target
+                        ): target is { connectorId: string; processGroupId: string; errorContext: ErrorContextKey } =>
+                            target.processGroupId !== null && target.processGroupId !== undefined
+                    ),
+                    distinctUntilChanged(
+                        (previous, current) =>
+                            previous.connectorId === current.connectorId &&
+                            previous.processGroupId === current.processGroupId
+                    ),
+                    map((target) => ConnectorCanvasActions.loadConnectorParameterContext(target))
+                )
+            )
         )
     );
 

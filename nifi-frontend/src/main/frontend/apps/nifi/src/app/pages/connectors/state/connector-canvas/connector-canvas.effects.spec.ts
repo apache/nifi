@@ -48,6 +48,7 @@ import {
     navigateToQueueListing,
     navigateWithoutTransform,
     reloadConnectorFlow,
+    resetConnectorCanvasState,
     selectComponents,
     startConnectorCanvasPolling,
     stopConnectorCanvasPolling,
@@ -1289,6 +1290,56 @@ describe('ConnectorCanvasEffects', () => {
                 loadConnectorParameterContext({
                     connectorId: 'connector-123',
                     processGroupId: 'pg-xyz',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+
+        it('should dispatch again when the connector changes even if the process group id is the same', async () => {
+            const { effects, actions$ } = await setup();
+            actions$(of(flowSuccessAction('connector-123', 'pg-abc'), flowSuccessAction('connector-456', 'pg-abc')));
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                }),
+                loadConnectorParameterContext({
+                    connectorId: 'connector-456',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            ]);
+        });
+
+        it('should re-arm distinctUntilChanged after resetConnectorCanvasState so the same connector/PG can re-fetch', async () => {
+            // NgRx effects are app-singleton-scoped, so the inner distinctUntilChanged must be
+            // rebuilt when the canvas tears down (component ngOnDestroy → resetConnectorCanvasState).
+            // Without this, navigating away from a connector and back into the same one would
+            // silently suppress the parameter-context re-fetch.
+            const { effects, actions$ } = await setup();
+            actions$(
+                of(
+                    flowSuccessAction('connector-123', 'pg-abc'),
+                    resetConnectorCanvasState(),
+                    flowSuccessAction('connector-123', 'pg-abc')
+                )
+            );
+
+            const emitted = await firstValueFrom(effects.loadConnectorParameterContextOnLoadSuccess$.pipe(toArray()));
+
+            expect(emitted).toEqual([
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
+                    errorContext: ErrorContextKey.CONNECTOR_CANVAS
+                }),
+                loadConnectorParameterContext({
+                    connectorId: 'connector-123',
+                    processGroupId: 'pg-abc',
                     errorContext: ErrorContextKey.CONNECTOR_CANVAS
                 })
             ]);

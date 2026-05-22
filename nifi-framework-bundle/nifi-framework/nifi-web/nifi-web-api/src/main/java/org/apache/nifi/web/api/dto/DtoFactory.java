@@ -1636,9 +1636,12 @@ public final class DtoFactory {
      * <p>For parameters declared directly on the current context (or whose source id matches the current
      * context's identifier), the current context is returned without consulting any external lookup. For
      * inherited parameters, the source context is found by walking the in-memory inheritance graph reachable
-     * from the current context via {@link ParameterContext#getInheritedParameterContexts()}. Only if the
-     * source context is not reachable on that graph (which is expected only for legacy callers that pass a
-     * registry-backed lookup) does the provided {@link ParameterContextLookup} get consulted as a fallback.</p>
+     * from the current context via {@link ParameterContext#getInheritedParameterContexts()}. If the source
+     * context is not reachable on that graph (expected only for legacy callers that pass a registry-backed
+     * lookup), the provided {@link ParameterContextLookup} is consulted as a fallback. If neither resolves
+     * the source id (e.g. an empty lookup combined with an unreachable id from a transient data
+     * inconsistency), the current context is returned so the parameter is reported as locally defined
+     * rather than producing a {@link NullPointerException} at the call site.</p>
      */
     private ParameterContext resolveContainingParameterContext(final ParameterContext parameterContext, final Parameter parameter,
                                                                 final ParameterContextLookup parameterContextLookup) {
@@ -1652,7 +1655,8 @@ public final class DtoFactory {
             return fromGraph;
         }
 
-        return parameterContextLookup.getParameterContext(sourceId);
+        final ParameterContext fromLookup = parameterContextLookup.getParameterContext(sourceId);
+        return fromLookup != null ? fromLookup : parameterContext;
     }
 
     private ParameterContext findInheritedParameterContext(final ParameterContext parameterContext, final String sourceId, final Set<String> visited) {
