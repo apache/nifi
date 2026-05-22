@@ -41,6 +41,41 @@
                     data-qa="step-general-verification-errors">
                 </error-banner>
 
+                @if (stringListOrphanStripBannerEntries().length > 0) {
+                    <div class="mb-5" role="status" aria-live="polite" data-qa="string-list-orphan-strip-banner">
+                        <status-banner
+                            variant="caution"
+                            [allowDismiss]="true"
+                            (dismiss)="onDismissStringListOrphanStripBanner()">
+                            <div statusBannerDescription class="flex flex-col gap-4">
+                                <p class="m-0" data-qa="string-list-orphan-strip-intro">
+                                    Some previously saved selections are no longer available and have been removed from
+                                    the following fields:
+                                </p>
+                                @for (entry of stringListOrphanStripBannerEntries(); track entry.propertyName) {
+                                    <div
+                                        class="flex flex-col gap-2"
+                                        [attr.data-qa]="'string-list-orphan-strip-block-' + $index">
+                                        <div class="font-semibold" data-qa="string-list-orphan-strip-field-label">
+                                            {{ entry.propertyName }}
+                                        </div>
+                                        <ul class="m-0 flex flex-col gap-1 pl-5 list-disc list-outside">
+                                            @for (value of entry.removedVisible; track value) {
+                                                <li class="break-words">{{ value }}</li>
+                                            }
+                                        </ul>
+                                        @if (entry.hiddenRemovedCount > 0) {
+                                            <p class="m-0" data-qa="string-list-orphan-strip-truncation">
+                                                … and {{ entry.hiddenRemovedCount }} more
+                                            </p>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </status-banner>
+                    </div>
+                }
+
                 <div class="font-bold text-xl leading-6 mb-2" data-qa="step-name">
                     {{ stepName() }}
                 </div>
@@ -112,7 +147,8 @@
                                                     "
                                                     (dismissFailedUploadRequested)="
                                                         onDismissFailedUpload(property.name, $event)
-                                                    ">
+                                                    "
+                                                    (stringListOrphansStripped)="onStringListOrphansStripped($event)">
                                                 </connector-property-input>
                                             }
                                         }

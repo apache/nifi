@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
-import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ConnectorWizardStore } from '../connector-wizard.store';
+import { Banner } from '../../banner/banner.component';
+import { StatusBanner } from '../../status-banner/status-banner.component';
 import { WizardContextBanner } from './wizard-context-banner.component';
 
 function createMockStore(initialErrors: string[] = []) {
@@ -30,7 +33,7 @@ function createMockStore(initialErrors: string[] = []) {
 
 interface SetupOptions {
     initialErrors?: string[];
-    variant?: 'critical' | 'warning' | 'info' | 'success';
+    variant?: 'critical' | 'caution' | 'info' | 'success';
     persistOnDestroy?: boolean;
 }
 
@@ -39,8 +42,7 @@ async function setup(options: SetupOptions = {}) {
 
     await TestBed.configureTestingModule({
         imports: [WizardContextBanner],
-        providers: [{ provide: ConnectorWizardStore, useValue: mockStore }],
-        schemas: [NO_ERRORS_SCHEMA]
+        providers: [{ provide: ConnectorWizardStore, useValue: mockStore }]
     }).compileComponents();
 
     const fixture = TestBed.createComponent(WizardContextBanner);
@@ -127,9 +129,26 @@ describe('WizardContextBanner', () => {
             expect(component.variant()).toBe('critical');
         });
 
-        it('accepts warning variant', async () => {
-            const { component } = await setup({ variant: 'warning' });
-            expect(component.variant()).toBe('warning');
+        it('accepts caution variant', async () => {
+            const { component } = await setup({ variant: 'caution' });
+            expect(component.variant()).toBe('caution');
+        });
+    });
+
+    describe('presentation', () => {
+        it('renders Banner with StatusBanner when store has errors', async () => {
+            const { fixture } = await setup({ initialErrors: ['Save failed'], variant: 'critical' });
+            expect(fixture.debugElement.query(By.directive(Banner))).toBeTruthy();
+            const statusBanner = fixture.debugElement.query(By.directive(StatusBanner));
+            expect(statusBanner).toBeTruthy();
+            expect(statusBanner.componentInstance.variant).toBe('critical');
+            expect(fixture.nativeElement.textContent).toContain('Save failed');
+        });
+
+        it('does not render visible banner content when store has no errors', async () => {
+            const { fixture } = await setup();
+            expect(fixture.nativeElement.querySelector('.banner-container')).toBeNull();
+            expect(fixture.nativeElement.querySelector('.status-banner-container')).toBeNull();
         });
     });
 });

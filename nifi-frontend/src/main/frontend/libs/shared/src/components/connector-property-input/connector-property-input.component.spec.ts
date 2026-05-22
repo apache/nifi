@@ -23,6 +23,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 
 import { ConnectorPropertyInput } from './connector-property-input.component';
+import { StringListOrphansStrippedEvent } from './connector-property-input.types';
 import {
     AllowableValue,
     AssetInfo,
@@ -99,7 +100,8 @@ function makeSecret(overrides: Partial<Secret> = {}): Secret {
             (requestAllowableValues)="onRequestAllowableValues()"
             (assetFilesSelected)="onAssetFilesSelected($event)"
             (assetDeleteRequested)="onAssetDeleteRequested($event)"
-            (dismissFailedUploadRequested)="onDismissFailedUploadRequested($event)">
+            (dismissFailedUploadRequested)="onDismissFailedUploadRequested($event)"
+            (stringListOrphansStripped)="onStringListOrphansStripped($event)">
         </connector-property-input>
     `
 })
@@ -116,6 +118,7 @@ class HostComponent {
     assetFilesSelectedSpy = vi.fn();
     assetDeleteRequestedSpy = vi.fn();
     dismissFailedUploadRequestedSpy = vi.fn();
+    stringListOrphansStrippedSpy = vi.fn();
 
     onRequestAllowableValues(): void {
         this.requestSpy();
@@ -131,6 +134,10 @@ class HostComponent {
 
     onDismissFailedUploadRequested(progress: UploadProgressInfo): void {
         this.dismissFailedUploadRequestedSpy(progress);
+    }
+
+    onStringListOrphansStripped(event: StringListOrphansStrippedEvent): void {
+        this.stringListOrphansStrippedSpy(event);
     }
 }
 
@@ -532,6 +539,84 @@ describe('ConnectorPropertyInput', () => {
             expect(select).toBeNull();
             expect(textarea).toBeTruthy();
             expect(emptyHint).toBeTruthy();
+        });
+    });
+
+    describe('STRING_LIST multi-select orphan strip', () => {
+        it('emits stringListOrphansStripped once with every removed token after strip', async () => {
+            const property = makeProp({
+                type: 'STRING_LIST',
+                name: 'topics',
+                allowableValues: [makeAllowable('t1', 'T1'), makeAllowable('t2', 'T2')]
+            });
+            const { fixture, host } = await setup({
+                property,
+                initialValue: ['t1', 'gone-a', 'gone-b']
+            });
+
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(host.stringListOrphansStrippedSpy).toHaveBeenCalledTimes(1);
+            expect(host.stringListOrphansStrippedSpy.mock.calls[0][0]).toEqual({
+                propertyName: 'topics',
+                removed: ['gone-a', 'gone-b']
+            });
+            expect(host.control.value).toEqual(['t1']);
+        });
+
+        it('does not emit stringListOrphansStripped when every selected value is allowable', async () => {
+            const property = makeProp({
+                type: 'STRING_LIST',
+                name: 'topics',
+                allowableValues: [makeAllowable('t1', 'T1'), makeAllowable('t2', 'T2')]
+            });
+            const { fixture, host } = await setup({
+                property,
+                initialValue: ['t1', 't2']
+            });
+
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(host.stringListOrphansStrippedSpy).not.toHaveBeenCalled();
+        });
+
+        it('coalesces multiple computeSelectOptions passes into one strip emission', async () => {
+            const property = makeProp({
+                type: 'STRING_LIST',
+                name: 'topics',
+                allowableValues: [makeAllowable('t1', 'T1'), makeAllowable('t2', 'T2')]
+            });
+            await TestBed.configureTestingModule({
+                imports: [ConnectorPropertyInput, NoopAnimationsModule, MatIconTestingModule]
+            }).compileComponents();
+
+            const fixture = TestBed.createComponent(ConnectorPropertyInput);
+            const listener = vi.fn();
+            fixture.componentInstance.stringListOrphansStripped.subscribe(listener);
+            fixture.componentRef.setInput('property', property);
+            fixture.componentRef.setInput('dynamicAllowableValuesState', null);
+            fixture.componentInstance.writeValue(['t1', 'gone-a', 'gone-b']);
+
+            const computeSelectOptions = (
+                fixture.componentInstance as unknown as { computeSelectOptions: () => void }
+            ).computeSelectOptions.bind(fixture.componentInstance);
+            computeSelectOptions();
+            computeSelectOptions();
+
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges(false);
+
+            expect(listener).toHaveBeenCalledTimes(1);
+            expect(listener.mock.calls[0][0]).toEqual({
+                propertyName: 'topics',
+                removed: ['gone-a', 'gone-b']
+            });
+            expect(fixture.componentInstance.formControl.value).toEqual(['t1']);
         });
     });
 

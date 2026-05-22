@@ -47,6 +47,7 @@ import {
 } from '../../types';
 import { SearchableSelect } from '../searchable-select/searchable-select.component';
 import { AssetUpload } from '../asset-upload/asset-upload.component';
+import { StringListOrphansStrippedEvent } from './connector-property-input.types';
 
 /**
  * Form control for a single connector property.
@@ -98,6 +99,14 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     readonly assetDeleteRequested = output<AssetInfo>();
     readonly dismissFailedUploadRequested = output<UploadProgressInfo>();
 
+    /**
+     * Emitted once per strip operation after STRING_LIST multi-select values that
+     * are no longer in the loaded allowable-values list are removed from the form
+     * control (see `computeSelectOptions`). Coalesces multiple `computeSelectOptions`
+     * passes into a single emission via `stringListStripScheduled`.
+     */
+    readonly stringListOrphansStripped = output<StringListOrphansStrippedEvent>();
+
     formControl = new FormControl();
 
     // Cached options to avoid recomputing on every change detection cycle
@@ -108,6 +117,13 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     // host that rebinds [property] to a different descriptor re-issues the fetch.
     private hasFetchedDynamicValues = false;
     private lastSeenPropertyName: string | null = null;
+
+    /**
+     * Coalesces multiple `computeSelectOptions` passes before a scheduled
+     * STRING_LIST orphan strip runs, so the form control is only rewritten and
+     * `stringListOrphansStripped` is only emitted once per strip pass.
+     */
+    private stringListStripScheduled = false;
 
     get parentControl(): FormControl | null {
         return this.ngControl?.control as FormControl | null;
@@ -484,9 +500,13 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     /**
-     * Pure computation of SearchableSelectOptions from whichever source is available.
-     * Has no side effects; all reactive updates (provider-rename rewrite, orphan
-     * clearance on value change) are handled by separate effects and subscriptions.
+     * Builds SearchableSelectOptions from whichever source is available.
+     *
+     * For STRING_LIST multi-select, may schedule a deferred strip (via
+     * `afterNextRender`) when saved values are not in the loaded allowable list;
+     * that pass coalesces with `stringListStripScheduled` so the form control is
+     * rewritten and `stringListOrphansStripped` is emitted at most once per strip.
+     * Provider-rename rewrite and other reactive updates use separate effects.
      *
      * - SECRET: options come from availableSecrets, valued by a composite key
      *   (providerId::providerName::fullyQualifiedName) and grouped by provider
@@ -516,10 +536,55 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
             allowableValues = prop.allowableValues || [];
         }
 
-        return allowableValues.map((av) => ({
+        const options: SearchableSelectOption<string>[] = allowableValues.map((av) => ({
             value: av.allowableValue.value,
             label: av.allowableValue.displayName
         }));
+
+        // Surface saved values that are no longer in the loaded allowable list
+        // as disabled "(no longer available)" options so the selection is visible
+        // to the user. For STRING_LIST (multi-select) we additionally strip those
+        // values from the form control on the next render and emit
+        // stringListOrphansStripped so the host can banner the removal -- single
+        // selects keep the orphan option around because the searchable-select
+        // already shows the stale value and the user can pick a replacement.
+        const currentValue = this.formControl.value;
+        if (allowableValues.length > 0 && currentValue !== null && currentValue !== undefined) {
+            const existingOptionValues = new Set(options.map((o) => o.value));
+            const isMultiple = Array.isArray(currentValue);
+            const valuesToCheck = isMultiple ? (currentValue as string[]) : [currentValue as string];
+            const orphanedValues: string[] = [];
+
+            for (const val of valuesToCheck) {
+                if (val && !existingOptionValues.has(val)) {
+                    orphanedValues.push(val);
+                    options.unshift({
+                        value: val,
+                        label: `${val} (no longer available)`,
+                        disabled: true
+                    });
+                }
+            }
+
+            if (isMultiple && orphanedValues.length > 0 && !this.stringListStripScheduled) {
+                this.stringListStripScheduled = true;
+                const validValues = (currentValue as string[]).filter((v) => !orphanedValues.includes(v));
+                const removedSnapshot = [...orphanedValues];
+                const propertyName = prop.name;
+                runInInjectionContext(this.injector, () => {
+                    afterNextRender(() => {
+                        this.stringListStripScheduled = false;
+                        this.formControl.setValue(validValues, { emitEvent: true });
+                        this.stringListOrphansStripped.emit({
+                            propertyName,
+                            removed: removedSnapshot
+                        });
+                    });
+                });
+            }
+        }
+
+        return options;
     }
 
     private computeSecretSelectOptions(): SearchableSelectOption<string>[] {
