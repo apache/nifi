@@ -45,16 +45,6 @@ public enum RequestReplicationHeader {
     REPLICATION_TARGET_ID("replication-target-id"),
 
     /**
-     * When we replicate a request across the cluster, we replicate it only from the cluster coordinator.
-     * If the request needs to be replicated by another node, it first replicates the request to the coordinator,
-     * which then replicates the request on the node's behalf. This header name and value are used to denote
-     * that the request has already been to the cluster coordinator, and the cluster coordinator is the one replicating
-     * the request. This allows us to know that the request should be serviced, rather than proxied back to the
-     * cluster coordinator.
-     */
-    REQUEST_REPLICATED("request-replicated"),
-
-    /**
      * Transaction Identifier for replicated requests
      */
     REQUEST_TRANSACTION_ID("request-transaction-id"),

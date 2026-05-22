@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
@@ -111,14 +112,14 @@ class TestStandardUploadRequestReplicatorHeaders {
     @Test
     void testReplicationHeadersFromForwardedInputAreStripped() {
         final Map<String, String> forwarded = new HashMap<>();
-        forwarded.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), SPOOFED_VALUE);
+        forwarded.put(ReplicationHeader.REQUEST_REPLICATED.getHeader(), SPOOFED_VALUE);
         forwarded.put(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), SPOOFED_VALUE);
         forwarded.put(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader(), SPOOFED_TX_VALUE);
 
         final UploadRequest<String> request = buildUploadRequest(forwarded);
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertEquals(Boolean.TRUE.toString(), result.get(RequestReplicationHeader.REQUEST_REPLICATED.getHeader()));
+        assertEquals(Boolean.TRUE.toString(), result.get(ReplicationHeader.REQUEST_REPLICATED.getHeader()));
         assertEquals(Boolean.TRUE.toString(), result.get(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader()));
         assertNull(result.get(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader()));
     }
@@ -198,7 +199,7 @@ class TestStandardUploadRequestReplicatorHeaders {
         final UploadRequest<String> request = buildUploadRequest(new HashMap<>());
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
-        assertEquals(Boolean.TRUE.toString(), result.get(RequestReplicationHeader.REQUEST_REPLICATED.getHeader()));
+        assertEquals(Boolean.TRUE.toString(), result.get(ReplicationHeader.REQUEST_REPLICATED.getHeader()));
         assertEquals(Boolean.TRUE.toString(), result.get(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader()));
     }
 
@@ -218,7 +219,7 @@ class TestStandardUploadRequestReplicatorHeaders {
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
 
         assertEquals(TEST_FILENAME, result.get(FILENAME_HEADER));
-        assertEquals(Boolean.TRUE.toString(), result.get(RequestReplicationHeader.REQUEST_REPLICATED.getHeader()));
+        assertEquals(Boolean.TRUE.toString(), result.get(ReplicationHeader.REQUEST_REPLICATED.getHeader()));
         assertNotNull(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
     }
 

@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.http.SecurityHeader;
@@ -96,11 +97,14 @@ public final class ReplicationHeaderUtils {
     }
 
     /**
-     * Removes all {@link RequestReplicationHeader} names from the map (case-insensitive) so
+     * Removes all request replication header names from the map (case-insensitive) so
      * that inbound client requests cannot spoof replication protocol headers.
      */
     public static void stripRequestReplicationHeaders(final Map<String, String> headers) {
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
+            removeHeader(headers, rh.getHeader());
+        }
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
             removeHeader(headers, rh.getHeader());
         }
     }
