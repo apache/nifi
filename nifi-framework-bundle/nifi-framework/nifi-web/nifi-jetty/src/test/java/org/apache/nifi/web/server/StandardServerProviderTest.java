@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.server;
 
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.jetty.configuration.connector.ApplicationLayerProtocol;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
@@ -81,8 +82,6 @@ class StandardServerProviderTest {
     private static final String LOCALHOST_HTTP_PORT = "localhost:80";
 
     private static final String HOST_HEADER = "Host";
-
-    private static final String REQUEST_REPLICATED_HEADER = "request-replicated";
 
     private static final String PUBLIC_HOST = "nifi.apache.org";
 
@@ -280,7 +279,7 @@ class StandardServerProviderTest {
         final HttpRequest proxyHostRequestReplicatedRequest = HttpRequest.newBuilder(localhostUri)
                 .version(HttpClient.Version.HTTP_1_1)
                 .header(ProxyHeader.PROXY_HOST.getHeader(), PUBLIC_UNKNOWN_HOST)
-                .header(REQUEST_REPLICATED_HEADER, Boolean.TRUE.toString())
+                .header(ReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString())
                 .build();
         assertResponseStatusCode(httpClient, proxyHostRequestReplicatedRequest, statusCodeExpected);
     }

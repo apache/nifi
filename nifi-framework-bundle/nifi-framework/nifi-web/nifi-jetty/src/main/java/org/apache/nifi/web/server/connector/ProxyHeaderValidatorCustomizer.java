@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.server.connector;
 
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.eclipse.jetty.http.HttpException;
 import org.eclipse.jetty.http.HttpFields;
@@ -36,8 +37,6 @@ import java.util.Set;
  */
 public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customizer {
     private static final String MISDIRECTED_REQUEST_REASON = "Invalid Proxy Host Requested";
-
-    private static final String REQUEST_REPLICATED_HEADER = "request-replicated";
 
     private static final Set<String> SUPPORTED_PROXY_HOST_HEADERS = Set.of(
             ProxyHeader.PROXY_HOST.getHeader(),
@@ -79,7 +78,7 @@ public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customi
         } else {
             // Requests authenticated with Client Certificates but not indicated as replicated require header validation
             final HttpFields requestHeaders = request.getHeaders();
-            final String requestReplicated = requestHeaders.get(REQUEST_REPLICATED_HEADER);
+            final String requestReplicated = requestHeaders.get(ReplicationHeader.REQUEST_REPLICATED.getHeader());
             if (requestReplicated == null) {
                 processProxyHostHeaders(request);
             }

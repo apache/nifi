@@ -20,6 +20,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -191,7 +192,7 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, uploadRequest.getUser());
 
         headers.put(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), Boolean.TRUE.toString());
-        headers.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
+        headers.put(ReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
 
         return headers;
     }

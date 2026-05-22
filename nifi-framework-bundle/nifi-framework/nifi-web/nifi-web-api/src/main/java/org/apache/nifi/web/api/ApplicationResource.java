@@ -42,6 +42,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicationHeader;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -388,7 +389,7 @@ public abstract class ApplicationResource {
 
         // Check if the replicated header is set. If so, the request has already been replicated,
         // so we need to service the request locally. If not, then replicate the request to the entire cluster.
-        final String header = httpServletRequest.getHeader(RequestReplicationHeader.REQUEST_REPLICATED.getHeader());
+        final String header = httpServletRequest.getHeader(ReplicationHeader.REQUEST_REPLICATED.getHeader());
         return header == null;
     }
 
