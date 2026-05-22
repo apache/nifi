@@ -18,8 +18,11 @@ package org.apache.nifi.kafka.processors;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.ListShareGroupOffsetsSpec;
 import org.apache.kafka.clients.admin.ShareGroupDescription;
 import org.apache.kafka.clients.admin.ShareMemberDescription;
+import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.kafka.processors.consumer.GroupType;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
@@ -63,7 +66,7 @@ class ConsumeKafkaShareGroupIT extends AbstractConsumeKafkaIT {
 
     private static final long ASSIGNMENT_TIMEOUT_MS = 60_000L;
 
-    private static final long DELIVERY_TIMEOUT_MS = 30_000L;
+    private static final long DELIVERY_TIMEOUT_MS = 60_000L;
 
     @Test
     @Timeout(120)
@@ -112,23 +115,35 @@ class ConsumeKafkaShareGroupIT extends AbstractConsumeKafkaIT {
 
     /**
      * Drive {@link TestRunner#run} iterations against the share-group consumer until the broker
-     * reports the share group has at least one member with a partition assignment for {@code topic}.
-     * Share-group rebalances happen at fixed heartbeat intervals (5s in this test setup) so this
-     * polling typically completes within ~10s of the consumer first subscribing.
+     * reports the share group is ready to deliver records for {@code topic}. Two conditions must
+     * hold before producing the test record:
+     * <ol>
+     *   <li>The group coordinator has assigned the partition to a share-group member.</li>
+     *   <li>The share-group state machine has recorded a starting offset for the partition,
+     *   which only happens after the consumer's first ShareFetch lands on the leader.</li>
+     * </ol>
+     * Without the second check there is a race where the test produces before the consumer's
+     * first fetch, the broker locks the share-group's starting offset to the post-produce
+     * high-watermark, and the produced record sits below the starting offset and is never
+     * delivered. The race is rare locally but more likely on slow CI runners.
      */
     private void waitForShareGroupAssignment(final String shareGroupId, final String topic) throws TimeoutException {
         final Properties adminProperties = new Properties();
         adminProperties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
         try (Admin admin = Admin.create(adminProperties)) {
             final long deadline = System.currentTimeMillis() + ASSIGNMENT_TIMEOUT_MS;
+            boolean assigned = false;
             while (System.currentTimeMillis() < deadline) {
                 runner.run(1, false, false);
-                if (hasShareGroupAssignment(admin, shareGroupId, topic)) {
+                if (!assigned) {
+                    assigned = hasShareGroupAssignment(admin, shareGroupId, topic);
+                }
+                if (assigned && hasShareGroupStartingOffset(admin, shareGroupId, topic)) {
                     return;
                 }
             }
         }
-        throw new TimeoutException("Share group %s never received a partition assignment for topic %s".formatted(shareGroupId, topic));
+        throw new TimeoutException("Share group %s never became ready to deliver records for topic %s".formatted(shareGroupId, topic));
     }
 
     private boolean hasShareGroupAssignment(final Admin admin, final String shareGroupId, final String topic) {
@@ -144,6 +159,17 @@ class ConsumeKafkaShareGroupIT extends AbstractConsumeKafkaIT {
                 }
             }
             return false;
+        } catch (final Exception ignored) {
+            return false;
+        }
+    }
+
+    private boolean hasShareGroupStartingOffset(final Admin admin, final String shareGroupId, final String topic) {
+        try {
+            final Map<TopicPartition, SharePartitionOffsetInfo> offsets = admin
+                    .listShareGroupOffsets(Collections.singletonMap(shareGroupId, new ListShareGroupOffsetsSpec()))
+                    .partitionsToOffsetInfo(shareGroupId).get();
+            return offsets != null && offsets.keySet().stream().anyMatch(tp -> topic.equals(tp.topic()));
         } catch (final Exception ignored) {
             return false;
         }
