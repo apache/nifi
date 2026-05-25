@@ -51,11 +51,13 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -291,4 +293,22 @@ public class TestPutS3Object {
 
         expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
+
+    @Test
+    void testBuildCacheKeyIncludesFlowFileUUID() {
+        final String bucket = "test-bucket";
+        final String key = "data/file.csv";
+        final String uuid1 = UUID.randomUUID().toString();
+        final String uuid2 = UUID.randomUUID().toString();
+
+        final String cacheKey1 = putS3Object.buildCacheKey(bucket, key, uuid1);
+        final String cacheKey2 = putS3Object.buildCacheKey(bucket, key, uuid2);
+        final String cacheKey1Retry = putS3Object.buildCacheKey(bucket, key, uuid1);
+
+        assertNotEquals(cacheKey1, cacheKey2,
+                "FlowFiles with different UUIDs sharing the same bucket and key must use distinct cache keys to prevent multipart state collision");
+        assertEquals(cacheKey1, cacheKey1Retry,
+                "Same FlowFile UUID must produce the same cache key so interrupted uploads can be resumed");
+    }
+
 }
