@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class ObjectLocalDateFieldConverterTest {
-    private static final ObjectLocalDateFieldConverter CONVERTER = new ObjectLocalDateFieldConverter();
 
+    private static final ObjectLocalDateFieldConverter CONVERTER = new ObjectLocalDateFieldConverter();
     private static final String FIELD_NAME = LocalDate.class.getSimpleName();
 
     @Test
@@ -46,22 +46,15 @@ class ObjectLocalDateFieldConverterTest {
     void testConvertFieldSqlDateModernYear() {
         final LocalDate localDate = LocalDate.of(2025, 5, 25);
         final Date sqlDate = new Date(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
-
         final LocalDate result = CONVERTER.convertField(sqlDate, Optional.empty(), FIELD_NAME);
-
         assertEquals(localDate, result);
     }
 
     @Test
     void testConvertFieldSqlDateYearOneIsProlepticGregorian() {
-        // A java.sql.Date built from a proleptic-Gregorian year-1 epoch must round-trip back
-        // to year 1, not be shifted to year 0 by Julian calendar semantics in
-        // java.sql.Date#toLocalDate (which uses deprecated getYear/getMonth/getDate).
         final LocalDate yearOne = LocalDate.of(1, 1, 1);
         final Date sqlDate = new Date(yearOne.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
-
         final LocalDate result = CONVERTER.convertField(sqlDate, Optional.empty(), FIELD_NAME);
-
         assertEquals(yearOne, result);
     }
 }

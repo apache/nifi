@@ -49,10 +49,6 @@ class ObjectLocalDateFieldConverter implements FieldConverter<Object, LocalDate>
                 return localDate;
             }
             case Date date -> {
-                // Avoid java.sql.Date#toLocalDate which uses deprecated getYear/getMonth/getDate
-                // accessors backed by GregorianCalendar, applying Julian calendar semantics for years
-                // before 1582 and shifting pre-1582 dates by approximately two days. java.sql.Date
-                // does not implement toInstant, so the epoch milliseconds are read explicitly.
                 return ofInstant(Instant.ofEpochMilli(date.getTime()));
             }
             case java.util.Date date -> {

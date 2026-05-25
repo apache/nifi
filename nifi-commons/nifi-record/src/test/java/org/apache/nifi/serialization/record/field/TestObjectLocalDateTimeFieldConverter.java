@@ -104,14 +104,9 @@ public class TestObjectLocalDateTimeFieldConverter {
 
     @Test
     public void testConvertTimestampYearOneIsProlepticGregorian() {
-        // A Timestamp constructed directly from a proleptic-Gregorian year-1 Instant must
-        // round-trip back to year 1, not be shifted to year 0 by Julian calendar semantics
-        // in Timestamp#toLocalDateTime.
         final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
         final Timestamp timestamp = Timestamp.from(yearOne.atZone(ZoneId.systemDefault()).toInstant());
-
         final LocalDateTime result = converter.convertField(timestamp, Optional.empty(), FIELD_NAME);
-
         assertEquals(yearOne, result);
     }
 

@@ -162,13 +162,9 @@ class ObjectStringFieldConverterTest {
 
     @Test
     void testConvertFieldTimestampYearOneIsProlepticGregorian() {
-        // A Timestamp built from a proleptic-Gregorian year-1 Instant must format with year 1
-        // (not "0000-12-30" produced when Timestamp#toLocalDateTime applies Julian semantics).
         final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
         final Timestamp timestamp = Timestamp.from(yearOne.atZone(ZoneId.systemDefault()).toInstant());
-
         final String formatted = CONVERTER.convertField(timestamp, Optional.of(DEFAULT_PATTERN), FIELD_NAME);
-
         final String expected = DateTimeFormatter.ofPattern(DEFAULT_PATTERN, Locale.ROOT).format(yearOne);
         assertEquals(expected, formatted);
     }

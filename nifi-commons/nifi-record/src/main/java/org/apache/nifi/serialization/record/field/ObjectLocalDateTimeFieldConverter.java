@@ -64,9 +64,6 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                 return localDateTime;
             }
             case Timestamp timestamp -> {
-                // Avoid Timestamp#toLocalDateTime which routes through deprecated GregorianCalendar
-                // and applies Julian calendar semantics for years before 1582, shifting pre-1582
-                // timestamps by approximately two days.
                 return ofInstant(timestamp.toInstant());
             }
             case Date date -> {

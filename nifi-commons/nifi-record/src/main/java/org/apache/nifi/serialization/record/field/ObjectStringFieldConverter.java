@@ -57,8 +57,6 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
                     return Long.toString(timestamp.getTime());
                 }
                 final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                // Avoid Timestamp#toLocalDateTime which routes through deprecated GregorianCalendar
-                // and applies Julian calendar semantics for years before 1582.
                 final ZonedDateTime dateTime = timestamp.toInstant().atZone(ZoneId.systemDefault());
                 return formatter.format(dateTime);
             }

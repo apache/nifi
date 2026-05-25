@@ -164,10 +164,6 @@ public class ObjectTimestampFieldConverterTest {
 
     @Test
     public void testConvertFieldStringYearOneIsProlepticGregorian() {
-        // Verify that year 1 in the source string is interpreted via proleptic Gregorian
-        // (matching java.time semantics) rather than the Julian calendar that would route
-        // through the deprecated GregorianCalendar in Timestamp.valueOf and shift the value
-        // by approximately two days.
         final String yearOne = "0001-01-01 12:00:00";
         final Timestamp timestamp = CONVERTER.convertField(yearOne, DEFAULT_PATTERN, FIELD_NAME);
         final Instant expected = LocalDateTime.of(1, 1, 1, 12, 0, 0).atZone(ZoneId.systemDefault()).toInstant();
