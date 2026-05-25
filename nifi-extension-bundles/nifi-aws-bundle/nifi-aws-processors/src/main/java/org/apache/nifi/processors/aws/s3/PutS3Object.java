@@ -394,6 +394,10 @@ public class PutS3Object extends AbstractS3Processor {
         return new File(this.tempDirMultipart + File.separator + getIdentifier());
     }
 
+    protected String buildCacheKey(final String bucket, final String key, final String uuid) {
+        return getIdentifier() + "/" + bucket + "/" + key + "/" + uuid;
+    }
+
     protected boolean localUploadExistsInS3(final S3Client client, final String bucket, final MultipartState localState) {
         final ListMultipartUploadsRequest listRequest = ListMultipartUploadsRequest.builder()
                 .bucket(bucket)
@@ -546,7 +550,7 @@ public class PutS3Object extends AbstractS3Processor {
 
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
-        final String cacheKey = getIdentifier() + "/" + bucket + "/" + key;
+        final String cacheKey = buildCacheKey(bucket, key, flowFile.getAttribute(CoreAttributes.UUID.key()));
 
         final Map<String, String> attributes = new HashMap<>();
         final String ffFilename = flowFile.getAttributes().get(CoreAttributes.FILENAME.key());
