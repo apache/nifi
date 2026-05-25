@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -58,10 +57,9 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
                     return Long.toString(timestamp.getTime());
                 }
                 final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                final LocalDateTime localDateTime = timestamp.toLocalDateTime();
-
-                // Convert LocalDateTime to ZonedDateTime using system default zone to support offsets in Date Time Formatter
-                final ZonedDateTime dateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
+                // Avoid Timestamp#toLocalDateTime which routes through deprecated GregorianCalendar
+                // and applies Julian calendar semantics for years before 1582.
+                final ZonedDateTime dateTime = timestamp.toInstant().atZone(ZoneId.systemDefault());
                 return formatter.format(dateTime);
             }
             case Date date -> {

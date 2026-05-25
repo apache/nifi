@@ -20,6 +20,7 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 
 /**
@@ -40,6 +41,9 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
     @Override
     public Timestamp convertField(final Object field, final Optional<String> pattern, final String name) {
         final LocalDateTime localDateTime = CONVERTER.convertField(field, pattern, name);
-        return localDateTime == null ? null : Timestamp.valueOf(localDateTime);
+        // Avoid Timestamp.valueOf(LocalDateTime) which routes through deprecated GregorianCalendar
+        // and applies Julian calendar semantics for years before 1582, shifting pre-1582 timestamps
+        // by approximately two days.
+        return localDateTime == null ? null : Timestamp.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
 }

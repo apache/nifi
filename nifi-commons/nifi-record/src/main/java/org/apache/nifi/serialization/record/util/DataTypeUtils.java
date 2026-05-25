@@ -200,7 +200,9 @@ public class DataTypeUtils {
             case DATE:
                 final FieldConverter<Object, LocalDate> localDateConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
                 final LocalDate localDate = localDateConverter.convertField(value, dateFormat, fieldName);
-                return localDate == null ? null : Date.valueOf(localDate);
+                // Avoid Date.valueOf(LocalDate) which routes through deprecated GregorianCalendar
+                // and applies Julian calendar semantics for years before 1582.
+                return localDate == null ? null : new Date(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
             case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:

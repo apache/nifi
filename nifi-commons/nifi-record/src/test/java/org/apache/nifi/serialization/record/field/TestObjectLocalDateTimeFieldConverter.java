@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record.field;
 
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -99,5 +100,24 @@ public class TestObjectLocalDateTimeFieldConverter {
     public void testWithDateFormatMicrosecondPrecision() {
         final LocalDateTime result = converter.convertField(MICROS_TIMESTAMP_LONG, Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"), FIELD_NAME);
         assertEquals(LOCAL_DATE_TIME_MICROS_PRECISION, result);
+    }
+
+    @Test
+    public void testConvertTimestampYearOneIsProlepticGregorian() {
+        // A Timestamp constructed directly from a proleptic-Gregorian year-1 Instant must
+        // round-trip back to year 1, not be shifted to year 0 by Julian calendar semantics
+        // in Timestamp#toLocalDateTime.
+        final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
+        final Timestamp timestamp = Timestamp.from(yearOne.atZone(ZoneId.systemDefault()).toInstant());
+
+        final LocalDateTime result = converter.convertField(timestamp, Optional.empty(), FIELD_NAME);
+
+        assertEquals(yearOne, result);
+    }
+
+    @Test
+    public void testConvertStringYearOneIsProlepticGregorian() {
+        final LocalDateTime result = converter.convertField("0001-01-01 12:00:00", Optional.of("yyyy-MM-dd HH:mm:ss"), FIELD_NAME);
+        assertEquals(LocalDateTime.of(1, 1, 1, 12, 0, 0), result);
     }
 }

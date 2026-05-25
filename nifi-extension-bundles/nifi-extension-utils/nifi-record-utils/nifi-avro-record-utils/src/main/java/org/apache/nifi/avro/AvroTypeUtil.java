@@ -1153,11 +1153,11 @@ public class AvroTypeUtil {
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_DATE.equals(logicalName)) {
                     // date logical name means that the value is number of days since Jan 1, 1970
-                    // Handle both Integer (legacy) and LocalDate (newer Avro libraries)
-                    if (value instanceof LocalDate localDate) {
-                        return java.sql.Date.valueOf(localDate);
-                    }
-                    return java.sql.Date.valueOf(LocalDate.ofEpochDay((int) value));
+                    // Handle both Integer (legacy) and LocalDate (newer Avro libraries).
+                    // Avoid Date.valueOf(LocalDate) which routes through deprecated GregorianCalendar
+                    // and applies Julian calendar semantics for years before 1582.
+                    final LocalDate localDate = (value instanceof LocalDate ld) ? ld : LocalDate.ofEpochDay((int) value);
+                    return new java.sql.Date(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)

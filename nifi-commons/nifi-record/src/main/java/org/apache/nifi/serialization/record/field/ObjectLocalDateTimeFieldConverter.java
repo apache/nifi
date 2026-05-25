@@ -64,7 +64,10 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                 return localDateTime;
             }
             case Timestamp timestamp -> {
-                return timestamp.toLocalDateTime();
+                // Avoid Timestamp#toLocalDateTime which routes through deprecated GregorianCalendar
+                // and applies Julian calendar semantics for years before 1582, shifting pre-1582
+                // timestamps by approximately two days.
+                return ofInstant(timestamp.toInstant());
             }
             case Date date -> {
                 // java.sql.Date and java.sql.Time do not support the toInstant() method so using getTime() is required
