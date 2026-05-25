@@ -116,6 +116,25 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .required(false)
         .build();
 
+    public static final AllowableValue CONFLICT_RESOLUTION_FAIL = new AllowableValue("Fail", "Fail",
+            "When the destination file already exists, leave the source file in place and log a warning.");
+    public static final AllowableValue CONFLICT_RESOLUTION_REPLACE = new AllowableValue("Replace", "Replace",
+            "When the destination file already exists, delete it and rename the source file to the destination. "
+            + "Use this option for SFTP servers (e.g. OpenSSH) that do not support atomic overwrite on rename.");
+    public static final PropertyDescriptor MOVE_CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+            .name("Move Conflict Resolution")
+            .description(String.format("Specifies how to handle the case when the destination file already exists "
+                    + "when '%s' is '%s'. '%s' leaves the source file in place and logs a warning. "
+                    + "'%s' explicitly deletes the destination and retries the rename.",
+                    COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(),
+                    CONFLICT_RESOLUTION_FAIL.getDisplayName(), CONFLICT_RESOLUTION_REPLACE.getDisplayName()))
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(CONFLICT_RESOLUTION_FAIL, CONFLICT_RESOLUTION_REPLACE)
+            .defaultValue(CONFLICT_RESOLUTION_FAIL.getValue())
+            .dependsOn(COMPLETION_STRATEGY, COMPLETION_MOVE)
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
         .name("Log Level When File Not Found")
         .description("Log level to use in case the file does not exist when the processor is triggered")
@@ -354,6 +373,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
             final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
             final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
+            final String conflictResolution = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
 
             try {
                 final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
@@ -363,6 +383,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 }
 
                 final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, simpleFilename);
+                if (CONFLICT_RESOLUTION_REPLACE.getValue().equalsIgnoreCase(conflictResolution)) {
+                    final FileInfo existingDestination = transfer.getRemoteFileInfo(flowFile, absoluteTargetDirPath, simpleFilename);
+                    if (existingDestination != null) {
+                        getLogger().debug("Destination [{}] already exists; removing before rename per conflict resolution Replace", destinationPath);
+                        transfer.deleteFile(flowFile, null, destinationPath);
+                    }
+                }
+
                 transfer.rename(flowFile, filename, destinationPath);
 
             } catch (final IOException ioe) {
