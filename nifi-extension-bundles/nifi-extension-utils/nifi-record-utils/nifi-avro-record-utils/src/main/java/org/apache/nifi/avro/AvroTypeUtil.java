@@ -63,12 +63,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -1163,7 +1163,7 @@ public class AvroTypeUtil {
                     }
 
                     final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
-                    return new java.sql.Date(zonedDate.toInstant().toEpochMilli());
+                    return new Date(zonedDate.toInstant().toEpochMilli());
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)
