@@ -164,18 +164,22 @@ public class ObjectTimestampFieldConverterTest {
 
     @Test
     public void testConvertFieldStringYearOneIsProlepticGregorian() {
-        final String yearOne = "0001-01-01 12:00:00";
-        final Timestamp timestamp = CONVERTER.convertField(yearOne, DEFAULT_PATTERN, FIELD_NAME);
-        final Instant expected = LocalDateTime.of(1, 1, 1, 12, 0, 0).atZone(ZoneId.systemDefault()).toInstant();
-        assertEquals(expected, timestamp.toInstant());
+        final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
+        final ZonedDateTime zonedYearOne = yearOne.atZone(ZoneId.systemDefault());
+        final Timestamp timestamp = CONVERTER.convertField("0001-01-01 12:00:00", DEFAULT_PATTERN, FIELD_NAME);
+        final Timestamp expected = Timestamp.from(zonedYearOne.toInstant());
+
+        assertEquals(expected, timestamp);
     }
 
     @Test
     public void testConvertFieldLocalDateTimeYearOneIsProlepticGregorian() {
         final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
+        final ZonedDateTime zonedYearOne = yearOne.atZone(ZoneId.systemDefault());
         final Timestamp timestamp = CONVERTER.convertField(yearOne, DEFAULT_PATTERN, FIELD_NAME);
-        final Instant expected = yearOne.atZone(ZoneId.systemDefault()).toInstant();
-        assertEquals(expected, timestamp.toInstant());
+        final Timestamp expected = Timestamp.from(zonedYearOne.toInstant());
+        
+        assertEquals(expected, timestamp);
     }
 
     private Timestamp getDateTimeCoordinatedUniversalTime() {

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,16 +46,20 @@ class ObjectLocalDateFieldConverterTest {
     @Test
     void testConvertFieldSqlDateModernYear() {
         final LocalDate localDate = LocalDate.of(2025, 5, 25);
-        final Date sqlDate = new Date(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
+        final Date sqlDate = new Date(zonedDate.toInstant().toEpochMilli());
         final LocalDate result = CONVERTER.convertField(sqlDate, Optional.empty(), FIELD_NAME);
+
         assertEquals(localDate, result);
     }
 
     @Test
     void testConvertFieldSqlDateYearOneIsProlepticGregorian() {
         final LocalDate yearOne = LocalDate.of(1, 1, 1);
-        final Date sqlDate = new Date(yearOne.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        final ZonedDateTime zonedDate = yearOne.atStartOfDay(ZoneId.systemDefault());
+        final Date sqlDate = new Date(zonedDate.toInstant().toEpochMilli());
         final LocalDate result = CONVERTER.convertField(sqlDate, Optional.empty(), FIELD_NAME);
+        
         assertEquals(yearOne, result);
     }
 }

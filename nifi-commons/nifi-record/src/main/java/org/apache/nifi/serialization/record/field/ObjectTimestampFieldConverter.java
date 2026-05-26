@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 /**
@@ -41,6 +42,11 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
     @Override
     public Timestamp convertField(final Object field, final Optional<String> pattern, final String name) {
         final LocalDateTime localDateTime = CONVERTER.convertField(field, pattern, name);
-        return localDateTime == null ? null : Timestamp.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        if (localDateTime == null) {
+            return null;
+        }
+
+        final ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+        return Timestamp.from(zonedDateTime.toInstant());
     }
 }

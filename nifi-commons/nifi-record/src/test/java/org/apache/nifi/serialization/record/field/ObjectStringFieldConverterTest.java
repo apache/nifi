@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.zone.ZoneRules;
 import java.util.Date;
@@ -163,9 +164,11 @@ class ObjectStringFieldConverterTest {
     @Test
     void testConvertFieldTimestampYearOneIsProlepticGregorian() {
         final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
-        final Timestamp timestamp = Timestamp.from(yearOne.atZone(ZoneId.systemDefault()).toInstant());
+        final ZonedDateTime zonedYearOne = yearOne.atZone(ZoneId.systemDefault());
+        final Timestamp timestamp = Timestamp.from(zonedYearOne.toInstant());
         final String formatted = CONVERTER.convertField(timestamp, Optional.of(DEFAULT_PATTERN), FIELD_NAME);
         final String expected = DateTimeFormatter.ofPattern(DEFAULT_PATTERN, Locale.ROOT).format(yearOne);
+
         assertEquals(expected, formatted);
     }
 

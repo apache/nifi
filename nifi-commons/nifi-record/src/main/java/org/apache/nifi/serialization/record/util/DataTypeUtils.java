@@ -200,7 +200,12 @@ public class DataTypeUtils {
             case DATE:
                 final FieldConverter<Object, LocalDate> localDateConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
                 final LocalDate localDate = localDateConverter.convertField(value, dateFormat, fieldName);
-                return localDate == null ? null : new Date(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+                if (localDate == null) {
+                    return null;
+                }
+
+                final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
+                return new Date(zonedDate.toInstant().toEpochMilli());
             case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:

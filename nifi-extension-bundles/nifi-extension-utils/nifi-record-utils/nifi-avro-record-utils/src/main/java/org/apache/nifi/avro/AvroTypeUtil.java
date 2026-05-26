@@ -68,6 +68,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -1154,8 +1155,15 @@ public class AvroTypeUtil {
                 if (LOGICAL_TYPE_DATE.equals(logicalName)) {
                     // date logical name means that the value is number of days since Jan 1, 1970
                     // Handle both Integer (legacy) and LocalDate (newer Avro libraries).
-                    final LocalDate localDate = (value instanceof LocalDate ld) ? ld : LocalDate.ofEpochDay((int) value);
-                    return new java.sql.Date(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+                    final LocalDate localDate;
+                    if (value instanceof LocalDate ld) {
+                        localDate = ld;
+                    } else {
+                        localDate = LocalDate.ofEpochDay((int) value);
+                    }
+
+                    final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
+                    return new java.sql.Date(zonedDate.toInstant().toEpochMilli());
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)

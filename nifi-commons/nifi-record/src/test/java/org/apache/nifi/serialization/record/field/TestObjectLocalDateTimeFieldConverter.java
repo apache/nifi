@@ -23,6 +23,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
@@ -105,14 +106,17 @@ public class TestObjectLocalDateTimeFieldConverter {
     @Test
     public void testConvertTimestampYearOneIsProlepticGregorian() {
         final LocalDateTime yearOne = LocalDateTime.of(1, 1, 1, 12, 0, 0);
-        final Timestamp timestamp = Timestamp.from(yearOne.atZone(ZoneId.systemDefault()).toInstant());
+        final ZonedDateTime zonedYearOne = yearOne.atZone(ZoneId.systemDefault());
+        final Timestamp timestamp = Timestamp.from(zonedYearOne.toInstant());
         final LocalDateTime result = converter.convertField(timestamp, Optional.empty(), FIELD_NAME);
+
         assertEquals(yearOne, result);
     }
 
     @Test
     public void testConvertStringYearOneIsProlepticGregorian() {
         final LocalDateTime result = converter.convertField("0001-01-01 12:00:00", Optional.of("yyyy-MM-dd HH:mm:ss"), FIELD_NAME);
-        assertEquals(LocalDateTime.of(1, 1, 1, 12, 0, 0), result);
+        final LocalDateTime expected = LocalDateTime.of(1, 1, 1, 12, 0, 0);
+        assertEquals(expected, result);
     }
 }
