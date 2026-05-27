@@ -34,7 +34,6 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -52,20 +51,20 @@ import java.util.concurrent.ConcurrentMap;
         description = "Adds a named schema using the JSON string representation of an Avro schema",
         expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
+    static final List<String> OBSOLETE_VALIDATE_FIELD_NAMES = List.of("avro-reg-validated-field-names", "Validate Field Names");
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
     private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
-    static final PropertyDescriptor VALIDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
-            .name("Validate Field Names")
-            .description("Whether or not to validate the field names in the Avro schema based on Avro naming rules. If set to true, all field names must be valid Avro names, "
-                    + "which must begin with [A-Za-z_], and subsequently contain only [A-Za-z0-9_]. If set to false, no validation will be performed on the field names.")
-            .allowableValues("true", "false")
-            .defaultValue("true")
+    public static final PropertyDescriptor VALIDATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Validation Strategy")
+            .description("Set the strategy for the level of Avro validation required for field names, namespaces and default values")
             .required(true)
+            .allowableValues(ValidationStrategy.class)
+            .defaultValue(ValidationStrategy.STRICT)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            VALIDATE_FIELD_NAMES
+            VALIDATION_STRATEGY
     );
 
     @Override
@@ -92,8 +91,8 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Set<ValidationResult> results = new HashSet<>();
-        boolean strict = validationContext.getProperty(VALIDATE_FIELD_NAMES).asBoolean();
+        final Set<ValidationResult> results = new HashSet<>();
+        final ValidationStrategy validationStrategy = validationContext.getProperty(VALIDATION_STRATEGY).asAllowableValue(ValidationStrategy.class);
 
         // Iterate over dynamic properties, validating the schemas, and adding results
         validationContext.getProperties().entrySet().stream().filter(entry -> entry.getKey().isDynamic()).forEach(entry -> {
@@ -101,7 +100,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             String input = entry.getValue();
 
             try {
-                final Schema.Parser parser = strict
+                final Schema.Parser parser = ValidationStrategy.STRICT == validationStrategy
                         ? new Schema.Parser(NameValidator.STRICT_VALIDATOR).setValidateDefaults(true)
                         : new Schema.Parser(NameValidator.NO_VALIDATION).setValidateDefaults(false);
                 final Schema avroSchema = parser.parse(input);
@@ -127,7 +126,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
     @Override
-    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
         final Optional<String> schemaName = schemaIdentifier.getName();
         if (schemaName.isPresent()) {
             return retrieveSchemaByName(schemaName.get());
@@ -138,7 +137,22 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("avro-reg-validated-field-names", VALIDATE_FIELD_NAMES.getName());
+        // NOTE: Although there are multiple names for OBSOLETE_VALIDATE_FIELD_NAMES, the code in the if statement
+        // will execute at most once as the assumption is a configuration has one of the obsolete property names but not all.
+        for (String obsoletePropertyName : OBSOLETE_VALIDATE_FIELD_NAMES) {
+            if (config.hasProperty(obsoletePropertyName) && config.isPropertySet(obsoletePropertyName)) {
+                final String validateFieldNamesRawValue = config.getRawPropertyValue(obsoletePropertyName).orElse(Boolean.FALSE.toString());
+                final boolean validateFieldNames = Boolean.parseBoolean(validateFieldNamesRawValue);
+
+                if (validateFieldNames) {
+                    config.setProperty(VALIDATION_STRATEGY, ValidationStrategy.STRICT.getValue());
+                } else {
+                    config.setProperty(VALIDATION_STRATEGY, ValidationStrategy.LENIENT.getValue());
+                }
+            }
+
+            config.removeProperty(obsoletePropertyName);
+        }
     }
 
     @Override
