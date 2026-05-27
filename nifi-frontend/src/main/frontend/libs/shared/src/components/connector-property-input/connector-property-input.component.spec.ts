@@ -44,9 +44,9 @@ function makeProp(overrides: Partial<ConnectorPropertyDescriptor> = {}): Connect
     };
 }
 
-function makeAllowable(value: string, displayName: string = value): AllowableValue {
+function makeAllowable(value: string, displayName: string = value, description?: string): AllowableValue {
     return {
-        allowableValue: { value, displayName },
+        allowableValue: { value, displayName, description },
         canRead: true
     };
 }
@@ -289,8 +289,24 @@ describe('ConnectorPropertyInput', () => {
             });
 
             expect(inputComponent.selectOptions).toEqual([
-                { value: 'v1', label: 'Value One' },
-                { value: 'v2', label: 'Value Two' }
+                { value: 'v1', label: 'Value One', description: undefined },
+                { value: 'v2', label: 'Value Two', description: undefined }
+            ]);
+        });
+
+        it('includes allowable value descriptions in select options when present', async () => {
+            const { inputComponent } = await setup({
+                property: makeProp({
+                    allowableValues: [
+                        makeAllowable('v1', 'Value One', 'First option description'),
+                        makeAllowable('v2', 'Value Two', 'Second option description')
+                    ]
+                })
+            });
+
+            expect(inputComponent.selectOptions).toEqual([
+                { value: 'v1', label: 'Value One', description: 'First option description' },
+                { value: 'v2', label: 'Value Two', description: 'Second option description' }
             ]);
         });
 
@@ -309,8 +325,27 @@ describe('ConnectorPropertyInput', () => {
             fixture.detectChanges();
 
             expect(inputComponent.selectOptions).toEqual([
-                { value: 'dyn-1', label: 'Dynamic 1' },
-                { value: 'dyn-2', label: 'Dynamic 2' }
+                { value: 'dyn-1', label: 'Dynamic 1', description: undefined },
+                { value: 'dyn-2', label: 'Dynamic 2', description: undefined }
+            ]);
+        });
+
+        it('includes descriptions from dynamic allowable values state', async () => {
+            const { inputComponent, host, fixture } = await setup({
+                property: makeProp({ allowableValuesFetchable: true })
+            });
+
+            host.dynamicAllowableValuesState.set({
+                loading: false,
+                error: null,
+                values: [makeAllowable('dyn-1', 'Dynamic 1', 'Fetched option description')]
+            });
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+
+            expect(inputComponent.selectOptions).toEqual([
+                { value: 'dyn-1', label: 'Dynamic 1', description: 'Fetched option description' }
             ]);
         });
 

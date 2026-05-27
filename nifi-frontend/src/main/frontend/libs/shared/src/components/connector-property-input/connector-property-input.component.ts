@@ -538,7 +538,8 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
 
         const options: SearchableSelectOption<string>[] = allowableValues.map((av) => ({
             value: av.allowableValue.value,
-            label: av.allowableValue.displayName
+            label: av.allowableValue.displayName,
+            description: av.allowableValue.description
         }));
 
         // Surface saved values that are no longer in the loaded allowable list

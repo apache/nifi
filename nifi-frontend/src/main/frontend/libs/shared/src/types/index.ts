@@ -415,6 +415,7 @@ export interface AllowableValue {
     allowableValue: {
         displayName: string;
         value: string;
+        description?: string;
     };
     canRead: boolean;
 }
