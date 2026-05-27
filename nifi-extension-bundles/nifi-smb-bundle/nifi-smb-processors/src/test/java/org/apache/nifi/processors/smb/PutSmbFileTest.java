@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
@@ -96,7 +97,7 @@ public class PutSmbFileTest {
         serverList = mock(ServerList.class);
         baOutputStream = new ByteArrayOutputStream();
 
-        when(smbClient.connect(any(String.class))).thenReturn(connection);
+        when(smbClient.connect(any(String.class), anyInt())).thenReturn(connection);
         when(smbClient.getServerList()).thenReturn(serverList);
 
         when(connection.authenticate(any(AuthenticationContext.class))).thenReturn(session);
@@ -240,6 +241,23 @@ public class PutSmbFileTest {
 
         // 20 FlowFiles share the same hostname and share as the first processed FlowFile, but since the batch size is 10, 30 FlowFiles should remain in the queue
         assertEquals(30, testRunner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void testDefaultPortIsUsed() throws IOException {
+        testRunner.enqueue("data");
+        testRunner.run();
+
+        verify(smbClient).connect(HOSTNAME, 445);
+    }
+
+    @Test
+    public void testCustomPortIsUsed() throws IOException {
+        testRunner.setProperty(PutSmbFile.PORT, "4445");
+        testRunner.enqueue("data");
+        testRunner.run();
+
+        verify(smbClient).connect(HOSTNAME, 4445);
     }
 
     @Test
@@ -431,7 +449,7 @@ public class PutSmbFileTest {
     @Test
     public void testConnectionError() throws IOException {
         String emsg = "mock connection exception";
-        when(smbClient.connect(any(String.class))).thenThrow(new IOException(emsg));
+        when(smbClient.connect(any(String.class), anyInt())).thenThrow(new IOException(emsg));
 
         testRunner.enqueue("1");
         testRunner.enqueue("2");

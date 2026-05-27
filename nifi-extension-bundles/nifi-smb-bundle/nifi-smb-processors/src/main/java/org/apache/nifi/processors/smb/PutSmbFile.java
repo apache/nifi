@@ -97,6 +97,13 @@ public class PutSmbFile extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
+            .name("Port")
+            .description("The port to use for the SMB connection.")
+            .required(true)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .defaultValue("445")
+            .build();
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
             .name("Share")
             .description("The network share to which files should be written. This is the \"first folder\"" +
@@ -179,6 +186,7 @@ public class PutSmbFile extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HOSTNAME,
+            PORT,
             SHARE,
             DIRECTORY,
             DOMAIN,
@@ -297,6 +305,7 @@ public class PutSmbFile extends AbstractProcessor {
 
         final String hostname = flowFileFilter.getHostName();
         final String shareName = flowFileFilter.getShare();
+        final int port = context.getProperty(PORT).asInteger();
         final String domain = context.getProperty(DOMAIN).getValue();
         final String username = context.getProperty(USERNAME).getValue();
         String password = context.getProperty(PASSWORD).getValue();
@@ -311,7 +320,7 @@ public class PutSmbFile extends AbstractProcessor {
             ac = AuthenticationContext.anonymous();
         }
 
-        try (Connection connection = smbClient.connect(hostname);
+        try (Connection connection = smbClient.connect(hostname, port);
             Session smbSession = connection.authenticate(ac);
             DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
 
