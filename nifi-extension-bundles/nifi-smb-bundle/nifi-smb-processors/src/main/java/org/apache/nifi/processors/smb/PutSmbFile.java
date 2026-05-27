@@ -52,6 +52,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.smb.util.HostnameAndShareFlowFileFilter;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.OutputStream;
 import java.net.URI;
@@ -81,6 +82,9 @@ import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 @SeeAlso({GetSmbFile.class, ListSmb.class, FetchSmb.class})
 @ReadsAttributes({@ReadsAttribute(attribute = "filename", description = "The filename to use when writing the FlowFile to the network folder.")})
 public class PutSmbFile extends AbstractProcessor {
+
+    public static final char PATH_SEPARATOR = '/';
+
     public static final String SHARE_ACCESS_NONE = "none";
     public static final String SHARE_ACCESS_READ = "read";
     public static final String SHARE_ACCESS_READDELETE = "read, delete";
@@ -170,7 +174,7 @@ public class PutSmbFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor RENAME_SUFFIX = new PropertyDescriptor.Builder()
             .name("Temporary Suffix")
-            .description("A temporary suffix which will be apended to the filename while it's transfering. After the transfer is complete, the suffix will be removed.")
+            .description("A temporary suffix that is appended to the filename while it is being transferred. After the transfer is complete, the suffix will be removed.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -270,19 +274,16 @@ public class PutSmbFile extends AbstractProcessor {
     }
 
     private void createMissingDirectoriesRecursively(ComponentLog logger, DiskShare share, String pathToCreate) {
-        List<String> paths = new ArrayList<>();
+        int index = 0;
 
-        java.io.File file = new java.io.File(pathToCreate);
-        paths.add(file.getPath());
+        while (index < pathToCreate.length()) {
+            index = pathToCreate.indexOf(PATH_SEPARATOR, index);
 
-        while (file.getParent() != null) {
-            String parent = file.getParent();
-            paths.add(parent);
-            file = new java.io.File(parent);
-        }
+            if (index == -1) {
+                index = pathToCreate.length();
+            }
 
-        Collections.reverse(paths);
-        for (String path : paths) {
+            String path = pathToCreate.substring(0, index++);
             if (!share.folderExists(path)) {
                 logger.debug("Creating folder {}", path);
                 share.mkdir(path);
@@ -290,6 +291,16 @@ public class PutSmbFile extends AbstractProcessor {
                 logger.debug("Folder already exists {}. Moving on", path);
             }
         }
+    }
+
+    String normalizePath(String path) {
+        if (path == null) {
+            return null;
+        }
+
+        return path.replace('\\', PATH_SEPARATOR)
+                .replaceAll("/+", "/")
+                .replaceAll("^/|/$", "");
     }
 
     @Override
@@ -328,34 +339,37 @@ public class PutSmbFile extends AbstractProcessor {
                 try {
                     final long processingStartTime = System.nanoTime();
 
-                    final String destinationDirectory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-                    final String destinationFilename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+                    final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
+                    final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
-                    String destinationFullPath;
+                    final String destinationDirectory = normalizePath(directory);
+
+                    final String destinationFullPath;
 
                     // build destination path for the flowfile
-                    if (destinationDirectory == null || destinationDirectory.isBlank()) {
-                        destinationFullPath = destinationFilename;
+                    if (StringUtils.isBlank(destinationDirectory)) {
+                        destinationFullPath = filename;
                     } else {
-                        destinationFullPath = new java.io.File(destinationDirectory, destinationFilename).getPath();
+                        destinationFullPath = String.format("%s%c%s", destinationDirectory, PATH_SEPARATOR, filename);
                     }
 
                     // handle missing directory
-                    final String destinationFileParentDirectory = new java.io.File(destinationFullPath).getParent();
                     final Boolean createMissingDirectories = context.getProperty(CREATE_DIRS).asBoolean();
-                    if (!createMissingDirectories && !share.folderExists(destinationFileParentDirectory)) {
-                        logger.warn("Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist", flowFile, destinationFileParentDirectory);
-                        flowFile = session.penalize(flowFile);
-                        session.transfer(flowFile, REL_FAILURE);
-                        continue;
-                    } else if (!share.folderExists(destinationFileParentDirectory)) {
-                        try {
-                            createMissingDirectoriesRecursively(logger, share, destinationFileParentDirectory);
-                        } catch (Exception e) {
-                            logger.error("Penalizing {} and routing to failure because failed to create missing destination directories ({})", flowFile, destinationFileParentDirectory, e);
+                    if (StringUtils.isNotBlank(destinationDirectory) && !share.folderExists(destinationDirectory)) {
+                        if (!createMissingDirectories) {
+                            logger.warn("Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist", flowFile, destinationDirectory);
                             flowFile = session.penalize(flowFile);
                             session.transfer(flowFile, REL_FAILURE);
                             continue;
+                        } else {
+                            try {
+                                createMissingDirectoriesRecursively(logger, share, destinationDirectory);
+                            } catch (Exception e) {
+                                logger.error("Penalizing {} and routing to failure because failed to create missing destination directories ({})", flowFile, destinationDirectory, e);
+                                flowFile = session.penalize(flowFile);
+                                session.transfer(flowFile, REL_FAILURE);
+                                continue;
+                            }
                         }
                     }
 
@@ -376,16 +390,18 @@ public class PutSmbFile extends AbstractProcessor {
 
                     // handle temporary suffix
                     final String renameSuffixValue = context.getProperty(RENAME_SUFFIX).getValue();
-                    final boolean renameSuffix = renameSuffixValue != null && !renameSuffixValue.isBlank();
-                    StringBuilder finalDestinationFullPath = new StringBuilder(destinationFullPath);
+                    final boolean renameSuffix = StringUtils.isNotBlank(renameSuffixValue);
+                    final String transferDestinationFullPath;
                     if (renameSuffix) {
-                        finalDestinationFullPath.append(renameSuffixValue);
+                        transferDestinationFullPath = destinationFullPath + renameSuffixValue;
+                    } else {
+                        transferDestinationFullPath = destinationFullPath;
                     }
 
                     // handle the transfer
                     try (
                             File shareDestinationFile = share.openFile(
-                                    finalDestinationFullPath.toString(),
+                                    transferDestinationFullPath,
                                     EnumSet.of(AccessMask.GENERIC_WRITE),
                                     EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                                     sharedAccess,
@@ -403,15 +419,12 @@ public class PutSmbFile extends AbstractProcessor {
                     // handle the rename
                     if (renameSuffix) {
                         try (DiskEntry fileDiskEntry = share.open(
-                                finalDestinationFullPath.toString(),
+                                transferDestinationFullPath,
                                 EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
                                 EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                                 sharedAccess,
                                 SMB2CreateDisposition.FILE_OPEN,
                                 EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH))) {
-
-                            // normalize path slashes for the network share
-                            destinationFullPath = destinationFullPath.replace("/", "\\");
 
                             // rename the file on the share and replace it in case it exists
                             fileDiskEntry.rename(destinationFullPath, true);
