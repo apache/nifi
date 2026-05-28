@@ -880,8 +880,9 @@ public class StandardParameterContext implements ParameterContext {
 
             final ControllerServiceState serviceState = serviceNode.getState();
             if (serviceState != ControllerServiceState.DISABLED && enforceReferencingState) {
-                throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by "
-                        + serviceNode + ", which currently has a state of " + serviceState);
+                throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by controller service '" + serviceNode.getName()
+                        + "' (" + serviceNode.getComponentType() + ", id=" + serviceNode.getIdentifier() + "), which has state " + serviceState
+                        + " instead of " + ControllerServiceState.DISABLED);
             }
 
             if (parameter != null) {

@@ -614,6 +614,9 @@ public class TestStandardParameterContext {
         final ParameterContext context = createStandardParameterContext(referenceManager);
         final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
         enableControllerService(serviceNode);
+        when(serviceNode.getName()).thenReturn("My Service");
+        when(serviceNode.getComponentType()).thenReturn("MyService");
+        when(serviceNode.getIdentifier()).thenReturn("service-id");
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
         final Map<String, Parameter> parameters = new HashMap<>();
@@ -629,24 +632,29 @@ public class TestStandardParameterContext {
         for (final ControllerServiceState state : EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.ENABLING, ControllerServiceState.DISABLING)) {
             setControllerServiceState(serviceNode, state);
 
-            try {
-                context.setParameters(parameters);
-                fail("Was able to update parameter being referenced by Controller Service that is " + state);
-            } catch (final IllegalStateException expected) {
-            }
+            final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> context.setParameters(parameters));
+            assertControllerServiceReferenceMessage(exception.getMessage(), "update", state);
 
             assertEquals("123", context.getParameter("abc").get().getValue());
         }
 
+        setControllerServiceState(serviceNode, ControllerServiceState.DISABLING);
         parameters.clear();
-        context.setParameters(parameters);
+        parameters.put("abc", null);
+        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> context.setParameters(parameters));
+        assertControllerServiceReferenceMessage(exception.getMessage(), "remove", ControllerServiceState.DISABLING);
+    }
 
-        parameters.put("abc", createParameter(abcDescriptor, null));
-        try {
-            context.setParameters(parameters);
-            fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
-        } catch (final IllegalStateException expected) {
-        }
+    private static void assertControllerServiceReferenceMessage(final String message, final String action, final ControllerServiceState state) {
+        assertTrue(message.contains("Cannot " + action + " parameter"));
+        assertTrue(message.contains("abc"));
+        assertTrue(message.contains("controller service"));
+        assertTrue(message.contains("My Service"));
+        assertTrue(message.contains("MyService"));
+        assertTrue(message.contains("service-id"));
+        assertTrue(message.contains(state.name()));
+        assertTrue(message.contains(ControllerServiceState.DISABLED.name()));
+        assertFalse(message.contains("StandardControllerServiceNode"));
     }
 
     private ParameterContext createStandardParameterContext(final ParameterReferenceManager referenceManager) {
