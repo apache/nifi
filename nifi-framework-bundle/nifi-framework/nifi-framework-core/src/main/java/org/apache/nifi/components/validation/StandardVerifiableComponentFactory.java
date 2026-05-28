@@ -44,7 +44,7 @@ public class StandardVerifiableComponentFactory implements VerifiableComponentFa
     public VerifiableProcessor createProcessor(final ProcessorNode processorNode, final ClassLoader classLoader) throws ProcessorInstantiationException {
         final VerifiableProcessor verifiableProcessor;
         final String identifier = processorNode.getIdentifier();
-        final String processorClassName = processorNode.getProcessor().getClass().getName();
+        final String processorClassName = processorNode.getCanonicalClassName();
         try {
             final Class<?> rawProcessorClass = Class.forName(processorClassName, true, classLoader);
             final Class<? extends VerifiableProcessor> processorClass = rawProcessorClass.asSubclass(VerifiableProcessor.class);
