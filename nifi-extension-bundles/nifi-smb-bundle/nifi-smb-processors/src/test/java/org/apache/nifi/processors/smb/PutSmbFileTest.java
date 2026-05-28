@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -75,7 +76,7 @@ public class PutSmbFileTest {
 
     private static final String HOSTNAME = "smbhostname";
     private static final String SHARE = "smbshare";
-    private static final String DIRECTORY = "smbdirectory\\subdir";
+    private static final String DIRECTORY = "smbdirectory";
     private static final String DOMAIN = "mydomain";
     private static final String USERNAME = "myusername";
     private static final String PASSWORD = "mypassword";
@@ -129,13 +130,15 @@ public class PutSmbFileTest {
     }
 
     private void testDirectoryCreation(String dirFlag, int times) throws IOException {
-        when(diskShare.folderExists(DIRECTORY)).thenReturn(false);
+        when(diskShare.folderExists(any())).thenReturn(false);
 
+        testRunner.setProperty(PutSmbFile.DIRECTORY, "smbdirectory/subdir");
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, dirFlag);
         testRunner.enqueue("data");
         testRunner.run();
 
-        verify(diskShare, times(times)).mkdir(DIRECTORY);
+        verify(diskShare, times(times)).mkdir("smbdirectory");
+        verify(diskShare, times(times)).mkdir("smbdirectory/subdir");
     }
 
     private Set<SMB2ShareAccess> testOpenFileShareAccess() throws IOException {
@@ -289,25 +292,28 @@ public class PutSmbFileTest {
     @Test
     public void testDirExistsWithoutCreate() throws IOException {
         testDirectoryCreation("false", 0);
+
+        testRunner.assertAllFlowFilesTransferred(PutSmbFile.REL_FAILURE);
     }
 
     @Test
     public void testDirExistsWithCreate() throws IOException {
         testDirectoryCreation("true", 1);
+
+        testRunner.assertAllFlowFilesTransferred(PutSmbFile.REL_SUCCESS);
     }
 
     @Test
     public void testDirectoriesCreatedWhenDontExists() throws IOException {
-        final String directory = new java.io.File("a\\b\\c\\b\\e").getPath();
-        final int count = directory.split(java.util.regex.Pattern.quote(java.io.File.separator)).length;
-        when(diskShare.folderExists(DIRECTORY)).thenReturn(false);
+        final String directory = "a\\b/c/b\\e";
+        when(diskShare.folderExists(any())).thenReturn(false);
 
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, "true");
         testRunner.setProperty(PutSmbFile.DIRECTORY, directory);
         testRunner.enqueue("data");
         testRunner.run();
 
-        verify(diskShare, times(count)).mkdir(
+        verify(diskShare, times(5)).mkdir(
             any(String.class)
         );
     }
@@ -443,7 +449,7 @@ public class PutSmbFileTest {
 
         assertTrue(initialFilename.getValue().endsWith(suffix), "Suffix is not present and it should be");
         assertTrue(!finalFilename.getValue().endsWith(suffix), "Suffix is present and it shouldn't be");
-        assertTrue(replace.getValue(), "Replace flag shold be true");
+        assertTrue(replace.getValue(), "Replace flag should be true");
     }
 
     @Test
@@ -458,4 +464,23 @@ public class PutSmbFileTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSmbFile.REL_FAILURE, 3);
     }
+
+    @Test
+    void testNormalizePath() {
+        PutSmbFile processor = new PutSmbFile();
+
+        assertNull(processor.normalizePath(null));
+
+        assertEquals("", processor.normalizePath("/"));
+        assertEquals("", processor.normalizePath("\\"));
+
+        assertEquals("d1/d2", processor.normalizePath("d1/d2"));
+        assertEquals("d1/d2", processor.normalizePath("/d1/d2/"));
+        assertEquals("d1/d2", processor.normalizePath("//d1//d2//"));
+
+        assertEquals("d1/d2", processor.normalizePath("d1\\d2"));
+        assertEquals("d1/d2", processor.normalizePath("\\d1\\d2\\"));
+        assertEquals("d1/d2", processor.normalizePath("\\\\d1\\\\d2\\\\"));
+    }
+
 }
