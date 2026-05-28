@@ -117,8 +117,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             if (providerId != null) {
                 final ValidationStatus priorWarnedStatus = lastWarnedStatus.remove(providerId);
                 if (priorWarnedStatus != null) {
-                    logger.info("Parameter Provider [{}] (id={}) returned to VALID after being logged as {};"
-                                    + " SecretReferences backed by this provider will resolve again",
+                    logger.info("Parameter Provider [{}] (id={}) returned to VALID from {}; SecretReferences will resolve again",
                             parameterProviderNode.getName(), providerId, priorWarnedStatus);
                 }
             }
@@ -307,8 +306,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             return;
         }
 
-        logger.warn("Skipping Parameter Provider [{}] (id={}) as a Secret Provider because its current validation status is {}; "
-                        + "SecretReferences backed by this provider will resolve to null until it returns to VALID",
+        logger.warn("Skipping Parameter Provider [{}] (id={}) with status {}; SecretReferences will resolve to null until VALID",
                 parameterProviderNode.getName(), providerId, effectiveStatus);
     }
 
