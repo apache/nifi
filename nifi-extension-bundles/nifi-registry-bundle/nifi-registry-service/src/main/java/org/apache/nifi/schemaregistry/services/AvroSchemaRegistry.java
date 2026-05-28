@@ -60,7 +60,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .description("Set the strategy for the level of Avro validation required for field names, namespaces and default values")
             .required(true)
             .allowableValues(ValidationStrategy.class)
-            .defaultValue(ValidationStrategy.STRICT)
+            .defaultValue(ValidationStrategy.VALIDATE)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -100,7 +100,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             String input = entry.getValue();
 
             try {
-                final Schema.Parser parser = ValidationStrategy.STRICT == validationStrategy
+                final Schema.Parser parser = ValidationStrategy.VALIDATE == validationStrategy
                         ? new Schema.Parser(NameValidator.STRICT_VALIDATOR).setValidateDefaults(true)
                         : new Schema.Parser(NameValidator.NO_VALIDATION).setValidateDefaults(false);
                 final Schema avroSchema = parser.parse(input);
@@ -145,9 +145,9 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
                 final boolean validateFieldNames = Boolean.parseBoolean(validateFieldNamesRawValue);
 
                 if (validateFieldNames) {
-                    config.setProperty(VALIDATION_STRATEGY, ValidationStrategy.STRICT.getValue());
+                    config.setProperty(VALIDATION_STRATEGY, ValidationStrategy.VALIDATE.getValue());
                 } else {
-                    config.setProperty(VALIDATION_STRATEGY, ValidationStrategy.LENIENT.getValue());
+                    config.setProperty(VALIDATION_STRATEGY, ValidationStrategy.NONE.getValue());
                 }
             }
 

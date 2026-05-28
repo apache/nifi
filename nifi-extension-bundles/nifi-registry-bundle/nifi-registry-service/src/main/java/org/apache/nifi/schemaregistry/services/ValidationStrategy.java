@@ -19,14 +19,13 @@ package org.apache.nifi.schemaregistry.services;
 import org.apache.nifi.components.DescribedValue;
 
 public enum ValidationStrategy implements DescribedValue {
-    STRICT("Strict", """
-            Use strict validation when validating Avro schemas. Strict validation includes field name,
+    VALIDATE("Validate Schemas", """
+            Validate incoming Avro schemas. Validation includes field name,
             namespace and default value validation. All field names must be valid Avro names
             that match the following regular expression [A-Za-z_][A-Za-z0-9_]* (i.e. a name that starts with a letter or an underscore, followed by zero or more alphanumeric,
             characters or underscores), all namespaces must be one or more valid Avro names each matching the aforementioned regular expression and separated by periods
             and any default value specified must match the field type (e.g. a field with type int must specify a number such as 9 or null)"""),
-    LENIENT("Lenient", """
-            Use lenient validation where strict rules for field names, namespace names and default values are relaxed.""");
+    NONE("Do Not Validate Schemas", "Do not validate field names, namespaces and default values of incoming schemas.");
 
     private final String displayName;
     private final String description;

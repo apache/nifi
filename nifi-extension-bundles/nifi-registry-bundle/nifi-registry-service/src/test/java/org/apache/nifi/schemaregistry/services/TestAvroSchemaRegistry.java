@@ -133,7 +133,7 @@ public class TestAvroSchemaRegistry {
     @MethodSource("invalidSchemasForStrictValidation")
     public void testStrictValidation(String schema, List<String> keyWordsInExceptionMessage) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
-        runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.STRICT.getValue());
+        runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.VALIDATE.getValue());
 
         final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.assertValid(avroSchemaRegistry));
         keyWordsInExceptionMessage.forEach(keyword -> assertTrue(assertionFailedError.getMessage().contains(keyword)));
@@ -143,7 +143,7 @@ public class TestAvroSchemaRegistry {
     @MethodSource("invalidSchemasForRelaxedValidation")
     public void testWithRelaxedValidation(String schema) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
-        runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.LENIENT.getValue());
+        runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.NONE.getValue());
 
         runner.assertValid(avroSchemaRegistry);
     }
