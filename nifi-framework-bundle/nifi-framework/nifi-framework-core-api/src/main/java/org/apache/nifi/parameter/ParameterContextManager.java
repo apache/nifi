@@ -25,6 +25,15 @@ public interface ParameterContextManager extends ParameterContextLookup {
 
     ParameterContext removeParameterContext(String parameterContextId);
 
+    default void setParameterContextName(final String parameterContextId, final String name) {
+        final ParameterContext parameterContext = getParameterContext(parameterContextId);
+        if (parameterContext == null) {
+            throw new IllegalStateException("Cannot rename Parameter Context because no Parameter Context exists with the specified ID");
+        }
+
+        parameterContext.setName(name);
+    }
+
     Set<ParameterContext> getParameterContexts();
 
     Map<String, ParameterContext> getParameterContextNameMapping();
