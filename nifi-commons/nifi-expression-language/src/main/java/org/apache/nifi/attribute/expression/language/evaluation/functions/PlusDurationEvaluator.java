@@ -23,18 +23,27 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 
 /**
- * Evaluator for {@code plusDuration('3 months')} — adds a calendar-aware amount to a Date.
+ * Evaluator for {@code plusDuration('3 months')} or {@code plusDuration('1 day', 'America/New_York')}
+ * — adds a calendar-aware amount to a Date, optionally in a specified timezone.
+ *
+ * <p>Providing a timezone is important for DST-sensitive units (days, weeks, months, years):
+ * adding "1 day" across a DST boundary should preserve wall-clock time, not add exactly 24 hours.</p>
  *
  * <p>Examples:</p>
  * <pre>
  *   ${date:toDate('dd-MM-yyyy'):plusDuration('1 week'):format('dd-MM-yyyy')}
- *   ${date:toDate('dd-MM-yyyy'):plusDuration('2 years')}
+ *   ${date:toDate('dd-MM-yyyy', 'America/Chicago'):plusDuration('1 day', 'America/Chicago'):format('dd-MM-yyyy', 'America/Chicago')}
  * </pre>
  */
 public class PlusDurationEvaluator extends AbstractDateArithmeticEvaluator {
 
     public PlusDurationEvaluator(final Evaluator<Date> subject, final Evaluator<String> amountEvaluator) {
-        super(subject, amountEvaluator);
+        super(subject, amountEvaluator, null);
+    }
+
+    public PlusDurationEvaluator(final Evaluator<Date> subject, final Evaluator<String> amountEvaluator,
+                                 final Evaluator<String> timeZoneEvaluator) {
+        super(subject, amountEvaluator, timeZoneEvaluator);
     }
 
     @Override

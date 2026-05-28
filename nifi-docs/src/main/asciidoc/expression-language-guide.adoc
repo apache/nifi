@@ -2590,6 +2590,7 @@ If the subject is null, the function returns null.
 *Arguments*:
 
 - [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
+- [.argName]#_timezone_# (optional) : [.argDesc]#A timezone ID string (e.g. `"America/New_York"`, `"Europe/Vienna"`). When provided, calendar-unit arithmetic (days, weeks, months, years) is performed in the specified timezone so that wall-clock time is preserved across DST boundaries. When omitted, the JVM system default timezone is used.#
 
 *Supported Units*: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
 
@@ -2609,6 +2610,7 @@ NOTE: Nanoseconds are accepted but have no effect on a `Date` subject because `j
 | `${date:toDate('dd-MM-yyyy'):plusDuration('3 months'):format('dd-MM-yyyy')}` | `04-11-2026`
 | `${date:toDate('dd-MM-yyyy'):plusDuration('2 hours'):format('dd-MM-yyyy HH:mm:ss')}` | `04-08-2026 02:00:00`
 | `${date:toDate('dd-MM-yyyy'):plusDuration('1 day')}` | Returns the epoch milliseconds for the resulting Date.
+| `${date:toDate('yyyy-MM-dd HH:mm:ss', 'Europe/Vienna'):plusDuration('1 day', 'Europe/Vienna'):format('yyyy-MM-dd HH:mm:ssXXX', 'Europe/Vienna')}` (where date = `"2026-03-29 00:00:00"`) | `2026-03-30 00:00:00+02:00` (DST-aware: wall-clock time preserved across spring-forward)
 |============================================================================
 
 .Calendar-Aware Behavior
@@ -2617,6 +2619,7 @@ NOTE: Nanoseconds are accepted but have no effect on a `Date` subject because `j
 | Month-end clamping | Jan 31 + 1 month | Feb 28 (or Feb 29 in a leap year)
 | Leap year clamping | Feb 29, 2024 + 1 year | Feb 28, 2025
 | Crossing a day boundary | Aug 4 00:00:00 + 25 hours | Aug 5 01:00:00
+| DST spring-forward (with timezone) | Mar 29 00:00:00 CET + 1 day (Europe/Vienna) | Mar 30 00:00:00 CEST
 |============================================================================
 
 
@@ -2632,6 +2635,7 @@ If the subject is null, the function returns null.
 *Arguments*:
 
 - [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
+- [.argName]#_timezone_# (optional) : [.argDesc]#A timezone ID string (e.g. `"America/New_York"`, `"Europe/Vienna"`). When provided, calendar-unit arithmetic (days, weeks, months, years) is performed in the specified timezone so that wall-clock time is preserved across DST boundaries. When omitted, the JVM system default timezone is used.#
 
 *Supported Units*: nanosecond(s), second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
 
@@ -2651,6 +2655,7 @@ NOTE: Nanoseconds are accepted but have no effect on a `Date` subject because `j
 | `${date:toDate('dd-MM-yyyy'):minusDuration('1 year'):format('dd-MM-yyyy')}` | `04-08-2025`
 | `${date:toDate('dd-MM-yyyy'):minusDuration('1 second'):format('dd-MM-yyyy HH:mm:ss')}` | `03-08-2026 23:59:59`
 | `${date:toDate('dd-MM-yyyy'):minusDuration('1 day')}` | Returns the epoch milliseconds for the resulting Date.
+| `${date:toDate('yyyy-MM-dd HH:mm:ss', 'America/New_York'):minusDuration('1 day', 'America/New_York'):format('yyyy-MM-dd HH:mm:ssXXX', 'America/New_York')}` (where date = `"2026-11-02 00:00:00"`) | `2026-11-01 00:00:00-04:00` (DST-aware: wall-clock time preserved across fall-back)
 |============================================================================
 
 .Calendar-Aware Behavior
@@ -2659,6 +2664,7 @@ NOTE: Nanoseconds are accepted but have no effect on a `Date` subject because `j
 | Month-end clamping | Mar 31 - 1 month | Feb 28 (or Feb 29 in a leap year)
 | Leap year clamping | Feb 29, 2024 - 1 year | Feb 28, 2023
 | Crossing a day boundary | Aug 4 00:00:00 - 1 second | Aug 3 23:59:59
+| DST fall-back (with timezone) | Nov 2 00:00:00 EDT - 1 day (America/New_York) | Nov 1 00:00:00 EDT
 |============================================================================
 
 

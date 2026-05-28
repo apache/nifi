@@ -903,11 +903,21 @@ public class ExpressionCompiler {
                 }
             }
             case PLUS_DURATION: {
+                if (argEvaluators.size() == 2) {
+                    return addToken(new PlusDurationEvaluator(toDateEvaluator(subjectEvaluator),
+                            toStringEvaluator(argEvaluators.get(0)),
+                            toStringEvaluator(argEvaluators.get(1))), "plusDuration");
+                }
                 verifyArgCount(argEvaluators, 1, "plusDuration");
                 return addToken(new PlusDurationEvaluator(toDateEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0))), "plusDuration");
             }
             case MINUS_DURATION: {
+                if (argEvaluators.size() == 2) {
+                    return addToken(new MinusDurationEvaluator(toDateEvaluator(subjectEvaluator),
+                            toStringEvaluator(argEvaluators.get(0)),
+                            toStringEvaluator(argEvaluators.get(1))), "minusDuration");
+                }
                 verifyArgCount(argEvaluators, 1, "minusDuration");
                 return addToken(new MinusDurationEvaluator(toDateEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0))), "minusDuration");

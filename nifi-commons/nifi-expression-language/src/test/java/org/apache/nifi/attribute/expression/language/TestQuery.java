@@ -3118,6 +3118,40 @@ public class TestQuery {
         final QueryResult<?> missingNoToDate = Query.compile("${missing:plusDuration('1 week')}")
                 .evaluate(new StandardEvaluationContext(attributes));
         assertNull(missingNoToDate.getValue());
+
+        // DST-aware: adding 1 day across a spring-forward DST boundary preserves wall-clock time
+        // 2026-03-29 00:00:00 CET (+01:00) + 1 day (DST-aware) = 2026-03-30 00:00:00 CEST (+02:00)
+        // Without timezone context, this would add exactly 24 hours → wrong result due to the DST gap
+        attributes.put("dstDate", "2026-03-29 00:00:00");
+        verifyEquals(
+                "${dstDate:toDate('yyyy-MM-dd HH:mm:ss', 'Europe/Vienna'):plusDuration('1 day', 'Europe/Vienna'):format('yyyy-MM-dd HH:mm:ssXXX', 'Europe/Vienna')}",
+                attributes,
+                "2026-03-30 00:00:00+02:00");
+
+        // DST-aware: adding 1 week across a spring-forward DST boundary preserves wall-clock time
+        verifyEquals(
+                "${dstDate:toDate('yyyy-MM-dd HH:mm:ss', 'Europe/Vienna'):plusDuration('1 week', 'Europe/Vienna'):format('yyyy-MM-dd HH:mm:ssXXX', 'Europe/Vienna')}",
+                attributes,
+                "2026-04-05 00:00:00+02:00");
+
+        // DST-aware: subtracting 1 day while specifying a timezone preserves wall-clock time
+        attributes.put("fallDate", "2026-11-02 00:00:00");
+        verifyEquals(
+                "${fallDate:toDate('yyyy-MM-dd HH:mm:ss', 'America/New_York'):minusDuration('1 day', 'America/New_York'):format('yyyy-MM-dd HH:mm:ssXXX', 'America/New_York')}",
+                attributes,
+                "2026-11-01 00:00:00-04:00");
+
+        // Invalid literal timezone rejected at compile time
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration('1 day', 'America/Fake')}"));
+
+        // Invalid dynamic timezone rejected at evaluation time
+        attributes.put("tz", "NotAZone");
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration('1 day', ${tz}):format('dd-MM-yyyy')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
     }
 
     @Test
@@ -3289,6 +3323,18 @@ public class TestQuery {
         final QueryResult<?> missingNoToDate = Query.compile("${missing:minusDuration('1 week')}")
                 .evaluate(new StandardEvaluationContext(attributes));
         assertNull(missingNoToDate.getValue());
+
+        // Invalid literal timezone rejected at compile time
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration('1 day', 'America/Fake')}"));
+
+        // Invalid dynamic timezone rejected at evaluation time
+        attributes.put("tz", "NotAZone");
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration('1 day', ${tz}):format('dd-MM-yyyy')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
     }
 
     @Test
