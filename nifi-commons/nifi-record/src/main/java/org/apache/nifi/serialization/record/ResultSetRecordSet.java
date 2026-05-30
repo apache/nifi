@@ -285,15 +285,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
     private DataType getArrayDataType(final ResultSet rs, final RecordSchema readerSchema, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
         // We first want to check if the Reader Schema can tell us what the type of the array is.
-        final String columnName = rs.getMetaData().getColumnName(columnIndex);
-        final Optional<RecordField> optionalRecordField = readerSchema.getField(columnName);
-        if (optionalRecordField.isPresent()) {
-            final RecordField recordField = optionalRecordField.get();
-            final DataType dataType = recordField.getDataType();
-            if (dataType.getFieldType() == RecordFieldType.ARRAY) {
-                final ArrayDataType arrayDataType = (ArrayDataType) dataType;
-                if (arrayDataType.getElementType() != null) {
-                    return dataType;
+        if (readerSchema != null) {
+            final String columnName = rs.getMetaData().getColumnName(columnIndex);
+            final Optional<RecordField> optionalRecordField = readerSchema.getField(columnName);
+            if (optionalRecordField.isPresent()) {
+                final RecordField recordField = optionalRecordField.get();
+                final DataType dataType = recordField.getDataType();
+                if (dataType.getFieldType() == RecordFieldType.ARRAY) {
+                    final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                    if (arrayDataType.getElementType() != null) {
+                        return dataType;
+                    }
                 }
             }
         }

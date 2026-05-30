@@ -386,6 +386,25 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testCreateSchemaArrayWithNullReaderSchema() throws SQLException {
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(1);
+        when(resultSetMetaData.getColumnLabel(1)).thenReturn("enabled_products");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.ARRAY);
+
+        final ResultSqlArray array = Mockito.mock(ResultSqlArray.class);
+        when(array.getArray()).thenReturn(new String[]{"Test"});
+        when(resultSet.getArray(1)).thenReturn(array);
+
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, null);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), resultSchema.getField(0).getDataType());
+    }
+
+    @Test
     public void testArrayTypeWithLogicalTypes() throws SQLException {
         testArrayType(true);
     }
