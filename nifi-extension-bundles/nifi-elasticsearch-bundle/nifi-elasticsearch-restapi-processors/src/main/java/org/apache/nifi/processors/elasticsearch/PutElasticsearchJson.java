@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -83,7 +84,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
         "NDJSON (one JSON object per line), JSON Array (a top-level array of objects, streamed for memory efficiency), " +
         "and Single JSON (the entire FlowFile is one document). " +
         "FlowFiles are accumulated up to the configured Max Batch Size and flushed to Elasticsearch in _bulk API requests. " +
-        "Large files that exceed the batch size are automatically split into multiple _bulk requests.")
+        "Large files that exceed the batch size are automatically split into multiple _bulk requests. " +
+        "Records routed to the \"successful\" and \"errors\" relationships reflect the original FlowFile content, " +
+        "not the transformed document body sent to Elasticsearch (identifier/index/timestamp field extraction and " +
+        "null suppression are not reapplied), so the records remain suitable for replay.")
 @WritesAttributes({
         @WritesAttribute(attribute = "elasticsearch.put.error",
                 description = "The error message if there is an issue parsing the FlowFile, sending the parsed document to Elasticsearch or parsing the Elasticsearch response"),
@@ -245,6 +249,67 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .dependsOn(INPUT_FORMAT, InputFormat.NDJSON, InputFormat.JSON_ARRAY)
             .build();
 
+    static final PropertyDescriptor RETAIN_IDENTIFIER_FIELD = new PropertyDescriptor.Builder()
+            .name("Retain Identifier Field")
+            .description("""
+                    Whether to keep the Identifier Field in the document body after extracting it \
+                    for use as the Elasticsearch document ID. \
+                    When false (default), the field is removed from the document before indexing.\
+                    """)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .dependsOn(INPUT_FORMAT, InputFormat.NDJSON, InputFormat.JSON_ARRAY)
+            .build();
+
+    static final PropertyDescriptor INDEX_FIELD = new PropertyDescriptor.Builder()
+            .name("Index Field")
+            .description("""
+                    The name of the field within each document to use as the Elasticsearch index name. \
+                    If the field is not present in a document or this property is left blank, \
+                    the configured Index property value is used as the fallback.\
+                    """)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor RETAIN_INDEX_FIELD = new PropertyDescriptor.Builder()
+            .name("Retain Index Field")
+            .description("""
+                    Whether to keep the Index Field in the document body after extracting it \
+                    for use as the Elasticsearch index name. \
+                    When false (default), the field is removed from the document before indexing.\
+                    """)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+    static final PropertyDescriptor TIMESTAMP_FIELD = new PropertyDescriptor.Builder()
+            .name("Timestamp Field")
+            .description("""
+                    The name of a field within each document whose value will be written to \
+                    Elasticsearch as the @timestamp field. \
+                    If the field is absent or this property is left blank, no @timestamp is set.\
+                    """)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor RETAIN_TIMESTAMP_FIELD = new PropertyDescriptor.Builder()
+            .name("Retain Timestamp Field")
+            .description("""
+                    Whether to keep the Timestamp Field in the document body after copying its \
+                    value to @timestamp. \
+                    When false (default), the field is removed from the document before indexing.\
+                    """)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final Relationship REL_BULK_REQUEST = new Relationship.Builder()
             .name("bulk_request")
             .description("When \"Output Bulk Request\" is enabled, the raw Elasticsearch _bulk API request body is written " +
@@ -274,6 +339,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             SUPPRESS_NULLS,
             ID_ATTRIBUTE,
             IDENTIFIER_FIELD,
+            RETAIN_IDENTIFIER_FIELD,
+            INDEX_FIELD,
+            RETAIN_INDEX_FIELD,
+            TIMESTAMP_FIELD,
+            RETAIN_TIMESTAMP_FIELD,
             CHARSET,
             MAX_JSON_FIELD_STRING_LENGTH,
             CLIENT_SERVICE,
@@ -396,6 +466,12 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         final String documentIdField = inputFormat != InputFormat.SINGLE_JSON
                 ? context.getProperty(IDENTIFIER_FIELD).evaluateAttributeExpressions().getValue()
                 : null;
+        final String documentIndexField = context.getProperty(INDEX_FIELD).evaluateAttributeExpressions().getValue();
+        final boolean retainIdentifierField = inputFormat != InputFormat.SINGLE_JSON
+                && context.getProperty(RETAIN_IDENTIFIER_FIELD).asBoolean();
+        final boolean retainIndexField = context.getProperty(RETAIN_INDEX_FIELD).asBoolean();
+        final String documentTimestampField = context.getProperty(TIMESTAMP_FIELD).evaluateAttributeExpressions().getValue();
+        final boolean retainTimestampField = context.getProperty(RETAIN_TIMESTAMP_FIELD).asBoolean();
         final int batchSize = InputFormat.SINGLE_JSON == inputFormat
                 ? context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger()
                 : Integer.MAX_VALUE;
@@ -450,17 +526,36 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                             final IndexOperationRequest opRequest;
                             final long docBytes;
                             if (o == IndexOperationRequest.Operation.Index || o == IndexOperationRequest.Operation.Create) {
-                                final String id = extractId(trimmedLine, documentIdField, flowFileIdAttribute);
                                 final byte[] rawJsonBytes;
-                                if (suppressingWriter != null) {
-                                    // Parse to Map so NON_NULL/NON_EMPTY inclusion filters apply during serialization.
-                                    // JsonNode tree serialization bypasses JsonInclude filters.
-                                    rawJsonBytes = suppressingWriter.writeValueAsBytes(mapReader.readValue(trimmedLine));
+                                final String id;
+                                final String docIndex;
+                                final boolean stripId = !retainIdentifierField && StringUtils.isNotBlank(documentIdField);
+                                final boolean stripIdx = !retainIndexField && StringUtils.isNotBlank(documentIndexField);
+                                final boolean needsTimestamp = StringUtils.isNotBlank(documentTimestampField);
+                                if (suppressingWriter != null || stripId || stripIdx || needsTimestamp) {
+                                    // Map is needed anyway — extract both fields from the Map directly.
+                                    final Map<String, Object> contentMap = mapReader.readValue(trimmedLine);
+                                    id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
+                                    docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                    if (stripId) {
+                                        contentMap.remove(documentIdField);
+                                    }
+                                    if (stripIdx) {
+                                        contentMap.remove(documentIndexField);
+                                    }
+                                    applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
+                                    rawJsonBytes = suppressingWriter != null
+                                            ? suppressingWriter.writeValueAsBytes(contentMap)
+                                            : mapper.writeValueAsBytes(contentMap);
                                 } else {
+                                    // Raw-bytes path: single streaming scan finds both fields at once.
+                                    final String[] extracted = extractIdAndIndex(trimmedLine, documentIdField, flowFileIdAttribute, documentIndexField, index);
+                                    id = extracted[0];
+                                    docIndex = extracted[1];
                                     rawJsonBytes = trimmedLine.getBytes(StandardCharsets.UTF_8);
                                 }
                                 opRequest = IndexOperationRequest.builder()
-                                        .index(index)
+                                        .index(docIndex)
                                         .type(type)
                                         .id(id)
                                         .rawJsonBytes(rawJsonBytes)
@@ -474,8 +569,16 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                             } else {
                                 final Map<String, Object> contentMap = mapReader.readValue(trimmedLine);
                                 final String id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
+                                final String docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
+                                    contentMap.remove(documentIdField);
+                                }
+                                if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
+                                    contentMap.remove(documentIndexField);
+                                }
+                                applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                 opRequest = IndexOperationRequest.builder()
-                                        .index(index)
+                                        .index(docIndex)
                                         .type(type)
                                         .id(id)
                                         .fields(contentMap)
@@ -527,22 +630,45 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                     final long docBytes;
                                     final byte[] rawJsonBytes;
                                     final String id;
+                                    final String docIndex;
                                     if (suppressingWriter != null) {
                                         // Parse directly to Map so NON_NULL/NON_EMPTY inclusion filters apply during
                                         // serialization. JsonNode tree serialization bypasses JsonInclude filters,
                                         // and convertValue(node, Map) adds an extra serialization cycle.
                                         final Map<String, Object> contentMap = mapReader.readValue(parser);
                                         docBytes = Math.max(1, parser.currentLocation().getCharOffset() - startOffset);
-                                        rawJsonBytes = suppressingWriter.writeValueAsBytes(contentMap);
                                         id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
+                                        docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                        if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
+                                            contentMap.remove(documentIdField);
+                                        }
+                                        if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
+                                            contentMap.remove(documentIndexField);
+                                        }
+                                        applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
+                                        rawJsonBytes = suppressingWriter.writeValueAsBytes(contentMap);
                                     } else {
                                         final JsonNode node = mapper.readTree(parser);
                                         docBytes = Math.max(1, parser.currentLocation().getCharOffset() - startOffset);
-                                        rawJsonBytes = mapper.writeValueAsBytes(node);
                                         id = extractId(node, documentIdField, flowFileIdAttribute);
+                                        docIndex = extractIndex(node, documentIndexField, index);
+                                        // Field stripping and @timestamp injection only apply to JSON objects.
+                                        // Non-object elements (scalars, arrays, null) are passed through unchanged so
+                                        // Elasticsearch can reject them per-document rather than failing the whole FlowFile.
+                                        if (node.isObject()) {
+                                            final ObjectNode objectNode = (ObjectNode) node;
+                                            if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
+                                                objectNode.remove(documentIdField);
+                                            }
+                                            if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
+                                                objectNode.remove(documentIndexField);
+                                            }
+                                            applyTimestamp(objectNode, documentTimestampField, retainTimestampField);
+                                        }
+                                        rawJsonBytes = mapper.writeValueAsBytes(node);
                                     }
                                     opRequest = IndexOperationRequest.builder()
-                                        .index(index)
+                                        .index(docIndex)
                                         .type(type)
                                         .id(id)
                                         .rawJsonBytes(rawJsonBytes)
@@ -558,8 +684,16 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                     final Map<String, Object> contentMap = mapReader.readValue(parser);
                                     final long docBytes = Math.max(1, parser.currentLocation().getCharOffset() - startOffset);
                                     final String id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
+                                    final String docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                    if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
+                                        contentMap.remove(documentIdField);
+                                    }
+                                    if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
+                                        contentMap.remove(documentIndexField);
+                                    }
+                                    applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                     opRequest = IndexOperationRequest.builder()
-                                        .index(index)
+                                        .index(docIndex)
                                         .type(type)
                                         .id(id)
                                         .fields(contentMap)
@@ -591,8 +725,13 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                     try (final InputStream in = session.read(flowFile)) {
                         final Map<String, Object> contentMap = mapReader.readValue(in);
                         final String id = StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
+                        final String docIndex = resolveIndex(contentMap, documentIndexField, index);
+                        if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
+                            contentMap.remove(documentIndexField);
+                        }
+                        applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                         final IndexOperationRequest opRequest = IndexOperationRequest.builder()
-                                .index(index)
+                                .index(docIndex)
                                 .type(type)
                                 .id(id)
                                 .fields(contentMap)
@@ -881,24 +1020,85 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     }
 
     /**
-     * Extracts the document ID from a raw JSON string using a streaming parser.
-     * Stops as soon as the target field is found, avoiding a full tree parse.
-     * Used for Index/Create operations to avoid the Map allocation overhead.
+     * Copies the value of {@code timestampField} to {@code @timestamp} in the Map.
+     * If {@code retain} is false, the source field is removed after copying.
+     * Does nothing when {@code timestampField} is blank or not present in the document.
      */
-    private String extractId(final String rawJson, final String idAttribute, final String flowFileIdAttribute) throws IOException {
-        if (StringUtils.isBlank(idAttribute)) {
-            return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
+    private void applyTimestamp(final Map<String, Object> contentMap, final String timestampField, final boolean retain) {
+        if (StringUtils.isBlank(timestampField)) {
+            return;
         }
+        final Object value = contentMap.get(timestampField);
+        if (value != null) {
+            if (!retain) {
+                contentMap.remove(timestampField);
+            }
+            contentMap.put("@timestamp", value);
+        }
+    }
+
+    /**
+     * Copies the value of {@code timestampField} to {@code @timestamp} in the ObjectNode.
+     * If {@code retain} is false, the source field is removed after copying.
+     * Does nothing when {@code timestampField} is blank or not present in the document.
+     */
+    private void applyTimestamp(final ObjectNode node, final String timestampField, final boolean retain) {
+        if (StringUtils.isBlank(timestampField)) {
+            return;
+        }
+        final JsonNode value = node.get(timestampField);
+        if (value != null && !value.isNull()) {
+            if (!retain) {
+                node.remove(timestampField);
+            }
+            node.set("@timestamp", value);
+        }
+    }
+
+    /**
+     * Extracts both document ID and index name from a raw JSON string in a single streaming pass.
+     * Stops as soon as both fields have been found to avoid scanning the rest of the document.
+     * Returns a two-element array: {@code [id, docIndex]}.
+     * Used for NDJSON Index/Create when neither suppression nor field-removal requires a Map parse.
+     */
+    private String[] extractIdAndIndex(
+            final String rawJson,
+            final String idField, final String flowFileIdAttribute,
+            final String indexField, final String fallbackIndex) throws IOException {
+        final boolean needId = StringUtils.isNotBlank(idField);
+        final boolean needIndex = StringUtils.isNotBlank(indexField);
+
+        String id = needId ? null : (StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null);
+        String docIndex = fallbackIndex;
+
+        if (!needId && !needIndex) {
+            return new String[]{id, docIndex};
+        }
+
+        boolean foundId = !needId;
+        boolean foundIndex = !needIndex;
+
         try (final JsonParser p = mapper.getFactory().createParser(rawJson)) {
             while (p.nextToken() != null) {
-                if (idAttribute.equals(p.currentName()) && p.nextToken() != null && !p.currentToken().isStructStart()) {
+                if (foundId && foundIndex) {
+                    break;
+                }
+                if (!foundId && idField.equals(p.currentName()) && p.nextToken() != null && !p.currentToken().isStructStart()) {
                     final String value = p.getText();
-                    return StringUtils.isNotBlank(value) ? value
-                            : (StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null);
+                    id = StringUtils.isNotBlank(value) ? value : (StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null);
+                    foundId = true;
+                } else if (!foundIndex && indexField.equals(p.currentName()) && p.nextToken() != null && !p.currentToken().isStructStart()) {
+                    final String value = p.getText();
+                    docIndex = StringUtils.isNotBlank(value) ? value : fallbackIndex;
+                    foundIndex = true;
                 }
             }
         }
-        return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
+
+        if (!foundId) {
+            id = StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
+        }
+        return new String[]{id, docIndex};
     }
 
     /**
@@ -929,6 +1129,41 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             return idObj.toString();
         }
         return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
+    }
+
+    /**
+     * Extracts the index name from a pre-parsed {@link JsonNode}.
+     * Used for JSON Array Index/Create operations where the node is already available.
+     * Falls back to {@code fallbackIndex} when the field is absent or blank.
+     */
+    private String extractIndex(final JsonNode node, final String indexField, final String fallbackIndex) {
+        if (StringUtils.isBlank(indexField)) {
+            return fallbackIndex;
+        }
+        final JsonNode indexNode = node.get(indexField);
+        if (indexNode != null && !indexNode.isNull()) {
+            final String value = indexNode.asText();
+            return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+        }
+        return fallbackIndex;
+    }
+
+    /**
+     * Resolves the index name from an already-parsed content Map.
+     * Used for Update/Delete/Upsert operations and suppression-enabled Index/Create paths
+     * where the Map is already available. Falls back to {@code fallbackIndex} when the
+     * field is absent or blank.
+     */
+    private String resolveIndex(final Map<String, Object> contentMap, final String indexField, final String fallbackIndex) {
+        if (StringUtils.isBlank(indexField)) {
+            return fallbackIndex;
+        }
+        final Object indexObj = contentMap.get(indexField);
+        if (indexObj != null) {
+            final String value = indexObj.toString();
+            return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+        }
+        return fallbackIndex;
     }
 
     /**
