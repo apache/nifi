@@ -26,7 +26,7 @@
     <properties>
         <skip.integration.tests>false</skip.integration.tests>
         <skip.unit.tests>false</skip.unit.tests>
-        <kafka.docker.image>apache/kafka:4.2.0</kafka.docker.image>
+        <kafka.docker.image>apache/kafka:4.3.0</kafka.docker.image>
     </properties>
 
     <modules>
