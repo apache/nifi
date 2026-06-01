@@ -29,11 +29,13 @@ import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
+import org.kohsuke.github.GHContentBuilder;
 import org.kohsuke.github.GHContentUpdateResponse;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
@@ -50,7 +52,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.security.PrivateKey;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -201,13 +202,20 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         logger.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
         return execute(() -> {
             try {
-                final GHContentUpdateResponse response = repository.createContent()
+                final GHContentBuilder contentBuilder = repository.createContent()
                         .branch(branch)
                         .path(resolvedPath)
                         .content(request.getContent())
                         .message(request.getMessage())
-                        .sha(request.getExistingContentSha())
-                        .commit();
+                        .sha(request.getExistingContentSha());
+
+                final String authorName = request.getAuthorName();
+                final String authorEmail = request.getAuthorEmail();
+                if (authorName != null && authorEmail != null) {
+                    contentBuilder.author(authorName, authorEmail);
+                }
+
+                final GHContentUpdateResponse response = contentBuilder.commit();
                 return response.getCommit().getSha();
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branch);
@@ -477,15 +485,13 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         if (commit == null) {
             final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
-            final String author = ghCommit.getAuthor() != null
-                ? ghCommit.getAuthor().getLogin()
-                : shortInfo.getAuthor().getName();
-
+            final GHUser ghUser = ghCommit.getAuthor();
+            final String author = ghUser != null ? ghUser.getLogin() : shortInfo.getAuthor().getName();
             commit = new GitCommit(
-                ghCommit.getSHA1(),
-                author,
-                shortInfo.getMessage(),
-                Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
+                    ghCommit.getSHA1(),
+                    author,
+                    shortInfo.getMessage(),
+                    shortInfo.getCommitDate());
             commitCache.put(ghCommit.getSHA1(), commit);
         }
 

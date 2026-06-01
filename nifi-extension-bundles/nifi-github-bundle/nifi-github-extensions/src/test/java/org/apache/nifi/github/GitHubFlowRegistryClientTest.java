@@ -130,6 +130,29 @@ public class GitHubFlowRegistryClientTest {
         assertEquals("%s/%s.json".formatted(incomingFlow.getBucketIdentifier(), incomingFlow.getIdentifier()), capturedArgument.getPath());
         assertEquals(serializedSnapshotContent, capturedArgument.getContent());
         assertNull(capturedArgument.getExistingContentSha());
+        assertEquals("testuser@example.com", capturedArgument.getAuthorName());
+        assertEquals("testuser@example.com", capturedArgument.getAuthorEmail());
+    }
+
+    @Test
+    public void testRegisterFlowWithServiceUserAuthor() throws IOException, FlowRegistryException {
+        setupClientConfigurationContextWithDefaults();
+
+        final PropertyValue commitAuthorPropertyValue = createMockPropertyValueWithEnum("SERVICE_USER");
+        when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.COMMIT_AUTHOR_SOURCE)).thenReturn(commitAuthorPropertyValue);
+
+        final String serializedSnapshotContent = "placeholder";
+        when(flowSnapshotSerializer.serialize(any(RegisteredFlowSnapshot.class))).thenReturn(serializedSnapshotContent);
+
+        final RegisteredFlow incomingFlow = createIncomingRegisteredFlow();
+        flowRegistryClient.registerFlow(clientConfigurationContext, incomingFlow);
+
+        final ArgumentCaptor<GitCreateContentRequest> argumentCaptor = ArgumentCaptor.forClass(GitCreateContentRequest.class);
+        verify(repositoryClient).createContent(argumentCaptor.capture());
+
+        final GitCreateContentRequest capturedArgument = argumentCaptor.getValue();
+        assertNull(capturedArgument.getAuthorName());
+        assertNull(capturedArgument.getAuthorEmail());
     }
 
     @Test
@@ -433,6 +456,11 @@ public class GitHubFlowRegistryClientTest {
 
         final PropertyValue parametersPropertyValue = createMockPropertyValue("Retain");
         when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.PARAMETER_CONTEXT_VALUES)).thenReturn(parametersPropertyValue);
+
+        final PropertyValue commitAuthorPropertyValue = createMockPropertyValueWithEnum("APPLICATION_USER");
+        when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.COMMIT_AUTHOR_SOURCE)).thenReturn(commitAuthorPropertyValue);
+
+        when(clientConfigurationContext.getNiFiUserIdentity()).thenReturn(Optional.of("testuser@example.com"));
     }
 
     private void setupClientConfigurationContextWithDefaults() {

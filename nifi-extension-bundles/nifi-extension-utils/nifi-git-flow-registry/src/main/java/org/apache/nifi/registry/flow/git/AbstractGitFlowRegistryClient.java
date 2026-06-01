@@ -119,6 +119,18 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .identifiesControllerService(SSLContextProvider.class)
             .build();
 
+    public static final PropertyDescriptor COMMIT_AUTHOR_SOURCE = new PropertyDescriptor.Builder()
+            .name("Commit Author Source")
+            .description("""
+                    Specifies how the commit author is determined for Git commits. \
+                    When set to Service User, the authenticated service account is used as the commit author. \
+                    When set to Application User, the identity of the NiFi user performing the action is used as \
+                    both the author name and author email, while the service account remains the committer.""")
+            .allowableValues(CommitAuthorSource.class)
+            .defaultValue(CommitAuthorSource.SERVICE_USER)
+            .required(true)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -148,6 +160,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
         combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
+        combinedPropertyDescriptors.add(COMMIT_AUTHOR_SOURCE);
         combinedPropertyDescriptors.add(SSL_CONTEXT_SERVICE);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
@@ -238,6 +251,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final FlowLocation flowLocation = new FlowLocation(branch, flow.getBucketIdentifier(), flow.getIdentifier());
         final String filePath = getSnapshotFilePath(flowLocation);
         final String commitMessage = REGISTER_FLOW_MESSAGE_FORMAT.formatted(flow.getIdentifier());
+        final String userIdentity = resolveAuthorIdentity(context);
 
         final Optional<String> existingFileSha = repositoryClient.getContentSha(filePath, branch);
         if (existingFileSha.isPresent()) {
@@ -258,6 +272,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .path(filePath)
                 .content(flowSnapshotSerializer.serialize(flowSnapshot))
                 .message(commitMessage)
+                .authorName(userIdentity)
+                .authorEmail(userIdentity)
                 .build();
 
         repositoryClient.createContent(request);
@@ -278,7 +294,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
         final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
-        try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch)) {
+        final String userIdentity = resolveAuthorIdentity(context);
+        try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch, userIdentity, userIdentity)) {
             final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
             populateFlowAndSnapshotMetadata(deletedSnapshot, flowLocation);
             updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
@@ -437,6 +454,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String originalFlowContentsGroupId = replaceGroupId(flowSnapshot.getFlowContents(), FLOW_CONTENTS_GROUP_ID);
         final Position originalFlowContentsPosition = replacePosition(flowSnapshot.getFlowContents(), new Position(0, 0));
 
+        final String userIdentity = resolveAuthorIdentity(context);
+
         final GitCreateContentRequest createContentRequest = GitCreateContentRequest.builder()
                 .branch(branch)
                 .path(filePath)
@@ -444,6 +463,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .message(commitMessage)
                 .existingContentSha(existingBlobSha)
                 .expectedCommitSha(expectedVersion)
+                .authorName(userIdentity)
+                .authorEmail(userIdentity)
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
@@ -656,6 +677,11 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         }
     }
 
+    private String resolveAuthorIdentity(final FlowRegistryClientConfigurationContext context) {
+        final CommitAuthorSource source = context.getProperty(COMMIT_AUTHOR_SOURCE).asAllowableValue(CommitAuthorSource.class);
+        return CommitAuthorSource.APPLICATION_USER.equals(source) ? context.getNiFiUserIdentity().orElse(null) : null;
+    }
+
     private void verifyReadPermissions(final GitRepositoryClient repositoryClient) throws AuthorizationException {
         if (!repositoryClient.hasReadPermission()) {
             throw new AuthorizationException("Client does not have read access to the repository");
@@ -837,6 +863,34 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     // protected to allow for overriding from tests
     protected FlowSnapshotSerializer createFlowSnapshotSerializer() {
         return new JacksonFlowSnapshotSerializer();
+    }
+
+    enum CommitAuthorSource implements DescribedValue {
+        SERVICE_USER("Service User", "The commit author is the authenticated service account configured on this registry client"),
+        APPLICATION_USER("Application User", "The commit author is the NiFi user performing the action, using the identity as both author name and author email");
+
+        private final String displayName;
+        private final String description;
+
+        CommitAuthorSource(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
     }
 
     enum ParameterContextValuesStrategy implements DescribedValue {

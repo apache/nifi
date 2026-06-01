@@ -376,6 +376,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
                 .addQueryParameter(API, API_VERSION)
                 .build();
 
+        final String authorName = request.getAuthorName();
+        final String authorEmail = request.getAuthorEmail();
+        final Author author = (authorName != null && authorEmail != null) ? new Author(authorName, authorEmail) : null;
+
         for (int attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++) {
             if (expectedFileCommit != null) {
                 final Optional<String> currentFileCommit = getContentSha(request.getPath(), branch);
@@ -385,7 +389,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
             }
 
             final String branchHead = fetchBranchHead(branch);
-            final HttpResponseEntity response = executePush(pushUri, branch, branchHead, encoded, message, changeType, path);
+            final HttpResponseEntity response = executePush(pushUri, branch, branchHead, encoded, message, changeType, path, author);
 
             if (response.statusCode() == HttpURLConnection.HTTP_CREATED) {
                 try {
@@ -421,10 +425,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     private HttpResponseEntity executePush(final URI pushUri, final String branch, final String oldObjectId,
                                            final String encodedContent, final String message,
-                                           final String changeType, final String path) throws FlowRegistryException {
+                                           final String changeType, final String path, final Author author) throws FlowRegistryException {
         final PushRequest pushRequest = new PushRequest(
                 List.of(new RefUpdate(REFS_HEADS_PREFIX + branch, oldObjectId)),
-                List.of(new Commit(message, List.of(new Change(changeType, new Item(path), new NewContent(encodedContent, CONTENT_TYPE_BASE64)))))
+                List.of(new Commit(message, List.of(new Change(changeType, new Item(path), new NewContent(encodedContent, CONTENT_TYPE_BASE64))), author))
         );
 
         final String json;
@@ -455,8 +459,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         final PushRequest pushRequest = new PushRequest(
                 List.of(new RefUpdate(REFS_HEADS_PREFIX + branch, oldObjectId)),
-                List.of(new Commit(commitMessage,
-                        List.of(new Change(CHANGE_TYPE_DELETE, new Item(path), null))))
+                List.of(new Commit(commitMessage, List.of(new Change(CHANGE_TYPE_DELETE, new Item(path), null)), null))
         );
 
         final String json = MAPPER.writeValueAsString(pushRequest);
@@ -506,7 +509,10 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
     private record RefUpdate(String name, String oldObjectId) { }
 
-    private record Commit(String comment, List<Change> changes) { }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private record Commit(String comment, List<Change> changes, Author author) { }
+
+    private record Author(String name, String email) { }
 
     private record Item(String path) { }
 

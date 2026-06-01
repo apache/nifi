@@ -270,9 +270,9 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
                             projectPath,
                             branch,
                             request.getMessage(),
-                            null, // start_branch - null means use the branch parameter
-                            null, // author_email - null means use the authenticated user
-                            null, // author_name - null means use the authenticated user
+                            null,
+                            request.getAuthorEmail(),
+                            request.getAuthorName(),
                             List.of(commitAction));
 
             final String commitId = commit.getId();
@@ -284,11 +284,22 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
     @Override
     public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException {
+        return deleteContent(filePath, commitMessage, branch, null, null);
+    }
+
+    @Override
+    public InputStream deleteContent(final String filePath, final String commitMessage, final String branch,
+                                     final String authorName, final String authorEmail) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(filePath);
         logger.debug("Deleting content at path [{}] on branch [{}] in repository [{}] ", resolvedPath, branch, projectPath);
         return execute(() -> {
             final InputStream content = gitLab.getRepositoryFileApi().getRawFile(projectPath, branch, resolvedPath);
-            gitLab.getRepositoryFileApi().deleteFile(projectPath, resolvedPath, branch, commitMessage);
+
+            final CommitAction commitAction = new CommitAction();
+            commitAction.setAction(CommitAction.Action.DELETE);
+            commitAction.setFilePath(resolvedPath);
+
+            gitLab.getCommitsApi().createCommit(projectPath, branch, commitMessage, null, authorEmail, authorName, List.of(commitAction));
             return content;
         });
     }

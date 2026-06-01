@@ -156,6 +156,25 @@ public interface GitRepositoryClient {
     InputStream deleteContent(String filePath, String commitMessage, String branch) throws FlowRegistryException, IOException;
 
     /**
+     * Deletes the file at the given path on the given branch, attributing the commit to the specified author.
+     *
+     * The caller of this method is responsible for closing the returned InputStream.
+     *
+     * @param filePath the path of the file
+     * @param commitMessage the commit message
+     * @param branch the branch
+     * @param authorName the name of the commit author, or null to use the authenticated user
+     * @param authorEmail the email of the commit author, or null to use the authenticated user
+     * @return the input stream to the deleted content
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     */
+    default InputStream deleteContent(final String filePath, final String commitMessage, final String branch,
+                                      final String authorName, final String authorEmail) throws FlowRegistryException, IOException {
+        return deleteContent(filePath, commitMessage, branch);
+    }
+
+    /**
      * Closes any resources held by the client.
      *
      * @throws IOException if an I/O error occurs closing the client
