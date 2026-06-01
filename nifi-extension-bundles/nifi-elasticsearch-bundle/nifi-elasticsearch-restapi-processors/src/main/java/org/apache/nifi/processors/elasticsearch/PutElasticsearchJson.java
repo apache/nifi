@@ -66,6 +66,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -254,12 +255,12 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     Whether to keep the Identifier Field in the document body after extracting it \
                     for use as the Elasticsearch document ID. \
-                    When false (default), the field is removed from the document before indexing.\
+                    When true (default), the field is left in the document; set to false to remove it before indexing.\
                     """)
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("false")
-            .dependsOn(INPUT_FORMAT, InputFormat.NDJSON, InputFormat.JSON_ARRAY)
+            .defaultValue("true")
+            .dependsOn(IDENTIFIER_FIELD)
             .build();
 
     static final PropertyDescriptor INDEX_FIELD = new PropertyDescriptor.Builder()
@@ -279,11 +280,12 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     Whether to keep the Index Field in the document body after extracting it \
                     for use as the Elasticsearch index name. \
-                    When false (default), the field is removed from the document before indexing.\
+                    When true (default), the field is left in the document; set to false to remove it before indexing.\
                     """)
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
+            .dependsOn(INDEX_FIELD)
             .build();
 
     static final PropertyDescriptor TIMESTAMP_FIELD = new PropertyDescriptor.Builder()
@@ -303,11 +305,12 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     Whether to keep the Timestamp Field in the document body after copying its \
                     value to @timestamp. \
-                    When false (default), the field is removed from the document before indexing.\
+                    When true (default), the field is left in the document; set to false to remove it before indexing.\
                     """)
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
+            .dependsOn(TIMESTAMP_FIELD)
             .build();
 
     static final Relationship REL_BULK_REQUEST = new Relationship.Builder()
@@ -467,11 +470,17 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 ? context.getProperty(IDENTIFIER_FIELD).evaluateAttributeExpressions().getValue()
                 : null;
         final String documentIndexField = context.getProperty(INDEX_FIELD).evaluateAttributeExpressions().getValue();
-        final boolean retainIdentifierField = inputFormat != InputFormat.SINGLE_JSON
-                && context.getProperty(RETAIN_IDENTIFIER_FIELD).asBoolean();
-        final boolean retainIndexField = context.getProperty(RETAIN_INDEX_FIELD).asBoolean();
         final String documentTimestampField = context.getProperty(TIMESTAMP_FIELD).evaluateAttributeExpressions().getValue();
-        final boolean retainTimestampField = context.getProperty(RETAIN_TIMESTAMP_FIELD).asBoolean();
+        // The Retain toggles depend on their source field being set, so only read them when it is —
+        // reading a property whose dependency is unsatisfied is invalid. When the source field is
+        // blank no extraction or stripping occurs, so the retain value is irrelevant anyway.
+        final boolean retainIdentifierField = inputFormat != InputFormat.SINGLE_JSON
+                && StringUtils.isNotBlank(documentIdField)
+                && context.getProperty(RETAIN_IDENTIFIER_FIELD).asBoolean();
+        final boolean retainIndexField = StringUtils.isBlank(documentIndexField)
+                || context.getProperty(RETAIN_INDEX_FIELD).asBoolean();
+        final boolean retainTimestampField = StringUtils.isBlank(documentTimestampField)
+                || context.getProperty(RETAIN_TIMESTAMP_FIELD).asBoolean();
         final int batchSize = InputFormat.SINGLE_JSON == inputFormat
                 ? context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger()
                 : Integer.MAX_VALUE;
@@ -1083,11 +1092,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 if (foundId && foundIndex) {
                     break;
                 }
-                if (!foundId && idField.equals(p.currentName()) && p.nextToken() != null && !p.currentToken().isStructStart()) {
+                if (!foundId && idField.equals(p.currentName()) && p.nextToken() != null && isScalarValue(p.currentToken())) {
                     final String value = p.getText();
                     id = StringUtils.isNotBlank(value) ? value : (StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null);
                     foundId = true;
-                } else if (!foundIndex && indexField.equals(p.currentName()) && p.nextToken() != null && !p.currentToken().isStructStart()) {
+                } else if (!foundIndex && indexField.equals(p.currentName()) && p.nextToken() != null && isScalarValue(p.currentToken())) {
                     final String value = p.getText();
                     docIndex = StringUtils.isNotBlank(value) ? value : fallbackIndex;
                     foundIndex = true;
@@ -1109,9 +1118,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         if (StringUtils.isBlank(idAttribute)) {
             return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
         }
-        final JsonNode idNode = node.get(idAttribute);
-        if (idNode != null && !idNode.isNull()) {
-            return idNode.asText();
+        final String value = fieldNodeToString(node.get(idAttribute));
+        if (StringUtils.isNotBlank(value)) {
+            return value;
         }
         return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
     }
@@ -1124,9 +1133,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         if (StringUtils.isBlank(idAttribute)) {
             return null;
         }
-        final Object idObj = contentMap.get(idAttribute);
-        if (idObj != null) {
-            return idObj.toString();
+        final String value = fieldValueToString(contentMap.get(idAttribute));
+        if (StringUtils.isNotBlank(value)) {
+            return value;
         }
         return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
     }
@@ -1140,12 +1149,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         if (StringUtils.isBlank(indexField)) {
             return fallbackIndex;
         }
-        final JsonNode indexNode = node.get(indexField);
-        if (indexNode != null && !indexNode.isNull()) {
-            final String value = indexNode.asText();
-            return StringUtils.isNotBlank(value) ? value : fallbackIndex;
-        }
-        return fallbackIndex;
+        final String value = fieldNodeToString(node.get(indexField));
+        return StringUtils.isNotBlank(value) ? value : fallbackIndex;
     }
 
     /**
@@ -1158,12 +1163,45 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         if (StringUtils.isBlank(indexField)) {
             return fallbackIndex;
         }
-        final Object indexObj = contentMap.get(indexField);
-        if (indexObj != null) {
-            final String value = indexObj.toString();
-            return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+        final String value = fieldValueToString(contentMap.get(indexField));
+        return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+    }
+
+    /**
+     * Converts a document field value taken from a parsed content Map into its string form for use
+     * as a document ID or index name. Returns {@code null} for absent values and for container
+     * values (JSON objects/arrays, deserialized as {@link Map}/{@link Collection}), which are not
+     * meaningful as an identifier or index and are treated the same as an absent field. This mirrors
+     * {@link #fieldNodeToString(JsonNode)} and the streaming {@link #extractIdAndIndex} path so all
+     * three produce identical results for the same document.
+     */
+    private static String fieldValueToString(final Object value) {
+        if (value == null || value instanceof Map || value instanceof Collection) {
+            return null;
         }
-        return fallbackIndex;
+        return value.toString();
+    }
+
+    /**
+     * Converts a document field {@link JsonNode} into its string form for use as a document ID or
+     * index name. Returns {@code null} for missing, null, and non-scalar (object/array) nodes,
+     * consistent with {@link #fieldValueToString(Object)} and the streaming extraction path.
+     */
+    private static String fieldNodeToString(final JsonNode node) {
+        if (node == null || node.isNull() || !node.isValueNode()) {
+            return null;
+        }
+        return node.asText();
+    }
+
+    /**
+     * Whether the streaming-parser token represents a usable scalar value (text, number, boolean)
+     * rather than a container start ({@code {}/[]}) or a JSON null. Keeps the streaming ID/index
+     * extraction consistent with the Map and JsonNode paths, which treat objects/arrays/nulls as
+     * absent fields.
+     */
+    private static boolean isScalarValue(final JsonToken token) {
+        return token != null && !token.isStructStart() && token != JsonToken.VALUE_NULL;
     }
 
     /**

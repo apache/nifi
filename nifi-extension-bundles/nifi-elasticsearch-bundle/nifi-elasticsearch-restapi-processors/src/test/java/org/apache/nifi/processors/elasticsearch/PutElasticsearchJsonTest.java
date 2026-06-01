@@ -28,9 +28,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -880,5 +882,232 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         runner.run();
 
         runner.assertTransferCount(PutElasticsearchJson.REL_BULK_REQUEST, 0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Index Field / Timestamp Field / Retain toggles (NIFI-15985)
+    // -------------------------------------------------------------------------
+
+    /** Registers a consumer that collects every operation sent to the _bulk API into the returned list. */
+    private List<IndexOperationRequest> captureOperations() {
+        final List<IndexOperationRequest> captured = new ArrayList<>();
+        clientService.setEvalConsumer((final List<IndexOperationRequest> items) -> captured.addAll(items));
+        return captured;
+    }
+
+    /** Returns the document body of an operation as a String, from raw JSON bytes or the fields Map. */
+    private static String docContent(final IndexOperationRequest item) {
+        if (item.getRawJsonBytes() != null) {
+            return new String(item.getRawJsonBytes(), StandardCharsets.UTF_8);
+        }
+        return item.getFields() == null ? "" : item.getFields().toString();
+    }
+
+    @Test
+    void testIndexFieldNdjsonExtractionRetainedByDefault() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "target_index");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"target_index\":\"docs-2026\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        assertEquals(1, ops.size());
+        assertEquals("docs-2026", ops.getFirst().getIndex());
+        // Retain Index Field defaults to true → the field stays in the document body
+        assertTrue(docContent(ops.getFirst()).contains("target_index"));
+    }
+
+    @Test
+    void testIndexFieldNdjsonRemovedWhenRetainFalse() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "target_index");
+        runner.setProperty(PutElasticsearchJson.RETAIN_INDEX_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"target_index\":\"docs-2026\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertEquals("docs-2026", ops.getFirst().getIndex());
+        final String content = docContent(ops.getFirst());
+        assertFalse(content.contains("target_index"), "Index Field should be stripped when Retain Index Field=false");
+        assertTrue(content.contains("hello"), "Other fields should remain");
+    }
+
+    @Test
+    void testIndexFieldJsonArrayExtractionAndStrip() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "target_index");
+        runner.setProperty(PutElasticsearchJson.RETAIN_INDEX_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("[{\"target_index\":\"docs-a\",\"msg\":\"x\"},{\"target_index\":\"docs-b\",\"msg\":\"y\"}]");
+        runner.run();
+
+        assertEquals(2, ops.size());
+        assertEquals("docs-a", ops.get(0).getIndex());
+        assertEquals("docs-b", ops.get(1).getIndex());
+        assertFalse(docContent(ops.get(0)).contains("target_index"));
+    }
+
+    @Test
+    void testIndexFieldSingleJsonExtractionRetainedByDefault() {
+        // SINGLE_JSON is the default Input Content Format
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "target_index");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"target_index\":\"docs-single\",\"msg\":\"x\"}");
+        runner.run();
+
+        assertEquals(1, ops.size());
+        assertEquals("docs-single", ops.getFirst().getIndex());
+        assertTrue(ops.getFirst().getFields().containsKey("target_index"), "field retained by default");
+    }
+
+    @Test
+    void testIndexFieldFallsBackToIndexPropertyWhenAbsent() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "target_index");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"msg\":\"no index field here\"}\n");
+        runner.run();
+
+        assertEquals("test_index", ops.getFirst().getIndex(), "Should fall back to the Index property when the field is absent");
+    }
+
+    @Test
+    void testTimestampFieldNdjsonCopiesToAtTimestampAndStrips() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.TIMESTAMP_FIELD, "event_time");
+        runner.setProperty(PutElasticsearchJson.RETAIN_TIMESTAMP_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"event_time\":\"2026-01-02T03:04:05Z\",\"msg\":\"x\"}\n");
+        runner.run();
+
+        final String content = docContent(ops.getFirst());
+        assertTrue(content.contains("@timestamp"), "@timestamp should be added");
+        assertTrue(content.contains("2026-01-02T03:04:05Z"));
+        assertFalse(content.contains("event_time"), "source timestamp field removed when retain=false");
+    }
+
+    @Test
+    void testTimestampFieldJsonArrayStrip() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.setProperty(PutElasticsearchJson.TIMESTAMP_FIELD, "event_time");
+        runner.setProperty(PutElasticsearchJson.RETAIN_TIMESTAMP_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("[{\"event_time\":\"2026-05-31T00:00:00Z\",\"msg\":\"x\"}]");
+        runner.run();
+
+        final String content = docContent(ops.getFirst());
+        assertTrue(content.contains("@timestamp"));
+        assertFalse(content.contains("event_time"));
+    }
+
+    @Test
+    void testTimestampFieldSingleJsonRetainedByDefault() {
+        runner.setProperty(PutElasticsearchJson.TIMESTAMP_FIELD, "event_time");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"event_time\":\"2026-01-02T03:04:05Z\",\"msg\":\"x\"}");
+        runner.run();
+
+        final Map<String, Object> fields = ops.getFirst().getFields();
+        assertEquals("2026-01-02T03:04:05Z", fields.get("@timestamp"));
+        assertTrue(fields.containsKey("event_time"), "source field retained by default");
+    }
+
+    @Test
+    void testIdentifierFieldRetainedByDefaultNdjson() {
+        // Backward compatibility: before this feature the Identifier Field was always kept in the document
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "id");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"id\":\"abc\",\"msg\":\"x\"}\n");
+        runner.run();
+
+        assertEquals("abc", ops.getFirst().getId());
+        assertTrue(docContent(ops.getFirst()).contains("\"id\""), "Identifier Field kept by default for backward compatibility");
+    }
+
+    @Test
+    void testIdentifierFieldRemovedWhenRetainFalseNdjson() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "id");
+        runner.setProperty(PutElasticsearchJson.RETAIN_IDENTIFIER_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"id\":\"abc\",\"msg\":\"x\"}\n");
+        runner.run();
+
+        assertEquals("abc", ops.getFirst().getId());
+        final String content = docContent(ops.getFirst());
+        assertFalse(content.contains("\"id\""), "identifier field removed when retain=false");
+        assertTrue(content.contains("msg"));
+    }
+
+    @Test
+    void testIndexFieldNumericValueConsistentAcrossFormats() {
+        // The Map (Single JSON), JsonNode (JSON Array), and streaming (NDJSON) paths must all
+        // resolve a non-string index value to the same string.
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "idx");
+        List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"idx\":12345,\"msg\":\"x\"}");
+        runner.run();
+        assertEquals("12345", ops.getFirst().getIndex(), "Single JSON Map path");
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        ops = captureOperations();
+        runner.enqueue("[{\"idx\":12345,\"msg\":\"x\"}]");
+        runner.run();
+        assertEquals("12345", ops.getFirst().getIndex(), "JSON Array JsonNode path");
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        ops = captureOperations();
+        runner.enqueue("{\"idx\":12345,\"msg\":\"x\"}\n");
+        runner.run();
+        assertEquals("12345", ops.getFirst().getIndex(), "NDJSON streaming path");
+    }
+
+    @Test
+    void testIndexFieldNullValueFallsBackConsistently() {
+        // A JSON null index value must fall back to the Index property on every path —
+        // in particular the NDJSON streaming path must not emit the literal string "null".
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "idx");
+        List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"idx\":null,\"msg\":\"x\"}");
+        runner.run();
+        assertEquals("test_index", ops.getFirst().getIndex(), "Single JSON null -> fallback");
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        ops = captureOperations();
+        runner.enqueue("[{\"idx\":null,\"msg\":\"x\"}]");
+        runner.run();
+        assertEquals("test_index", ops.getFirst().getIndex(), "JSON Array null -> fallback");
+        runner.clearTransferState();
+
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        ops = captureOperations();
+        runner.enqueue("{\"idx\":null,\"msg\":\"x\"}\n");
+        runner.run();
+        assertEquals("test_index", ops.getFirst().getIndex(), "NDJSON null -> fallback (not literal \"null\")");
     }
 }
