@@ -59,7 +59,7 @@ class ObjectLocalDateFieldConverterTest {
         final ZonedDateTime zonedDate = yearOne.atStartOfDay(ZoneId.systemDefault());
         final Date sqlDate = new Date(zonedDate.toInstant().toEpochMilli());
         final LocalDate result = CONVERTER.convertField(sqlDate, Optional.empty(), FIELD_NAME);
-        
+
         assertEquals(yearOne, result);
     }
 }

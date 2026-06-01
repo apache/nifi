@@ -178,7 +178,7 @@ public class ObjectTimestampFieldConverterTest {
         final ZonedDateTime zonedYearOne = yearOne.atZone(ZoneId.systemDefault());
         final Timestamp timestamp = CONVERTER.convertField(yearOne, DEFAULT_PATTERN, FIELD_NAME);
         final Timestamp expected = Timestamp.from(zonedYearOne.toInstant());
-        
+
         assertEquals(expected, timestamp);
     }
 
