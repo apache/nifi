@@ -4210,8 +4210,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void verifyCanSaveToFlowRegistry(final String registryId, final FlowLocation flowLocation, final String saveAction) {
-        verifyNoDescendantsWithLocalModifications("be saved to a Flow Registry");
-
         final StandardVersionControlInformation vci = versionControlInfo.get();
         if (vci != null) {
             final String flowId = flowLocation.getFlowId();

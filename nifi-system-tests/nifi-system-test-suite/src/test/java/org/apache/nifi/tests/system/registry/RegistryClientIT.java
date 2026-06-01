@@ -550,6 +550,51 @@ public class RegistryClientIT extends NiFiSystemIT {
         }
     }
 
+    /**
+     * Test that a parent Process Group can be committed to a Flow Registry even when a child Process Group
+     * that is separately under Version Control has local modifications. The parent's snapshot only stores
+     * version coordinate references for child versioned PGs, so uncommitted changes in the child are
+     * irrelevant to the parent's save operation.
+     *
+     * Scenario:
+     * 1. Create parent PG with a processor and child PG with a processor
+     * 2. Commit child PG (v1), then commit parent PG (v1)
+     * 3. Modify a processor in the child PG so the child becomes LOCALLY_MODIFIED
+     * 4. Commit the parent PG as v2 -- this should succeed
+     */
+    @Test
+    public void testSaveParentFlowVersionWithLocallyModifiedChild() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity parent = util.createProcessGroup("Parent", "root");
+        final ProcessorEntity parentProcessor = util.createProcessor("GenerateFlowFile", parent.getId());
+
+        final ProcessGroupEntity child = util.createProcessGroup("Child", parent.getId());
+        final ProcessorEntity childProcessor = util.createProcessor("TerminateFlowFile", child.getId());
+
+        final VersionControlInformationEntity childVci = util.startVersionControl(child, clientEntity, TEST_FLOWS_BUCKET, "Child");
+        assertEquals("1", childVci.getVersionControlInformation().getVersion());
+
+        final VersionControlInformationEntity parentVci = util.startVersionControl(parent, clientEntity, TEST_FLOWS_BUCKET, "Parent");
+        assertEquals("1", parentVci.getVersionControlInformation().getVersion());
+
+        util.assertFlowUpToDate(parent.getId());
+        util.assertFlowUpToDate(child.getId());
+
+        util.updateProcessorSchedulingPeriod(childProcessor, "2 min");
+        waitFor(() -> VersionControlInformationDTO.LOCALLY_MODIFIED.equals(util.getVersionControlState(child.getId())));
+
+        util.updateProcessorProperties(parentProcessor, Collections.singletonMap("Text", "Modified"));
+
+        final VersionControlInformationEntity parentV2 = util.saveFlowVersion(parent, clientEntity, parentVci);
+        assertEquals("2", parentV2.getVersionControlInformation().getVersion());
+
+        util.assertFlowUpToDate(parent.getId());
+
+        assertEquals(VersionControlInformationDTO.LOCALLY_MODIFIED, util.getVersionControlState(child.getId()));
+    }
+
     @Test
     public void testStopVersionControlThenSetVersionControlInfo() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient();
