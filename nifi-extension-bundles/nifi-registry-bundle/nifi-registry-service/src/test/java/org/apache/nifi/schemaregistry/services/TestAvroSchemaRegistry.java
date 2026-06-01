@@ -130,8 +130,8 @@ public class TestAvroSchemaRegistry {
     }
 
     @ParameterizedTest
-    @MethodSource("invalidSchemasForStrictValidation")
-    public void testStrictValidation(String schema, List<String> keyWordsInExceptionMessage) {
+    @MethodSource("invalidSchemasForValidation")
+    public void testWhereSchemasValidated(String schema, List<String> keyWordsInExceptionMessage) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
         runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.VALIDATE.getValue());
 
@@ -140,8 +140,8 @@ public class TestAvroSchemaRegistry {
     }
 
     @ParameterizedTest
-    @MethodSource("invalidSchemasForRelaxedValidation")
-    public void testWithRelaxedValidation(String schema) {
+    @MethodSource("invalidSchemasForNoValidation")
+    public void testWhereSchemasNotValidated(String schema) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
         runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.NONE.getValue());
 
@@ -180,7 +180,7 @@ public class TestAvroSchemaRegistry {
         assertEquals(expectedUpdated, result.getPropertiesUpdated());
     }
 
-    private static Stream<Arguments> invalidSchemasForStrictValidation() {
+    private static Stream<Arguments> invalidSchemasForValidation() {
         return Stream.of(
                 Arguments.argumentSet("Namespace separator other than a period", NON_PERIOD_NAMESPACE_SEPARATOR, List.of("Namespace", "Illegal character")),
                 Arguments.argumentSet("Illegal character(s) in record name", ILLEGAL_CHARACTER_IN_RECORD_NAME, List.of("Illegal initial character")),
@@ -190,7 +190,7 @@ public class TestAvroSchemaRegistry {
         );
     }
 
-    private static Stream<Arguments> invalidSchemasForRelaxedValidation() {
+    private static Stream<Arguments> invalidSchemasForNoValidation() {
         return Stream.of(
                 Arguments.argumentSet("Namespace separator other than a period", NON_PERIOD_NAMESPACE_SEPARATOR),
                 Arguments.argumentSet("Illegal character(s) in record name", ILLEGAL_CHARACTER_IN_RECORD_NAME),
@@ -202,13 +202,13 @@ public class TestAvroSchemaRegistry {
 
     private static Stream<Arguments> migrationConfigurations() {
         return Stream.of(
-                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst() + " Strict",
+                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst() + " Validate",
                         new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), Boolean.TRUE.toString()))),
-                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst() + " Lenient",
+                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst() + " Do Not Validate",
                         new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), Boolean.FALSE.toString()))),
-                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1) + " Strict",
+                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1) + " Validate",
                         new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), Boolean.TRUE.toString()))),
-                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1) + " Lenient",
+                Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1) + " Do Not Validate",
                         new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), Boolean.FALSE.toString())))
         );
     }
