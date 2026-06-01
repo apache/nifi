@@ -355,6 +355,11 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
+    public Map<ParameterDescriptor, Parameter> getRawEffectiveParameters() {
+        return getMergedEffectiveParametersReadLocked();
+    }
+
+    @Override
     public Map<String, Parameter> getEffectiveParameterUpdates(final Map<String, Parameter> parameterUpdates, final List<ParameterContext> inheritedParameterContexts) {
         Objects.requireNonNull(parameterUpdates, "Parameter Updates must be specified");
         Objects.requireNonNull(inheritedParameterContexts, "Inherited parameter contexts must be specified");

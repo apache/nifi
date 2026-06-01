@@ -963,6 +963,50 @@ public class TestStandardParameterContext {
     }
 
     @Test
+    public void testGetRawEffectiveParametersPreservesAliasValue() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext s = createParameterContext("s", parameterContextLookup);
+        addProvidedParameter(s, "db_host", "myserver.example.com");
+        addProvidedParameter(s, "db_port", "3306");
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        addParameter(p, "host", "#{db_host}");
+        addParameter(p, "port", "#{db_port}");
+        addParameter(p, "plain", "literal_value");
+
+        p.setInheritedParameterContexts(List.of(s));
+
+        final Map<ParameterDescriptor, Parameter> raw = p.getRawEffectiveParameters();
+        assertEquals("#{db_host}", raw.get(new ParameterDescriptor.Builder().name("host").build()).getValue());
+        assertEquals("#{db_port}", raw.get(new ParameterDescriptor.Builder().name("port").build()).getValue());
+        assertEquals("literal_value", raw.get(new ParameterDescriptor.Builder().name("plain").build()).getValue());
+
+        assertEquals("myserver.example.com", raw.get(new ParameterDescriptor.Builder().name("db_host").build()).getValue());
+        assertEquals("3306", raw.get(new ParameterDescriptor.Builder().name("db_port").build()).getValue());
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("myserver.example.com", effective.get(new ParameterDescriptor.Builder().name("host").build()).getValue());
+        assertEquals("3306", effective.get(new ParameterDescriptor.Builder().name("port").build()).getValue());
+    }
+
+    @Test
+    public void testGetRawEffectiveParametersWithNoInheritance() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+
+        final ParameterContext p = createParameterContext("p", parameterContextLookup);
+        addParameter(p, "a", "#{b}");
+        addParameter(p, "b", "concrete");
+
+        final Map<ParameterDescriptor, Parameter> raw = p.getRawEffectiveParameters();
+        assertEquals("#{b}", raw.get(new ParameterDescriptor.Builder().name("a").build()).getValue());
+        assertEquals("concrete", raw.get(new ParameterDescriptor.Builder().name("b").build()).getValue());
+
+        final Map<ParameterDescriptor, Parameter> effective = p.getEffectiveParameters();
+        assertEquals("concrete", effective.get(new ParameterDescriptor.Builder().name("a").build()).getValue());
+    }
+
+    @Test
     public void testParameterValueReferenceResolvesQuotedName() {
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
 

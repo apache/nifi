@@ -100,6 +100,20 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Map<ParameterDescriptor, Parameter> getEffectiveParameters();
 
     /**
+     * Returns the merged effective parameter map -- identical in shape to {@link #getEffectiveParameters()} --
+     * but WITHOUT resolving one-to-one parameter value references. Local aliases retain their literal
+     * <code>#{otherName}</code> values. Use this method for display, persistence comparison, or any other
+     * read-side use where the raw, user-authored value matters. Use {@link #getEffectiveParameters()}
+     * when components require fully-resolved values for runtime substitution.
+     *
+     * @return a Map that contains all Parameters in the context and all nested ParameterContexts, keyed by their
+     *         descriptors, without parameter value reference resolution applied
+     */
+    default Map<ParameterDescriptor, Parameter> getRawEffectiveParameters() {
+        return getEffectiveParameters();
+    }
+
+    /**
      * Returns a map from parameter name to Parameter, representing all parameters that would be effectively
      * updated if the provided configuration was applied.  Only parameters that would be effectively updated or added are
      * included in the map.  A null value for a Parameter represents an effective deletion of that parameter name.
