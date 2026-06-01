@@ -22,6 +22,7 @@ import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -117,9 +118,8 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             if (providerId != null) {
                 final ValidationStatus priorWarnedStatus = lastWarnedStatus.remove(providerId);
                 if (priorWarnedStatus != null) {
-                    logger.info("Parameter Provider [{}] (id={}) returned to VALID after being logged as {};"
-                                    + " SecretReferences backed by this provider will resolve again",
-                            parameterProviderNode.getName(), providerId, priorWarnedStatus);
+                    final ParameterProvider parameterProvider = parameterProviderNode.getParameterProvider();
+                    logger.info("{} returned to VALID after being logged as [{}] now resolving Secret References", parameterProvider, priorWarnedStatus);
                 }
             }
             providers.add(new ParameterProviderSecretProvider(parameterProviderNode));
@@ -144,7 +144,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
         if (!cacheDuration.isZero()) {
             final CachedSecret cached = secretCache.get(fqn);
             if (cached != null && !isExpired(cached)) {
-                logger.debug("Cache hit for secret [{}]", fqn);
+                logger.debug("Cached Secret found [{}]", fqn);
                 return Optional.ofNullable(cached.secret());
             }
         }
@@ -228,7 +228,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             if (fqn != null) {
                 final CachedSecret cached = secretCache.get(fqn);
                 if (cached != null && !isExpired(cached)) {
-                    logger.debug("Cache hit for secret [{}]", fqn);
+                    logger.debug("Cached Secret found [{}]", fqn);
                     results.put(secretReference, cached.secret());
                     continue;
                 }
@@ -307,9 +307,8 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             return;
         }
 
-        logger.warn("Skipping Parameter Provider [{}] (id={}) as a Secret Provider because its current validation status is {}; "
-                        + "SecretReferences backed by this provider will resolve to null until it returns to VALID",
-                parameterProviderNode.getName(), providerId, effectiveStatus);
+        final ParameterProvider parameterProvider = parameterProviderNode.getParameterProvider();
+        logger.warn("{} skipped as a Secret Provider with validation status [{}] resolving Secret References as null until VALID", parameterProvider, effectiveStatus);
     }
 
     private SecretProvider findProvider(final SecretReference secretReference, final Set<SecretProvider> providers) {
