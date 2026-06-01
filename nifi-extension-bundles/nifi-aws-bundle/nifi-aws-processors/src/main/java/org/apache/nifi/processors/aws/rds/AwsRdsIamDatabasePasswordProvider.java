@@ -67,7 +67,7 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
             .name("Token Request Endpoint")
             .description("Token Request Endpoint in hostname:port format used for IAM token signing, overriding the hostname and port from the JDBC URL.")
             .required(false)
-            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
+            .addValidator(StandardValidators.HOSTNAME_PORT_VALIDATOR)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
