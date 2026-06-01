@@ -19,7 +19,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <activemq.version>6.2.5</activemq.version>
+        <activemq.version>6.2.6</activemq.version>
     </properties>
 
     <dependencies>
