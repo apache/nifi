@@ -128,7 +128,7 @@ public class TestAvroSchemaRegistry {
     }
 
     @ParameterizedTest
-    @MethodSource("invalidSchemasForValidation")
+    @MethodSource("invalidSchemas")
     public void testWhereSchemasValidated(String schema) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
         runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.VALIDATE.getValue());
@@ -137,7 +137,7 @@ public class TestAvroSchemaRegistry {
     }
 
     @ParameterizedTest
-    @MethodSource("invalidSchemasForNoValidation")
+    @MethodSource("invalidSchemas")
     public void testWhereSchemasNotValidated(String schema) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
         runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.NONE.getValue());
@@ -177,17 +177,7 @@ public class TestAvroSchemaRegistry {
         assertEquals(expectedUpdated, result.getPropertiesUpdated());
     }
 
-    private static Stream<Arguments> invalidSchemasForValidation() {
-        return Stream.of(
-                Arguments.argumentSet("Namespace separator other than a period", NON_PERIOD_NAMESPACE_SEPARATOR),
-                Arguments.argumentSet("Illegal character(s) in record name", ILLEGAL_CHARACTER_IN_RECORD_NAME),
-                Arguments.argumentSet("Illegal character(s) in field name", ILLEGAL_CHARACTER_IN_FIELD_NAME),
-                Arguments.argumentSet("Non matching default type", NON_MATCHING_DEFAULT_TYPE),
-                Arguments.argumentSet("Non matching union default type", NON_MATCHING_UNION_DEFAULT_TYPE)
-        );
-    }
-
-    private static Stream<Arguments> invalidSchemasForNoValidation() {
+    private static Stream<Arguments> invalidSchemas() {
         return Stream.of(
                 Arguments.argumentSet("Namespace separator other than a period", NON_PERIOD_NAMESPACE_SEPARATOR),
                 Arguments.argumentSet("Illegal character(s) in record name", ILLEGAL_CHARACTER_IN_RECORD_NAME),
