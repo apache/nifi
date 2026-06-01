@@ -1889,7 +1889,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     protected Set<String> getUpdatedParameterNames(final ParameterContext parameterContext, final VersionedParameterContext proposed) {
         final Map<String, ParameterValueAndReferences> originalValues = new HashMap<>();
         collectValueAndReferences(parameterContext, originalValues);
-        parameterContext.getRawEffectiveParameters().forEach((pd, param) -> originalValues.put(pd.getName(), getValueAndReferences(param)));
 
         final Map<String, ParameterValueAndReferences> proposedValues = new HashMap<>();
         if (proposed != null) {
@@ -1899,7 +1898,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     final ParameterContext inheritedContext = getParameterContextByName(name);
                     if (inheritedContext != null) {
                         collectValueAndReferences(inheritedContext, proposedValues);
-                        inheritedContext.getRawEffectiveParameters().forEach((pd, param) -> proposedValues.put(pd.getName(), getValueAndReferences(param)));
                     }
                 }
             }
