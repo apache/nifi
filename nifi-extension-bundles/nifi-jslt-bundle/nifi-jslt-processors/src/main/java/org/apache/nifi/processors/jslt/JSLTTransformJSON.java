@@ -272,8 +272,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             getJstlExpression(transform, null);
             builder.valid(true);
         } catch (final RuntimeException e) {
-            final String explanation = String.format("%s not valid: %s", property.getDisplayName(), e.getMessage());
-            builder.valid(false).explanation(explanation);
+            builder.valid(false).explanation(e.getMessage());
         }
         return builder.build();
     }
@@ -430,9 +429,9 @@ public class JSLTTransformJSON extends AbstractProcessor {
             return propertyValue.getValue();
         }
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
-            return reader.lines().collect(Collectors.joining());
+            return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
-            throw new UncheckedIOException("Read JSLT Transform failed", e);
+            throw new UncheckedIOException(String.format("Read JSLT Transform failed, reason: %s", e.getMessage()), e);
         }
     }
 
