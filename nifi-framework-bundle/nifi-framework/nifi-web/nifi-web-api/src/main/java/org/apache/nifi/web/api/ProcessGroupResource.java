@@ -593,12 +593,17 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         updatableProcessGroups.put(requestProcessGroupEntity, getRevision(requestProcessGroupEntity, requestGroupId));
 
         if (updateStrategy == ProcessGroupRecursivity.ALL_DESCENDANTS) {
-            for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
-                final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
-                final String processGroupId = processGroupDTO == null ? processGroupEntity.getId() : processGroupDTO.getId();
-                if (processGroupDTO != null) {
-                    processGroupDTO.setParameterContext(requestParamContext);
-                }
+            for (final ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
+                final ProcessGroupDTO existingDto = processGroupEntity.getComponent();
+                final String processGroupId = existingDto == null ? processGroupEntity.getId() : existingDto.getId();
+
+                // Recursive update only changes the Parameter Context binding. Use a minimal DTO so unrelated
+                // fields from the existing Process Group do not flow into the verify / update pipeline.
+                final ProcessGroupDTO updateDto = new ProcessGroupDTO();
+                updateDto.setId(processGroupId);
+                updateDto.setParameterContext(requestParamContext);
+                processGroupEntity.setComponent(updateDto);
+
                 updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, processGroupId));
             }
         }
