@@ -52,10 +52,7 @@ import java.util.concurrent.ConcurrentMap;
         expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     static final List<String> OBSOLETE_VALIDATE_FIELD_NAMES = List.of("avro-reg-validated-field-names", "Validate Field Names");
-    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
-    private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
-
-    public static final PropertyDescriptor VALIDATION_STRATEGY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor VALIDATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Validation Strategy")
             .description("Set the strategy for the level of Avro validation required for field names, namespaces and default values")
             .required(true)
@@ -66,6 +63,9 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             VALIDATION_STRATEGY
     );
+
+    private static final Set<SchemaField> SCHEMA_FIELDS = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
+    private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -136,12 +136,12 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         // NOTE: Although there are multiple names for OBSOLETE_VALIDATE_FIELD_NAMES, the code in the if statement
         // will execute at most once as the assumption is a configuration has one of the obsolete property names but not all.
-        for (String obsoletePropertyName : OBSOLETE_VALIDATE_FIELD_NAMES) {
+        for (final String obsoletePropertyName : OBSOLETE_VALIDATE_FIELD_NAMES) {
             if (config.hasProperty(obsoletePropertyName) && config.isPropertySet(obsoletePropertyName)) {
-                final String validateFieldNamesRawValue = config.getRawPropertyValue(obsoletePropertyName).orElse(Boolean.FALSE.toString());
+                final String validateFieldNamesRawValue = config.getRawPropertyValue(obsoletePropertyName).orElse(Boolean.TRUE.toString());
                 final boolean validateFieldNames = Boolean.parseBoolean(validateFieldNamesRawValue);
 
                 if (validateFieldNames) {
@@ -173,6 +173,6 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
-        return schemaFields;
+        return SCHEMA_FIELDS;
     }
 }
