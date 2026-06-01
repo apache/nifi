@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
@@ -301,6 +302,40 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
             gitLab.getCommitsApi().createCommit(projectPath, branch, commitMessage, null, authorEmail, authorName, List.of(commitAction));
             return content;
+        });
+    }
+
+    @Override
+    public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
+            throws IOException, FlowRegistryException {
+        if (StringUtils.isBlank(newBranchName)) {
+            throw new IllegalArgumentException("Branch name must be specified");
+        }
+        if (StringUtils.isBlank(sourceBranch)) {
+            throw new IllegalArgumentException("Source branch must be specified");
+        }
+
+        final String trimmedNewBranch = newBranchName.trim();
+        final String trimmedSourceBranch = sourceBranch.trim();
+        final RepositoryApi repositoryApi = gitLab.getRepositoryApi();
+
+        try {
+            repositoryApi.getBranch(projectPath, trimmedNewBranch);
+            throw new FlowRegistryException("Branch [%s] already exists".formatted(trimmedNewBranch));
+        } catch (final GitLabApiException e) {
+            if (e.getHttpStatus() != HttpURLConnection.HTTP_NOT_FOUND) {
+                throw new FlowRegistryException("Failed to check existence of branch [%s]".formatted(trimmedNewBranch), e);
+            }
+            logger.debug("Branch [{}] does not exist and will be created", trimmedNewBranch);
+        }
+
+        final String ref = sourceCommitSha.filter(sha -> !sha.isBlank()).orElse(trimmedSourceBranch);
+
+        logger.info("Creating branch [{}] from ref [{}] in repository [{}]", trimmedNewBranch, ref, projectPath);
+
+        execute(() -> {
+            repositoryApi.createBranch(projectPath, trimmedNewBranch, ref);
+            return null;
         });
     }
 
