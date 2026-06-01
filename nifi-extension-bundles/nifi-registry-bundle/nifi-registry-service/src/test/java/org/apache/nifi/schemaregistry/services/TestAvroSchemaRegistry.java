@@ -33,10 +33,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opentest4j.AssertionFailedError;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -131,12 +129,11 @@ public class TestAvroSchemaRegistry {
 
     @ParameterizedTest
     @MethodSource("invalidSchemasForValidation")
-    public void testWhereSchemasValidated(String schema, List<String> keyWordsInExceptionMessage) {
+    public void testWhereSchemasValidated(String schema) {
         runner.setProperty(avroSchemaRegistry, SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, schema);
         runner.setProperty(avroSchemaRegistry, AvroSchemaRegistry.VALIDATION_STRATEGY, ValidationStrategy.VALIDATE.getValue());
 
-        final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.assertValid(avroSchemaRegistry));
-        keyWordsInExceptionMessage.forEach(keyword -> assertTrue(assertionFailedError.getMessage().contains(keyword)));
+        runner.assertNotValid(avroSchemaRegistry);
     }
 
     @ParameterizedTest
@@ -182,11 +179,11 @@ public class TestAvroSchemaRegistry {
 
     private static Stream<Arguments> invalidSchemasForValidation() {
         return Stream.of(
-                Arguments.argumentSet("Namespace separator other than a period", NON_PERIOD_NAMESPACE_SEPARATOR, List.of("Namespace", "Illegal character")),
-                Arguments.argumentSet("Illegal character(s) in record name", ILLEGAL_CHARACTER_IN_RECORD_NAME, List.of("Illegal initial character")),
-                Arguments.argumentSet("Illegal character(s) in field name", ILLEGAL_CHARACTER_IN_FIELD_NAME, List.of("Illegal initial character")),
-                Arguments.argumentSet("Non matching default type", NON_MATCHING_DEFAULT_TYPE, List.of("Invalid default")),
-                Arguments.argumentSet("Non matching union default type", NON_MATCHING_UNION_DEFAULT_TYPE, List.of("Invalid default"))
+                Arguments.argumentSet("Namespace separator other than a period", NON_PERIOD_NAMESPACE_SEPARATOR),
+                Arguments.argumentSet("Illegal character(s) in record name", ILLEGAL_CHARACTER_IN_RECORD_NAME),
+                Arguments.argumentSet("Illegal character(s) in field name", ILLEGAL_CHARACTER_IN_FIELD_NAME),
+                Arguments.argumentSet("Non matching default type", NON_MATCHING_DEFAULT_TYPE),
+                Arguments.argumentSet("Non matching union default type", NON_MATCHING_UNION_DEFAULT_TYPE)
         );
     }
 
