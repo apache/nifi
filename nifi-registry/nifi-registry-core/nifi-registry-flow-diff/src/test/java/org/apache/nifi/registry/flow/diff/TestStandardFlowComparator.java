@@ -28,6 +28,7 @@ import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +64,7 @@ public class TestStandardFlowComparator {
         final Function<String, String> decryptor = encryptedToDecrypted::get;
         final ComparableDataFlow flowA = new StandardComparableDataFlow("Flow A", new VersionedProcessGroup());
         final ComparableDataFlow flowB = new StandardComparableDataFlow("Flow B", new VersionedProcessGroup());
-        comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
+        comparator = new StandardFlowComparator(flowA, flowB,
             new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
     }
 
@@ -223,7 +224,7 @@ public class TestStandardFlowComparator {
 
         // Testing when a child PG is added and the child PG contains components
 
-        comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
+        comparator = new StandardFlowComparator(flowA, flowB,
                 new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
 
         final Set<FlowDifference> diffShallowChildPgAdded = comparator.compare().getDifferences();
@@ -232,7 +233,7 @@ public class TestStandardFlowComparator {
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_ADDED
                         && difference.getComponentB().getComponentType() == ComponentType.PROCESS_GROUP));
 
-        comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
+        comparator = new StandardFlowComparator(flowA, flowB,
                 new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
         final Set<FlowDifference> diffDeepChildPgAdded = comparator.compare().getDifferences();
         assertEquals(15, diffDeepChildPgAdded.size());
@@ -257,7 +258,7 @@ public class TestStandardFlowComparator {
 
         // Testing when a child PG is removed and the child PG contains components
 
-        comparator = new StandardFlowComparator(flowB, flowA, Collections.emptySet(),
+        comparator = new StandardFlowComparator(flowB, flowA,
                 new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
 
         final Set<FlowDifference> diffShallowChildPgRemoved = comparator.compare().getDifferences();
@@ -266,7 +267,7 @@ public class TestStandardFlowComparator {
                 .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
                         && difference.getComponentA().getComponentType() == ComponentType.PROCESS_GROUP));
 
-        comparator = new StandardFlowComparator(flowB, flowA, Collections.emptySet(),
+        comparator = new StandardFlowComparator(flowB, flowA,
                 new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
         final Set<FlowDifference> diffDeepChildPgRemoved = comparator.compare().getDifferences();
         assertEquals(4, diffDeepChildPgRemoved.size());
@@ -340,7 +341,6 @@ public class TestStandardFlowComparator {
         final StandardFlowComparator testComparator = new StandardFlowComparator(
                 registryFlow,
                 localFlow,
-                Collections.emptySet(),
                 new StaticDifferenceDescriptor(),
                 Function.identity(),
                 VersionedComponent::getIdentifier,
@@ -407,7 +407,6 @@ public class TestStandardFlowComparator {
         final StandardFlowComparator testComparator = new StandardFlowComparator(
                 registryFlow,
                 localFlow,
-                Collections.emptySet(),
                 new StaticDifferenceDescriptor(),
                 Function.identity(),
                 VersionedComponent::getIdentifier,
@@ -478,7 +477,6 @@ public class TestStandardFlowComparator {
         final StandardFlowComparator shallowComparator = new StandardFlowComparator(
                 registryFlow,
                 localFlow,
-                Collections.emptySet(),
                 new StaticDifferenceDescriptor(),
                 Function.identity(),
                 VersionedComponent::getIdentifier,
@@ -551,7 +549,6 @@ public class TestStandardFlowComparator {
         final StandardFlowComparator comparator = new StandardFlowComparator(
                 registryFlow,
                 localFlow,
-                Collections.emptySet(),
                 new StaticDifferenceDescriptor(),
                 Function.identity(),
                 VersionedComponent::getIdentifier,
@@ -622,7 +619,7 @@ public class TestStandardFlowComparator {
 
         // DEEP strategy: both PG2 addition AND processor addition should be reported
         final StandardFlowComparator deepComparator = new StandardFlowComparator(
-                registryFlow, localFlow, Collections.emptySet(), new StaticDifferenceDescriptor(),
+                registryFlow, localFlow, new StaticDifferenceDescriptor(),
                 Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
 
         final Set<FlowDifference> deepDifferences = deepComparator.compare().getDifferences();
@@ -638,7 +635,7 @@ public class TestStandardFlowComparator {
 
         // SHALLOW strategy: only PG2 addition is reported (processor inside is not expanded)
         final StandardFlowComparator shallowComparator = new StandardFlowComparator(
-                registryFlow, localFlow, Collections.emptySet(), new StaticDifferenceDescriptor(),
+                registryFlow, localFlow, new StaticDifferenceDescriptor(),
                 Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
 
         final Set<FlowDifference> shallowDifferences = shallowComparator.compare().getDifferences();
@@ -688,7 +685,7 @@ public class TestStandardFlowComparator {
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localRoot);
 
         final StandardFlowComparator testComparator = new StandardFlowComparator(
-                registryFlow, localFlow, Collections.emptySet(), new StaticDifferenceDescriptor(),
+                registryFlow, localFlow, new StaticDifferenceDescriptor(),
                 Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
 
         final Set<FlowDifference> differences = testComparator.compare().getDifferences();
@@ -784,7 +781,7 @@ public class TestStandardFlowComparator {
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localParent);
 
         final StandardFlowComparator testComparator = new StandardFlowComparator(
-                registryFlow, localFlow, Collections.emptySet(), new StaticDifferenceDescriptor(),
+                registryFlow, localFlow, new StaticDifferenceDescriptor(),
                 Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
 
         final Set<FlowDifference> differences = testComparator.compare().getDifferences();
@@ -803,6 +800,57 @@ public class TestStandardFlowComparator {
 
         assertEquals(1, differences.size(),
                 "Should only have 1 difference (child PG version coordinate change). Differences found: " + differences);
+    }
+
+    /**
+     * Verifies that changing a processor's controller service property from one external service
+     * to another is detected as a PROPERTY_CHANGED difference. Previously, the comparator had
+     * suppression logic that could incorrectly hide such changes when the old service ID
+     * was no longer accessible.
+     */
+    @Test
+    public void testExternalControllerServicePropertyChangeDetected() {
+        final String processorId = "processor1";
+        final String servicePropertyKey = "my-service";
+        final String oldServiceId = "service-X-id";
+        final String newServiceId = "service-Y-id";
+
+        final VersionedPropertyDescriptor serviceDescriptor = new VersionedPropertyDescriptor();
+        serviceDescriptor.setName(servicePropertyKey);
+        serviceDescriptor.setIdentifiesControllerService(true);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setIdentifier(processorId);
+        registryProcessor.setScheduledState(ScheduledState.ENABLED);
+        registryProcessor.setProperties(Map.of(servicePropertyKey, oldServiceId));
+        registryProcessor.setPropertyDescriptors(Map.of(servicePropertyKey, serviceDescriptor));
+
+        final VersionedProcessor localProcessor = new VersionedProcessor();
+        localProcessor.setIdentifier(processorId);
+        localProcessor.setScheduledState(ScheduledState.ENABLED);
+        localProcessor.setProperties(Map.of(servicePropertyKey, newServiceId));
+        localProcessor.setPropertyDescriptors(Map.of(servicePropertyKey, serviceDescriptor));
+
+        final VersionedProcessGroup registryRoot = new VersionedProcessGroup();
+        registryRoot.setIdentifier("rootPG");
+        registryRoot.getProcessors().add(registryProcessor);
+
+        final VersionedProcessGroup localRoot = new VersionedProcessGroup();
+        localRoot.setIdentifier("rootPG");
+        localRoot.getProcessors().add(localProcessor);
+
+        final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryRoot);
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localRoot);
+
+        final StandardFlowComparator testComparator = new StandardFlowComparator(
+                registryFlow, localFlow, new StaticDifferenceDescriptor(),
+                Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+
+        final Set<FlowDifference> differences = testComparator.compare().getDifferences();
+
+        assertEquals(1, differences.size());
+        final FlowDifference diff = differences.iterator().next();
+        assertEquals(DifferenceType.PROPERTY_CHANGED, diff.getDifferenceType());
     }
 
     private VersionedFlowCoordinates createVersionedFlowCoordinates() {

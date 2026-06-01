@@ -925,7 +925,7 @@ public class RegistryService {
 
         // Compare the two versions of the flow
         final FlowComparator flowComparator = new StandardFlowComparator(comparableFlowA, comparableFlowB,
-                null, new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+                new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
         final FlowComparison flowComparison = flowComparator.compare();
 
         final VersionedFlowDifference result = new VersionedFlowDifference();

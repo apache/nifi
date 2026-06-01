@@ -341,8 +341,6 @@ public class StandardNiFiServiceFacadeTest {
         final String groupId = UUID.randomUUID().toString();
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
-        when(processGroup.getAncestorServiceIds()).thenReturn(Collections.emptySet());
-
         final FlowManager flowManager = mock(FlowManager.class);
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
         when(flowController.getFlowManager()).thenReturn(flowManager);
@@ -376,7 +374,6 @@ public class StandardNiFiServiceFacadeTest {
         final FlowComparator flowComparator = new StandardFlowComparator(
                 localFlow,
                 proposedFlow,
-                Collections.emptySet(),
                 new StaticDifferenceDescriptor(),
                 Function.identity(),
                 VersionedComponent::getIdentifier,
