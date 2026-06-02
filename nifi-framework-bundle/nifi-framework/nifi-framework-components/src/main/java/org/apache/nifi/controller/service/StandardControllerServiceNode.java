@@ -548,7 +548,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
                     final String classLoaderIsolationKey = getClassLoaderIsolationKey(context);
 
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentClass().getName(), getIdentifier(), bundle, classpathUrls, false,
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getCanonicalClassName(), getIdentifier(), bundle, classpathUrls, false,
                                 classLoaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
                         // Create a temp ControllerService for the initial verification.  Use the InstanceClassLoader to instantiate the Temp Controller Service
