@@ -23,18 +23,27 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 
 /**
- * Evaluator for {@code minusDuration('3 months')} — subtracts a calendar-aware amount from a Date.
+ * Evaluator for {@code minusDuration('3 months')} or {@code minusDuration('1 day', 'America/Chicago')}
+ * — subtracts a calendar-aware amount from a Date, optionally in a specified timezone.
+ *
+ * <p>Providing a timezone is important for DST-sensitive units (days, weeks, months, years):
+ * subtracting "1 day" across a DST boundary should preserve wall-clock time, not subtract exactly 24 hours.</p>
  *
  * <p>Examples:</p>
  * <pre>
  *   ${date:toDate('dd-MM-yyyy'):minusDuration('1 month'):format('dd-MM-yyyy')}
- *   ${date:toDate('dd-MM-yyyy'):minusDuration('2 weeks')}
+ *   ${date:toDate('dd-MM-yyyy', 'America/Chicago'):minusDuration('1 day', 'America/Chicago'):format('dd-MM-yyyy', 'America/Chicago')}
  * </pre>
  */
 public class MinusDurationEvaluator extends AbstractDateArithmeticEvaluator {
 
     public MinusDurationEvaluator(final Evaluator<Date> subject, final Evaluator<String> amountEvaluator) {
-        super(subject, amountEvaluator);
+        super(subject, amountEvaluator, null);
+    }
+
+    public MinusDurationEvaluator(final Evaluator<Date> subject, final Evaluator<String> amountEvaluator,
+                                  final Evaluator<String> timeZoneEvaluator) {
+        super(subject, amountEvaluator, timeZoneEvaluator);
     }
 
     @Override
