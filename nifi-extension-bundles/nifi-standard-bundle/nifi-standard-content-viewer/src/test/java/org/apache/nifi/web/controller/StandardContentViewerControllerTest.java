@@ -21,10 +21,13 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.DownloadableContent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,8 +39,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +56,8 @@ class StandardContentViewerControllerTest {
     private static final String MIME_TYPE_DISPLAY_NAME = "mimeTypeDisplayName";
     private static final String XML_DISPLAY_NAME = "xml";
 
+    private static final int MOCK_CONTENT_LENGTH_LIMIT = 10;
+    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
     private static final String FILENAME = "FlowFile";
     private static final String TEXT_XML = "text/xml";
     private static final String XML_DOCUMENT = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><document><element/></document>";
@@ -67,7 +75,38 @@ class StandardContentViewerControllerTest {
     @Mock
     private ContentAccess contentAccess;
 
+    @Captor
+    private ArgumentCaptor<String> errorMessageCaptor;
+
     private final StandardContentViewerController controller = new StandardContentViewerController();
+
+    @Test
+    void testDoGetFormattedContentTypeNotSupported() throws IOException {
+        final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream);
+        setDownloadableContent(downloadableContent);
+        when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());
+        when(request.getParameter(eq(CLIENT_ID_PARAMETER))).thenReturn(UUID.randomUUID().toString());
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_NOT_ACCEPTABLE), anyString());
+    }
+
+    @Test
+    void testDoGetNotFormattedPartialContent() throws IOException {
+        final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream);
+        setDownloadableContent(downloadableContent);
+
+        final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
+        when(response.getOutputStream()).thenReturn(mockServletOutputStream);
+
+        final LimitedStandardContentViewerController limitedController = new LimitedStandardContentViewerController();
+        limitedController.doGet(request, response);
+
+        verify(response).setStatus(eq(HttpServletResponse.SC_PARTIAL_CONTENT));
+    }
 
     @Test
     void testDoGetNotFormatted() throws IOException {
@@ -110,6 +149,35 @@ class StandardContentViewerControllerTest {
         assertEquals(XML_DOCUMENT_FORMATTED, outputString);
     }
 
+    @Test
+    void testDoGetFormattedXmlMalformed() throws IOException {
+        setDownloadableContentXml(FILENAME);
+
+        final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
+        when(response.getOutputStream()).thenReturn(mockServletOutputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), errorMessageCaptor.capture());
+        final String errorMessage = errorMessageCaptor.getValue();
+        assertTrue(errorMessage.contains("formatting"));
+    }
+
+    @Test
+    void testDoGetFormattedXmlLimited() throws IOException {
+        setDownloadableContentXml(XML_DOCUMENT);
+
+        final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
+        when(response.getOutputStream()).thenReturn(mockServletOutputStream);
+
+        final LimitedStandardContentViewerController limitedController = new LimitedStandardContentViewerController();
+        limitedController.doGet(request, response);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), errorMessageCaptor.capture());
+        final String errorMessage = errorMessageCaptor.getValue();
+        assertTrue(errorMessage.contains("Content-Length"));
+    }
+
     private void setDownloadableContentXml(final String contentXml) {
         final InputStream contentStream = new ByteArrayInputStream(contentXml.getBytes(StandardCharsets.UTF_8));
         final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream);
@@ -125,6 +193,14 @@ class StandardContentViewerControllerTest {
         when(servletContext.getAttribute(eq(StandardContentViewerController.CONTENT_ACCESS_ATTRIBUTE))).thenReturn(contentAccess);
         when(request.getParameter(eq(REF_PARAMETER))).thenReturn(REF_URL);
         when(contentAccess.getContent(any())).thenReturn(downloadableContent);
+    }
+
+    private static class LimitedStandardContentViewerController extends StandardContentViewerController {
+        @Override
+        protected LimitingInputStream getContentStream(final DownloadableContent downloadableContent) {
+            final InputStream inputStream = downloadableContent.getContent();
+            return new LimitingInputStream(inputStream, MOCK_CONTENT_LENGTH_LIMIT);
+        }
     }
 
     private static class MockServletOutputStream extends ServletOutputStream {
