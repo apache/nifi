@@ -931,7 +931,9 @@ public class StandardConnectorNode implements ConnectorNode {
             final ConfigurationStep configurationStep = optionalStep.get();
             final List<SecretReference> invalidSecretRefs = new ArrayList<>();
             final List<AssetReference> invalidAssetRefs = new ArrayList<>();
-            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides, invalidSecretRefs, invalidAssetRefs);
+            // Bypass the Secret value cache during verification so the user sees results based on the current
+            // Secret values rather than potentially stale cached values awaiting TTL expiration.
+            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides, invalidSecretRefs, invalidAssetRefs, false);
 
             final DescribedValueProvider allowableValueProvider = (step, propertyName) -> fetchAllowableValues(step, propertyName, workingFlowContext);
 
@@ -986,7 +988,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private Map<String, String> resolvePropertyReferences(final ConfigurationStep configurationStep, final StepConfiguration configurationOverrides,
-                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs) {
+                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs, final boolean useCache) {
 
         final Map<String, String> resolvedProperties = new HashMap<>();
         final Map<String, ConnectorPropertyDescriptor> descriptorLookup = buildPropertyDescriptorLookup(configurationStep);
@@ -1008,7 +1010,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
             final Map<SecretReference, Secret> secretsByReference = secretReferences.isEmpty()
                 ? Map.of()
-                : initializationContext.getSecretsManager().getSecrets(secretReferences);
+                : initializationContext.getSecretsManager().getSecrets(secretReferences, useCache);
             secretsByReference.forEach((ref, secret) -> {
                 if (secret == null) {
                     invalidSecretRefs.add(ref);
@@ -1637,7 +1639,9 @@ public class StandardConnectorNode implements ConnectorNode {
             // Check for invalid Secret and Asset references
             final List<SecretReference> invalidSecrets = new ArrayList<>();
             final List<AssetReference> invalidAssets = new ArrayList<>();
-            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets);
+            // Regular validation may run frequently, so cached Secret values are used here to avoid
+            // repeatedly fetching from the underlying Secret Providers on every validation cycle.
+            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets, true);
             addInvalidReferenceResults(allResults, invalidSecrets, invalidAssets);
         }
     }

@@ -161,6 +161,11 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
     @Override
     public Map<SecretReference, Secret> getSecrets(final Set<SecretReference> secretReferences) {
+        return getSecrets(secretReferences, true);
+    }
+
+    @Override
+    public Map<SecretReference, Secret> getSecrets(final Set<SecretReference> secretReferences, final boolean useCache) {
         if (secretReferences.isEmpty()) {
             return Map.of();
         }
@@ -169,7 +174,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             return fetchSecretsWithoutCache(secretReferences);
         }
 
-        return fetchSecretsWithCache(secretReferences);
+        return fetchSecretsWithCache(secretReferences, useCache);
     }
 
     private Map<SecretReference, Secret> fetchSecretsWithoutCache(final Set<SecretReference> secretReferences) {
@@ -215,17 +220,18 @@ public class ParameterProviderSecretsManager implements SecretsManager {
         return secrets;
     }
 
-    private Map<SecretReference, Secret> fetchSecretsWithCache(final Set<SecretReference> secretReferences) {
+    private Map<SecretReference, Secret> fetchSecretsWithCache(final Set<SecretReference> secretReferences, final boolean useCache) {
         final Set<SecretProvider> providers = getSecretProviders();
         final Map<SecretReference, Secret> results = new HashMap<>();
 
-        // Partition references into cache hits vs. misses that need fetching
+        // Partition references into cache hits vs. misses that need fetching. When useCache is false, every
+        // reference is treated as a miss so fresh values are fetched and written back, refreshing the cache.
         final Map<SecretProvider, Set<SecretReference>> uncachedByProvider = new HashMap<>();
 
         for (final SecretReference secretReference : secretReferences) {
             final String fqn = secretReference.getFullyQualifiedName();
 
-            if (fqn != null) {
+            if (useCache && fqn != null) {
                 final CachedSecret cached = secretCache.get(fqn);
                 if (cached != null && !isExpired(cached)) {
                     logger.debug("Cached Secret found [{}]", fqn);
