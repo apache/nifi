@@ -21,7 +21,6 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.DownloadableContent;
 import org.junit.jupiter.api.Test;
@@ -56,7 +55,7 @@ class StandardContentViewerControllerTest {
     private static final String MIME_TYPE_DISPLAY_NAME = "mimeTypeDisplayName";
     private static final String XML_DISPLAY_NAME = "xml";
 
-    private static final int MOCK_CONTENT_LENGTH_LIMIT = 10;
+    private static final int CONTENT_LENGTH_LIMIT_EXCEEDED = 10_485_761;
     private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
     private static final String FILENAME = "FlowFile";
     private static final String TEXT_XML = "text/xml";
@@ -83,7 +82,7 @@ class StandardContentViewerControllerTest {
     @Test
     void testDoGetFormattedContentTypeNotSupported() throws IOException {
         final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
-        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream, XML_DOCUMENT.length());
         setDownloadableContent(downloadableContent);
         when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());
         when(request.getParameter(eq(CLIENT_ID_PARAMETER))).thenReturn(UUID.randomUUID().toString());
@@ -96,14 +95,13 @@ class StandardContentViewerControllerTest {
     @Test
     void testDoGetNotFormattedPartialContent() throws IOException {
         final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
-        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream, CONTENT_LENGTH_LIMIT_EXCEEDED);
         setDownloadableContent(downloadableContent);
 
         final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
         when(response.getOutputStream()).thenReturn(mockServletOutputStream);
 
-        final LimitedStandardContentViewerController limitedController = new LimitedStandardContentViewerController();
-        limitedController.doGet(request, response);
+        controller.doGet(request, response);
 
         verify(response).setStatus(eq(HttpServletResponse.SC_PARTIAL_CONTENT));
     }
@@ -111,7 +109,7 @@ class StandardContentViewerControllerTest {
     @Test
     void testDoGetNotFormatted() throws IOException {
         final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
-        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream, XML_DOCUMENT.length());
         setDownloadableContent(downloadableContent);
 
         final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
@@ -164,14 +162,19 @@ class StandardContentViewerControllerTest {
     }
 
     @Test
-    void testDoGetFormattedXmlLimited() throws IOException {
-        setDownloadableContentXml(XML_DOCUMENT);
+    void testDoGetFormattedLimited() throws IOException {
+        final byte[] contentLimitExceededByteArray = new byte[CONTENT_LENGTH_LIMIT_EXCEEDED];
+        final InputStream contentStream = new ByteArrayInputStream(contentLimitExceededByteArray);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream, CONTENT_LENGTH_LIMIT_EXCEEDED);
+        setDownloadableContent(downloadableContent);
+
+        when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());
+        when(request.getParameter(eq(CLIENT_ID_PARAMETER))).thenReturn(UUID.randomUUID().toString());
 
         final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
         when(response.getOutputStream()).thenReturn(mockServletOutputStream);
 
-        final LimitedStandardContentViewerController limitedController = new LimitedStandardContentViewerController();
-        limitedController.doGet(request, response);
+        controller.doGet(request, response);
 
         verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), errorMessageCaptor.capture());
         final String errorMessage = errorMessageCaptor.getValue();
@@ -180,7 +183,7 @@ class StandardContentViewerControllerTest {
 
     private void setDownloadableContentXml(final String contentXml) {
         final InputStream contentStream = new ByteArrayInputStream(contentXml.getBytes(StandardCharsets.UTF_8));
-        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream, XML_DOCUMENT.length());
         setDownloadableContent(downloadableContent);
 
         when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());
@@ -193,14 +196,6 @@ class StandardContentViewerControllerTest {
         when(servletContext.getAttribute(eq(StandardContentViewerController.CONTENT_ACCESS_ATTRIBUTE))).thenReturn(contentAccess);
         when(request.getParameter(eq(REF_PARAMETER))).thenReturn(REF_URL);
         when(contentAccess.getContent(any())).thenReturn(downloadableContent);
-    }
-
-    private static class LimitedStandardContentViewerController extends StandardContentViewerController {
-        @Override
-        protected LimitingInputStream getContentStream(final DownloadableContent downloadableContent) {
-            final InputStream inputStream = downloadableContent.getContent();
-            return new LimitingInputStream(inputStream, MOCK_CONTENT_LENGTH_LIMIT);
-        }
     }
 
     private static class MockServletOutputStream extends ServletOutputStream {

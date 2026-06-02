@@ -26,11 +26,18 @@ public final class DownloadableContent {
     private final String filename;
     private final String type;
     private final InputStream content;
+    private final long contentLength;
 
-    public DownloadableContent(String filename, String type, InputStream content) {
+    public DownloadableContent(
+            final String filename,
+            final String type,
+            final InputStream content,
+            final long contentLength
+    ) {
         this.filename = filename;
         this.type = type;
         this.content = content;
+        this.contentLength = contentLength;
     }
 
     /**
@@ -58,5 +65,14 @@ public final class DownloadableContent {
      */
     public InputStream getContent() {
         return content;
+    }
+
+    /**
+     * Get length in bytes of the content stream
+     *
+     * @return Length in bytes of the content stream
+     */
+    public long getContentLength() {
+        return contentLength;
     }
 }

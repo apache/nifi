@@ -703,7 +703,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
             // get the content
             final InputStream content = flowController.getContent(flowFile, user.getIdentity(), requestUri);
-            return new DownloadableContent(filename, type, content);
+            final long contentLength = flowFile.getSize();
+
+            return new DownloadableContent(filename, type, content, contentLength);
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
         } catch (final IOException ioe) {

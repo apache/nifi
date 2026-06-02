@@ -92,7 +92,12 @@ public class StandardContentViewerController extends HttpServlet {
             return;
         }
 
+        // Set Response Status before committing based on formatted or unformatted stream handling
+        final int responseStatus = getResponseStatus(downloadableContent);
+        response.setStatus(responseStatus);
+
         final LimitingInputStream contentStream = getContentStream(downloadableContent);
+
         final boolean formatted = Boolean.parseBoolean(request.getParameter("formatted"));
         if (formatted) {
             final ContentType formattedContentType = getFormattedContentType(request, downloadableContent.getType());
@@ -100,28 +105,37 @@ public class StandardContentViewerController extends HttpServlet {
                 response.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Unknown Content Type");
             } else {
                 final String dataUri = requestContext.getDataUri();
-                writeContentFormatted(dataUri, formattedContentType, contentStream, response);
-                response.setStatus(HttpServletResponse.SC_OK);
+                final long contentLength = downloadableContent.getContentLength();
+                writeContentFormatted(dataUri, formattedContentType, contentStream, contentLength, response);
             }
         } else {
             contentStream.transferTo(response.getOutputStream());
-            if (contentStream.hasReachedLimit()) {
-                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-            } else {
-                response.setStatus(HttpServletResponse.SC_OK);
-            }
         }
     }
 
-    protected LimitingInputStream getContentStream(final DownloadableContent downloadableContent) {
+    private LimitingInputStream getContentStream(final DownloadableContent downloadableContent) {
         final InputStream contentStream = downloadableContent.getContent();
         return new LimitingInputStream(contentStream, CONTENT_LENGTH_LIMIT);
+    }
+
+    private int getResponseStatus(final DownloadableContent downloadableContent) {
+        final int responseStatus;
+
+        final long contentLength = downloadableContent.getContentLength();
+        if (contentLength > CONTENT_LENGTH_LIMIT) {
+            responseStatus = HttpURLConnection.HTTP_PARTIAL;
+        } else {
+            responseStatus = HttpURLConnection.HTTP_OK;
+        }
+
+        return responseStatus;
     }
 
     private void writeContentFormatted(
             final String dataUri,
             final ContentType contentType,
             final LimitingInputStream contentStream,
+            final long contentLength,
             final HttpServletResponse response
     ) throws IOException {
         try {
@@ -201,7 +215,7 @@ public class StandardContentViewerController extends HttpServlet {
         } catch (final Throwable t) {
             final String message;
 
-            if (contentStream.hasReachedLimit()) {
+            if (contentLength > CONTENT_LENGTH_LIMIT) {
                 message = "FlowFile Content-Length exceeds maximum allowed";
                 logger.warn("Requested FlowFile [{}] Content-Length exceeds maximum allowed [{} bytes]", dataUri, CONTENT_LENGTH_LIMIT, t);
             } else {
