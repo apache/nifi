@@ -89,10 +89,7 @@ export class AccessPolicyEffects {
                     map((response) => {
                         const accessPolicy: AccessPolicyEntity = response;
 
-                        let requestedResource = `/${request.resourceAction.resource}`;
-                        if (request.resourceAction.resourceIdentifier) {
-                            requestedResource += `/${request.resourceAction.resourceIdentifier}`;
-                        }
+                        const requestedResource = this.accessPoliciesService.buildResourcePath(request.resourceAction);
 
                         let policyStatus: PolicyStatus | undefined;
                         if (accessPolicy.component.resource === requestedResource) {

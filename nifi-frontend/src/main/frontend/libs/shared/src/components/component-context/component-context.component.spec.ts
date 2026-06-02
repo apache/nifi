@@ -16,7 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { ComponentType } from '../../types';
 import { ComponentContext } from './component-context.component';
 
 describe('ComponentContext', () => {
@@ -35,5 +35,11 @@ describe('ComponentContext', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should use font awesome plug icon for connectors', () => {
+        component.type = ComponentType.Connector;
+        expect(component.componentIconClass).toBe('fa fa-plug primary-color');
+        expect(component.usesFontAwesomeIcon()).toBe(true);
     });
 });

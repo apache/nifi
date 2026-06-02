@@ -155,6 +155,27 @@
         <a (click)="overridePolicy()">Override</a> this policy.
     }
 </ng-template>
+<ng-template #inheritedFromConnectors let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global connectors policy.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template #inheritedFromConnectorData let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global connector data policy.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template
+    #inheritedFromConnectorProvenance
+    let-policy
+    let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global connector provenance policy.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
 <ng-template #inheritedFromProcessGroup let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from <a [routerLink]="getInheritedProcessGroupRoute(policy)">Process Group</a>.
     @if (supportsConfigurableAuthorizer) {

@@ -63,8 +63,14 @@ export class ComponentContext {
                 return 'icon-label';
             case ComponentType.RemoteProcessGroup:
                 return 'icon-group-remote';
+            case ComponentType.Connector:
+                return 'fa fa-plug primary-color';
             default:
                 return 'icon-drop';
         }
+    }
+
+    usesFontAwesomeIcon(): boolean {
+        return this.componentIconClass.startsWith('fa');
     }
 }
