@@ -56,8 +56,14 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
                 if (pattern.isEmpty()) {
                     return Long.toString(timestamp.getTime());
                 }
+
+                // Convert via Instant to ZonedDateTime to preserve proleptic Gregorian calendar for pre-1582 dates
+                final Instant instant = timestamp.toInstant();
+
+                // Convert to ZonedDateTime using system default zone to support offsets in Date Time Formatter
+                final ZonedDateTime dateTime = instant.atZone(ZoneId.systemDefault());
+
                 final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                final ZonedDateTime dateTime = timestamp.toInstant().atZone(ZoneId.systemDefault());
                 return formatter.format(dateTime);
             }
             case Date date -> {

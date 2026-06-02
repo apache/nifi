@@ -1162,8 +1162,12 @@ public class AvroTypeUtil {
                         localDate = LocalDate.ofEpochDay((int) value);
                     }
 
+                    // Convert to ZonedDateTime using system default zone to allow for later conversion to Instant
                     final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
-                    return new Date(zonedDate.toInstant().toEpochMilli());
+
+                    // Create Date from Instant epoch millis to preserve proleptic Gregorian calendar for pre-1582 dates
+                    final long epochMillis = zonedDate.toInstant().toEpochMilli();
+                    return new Date(epochMillis);
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)

@@ -49,7 +49,11 @@ class ObjectLocalDateFieldConverter implements FieldConverter<Object, LocalDate>
                 return localDate;
             }
             case Date date -> {
-                return ofInstant(Instant.ofEpochMilli(date.getTime()));
+                // java.sql.Date#toInstant throws UnsupportedOperationException
+                final Instant instant = Instant.ofEpochMilli(date.getTime());
+
+                // Create LocalDate from Instant to preserve proleptic Gregorian calendar for pre-1582 dates
+                return ofInstant(instant);
             }
             case java.util.Date date -> {
                 final Instant instant = date.toInstant();

@@ -46,7 +46,10 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
             return null;
         }
 
+        // Convert to ZonedDateTime using system default zone to allow for later conversion to Instant
         final ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+
+        // Create Timestamp from Instant to preserve proleptic Gregorian calendar for pre-1582 dates
         return Timestamp.from(zonedDateTime.toInstant());
     }
 }

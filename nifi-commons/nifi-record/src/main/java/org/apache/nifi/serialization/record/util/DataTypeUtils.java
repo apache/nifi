@@ -204,8 +204,12 @@ public class DataTypeUtils {
                     return null;
                 }
 
+                // Convert to ZonedDateTime using system default zone to allow for later conversion to Instant
                 final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
-                return new Date(zonedDate.toInstant().toEpochMilli());
+
+                // Create Date from Instant epoch millis to preserve proleptic Gregorian calendar for pre-1582 dates
+                final long epochMillis = zonedDate.toInstant().toEpochMilli();
+                return new Date(epochMillis);
             case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:
