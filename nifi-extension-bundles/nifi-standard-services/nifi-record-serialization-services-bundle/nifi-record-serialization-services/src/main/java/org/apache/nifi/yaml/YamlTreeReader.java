@@ -21,10 +21,12 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.json.AbstractJsonRowRecordReader;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
 import org.apache.nifi.json.TokenParserFactory;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -44,26 +46,29 @@ import java.util.List;
         + "See the Usage of the Controller Service for more information and examples.")
 public class YamlTreeReader extends JsonTreeReader {
 
-    private static final boolean ALLOW_COMMENTS_DISABLED = false;
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        // Remove Parsing Strategy from potential addition through the parent JsonTreeReader property migration
+        config.removeProperty(AbstractJsonRowRecordReader.PARSING_STRATEGY.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return new ArrayList<>(super.getSupportedPropertyDescriptors());
+        final List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        supportedPropertyDescriptors.remove(AbstractJsonRowRecordReader.PARSING_STRATEGY);
+
+        return  supportedPropertyDescriptors;
     }
 
     @Override
     protected TokenParserFactory createTokenParserFactory(final ConfigurationContext context) {
-        return new YamlParserFactory(buildStreamReadConstraints(context), isAllowCommentsEnabled(context));
+        return new YamlParserFactory(buildStreamReadConstraints(context));
     }
 
     @Override
     protected JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream in, ComponentLog logger, RecordSchema schema) throws IOException, MalformedRecordException {
         return new YamlTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
                 schemaApplicationStrategy, null);
-    }
-
-    @Override
-    protected boolean isAllowCommentsEnabled(final ConfigurationContext context) {
-        return ALLOW_COMMENTS_DISABLED;
     }
 }

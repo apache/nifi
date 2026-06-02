@@ -14,11 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.json;
 
+package org.apache.nifi.yaml;
+
+import org.apache.nifi.json.AbstractJsonRowRecordReader;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -37,8 +41,14 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class TestJsonTreeReader {
+public class TestYamlTreeReader {
+    @Test
+    void testGetSupportedPropertyDescriptors() {
+        final YamlTreeReader service = new YamlTreeReader();
+        assertFalse(service.getSupportedPropertyDescriptors().contains(AbstractJsonRowRecordReader.PARSING_STRATEGY));
+    }
 
     @ParameterizedTest
     @MethodSource("migrationConfigurations")
@@ -57,7 +67,7 @@ public class TestJsonTreeReader {
                 Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SCHEMA_REFERENCE_READER.getName())
         );
 
-        final JsonTreeReader service = new JsonTreeReader();
+        final YamlTreeReader service = new YamlTreeReader();
         service.migrateProperties(configuration);
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
 
@@ -70,10 +80,11 @@ public class TestJsonTreeReader {
 
     private static Stream<Arguments> migrationConfigurations() {
         return Stream.of(
-                Arguments.argumentSet("Configuration without allow comments", new MockPropertyConfiguration(Map.of()), Set.of()),
+                Arguments.argumentSet("Configuration without allow comments",
+                        new MockPropertyConfiguration(Map.of()), Set.of(AbstractJsonRowRecordReader.PARSING_STRATEGY.getName())),
                 Arguments.argumentSet("Configuration with allow comments",
-                        new MockPropertyConfiguration(Map.of(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS, "true")), Set.of(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS))
+                        new MockPropertyConfiguration(Map.of(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS, "true")),
+                        Set.of(AbstractJsonRowRecordReader.OBSOLETE_ALLOW_COMMENTS, AbstractJsonRowRecordReader.PARSING_STRATEGY.getName()))
         );
     }
-
 }

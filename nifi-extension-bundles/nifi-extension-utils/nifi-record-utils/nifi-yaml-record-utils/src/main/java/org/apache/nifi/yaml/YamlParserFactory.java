@@ -45,14 +45,12 @@ public class YamlParserFactory implements TokenParserFactory {
      * YAML Parser Factory constructor with configurable parsing constraints
      *
      * @param streamReadConstraints Stream Read Constraints required
-     * @param allowComments Allow Comments during parsing
      */
-    public YamlParserFactory(final StreamReadConstraints streamReadConstraints, final boolean allowComments) {
+    public YamlParserFactory(final StreamReadConstraints streamReadConstraints) {
         Objects.requireNonNull(streamReadConstraints, "Stream Read Constraints required");
 
         final LoaderOptions loaderOptions = new LoaderOptions();
         loaderOptions.setCodePointLimit(streamReadConstraints.getMaxStringLength());
-        loaderOptions.setProcessComments(allowComments);
 
         yamlFactory = YAMLFactory.builder().loaderOptions(loaderOptions).build();
         yamlFactory.setCodec(yamlMapper);

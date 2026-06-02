@@ -52,6 +52,8 @@ import java.util.Optional;
 import java.util.function.BiPredicate;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
+    public static final String OBSOLETE_ALLOW_COMMENTS = "Allow Comments";
+
     public static final String DEFAULT_MAX_STRING_LENGTH = "20 MB";
 
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
@@ -62,13 +64,12 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor ALLOW_COMMENTS = new PropertyDescriptor.Builder()
-            .name("Allow Comments")
-            .description("Whether to allow comments when parsing the JSON document")
+    public static final PropertyDescriptor PARSING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Parsing Strategy")
+            .description("Set the strategy for the level of JSON specification conformity required")
             .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues(ParsingStrategy.class)
+            .defaultValue(ParsingStrategy.STANDARD)
             .build();
 
     private final ComponentLog logger;
