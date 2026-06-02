@@ -123,8 +123,10 @@ public class StandardNiFiContentAccess implements ContentAccess {
             // get the content type
             final String contentType = getHeader(responseHeaders, "content-type");
 
+            final int contentLength = clientResponse.getLength();
+
             // create the downloadable content
-            return new DownloadableContent(filename, contentType, nodeResponse.getInputStream());
+            return new DownloadableContent(filename, contentType, nodeResponse.getInputStream(), contentLength);
         } else {
             // example URIs:
             // http://localhost:8080/nifi-api/provenance/events/{id}/content/{input|output}

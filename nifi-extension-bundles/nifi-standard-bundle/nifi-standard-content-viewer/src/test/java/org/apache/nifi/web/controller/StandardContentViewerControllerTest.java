@@ -25,6 +25,8 @@ import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.DownloadableContent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,8 +38,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +55,8 @@ class StandardContentViewerControllerTest {
     private static final String MIME_TYPE_DISPLAY_NAME = "mimeTypeDisplayName";
     private static final String XML_DISPLAY_NAME = "xml";
 
+    private static final int CONTENT_LENGTH_LIMIT_EXCEEDED = 10_485_761;
+    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
     private static final String FILENAME = "FlowFile";
     private static final String TEXT_XML = "text/xml";
     private static final String XML_DOCUMENT = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><document><element/></document>";
@@ -67,12 +74,42 @@ class StandardContentViewerControllerTest {
     @Mock
     private ContentAccess contentAccess;
 
+    @Captor
+    private ArgumentCaptor<String> errorMessageCaptor;
+
     private final StandardContentViewerController controller = new StandardContentViewerController();
+
+    @Test
+    void testDoGetFormattedContentTypeNotSupported() throws IOException {
+        final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream, XML_DOCUMENT.length());
+        setDownloadableContent(downloadableContent);
+        when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());
+        when(request.getParameter(eq(CLIENT_ID_PARAMETER))).thenReturn(UUID.randomUUID().toString());
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_NOT_ACCEPTABLE), anyString());
+    }
+
+    @Test
+    void testDoGetNotFormattedPartialContent() throws IOException {
+        final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, APPLICATION_OCTET_STREAM, contentStream, CONTENT_LENGTH_LIMIT_EXCEEDED);
+        setDownloadableContent(downloadableContent);
+
+        final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
+        when(response.getOutputStream()).thenReturn(mockServletOutputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).setStatus(eq(HttpServletResponse.SC_PARTIAL_CONTENT));
+    }
 
     @Test
     void testDoGetNotFormatted() throws IOException {
         final InputStream contentStream = new ByteArrayInputStream(XML_DOCUMENT.getBytes(StandardCharsets.UTF_8));
-        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream, XML_DOCUMENT.length());
         setDownloadableContent(downloadableContent);
 
         final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
@@ -110,9 +147,43 @@ class StandardContentViewerControllerTest {
         assertEquals(XML_DOCUMENT_FORMATTED, outputString);
     }
 
+    @Test
+    void testDoGetFormattedXmlMalformed() throws IOException {
+        setDownloadableContentXml(FILENAME);
+
+        final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
+        when(response.getOutputStream()).thenReturn(mockServletOutputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), errorMessageCaptor.capture());
+        final String errorMessage = errorMessageCaptor.getValue();
+        assertTrue(errorMessage.contains("formatting"));
+    }
+
+    @Test
+    void testDoGetFormattedLimited() throws IOException {
+        final byte[] contentLimitExceededByteArray = new byte[CONTENT_LENGTH_LIMIT_EXCEEDED];
+        final InputStream contentStream = new ByteArrayInputStream(contentLimitExceededByteArray);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream, CONTENT_LENGTH_LIMIT_EXCEEDED);
+        setDownloadableContent(downloadableContent);
+
+        when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());
+        when(request.getParameter(eq(CLIENT_ID_PARAMETER))).thenReturn(UUID.randomUUID().toString());
+
+        final MockServletOutputStream mockServletOutputStream = new MockServletOutputStream();
+        when(response.getOutputStream()).thenReturn(mockServletOutputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), errorMessageCaptor.capture());
+        final String errorMessage = errorMessageCaptor.getValue();
+        assertTrue(errorMessage.contains("Content-Length"));
+    }
+
     private void setDownloadableContentXml(final String contentXml) {
         final InputStream contentStream = new ByteArrayInputStream(contentXml.getBytes(StandardCharsets.UTF_8));
-        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream);
+        final DownloadableContent downloadableContent = new DownloadableContent(FILENAME, TEXT_XML, contentStream, XML_DOCUMENT.length());
         setDownloadableContent(downloadableContent);
 
         when(request.getParameter(eq(FORMATTED_PARAMETER))).thenReturn(Boolean.TRUE.toString());

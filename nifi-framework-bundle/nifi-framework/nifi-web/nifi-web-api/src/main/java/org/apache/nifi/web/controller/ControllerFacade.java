@@ -1508,7 +1508,8 @@ public class ControllerFacade implements Authorizable {
 
             // get the content
             final InputStream content = flowController.getContent(event, contentDirection, user.getIdentity(), uri);
-            return new DownloadableContent(filename, type, content);
+            final long contentLength = event.getFileSize();
+            return new DownloadableContent(filename, type, content, contentLength);
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
         } catch (final IOException ioe) {

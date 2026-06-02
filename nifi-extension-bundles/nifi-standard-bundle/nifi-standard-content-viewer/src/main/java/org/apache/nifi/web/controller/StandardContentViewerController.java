@@ -28,6 +28,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.ContentRequestContext;
 import org.apache.nifi.web.DownloadableContent;
@@ -45,6 +46,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
@@ -52,17 +57,24 @@ public class StandardContentViewerController extends HttpServlet {
 
     static final String CONTENT_ACCESS_ATTRIBUTE = "nifi-content-access";
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final int CONTENT_LENGTH_LIMIT = 10_485_760;
+
+    private static final Map<String, ContentType> CONTENT_TYPES = Arrays.stream(ContentType.values())
+            .collect(
+                    Collectors.toMap(ContentType::name, Function.identity())
+            );
+
     private static final Logger logger = LoggerFactory.getLogger(StandardContentViewerController.class);
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         final ContentRequestContext requestContext = new HttpServletContentRequestContext(request);
 
-        // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute(CONTENT_ACCESS_ATTRIBUTE);
 
-        // get the content
         final DownloadableContent downloadableContent;
         try {
             downloadableContent = contentAccess.getContent(requestContext);
@@ -80,38 +92,61 @@ public class StandardContentViewerController extends HttpServlet {
             return;
         }
 
-        response.setStatus(HttpServletResponse.SC_OK);
+        // Set Response Status before committing based on formatted or unformatted stream handling
+        final int responseStatus = getResponseStatus(downloadableContent);
+        response.setStatus(responseStatus);
+
+        final LimitingInputStream contentStream = getContentStream(downloadableContent);
 
         final boolean formatted = Boolean.parseBoolean(request.getParameter("formatted"));
-        if (!formatted) {
-            final InputStream contentStream = downloadableContent.getContent();
+        if (formatted) {
+            final ContentType formattedContentType = getFormattedContentType(request, downloadableContent.getType());
+            if (formattedContentType == null) {
+                response.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Unknown Content Type");
+            } else {
+                final String dataUri = requestContext.getDataUri();
+                final long contentLength = downloadableContent.getContentLength();
+                writeContentFormatted(dataUri, formattedContentType, contentStream, contentLength, response);
+            }
+        } else {
             contentStream.transferTo(response.getOutputStream());
-            return;
+        }
+    }
+
+    private LimitingInputStream getContentStream(final DownloadableContent downloadableContent) {
+        final InputStream contentStream = downloadableContent.getContent();
+        return new LimitingInputStream(contentStream, CONTENT_LENGTH_LIMIT);
+    }
+
+    private int getResponseStatus(final DownloadableContent downloadableContent) {
+        final int responseStatus;
+
+        final long contentLength = downloadableContent.getContentLength();
+        if (contentLength > CONTENT_LENGTH_LIMIT) {
+            responseStatus = HttpURLConnection.HTTP_PARTIAL;
+        } else {
+            responseStatus = HttpURLConnection.HTTP_OK;
         }
 
-        // allow the user to drive the data type but fall back to the content type if necessary
-        String displayName = request.getParameter("mimeTypeDisplayName");
-        if (displayName == null) {
-            final String contentType = downloadableContent.getType();
-            displayName = getDisplayName(contentType);
-        }
+        return responseStatus;
+    }
 
-        if (displayName == null) {
-            response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Unknown content type");
-            return;
-        }
-
+    private void writeContentFormatted(
+            final String dataUri,
+            final ContentType contentType,
+            final LimitingInputStream contentStream,
+            final long contentLength,
+            final HttpServletResponse response
+    ) throws IOException {
         try {
-            switch (displayName) {
-                case "json": {
-                    // format json
-                    final ObjectMapper mapper = new ObjectMapper();
-                    final Object objectJson = mapper.readValue(downloadableContent.getContent(), Object.class);
-                    mapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectJson);
+            switch (contentType) {
+                case JSON: {
+                    final Object objectJson = OBJECT_MAPPER.readValue(contentStream, Object.class);
+                    OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectJson);
                     break;
                 }
-                case "xml": {
-                    final StreamSource source = new StreamSource(downloadableContent.getContent());
+                case XML: {
+                    final StreamSource source = new StreamSource(contentStream);
                     try (OutputStream outputStream = new FormattingOutputStream(response.getOutputStream())) {
                         final StreamResult result = new StreamResult(outputStream);
                         final StandardTransformProvider transformProvider = new StandardTransformProvider();
@@ -121,7 +156,7 @@ public class StandardContentViewerController extends HttpServlet {
                     }
                     break;
                 }
-                case "avro": {
+                case AVRO: {
                     final StringBuilder sb = new StringBuilder();
                     sb.append("[");
                     // Use Avro conversions to display logical type values in human readable way.
@@ -135,16 +170,12 @@ public class StandardContentViewerController extends HttpServlet {
                     genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMicrosConversion());
                     genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMillisConversion());
                     final DatumReader<GenericData.Record> datumReader = new GenericDatumReader<>(null, null, genericData);
-                    try (final DataFileStream<GenericData.Record> dataFileReader = new DataFileStream<>(downloadableContent.getContent(), datumReader)) {
+                    try (final DataFileStream<GenericData.Record> dataFileReader = new DataFileStream<>(contentStream, datumReader)) {
                         while (dataFileReader.hasNext()) {
                             final GenericData.Record record = dataFileReader.next();
                             final String formattedRecord = genericData.toString(record);
                             sb.append(formattedRecord);
                             sb.append(",");
-                            // Do not format more than 10 MB of content.
-                            if (sb.length() > 1024 * 1024 * 2) {
-                                break;
-                            }
                         }
                     }
 
@@ -154,16 +185,14 @@ public class StandardContentViewerController extends HttpServlet {
                     sb.append("]");
                     final String json = sb.toString();
 
-                    final ObjectMapper mapper = new ObjectMapper();
-                    final Object objectJson = mapper.readValue(json, Object.class);
-
-                    mapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectJson);
+                    final Object objectJson = OBJECT_MAPPER.readValue(json, Object.class);
+                    OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), objectJson);
                     break;
                 }
-                case "yaml": {
+                case YAML: {
                     Yaml yaml = new Yaml();
                     // Parse the YAML file
-                    final Object yamlObject = yaml.load(downloadableContent.getContent());
+                    final Object yamlObject = yaml.load(contentStream);
                     DumperOptions options = new DumperOptions();
                     options.setIndent(2);
                     options.setPrettyFlow(true);
@@ -174,33 +203,64 @@ public class StandardContentViewerController extends HttpServlet {
                     output.dump(yamlObject, response.getWriter());
                     break;
                 }
-                case "csv":
-                case "text": {
-                    final InputStream contentStream = downloadableContent.getContent();
+                case CSV:
+                case TEXT: {
                     contentStream.transferTo(response.getOutputStream());
                     break;
                 }
                 default: {
-                    response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Unsupported content type: " + displayName);
+                    response.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Unsupported Content Type: %s".formatted(contentType));
                 }
             }
         } catch (final Throwable t) {
-            logger.warn("Unable to format FlowFile content", t);
-            response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Unable to format FlowFile content");
+            final String message;
+
+            if (contentLength > CONTENT_LENGTH_LIMIT) {
+                message = "FlowFile Content-Length exceeds maximum allowed";
+                logger.warn("Requested FlowFile [{}] Content-Length exceeds maximum allowed [{} bytes]", dataUri, CONTENT_LENGTH_LIMIT, t);
+            } else {
+                message = "FlowFile formatting failed";
+                logger.warn("Requested FlowFile [{}] formatting failed for Content Type [{}]", dataUri, contentType, t);
+            }
+
+            response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, message);
         }
     }
 
-    private String getDisplayName(final String contentType) {
+    private ContentType getFormattedContentType(final HttpServletRequest request, final String downloadableContentType) {
+        final ContentType formattedContentType;
+
+        final String mimeTypeDisplayName = request.getParameter("mimeTypeDisplayName");
+        if (mimeTypeDisplayName == null) {
+            formattedContentType = getFormattedContentType(downloadableContentType);
+        } else {
+            final String upperCasedContentType = mimeTypeDisplayName.toUpperCase();
+            formattedContentType = CONTENT_TYPES.get(upperCasedContentType);
+        }
+
+        return formattedContentType;
+    }
+
+    private ContentType getFormattedContentType(final String contentType) {
         return switch (contentType) {
-            case "application/json" -> "json";
-            case "application/xml", "text/xml" -> "xml";
-            case "application/avro-binary", "avro/binary", "application/avro+binary" -> "avro";
+            case "application/json" -> ContentType.JSON;
+            case "application/xml", "text/xml" -> ContentType.XML;
+            case "application/avro-binary", "avro/binary", "application/avro+binary" -> ContentType.AVRO;
             case "text/x-yaml", "text/yaml", "text/yml", "application/x-yaml", "application/x-yml", "application/yaml",
-                 "application/yml" -> "yaml";
-            case "text/plain" -> "text";
-            case "text/csv" -> "csv";
+                 "application/yml" -> ContentType.YAML;
+            case "text/plain" -> ContentType.TEXT;
+            case "text/csv" -> ContentType.CSV;
             case null, default -> null;
         };
+    }
+
+    private enum ContentType {
+        AVRO,
+        CSV,
+        JSON,
+        TEXT,
+        XML,
+        YAML
     }
 
     private static class FormattingOutputStream extends FilterOutputStream {
