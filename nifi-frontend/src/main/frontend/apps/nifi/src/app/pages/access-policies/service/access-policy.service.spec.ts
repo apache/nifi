@@ -17,7 +17,7 @@
 
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AccessPolicyService } from './access-policy.service';
 import { Action, ResourceAction } from '../state/shared';
 import { Client } from '../../../service/client.service';
@@ -101,6 +101,78 @@ describe('AccessPolicyService', () => {
                     action: Action.Read
                 })
             ).toBe('/processors/processor-1');
+        });
+    });
+
+    describe('createAccessPolicy', () => {
+        it('should POST with canonical /data/connectors resource', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            service
+                .createAccessPolicy({
+                    resource: 'connectors',
+                    resourceIdentifier: 'data',
+                    action: Action.Read
+                })
+                .subscribe();
+
+            const req = httpMock.expectOne('../nifi-api/policies');
+            expect(req.request.method).toBe('POST');
+            expect(req.request.body.component.resource).toBe('/data/connectors');
+            expect(req.request.body.component.resourceIdentifier).toBeUndefined();
+            req.flush({});
+            httpMock.verify();
+        });
+
+        it('should POST with canonical /provenance-data/connectors resource', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            service
+                .createAccessPolicy({
+                    resource: 'connectors',
+                    resourceIdentifier: 'provenance-data',
+                    action: Action.Read
+                })
+                .subscribe();
+
+            const req = httpMock.expectOne('../nifi-api/policies');
+            expect(req.request.method).toBe('POST');
+            expect(req.request.body.component.resource).toBe('/provenance-data/connectors');
+            expect(req.request.body.component.resourceIdentifier).toBeUndefined();
+            req.flush({});
+            httpMock.verify();
+        });
+    });
+
+    describe('getAccessPolicy', () => {
+        it('should GET the canonical /data/connectors URL', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            service
+                .getAccessPolicy({
+                    resource: 'connectors',
+                    resourceIdentifier: 'data',
+                    action: Action.Read
+                })
+                .subscribe();
+
+            httpMock.expectOne('../nifi-api/policies/read/data/connectors').flush({});
+            httpMock.verify();
+        });
+
+        it('should GET the canonical /provenance-data/connectors URL', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            service
+                .getAccessPolicy({
+                    resource: 'connectors',
+                    resourceIdentifier: 'provenance-data',
+                    action: Action.Read
+                })
+                .subscribe();
+
+            httpMock.expectOne('../nifi-api/policies/read/provenance-data/connectors').flush({});
+            httpMock.verify();
         });
     });
 });

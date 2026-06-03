@@ -18,10 +18,10 @@
 <div class="component-context flex flex-col">
     <div class="flex gap-x-1 items-center">
         <div class="context-logo text-3xl flex flex-col">
-            @if (usesFontAwesomeIcon()) {
-                <i [class]="componentIconClass"></i>
+            @if (componentIcon.iconType === 'font-awesome') {
+                <i [class]="componentIcon.className"></i>
             } @else {
-                <i class="icon tertiary-color" [class]="componentIconClass"></i>
+                <i class="icon tertiary-color" [class]="componentIcon.className"></i>
             }
         </div>
         <div class="flex flex-col flex-1">

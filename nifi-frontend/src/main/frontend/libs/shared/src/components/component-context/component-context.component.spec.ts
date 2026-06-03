@@ -39,7 +39,17 @@ describe('ComponentContext', () => {
 
     it('should use font awesome plug icon for connectors', () => {
         component.type = ComponentType.Connector;
-        expect(component.componentIconClass).toBe('fa fa-plug primary-color');
-        expect(component.usesFontAwesomeIcon()).toBe(true);
+        expect(component.componentIcon).toEqual({
+            className: 'fa fa-plug primary-color',
+            iconType: 'font-awesome'
+        });
+    });
+
+    it('should use flowfont for processors', () => {
+        component.type = ComponentType.Processor;
+        expect(component.componentIcon).toEqual({
+            className: 'icon-processor',
+            iconType: 'flowfont'
+        });
     });
 });

@@ -20,6 +20,11 @@ import { ComponentTypeNamePipe } from '../../pipes/component-type-name.pipe';
 import { ComponentType } from '../../types';
 import { CopyDirective } from '../../directives/copy/copy.directive';
 
+interface IconMeta {
+    className: string;
+    iconType: 'font-awesome' | 'flowfont';
+}
+
 @Component({
     selector: 'component-context',
     imports: [ComponentTypeNamePipe, CopyDirective],
@@ -27,12 +32,14 @@ import { CopyDirective } from '../../directives/copy/copy.directive';
     styleUrl: './component-context.component.scss'
 })
 export class ComponentContext {
+    private static readonly DEFAULT_ICON: IconMeta = { className: 'icon-drop', iconType: 'flowfont' };
+
     private _componentType: ComponentType | string | null = ComponentType.Processor;
-    componentIconClass = '';
+    componentIcon: IconMeta = ComponentContext.DEFAULT_ICON;
 
     @Input() set type(type: ComponentType | string | null) {
         this._componentType = type;
-        this.componentIconClass = this.getIconClassName(type);
+        this.componentIcon = this.getIconMeta(type);
     }
 
     get type(): ComponentType | string | null {
@@ -42,35 +49,31 @@ export class ComponentContext {
     @Input() id: string | null = null;
     @Input() name: string | undefined = '';
 
-    private getIconClassName(type: ComponentType | string | null) {
+    private getIconMeta(type: ComponentType | string | null): IconMeta {
         if (type === null) {
-            return 'icon-drop';
+            return ComponentContext.DEFAULT_ICON;
         }
         switch (type) {
             case ComponentType.Connection:
-                return 'icon-connect';
+                return { className: 'icon-connect', iconType: 'flowfont' };
             case ComponentType.Processor:
-                return 'icon-processor';
+                return { className: 'icon-processor', iconType: 'flowfont' };
             case ComponentType.OutputPort:
-                return 'icon-port-out';
+                return { className: 'icon-port-out', iconType: 'flowfont' };
             case ComponentType.InputPort:
-                return 'icon-port-in';
+                return { className: 'icon-port-in', iconType: 'flowfont' };
             case ComponentType.ProcessGroup:
-                return 'icon-group';
+                return { className: 'icon-group', iconType: 'flowfont' };
             case ComponentType.Funnel:
-                return 'icon-funnel';
+                return { className: 'icon-funnel', iconType: 'flowfont' };
             case ComponentType.Label:
-                return 'icon-label';
+                return { className: 'icon-label', iconType: 'flowfont' };
             case ComponentType.RemoteProcessGroup:
-                return 'icon-group-remote';
+                return { className: 'icon-group-remote', iconType: 'flowfont' };
             case ComponentType.Connector:
-                return 'fa fa-plug primary-color';
+                return { className: 'fa fa-plug primary-color', iconType: 'font-awesome' };
             default:
-                return 'icon-drop';
+                return ComponentContext.DEFAULT_ICON;
         }
-    }
-
-    usesFontAwesomeIcon(): boolean {
-        return this.componentIconClass.startsWith('fa');
     }
 }
