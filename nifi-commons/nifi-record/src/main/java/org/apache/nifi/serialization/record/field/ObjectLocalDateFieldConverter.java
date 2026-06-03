@@ -24,12 +24,19 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.Optional;
 
 /**
  * Convert Object to java.time.LocalDate using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectLocalDateFieldConverter implements FieldConverter<Object, LocalDate> {
+    private static final DateTimeFormatter[] DEFAULT_DATE_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_OFFSET_DATE.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_DATE.withResolverStyle(ResolverStyle.STRICT)
+    };
+
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
      *
@@ -72,14 +79,22 @@ class ObjectLocalDateFieldConverter implements FieldConverter<Object, LocalDate>
                     } catch (final DateTimeParseException e) {
                         throw new FieldConversionException(LocalDate.class, field, name, e);
                     }
-                } else {
+                }
+
+                for (final DateTimeFormatter formatter : DEFAULT_DATE_FORMATTERS) {
                     try {
-                        final long number = Long.parseLong(string);
-                        final Instant instant = Instant.ofEpochMilli(number);
-                        return ofInstant(instant);
-                    } catch (final NumberFormatException e) {
-                        throw new FieldConversionException(LocalDate.class, field, name, e);
+                        return LocalDate.parse(string, formatter);
+                    } catch (final DateTimeParseException e) {
+                        continue;
                     }
+                }
+
+                try {
+                    final long number = Long.parseLong(string);
+                    final Instant instant = Instant.ofEpochMilli(number);
+                    return ofInstant(instant);
+                } catch (final NumberFormatException e) {
+                    throw new FieldConversionException(LocalDate.class, field, name, e);
                 }
             }
             default -> {

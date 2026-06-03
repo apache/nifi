@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
@@ -44,6 +45,11 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
     private static final long SECONDS_TO_MICROSECONDS = 1_000_000;
 
     private static final TemporalQuery<LocalDateTime> LOCAL_DATE_TIME_TEMPORAL_QUERY = new LocalDateTimeQuery();
+    private static final DateTimeFormatter[] DEFAULT_DATE_TIME_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_INSTANT.withResolverStyle(ResolverStyle.STRICT)
+    };
 
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
@@ -93,9 +99,17 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                     } catch (final DateTimeParseException e) {
                         return tryParseAsNumber(string, name);
                     }
-                } else {
-                    return tryParseAsNumber(string, name);
                 }
+
+                for (final DateTimeFormatter formatter : DEFAULT_DATE_TIME_FORMATTERS) {
+                    try {
+                        return formatter.parse(string, LOCAL_DATE_TIME_TEMPORAL_QUERY);
+                    } catch (final DateTimeParseException e) {
+                        continue;
+                    }
+                }
+
+                return tryParseAsNumber(string, name);
             }
             default -> {
             }
