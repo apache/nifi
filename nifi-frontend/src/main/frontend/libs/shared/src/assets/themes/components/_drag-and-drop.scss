@@ -81,27 +81,4 @@
         }
     }
 
-    .darkMode {
-        .cdk-drop-list-dragging {
-            background-color: var(--mat-sys-secondary) !important;
-        }
-
-        .cdk-drop-list {
-            background: var(--mat-sys-surface-container-low);
-        }
-
-        .cdk-drag {
-            color: var(--mat-sys-on-surface);
-            background: var(--mat-sys-surface);
-        }
-
-        .cdk-drag-disabled {
-            color: var(--nf-disabled);
-            background: var(--mat-sys-background) !important;
-        }
-
-        span.grip {
-            color: var(--mat-sys-on-surface);
-        }
-    }
 }

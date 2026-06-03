@@ -49,16 +49,4 @@
         }
     }
 
-    .darkMode {
-        @include mat.option-overrides(
-            (
-                selected-state-layer-color: var(--mat-sys-secondary-container),
-                selected-state-label-text-color: var(--mat-sys-on-secondary-container)
-            )
-        );
-
-        .mat-mdc-option[disabled] {
-            color: var(--nf-disabled);
-        }
-    }
 }

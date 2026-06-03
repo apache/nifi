@@ -60,19 +60,4 @@
         }
     }
 
-    .darkMode {
-        .searchable-overlay {
-            .mat-mdc-form-field-icon-prefix {
-                .fa {
-                    color: var(--mat-app-text-color);
-                }
-            }
-
-            .search-filter {
-                .mdc-text-field--focused {
-                    border-color: var(--mat-sys-primary);
-                }
-            }
-        }
-    }
 }
