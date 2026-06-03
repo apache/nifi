@@ -19,24 +19,20 @@
 
 @mixin generate-material-theme() {
     :root {
-        .mdc-notched-outline__notch {
-            border-right: none;
+        .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+            cursor: default;
+            color: var(--nf-disabled);
         }
 
-        .mat-mdc-form-field-infix {
-            min-width: 180px !important;
-            width: 180px !important;
+        .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled):hover, .mat-mdc-option:not(.mdc-list-item--disabled):hover {
+            cursor: pointer;
         }
+    }
 
-        .mdc-text-field--outlined .mat-mdc-form-field-infix {
-            line-height: 24px;
-        }
-
-        .mat-mdc-form-field-icon-prefix {
-            .fa {
-                font-size: 16px;
-                padding: 0 4px 0 0;
-            }
+    .darkMode {
+        .mdc-list-item.mdc-list-item--disabled {
+            color: var(--nf-disabled);
         }
     }
 }
+

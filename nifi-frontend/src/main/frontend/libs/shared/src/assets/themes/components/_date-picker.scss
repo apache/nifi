@@ -20,7 +20,7 @@
 @mixin generate-material-theme() {
     :root {
         mat-datepicker-toggle .mat-mdc-icon-button.mat-mdc-button-base.mdc-icon-button {
-            padding: 11px;
+            padding: 11px; //center the mat-icon-button inside the date picker form field
         }
 
         .mat-datepicker-content {

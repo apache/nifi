@@ -19,6 +19,30 @@
 
 @mixin generate-material-theme() {
     :root {
+        @include mat.option-overrides(
+            (
+                selected-state-layer-color: var(--mat-sys-secondary-container),
+                selected-state-label-text-color: var(--mat-sys-on-secondary-container)
+            )
+        );
+
+        .mat-mdc-option {
+            .mdc-list-item__primary-text {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap !important;
+            }
+
+            .fa {
+                font-size: 16px;
+                min-width: 16px;
+                flex: 0 0 16px;
+                color: inherit;
+                margin-right: 4px;
+                flex-shrink: 0;
+            }
+        }
+
         .mat-mdc-option[disabled] {
             color: var(--nf-disabled);
             opacity: 1;
@@ -26,6 +50,13 @@
     }
 
     .darkMode {
+        @include mat.option-overrides(
+            (
+                selected-state-layer-color: var(--mat-sys-secondary-container),
+                selected-state-label-text-color: var(--mat-sys-on-secondary-container)
+            )
+        );
+
         .mat-mdc-option[disabled] {
             color: var(--nf-disabled);
         }

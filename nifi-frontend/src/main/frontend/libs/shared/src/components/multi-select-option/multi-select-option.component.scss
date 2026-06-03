@@ -15,106 +15,58 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
-
-// Forward --mat-option-* CSS custom properties onto multi-select-option elements.
-// mat.theme() only emits system-level --mat-sys-* tokens; component-specific tokens
-// need to be set explicitly for custom elements that extend MatOption.
-multi-select-option {
-    @include mat.option-overrides(
-        (
-            hover-state-layer-color: color-mix(
-                    in srgb,
-                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
-                    transparent
-                ),
-            focus-state-layer-color: color-mix(
-                    in srgb,
-                    var(--mat-sys-on-surface) calc(var(--mat-sys-focus-state-layer-opacity) * 100%),
-                    transparent
-                ),
-            selected-state-layer-color: var(--mat-sys-secondary-container),
-            selected-state-label-text-color: var(--mat-sys-on-secondary-container),
-            label-text-color: var(--mat-sys-on-surface)
-        )
-    );
-}
-
 .multi-select-option {
     display: flex;
     flex-direction: row;
 
-    .mat-pseudo-checkbox {
-        height: 16px;
-        width: 16px;
-        margin-left: 4px;
-        --mat-pseudo-checkbox-minimal-selected-checkmark-color: var(
-            --mat-option-selected-state-label-text-color,
-            var(--mat-sys-on-secondary-container)
-        );
+    .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-checked::after, .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-indeterminate::after {
+        color: var(--mat-sys-on-secondary-container);
     }
+}
 
-    .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-checked::after {
-        height: 4px;
-        width: 10px;
+// Angular Material only injects MatOption's component styles when a real <mat-option> is rendered.
+// Since this component replaces mat-option entirely, we replicate the state-layer CSS here so that
+// hover, focus, active, and selected visuals are applied whenever MultiSelectOption is used.
+.mat-mdc-option {
+    cursor: pointer;
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+    background-color: var(
+        --mat-option-hover-state-layer-color,
+        color-mix(in srgb, var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%), transparent)
+    );
+}
+
+.mat-mdc-option:focus.mdc-list-item,
+.mat-mdc-option.mat-mdc-option-active.mdc-list-item {
+    background-color: var(
+        --mat-option-focus-state-layer-color,
+        color-mix(in srgb, var(--mat-sys-on-surface) calc(var(--mat-sys-focus-state-layer-opacity) * 100%), transparent)
+    );
+    outline: 0;
+}
+
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled):not(
+        .mat-mdc-option-active,
+        .mat-mdc-option-multiple,
+        :focus,
+        :hover
+    ) {
+    background-color: var(--mat-option-selected-state-layer-color, var(--mat-sys-secondary-container));
+
+    .mdc-list-item__primary-text {
+        color: var(--mat-option-selected-state-label-text-color, var(--mat-sys-on-secondary-container));
     }
+}
 
-    // State layer rules mirrored from @angular/material/core/option/option.scss (Material 3, v20).
-    // multi-select-option extends MatOption but has its own template/styles, so MatOption's
-    // compiled CSS is not automatically loaded. The mat.option-overrides() above sets the
-    // --mat-option-* tokens; these rules consume them (with color-mix fallbacks).
-    // On Angular Material upgrades, diff against: @angular/material/core/option/option.scss
+.mat-mdc-option.mdc-list-item {
+    min-height: 48px;
+    padding: 0 16px;
+    align-items: center;
+    background: transparent;
+}
 
-    &.mdc-list-item {
-        background: transparent;
-    }
-
-    &:hover:not(.mdc-list-item--disabled) {
-        cursor: pointer;
-        background-color: var(
-            --mat-option-hover-state-layer-color,
-            color-mix(
-                in srgb,
-                var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
-                transparent
-            )
-        );
-    }
-
-    &:focus.mdc-list-item,
-    &.mat-mdc-option-active.mdc-list-item {
-        background-color: var(
-            --mat-option-focus-state-layer-color,
-            color-mix(
-                in srgb,
-                var(--mat-sys-on-surface) calc(var(--mat-sys-focus-state-layer-opacity) * 100%),
-                transparent
-            )
-        );
-        outline: 0;
-    }
-
-    &.mdc-list-item--selected:not(.mdc-list-item--disabled):not(.mat-mdc-option-active, :focus, :hover) {
-        background-color: var(--mat-option-selected-state-layer-color, var(--mat-sys-secondary-container));
-
-        .mdc-list-item__primary-text {
-            color: var(--mat-option-selected-state-label-text-color, var(--mat-sys-on-secondary-container));
-        }
-    }
-
-    &.mdc-list-item.mdc-list-item--disabled {
-        cursor: default;
-        color: var(--nf-disabled);
-    }
-
-    // When hover/focus/active overrides the selected background, revert the checkmark
-    // to the regular label color so it remains visible against the state layer.
-    &:hover .mat-pseudo-checkbox,
-    &:focus .mat-pseudo-checkbox,
-    &.mat-mdc-option-active .mat-pseudo-checkbox {
-        --mat-pseudo-checkbox-minimal-selected-checkmark-color: var(
-            --mat-option-label-text-color,
-            var(--mat-sys-on-surface)
-        );
-    }
+.mat-mdc-option-active .mat-focus-indicator::before {
+    content: '';
 }

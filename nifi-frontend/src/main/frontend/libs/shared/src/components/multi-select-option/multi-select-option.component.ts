@@ -32,7 +32,7 @@ import { MatPseudoCheckbox, MatRipple } from '@angular/material/core';
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
     providers: [{ provide: MatOption, useExisting: MultiSelectOption }],
-    host: { class: 'multi-select-option', role: 'option' }
+    host: { class: 'multi-select-option mat-mdc-option mdc-list-item', role: 'option' }
 })
 export class MultiSelectOption extends MatOption {
     /**
