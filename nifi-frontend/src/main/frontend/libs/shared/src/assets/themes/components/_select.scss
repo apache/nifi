@@ -24,7 +24,8 @@
             color: var(--nf-disabled);
         }
 
-        .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled):hover, .mat-mdc-option:not(.mdc-list-item--disabled):hover {
+        .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled):hover,
+        .mat-mdc-option:not(.mdc-list-item--disabled):hover {
             cursor: pointer;
         }
     }
@@ -35,4 +36,3 @@
         }
     }
 }
-

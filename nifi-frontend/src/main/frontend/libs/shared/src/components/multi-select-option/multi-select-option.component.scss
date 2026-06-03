@@ -19,7 +19,8 @@
     display: flex;
     flex-direction: row;
 
-    .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-checked::after, .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-indeterminate::after {
+    .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-checked::after,
+    .mat-pseudo-checkbox-minimal.mat-pseudo-checkbox-indeterminate::after {
         color: var(--mat-sys-on-secondary-container);
     }
 }
