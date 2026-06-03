@@ -16,7 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { ComponentType } from '../../types';
 import { ComponentContext } from './component-context.component';
 
 describe('ComponentContext', () => {
@@ -35,5 +35,21 @@ describe('ComponentContext', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should use font awesome plug icon for connectors', () => {
+        component.type = ComponentType.Connector;
+        expect(component.componentIcon).toEqual({
+            className: 'fa-plug',
+            iconType: 'font-awesome'
+        });
+    });
+
+    it('should use flowfont for processors', () => {
+        component.type = ComponentType.Processor;
+        expect(component.componentIcon).toEqual({
+            className: 'icon-processor',
+            iconType: 'flowfont'
+        });
     });
 });

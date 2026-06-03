@@ -74,9 +74,42 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     requiredPermissionOptions!: SelectOption[];
     supportsReadWriteAction = false;
     supportsResourceIdentifier = false;
+    supportsConnectorActions = false;
+
+    // Extended action options for connectors policy
+    connectorActionOptions: SelectOption[] = [
+        {
+            text: 'view',
+            value: 'read',
+            description: 'Allows users to view Connectors'
+        },
+        {
+            text: 'modify',
+            value: 'write',
+            description: 'Allows users to modify Connectors'
+        },
+        {
+            text: 'view the data',
+            value: 'read-data',
+            description: 'Allows users to view metadata and content in flowfile queues in connector process groups'
+        },
+        {
+            text: 'modify the data',
+            value: 'write-data',
+            description: 'Allows users to empty flowfile queues in connector process groups'
+        },
+        {
+            text: 'view provenance',
+            value: 'read-provenance-data',
+            description: 'Allows users to view provenance events for connector components'
+        }
+    ];
 
     @ViewChild('inheritedFromPolicies') inheritedFromPolicies!: TemplateRef<any>;
     @ViewChild('inheritedFromController') inheritedFromController!: TemplateRef<any>;
+    @ViewChild('inheritedFromConnectors') inheritedFromConnectors!: TemplateRef<any>;
+    @ViewChild('inheritedFromConnectorData') inheritedFromConnectorData!: TemplateRef<any>;
+    @ViewChild('inheritedFromConnectorProvenance') inheritedFromConnectorProvenance!: TemplateRef<any>;
     @ViewChild('inheritedFromNoRestrictions') inheritedFromNoRestrictions!: TemplateRef<any>;
 
     constructor() {
@@ -137,12 +170,17 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             )
             .subscribe((resourceAction) => {
                 if (resourceAction) {
-                    this.supportsReadWriteAction = this.globalPolicySupportsReadWrite(resourceAction.resource);
+                    const mappedState = this.mapRouteResourceToFormState(resourceAction);
 
-                    this.policyForm.get('resource')?.setValue(resourceAction.resource);
-                    this.policyForm.get('action')?.setValue(resourceAction.action);
+                    this.supportsConnectorActions = mappedState.supportsConnectorActions;
+                    this.supportsReadWriteAction =
+                        mappedState.supportsConnectorActions ||
+                        this.globalPolicySupportsReadWrite(mappedState.resource);
 
-                    this.updateResourceIdentifierVisibility(resourceAction.resource);
+                    this.policyForm.get('resource')?.setValue(mappedState.resource);
+                    this.policyForm.get('action')?.setValue(mappedState.action);
+
+                    this.updateResourceIdentifierVisibility(mappedState.resource);
 
                     if (resourceAction.resource === 'restricted-components' && resourceAction.resourceIdentifier) {
                         this.policyForm.get('resourceIdentifier')?.setValue(resourceAction.resourceIdentifier);
@@ -159,6 +197,45 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             });
     }
 
+    /**
+     * Maps a route resource/action to form state, handling connector extended actions.
+     * When the route is 'connectors' with a resourceIdentifier of 'data' or 'provenance-data',
+     * this maps to the appropriate extended action in the form.
+     */
+    private mapRouteResourceToFormState(resourceAction: {
+        resource: string;
+        action: string;
+        resourceIdentifier?: string;
+    }): { resource: string; action: string; supportsConnectorActions: boolean } {
+        if (resourceAction.resource === 'connectors') {
+            if (resourceAction.resourceIdentifier === 'data') {
+                return {
+                    resource: 'connectors',
+                    action: resourceAction.action === Action.Read ? 'read-data' : 'write-data',
+                    supportsConnectorActions: true
+                };
+            } else if (resourceAction.resourceIdentifier === 'provenance-data') {
+                return {
+                    resource: 'connectors',
+                    action: 'read-provenance-data',
+                    supportsConnectorActions: true
+                };
+            } else {
+                return {
+                    resource: 'connectors',
+                    action: resourceAction.action === Action.Read ? 'read' : 'write',
+                    supportsConnectorActions: true
+                };
+            }
+        }
+
+        return {
+            resource: resourceAction.resource,
+            action: resourceAction.action,
+            supportsConnectorActions: false
+        };
+    }
+
     ngOnInit(): void {
         this.store.dispatch(loadTenants());
         this.store.dispatch(loadExtensionTypesForPolicies());
@@ -169,7 +246,13 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     }
 
     resourceChanged(value: string): void {
-        if (this.globalPolicySupportsReadWrite(value)) {
+        this.supportsConnectorActions = value === 'connectors';
+
+        if (this.supportsConnectorActions) {
+            this.supportsReadWriteAction = true;
+            this.supportsResourceIdentifier = false;
+            this.policyForm.get('action')?.setValue('read');
+        } else if (this.globalPolicySupportsReadWrite(value)) {
             this.supportsReadWriteAction = true;
             this.supportsResourceIdentifier = false;
 
@@ -184,24 +267,13 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             this.updateResourceIdentifierVisibility(value);
         }
 
-        this.store.dispatch(
-            selectGlobalAccessPolicy({
-                request: {
-                    resourceAction: {
-                        resource: this.policyForm.get('resource')?.value,
-                        action: this.policyForm.get('action')?.value,
-                        resourceIdentifier: this.policyForm.get('resourceIdentifier')?.value
-                    }
-                }
-            })
-        );
+        this.dispatchPolicySelection();
     }
 
     private globalPolicySupportsReadWrite(resource: string): boolean {
         return (
             resource === 'controller' ||
             resource === 'parameter-contexts' ||
-            resource === 'connectors' ||
             resource === 'counters' ||
             resource === 'policies' ||
             resource === 'tenants'
@@ -223,13 +295,54 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     }
 
     actionChanged(): void {
+        this.dispatchPolicySelection();
+    }
+
+    /**
+     * Dispatches the policy selection action with proper resource/action mapping.
+     * For connectors, extended actions like 'read-data' are mapped to use
+     * resourceIdentifier (e.g., 'connectors' with resourceIdentifier 'data').
+     */
+    private dispatchPolicySelection(): void {
+        const selectedResource = this.policyForm.get('resource')?.value;
+        const selectedAction = this.policyForm.get('action')?.value;
+
+        const resource = selectedResource;
+        let action = selectedAction;
+        let resourceIdentifier = this.policyForm.get('resourceIdentifier')?.value;
+
+        if (selectedResource === 'connectors') {
+            switch (selectedAction) {
+                case 'read':
+                    action = Action.Read;
+                    resourceIdentifier = undefined;
+                    break;
+                case 'write':
+                    action = Action.Write;
+                    resourceIdentifier = undefined;
+                    break;
+                case 'read-data':
+                    action = Action.Read;
+                    resourceIdentifier = 'data';
+                    break;
+                case 'write-data':
+                    action = Action.Write;
+                    resourceIdentifier = 'data';
+                    break;
+                case 'read-provenance-data':
+                    action = Action.Read;
+                    resourceIdentifier = 'provenance-data';
+                    break;
+            }
+        }
+
         this.store.dispatch(
             selectGlobalAccessPolicy({
                 request: {
                     resourceAction: {
-                        resource: this.policyForm.get('resource')?.value,
-                        action: this.policyForm.get('action')?.value,
-                        resourceIdentifier: this.policyForm.get('resourceIdentifier')?.value
+                        resource,
+                        action,
+                        resourceIdentifier
                     }
                 }
             })
@@ -255,6 +368,12 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             return this.inheritedFromPolicies;
         } else if (policy.component.resource === '/controller') {
             return this.inheritedFromController;
+        } else if (policy.component.resource === '/data/connectors') {
+            return this.inheritedFromConnectorData;
+        } else if (policy.component.resource === '/provenance-data/connectors') {
+            return this.inheritedFromConnectorProvenance;
+        } else if (policy.component.resource === '/connectors') {
+            return this.inheritedFromConnectors;
         }
 
         return this.inheritedFromNoRestrictions;

@@ -37,7 +37,6 @@ import { isDefinedAndNotNull, NiFiCommon, LARGE_DIALOG } from '@nifi/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { stopPollingQueueListingRequest } from './queue-listing.actions';
 import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
@@ -112,19 +111,13 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                            return of(
-                                QueueListingActions.queueListingApiError({
-                                    error: this.errorHelper.getErrorString(errorResponse)
-                                })
-                            );
-                        } else {
-                            this.store.dispatch(stopPollingQueueListingRequest());
-
-                            return of(this.errorHelper.fullScreenError(errorResponse));
-                        }
-                    })
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            QueueListingActions.queueListingApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
                 );
             })
         )
@@ -183,19 +176,13 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                            return of(
-                                QueueListingActions.queueListingApiError({
-                                    error: this.errorHelper.getErrorString(errorResponse)
-                                })
-                            );
-                        } else {
-                            this.store.dispatch(stopPollingQueueListingRequest());
-
-                            return of(this.errorHelper.fullScreenError(errorResponse));
-                        }
-                    })
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            QueueListingActions.queueListingApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
                 );
             })
         )
@@ -349,6 +336,7 @@ export class QueueListingEffects {
         this.actions$.pipe(
             ofType(QueueListingActions.queueListingApiError),
             tap(() => {
+                this.dialog.closeAll();
                 this.store.dispatch(QueueListingActions.stopPollingQueueListingRequest());
             }),
             switchMap(({ error }) =>

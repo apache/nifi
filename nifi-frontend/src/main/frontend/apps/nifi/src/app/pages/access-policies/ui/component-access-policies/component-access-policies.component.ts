@@ -49,7 +49,7 @@ import { PolicyComponentState } from '../../state/policy-component';
 import { ErrorContextKey } from '../../../../state/error';
 
 @Component({
-    selector: 'global-access-policies',
+    selector: 'component-access-policies',
     templateUrl: './component-access-policies.component.html',
     styleUrls: ['./component-access-policies.component.scss'],
     standalone: false
@@ -136,6 +136,9 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
     @ViewChild('inheritedFromPolicies') inheritedFromPolicies!: TemplateRef<any>;
     @ViewChild('inheritedFromController') inheritedFromController!: TemplateRef<any>;
     @ViewChild('inheritedFromGlobalParameterContexts') inheritedFromGlobalParameterContexts!: TemplateRef<any>;
+    @ViewChild('inheritedFromConnectors') inheritedFromConnectors!: TemplateRef<any>;
+    @ViewChild('inheritedFromConnectorData') inheritedFromConnectorData!: TemplateRef<any>;
+    @ViewChild('inheritedFromConnectorProvenance') inheritedFromConnectorProvenance!: TemplateRef<any>;
     @ViewChild('inheritedFromProcessGroup') inheritedFromProcessGroup!: TemplateRef<any>;
 
     constructor() {
@@ -268,8 +271,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             }
         } else if (
             policyComponentState.resource === 'parameter-contexts' ||
-            policyComponentState.resource === 'parameter-providers' ||
-            policyComponentState.resource === 'connectors'
+            policyComponentState.resource === 'parameter-providers'
         ) {
             switch (option.value) {
                 case 'read-data':
@@ -278,6 +280,13 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 case 'write-receive-data':
                 case 'read-provenance-data':
                 case 'write-operation':
+                    return false;
+            }
+        } else if (policyComponentState.resource === 'connectors') {
+            // Connectors support data policies for queue actions but not site-to-site
+            switch (option.value) {
+                case 'write-send-data':
+                case 'write-receive-data':
                     return false;
             }
         } else if (policyComponentState.resource === 'labels') {
@@ -332,8 +341,9 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             case 'parameter-providers':
             case 'parameter-contexts':
             case 'reporting-tasks':
-            case 'connectors':
                 return 'icon-drop';
+            case 'connectors':
+                return 'fa fa-plug';
         }
 
         return 'icon-group';
@@ -360,7 +370,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             case 'parameter-providers':
                 return ComponentType.ParameterProvider;
             case 'connectors':
-                return 'Connector';
+                return ComponentType.Connector;
         }
 
         return ComponentType.ProcessGroup;
@@ -430,6 +440,12 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             return this.inheritedFromController;
         } else if (policy.component.resource === '/parameter-contexts') {
             return this.inheritedFromGlobalParameterContexts;
+        } else if (policy.component.resource === '/data/connectors') {
+            return this.inheritedFromConnectorData;
+        } else if (policy.component.resource === '/provenance-data/connectors') {
+            return this.inheritedFromConnectorProvenance;
+        } else if (policy.component.resource === '/connectors') {
+            return this.inheritedFromConnectors;
         }
 
         return this.inheritedFromProcessGroup;

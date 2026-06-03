@@ -66,4 +66,127 @@ describe('UserAccessPolicies', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    describe('formatPolicy', () => {
+        it('should label per-instance connector policies', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/connectors/connector-1',
+                    action: 'read',
+                    componentReference: {
+                        id: 'connector-1',
+                        permissions: { canRead: true, canWrite: true },
+                        component: { name: 'My Connector' }
+                    }
+                }
+            } as any);
+
+            expect(label).toBe('Component policy for connector My Connector');
+        });
+
+        it('should label connector data policies', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/data/connectors/connector-1',
+                    action: 'read',
+                    componentReference: {
+                        id: 'connector-1',
+                        permissions: { canRead: true, canWrite: true },
+                        component: { name: 'My Connector' }
+                    }
+                }
+            } as any);
+
+            expect(label).toBe('Data policy for connector My Connector');
+        });
+
+        it('should label connector provenance policies', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/provenance-data/connectors/connector-1',
+                    action: 'read',
+                    componentReference: {
+                        id: 'connector-1',
+                        permissions: { canRead: true, canWrite: true },
+                        component: { name: 'My Connector' }
+                    }
+                }
+            } as any);
+
+            expect(label).toBe('Provenance policy for connector My Connector');
+        });
+
+        it('should label global connector data read policy', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/data/connectors',
+                    action: 'read',
+                    configurable: true
+                }
+            } as any);
+
+            expect(label).toBe('Global policy to view the data for connectors');
+        });
+
+        it('should label global connector data write policy', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/data/connectors',
+                    action: 'write',
+                    configurable: true
+                }
+            } as any);
+
+            expect(label).toBe('Global policy to modify the data for connectors');
+        });
+
+        it('should label global connector provenance policy', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/provenance-data/connectors',
+                    action: 'read',
+                    configurable: true
+                }
+            } as any);
+
+            expect(label).toBe('Global policy to view provenance for connectors');
+        });
+
+        it('should label global connectors policy via policy type listing', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/connectors',
+                    action: 'read',
+                    configurable: true
+                }
+            } as any);
+
+            expect(label).toBe('Global policy to access connectors');
+        });
+    });
+
+    describe('getPolicyTargetLink', () => {
+        it('should link to the connectors listing for connector policies', () => {
+            const link = component.getPolicyTargetLink({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/connectors/connector-1',
+                    action: 'read',
+                    componentReference: {
+                        id: 'connector-1',
+                        permissions: { canRead: true, canWrite: true }
+                    }
+                }
+            } as any);
+
+            expect(link).toEqual(['/connectors', 'connector-1']);
+        });
+    });
 });
