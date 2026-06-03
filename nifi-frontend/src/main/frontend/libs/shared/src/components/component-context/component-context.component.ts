@@ -71,7 +71,7 @@ export class ComponentContext {
             case ComponentType.RemoteProcessGroup:
                 return { className: 'icon-group-remote', iconType: 'flowfont' };
             case ComponentType.Connector:
-                return { className: 'fa fa-plug tertiary-color', iconType: 'font-awesome' };
+                return { className: 'fa-plug', iconType: 'font-awesome' };
             default:
                 return ComponentContext.DEFAULT_ICON;
         }

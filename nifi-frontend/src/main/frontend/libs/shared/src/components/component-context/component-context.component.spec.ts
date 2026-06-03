@@ -40,7 +40,7 @@ describe('ComponentContext', () => {
     it('should use font awesome plug icon for connectors', () => {
         component.type = ComponentType.Connector;
         expect(component.componentIcon).toEqual({
-            className: 'fa fa-plug primary-color',
+            className: 'fa-plug',
             iconType: 'font-awesome'
         });
     });
