@@ -19,3 +19,13 @@
     display: block;
     font-size: 13px;
 }
+
+.overlap-link {
+    color: var(--mat-sys-primary);
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+        opacity: 0.6;
+    }
+}
