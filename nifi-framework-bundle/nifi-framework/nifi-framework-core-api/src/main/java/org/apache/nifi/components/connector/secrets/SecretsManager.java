@@ -38,6 +38,19 @@ public interface SecretsManager {
     Map<SecretReference, Secret> getSecrets(Set<SecretReference> secretReferences);
 
     /**
+     * Resolves the given Secret References, optionally bypassing any cached values. When {@code useCache} is
+     * {@code false}, implementations that cache Secret values must fetch fresh values from the underlying
+     * providers and refresh their cache with the retrieved values, rather than serving previously cached values.
+     *
+     * @param secretReferences the Secret References to resolve
+     * @param useCache whether cached values may be returned; when {@code false}, values are fetched fresh and the cache is refreshed
+     * @return a mapping of each Secret Reference to its resolved Secret, or {@code null} for references that cannot be resolved
+     */
+    default Map<SecretReference, Secret> getSecrets(final Set<SecretReference> secretReferences, final boolean useCache) {
+        return getSecrets(secretReferences);
+    }
+
+    /**
      * Invalidates any cached secret data, forcing the next access to fetch fresh data
      * from the underlying secret providers.
      */

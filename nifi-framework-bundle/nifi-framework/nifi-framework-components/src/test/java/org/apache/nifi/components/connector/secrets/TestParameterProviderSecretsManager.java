@@ -127,6 +127,18 @@ public class TestParameterProviderSecretsManager {
         return node;
     }
 
+    private void updateSecretValue(final ParameterProviderNode node, final String providerName, final String groupName, final String secretName, final String newValue) {
+        when(node.fetchParameterValues(anyList())).thenAnswer(invocation -> {
+            final List<String> requestedNames = invocation.getArgument(0);
+            final String fullyQualifiedName = providerName + "." + groupName + "." + secretName;
+            if (requestedNames.contains(fullyQualifiedName)) {
+                final Parameter updatedParameter = createParameter(secretName, SECRET_1_DESCRIPTION, newValue);
+                return List.of(new ParameterGroup(groupName, List.of(updatedParameter)));
+            }
+            return List.of();
+        });
+    }
+
     private Parameter createParameter(final String name, final String description, final String value) {
         final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
             .name(name)
@@ -446,6 +458,55 @@ public class TestParameterProviderSecretsManager {
         manager.invalidateCache();
 
         manager.getSecret(reference);
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testGetSecretsBypassingCacheRefetchesAndRefreshesCachedValue() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
+
+        final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+
+        final Map<SecretReference, Secret> cached = manager.getSecrets(Set.of(reference));
+        assertEquals(SECRET_1_VALUE, cached.get(reference).getValue());
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+
+        final String updatedValue = "updated-secret-value-one";
+        updateSecretValue(providerNode, PROVIDER_1_NAME, GROUP_1_NAME, SECRET_1_NAME, updatedValue);
+
+        // Bypassing the cache fetches the current value from the provider rather than the cached value.
+        final Map<SecretReference, Secret> bypassed = manager.getSecrets(Set.of(reference), false);
+        assertEquals(updatedValue, bypassed.get(reference).getValue());
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+
+        // The bypass refreshed the cache, so a subsequent cache-enabled read returns the updated value without refetching.
+        final Map<SecretReference, Secret> afterRefresh = manager.getSecrets(Set.of(reference), true);
+        assertEquals(updatedValue, afterRefresh.get(reference).getValue());
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+    }
+
+    @Test
+    public void testGetSecretsBypassingCacheLeavesOtherCachedEntriesIntact() {
+        final ParameterProviderNode providerNode = createMockedParameterProviderNode(PROVIDER_1_ID, PROVIDER_1_NAME, GROUP_1_NAME,
+            createParameter(SECRET_1_NAME, SECRET_1_DESCRIPTION, SECRET_1_VALUE),
+            createParameter(SECRET_2_NAME, SECRET_2_DESCRIPTION, SECRET_2_VALUE));
+        final ParameterProviderSecretsManager manager = createManagerWithCacheDuration(DEFAULT_CACHE_DURATION, providerNode);
+
+        final SecretReference reference1 = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);
+        final SecretReference reference2 = createSecretReference(PROVIDER_1_ID, null, SECRET_2_NAME);
+
+        manager.getSecrets(Set.of(reference1, reference2));
+        verify(providerNode, times(1)).fetchParameterValues(anyList());
+
+        // Bypassing the cache for reference1 only refetches reference1.
+        manager.getSecrets(Set.of(reference1), false);
+        verify(providerNode, times(2)).fetchParameterValues(anyList());
+
+        // reference2 remains cached and is served without an additional fetch.
+        final Map<SecretReference, Secret> reference2Result = manager.getSecrets(Set.of(reference2), true);
+        assertEquals(SECRET_2_VALUE, reference2Result.get(reference2).getValue());
         verify(providerNode, times(2)).fetchParameterValues(anyList());
     }
 

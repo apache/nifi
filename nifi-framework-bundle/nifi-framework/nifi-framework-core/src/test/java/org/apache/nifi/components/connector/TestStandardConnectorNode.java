@@ -62,8 +62,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorNode {
@@ -597,7 +601,7 @@ public class TestStandardConnectorNode {
         // that stopped short-circuiting on unsatisfied dependencies would surface the lookup attempt as a hard failure here
         // instead of silently being masked by the empty-stub filter or by a null-returning mock.
         final SecretsManager strictSecretsManager = mock(SecretsManager.class);
-        when(strictSecretsManager.getSecrets(anySet()))
+        when(strictSecretsManager.getSecrets(anySet(), anyBoolean()))
             .thenThrow(new AssertionError("SecretsManager.getSecrets must not be called when property dependencies are not satisfied"));
 
         final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
@@ -675,6 +679,48 @@ public class TestStandardConnectorNode {
             final String explanation = result.getExplanation();
             return explanation != null && explanation.contains("RequiredSecret is required");
         }), () -> "Expected required-property failure in active validation, got: " + errors);
+    }
+
+    @Test
+    public void testVerifyConfigurationStepResolvesSecretsBypassingCache() throws FlowUpdateException {
+        final SecretsManager recordingSecretsManager = mock(SecretsManager.class);
+        when(recordingSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+
+        final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, recordingSecretsManager);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("Mode", new StringLiteralValue("WITH_SECRET"));
+        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+
+        connectorNode.verifyConfigurationStep("authStep", new StepConfiguration(propertyValues));
+
+        verify(recordingSecretsManager).getSecrets(anySet(), eq(false));
+    }
+
+    @Test
+    public void testPerformValidationResolvesSecretsUsingCache() throws FlowUpdateException {
+        final SecretsManager recordingSecretsManager = mock(SecretsManager.class);
+        when(recordingSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(recordingSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+
+        final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, recordingSecretsManager);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("Mode", new StringLiteralValue("WITH_SECRET"));
+        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+        connectorNode.setConfiguration("authStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        connectorNode.performValidation();
+
+        verify(recordingSecretsManager, atLeastOnce()).getSecrets(anySet(), eq(true));
     }
 
     @Test
@@ -792,6 +838,7 @@ public class TestStandardConnectorNode {
         final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
         when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
         when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        when(defaultSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
         return createConnectorNode(connector, defaultSecretsManager);
     }
 
