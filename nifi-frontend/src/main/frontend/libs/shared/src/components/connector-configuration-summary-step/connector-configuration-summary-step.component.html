@@ -74,11 +74,11 @@
                 </div>
 
                 @if (verifyAllError()) {
-                    <error-banner
+                    <banner
                         [messages]="[verifyAllError()!]"
                         [allowDismiss]="false"
                         data-qa="verify-all-error-banner">
-                    </error-banner>
+                    </banner>
                 }
 
                 <!-- Verify All Steps -->
@@ -129,11 +129,11 @@
 
                             @let generalMessages = getGeneralErrorMessages(stepConfig.configurationStepName);
                             @if (generalMessages.length > 0) {
-                                <error-banner
+                                <banner
                                     [messages]="generalMessages"
                                     [allowDismiss]="false"
                                     data-qa="step-general-verification-errors">
-                                </error-banner>
+                                </banner>
                             }
 
                             @for (group of stepConfig.propertyGroupConfigurations; track group.propertyGroupName) {

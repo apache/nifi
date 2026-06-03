@@ -26,7 +26,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { GlobalAccessPoliciesRoutingModule } from './global-access-policies-routing.module';
-import { NifiTooltipDirective, ErrorBanner } from '@nifi/shared';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
 import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
@@ -48,7 +48,6 @@ import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/c
         NifiTooltipDirective,
         PolicyTable,
         MatButtonModule,
-        ErrorBanner,
         ContextErrorBanner
     ]
 })
