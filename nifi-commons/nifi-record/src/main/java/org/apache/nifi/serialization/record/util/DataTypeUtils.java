@@ -200,7 +200,16 @@ public class DataTypeUtils {
             case DATE:
                 final FieldConverter<Object, LocalDate> localDateConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
                 final LocalDate localDate = localDateConverter.convertField(value, dateFormat, fieldName);
-                return localDate == null ? null : Date.valueOf(localDate);
+                if (localDate == null) {
+                    return null;
+                }
+
+                // Convert to ZonedDateTime using system default zone to allow for later conversion to Instant
+                final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
+
+                // Create Date from Instant epoch millis to preserve proleptic Gregorian calendar for pre-1582 dates
+                final long epochMillis = zonedDate.toInstant().toEpochMilli();
+                return new Date(epochMillis);
             case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:

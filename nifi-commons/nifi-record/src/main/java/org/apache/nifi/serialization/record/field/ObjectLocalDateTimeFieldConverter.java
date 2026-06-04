@@ -64,11 +64,13 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                 return localDateTime;
             }
             case Timestamp timestamp -> {
-                return timestamp.toLocalDateTime();
+                return ofInstant(timestamp.toInstant());
             }
             case Date date -> {
-                // java.sql.Date and java.sql.Time do not support the toInstant() method so using getTime() is required
+                // java.sql.Date#toInstant throws UnsupportedOperationException
                 final Instant instant = Instant.ofEpochMilli(date.getTime());
+
+                // Create LocalDateTime from Instant to preserve proleptic Gregorian calendar for pre-1582 dates
                 return ofInstant(instant);
             }
             case final Number number -> {
