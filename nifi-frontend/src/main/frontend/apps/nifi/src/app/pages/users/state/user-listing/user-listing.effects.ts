@@ -23,7 +23,20 @@ import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as UserListingActions from './user-listing.actions';
 import { selectTenant } from './user-listing.actions';
-import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    catchError,
+    combineLatest,
+    filter,
+    from,
+    last,
+    map,
+    mergeMap,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap
+} from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
 import { YesNoDialog } from '@nifi/shared';
@@ -269,13 +282,15 @@ export class UserListingEffects {
                     return of(UserListingActions.createUserComplete({ response: createUserResponse }));
                 }
                 return this.actions$.pipe(
-                    ofType(UserListingActions.updateUserGroupSuccess),
+                    ofType(UserListingActions.updateUserGroupSuccess, UserListingActions.updateUserGroupError),
                     filter(
-                        (updateSuccess) =>
+                        (action) =>
                             // @ts-ignore
-                            createUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
+                            createUserResponse.userGroupUpdate.requestId ===
+                            ('response' in action ? action.response.requestId : action.requestId)
                     ),
                     take(expectedCount),
+                    last(),
                     map(() => UserListingActions.createUserComplete({ response: createUserResponse }))
                 );
             })
@@ -554,13 +569,15 @@ export class UserListingEffects {
                 }
 
                 return this.actions$.pipe(
-                    ofType(UserListingActions.updateUserGroupSuccess),
+                    ofType(UserListingActions.updateUserGroupSuccess, UserListingActions.updateUserGroupError),
                     filter(
-                        (updateSuccess) =>
+                        (action) =>
                             // @ts-ignore
-                            updateUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
+                            updateUserResponse.userGroupUpdate.requestId ===
+                            ('response' in action ? action.response.requestId : action.requestId)
                     ),
                     take(expectedCount),
+                    last(),
                     map(() => UserListingActions.updateUserComplete())
                 );
             })
@@ -648,12 +665,23 @@ export class UserListingEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            UserListingActions.usersApiBannerError({
+                            UserListingActions.updateUserGroupError({
+                                requestId: request.requestId,
                                 error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
                 )
+            )
+        )
+    );
+
+    updateUserGroupError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.updateUserGroupError),
+            map((action) => action.error),
+            switchMap((error) =>
+                of(ErrorActions.addBannerError({ errorContext: { errors: [error], context: ErrorContextKey.USERS } }))
             )
         )
     );
