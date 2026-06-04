@@ -29,6 +29,7 @@ import {
     updateUser,
     updateUserComplete,
     updateUserGroup,
+    updateUserGroupError,
     updateUserGroupSuccess,
     usersApiBannerError,
     usersApiSnackbarError
@@ -81,6 +82,10 @@ export const userListingReducer = createReducer(
     on(updateUserGroupSuccess, (state, { response }) => ({
         ...state,
         saving: response.requestId == null ? false : state.saving
+    })),
+    on(updateUserGroupError, (state, { requestId }) => ({
+        ...state,
+        saving: requestId == null ? false : state.saving
     })),
     on(usersApiSnackbarError, usersApiBannerError, (state) => ({
         ...state,

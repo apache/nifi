@@ -240,7 +240,9 @@ describe('UserListingEffects', () => {
 
             const result = await new Promise((resolve) => effects.updateUserGroup$.pipe(take(1)).subscribe(resolve));
 
-            expect(result).toEqual(UserListingActions.usersApiBannerError({ error: 'Update failed' }));
+            expect(result).toEqual(
+                UserListingActions.updateUserGroupError({ requestId: undefined, error: 'Update failed' })
+            );
         });
 
         it('should handle multiple concurrent updateUserGroup actions', async () => {
@@ -496,8 +498,7 @@ describe('UserListingEffects', () => {
                 })
             );
 
-            expect(results.length).toBe(1);
-            expect(results[0]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+            expect(results.length).toBe(0);
 
             action$.next(
                 UserListingActions.updateUserGroupSuccess({
@@ -505,8 +506,38 @@ describe('UserListingEffects', () => {
                 })
             );
 
-            expect(results.length).toBe(2);
-            expect(results[1]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
+        });
+
+        it('should dispatch createUserComplete after matching success and error actions', async () => {
+            const { effects } = await setup();
+
+            const createUserResponse = {
+                user: { id: 'u1' } as any,
+                userGroupUpdate: {
+                    requestId: 13,
+                    userGroups: ['ug1', 'ug2']
+                }
+            };
+
+            action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForCreateUser$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 13, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(0);
+
+            action$.next(UserListingActions.updateUserGroupError({ requestId: 13, error: 'Update failed' }));
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
         });
 
         it('should ignore updateUserGroupSuccess actions with non-matching requestId', async () => {
@@ -610,8 +641,7 @@ describe('UserListingEffects', () => {
                 })
             );
 
-            expect(results.length).toBe(1);
-            expect(results[0]).toEqual(UserListingActions.updateUserComplete());
+            expect(results.length).toBe(0);
 
             action$.next(
                 UserListingActions.updateUserGroupSuccess({
@@ -619,8 +649,41 @@ describe('UserListingEffects', () => {
                 })
             );
 
-            expect(results.length).toBe(2);
-            expect(results[1]).toEqual(UserListingActions.updateUserComplete());
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.updateUserComplete());
+        });
+
+        it('should dispatch updateUserComplete after matching success and error actions', async () => {
+            const { effects } = await setup();
+
+            action$.next(
+                UserListingActions.updateUserSuccess({
+                    response: {
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 23,
+                            userGroupsAdded: ['ug1'],
+                            userGroupsRemoved: ['ug2']
+                        }
+                    }
+                })
+            );
+
+            const results: any[] = [];
+            effects.awaitUpdateUserGroupsForUpdateUser$.subscribe((result) => results.push(result));
+
+            action$.next(
+                UserListingActions.updateUserGroupSuccess({
+                    response: { requestId: 23, userGroup: { id: 'ug1' } as any }
+                })
+            );
+
+            expect(results.length).toBe(0);
+
+            action$.next(UserListingActions.updateUserGroupError({ requestId: 23, error: 'Update failed' }));
+
+            expect(results.length).toBe(1);
+            expect(results[0]).toEqual(UserListingActions.updateUserComplete());
         });
 
         it('should ignore updateUserGroupSuccess actions with non-matching requestId', async () => {
