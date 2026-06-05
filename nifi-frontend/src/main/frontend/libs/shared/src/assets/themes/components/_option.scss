@@ -43,9 +43,65 @@
             }
         }
 
+        .mat-mdc-option.mdc-list-item {
+            min-height: 48px;
+            padding: 0 16px;
+            align-items: center;
+            background: transparent;
+        }
+
+        .mdc-list-item.mdc-list-item--disabled {
+            cursor: default;
+            color: var(--nf-disabled);
+        }
+
         .mat-mdc-option[disabled] {
             color: var(--nf-disabled);
             opacity: 1;
+        }
+
+        // MatOption's component styles are only auto-injected by Angular Material when a real
+        // <mat-option> element is rendered. MultiSelectOption provides MatOption via DI but uses
+        // a custom element, so the state-layer background rules are declared explicitly here.
+        .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+            background-color: var(
+                --mat-option-hover-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                    transparent
+                )
+            );
+        }
+
+        .mat-mdc-option:focus.mdc-list-item,
+        .mat-mdc-option.mat-mdc-option-active.mdc-list-item {
+            background-color: var(
+                --mat-option-focus-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-focus-state-layer-opacity) * 100%),
+                    transparent
+                )
+            );
+            outline: 0;
+        }
+
+        .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled):not(
+                .mat-mdc-option-active,
+                .mat-mdc-option-multiple,
+                :focus,
+                :hover
+            ) {
+            background-color: var(--mat-option-selected-state-layer-color, var(--mat-sys-secondary-container));
+
+            .mdc-list-item__primary-text {
+                color: var(--mat-option-selected-state-label-text-color, var(--mat-sys-on-secondary-container));
+            }
+        }
+
+        .mat-mdc-option-active .mat-focus-indicator::before {
+            content: '';
         }
     }
 }

@@ -148,29 +148,4 @@
             }
         }
     }
-
-    .darkMode {
-        * {
-            markdown {
-                table {
-                    th {
-                        @extend .neutral-contrast !optional;
-                    }
-
-                    tbody {
-                        tr:hover {
-                            background-color: var(
-                                --mat-menu-item-hover-state-layer-color,
-                                color-mix(
-                                    in srgb,
-                                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
-                                    transparent
-                                )
-                            ) !important;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

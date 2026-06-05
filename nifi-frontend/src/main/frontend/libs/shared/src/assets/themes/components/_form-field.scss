@@ -38,5 +38,20 @@
                 padding: 0 4px 0 0;
             }
         }
+
+        mat-select-trigger {
+            button.primary-icon-button {
+                @include mat.icon-button-overrides(
+                    (
+                        state-layer-size: 16px,
+                        icon-size: 10px
+                    )
+                );
+            }
+        }
+
+        .mat-mdc-form-field-type-mat-select:not(.mat-form-field-disabled) .mat-mdc-text-field-wrapper {
+            cursor: default;
+        }
     }
 }
