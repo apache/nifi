@@ -250,7 +250,6 @@ The User Interface section above outlined the different segments of the UI and p
 This section looks at each of the Components in that toolbar:
 
 image::components.png["Components"]
-
 [[processor]]
 image:iconProcessor.png["Processor", width=32]
 *Processor*: The Processor is the most commonly used component, as it is responsible for data ingress, egress, routing, and
