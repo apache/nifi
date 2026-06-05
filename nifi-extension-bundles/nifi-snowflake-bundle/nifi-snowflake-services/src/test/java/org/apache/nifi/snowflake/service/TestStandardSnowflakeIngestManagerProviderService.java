@@ -137,6 +137,15 @@ public class TestStandardSnowflakeIngestManagerProviderService {
     }
 
     @Test
+    void testProxyConfigurationServicePropertyPresent() {
+        final StandardSnowflakeIngestManagerProviderService service = new StandardSnowflakeIngestManagerProviderService();
+        final boolean hasProxyProperty = service.getSupportedPropertyDescriptors()
+                .stream()
+                .anyMatch(pd -> pd.getName().equals(StandardSnowflakeIngestManagerProviderService.PROXY_CONFIGURATION.getName()));
+        assertTrue(hasProxyProperty, "Proxy Configuration Service property should be present");
+    }
+
+    @Test
     void testInsertFilesRequest() throws Exception {
         mockWebServer.enqueue(new MockResponse.Builder()
                 .code(HttpURLConnection.HTTP_OK)

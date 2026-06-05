@@ -31,7 +31,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -262,6 +267,49 @@ class SnowpipeIngestClientTest {
                 () -> client.getInsertReport()
         );
         assertTrue(exception.getMessage().contains(String.valueOf(HttpURLConnection.HTTP_INTERNAL_ERROR)));
+    }
+
+    @Test
+    void testInsertFilesViaProxy() throws InterruptedException, NoSuchAlgorithmException {
+        // MockWebServer acts as the HTTP proxy. The base URI points to a distinct fake host
+        // so that the request only reaches MockWebServer if the proxy selector is honoured.
+        // When Java's HttpClient routes a request through an HTTP proxy it sends the target
+        // in absolute form (e.g. "http://fake-snowflake.example.com/v1/..."), which lets us
+        // assert that the proxy path was actually exercised.
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(HttpURLConnection.HTTP_OK)
+                .addHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+                .body(INSERT_FILES_SUCCESS_RESPONSE)
+                .build());
+
+        final InetSocketAddress proxyAddress = new InetSocketAddress(mockWebServer.getHostName(), mockWebServer.getPort());
+        final Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddress);
+        final ProxySelector proxySelector = new ProxySelector() {
+            @Override
+            public List<Proxy> select(final URI uri) {
+                return List.of(proxy);
+            }
+
+            @Override
+            public void connectFailed(final URI uri, final SocketAddress sa, final IOException ioe) {
+            }
+        };
+
+        // Intentionally different from the proxy address to prove routing goes via the proxy
+        final URI targetBaseUri = URI.create("http://fake-snowflake.example.com");
+        final RSAPrivateCrtKey privateKey = generatePrivateKey();
+        final RSAKeyAuthorizationProvider authProvider = new RSAKeyAuthorizationProvider(ACCOUNT, USER, privateKey);
+
+        try (final SnowpipeIngestClient proxyClient = new SnowpipeIngestClient(targetBaseUri, PIPE_NAME, authProvider, proxySelector, null)) {
+            proxyClient.insertFiles(new InsertFiles(List.of(new InsertFile(STAGED_FILE_PATH))));
+        }
+
+        final RecordedRequest request = mockWebServer.takeRequest();
+        // Absolute-form target confirms the request was routed through the configured proxy
+        final String target = request.getTarget();
+        assertNotNull(target);
+        assertTrue(target.startsWith("http://fake-snowflake.example.com"), "Expected absolute-form proxy target but got: " + target);
+        assertNotNull(request.getHeaders().get(AUTHORIZATION_HEADER));
     }
 
     private static RSAPrivateCrtKey generatePrivateKey() throws NoSuchAlgorithmException {

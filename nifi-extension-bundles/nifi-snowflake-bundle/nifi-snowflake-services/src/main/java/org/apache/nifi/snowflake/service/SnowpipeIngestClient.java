@@ -24,7 +24,9 @@ import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
 
 import java.io.IOException;
+import java.net.Authenticator;
 import java.net.HttpURLConnection;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -76,6 +78,25 @@ class SnowpipeIngestClient implements AutoCloseable {
             final String pipeName,
             final RSAKeyAuthorizationProvider authorizationProvider
     ) {
+        this(baseUri, pipeName, authorizationProvider, null, null);
+    }
+
+    /**
+     * Snowpipe Ingest Client with proxy support
+     *
+     * @param baseUri Base URI for the Snowpipe REST API
+     * @param pipeName Fully qualified pipe name
+     * @param authorizationProvider RSA Key Authorization Provider for JWT authentication
+     * @param proxySelector Optional proxy selector; {@code null} uses the system default
+     * @param proxyAuthenticator Optional authenticator for proxy credentials; {@code null} when not required
+     */
+    SnowpipeIngestClient(
+            final URI baseUri,
+            final String pipeName,
+            final RSAKeyAuthorizationProvider authorizationProvider,
+            final ProxySelector proxySelector,
+            final Authenticator proxyAuthenticator
+    ) {
         Objects.requireNonNull(baseUri, "Base URI required");
         Objects.requireNonNull(pipeName, "Pipe Name required");
         Objects.requireNonNull(authorizationProvider, "Authorization Provider required");
@@ -87,9 +108,16 @@ class SnowpipeIngestClient implements AutoCloseable {
         this.insertReportUri = baseUri.resolve(insertReportPath);
 
         this.authorizationProvider = authorizationProvider;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(CONNECT_TIMEOUT)
-                .build();
+
+        final HttpClient.Builder builder = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT);
+        if (proxySelector != null) {
+            builder.proxy(proxySelector);
+        }
+        if (proxyAuthenticator != null) {
+            builder.authenticator(proxyAuthenticator);
+        }
+        this.httpClient = builder.build();
     }
 
     @Override

@@ -22,6 +22,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -32,14 +34,24 @@ import org.apache.nifi.processors.snowflake.SnowflakeIngestManagerProviderServic
 import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
 import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormat;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormatParameters;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 
+import java.io.IOException;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Tags({"snowflake", "snowpipe", "database", "connection"})
@@ -124,6 +136,19 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .required(true)
             .build();
 
+    // Only HTTP proxy type is supported. SOCKS is silently ignored by java.net.http.HttpClient.
+    // For authenticated proxies: the JDK disables Basic auth over CONNECT tunneling by default
+    // (jdk.http.auth.tunneling.disabledSchemes=Basic). To use proxy credentials with an HTTPS
+    // target like Snowflake, add -Djdk.http.auth.tunneling.disabledSchemes="" to bootstrap.conf.
+    static final PropertyDescriptor PROXY_CONFIGURATION = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP_AUTH))
+            .description("Specifies the Proxy Configuration Controller Service to proxy network requests."
+                    + " Only HTTP proxy type is supported."
+                    + " For authenticated proxy with HTTPS targets, the JDK disables Basic authentication"
+                    + " over CONNECT tunneling by default. To enable it, add"
+                    + " -Djdk.http.auth.tunneling.disabledSchemes=\"\" to bootstrap.conf.")
+            .build();
+
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ACCOUNT_IDENTIFIER_FORMAT,
             HOST_URL,
@@ -136,7 +161,8 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             PRIVATE_KEY_SERVICE,
             DATABASE,
             SCHEMA,
-            PIPE
+            PIPE,
+            PROXY_CONFIGURATION
     );
 
     private static final String HTTPS_URI_FORMAT = "https://%s";
@@ -146,6 +172,13 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     private static final char UNDERSCORE = '_';
 
     private static final char HYPHEN = '-';
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+        ProxyConfiguration.validateProxySpec(context, results, ProxySpec.HTTP_AUTH);
+        return results;
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -173,7 +206,11 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
 
             final URI baseUri = URI.create(HTTPS_URI_FORMAT.formatted(hostNormalized));
             final RSAKeyAuthorizationProvider authorizationProvider = new RSAKeyAuthorizationProvider(account, user, rsaPrivateKey);
-            ingestClient = new SnowpipeIngestClient(baseUri, qualifiedPipeName, authorizationProvider);
+
+            final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+            final ProxySelector proxySelector = buildProxySelector(proxyConfiguration);
+            final Authenticator proxyAuthenticator = buildProxyAuthenticator(proxyConfiguration);
+            ingestClient = new SnowpipeIngestClient(baseUri, qualifiedPipeName, authorizationProvider, proxySelector, proxyAuthenticator);
         } else {
             throw new InitializationException("RSA Private Key not provided");
         }
@@ -211,6 +248,37 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_NAME_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_NAME.getName());
         config.renameProperty(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName());
         config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
+    }
+
+    private ProxySelector buildProxySelector(final ProxyConfiguration proxyConfiguration) {
+        final Proxy proxy = proxyConfiguration.createProxy();
+        return new ProxySelector() {
+            @Override
+            public List<Proxy> select(final URI uri) {
+                return List.of(proxy);
+            }
+
+            @Override
+            public void connectFailed(final URI uri, final SocketAddress sa, final IOException ioe) {
+            }
+        };
+    }
+
+    private Authenticator buildProxyAuthenticator(final ProxyConfiguration proxyConfiguration) {
+        if (!proxyConfiguration.hasCredential()) {
+            return null;
+        }
+        final String proxyUser = proxyConfiguration.getProxyUserName();
+        final String proxyPassword = proxyConfiguration.getProxyUserPassword();
+        return new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                if (getRequestorType() == RequestorType.PROXY) {
+                    return new PasswordAuthentication(proxyUser, proxyPassword.toCharArray());
+                }
+                return super.getPasswordAuthentication();
+            }
+        };
     }
 
     private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(ConfigurationContext context) {
