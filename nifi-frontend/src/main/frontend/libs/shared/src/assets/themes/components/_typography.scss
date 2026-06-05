@@ -1,0 +1,133 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+
+@use '@fontsource/inter' as inter-normal;
+@use '@fontsource/inter/400.css' as inter-400;
+@use '@fontsource/inter/400-italic.css' as inter-italic;
+@use '@fontsource/inter/700.css' as inter-700;
+
+@layer base {
+    @font-face {
+        font-family: 'Inter';
+    }
+}
+
+@mixin generate-material-theme() {
+    :root {
+        .mat-typography.text-base {
+            font-family: var(--mat-sys-body-medium-font);
+            line-height: var(--mat-sys-body-medium-line-height);
+            font-size: var(--mat-sys-body-medium-size);
+            font-weight: var(--mat-sys-body-medium-weight);
+            letter-spacing: normal;
+
+            h2 {
+                margin: unset;
+                line-height: 28px;
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            h3 {
+                margin: 0 0 16px;
+                line-height: 28px;
+                font-size: 20px;
+                font-weight: 700;
+            }
+
+            h4 {
+                margin: unset;
+                line-height: 20px;
+                font-size: 14px;
+                font-weight: 400;
+            }
+
+            a {
+                letter-spacing: normal;
+            }
+
+            .mdc-text-field--outlined .mdc-floating-label {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+            }
+
+            .mat-mdc-select {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+            }
+
+            .mat-mdc-option {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+            }
+
+            .mat-mdc-form-field {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+            }
+
+            .mdc-dialog__content {
+                font-size: var(--mat-sys-body-medium-size) !important;
+            }
+
+            .mat-tree-node,
+            .mat-nested-tree-node {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+            }
+
+            .mat-mdc-header-cell {
+                font-weight: 700;
+            }
+
+            .mat-expansion-panel-header {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+                font-weight: 700;
+            }
+
+            .mat-expansion-panel-content {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: 20px;
+            }
+
+            .mat-mdc-menu-content,
+            .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
+                --mat-menu-item-label-text-weight: var(--mat-sys-body-medium-weight);
+            }
+
+            .mdc-list-item__primary-text {
+                font-size: var(--mat-sys-body-medium-size);
+                letter-spacing: normal;
+                line-height: normal;
+            }
+
+            .mat-drawer {
+                color: var(--mat-app-text-color);
+            }
+        }
+    }
+}
