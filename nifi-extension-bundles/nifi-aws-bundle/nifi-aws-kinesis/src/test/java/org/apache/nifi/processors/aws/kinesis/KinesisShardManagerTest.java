@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
 import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
 import software.amazon.awssdk.services.dynamodb.model.KeyType;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
@@ -51,6 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -306,12 +308,17 @@ class KinesisShardManagerTest {
     }
 
     /**
-     * Verifies that when the configured table has the new schema but a lingering migration
-     * table exists (crash after copy but before migration table deletion), the items are
-     * copied and the migration table is cleaned up.
+     * Regression test for NIFI-16003: cleanup of a lingering migration table must NOT delete
+     * the migration table unless the recovery copy succeeds. Previously it was deleted
+     * unconditionally, causing checkpoint loss when the prior copy had failed (e.g. due to
+     * a stale DynamoDB router schema cache after table recreation).
+     *
+     * Phase 1 forces the copy to fail and verifies the migration table is preserved.
+     * Phase 2 retries with a working copy and verifies items are recopied and the migration
+     * table is deleted.
      */
     @Test
-    void testEnsureCheckpointTableCleansUpLingeringMigrationTable() {
+    void testEnsureCheckpointTableRecoversCopyFromLingeringMigrationTable() {
         when(dynamoDb.describeTable(any(DescribeTableRequest.class))).thenAnswer(invocation -> {
             final DescribeTableRequest req = invocation.getArgument(0);
             if ("test-table".equals(req.tableName()) || "test-table_migration".equals(req.tableName())) {
@@ -321,14 +328,38 @@ class KinesisShardManagerTest {
         });
 
         when(dynamoDb.deleteTable(any(DeleteTableRequest.class))).thenReturn(DeleteTableResponse.builder().build());
-        when(dynamoDb.scan(any(ScanRequest.class))).thenReturn(ScanResponse.builder().build());
+        when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(UpdateItemResponse.builder().build());
+
+        final Map<String, AttributeValue> checkpointItem = Map.of(
+                "streamName", AttributeValue.builder().s("test-stream").build(),
+                "shardId", AttributeValue.builder().s("shard-1").build(),
+                "sequenceNumber", AttributeValue.builder().s("12345").build());
+        when(dynamoDb.scan(any(ScanRequest.class))).thenReturn(ScanResponse.builder().items(checkpointItem).build());
+
+        final InternalServerErrorException copyFailure = InternalServerErrorException.builder()
+                .message("simulated transient DynamoDB failure during checkpoint copy")
+                .build();
+        when(dynamoDb.putItem(any(PutItemRequest.class)))
+                .thenThrow(copyFailure)
+                .thenReturn(PutItemResponse.builder().build());
+
+        assertThrows(InternalServerErrorException.class, () -> manager.ensureCheckpointTableExists(),
+                "A failed recovery copy must propagate so the processor does not start with missing checkpoints");
+        verify(dynamoDb, never()).deleteTable(any(DeleteTableRequest.class));
 
         manager.ensureCheckpointTableExists();
 
-        verify(dynamoDb, never()).createTable(any(CreateTableRequest.class));
+        final ArgumentCaptor<PutItemRequest> putCaptor = ArgumentCaptor.forClass(PutItemRequest.class);
+        verify(dynamoDb, times(2)).putItem(putCaptor.capture());
+        for (final PutItemRequest req : putCaptor.getAllValues()) {
+            assertEquals("test-table", req.tableName(), "Recovery copies must target the configured checkpoint table");
+            assertEquals("12345", req.item().get("sequenceNumber").s(), "Checkpoint data must be preserved across the failed copy");
+        }
+
         final ArgumentCaptor<DeleteTableRequest> deleteCaptor = ArgumentCaptor.forClass(DeleteTableRequest.class);
         verify(dynamoDb).deleteTable(deleteCaptor.capture());
-        assertEquals("test-table_migration", deleteCaptor.getValue().tableName(), "Lingering migration table should be deleted");
+        assertEquals("test-table_migration", deleteCaptor.getValue().tableName(),
+                "Migration table must be deleted only after the recovery copy succeeds");
     }
 
     private static DescribeTableResponse newSchemaActiveResponse() {
