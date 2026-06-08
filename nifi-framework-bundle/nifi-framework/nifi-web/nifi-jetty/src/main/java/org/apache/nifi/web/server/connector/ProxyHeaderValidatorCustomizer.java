@@ -76,10 +76,12 @@ public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customi
         if (peerCertificate == null) {
             processProxyHostHeaders(request);
         } else {
-            // Requests authenticated with Client Certificates but not indicated as replicated require header validation
+            // Requests authenticated with Client Certificates that are replicated to nodes or forwarded to the Cluster
+            // Coordinator originate from trusted nodes over mutual TLS, so their proxy host headers are not re-validated
             final HttpFields requestHeaders = request.getHeaders();
             final String requestReplicated = requestHeaders.get(ReplicationHeader.REQUEST_REPLICATED.getHeader());
-            if (requestReplicated == null) {
+            final String requestForwardedToCoordinator = requestHeaders.get(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader());
+            if (requestReplicated == null && requestForwardedToCoordinator == null) {
                 processProxyHostHeaders(request);
             }
         }

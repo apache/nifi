@@ -308,6 +308,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                 final URI uri, final Object entity, final Map<String, String> headers) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
+        // Indicate to the Cluster Coordinator that this request was forwarded by a node over mutual TLS, so the
+        // Coordinator can trust the proxy host headers without re-validating them against its own allowed proxy hosts
+        updatedHeaders.put(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader(), Boolean.TRUE.toString());
+
         // include the proxied entities header
         updateRequestHeaders(updatedHeaders, user);
 

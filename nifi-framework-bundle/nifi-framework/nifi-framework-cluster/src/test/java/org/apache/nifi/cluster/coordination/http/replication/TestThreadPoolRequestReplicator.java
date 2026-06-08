@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.cluster.coordination.http.replication.util.MockReplicationClient;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -56,6 +57,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -377,6 +379,46 @@ public class TestThreadPoolRequestReplicator {
                 new NodeConnectionStatus(invocation.getArgument(0), NodeConnectionState.CONNECTED));
 
         return coordinator;
+    }
+
+    @Test
+    @Timeout(value = 15)
+    public void testForwardToCoordinatorSetsForwardedHeader() throws Exception {
+        final NodeIdentifier coordinatorNodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
+
+        final ClusterCoordinator coordinator = createClusterCoordinator();
+        final NiFiProperties props = NiFiProperties.createBasicNiFiProperties((String) null);
+        final MockReplicationClient client = new MockReplicationClient();
+        final RequestCompletionCallback callback = (uri, method, responses) -> { };
+
+        final Map<String, String> capturedHeaders = new ConcurrentHashMap<>();
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, callback, EventReporter.NO_OP, props) {
+            @Override
+            protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId, final URI uri, final String requestId,
+                    final StandardAsyncClusterResponse response) {
+                capturedHeaders.putAll(request.getHeaders());
+
+                final Response clientResponse = mock(Response.class);
+                when(clientResponse.getStatus()).thenReturn(Status.OK.getStatusCode());
+                return new NodeResponse(nodeId, request.getMethod(), uri, clientResponse, -1L, requestId);
+            }
+        };
+
+        try {
+            final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            final URI uri = new URI("http://localhost:8080/nifi-api/controller/registry-types");
+            final Entity entity = new ProcessorEntity();
+
+            final AsyncClusterResponse response = replicator.forwardToCoordinator(coordinatorNodeId, HttpMethod.GET, uri, entity, new HashMap<>());
+            response.awaitMergedResponse(3, TimeUnit.SECONDS);
+
+            assertEquals(Boolean.TRUE.toString(), capturedHeaders.get(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader()));
+            assertNull(capturedHeaders.get(ReplicationHeader.REQUEST_REPLICATED.getHeader()));
+        } finally {
+            replicator.shutdown();
+        }
     }
 
     @Test

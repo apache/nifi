@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.junit.jupiter.api.Test;
 
@@ -88,11 +89,17 @@ class TestReplicationHeaderUtils {
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
             headers.put(rh.getHeader(), SPOOFED_VALUE);
         }
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
+            headers.put(rh.getHeader(), SPOOFED_VALUE);
+        }
         headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
 
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
+            assertNull(headers.get(rh.getHeader()), "Replication header should have been stripped: " + rh.getHeader());
+        }
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
             assertNull(headers.get(rh.getHeader()), "Replication header should have been stripped: " + rh.getHeader());
         }
         assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
