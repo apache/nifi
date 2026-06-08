@@ -27,6 +27,7 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
@@ -45,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -52,6 +54,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -210,6 +213,27 @@ class StandardControllerServiceProviderTest {
         assertEquals(ControllerServiceState.ENABLED, primaryServiceNode.getState());
 
         assertEquals(ControllerServiceState.DISABLED, secondaryServiceNode.getState(), "Secondary Service should remain disabled");
+    }
+
+    @Test
+    void testGetControllerServiceIdentifiersForConnectorManagedGroup() {
+        final String connectorGroupId = "connector-managed-group-id";
+        final String serviceId = "connector-cs-id";
+
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        when(rootGroup.getIdentifier()).thenReturn("root-group-id");
+        when(flowManager.getRootGroup()).thenReturn(rootGroup);
+
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        when(serviceNode.getIdentifier()).thenReturn(serviceId);
+        when(serviceNode.getProxiedControllerService()).thenReturn(mock(ControllerService.class));
+
+        final ProcessGroup connectorGroup = mock(ProcessGroup.class);
+        when(connectorGroup.getControllerServices(true)).thenReturn(Set.of(serviceNode));
+        when(flowManager.getGroup(connectorGroupId)).thenReturn(connectorGroup);
+
+        final Set<String> identifiers = serviceProvider.getControllerServiceIdentifiers(ControllerService.class, connectorGroupId);
+        assertTrue(identifiers.contains(serviceId));
     }
 
     private ControllerServiceNode createControllerService(
