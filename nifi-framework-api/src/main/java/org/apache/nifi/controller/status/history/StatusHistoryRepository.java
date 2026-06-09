@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import org.apache.nifi.controller.status.ConnectorStatus;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -47,6 +49,25 @@ public interface StatusHistoryRepository {
      * @param garbageCollectionStatus status of garbage collection
      */
     void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp);
+
+    /**
+     * Captures the status information provided in the given report, additionally providing the status of each
+     * Connector-managed flow. Connector-managed Process Groups are siblings of the root group and are not reachable
+     * from {@code rootGroupStatus}, so this overload allows implementations to observe them (for example, to export
+     * Connector-managed flow metrics). The default implementation ignores {@code connectorStatuses} and delegates to
+     * {@link #capture(NodeStatus, ProcessGroupStatus, List, Date)} so existing implementations continue to work
+     * unchanged.
+     *
+     * @param nodeStatus status of the node
+     * @param rootGroupStatus status of the root group and its content
+     * @param connectorStatuses status of each registered Connector, each carrying its managed root group status
+     * @param garbageCollectionStatus status of garbage collection
+     * @param timestamp timestamp of capture
+     */
+    default void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, Collection<ConnectorStatus> connectorStatuses,
+                         List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp) {
+        capture(nodeStatus, rootGroupStatus, garbageCollectionStatus, timestamp);
+    }
 
     /**
      * @param connectionId the ID of the Connection for which the Status is

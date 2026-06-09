@@ -35,6 +35,7 @@ import org.apache.nifi.logging.ComponentLog;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
@@ -66,6 +67,30 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     String getCanonicalClassName();
 
     BundleCoordinate getBundleCoordinate();
+
+    /**
+     * @return an immutable map of the Connector's logging attributes: the framework-managed identity keys
+     *         (such as connector identifier, name, component type, and bundle coordinate) merged with any
+     *         provider-supplied custom attributes. These are the attributes applied to the MDC of the Connector's
+     *         managed flow and surfaced on Connector metrics. Never {@code null}. The default implementation
+     *         returns an empty map.
+     */
+    default Map<String, String> getLoggingAttributes() {
+        return Map.of();
+    }
+
+    /**
+     * Replaces the provider-supplied custom logging attributes for this Connector, merging them with the
+     * framework-managed identity keys (see {@link #getLoggingAttributes()}). This is invoked by the framework
+     * when the Connector node is added or restored, using attributes sourced from the
+     * {@link ConnectorConfigurationProvider} (if one is configured). Keys reserved by the framework are ignored.
+     * The default implementation is a no-op.
+     *
+     * @param attributes the proposed custom attributes; {@code null} or empty clears any previously supplied
+     *                   custom attributes (the framework-managed keys remain)
+     */
+    default void setCustomLoggingAttributes(final Map<String, String> attributes) {
+    }
 
     /**
      * Returns whether or not the underlying extension is missing (i.e., the Connector is a GhostConnector).

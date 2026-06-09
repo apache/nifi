@@ -829,6 +829,88 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
     }
 
+    @Test
+    public void testLoggingAttributesIncludeFrameworkKeys() throws Exception {
+        final SleepingConnector connector = new SleepingConnector(Duration.ofMillis(1));
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final Map<String, String> attributes = connectorNode.getLoggingAttributes();
+        assertEquals("test-connector-id", attributes.get("connectorId"));
+        assertEquals(connector.getClass().getCanonicalName(), attributes.get("connectorComponent"));
+        assertEquals("org.apache.nifi", attributes.get("connectorBundleGroup"));
+        assertEquals("test-standard-connector-node", attributes.get("connectorBundleArtifact"));
+        assertEquals("1.0.0", attributes.get("connectorBundleVersion"));
+        assertEquals(connector.getClass().getSimpleName(), attributes.get("connectorName"));
+    }
+
+    @Test
+    public void testSetNameRefreshesConnectorNameLoggingAttribute() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setName("Renamed Connector");
+
+        assertEquals("Renamed Connector", connectorNode.getLoggingAttributes().get("connectorName"));
+    }
+
+    @Test
+    public void testSetCustomLoggingAttributesMergesWithFrameworkKeys() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setCustomLoggingAttributes(Map.of(
+            "customA", "valueA",
+            "customB", "valueB"
+        ));
+
+        final Map<String, String> attributes = connectorNode.getLoggingAttributes();
+        assertEquals("valueA", attributes.get("customA"));
+        assertEquals("valueB", attributes.get("customB"));
+        assertEquals("test-connector-id", attributes.get("connectorId"));
+    }
+
+    @Test
+    public void testSetCustomLoggingAttributesFiltersReservedKeys() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setCustomLoggingAttributes(Map.of(
+            "connectorId", "attempted-override",
+            "connectorBundleVersion", "9.9.9",
+            "customA", "valueA"
+        ));
+
+        final Map<String, String> attributes = connectorNode.getLoggingAttributes();
+        // Reserved keys are owned by the framework: connectorId stays as the framework value.
+        assertEquals("test-connector-id", attributes.get("connectorId"));
+        assertEquals("1.0.0", attributes.get("connectorBundleVersion"));
+        // Non-reserved custom keys are preserved.
+        assertEquals("valueA", attributes.get("customA"));
+    }
+
+    @Test
+    public void testSetCustomLoggingAttributesNullClears() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setCustomLoggingAttributes(Map.of("customA", "valueA"));
+        assertTrue(connectorNode.getLoggingAttributes().containsKey("customA"));
+
+        connectorNode.setCustomLoggingAttributes(null);
+        assertFalse(connectorNode.getLoggingAttributes().containsKey("customA"));
+        // Framework keys remain.
+        assertEquals("test-connector-id", connectorNode.getLoggingAttributes().get("connectorId"));
+    }
+
+    @Test
+    public void testReservedKeysExposeFrameworkAttributeNames() {
+        final Set<String> reserved = ConnectorLoggingAttribute.getReservedKeys();
+        assertTrue(reserved.contains("connectorId"));
+        assertTrue(reserved.contains("connectorName"));
+        assertTrue(reserved.contains("connectorComponent"));
+        assertTrue(reserved.contains("connectorBundleGroup"));
+        assertTrue(reserved.contains("connectorBundleArtifact"));
+        assertTrue(reserved.contains("connectorBundleVersion"));
+    }
+
+    @Test
+    public void testGetProcessGroupReturnsManagedFlowRoot() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        assertEquals(managedProcessGroup, connectorNode.getProcessGroup());
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);

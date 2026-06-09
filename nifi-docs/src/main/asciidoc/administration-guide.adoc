@@ -211,11 +211,25 @@ Component logs provide the following MDC named values:
 - `processGroupName` contains the name of the Process Group
 - `processGroupNamePath` contains of the hierarchy of names for Process Groups with separators
 
+Components that run inside a Connector-managed flow also carry framework-supplied MDC values that identify the owning
+Connector:
+
+- `connectorId` contains the UUID of the Connector
+- `connectorName` contains the user-visible name of the Connector
+- `connectorComponent` contains the fully qualified class name of the Connector implementation
+- `connectorBundleGroup`, `connectorBundleArtifact`, `connectorBundleVersion` identify the NAR bundle the Connector was
+  loaded from
+
+Additional implementation-specific MDC values may be supplied by the framework
+`ConnectorConfigurationProvider` extension via `getLoggingAttributes(String connectorId)`. The framework consults the
+provider at connector creation time and merges the result with the framework-managed keys above. Keys reserved by the
+framework (those listed above) cannot be overridden; attempts to do so are dropped and logged as a `WARN`.
+
 MDC named values can be added to a Logback pattern layout using the `mdc` conversion word.
 
 [source, xml]
 ----
-<pattern>%date %level [%thread] %mdc{processGroupId} %logger{40} %msg%n</pattern>
+<pattern>%date %level [%thread] %mdc{connectorId} %mdc{processGroupId} %logger{40} %msg%n</pattern>
 ----
 
 Logs from classes other than extension components do not have MDC named values. Logs formatted using the pattern layout

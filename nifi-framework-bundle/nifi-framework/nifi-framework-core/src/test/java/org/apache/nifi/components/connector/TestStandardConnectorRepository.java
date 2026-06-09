@@ -308,6 +308,10 @@ public class TestStandardConnectorRepository {
         final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Local Name");
         repository.restoreConnector(connector);
 
+        // Restoring the connector sources provider-supplied logging attributes; reset so that the assertions
+        // below verify only that the LOCAL_ONLY get path does not consult the provider.
+        reset(provider);
+
         final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.LOCAL_ONLY);
 
         assertNotNull(result);
@@ -324,6 +328,10 @@ public class TestStandardConnectorRepository {
         final ConnectorNode connector2 = createSimpleConnectorNode("connector-2", "Local Name 2");
         repository.restoreConnector(connector1);
         repository.restoreConnector(connector2);
+
+        // Restoring the connectors sources provider-supplied logging attributes; reset so that the assertions
+        // below verify only that the LOCAL_ONLY get path does not consult the provider.
+        reset(provider);
 
         final List<ConnectorNode> results = repository.getConnectors(ConnectorSyncMode.LOCAL_ONLY);
 
@@ -1584,6 +1592,100 @@ public class TestStandardConnectorRepository {
         when(node.getName()).thenReturn(name);
         when(node.getIdentifier()).thenReturn(id);
         return node;
+    }
+
+    // --- provider-sourced logging attribute application (add/restore) tests ---
+
+    @Test
+    public void testRestoreConnectorAppliesEmptyAttributesWhenNoProvider() {
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getConnectorConfigurationProvider()).thenReturn(null);
+        repository.initialize(initContext);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Connector 1");
+        repository.restoreConnector(connector);
+
+        verify(connector).setCustomLoggingAttributes(Map.of());
+    }
+
+    @Test
+    public void testRestoreConnectorAppliesProviderLoggingAttributes() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final Map<String, String> expected = Map.of("connectorDefinitionId", "snowflake.runtime.postgres-cdc");
+        when(provider.getLoggingAttributes("connector-1")).thenReturn(expected);
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Connector 1");
+        repository.restoreConnector(connector);
+
+        verify(provider).getLoggingAttributes("connector-1");
+        verify(connector).setCustomLoggingAttributes(expected);
+    }
+
+    @Test
+    public void testAddConnectorAppliesProviderLoggingAttributes() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final Map<String, String> expected = Map.of("connectorDefinitionId", "snowflake.runtime.postgres-cdc");
+        when(provider.getLoggingAttributes("connector-1")).thenReturn(expected);
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Connector 1");
+        repository.addConnector(connector);
+
+        verify(provider).getLoggingAttributes("connector-1");
+        verify(connector).setCustomLoggingAttributes(expected);
+    }
+
+    @Test
+    public void testRestoreConnectorAppliesEmptyAttributesWhenProviderReturnsNull() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getLoggingAttributes(anyString())).thenReturn(null);
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Connector 1");
+        repository.restoreConnector(connector);
+
+        verify(connector).setCustomLoggingAttributes(Map.of());
+    }
+
+    @Test
+    public void testRestoreConnectorAppliesEmptyAttributesWhenProviderThrows() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getLoggingAttributes(anyString())).thenThrow(new RuntimeException("provider boom"));
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Connector 1");
+        repository.restoreConnector(connector);
+
+        verify(connector).setCustomLoggingAttributes(Map.of());
+    }
+
+    @Test
+    public void testRestoreConnectorAppliesAllAttributesWhenAboveCardinalityThreshold() {
+        // More than the soft cardinality threshold (5): the framework logs a WARN but must not drop attributes.
+        final Map<String, String> expected = Map.of(
+                "attr1", "v1",
+                "attr2", "v2",
+                "attr3", "v3",
+                "attr4", "v4",
+                "attr5", "v5",
+                "attr6", "v6"
+        );
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getLoggingAttributes("connector-1")).thenReturn(expected);
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Connector 1");
+        repository.restoreConnector(connector);
+
+        verify(connector).setCustomLoggingAttributes(expected);
     }
 
     // --- Helper Methods ---

@@ -20,6 +20,7 @@ package org.apache.nifi.components.connector;
 import org.apache.nifi.flow.VersionedConnectorState;
 
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -210,6 +211,34 @@ public interface ConnectorConfigurationProvider {
      */
     default boolean shouldApplyUpdate(final String connectorId) {
         return true;
+    }
+
+    /**
+     * Returns identity-shaped logging attributes the framework should include in the SLF4J {@code MDC} for
+     * every log line emitted by the Connector with the given identifier and by any component (Processor,
+     * Controller Service, etc.) running inside its managed flow. The same attributes are also snapshotted
+     * onto {@code ProcessGroupStatus} so that status-based reporting tasks (e.g. OpenTelemetry) can attach
+     * them as metric attributes.
+     *
+     * <p>The framework reserves a set of well-known keys that describe the Connector itself (identity,
+     * bundle coordinate, etc.). Any entry in the returned map whose key collides with a reserved
+     * framework-managed key is dropped by the framework and a {@code WARN} is logged for that entry;
+     * the remaining entries are accepted.</p>
+     *
+     * <p>The framework consults this method once, at connector create time. It is the provider's
+     * responsibility to ensure the returned values are stable for the lifetime of the connector
+     * instance or to publish updates through other means; mid-lifecycle refresh is not currently
+     * defined.</p>
+     *
+     * <p>The default returns {@link Map#of()} so that providers that do not need to publish additional
+     * attributes (and runtimes that have no provider configured) get only the framework-managed identity
+     * keys in MDC.</p>
+     *
+     * @param connectorId the identifier of the connector whose logging attributes are being requested
+     * @return an immutable map of attribute keys to values; never {@code null}
+     */
+    default Map<String, String> getLoggingAttributes(final String connectorId) {
+        return Map.of();
     }
 
     /**
