@@ -43,12 +43,10 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
     }
 
     /**
-     * Exercises the path where {@code syncConnector} is invoked on a node whose in-memory Connector is already in
-     * Troubleshooting mode. The node-restart scenarios in the parent class do not cover this: a restart creates a
-     * fresh Connector node in STOPPED state before sync restores it to Troubleshooting, whereas a disconnect / sync
-     * cycle leaves the in-memory Connector untouched on the disconnected node and then triggers a sync against the
-     * existing Troubleshooting node when it reconnects. That path runs {@code connector.setName(...)} and configuration
-     * handling on a Connector that is already TROUBLESHOOTING; a regression in that path would only surface here.
+     * Exercises the path where {@code syncConnector} runs against a node whose in-memory Connector is already in
+     * Troubleshooting mode. Disconnecting and then reconnecting a node leaves the in-memory Connector in place and
+     * triggers a sync that invokes {@code connector.setName(...)} and configuration handling on a Connector that is
+     * already TROUBLESHOOTING.
      */
     @Test
     public void testSyncAgainstExistingTroubleshootingConnectorOnReconnect() throws NiFiClientException, IOException, InterruptedException {

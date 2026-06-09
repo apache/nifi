@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -213,19 +214,18 @@ public class ConnectorCrudIT extends NiFiSystemIT {
             "Was able to retrieve child process group of connector-managed flow via FlowClient");
     }
 
-    private void assertConnectorManagedAccessRejected(final FlowClientCall call, final String failureMessage) throws IOException {
+    private void assertConnectorManagedAccessRejected(final Callable<?> call, final String failureMessage) throws IOException {
         try {
-            call.invoke();
+            call.call();
             fail(failureMessage);
         } catch (final NiFiClientException e) {
             final WebApplicationException cause = assertInstanceOf(WebApplicationException.class, e.getCause());
             assertEquals(Response.Status.CONFLICT.getStatusCode(), cause.getResponse().getStatus());
+        } catch (final IOException e) {
+            throw e;
+        } catch (final Exception e) {
+            fail("Unexpected exception while invoking call: " + e.getMessage());
         }
-    }
-
-    @FunctionalInterface
-    private interface FlowClientCall {
-        void invoke() throws NiFiClientException, IOException;
     }
 
     @Test
