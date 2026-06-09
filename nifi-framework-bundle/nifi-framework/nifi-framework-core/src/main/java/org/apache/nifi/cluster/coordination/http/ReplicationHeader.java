@@ -21,7 +21,10 @@ package org.apache.nifi.cluster.coordination.http;
  */
 public enum ReplicationHeader {
     /** Boolean indicator that the Cluster Coordinator is initiating the replicated request to other nodes */
-    REQUEST_REPLICATED("request-replicated");
+    REQUEST_REPLICATED("request-replicated"),
+
+    /** Boolean indicator that a node is forwarding a request to the Cluster Coordinator for subsequent replication */
+    REQUEST_FORWARDED_TO_COORDINATOR("request-forwarded-to-coordinator");
 
     private final String header;
 

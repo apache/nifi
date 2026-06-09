@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.junit.jupiter.api.Test;
 
@@ -88,6 +89,9 @@ class TestReplicationHeaderUtils {
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
             headers.put(rh.getHeader(), SPOOFED_VALUE);
         }
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
+            headers.put(rh.getHeader(), SPOOFED_VALUE);
+        }
         headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
@@ -95,7 +99,46 @@ class TestReplicationHeaderUtils {
         for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
             assertNull(headers.get(rh.getHeader()), "Replication header should have been stripped: " + rh.getHeader());
         }
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
+            assertNull(headers.get(rh.getHeader()), "Replication header should have been stripped: " + rh.getHeader());
+        }
         assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
+    }
+
+    @Test
+    void testStripReplicationMarkerHeadersRemovesOnlyMarkers() {
+        final Map<String, String> headers = new HashMap<>();
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
+            headers.put(rh.getHeader(), SPOOFED_VALUE);
+        }
+        for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
+            headers.put(rh.getHeader(), SHOULD_SURVIVE_VALUE);
+        }
+        headers.put(CUSTOM_HEADER, SHOULD_SURVIVE_VALUE);
+
+        ReplicationHeaderUtils.stripReplicationMarkerHeaders(headers);
+
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
+            assertNull(headers.get(rh.getHeader()), "Replication marker header should have been stripped: " + rh.getHeader());
+        }
+        for (final RequestReplicationHeader rh : RequestReplicationHeader.values()) {
+            assertEquals(SHOULD_SURVIVE_VALUE, headers.get(rh.getHeader()), "Request replication header should have been preserved: " + rh.getHeader());
+        }
+        assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
+    }
+
+    @Test
+    void testStripReplicationMarkerHeadersCaseInsensitive() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Request-Replicated", "true");
+        headers.put("Request-Forwarded-To-Coordinator", "true");
+        headers.put("Replication-Target-Id", SHOULD_SURVIVE_VALUE);
+
+        ReplicationHeaderUtils.stripReplicationMarkerHeaders(headers);
+
+        assertFalse(headers.containsKey("Request-Replicated"));
+        assertFalse(headers.containsKey("Request-Forwarded-To-Coordinator"));
+        assertEquals(SHOULD_SURVIVE_VALUE, headers.get("Replication-Target-Id"));
     }
 
     @Test
