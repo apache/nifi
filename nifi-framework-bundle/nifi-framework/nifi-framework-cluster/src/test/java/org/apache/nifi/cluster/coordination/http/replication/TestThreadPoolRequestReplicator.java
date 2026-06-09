@@ -381,18 +381,13 @@ public class TestThreadPoolRequestReplicator {
         return coordinator;
     }
 
-    @Test
-    @Timeout(value = 15)
-    public void testForwardToCoordinatorSetsForwardedHeader() throws Exception {
-        final NodeIdentifier coordinatorNodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
-
+    private ThreadPoolRequestReplicator createHeaderCapturingReplicator(final Map<String, String> capturedHeaders) {
         final ClusterCoordinator coordinator = createClusterCoordinator();
         final NiFiProperties props = NiFiProperties.createBasicNiFiProperties((String) null);
         final MockReplicationClient client = new MockReplicationClient();
         final RequestCompletionCallback callback = (uri, method, responses) -> { };
 
-        final Map<String, String> capturedHeaders = new ConcurrentHashMap<>();
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(5, 100, client, coordinator, callback, EventReporter.NO_OP, props) {
+        return new ThreadPoolRequestReplicator(5, 100, client, coordinator, callback, EventReporter.NO_OP, props) {
             @Override
             protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId, final URI uri, final String requestId,
                     final StandardAsyncClusterResponse response) {
@@ -403,6 +398,15 @@ public class TestThreadPoolRequestReplicator {
                 return new NodeResponse(nodeId, request.getMethod(), uri, clientResponse, -1L, requestId);
             }
         };
+    }
+
+    @Test
+    @Timeout(value = 15)
+    public void testForwardToCoordinatorSetsForwardedHeader() throws Exception {
+        final NodeIdentifier coordinatorNodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
+
+        final Map<String, String> capturedHeaders = new ConcurrentHashMap<>();
+        final ThreadPoolRequestReplicator replicator = createHeaderCapturingReplicator(capturedHeaders);
 
         try {
             final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
@@ -416,6 +420,39 @@ public class TestThreadPoolRequestReplicator {
 
             assertEquals(Boolean.TRUE.toString(), capturedHeaders.get(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader()));
             assertNull(capturedHeaders.get(ReplicationHeader.REQUEST_REPLICATED.getHeader()));
+        } finally {
+            replicator.shutdown();
+        }
+    }
+
+    @Test
+    @Timeout(value = 15)
+    public void testForwardToCoordinatorStripsSpoofedMarkersAndPreservesTargetId() throws Exception {
+        final NodeIdentifier coordinatorNodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
+
+        final Map<String, String> capturedHeaders = new ConcurrentHashMap<>();
+        final ThreadPoolRequestReplicator replicator = createHeaderCapturingReplicator(capturedHeaders);
+
+        try {
+            final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            final URI uri = new URI("http://localhost:8080/nifi-api/controller/registry-types");
+            final Entity entity = new ProcessorEntity();
+
+            final Map<String, String> inboundHeaders = new HashMap<>();
+            inboundHeaders.put(ReplicationHeader.REQUEST_REPLICATED.getHeader(), "spoofed");
+            inboundHeaders.put(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader(), "spoofed");
+            inboundHeaders.put(RequestReplicationHeader.REPLICATION_TARGET_ID.getHeader(), "node-uuid");
+
+            final AsyncClusterResponse response = replicator.forwardToCoordinator(coordinatorNodeId, HttpMethod.GET, uri, entity, inboundHeaders);
+            response.awaitMergedResponse(3, TimeUnit.SECONDS);
+
+            // The spoofed replicated marker is stripped, the forwarded marker is set by the framework, and the
+            // framework-supplied replication target id is preserved
+            assertNull(capturedHeaders.get(ReplicationHeader.REQUEST_REPLICATED.getHeader()));
+            assertEquals(Boolean.TRUE.toString(), capturedHeaders.get(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader()));
+            assertEquals("node-uuid", capturedHeaders.get(RequestReplicationHeader.REPLICATION_TARGET_ID.getHeader()));
         } finally {
             replicator.shutdown();
         }

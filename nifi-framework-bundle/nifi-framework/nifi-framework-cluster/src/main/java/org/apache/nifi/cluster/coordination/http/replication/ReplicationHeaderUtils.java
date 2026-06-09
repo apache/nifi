@@ -110,6 +110,19 @@ public final class ReplicationHeaderUtils {
     }
 
     /**
+     * Removes the trust-bearing {@link ReplicationHeader} marker headers from the map (case-insensitive) so that an
+     * inbound client request cannot spoof the markers that cause a receiving node to bypass proxy host validation. The
+     * caller is expected to set the appropriate marker explicitly after invoking this method. Other replication protocol
+     * headers, such as {@code replication-target-id}, are intentionally left intact because they are set by the framework
+     * and must transit to the receiving node.
+     */
+    public static void stripReplicationMarkerHeaders(final Map<String, String> headers) {
+        for (final ReplicationHeader rh : ReplicationHeader.values()) {
+            removeHeader(headers, rh.getHeader());
+        }
+    }
+
+    /**
      * Removes hop-by-hop / transport-framing headers that should not be forwarded in a
      * replicated request (case-insensitive).
      */
