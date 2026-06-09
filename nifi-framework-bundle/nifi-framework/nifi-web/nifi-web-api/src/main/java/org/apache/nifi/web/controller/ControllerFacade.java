@@ -334,8 +334,7 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getProcessorStatusHistory(final String processorId) {
-        final ProcessGroup root = getRootGroup();
-        final ProcessorNode processor = root.findProcessor(processorId);
+        final ProcessorNode processor = flowController.getFlowManager().getProcessorNode(processorId);
 
         // ensure the processor was found
         if (processor == null) {
@@ -362,8 +361,7 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getConnectionStatusHistory(final String connectionId) {
-        final ProcessGroup root = getRootGroup();
-        final Connection connection = root.findConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
 
         // ensure the connection was found
         if (connection == null) {
@@ -392,8 +390,7 @@ public class ControllerFacade implements Authorizable {
         final FlowManager flowManager = flowController.getFlowManager();
 
         final String searchId = groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS) ? flowManager.getRootGroupId() : groupId;
-        final ProcessGroup root = flowManager.getRootGroup();
-        final ProcessGroup group = root.findProcessGroup(searchId);
+        final ProcessGroup group = flowManager.getGroup(searchId);
 
         // ensure the processor was found
         if (group == null) {
@@ -859,15 +856,7 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified connection
      */
     public ConnectionStatus getConnectionStatus(final String connectionId) {
-        final ProcessGroup root = getRootGroup();
-        Connection connection = root.findConnection(connectionId);
-
-        // If the Connection was not found by traversing the root hierarchy, fall back to a direct FlowManager lookup. This
-        // is necessary because Connections that live inside a Connector's Managed Process Group are not part of the main
-        // root Process Group's parent hierarchy, but they are still registered with the FlowManager.
-        if (connection == null) {
-            connection = flowController.getFlowManager().getConnection(connectionId);
-        }
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
 
         // ensure the connection was found
         if (connection == null) {
@@ -896,8 +885,7 @@ public class ControllerFacade implements Authorizable {
      * @return the statistics for the specified connection
      */
     public StatusAnalytics getConnectionStatusAnalytics(final String connectionId) {
-        final ProcessGroup root = getRootGroup();
-        final Connection connection = root.findConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
 
         // ensure the connection was found
         if (connection == null) {
