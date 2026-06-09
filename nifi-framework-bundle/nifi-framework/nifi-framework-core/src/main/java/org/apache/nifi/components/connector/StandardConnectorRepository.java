@@ -723,6 +723,21 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
+    public Map<String, String> getLoggingAttributesForConnector(final String connectorId) {
+        if (configurationProvider == null) {
+            return Map.of();
+        }
+        try {
+            final Map<String, String> attributes = configurationProvider.getLoggingAttributes(connectorId);
+            return attributes == null ? Map.of() : attributes;
+        } catch (final Exception e) {
+            logger.warn("ConnectorConfigurationProvider [{}] threw while computing logging attributes for connector [{}]; using empty map: {}",
+                    configurationProvider.getClass().getSimpleName(), connectorId, e.getMessage(), e);
+            return Map.of();
+        }
+    }
+
+    @Override
     public ConnectorStateTransition createStateTransition(final String type, final String id) {
         final String componentDescription = "StandardConnectorNode[id=" + id + ", type=" + type + "]";
         return new StandardConnectorStateTransition(componentDescription);

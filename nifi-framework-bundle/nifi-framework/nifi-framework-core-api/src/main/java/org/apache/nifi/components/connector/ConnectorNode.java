@@ -35,6 +35,7 @@ import org.apache.nifi.logging.ComponentLog;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
@@ -66,6 +67,14 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     String getCanonicalClassName();
 
     BundleCoordinate getBundleCoordinate();
+
+    /**
+     * @return an immutable map of the Connector's logging attributes: the framework-managed identity keys
+     *         (such as connector identifier, name, component type, and bundle coordinate) merged with any
+     *         provider-supplied custom attributes. These are the attributes applied to the MDC of the Connector's
+     *         managed flow and surfaced on Connector metrics. Never {@code null}.
+     */
+    Map<String, String> getLoggingAttributes();
 
     /**
      * Returns whether or not the underlying extension is missing (i.e., the Connector is a GhostConnector).

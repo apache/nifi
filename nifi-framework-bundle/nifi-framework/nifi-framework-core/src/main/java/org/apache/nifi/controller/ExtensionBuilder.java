@@ -521,10 +521,11 @@ public class ExtensionBuilder {
         }
 
         final String componentType = connector.getClass().getSimpleName();
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, new StandardLoggingContext());
+        final StandardLoggingContext loggingContext = new StandardLoggingContext();
+        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, loggingContext);
         final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
 
-        final ConnectorNode connectorNode = new StandardConnectorNode(
+        final StandardConnectorNode connectorNode = new StandardConnectorNode(
             identifier,
             flowController.getFlowManager(),
             extensionManager,
@@ -538,11 +539,20 @@ public class ExtensionBuilder {
             connectorValidationTrigger,
             false
         );
+        // Late-bind the logging context to the connector node so that MDC attributes assembled by
+        // the node (framework keys + provider-supplied custom keys) flow through the connector's
+        // own ComponentLog as well as the managed flow's nested components.
+        loggingContext.setComponent(connectorNode);
+
+        // Pull provider-sourced logging attributes (e.g. connectorDefinitionId) from the ConnectorRepository
+        // and merge them into the node before any logs are emitted from the connector or its managed flow.
+        final Map<String, String> providerAttributes = flowController.getConnectorRepository().getLoggingAttributesForConnector(identifier);
+        connectorNode.setCustomLoggingAttributes(providerAttributes);
 
         try {
             initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
 
-            final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
+            final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog, connectorNode);
             connectorNode.initializeConnector(initContext);
         } catch (final Exception e) {
             logger.error("Could not initialize Connector of type {} from {} for ID {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e);
@@ -565,13 +575,14 @@ public class ExtensionBuilder {
         final GhostConnector ghostConnector = new GhostConnector(identifier, type, cause);
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, new StandardLoggingContext());
+        final StandardLoggingContext loggingContext = new StandardLoggingContext();
+        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, loggingContext);
         final ConnectorDetails connectorDetails = new ConnectorDetails(ghostConnector, bundleCoordinate, componentLog);
 
         // If an instance class loader has been created for this connector, remove it because it's no longer necessary.
         extensionManager.removeInstanceClassLoader(identifier);
 
-        final ConnectorNode connectorNode = new StandardConnectorNode(
+        final StandardConnectorNode connectorNode = new StandardConnectorNode(
             identifier,
             flowController.getFlowManager(),
             extensionManager,
@@ -585,9 +596,15 @@ public class ExtensionBuilder {
             connectorValidationTrigger,
             true
         );
+        loggingContext.setComponent(connectorNode);
+
+        // Pull provider-sourced logging attributes for the ghost connector as well so that MDC and
+        // status snapshots are consistent regardless of whether the real Connector implementation loaded.
+        final Map<String, String> providerAttributes = flowController.getConnectorRepository().getLoggingAttributesForConnector(identifier);
+        connectorNode.setCustomLoggingAttributes(providerAttributes);
 
         // Initialize the ghost connector so that it can be properly configured during flow synchronization
-        final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
+        final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog, connectorNode);
         connectorNode.initializeConnector(initContext);
 
         return connectorNode;
@@ -613,7 +630,8 @@ public class ExtensionBuilder {
         }
     }
 
-    private FrameworkConnectorInitializationContext createConnectorInitializationContext(final ProcessGroup managedProcessGroup, final ComponentLog componentLog) {
+    private FrameworkConnectorInitializationContext createConnectorInitializationContext(final ProcessGroup managedProcessGroup, final ComponentLog componentLog,
+                                                                                         final StandardConnectorNode connectorNode) {
         final String name = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
 
         return connectorInitializationContextBuilder

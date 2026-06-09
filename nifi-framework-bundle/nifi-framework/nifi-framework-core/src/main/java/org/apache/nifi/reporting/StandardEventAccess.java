@@ -22,6 +22,10 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -31,6 +35,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.repository.metrics.EmptyFlowFileEvent;
+import org.apache.nifi.controller.status.ConnectorStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
@@ -41,6 +46,8 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,10 +62,11 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
     private final AuditService auditService;
     private final FlowFileRepository flowFileRepository;
     private final ContentRepository contentRepository;
+    private final ConnectorRepository connectorRepository;
 
     public StandardEventAccess(final FlowManager flowManager, final FlowFileEventRepository flowFileEventRepository, final ProcessScheduler processScheduler,
                                final Authorizer authorizer, final ProvenanceRepository provenanceRepository, final AuditService auditService, final StatusAnalyticsEngine statusAnalyticsEngine,
-                               final FlowFileRepository flowFileRepository, final ContentRepository contentRepository) {
+                               final FlowFileRepository flowFileRepository, final ContentRepository contentRepository, final ConnectorRepository connectorRepository) {
         super(processScheduler, statusAnalyticsEngine, flowManager, flowFileEventRepository);
         this.flowFileEventRepository = flowFileEventRepository;
         this.flowManager = flowManager;
@@ -67,6 +75,50 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         this.auditService = auditService;
         this.flowFileRepository = flowFileRepository;
         this.contentRepository = contentRepository;
+        this.connectorRepository = connectorRepository;
+    }
+
+    /**
+     * Returns a {@link ConnectorStatus} for each registered connector, each carrying the connector identity along with
+     * the {@link ProcessGroupStatus} of the connector's managed root process group. Connector-managed flows live
+     * outside the controller's root process group, so they are invisible to {@link #getControllerStatus()} and would
+     * otherwise be skipped by standard reporting tasks.
+     */
+    @Override
+    public Collection<ConnectorStatus> getConnectorStatuses() {
+        if (connectorRepository == null) {
+            return Collections.emptyList();
+        }
+
+        final List<ConnectorNode> connectors = connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY);
+        if (connectors == null || connectors.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final RepositoryStatusReport statusReport = generateRepositoryStatusReport();
+        final List<ConnectorStatus> statuses = new ArrayList<>(connectors.size());
+        for (final ConnectorNode connector : connectors) {
+            final FrameworkFlowContext context = connector.getActiveFlowContext();
+            if (context == null) {
+                continue;
+            }
+            final ProcessGroup managedGroup = context.getManagedProcessGroup();
+            if (managedGroup == null) {
+                continue;
+            }
+            final ProcessGroupStatus rootGroupStatus = getGroupStatus(managedGroup, statusReport,
+                authorizable -> true, Integer.MAX_VALUE, 1, true);
+            if (rootGroupStatus == null) {
+                continue;
+            }
+            final ConnectorStatus connectorStatus = new ConnectorStatus();
+            connectorStatus.setId(connector.getIdentifier());
+            connectorStatus.setName(connector.getName());
+            connectorStatus.setRootGroupStatus(rootGroupStatus);
+            connectorStatus.setConnectorAttributes(connector.getLoggingAttributes());
+            statuses.add(connectorStatus);
+        }
+        return statuses;
     }
 
     @Override

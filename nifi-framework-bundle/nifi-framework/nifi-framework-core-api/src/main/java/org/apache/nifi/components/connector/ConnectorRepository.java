@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedConnector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
@@ -211,4 +212,21 @@ public interface ConnectorRepository {
      * @param connector the connector whose assets should be synced
      */
     void syncAssetsFromProvider(ConnectorNode connector);
+
+    /**
+     * Returns provider-sourced logging attributes for the connector with the given identifier. The
+     * framework calls this once at connector create time and merges the result into the MDC context
+     * for the connector's {@link org.apache.nifi.logging.ComponentLog} and the loggers of every
+     * component running inside its managed flow.
+     *
+     * <p>If no {@link ConnectorConfigurationProvider} is configured for this repository, this method
+     * returns {@link Map#of()}. Otherwise, it delegates to
+     * {@link ConnectorConfigurationProvider#getLoggingAttributes(String)}. Provider implementations
+     * that throw should be handled by the repository to avoid breaking connector creation; the
+     * framework will fall back to an empty map and log a warning.</p>
+     *
+     * @param connectorId the identifier of the connector whose logging attributes are being requested
+     * @return an immutable map of attribute keys to values; never {@code null}
+     */
+    Map<String, String> getLoggingAttributesForConnector(String connectorId);
 }

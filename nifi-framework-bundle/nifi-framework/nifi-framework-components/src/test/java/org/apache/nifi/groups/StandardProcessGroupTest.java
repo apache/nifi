@@ -44,6 +44,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -238,4 +239,110 @@ class StandardProcessGroupTest {
 
         assertEquals(expected, loggingAttributes);
     }
+
+    @Test
+    void testSetConnectorLoggingAttributesMergesIntoLoggingAttributes() {
+        processGroup.setName(NAME);
+
+        final Map<String, String> connectorAttributes = Map.of(
+                "connectorId", "connector-1",
+                "connectorName", "My Connector",
+                "connectorComponent", "com.example.MyConnector"
+        );
+
+        processGroup.setConnectorLoggingAttributes(connectorAttributes);
+
+        final Map<String, String> loggingAttributes = processGroup.getLoggingAttributes();
+        assertEquals("connector-1", loggingAttributes.get("connectorId"));
+        assertEquals("My Connector", loggingAttributes.get("connectorName"));
+        assertEquals("com.example.MyConnector", loggingAttributes.get("connectorComponent"));
+        assertEquals(NAME, loggingAttributes.get(StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute()));
+        assertEquals(ID, loggingAttributes.get(StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID.getAttribute()));
+    }
+
+    @Test
+    void testSetConnectorLoggingAttributesCascadesToChildProcessGroups() {
+        processGroup.setName(NAME);
+
+        final StandardProcessGroup child = createStandardProcessGroup("child-id");
+        child.setName("Child");
+        processGroup.addProcessGroup(child);
+
+        final Map<String, String> connectorAttributes = Map.of(
+                "connectorId", "connector-1",
+                "connectorName", "Postgres CDC"
+        );
+
+        processGroup.setConnectorLoggingAttributes(connectorAttributes);
+
+        assertEquals("connector-1", child.getLoggingAttributes().get("connectorId"));
+        assertEquals("Postgres CDC", child.getLoggingAttributes().get("connectorName"));
+    }
+
+    @Test
+    void testAddProcessGroupInheritsConnectorLoggingAttributesFromParent() {
+        processGroup.setName(NAME);
+        processGroup.setConnectorLoggingAttributes(Map.of(
+                "connectorId", "connector-1",
+                "connectorName", "Postgres CDC"
+        ));
+
+        final StandardProcessGroup lateChild = createStandardProcessGroup("late-child-id");
+        lateChild.setName("Late Child");
+        processGroup.addProcessGroup(lateChild);
+
+        assertEquals("connector-1", lateChild.getLoggingAttributes().get("connectorId"));
+        assertEquals("Postgres CDC", lateChild.getLoggingAttributes().get("connectorName"));
+        assertEquals(Map.copyOf(processGroup.getConnectorLoggingAttributes()), lateChild.getConnectorLoggingAttributes());
+    }
+
+    @Test
+    void testEmptyConnectorLoggingAttributesAddsNothing() {
+        processGroup.setName(NAME);
+        processGroup.setConnectorLoggingAttributes(Map.of());
+
+        final Map<String, String> loggingAttributes = processGroup.getLoggingAttributes();
+        assertFalse(loggingAttributes.containsKey("connectorId"));
+        assertTrue(processGroup.getConnectorLoggingAttributes().isEmpty());
+        // Verify the PG-level keys are still present.
+        assertEquals(NAME, loggingAttributes.get(StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute()));
+    }
+
+    @Test
+    void testSetConnectorLoggingAttributesReplacesPreviousValues() {
+        processGroup.setName(NAME);
+        processGroup.setConnectorLoggingAttributes(Map.of(
+                "connectorId", "connector-1",
+                "connectorName", "Old Name",
+                "customKey", "customValue"
+        ));
+
+        processGroup.setConnectorLoggingAttributes(Map.of(
+                "connectorId", "connector-1",
+                "connectorName", "New Name"
+        ));
+
+        final Map<String, String> loggingAttributes = processGroup.getLoggingAttributes();
+        assertEquals("New Name", loggingAttributes.get("connectorName"));
+        assertFalse(loggingAttributes.containsKey("customKey"));
+    }
+
+    private StandardProcessGroup createStandardProcessGroup(final String id) {
+        return new StandardProcessGroup(
+                id,
+                controllerServiceProvider,
+                processScheduler,
+                propertyEncryptor,
+                extensionManager,
+                stateManagerProvider,
+                flowManager,
+                reloadComponent,
+                nodeTypeProvider,
+                properties,
+                statelessGroupNodeFactory,
+                assetManager,
+                null
+        );
+    }
+
 }

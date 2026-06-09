@@ -50,7 +50,9 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.StringUtils;
@@ -81,8 +83,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class StandardConnectorNode implements ConnectorNode {
+public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorNode.class);
+
+    /**
+     * Soft cardinality limit beyond which a WARN is emitted when a connector supplies custom logging
+     * attributes. Exceeding this threshold signals a potential metric/MDC cardinality risk for
+     * downstream observability backends but does not reject the attributes.
+     */
+    private static final int CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD = 10;
 
     private final String identifier;
     private final FlowManager flowManager;
@@ -109,6 +118,10 @@ public class StandardConnectorNode implements ConnectorNode {
     private volatile String name;
     private volatile FrameworkConnectorInitializationContext initializationContext;
 
+    private final Object loggingAttributesLock = new Object();
+    private volatile Map<String, String> customLoggingAttributes = Map.of();
+    private volatile Map<String, String> mergedLoggingAttributes = Map.of();
+
 
     public StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
         final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails, final String componentType, final String componentCanonicalClass,
@@ -133,6 +146,8 @@ public class StandardConnectorNode implements ConnectorNode {
 
         final Bundle activeFlowBundle = new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion());
         this.activeFlowContext = flowContextFactory.createActiveFlowContext(identifier, connectorDetails.getComponentLog(), activeFlowBundle);
+
+        rebuildLoggingAttributes();
     }
 
     @Override
@@ -143,6 +158,138 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public void setName(final String name) {
         this.name = name;
+        rebuildLoggingAttributes();
+    }
+
+    /**
+     * Returns the {@link ProcessGroup} that holds the connector-managed flow, satisfying the
+     * {@link GroupedComponent} contract so that {@code StandardLoggingContext} can source MDC
+     * attributes for components running inside the connector's managed flow.
+     */
+    @Override
+    public ProcessGroup getProcessGroup() {
+        final FrameworkFlowContext context = activeFlowContext;
+        return context == null ? null : context.getManagedProcessGroup();
+    }
+
+    /**
+     * Replaces the connector-supplied custom logging attributes. Reserved keys (those used by the
+     * framework, see {@link ConnectorLoggingAttribute}) are filtered out and a WARN is logged for
+     * each dropped entry. A WARN is also logged when the number of accepted custom keys exceeds
+     * {@value #CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD} to surface cardinality risk for
+     * MDC logging and OpenTelemetry metric labels.
+     *
+     * @param attributes the proposed custom attributes; {@code null} or empty clears the current set
+     */
+    public void setCustomLoggingAttributes(final Map<String, String> attributes) {
+        final Map<String, String> filtered = filterReservedKeys(attributes);
+
+        if (filtered.size() > CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD) {
+            logger.warn("{} supplied {} custom logging attributes which exceeds the soft threshold of {}; high-cardinality attributes can degrade MDC logging and OpenTelemetry metric backends",
+                this, filtered.size(), CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD);
+        }
+
+        synchronized (loggingAttributesLock) {
+            this.customLoggingAttributes = filtered;
+        }
+        rebuildLoggingAttributes();
+    }
+
+    /**
+     * Returns an immutable snapshot of the merged framework + custom logging attributes currently
+     * advertised by this connector. The framework keys are populated by the framework from the
+     * connector's identifier, name, component type, and bundle coordinate.
+     */
+    public Map<String, String> getLoggingAttributes() {
+        return mergedLoggingAttributes;
+    }
+
+    private Map<String, String> filterReservedKeys(final Map<String, String> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return Map.of();
+        }
+        final Map<String, String> filtered = new HashMap<>(attributes.size());
+        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+            final String key = entry.getKey();
+            if (key == null || key.isEmpty()) {
+                continue;
+            }
+            if (ConnectorLoggingAttribute.isReserved(key)) {
+                logger.warn("{} attempted to set reserved logging attribute [{}]; dropping the entry. Reserved keys are managed by the framework.", this, key);
+                continue;
+            }
+            filtered.put(key, entry.getValue());
+        }
+        return Collections.unmodifiableMap(filtered);
+    }
+
+    private void rebuildLoggingAttributes() {
+        final Map<String, String> merged;
+        final Map<String, String> custom;
+        synchronized (loggingAttributesLock) {
+            custom = customLoggingAttributes;
+            merged = new HashMap<>(custom.size() + ConnectorLoggingAttribute.values().length);
+            merged.putAll(custom);
+            // Framework keys are applied last so they always win against any not-yet-filtered overlap.
+            merged.put(ConnectorLoggingAttribute.CONNECTOR_ID.attribute, identifier);
+            merged.put(ConnectorLoggingAttribute.CONNECTOR_NAME.attribute, name == null ? "" : name);
+            merged.put(ConnectorLoggingAttribute.CONNECTOR_COMPONENT.attribute, componentCanonicalClass == null ? "" : componentCanonicalClass);
+            if (bundleCoordinate != null) {
+                merged.put(ConnectorLoggingAttribute.CONNECTOR_BUNDLE_GROUP.attribute, bundleCoordinate.getGroup());
+                merged.put(ConnectorLoggingAttribute.CONNECTOR_BUNDLE_ARTIFACT.attribute, bundleCoordinate.getId());
+                merged.put(ConnectorLoggingAttribute.CONNECTOR_BUNDLE_VERSION.attribute, bundleCoordinate.getVersion());
+            }
+            this.mergedLoggingAttributes = Collections.unmodifiableMap(merged);
+        }
+
+        pushLoggingAttributesToManagedFlow(merged);
+    }
+
+    private void pushLoggingAttributesToManagedFlow(final Map<String, String> attributes) {
+        final ProcessGroup managedProcessGroup = getProcessGroup();
+        if (managedProcessGroup instanceof StandardProcessGroup standardProcessGroup) {
+            standardProcessGroup.setConnectorLoggingAttributes(attributes);
+        }
+    }
+
+    /**
+     * Framework-managed MDC logging attribute keys for a connector. The framework computes these
+     * automatically and they cannot be overridden by a connector's custom attributes.
+     */
+    public enum ConnectorLoggingAttribute {
+        CONNECTOR_ID("connectorId"),
+        CONNECTOR_NAME("connectorName"),
+        CONNECTOR_COMPONENT("connectorComponent"),
+        CONNECTOR_BUNDLE_GROUP("connectorBundleGroup"),
+        CONNECTOR_BUNDLE_ARTIFACT("connectorBundleArtifact"),
+        CONNECTOR_BUNDLE_VERSION("connectorBundleVersion");
+
+        private static final Set<String> RESERVED_KEYS;
+        static {
+            final Set<String> reserved = new HashSet<>();
+            for (final ConnectorLoggingAttribute attribute : values()) {
+                reserved.add(attribute.attribute);
+            }
+            RESERVED_KEYS = Collections.unmodifiableSet(reserved);
+        }
+
+        private final String attribute;
+
+        ConnectorLoggingAttribute(final String attribute) {
+            this.attribute = attribute;
+        }
+
+        public String getAttribute() {
+            return attribute;
+        }
+
+        public static boolean isReserved(final String key) {
+            return RESERVED_KEYS.contains(key);
+        }
+
+        public static Set<String> getReservedKeys() {
+            return RESERVED_KEYS;
+        }
     }
 
     @Override

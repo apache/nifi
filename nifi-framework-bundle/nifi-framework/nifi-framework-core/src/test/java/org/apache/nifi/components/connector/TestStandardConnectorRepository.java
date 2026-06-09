@@ -1364,6 +1364,58 @@ public class TestStandardConnectorRepository {
         return node;
     }
 
+    // --- getLoggingAttributesForConnector tests ---
+
+    @Test
+    public void testGetLoggingAttributesForConnectorReturnsEmptyMapWhenNoProvider() {
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getConnectorConfigurationProvider()).thenReturn(null);
+        repository.initialize(initContext);
+
+        final Map<String, String> attributes = repository.getLoggingAttributesForConnector("connector-1");
+        assertNotNull(attributes);
+        assertTrue(attributes.isEmpty());
+    }
+
+    @Test
+    public void testGetLoggingAttributesForConnectorDelegatesToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final Map<String, String> expected = Map.of("connectorDefinitionId", "snowflake.runtime.postgres-cdc");
+        when(provider.getLoggingAttributes("connector-1")).thenReturn(expected);
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final Map<String, String> attributes = repository.getLoggingAttributesForConnector("connector-1");
+        assertEquals(expected, attributes);
+        verify(provider).getLoggingAttributes("connector-1");
+    }
+
+    @Test
+    public void testGetLoggingAttributesForConnectorReturnsEmptyMapWhenProviderReturnsNull() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getLoggingAttributes(anyString())).thenReturn(null);
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final Map<String, String> attributes = repository.getLoggingAttributesForConnector("connector-1");
+        assertNotNull(attributes);
+        assertTrue(attributes.isEmpty());
+    }
+
+    @Test
+    public void testGetLoggingAttributesForConnectorReturnsEmptyMapWhenProviderThrows() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.getLoggingAttributes(anyString())).thenThrow(new RuntimeException("provider boom"));
+
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final Map<String, String> attributes = repository.getLoggingAttributesForConnector("connector-1");
+        assertNotNull(attributes);
+        assertTrue(attributes.isEmpty());
+    }
+
     // --- Helper Methods ---
 
     private StandardConnectorRepository createRepositoryWithProviderAndAssetManager(
