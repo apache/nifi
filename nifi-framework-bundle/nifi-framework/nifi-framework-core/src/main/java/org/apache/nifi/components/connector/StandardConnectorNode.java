@@ -148,10 +148,6 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void setName(final String name) {
-        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
-            throw new IllegalStateException("Cannot rename " + this + " while it is in Troubleshooting mode; exit Troubleshooting mode before renaming the Connector.");
-        }
-
         this.name = name;
     }
 
@@ -712,23 +708,18 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private Optional<String> getReasonCannotEndTroubleshooting() {
-        final ConnectorState currentState = getCurrentState();
-        if (currentState != ConnectorState.TROUBLESHOOTING) {
-            return Optional.of("Connector is not in Troubleshooting mode; current state is " + currentState);
-        }
-
-        // Verify that every component inside the managed flow is stopped/disabled BEFORE doing any other validation.
-        // The flow-update check below relies on components being stopped/disabled in order to produce meaningful results.
-        // Returning early here avoids running the expensive flow-revert preflight against a live, running flow.
-        final Optional<String> componentReason = findReasonComponentsNotStopped(getActiveFlowContext().getManagedProcessGroup());
-        if (componentReason.isPresent()) {
-            return componentReason;
+        final Optional<String> quickReason = getQuickReasonCannotEndTroubleshooting();
+        if (quickReason.isPresent()) {
+            return quickReason;
         }
 
         // After confirming all components are stopped or disabled, check if the managed flow can be safely reverted to the
         // Connector's authoritative flow. This mirrors exactly what endTroubleshooting() will do so that any problem
         // (e.g. a Connection whose contents cannot be preserved or a component that cannot be replaced) is reported
-        // synchronously rather than surfacing halfway through the state change.
+        // synchronously rather than surfacing halfway through the state change. This check is intentionally not run by
+        // createEndTroubleshootingAction (which is called on every GET of the Connector entity) because it requires
+        // resolving the authoritative flow from the Connector plugin and running a full flow-comparison; that work is
+        // only paid by the explicit verify REST endpoint and by endTroubleshooting itself.
         final VersionedExternalFlow authoritativeFlow = resolveAuthoritativeFlow();
         try {
             initializationContext.verifyUpdateFlow(activeFlowContext, authoritativeFlow, BundleCompatibility.RESOLVE_BUNDLE);
@@ -737,6 +728,21 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Returns the cheap-to-compute portion of {@link #getReasonCannotEndTroubleshooting()}: the Connector must be in
+     * Troubleshooting, and every component in the managed flow must be stopped or disabled. Suitable for callers that
+     * are invoked on every REST GET of the Connector entity, where running the full flow-revert preflight on every
+     * call would add significant latency for large managed flows.
+     */
+    private Optional<String> getQuickReasonCannotEndTroubleshooting() {
+        final ConnectorState currentState = getCurrentState();
+        if (currentState != ConnectorState.TROUBLESHOOTING) {
+            return Optional.of("Connector is not in Troubleshooting mode; current state is " + currentState);
+        }
+
+        return findReasonComponentsNotStopped(getActiveFlowContext().getManagedProcessGroup());
     }
 
     private VersionedExternalFlow resolveAuthoritativeFlow() {
@@ -1573,7 +1579,10 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private ConnectorAction createEndTroubleshootingAction() {
-        final Optional<String> reason = getReasonCannotEndTroubleshooting();
+        // Use the quick reason check rather than the full check because this is invoked on every REST GET of the
+        // Connector entity. The full check resolves the authoritative flow from the Connector plugin and runs a
+        // flow-comparison that can be expensive for large managed flows.
+        final Optional<String> reason = getQuickReasonCannotEndTroubleshooting();
         return new StandardConnectorAction("END_TROUBLESHOOTING", "Exit Troubleshooting mode for the connector", reason.isEmpty(), reason.orElse(null));
     }
 

@@ -17,23 +17,69 @@
 
 package org.apache.nifi.tests.system.connectors;
 
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Clustered variant of {@link ConnectorTroubleshootingIT}. All Troubleshooting lifecycle tests defined on the parent
  * class are re-executed against a two-node NiFi cluster so that the cluster-replication and node-restart paths are
  * exercised in addition to the standalone paths.
  *
- * <p>This class deliberately does not redefine any of the parent's test methods. The verification of restart-while-in-
- * Troubleshooting and authoritative-flow restoration that already exists in
- * {@link ConnectorTroubleshootingIT#testConfigurationAndAuthoritativeFlowRestoredAfterTroubleshootingRestart()} (and
- * the related restart tests) is the clustered coverage the user requested. Adding the override of
- * {@link #getInstanceFactory()} below is sufficient to run all of those scenarios on a two-node cluster.</p>
+ * <p>This class also adds clustered-only tests that cannot be expressed in the standalone parent, namely scenarios
+ * that exercise node disconnect / reconnect while a Connector is in Troubleshooting mode.</p>
  */
 public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootingIT {
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
         return createTwoNodeInstanceFactory();
+    }
+
+    /**
+     * Exercises the path where {@code syncConnector} is invoked on a node whose in-memory Connector is already in
+     * Troubleshooting mode. The node-restart scenarios in the parent class do not cover this: a restart creates a
+     * fresh Connector node in STOPPED state before sync restores it to Troubleshooting, whereas a disconnect / sync
+     * cycle leaves the in-memory Connector untouched on the disconnected node and then triggers a sync against the
+     * existing Troubleshooting node when it reconnects. That path runs {@code connector.setName(...)} and configuration
+     * handling on a Connector that is already TROUBLESHOOTING; a regression in that path would only surface here.
+     */
+    @Test
+    public void testSyncAgainstExistingTroubleshootingConnectorOnReconnect() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity connector = getClientUtil().createConnector("ComponentLifecycleConnector");
+        final String connectorId = connector.getId();
+        final String originalName = connector.getComponent().getName();
+
+        getClientUtil().enterTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+
+        disconnectNode(2);
+        reconnectNode(2);
+        waitForAllNodesConnected();
+
+        switchClientToNode(2);
+        try {
+            final ConnectorEntity node2Connector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connectorId);
+            assertEquals(ConnectorState.TROUBLESHOOTING.name(), node2Connector.getComponent().getState(),
+                    "Connector on the reconnected node must remain in TROUBLESHOOTING after sync");
+            assertEquals(originalName, node2Connector.getComponent().getName(),
+                    "Connector name must survive the sync that runs against the reconnected node's existing TROUBLESHOOTING connector");
+        } finally {
+            switchClientToNode(1);
+        }
+
+        getClientUtil().endTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.STOPPED);
+    }
+
+    private void assertConnectorState(final String connectorId, final ConnectorState expected) throws NiFiClientException, IOException {
+        final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEquals(expected.name(), entity.getComponent().getState());
     }
 }
