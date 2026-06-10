@@ -32,10 +32,17 @@
     background-size: 14px 14px;
     z-index: 1;
     overflow: hidden;
+    background-color: var(--mat-sys-background);
+    background-image:
+        linear-gradient(to right, var(--nf-canvas-background) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--nf-canvas-background) 1px, transparent 1px);
 }
 
 /* svg styles */
 
+// ::ng-deep is required: the canvas SVG and all child elements (g.component, rect.border,
+// text.stats-label, path, etc.) are created dynamically by D3 and do not receive
+// Angular's [_ngcontent-xxx] scoping attribute.
 :host ::ng-deep svg.canvas-svg {
     width: 100%;
     height: 100%;
@@ -400,5 +407,375 @@
 
     text.remote-process-group-last-refresh {
         font-size: 10px;
+    }
+}
+
+// Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
+$drop-shadow-color: black;
+
+:host ::ng-deep svg.canvas-svg {
+    g.component {
+        font-family: var(--mat-sys-body-medium-font);
+    }
+
+    .transparent {
+        fill: transparent;
+    }
+
+    g.component rect.body {
+        fill: var(--mat-sys-background);
+    }
+
+    rect.banner {
+        fill: var(--nf-banner);
+    }
+
+    rect.odd {
+        fill: var(--nf-odd);
+    }
+
+    rect.even {
+        fill: var(--nf-even);
+    }
+
+    rect.row-border {
+        fill: var(--mat-sys-outline);
+    }
+
+    g.component rect.body.unauthorized {
+        fill: var(--mat-sys-background);
+    }
+
+    g.component rect.border,
+    g.connections rect.border {
+        stroke: var(--mat-sys-outline);
+        stroke-width: var(--nf-canvas-border-stroke-width);
+    }
+
+    g.component rect.border.unauthorized {
+        stroke: var(--mat-sys-error) !important;
+    }
+
+    g.component rect.border.ghost {
+        stroke: var(--nf-neutral) !important;
+    }
+
+    g.component rect.processor-icon-container.unauthorized {
+        fill: var(--mat-sys-background);
+    }
+
+    g.component.selected rect.border {
+        stroke: var(--mat-sys-primary) !important;
+    }
+
+    text.stats-label {
+        color: var(--mat-sys-on-surface);
+        fill: var(--mat-sys-on-surface);
+        font-family: var(--mat-sys-body-medium-font);
+    }
+
+    text.stats-value {
+        fill: var(--mat-sys-tertiary);
+    }
+
+    text.stats-info {
+        fill: var(--mat-sys-primary);
+    }
+
+    text.bulletin-icon {
+        &.info,
+        &.debug,
+        &.trace {
+            fill: var(--mat-sys-on-primary);
+        }
+    }
+
+    text.bulletin-icon {
+        &.error {
+            fill: var(--mat-sys-on-error);
+        }
+    }
+
+    text.bulletin-icon {
+        &.warning {
+            fill: var(--nf-caution-contrast);
+        }
+    }
+
+    rect.bulletin-background {
+        &.error {
+            fill: var(--mat-sys-error);
+        }
+        &.warning {
+            fill: var(--nf-caution-default);
+        }
+        &.info,
+        &.debug,
+        &.trace {
+            fill: var(--nf-success-default);
+        }
+    }
+
+    text.component-comments {
+        fill: var(--mat-sys-primary);
+        stroke: var(--mat-sys-outline);
+    }
+
+    g.component.connectable-destination rect.border {
+        stroke: #00ff00;
+    }
+
+    rect.component-selection,
+    rect.drag-selection,
+    rect.label-drag {
+        stroke: var(--mat-sys-primary);
+        fill: transparent;
+    }
+
+    text.add-connect {
+        fill: var(--mat-sys-primary);
+    }
+
+    #component-drop-shadow feFlood {
+        flood-color: $drop-shadow-color;
+    }
+
+    rect.processor-read-write-stats {
+        fill: var(--mat-sys-background);
+    }
+
+    rect.processor-stats-border {
+        fill: var(--mat-sys-outline);
+    }
+
+    text.processor-name {
+        fill: var(--mat-sys-on-surface);
+    }
+
+    text.processor-type {
+        fill: var(--mat-sys-primary);
+    }
+
+    circle.is-primary-background {
+        stroke: var(--mat-sys-on-background);
+        fill: var(--mat-sys-background);
+    }
+
+    text.is-primary {
+        fill: var(--mat-sys-on-background);
+    }
+
+    text.processor-bundle {
+        fill: var(--nf-neutral);
+    }
+
+    rect.processor-icon-container {
+        fill: var(--mat-sys-background);
+    }
+
+    circle.restricted-background {
+        fill: var(--mat-sys-background);
+    }
+
+    text.restricted {
+        fill: var(--mat-sys-error);
+    }
+
+    #connection-full-drop-shadow feFlood {
+        flood-color: var(--mat-sys-error);
+    }
+
+    g.connection {
+        font-family: var(--mat-sys-body-medium-font);
+    }
+
+    g.connection rect.body {
+        fill: var(--mat-sys-background);
+    }
+
+    g.connection rect.body.unauthorized {
+        fill: var(--mat-sys-background);
+    }
+
+    g.connection rect.border.unauthorized {
+        stroke: var(--mat-sys-error);
+    }
+
+    g.connection rect.border.full {
+        stroke: var(--mat-sys-tertiary);
+    }
+
+    g.connection.selected rect.border {
+        stroke: #ffcc00;
+    }
+
+    path.connector {
+        stroke: #ff0000;
+    }
+
+    path.connector.connectable {
+        stroke: #00ff00;
+    }
+
+    g.connection path.connection-path {
+        fill: none;
+        stroke: var(--mat-sys-on-surface);
+        filter: drop-shadow(0 3px 6px var(--mat-sys-background));
+    }
+
+    g.connection path.connection-path.full {
+        stroke: var(--mat-sys-error);
+    }
+
+    g.connection path.connection-path.unauthorized {
+        stroke: var(--mat-sys-error);
+    }
+
+    g.connection rect.backpressure-tick {
+        fill: transparent;
+    }
+
+    g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
+    g.connection rect.backpressure-tick.object-prediction.prediction-down {
+        fill: var(--mat-sys-background);
+    }
+
+    g.connection rect.backpressure-tick.data-size-prediction,
+    g.connection rect.backpressure-tick.object-prediction {
+        fill: var(--mat-sys-outline);
+    }
+
+    g.connection rect.backpressure-tick.data-size-prediction.not-configured,
+    g.connection rect.backpressure-tick.object-prediction.not-configured,
+    g.connection rect.backpressure-tick.data-size-prediction.prediction-down.not-configured,
+    g.connection rect.backpressure-tick.object-prediction.prediction-down.not-configured {
+        fill: transparent;
+    }
+
+    g.connection rect.backpressure-tick.not-configured {
+        fill: var(--nf-neutral);
+    }
+
+    g.connection rect.backpressure-object,
+    g.connection rect.backpressure-data-size {
+        fill: var(--mat-sys-outline);
+    }
+
+    g.connection rect.backpressure-object.not-configured,
+    g.connection rect.backpressure-data-size.not-configured {
+        fill: transparent;
+    }
+
+    g.connection rect.backpressure-percent {
+        fill: var(--nf-success-default);
+    }
+
+    g.connection rect.backpressure-percent.warning {
+        fill: #ffcc00;
+    }
+
+    g.connection rect.backpressure-percent.error {
+        fill: var(--mat-sys-error);
+    }
+
+    g.connection.ghost path.connection-path,
+    g.connection.ghost rect.connection-label {
+        stroke: var(--nf-neutral);
+    }
+
+    g.connection path.connection-selection-path {
+        stroke: #ffcc00;
+        fill: none;
+    }
+
+    g.connection path.connection-path-selectable {
+        fill: none;
+    }
+
+    g.connection rect.startpoint {
+        stroke: #ff0000;
+        fill: #ff0000;
+    }
+
+    g.connection rect.midpoint {
+        stroke: #ffcc00;
+        fill: #ffcc00;
+    }
+
+    g.connection rect.endpoint {
+        stroke: #0000ff;
+        fill: #0000ff;
+    }
+
+    g.label path.resizable-triangle {
+        fill: var(--nf-resizable-triangle);
+        stroke: var(--nf-resizable-triangle);
+    }
+
+    text.funnel-icon {
+        fill: var(--mat-sys-tertiary);
+    }
+
+    text.port-name {
+        color: var(--mat-sys-on-surface);
+        fill: var(--mat-sys-on-surface);
+    }
+
+    text.port-icon {
+        fill: var(--mat-sys-tertiary);
+    }
+
+    rect.process-group-stats-in-out {
+        fill: var(--mat-sys-background);
+    }
+
+    rect.process-group-stats-border {
+        fill: var(--mat-sys-outline);
+    }
+
+    rect.process-group-banner,
+    rect.remote-process-group-banner {
+        fill: var(--mat-sys-secondary);
+    }
+
+    text.version-control,
+    text.not-transmitting,
+    text.transmitting,
+    text.process-group-transmitting,
+    text.invalid,
+    text.running,
+    text.stopped,
+    text.process-group-running,
+    text.process-group-stopped {
+        text-shadow: var(--nf-text-shadow);
+    }
+
+    text.process-group-contents-count {
+        fill: var(--mat-sys-tertiary);
+        font-family: var(--mat-sys-body-medium-font);
+    }
+
+    g.process-group.drop rect.border {
+        stroke: #0000ff;
+    }
+
+    rect.remote-process-group-stats-border {
+        fill: var(--mat-sys-outline);
+    }
+
+    rect.remote-process-group-received-stats {
+        fill: var(--mat-sys-background);
+    }
+
+    text.remote-process-group-uri {
+        fill: var(--mat-sys-primary);
+    }
+
+    text.remote-process-group-transmission-secure {
+        fill: var(--mat-sys-primary);
+    }
+
+    text.remote-process-group-last-refresh {
+        fill: var(--mat-sys-primary);
     }
 }

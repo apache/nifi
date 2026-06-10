@@ -65,4 +65,33 @@ div.context-menu {
     .context-menu-item:focus {
         outline: none;
     }
+
+    .context-menu-item {
+        .context-menu-item-text {
+            font-size: var(--mat-sys-body-medium-size);
+            line-height: var(--mat-sys-body-medium-line-height);
+            max-width: calc(var(--mat-sys-body-medium-size) * 20);
+        }
+
+        &:hover {
+            background-color: var(
+                --mat-menu-item-hover-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                    transparent
+                )
+            );
+        }
+    }
+
+    .context-menu-item:active {
+        background-color: var(--mat-sys-outline);
+    }
+
+    &.show-focused {
+        .context-menu-item:focus {
+            outline: #0000ff solid 1px;
+        }
+    }
 }

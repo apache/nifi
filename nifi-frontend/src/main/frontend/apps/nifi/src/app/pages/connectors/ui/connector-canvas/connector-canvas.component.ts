@@ -102,7 +102,8 @@ import { getComponentStateAndOpenDialog } from '../../../../state/component-stat
         ConnectorGraphControls,
         ContextErrorBanner
     ],
-    templateUrl: './connector-canvas.component.html'
+    templateUrl: './connector-canvas.component.html',
+    styleUrl: './connector-canvas.component.scss'
 })
 export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private store = inject(Store<NiFiState>);

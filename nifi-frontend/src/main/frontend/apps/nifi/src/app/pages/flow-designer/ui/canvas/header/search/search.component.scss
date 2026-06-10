@@ -27,4 +27,23 @@
         width: 200px;
         transition: width 400ms ease-in-out;
     }
+
+    &:hover,
+    &.open {
+        background-color: var(--mat-sys-background);
+    }
+
+    .search-input {
+        background-color: var(--mat-sys-background);
+    }
+}
+
+// ::ng-deep is required: .search-results may be rendered in a CDK overlay portal,
+// outside the component's DOM subtree, and will not carry [_ngcontent-xxx].
+:host ::ng-deep .search-results {
+    margin-top: 4px;
+    padding: 4px 6px;
+    box-shadow: var(--mat-sys-level4);
+    background-color: var(--mat-sys-surface);
+    border-radius: 4px;
 }

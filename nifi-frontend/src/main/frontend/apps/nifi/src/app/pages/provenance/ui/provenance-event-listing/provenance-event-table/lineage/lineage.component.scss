@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+// ::ng-deep is required: the #lineage SVG and its children are created dynamically by D3
+// and do not receive Angular's [_ngcontent-xxx] scoping attribute.
 :host ::ng-deep #lineage {
     width: 100%;
     height: 100%;
@@ -56,6 +58,34 @@
             font-family: flowfont;
             content: '\e808';
             font-size: 16px;
+        }
+
+        text.event-type {
+            color: var(--mat-sys-on-surface);
+            fill: var(--mat-sys-on-surface);
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        text.event-type.expand-parents,
+        text.event-type.expand-children {
+            font-family: var(--mat-sys-body-medium-font);
+        }
+
+        path.link.selected {
+            stroke: var(--mat-sys-error);
+        }
+
+        g.event circle.selected {
+            fill: var(--mat-sys-error);
+        }
+
+        g.event circle.context {
+            stroke: var(--mat-sys-secondary);
+        }
+
+        g.flowfile circle.context,
+        g.event circle.context {
+            stroke: var(--mat-sys-tertiary);
         }
     }
 }

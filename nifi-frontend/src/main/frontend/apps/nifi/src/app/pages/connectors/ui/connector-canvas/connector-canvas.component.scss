@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
-
-@mixin generate-theme() {
-    .provenance-event-table {
-        .lineage {
-            background-color: var(--mat-sys-background);
-        }
-    }
+// ::ng-deep is required: .banner-container is rendered inside the context-error-banner
+// child component's own template and does not carry this component's [_ngcontent-xxx] attribute.
+:host ::ng-deep context-error-banner.canvas-error-banner .banner-container {
+    background-color: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 4px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    color: var(--mat-sys-on-surface);
+    margin-bottom: 0;
 }
