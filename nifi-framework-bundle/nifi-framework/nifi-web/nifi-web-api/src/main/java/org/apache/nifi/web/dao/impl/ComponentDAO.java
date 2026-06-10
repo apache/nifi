@@ -130,8 +130,9 @@ public abstract class ComponentDAO {
 
         final ConnectorNode connector = owningConnector.get();
         if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
-            throw new IllegalStateException("Component [" + componentId + "] is managed by Connector " + connector.getName() + " ("
-                + connector.getIdentifier() + "); the Connector must be in Troubleshooting mode for this component to be accessible.");
+            throw new ConnectorManagedAccessException("Component [" + componentId + "] is managed by a Connector ["
+                + connector.getIdentifier() + "]; the Connector must be in Troubleshooting mode for this component to be accessible.",
+                connector.getIdentifier());
         }
     }
 

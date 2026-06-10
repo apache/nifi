@@ -38,6 +38,7 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBranchesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
+import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
@@ -407,6 +408,16 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving Connectors", () -> {
             final WebTarget target = flowTarget.path("/connectors");
             return getRequestBuilder(target).get(ConnectorsEntity.class);
+        });
+    }
+
+    @Override
+    public HistoryEntity getHistory(final int offset, final int count) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving flow history", () -> {
+            final WebTarget target = flowTarget.path("history")
+                    .queryParam("offset", offset)
+                    .queryParam("count", count);
+            return getRequestBuilder(target).get(HistoryEntity.class);
         });
     }
 }

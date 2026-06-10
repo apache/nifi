@@ -36,6 +36,7 @@ import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -94,6 +95,14 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         getClientUtil().endTroubleshooting(connectorId);
         assertConnectorState(connectorId, ConnectorState.STOPPED);
+
+        // The flow configuration history must be reachable when the Connector is no longer in Troubleshooting, even
+        // though earlier action entries reference the processor inside the managed flow that was modified above.
+        final HistoryEntity history = getNifiClient().getFlowClient().getHistory(0, 100);
+        assertNotNull(history);
+        assertNotNull(history.getHistory());
+        assertNotNull(history.getHistory().getActions());
+        assertFalse(history.getHistory().getActions().isEmpty());
 
         final ProcessorEntity restoredProcessor = findProcessorByName(connectorId, originalProcessor.getComponent().getName());
         assertNotNull(restoredProcessor, "Expected original processor to be restored by authoritative flow");

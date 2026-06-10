@@ -438,6 +438,7 @@ import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
+import org.apache.nifi.web.dao.impl.ConnectorManagedAccessException;
 import org.apache.nifi.web.revision.ExpiredRevisionClaimException;
 import org.apache.nifi.web.revision.RevisionClaim;
 import org.apache.nifi.web.revision.RevisionManager;
@@ -7414,29 +7415,35 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         Authorizable authorizable;
         try {
-            authorizable = switch (type) {
-                case Processor -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
-                case ReportingTask -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
-                case FlowAnalysisRule -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
-                case FlowRegistryClient -> authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
-                case ControllerService -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
-                case Controller -> controllerFacade;
-                case InputPort -> authorizableLookup.getInputPort(sourceId);
-                case OutputPort -> authorizableLookup.getOutputPort(sourceId);
-                case ProcessGroup -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
-                case RemoteProcessGroup -> authorizableLookup.getRemoteProcessGroup(sourceId);
-                case Funnel -> authorizableLookup.getFunnel(sourceId);
-                case Connection -> authorizableLookup.getConnection(sourceId).getAuthorizable();
-                case ParameterContext -> authorizableLookup.getParameterContext(sourceId);
-                case ParameterProvider -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
-                case AccessPolicy -> authorizableLookup.getAccessPolicyById(sourceId);
-                case User, UserGroup -> authorizableLookup.getTenant();
-                case Label -> authorizableLookup.getLabel(sourceId);
-                case Connector -> authorizableLookup.getConnector(sourceId);
-                default -> throw new IllegalArgumentException("Unexpected Component: " + type);
-            };
+            try {
+                authorizable = switch (type) {
+                    case Processor -> authorizableLookup.getProcessor(sourceId).getAuthorizable();
+                    case ReportingTask -> authorizableLookup.getReportingTask(sourceId).getAuthorizable();
+                    case FlowAnalysisRule -> authorizableLookup.getFlowAnalysisRule(sourceId).getAuthorizable();
+                    case FlowRegistryClient -> authorizableLookup.getFlowRegistryClient(sourceId).getAuthorizable();
+                    case ControllerService -> authorizableLookup.getControllerService(sourceId).getAuthorizable();
+                    case Controller -> controllerFacade;
+                    case InputPort -> authorizableLookup.getInputPort(sourceId);
+                    case OutputPort -> authorizableLookup.getOutputPort(sourceId);
+                    case ProcessGroup -> authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
+                    case RemoteProcessGroup -> authorizableLookup.getRemoteProcessGroup(sourceId);
+                    case Funnel -> authorizableLookup.getFunnel(sourceId);
+                    case Connection -> authorizableLookup.getConnection(sourceId).getAuthorizable();
+                    case ParameterContext -> authorizableLookup.getParameterContext(sourceId);
+                    case ParameterProvider -> authorizableLookup.getParameterProvider(sourceId).getAuthorizable();
+                    case AccessPolicy -> authorizableLookup.getAccessPolicyById(sourceId);
+                    case User, UserGroup -> authorizableLookup.getTenant();
+                    case Label -> authorizableLookup.getLabel(sourceId);
+                    case Connector -> authorizableLookup.getConnector(sourceId);
+                    default -> throw new IllegalArgumentException("Unexpected Component: " + type);
+                };
+            } catch (final ConnectorManagedAccessException e) {
+                // The component is managed by a Connector that is not in Troubleshooting mode. For read-only views
+                // such as action history, authorize against the owning Connector rather than blocking the request.
+                authorizable = authorizableLookup.getConnector(e.getConnectorIdentifier());
+            }
         } catch (final ResourceNotFoundException e) {
-            // if the underlying component is gone, use the controller to see if permissions should be allowed
+            // if the underlying component or its owning Connector is gone, use the controller to see if permissions should be allowed
             authorizable = controllerFacade;
         }
 
