@@ -21,7 +21,6 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
-import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -74,7 +73,7 @@ public final class CredentialPropertyDescriptors {
             .name("Service Account JSON")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
-            .addValidator(JsonValidator.INSTANCE)
+            .addValidator(ServiceAccountJsonValidator.INSTANCE)
             .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue())
             .description("The raw JSON containing a Service Account keyfile.")
             .sensitive(true)
