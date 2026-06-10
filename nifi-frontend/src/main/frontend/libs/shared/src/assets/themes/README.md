@@ -273,7 +273,7 @@ for these components.
 ```
 themes/
 ├── README.md               ← this file
-├── material.scss           ← orchestrator: structural resets, palette, mat.theme(), imports all partials
+├── material.scss           ← orchestrator: tailwindcss, @source, flowfont, font-awesome, palette, mat.theme(), imports all partials
 ├── _tailwind-theme.scss    ← Tailwind v4 @theme configuration (font sizes, etc.)
 └── components/
     ├── _button.scss        ← .darkMode: .primary-icon-button (primary-40→80), .error-button (error-40→50)
