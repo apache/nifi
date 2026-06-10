@@ -111,7 +111,7 @@
 }
 
 :host ::ng-deep #status-history-chart-container text,
-#status-history-chart-control-container text {
+:host ::ng-deep #status-history-chart-control-container text {
     font-family: Arial, sans-serif;
     font-size: 10px;
 }

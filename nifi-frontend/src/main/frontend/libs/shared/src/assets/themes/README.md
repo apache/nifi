@@ -218,7 +218,7 @@ mixin registrations in any app's `styles.scss`.
 | Angular Material palette, system tokens (`--mat-sys-*`), `mat.*-overrides()` | `themes/components/_*.scss` partials, orchestrated by `material.scss`  |
 | App structural resets (html/body, link styles, utility classes)              | Inlined directly in `material.scss`                                    |
 | Table and Prism syntax highlighting styles                                   | `themes/components/_table.scss`, `themes/components/_prism-theme.scss` |
-| Tailwind v4 `@theme` configuration                                           | `themes/_tailwind-theme.scss`                                          |
+| Tailwind v4 `@theme` configuration                                           | `themes/components/_tailwind-theme.scss`                               |
 | Component-specific layout, sizing, and color overrides                       | `*.component.scss` (co-located with the component)                     |
 
 ### `styles.scss` is a framework orchestrator only
@@ -227,10 +227,9 @@ Each app's `styles.scss` contains exactly these entries and nothing else:
 
 ```scss
 @use 'sass:meta';
-@use 'tailwindcss';
-@use 'libs/shared/src/assets/themes/tailwind-theme';
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 @use 'libs/shared/src/assets/themes/material';
+@use 'tailwindcss';
 
 @layer base {
     @include meta.load-css('font-awesome');
@@ -285,7 +284,6 @@ themes/
 ├── README.md               ← this file
 ├── material.scss           ← orchestrator: structural resets, palette, mat.theme(), imports all partials
 ├── _tailwind-theme.scss    ← Tailwind v4 @theme configuration (font sizes, etc.)
-├── purple.scss             ← alternative purple theme (not used in production)
 └── components/
     ├── _button.scss        ← .darkMode: .primary-icon-button (primary-40→80), .error-button (error-40→50)
     ├── _card.scss

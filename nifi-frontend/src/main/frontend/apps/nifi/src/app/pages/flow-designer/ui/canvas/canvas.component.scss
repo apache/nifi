@@ -408,12 +408,10 @@
     text.remote-process-group-last-refresh {
         font-size: 10px;
     }
-}
 
-// Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
-$drop-shadow-color: black;
+    // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
+    $drop-shadow-color: black;
 
-:host ::ng-deep svg.canvas-svg {
     g.component {
         font-family: var(--mat-sys-body-medium-font);
     }
