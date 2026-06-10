@@ -47,6 +47,8 @@ public interface ConnectorDAO {
 
     void updateConnector(ConnectorDTO connectorDTO);
 
+    void verifyDelete(String id);
+
     void deleteConnector(String id);
 
     void startConnector(String id);

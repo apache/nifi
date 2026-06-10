@@ -123,6 +123,12 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
+    public void verifyDelete(final String id) {
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
+        getConnectorRepository().verifyDelete(connector);
+    }
+
+    @Override
     public void deleteConnector(final String id) {
         getConnectorRepository().deleteAssets(id);
         getConnectorRepository().removeConnector(id);
@@ -160,29 +166,29 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void verifyEnterTroubleshooting(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().verifyEnterTroubleshooting(connector);
     }
 
     @Override
     public void enterTroubleshooting(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().enterTroubleshooting(connector);
     }
 
     @Override
     public void verifyEndTroubleshooting(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         getConnectorRepository().verifyEndTroubleshooting(connector);
     }
 
     @Override
     public void endTroubleshooting(final String id) {
-        final ConnectorNode connector = getConnector(id);
+        final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
         try {
             getConnectorRepository().endTroubleshooting(connector);
         } catch (final FlowUpdateException e) {
-            throw new IllegalStateException("Failed to exit troubleshooting mode for Connector " + id + ": " + e, e);
+            throw new IllegalStateException("Failed to exit troubleshooting mode for Connector " + id + ": " + e.getMessage(), e);
         }
     }
 

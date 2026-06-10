@@ -3734,8 +3734,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteConnector(final String id) {
-        final ConnectorNode connector = connectorDAO.getConnector(id);
-        connector.verifyCanDelete();
+        connectorDAO.verifyDelete(id);
     }
 
     @Override

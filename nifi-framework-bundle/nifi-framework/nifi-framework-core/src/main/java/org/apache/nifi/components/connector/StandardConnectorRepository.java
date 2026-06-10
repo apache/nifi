@@ -438,6 +438,11 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
+    public void verifyDelete(final ConnectorNode connector) {
+        connector.verifyCanDelete();
+    }
+
+    @Override
     public void removeConnector(final String connectorId) {
         logger.debug("Removing connector [{}]", connectorId);
         final ConnectorNode connectorNode = connectors.get(connectorId);
@@ -446,7 +451,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         logger.debug("Verifying connector [{}] (state={}) can be deleted", connectorId, connectorNode.getCurrentState());
-        connectorNode.verifyCanDelete();
+        verifyDelete(connectorNode);
         if (configurationProvider != null) {
             logger.debug("Notifying configuration provider of connector [{}] deletion", connectorId);
             configurationProvider.delete(connectorId);

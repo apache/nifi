@@ -84,6 +84,17 @@ public interface ConnectorRepository {
     ConnectorSyncResult syncConnector(VersionedConnector versionedConnector);
 
     /**
+     * Verifies that the connector with the given identifier can be deleted. This checks
+     * the Connector's own lifecycle rules (e.g., no queued FlowFiles) and, if a
+     * {@link ConnectorConfigurationProvider} is configured, gives the provider an opportunity
+     * to veto the deletion.
+     *
+     * @param connector the Connector to verify
+     * @throws IllegalStateException if the Connector cannot be deleted
+     */
+    void verifyDelete(ConnectorNode connector);
+
+    /**
      * Removes the given Connector from the Repository
      * @param connectorId the identifier of the Connector to remove
      */
