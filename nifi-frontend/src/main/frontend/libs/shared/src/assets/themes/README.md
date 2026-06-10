@@ -226,16 +226,7 @@ mixin registrations in any app's `styles.scss`.
 Each app's `styles.scss` contains exactly these entries and nothing else:
 
 ```scss
-@use 'sass:meta';
-@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 @use 'libs/shared/src/assets/themes/material';
-@use 'tailwindcss';
-
-@layer base {
-    @include meta.load-css('font-awesome');
-}
-
-@source #{"'libs/shared/src'"};
 ```
 
 **There is no `html {}` block, no `@include component.generate-theme()`, and no

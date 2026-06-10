@@ -16,7 +16,10 @@
  */
 
 @use 'sass:map';
+@use 'sass:meta';
 @use '@angular/material' as mat;
+@use 'tailwindcss';
+@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 
 @use './components/button' as buttons;
 @use './components/card' as card;
@@ -43,6 +46,12 @@
 @use './components/tailwind-theme' as tailwind-theme;
 @use './components/tree' as tree;
 @use './components/typography' as typography;
+
+@layer base {
+    @include meta.load-css('font-awesome');
+}
+
+@source #{"'libs/shared/src'"};
 
 @mixin styles() {
     /* Light Theme */
