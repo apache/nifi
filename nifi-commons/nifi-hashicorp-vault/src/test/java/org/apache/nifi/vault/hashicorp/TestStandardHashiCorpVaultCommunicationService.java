@@ -65,8 +65,8 @@ public class TestStandardHashiCorpVaultCommunicationService {
     @Test
     public void testBasicConfiguration() {
         try (StandardHashiCorpVaultCommunicationService ignored = this.configureService()) {
-            // Once to check if the URI is https, once by VaultTemplate, once by RestTemplate
-            Mockito.verify(properties, Mockito.times(3)).getUri();
+            // Once to check if the URI is https, and once to resolve the Vault endpoint shared by the client
+            Mockito.verify(properties, Mockito.times(2)).getUri();
 
             // Once to check if the property is set, and once to retrieve the value
             Mockito.verify(properties, Mockito.times(2)).getAuthPropertiesFilename();
