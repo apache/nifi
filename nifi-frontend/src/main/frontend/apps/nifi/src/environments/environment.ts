@@ -16,6 +16,5 @@
  */
 
 export const environment = {
-    production: true,
-    enableConnectors: false
+    production: true
 };
