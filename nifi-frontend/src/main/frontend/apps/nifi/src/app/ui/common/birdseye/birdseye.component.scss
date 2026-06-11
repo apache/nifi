@@ -16,9 +16,8 @@
  */
 
 // THEMED STYLES (internal mixin)
-// These styles use CSS variables for colors. This mixin is included twice:
-// once for light mode and once under .darkMode for dark mode, mirroring the
-// pattern used by canvas.component.scss.
+// Colors use --mat-sys-* custom properties that resolve automatically for both
+// light and dark mode via material.scss. No .darkMode block needed.
 @mixin generate-theme() {
     .birdseye-container {
         background: var(--mat-sys-background);
@@ -47,9 +46,4 @@
 // won't match them. ::ng-deep disables the encapsulation requirement for descendant selectors.
 :host ::ng-deep {
     @include generate-theme();
-
-    // Dark mode styles (same styles, scoped to .darkMode)
-    .darkMode {
-        @include generate-theme();
-    }
 }

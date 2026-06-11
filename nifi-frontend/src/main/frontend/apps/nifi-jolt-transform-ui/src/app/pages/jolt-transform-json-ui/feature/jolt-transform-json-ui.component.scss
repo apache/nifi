@@ -14,3 +14,27 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
+@use '@angular/material' as mat;
+
+.jolt-transform-json-ui {
+    @include mat.button-density(-1);
+
+    .mat-mdc-form-field {
+        width: 100%;
+    }
+
+    .attributes-editor {
+        height: calc(100vh - 362px);
+        min-height: 126px;
+    }
+
+    .input-editor {
+        // ::ng-deep is required: CodeMirror generates its DOM dynamically via JavaScript
+        // and does not receive Angular's [_ngcontent-xxx] scoping attribute.
+        :host ::ng-deep .cm-s-nifi {
+            height: calc(100vh - 414px);
+            min-height: 81px;
+        }
+    }
+}

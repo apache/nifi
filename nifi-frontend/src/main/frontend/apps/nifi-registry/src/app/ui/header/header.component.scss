@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
+@use '@angular/material' as mat;
+
 .nifi-registry-navigation {
+    background-color: var(--mat-sys-secondary);
+
     .icon {
         font-size: 32px;
     }
@@ -27,6 +31,9 @@
     }
 
     .current-user {
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
+        font-family: var(--mat-sys-body-medium-font);
         max-width: 250px;
         text-overflow: ellipsis;
         line-height: normal;
@@ -34,8 +41,25 @@
         white-space: nowrap;
     }
 
+    .global-menu-icon.global-menu {
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
+    }
+
+    .global-menu-icon.global-menu:disabled {
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
+    }
+
     a {
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
+        text-decoration-color: var(--mat-sys-on-secondary);
         text-transform: uppercase;
+    }
+
+    a:hover {
+        opacity: 0.6;
     }
 
     .global-menu {
@@ -49,5 +73,33 @@ button.global-menu-item {
     .fa,
     .icon {
         text-align: start;
+    }
+}
+
+.global-menu-item {
+    &.selected {
+        @include mat.menu-overrides(
+            (
+                item-icon-color: var(--mat-sys-primary),
+                item-label-text-color: var(--mat-sys-primary)
+            )
+        );
+
+        .fa {
+            color: var(--mat-sys-primary);
+        }
+    }
+
+    &.selected:hover {
+        @include mat.menu-overrides(
+            (
+                item-icon-color: var(--mat-sys-primary),
+                item-label-text-color: var(--mat-sys-primary)
+            )
+        );
+
+        .fa {
+            color: var(--mat-sys-primary);
+        }
     }
 }

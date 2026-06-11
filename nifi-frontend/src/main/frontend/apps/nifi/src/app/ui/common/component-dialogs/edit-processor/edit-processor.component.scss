@@ -28,3 +28,43 @@ h2.mdc-dialog__title::before {
         width: 100%;
     }
 }
+
+#edit-processor-header {
+    .bulletins {
+        background-color: unset;
+
+        .fa {
+            color: var(--mat-sys-primary);
+        }
+    }
+
+    .bulletins.has-bulletins {
+        .fa {
+            color: var(--mat-sys-on-primary);
+        }
+
+        &.error {
+            .fa {
+                color: var(--mat-sys-on-error);
+            }
+
+            background-color: var(--mat-sys-error);
+        }
+        &.warning {
+            .fa {
+                color: var(--nf-caution-contrast);
+            }
+
+            background-color: var(--nf-caution-default);
+        }
+        &.info,
+        &.debug,
+        &.trace {
+            .fa {
+                color: var(--nf-success-contrast);
+            }
+
+            background-color: var(--nf-success-default);
+        }
+    }
+}

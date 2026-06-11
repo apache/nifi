@@ -35,6 +35,7 @@
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
+        height: calc(var(--mat-sys-body-medium-line-height) * 3);
     }
 
     .no-selected-type {

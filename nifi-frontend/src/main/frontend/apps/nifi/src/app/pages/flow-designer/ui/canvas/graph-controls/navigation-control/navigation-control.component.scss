@@ -17,6 +17,8 @@
 
 div.navigation-control {
     margin-bottom: 2px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    background-color: var(--mat-sys-background);
 
     --mat-icon-button-state-layer-size: 34px;
     --mat-icon-button-icon-size: 17px;
@@ -27,6 +29,22 @@ div.navigation-control {
             width: 34px;
             line-height: 34px;
             text-align: center;
+        }
+
+        &:hover {
+            background: linear-gradient(
+                -90deg,
+                var(
+                        --mat-menu-item-hover-state-layer-color,
+                        color-mix(
+                            in srgb,
+                            var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                            transparent
+                        )
+                    )
+                    34px,
+                transparent 35px
+            );
         }
     }
 }

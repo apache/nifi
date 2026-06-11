@@ -15,12 +15,23 @@
  * limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
-
-@mixin generate-theme() {
-    .resizable-triangle {
-        border-right-color: var(--mat-sys-outline);
-        border-bottom-color: var(--mat-sys-outline);
+@mixin configure() {
+    @theme {
+        --text-xs: 10px;
+        --text-xs--line-height: 14px;
+        --text-xs--letter-spacing: 0.4px;
+        --text-sm: 12px;
+        --text-sm--line-height: 16px;
+        --text-sm--letter-spacing: 0.4px;
+        --text-base: 14px;
+        --text-base--line-height: 20px;
+        --text-lg: 16px;
+        --text-lg--line-height: 24px;
+        --text-xl: 18px;
+        --text-xl--line-height: 28px;
+        --text-2xl: 20px;
+        --text-2xl--line-height: 28px;
+        --text-3xl: 32px;
+        --text-3xl--line-height: 40px;
     }
 }

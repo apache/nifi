@@ -396,8 +396,8 @@ $drop-shadow-color: black;
 
 // =============================================================================
 // THEMED STYLES (internal mixin)
-// These styles use CSS variables for colors. This mixin is included twice:
-// once for light mode and once under .darkMode for dark mode.
+// Colors use --mat-sys-* and --nf-* custom properties that resolve automatically
+// for both light and dark mode via material.scss. No .darkMode block needed.
 // =============================================================================
 @mixin generate-theme() {
     .canvas-background {
@@ -885,15 +885,9 @@ $drop-shadow-color: black;
 // encapsulation attribute requirement for descendant selectors, allowing styles
 // to target these dynamically generated SVG elements.
 //
-// Include structural styles (fonts, sizes, animations) as well as themed styles (colors via CSS variables) for both light and dark modes
+// ::ng-deep is required for all D3 canvas styles because the SVG elements are created
+// dynamically and do not receive Angular's [_ngcontent-xxx] scoping attribute.
 :host ::ng-deep {
     @include styles();
-
-    // Light mode styles
     @include generate-theme();
-
-    // Dark mode styles (same styles, scoped to .darkMode)
-    .darkMode {
-        @include generate-theme();
-    }
 }

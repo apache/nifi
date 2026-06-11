@@ -15,10 +15,7 @@
  *  limitations under the License.
  */
 
-@use 'sass:map';
-@use '@angular/material' as mat;
-
-@mixin generate-prism-theme() {
+@mixin generate-material-theme() {
     pre[class*='language-'] {
         padding-top: 0.75rem;
         padding-bottom: 0.75rem;
@@ -76,7 +73,8 @@
 
     :not(pre) > code[class*='language-'],
     pre[class*='language-'] {
-        @extend .neutral-contrast;
+        color: var(--mat-sys-on-surface);
+        fill: var(--mat-sys-on-surface);
         cursor: default;
         line-height: normal;
         background-color: var(--mat-sys-background);

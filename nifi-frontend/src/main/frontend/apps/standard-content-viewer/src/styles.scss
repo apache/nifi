@@ -15,34 +15,4 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
-@use 'sass:map';
-@use 'sass:meta';
-@use 'tailwindcss';
-@use 'libs/shared/src/assets/styles/tailwind-theme';
-@use 'libs/shared/src/assets/styles/app' as app;
-@use 'app/pages/standard-content-viewer/feature/standard-content-viewer.component-theme' as standard-content-viewer;
-
-// Plus imports for other components in your app.
-@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-
 @use 'libs/shared/src/assets/themes/material';
-
-@layer base {
-    @include meta.load-css('font-awesome');
-}
-
-@source #{"'libs/shared/src'"};
-
-// only include these once (not needed for dark mode)
-@include app.styles();
-
-html {
-    @include app.generate-material-theme();
-    @include standard-content-viewer.generate-theme();
-
-    .darkMode {
-        @include app.generate-material-theme();
-        @include standard-content-viewer.generate-theme();
-    }
-}

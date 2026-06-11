@@ -16,6 +16,8 @@
  */
 
 .splash {
+    background-color: var(--mat-sys-secondary);
+
     .splash-img {
         background: transparent url(../../../../libs/shared/src/assets/icons/nifi-drop-splash.svg) no-repeat center
             center;

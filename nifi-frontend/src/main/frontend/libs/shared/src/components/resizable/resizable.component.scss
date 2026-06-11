@@ -46,6 +46,8 @@ $handle-size: 15px;
     border-right-style: solid;
     border-bottom-width: math.div($handle-size, 2);
     border-bottom-style: solid;
+    border-right-color: var(--mat-sys-outline);
+    border-bottom-color: var(--mat-sys-outline);
     bottom: 10px;
     right: 10px;
 }

@@ -15,10 +15,9 @@
  *  limitations under the License.
  */
 
-@use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin styles() {
+@mixin generate-material-theme() {
     .listing-table {
         @include mat.table-density(-4);
         border-width: 1px;
@@ -67,20 +66,20 @@
     .mat-sort-header-content {
         overflow: hidden;
     }
-}
 
-@mixin generate-theme() {
     .listing-table {
         table {
             background-color: inherit;
 
             th.mat-mdc-header-cell {
-                @extend .secondary-contrast;
+                color: var(--mat-sys-on-secondary);
+                fill: var(--mat-sys-on-secondary);
                 background-color: var(--mat-sys-secondary);
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    @extend .secondary-contrast;
+                    color: var(--mat-sys-on-secondary);
+                    fill: var(--mat-sys-on-secondary);
                 }
             }
 

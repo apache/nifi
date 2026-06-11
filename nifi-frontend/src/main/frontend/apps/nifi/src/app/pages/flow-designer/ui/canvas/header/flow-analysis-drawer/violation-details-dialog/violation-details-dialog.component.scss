@@ -14,3 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+.pill.enforce {
+    background-color: var(--mat-sys-error);
+    color: var(--mat-sys-on-error);
+}
+
+.pill.warn {
+    background-color: var(--mat-sys-secondary);
+    color: var(--mat-sys-on-secondary);
+}
