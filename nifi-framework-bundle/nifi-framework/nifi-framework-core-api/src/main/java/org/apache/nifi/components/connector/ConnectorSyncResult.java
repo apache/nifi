@@ -17,12 +17,12 @@
 
 package org.apache.nifi.components.connector;
 
-import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedConnectorState;
 
 /**
  * Result of a connector synchronization attempt during flow inheritance.
  * Contains the outcome, the connector node (if applicable), and the effective
- * ScheduledState that the caller should apply.
+ * scheduled state that the caller should apply.
  */
 public final class ConnectorSyncResult {
 
@@ -39,9 +39,9 @@ public final class ConnectorSyncResult {
 
     private final Outcome outcome;
     private final ConnectorNode connectorNode;
-    private final ScheduledState effectiveScheduledState;
+    private final VersionedConnectorState effectiveScheduledState;
 
-    private ConnectorSyncResult(final Outcome outcome, final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+    private ConnectorSyncResult(final Outcome outcome, final ConnectorNode connectorNode, final VersionedConnectorState effectiveScheduledState) {
         this.outcome = outcome;
         this.connectorNode = connectorNode;
         this.effectiveScheduledState = effectiveScheduledState;
@@ -49,18 +49,18 @@ public final class ConnectorSyncResult {
 
     /**
      * Configuration was applied and the connector's run state should be updated
-     * to match the effective ScheduledState.
+     * to match the effective scheduled state.
      */
-    public static ConnectorSyncResult synced(final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+    public static ConnectorSyncResult synced(final ConnectorNode connectorNode, final VersionedConnectorState effectiveScheduledState) {
         return new ConnectorSyncResult(Outcome.SYNCED, connectorNode, effectiveScheduledState);
     }
 
     /**
      * Connector configuration was unchanged relative to the proposed versioned configuration;
      * no configuration update was applied. The connector's run state should still be updated
-     * if it differs from the effective ScheduledState.
+     * if it differs from the effective scheduled state.
      */
-    public static ConnectorSyncResult syncedConfigUnchanged(final ConnectorNode connectorNode, final ScheduledState effectiveScheduledState) {
+    public static ConnectorSyncResult syncedConfigUnchanged(final ConnectorNode connectorNode, final VersionedConnectorState effectiveScheduledState) {
         return new ConnectorSyncResult(Outcome.SYNCED_CONFIG_UNCHANGED, connectorNode, effectiveScheduledState);
     }
 
@@ -99,13 +99,13 @@ public final class ConnectorSyncResult {
     }
 
     /**
-     * Returns the effective ScheduledState that should be applied to the connector,
+     * Returns the effective scheduled state that should be applied to the connector,
      * or {@code null} if the connector was rejected, failed, or removed.
      * The caller is responsible for applying this state using the appropriate
      * mechanism (e.g., {@code FlowController.startConnector()} which respects
      * deferred-start semantics).
      */
-    public ScheduledState getEffectiveScheduledState() {
+    public VersionedConnectorState getEffectiveScheduledState() {
         return effectiveScheduledState;
     }
 

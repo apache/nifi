@@ -19,6 +19,7 @@ package org.apache.nifi.groups;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.FlowFileActivity;
@@ -142,6 +143,23 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the ID of the Connector that is responsible for this Process Group, or an empty optional if no Connector is associated
      */
     Optional<String> getConnectorIdentifier();
+
+    /**
+     * Returns the owning Connector for this Process Group, traversing the Process Group hierarchy until a Process Group
+     * is found that is associated with a Connector. If no Process Group in the hierarchy is associated with a Connector,
+     * an empty Optional is returned. This is useful for determining whether a component is managed by a Connector.
+     *
+     * <p>The default implementation returns {@link Optional#empty()}. Implementations that can resolve a
+     * {@link ConnectorNode} from a connector identifier (typically via a FlowManager) should override this method
+     * and walk the parent chain using {@link #getConnectorIdentifier()} and {@link #getParent()} to locate the
+     * owning Connector.</p>
+     *
+     * @return an Optional containing the owning ConnectorNode, or empty if this Process Group and all of its ancestors are
+     * not managed by a Connector
+     */
+    default Optional<ConnectorNode> findOwningConnector() {
+        return Optional.empty();
+    }
 
     /**
      * @return the user-set comments about this ProcessGroup, or
@@ -940,6 +958,16 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *            update the contents of that Process Group
      */
     void updateFlow(VersionedExternalFlow proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
+     * Updates the Process Group to match the proposed flow, using the Instance Identifier of each component in the
+     * proposed flow as the runtime identifier for that component. This is intended for use when restoring a previously
+     * persisted flow where the original runtime identifiers must be preserved (for example, so that queued FlowFiles
+     * in the FlowFile Repository can be re-associated with their Connections after a restart).
+     *
+     * @param proposedSnapshot the proposed flow whose Instance Identifiers should be used as runtime identifiers
+     */
+    void restoreFlowPreservingIdentifiers(VersionedExternalFlow proposedSnapshot);
 
     /**
      * Updates the Process Group to match the proposed flow

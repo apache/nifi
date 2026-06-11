@@ -647,7 +647,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         } else {
             ProcessGroup group = getRootGroup();
             if (!FlowManager.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
-                group = group.findProcessGroup(groupId);
+                group = flowManager.getGroup(groupId);
             }
 
             if (group == null) {

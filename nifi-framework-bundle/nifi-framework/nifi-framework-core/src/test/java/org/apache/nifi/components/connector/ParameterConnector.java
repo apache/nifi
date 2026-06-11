@@ -77,6 +77,13 @@ public class ParameterConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The flow structure does not change with configuration; only parameter values do, which are applied
+        // to the active parameter context in applyUpdate. The authoritative flow definition matches the initial flow.
+        return getInitialFlow();
+    }
+
+    @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return List.of(TEXT_STEP);
     }

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.components.connector;
 
-import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedConnectorState;
 
 import java.io.InputStream;
 import java.util.Optional;
@@ -102,6 +102,44 @@ public interface ConnectorConfigurationProvider {
     void verifyCreate(String connectorId);
 
     /**
+     * Verifies that the provider allows the connector with the given identifier to transition into
+     * Troubleshooting mode. This is called before the framework transitions a Connector into
+     * Troubleshooting, giving the provider an opportunity to reject the operation (for example,
+     * because the provider is currently performing a concurrent operation on the connector or the
+     * external system does not permit troubleshooting at this time).
+     *
+     * <p>If the provider cannot support the operation, it should throw a runtime exception
+     * (for example, {@link IllegalStateException} or
+     * {@link ConnectorConfigurationProviderException}) describing why the transition is not
+     * allowed. The exception message will be surfaced to the caller.</p>
+     *
+     * <p>The default implementation is a no-op, allowing the transition to proceed.</p>
+     *
+     * @param connectorId the identifier of the connector that is being transitioned into Troubleshooting mode
+     */
+    default void verifyEnterTroubleshooting(final String connectorId) {
+    }
+
+    /**
+     * Verifies that the provider allows the connector with the given identifier to transition out of
+     * Troubleshooting mode. This is called before the framework restores the Connector's authoritative
+     * flow and transitions it back to its normal lifecycle, giving the provider an opportunity to
+     * reject the operation (for example, because the external system has placed the connector in a
+     * state that requires user attention before normal operation can resume).
+     *
+     * <p>If the provider cannot support the operation, it should throw a runtime exception
+     * (for example, {@link IllegalStateException} or
+     * {@link ConnectorConfigurationProviderException}) describing why the transition is not
+     * allowed. The exception message will be surfaced to the caller.</p>
+     *
+     * <p>The default implementation is a no-op, allowing the transition to proceed.</p>
+     *
+     * @param connectorId the identifier of the connector that is being transitioned out of Troubleshooting mode
+     */
+    default void verifyEndTroubleshooting(final String connectorId) {
+    }
+
+    /**
      * Determines how the connector repository should handle synchronization for the given
      * connector during flow inheritance (cluster join). The provider examines the external
      * state of the connector and returns a {@link ConnectorSyncDirective} indicating whether
@@ -112,7 +150,7 @@ public interface ConnectorConfigurationProvider {
      * <ul>
      *   <li>A {@link ConnectorWorkingConfiguration} with the provider's working config and name
      *       (overriding the potentially stale values from the versioned flow)</li>
-     *   <li>A {@link ScheduledState} override (correcting stale run intent from the versioned flow)</li>
+     *   <li>A {@link VersionedConnectorState} override (correcting stale run intent from the versioned flow)</li>
      * </ul>
      *
      * <p>This method combines the verify and load operations into a single call to avoid
@@ -123,10 +161,10 @@ public interface ConnectorConfigurationProvider {
      * behavior for Apache NiFi when no provider is configured.</p>
      *
      * @param connectorId the identifier of the connector to check
-     * @param proposedScheduledState the ScheduledState from the versioned flow
+     * @param proposedScheduledState the scheduled state from the versioned flow
      * @return a directive indicating how to handle this connector during sync
      */
-    default ConnectorSyncDirective getSyncDirective(final String connectorId, final ScheduledState proposedScheduledState) {
+    default ConnectorSyncDirective getSyncDirective(final String connectorId, final VersionedConnectorState proposedScheduledState) {
         return ConnectorSyncDirective.allow();
     }
 

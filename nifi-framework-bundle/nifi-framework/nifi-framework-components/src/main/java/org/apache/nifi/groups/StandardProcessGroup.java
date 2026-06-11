@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -353,6 +354,22 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public Optional<String> getConnectorIdentifier() {
         return Optional.ofNullable(connectorId);
+    }
+
+    @Override
+    public Optional<ConnectorNode> findOwningConnector() {
+        ProcessGroup group = this;
+        while (group != null) {
+            final Optional<String> owningConnectorId = group.getConnectorIdentifier();
+            if (owningConnectorId.isPresent()) {
+                final ConnectorNode connectorNode = flowManager.getConnector(owningConnectorId.get());
+                return Optional.ofNullable(connectorNode);
+            }
+
+            group = group.getParent();
+        }
+
+        return Optional.empty();
     }
 
     @Override
@@ -2128,7 +2145,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             return this;
         }
 
-        final ProcessGroup group = flowManager.getGroup(id, getConnectorIdentifier().orElse(null));
+        final ProcessGroup group = flowManager.getGroup(id);
         if (group == null) {
             return null;
         }
@@ -3950,6 +3967,48 @@ public final class StandardProcessGroup implements ProcessGroup {
             .sensitiveValueEncryptor(null)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(false)
+            .mapControllerServiceReferencesToVersionedId(true)
+            .mapFlowRegistryClientId(false)
+            .mapAssetReferences(false)
+            .build();
+
+        synchronizeFlow(proposedSnapshot, synchronizationOptions, flowMappingOptions);
+    }
+
+    @Override
+    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot) {
+        // Use the Instance Identifier captured in the persisted flow as the runtime identifier for every component. This is
+        // required so that Connection identifiers (and therefore FlowFile queue identifiers) match what was in use before
+        // the flow was persisted. Without this, queued FlowFiles in the FlowFile Repository cannot be re-associated with
+        // their Connections upon restore.
+        final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
+        final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.IDENTITY_LOOKUP;
+        final ComponentScheduler componentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
+
+        final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
+            .componentIdGenerator(idGenerator)
+            .componentComparisonIdLookup(VersionedComponent::getInstanceIdentifier)
+            .componentScheduler(componentScheduler)
+            .ignoreLocalModifications(true)
+            .updateDescendantVersionedFlows(true)
+            .updateGroupSettings(true)
+            .updateRpgUrls(false)
+            .propertyDecryptor(encryptor::decrypt)
+            .build();
+
+        // Sensitive property values in the proposed snapshot were encrypted using the same PropertyEncryptor when the snapshot
+        // was persisted (for example, when a Connector-managed flow is persisted in Troubleshooting mode). The currently loaded
+        // flow therefore must also be mapped with an equivalent SensitiveValueEncryptor so the comparison between "current" and
+        // "proposed" sensitive values operates on matching ciphertext; otherwise every sensitive property appears to differ and
+        // the decrypted value written back to the live component is the encrypted payload rather than the plaintext (or parameter
+        // reference) that was originally captured.
+        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
+            .mapSensitiveConfiguration(true)
+            .mapPropertyDescriptors(true)
+            .stateLookup(stateLookup)
+            .sensitiveValueEncryptor(encryptor::encrypt)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(true)
             .mapFlowRegistryClientId(false)
             .mapAssetReferences(false)

@@ -26,10 +26,11 @@ import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorState;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.BundleUtils;
@@ -53,6 +54,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -110,7 +113,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public ConnectorSyncResult syncConnector(final VersionedConnector versionedConnector) {
         final String connectorId = versionedConnector.getInstanceIdentifier();
-        final ScheduledState proposedScheduledState = versionedConnector.getScheduledState();
+        final VersionedConnectorState proposedScheduledState = versionedConnector.getScheduledState();
         logger.debug("syncConnector called for connector [{}]", connectorId);
 
         // Consult the provider for external state checks and working config
@@ -207,18 +210,31 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         final List<VersionedConfigurationStep> effectiveActiveConfig = versionedConnector.getActiveFlowConfiguration();
 
-        final ScheduledState effectiveScheduledState = (directive.getScheduledStateOverride() != null)
+        final VersionedConnectorState effectiveScheduledState = (directive.getScheduledStateOverride() != null)
                 ? directive.getScheduledStateOverride()
                 : proposedScheduledState;
 
         // Set name locally (no provider.save())
         connector.setName(effectiveName);
 
-        // Compare config and sync if changed
         final boolean wasRunning = currentState == ConnectorState.RUNNING;
         final boolean configChanged = isNewConnector || isConfigurationUpdated(connector, effectiveActiveConfig, effectiveWorkingConfig);
+        final boolean restoringTroubleshooting = effectiveScheduledState == VersionedConnectorState.TROUBLESHOOTING;
 
-        if (configChanged) {
+        // Configuration must be inherited even when the effective state is TROUBLESHOOTING. The Connector's managed
+        // Parameter Context is intentionally not registered with the global ParameterContextManager (see
+        // StandardFlowManager#createConnector) and therefore is not persisted in flow.json. The framework can only
+        // re-populate that Parameter Context by letting the Connector's applyUpdate run with the persisted active
+        // configuration, which is exactly what inheritConfiguration does.
+        //
+        // For a TROUBLESHOOTING restoration, the Connector's authoritative active flow that inheritConfiguration
+        // produces is then immediately overlaid by restoreTroubleshootingFlow with the user's persisted Managed
+        // Process Group snapshot. The structural overlay preserves the in-memory Parameter Context binding, so the
+        // Connector-supplied parameter values remain available, while the user's flow modifications are the ones
+        // running. The transient Connector-supplied flow shape is invisible outside this synchronization cycle: flow
+        // synchronization completes before the FlowFile Repository attaches FlowFiles to queues, so no FlowFile
+        // movement can observe it.
+        if (configChanged || restoringTroubleshooting) {
             logger.info("{} configuration needs synchronization", connector);
             try {
                 inheritConfiguration(connector, effectiveActiveConfig, effectiveWorkingConfig, versionedConnector.getBundle());
@@ -235,6 +251,34 @@ public class StandardConnectorRepository implements ConnectorRepository {
             }
         } else {
             logger.debug("{} configuration is up to date, no update necessary", connector);
+        }
+
+        if (restoringTroubleshooting) {
+            final VersionedProcessGroup persistedManagedGroup = versionedConnector.getManagedProcessGroup();
+            if (persistedManagedGroup == null) {
+                logger.warn("{} effective scheduled state is TROUBLESHOOTING but no Managed Process Group snapshot was persisted; leaving Managed Process Group unchanged", connector);
+            } else {
+                logger.info("{} was persisted in Troubleshooting mode; restoring Managed Process Group from persisted snapshot", connector);
+                try {
+                    connector.getActiveFlowContext().restoreTroubleshootingFlow(persistedManagedGroup);
+                } catch (final Exception e) {
+                    logger.error("{} failed to restore Managed Process Group from Troubleshooting snapshot", connector, e);
+                    connector.markInvalid("Flow Synchronization Failure",
+                            "Failed to restore Managed Process Group from Troubleshooting snapshot: " + e.getMessage());
+                    return ConnectorSyncResult.failed(connector);
+                }
+            }
+
+            if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+                // Use restoreTroubleshootingState rather than enterTroubleshooting because the former does not stop
+                // running components within the Managed Process Group. Components inside the Managed Process Group that
+                // were persisted as RUNNING have just been restored to the RUNNING state by restoreTroubleshootingFlow above;
+                // calling enterTroubleshooting here would immediately stop them, violating the contract that persisted
+                // user modifications (including running processors) should survive a NiFi restart while in Troubleshooting.
+                connector.restoreTroubleshootingState();
+            }
+
+            return ConnectorSyncResult.syncedConfigUnchanged(connector, effectiveScheduledState);
         }
 
         return configChanged
@@ -394,6 +438,11 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
+    public void verifyDelete(final ConnectorNode connector) {
+        connector.verifyCanDelete();
+    }
+
+    @Override
     public void removeConnector(final String connectorId) {
         logger.debug("Removing connector [{}]", connectorId);
         final ConnectorNode connectorNode = connectors.get(connectorId);
@@ -402,7 +451,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         logger.debug("Verifying connector [{}] (state={}) can be deleted", connectorId, connectorNode.getCurrentState());
-        connectorNode.verifyCanDelete();
+        verifyDelete(connectorNode);
         if (configurationProvider != null) {
             logger.debug("Notifying configuration provider of connector [{}] deletion", connectorId);
             configurationProvider.delete(connectorId);
@@ -429,9 +478,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         logger.info("Stopping connector [{}] (current state: {}) and awaiting completion", connectorId, currentState);
         try {
             final Future<Void> stopFuture = stopConnector(connector);
-            stopFuture.get(syncTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            stopFuture.get(syncTimeout.toMillis(), TimeUnit.MILLISECONDS);
             logger.debug("Connector [{}] stopped successfully", connectorId);
-        } catch (final java.util.concurrent.TimeoutException e) {
+        } catch (final TimeoutException e) {
             logger.warn("Timed out waiting for connector [{}] to stop", connectorId);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -446,9 +495,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         try {
             logger.debug("Purging FlowFiles for connector [{}] before removal", connectorId);
             final Future<Void> purgeFuture = connector.purgeFlowFiles("Flow Synchronization");
-            purgeFuture.get(syncTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            purgeFuture.get(syncTimeout.toMillis(), TimeUnit.MILLISECONDS);
             logger.debug("Connector [{}] purged successfully", connectorId);
-        } catch (final java.util.concurrent.TimeoutException e) {
+        } catch (final TimeoutException e) {
             logger.warn("Timed out waiting for connector [{}] to purge FlowFiles", connectorId);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -520,6 +569,16 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
         logger.debug("Applying update to {}", connector);
+
+        // Refuse the update before any provider interaction or asset sync. Once a Connector enters Troubleshooting the
+        // user owns the managed flow (NIP-28) and the Connector configuration is locked. Deferring this check until
+        // transitionStateForUpdating() lets a provider that returns shouldApplyUpdate()=false cause the framework to
+        // silently treat the request as successful while the Connector is still in Troubleshooting, and also lets the
+        // provider observe and act on an update request that should never reach it in this state.
+        if (connector.getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot apply an update to " + connector + " while it is in Troubleshooting mode; "
+                + "exit Troubleshooting mode before applying updates.");
+        }
 
         if (configurationProvider != null && !configurationProvider.shouldApplyUpdate(connector.getIdentifier())) {
             logger.info("ConnectorConfigurationProvider indicated framework should not apply update for {}; skipping framework update process", connector);
@@ -668,6 +727,11 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void updateConnector(final ConnectorNode connector, final String name) {
+        if (connector.getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot update the configuration of " + connector + " while it is in Troubleshooting mode; "
+                + "exit Troubleshooting mode before modifying the Connector configuration.");
+        }
+
         if (configurationProvider != null) {
             // Load the latest provider state so that other in-flight working changes are not overwritten by a rename.
             final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connector.getIdentifier());
@@ -680,6 +744,11 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void configureConnector(final ConnectorNode connector, final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        if (connector.getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot modify the configuration of " + connector + " while it is in Troubleshooting mode; "
+                + "exit Troubleshooting mode before modifying the Connector configuration.");
+        }
+
         if (configurationProvider != null) {
             final ConnectorWorkingConfiguration mergedConfiguration = buildMergedWorkingConfiguration(connector, stepName, configuration);
             configurationProvider.save(connector.getIdentifier(), mergedConfiguration);
@@ -710,11 +779,52 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void discardWorkingConfiguration(final ConnectorNode connector) {
+        if (connector.getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot discard the working configuration of " + connector + " while it is in Troubleshooting mode; "
+                + "exit Troubleshooting mode before modifying the Connector configuration.");
+        }
+
         if (configurationProvider != null) {
             configurationProvider.discard(connector.getIdentifier());
         }
         connector.discardWorkingConfiguration();
         cleanUpAssets(connector);
+    }
+
+    @Override
+    public void verifyEnterTroubleshooting(final ConnectorNode connector) {
+        connector.verifyCanEnterTroubleshooting();
+        if (configurationProvider != null) {
+            configurationProvider.verifyEnterTroubleshooting(connector.getIdentifier());
+        }
+    }
+
+    @Override
+    public void enterTroubleshooting(final ConnectorNode connector) {
+        verifyEnterTroubleshooting(connector);
+        logger.info("Transitioning Connector [{}] into Troubleshooting mode", connector.getIdentifier());
+        connector.enterTroubleshooting();
+    }
+
+    @Override
+    public void verifyEndTroubleshooting(final ConnectorNode connector) {
+        connector.verifyCanEndTroubleshooting();
+        if (configurationProvider != null) {
+            configurationProvider.verifyEndTroubleshooting(connector.getIdentifier());
+        }
+    }
+
+    @Override
+    public void endTroubleshooting(final ConnectorNode connector) throws FlowUpdateException {
+        // Consult the optional provider hook for end-of-troubleshooting symmetry with enterTroubleshooting.
+        // The Connector's own pre-conditions (verifyCanEndTroubleshooting) are evaluated inside
+        // connector.endTroubleshooting(), so we do not call them a second time here in order to avoid
+        // double-evaluating the (relatively expensive) authoritative-flow preflight against the live managed group.
+        if (configurationProvider != null) {
+            configurationProvider.verifyEndTroubleshooting(connector.getIdentifier());
+        }
+        logger.info("Exiting Troubleshooting mode on Connector [{}]", connector.getIdentifier());
+        connector.endTroubleshooting();
     }
 
     @Override

@@ -17,7 +17,8 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -43,6 +44,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -194,12 +196,8 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         assertNotNull(connectorFlow);
         assertEquals(managedProcessGroupId, connectorFlow.getId());
 
-        try {
-            getNifiClient().getFlowClient().getProcessGroup(managedProcessGroupId);
-            fail("Was able to retrieve connector-managed process group via FlowClient");
-        } catch (final NiFiClientException e) {
-            assertInstanceOf(NotFoundException.class, e.getCause());
-        }
+        assertConnectorManagedAccessRejected(() -> getNifiClient().getFlowClient().getProcessGroup(managedProcessGroupId),
+            "Was able to retrieve connector-managed process group via FlowClient");
 
         final Set<ProcessGroupEntity> childGroups = connectorFlow.getFlow().getProcessGroups();
         assertEquals(1, childGroups.size(), "Expected exactly one child process group");
@@ -212,11 +210,21 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         assertNotNull(childFlowEntity);
         assertEquals(childGroupId, childFlowEntity.getProcessGroupFlow().getId());
 
+        assertConnectorManagedAccessRejected(() -> getNifiClient().getFlowClient().getProcessGroup(childGroupId),
+            "Was able to retrieve child process group of connector-managed flow via FlowClient");
+    }
+
+    private void assertConnectorManagedAccessRejected(final Callable<?> call, final String failureMessage) throws IOException {
         try {
-            getNifiClient().getFlowClient().getProcessGroup(childGroupId);
-            fail("Was able to retrieve child process group of connector-managed flow via FlowClient");
+            call.call();
+            fail(failureMessage);
         } catch (final NiFiClientException e) {
-            assertInstanceOf(NotFoundException.class, e.getCause());
+            final WebApplicationException cause = assertInstanceOf(WebApplicationException.class, e.getCause());
+            assertEquals(Response.Status.CONFLICT.getStatusCode(), cause.getResponse().getStatus());
+        } catch (final IOException e) {
+            throw e;
+        } catch (final Exception e) {
+            fail("Unexpected exception while invoking call: " + e.getMessage());
         }
     }
 

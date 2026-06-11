@@ -24,6 +24,7 @@ import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Connectable;
@@ -82,8 +83,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return locateConnection(connectionId, false);
     }
 
-    private Connection locateConnection(final String connectionId, final boolean includeConnectorManaged) {
-        // First, search the main flow hierarchy
+    Connection locateConnection(final String connectionId, final boolean includeConnectorManaged) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         Connection connection = rootGroup.findConnection(connectionId);
 
@@ -91,17 +91,20 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             return connection;
         }
 
-        // Optionally search Connector-managed ProcessGroups
-        if (includeConnectorManaged) {
-            for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
-                final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
-                if (flowContext != null) {
-                    final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
-                    connection = managedGroup.findConnection(connectionId);
-                    if (connection != null) {
-                        return connection;
-                    }
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+
+            final ProcessGroup managedGroup = flowContext.getManagedProcessGroup();
+            connection = managedGroup.findConnection(connectionId);
+            if (connection != null) {
+                if (!includeConnectorManaged) {
+                    verifyAccessibleForComponentOperation(connection.getProcessGroup(), connectionId);
                 }
+
+                return connection;
             }
         }
 
@@ -111,17 +114,27 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     @Override
     public boolean hasConnection(String id) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        return rootGroup.findConnection(id) != null;
+        if (rootGroup.findConnection(id) != null) {
+            return true;
+        }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+                continue;
+            }
+
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null && flowContext.getManagedProcessGroup().findConnection(id) != null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
     public Connection getConnection(final String id) {
         return locateConnection(id);
-    }
-
-    @Override
-    public Connection getConnection(final String id, final boolean includeConnectorManaged) {
-        return locateConnection(id, includeConnectorManaged);
     }
 
     @Override

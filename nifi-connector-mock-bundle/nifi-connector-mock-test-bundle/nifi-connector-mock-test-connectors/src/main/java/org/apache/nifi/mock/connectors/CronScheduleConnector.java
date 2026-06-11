@@ -65,6 +65,19 @@ public class CronScheduleConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The authoritative Active flow is the flow template with the currently configured CRON expression
+        // applied as the Trigger Schedule parameter value.
+        final VersionedExternalFlow flow = getInitialFlow();
+        final String triggerSchedule = activeFlowContext.getConfigurationContext().getProperty(SCHEDULE_STEP_NAME, TRIGGER_SCHEDULE_PARAM).getValue();
+        if (triggerSchedule != null) {
+            VersionedFlowUtils.setParameterValue(flow, TRIGGER_SCHEDULE_PARAM, triggerSchedule);
+        }
+
+        return flow;
+    }
+
+    @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return List.of(SCHEDULE_STEP);
     }

@@ -427,8 +427,59 @@ public class NiFiClientUtil {
         final ConnectorsEntity connectorsEntity = nifiClient.getFlowClient().getConnectors();
         for (final ConnectorEntity connector : connectorsEntity.getConnectors()) {
             connector.setDisconnectedNodeAcknowledged(true);
-            getConnectorClient().stopConnector(connector);
-            waitForConnectorStopped(connector.getId());
+            final String state = connector.getComponent() == null ? null : connector.getComponent().getState();
+
+            if (ConnectorState.TROUBLESHOOTING.name().equals(state)) {
+                final String managedGroupId = connector.getComponent().getManagedProcessGroupId();
+                if (managedGroupId != null) {
+                    try {
+                        stopProcessGroupComponents(managedGroupId);
+                        disableControllerServices(managedGroupId, true);
+                        emptyConnectorManagedQueues(connector.getId(), managedGroupId);
+                    } catch (final Exception stopException) {
+                        logger.warn("Failed to prepare managed Process Group [{}] for Connector [{}] during teardown",
+                                managedGroupId, connector.getId(), stopException);
+                    }
+                }
+
+                try {
+                    endTroubleshooting(connector.getId());
+                } catch (final Exception endException) {
+                    logger.warn("Failed to end Troubleshooting for Connector [{}] during teardown", connector.getId(), endException);
+                }
+
+                continue;
+            }
+
+            try {
+                getConnectorClient().stopConnector(connector);
+                waitForConnectorStopped(connector.getId());
+            } catch (final Exception stopException) {
+                logger.warn("Failed to stop Connector [{}] during teardown", connector.getId(), stopException);
+            }
+        }
+    }
+
+    private void emptyConnectorManagedQueues(final String connectorId, final String groupId) throws NiFiClientException, IOException {
+        final ProcessGroupFlowEntity flowEntity = getConnectorClient().getFlow(connectorId, groupId);
+        if (flowEntity == null || flowEntity.getProcessGroupFlow() == null || flowEntity.getProcessGroupFlow().getFlow() == null) {
+            return;
+        }
+
+        final FlowDTO flow = flowEntity.getProcessGroupFlow().getFlow();
+        if (flow.getConnections() != null) {
+            for (final ConnectionEntity connection : flow.getConnections()) {
+                try {
+                    emptyQueue(connection.getId());
+                } catch (final Exception ignored) {
+                }
+            }
+        }
+
+        if (flow.getProcessGroups() != null) {
+            for (final ProcessGroupEntity child : flow.getProcessGroups()) {
+                emptyConnectorManagedQueues(connectorId, child.getId());
+            }
         }
     }
 
@@ -489,6 +540,21 @@ public class NiFiClientUtil {
 
     public void waitForConnectorDraining(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
         waitForConnectorState(connectorId, ConnectorState.DRAINING);
+    }
+
+    public ConnectorEntity enterTroubleshooting(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        entity.setDisconnectedNodeAcknowledged(true);
+        final ConnectorEntity result = getConnectorClient().enterTroubleshooting(entity);
+        waitForConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        return result;
+    }
+
+    public ConnectorEntity endTroubleshooting(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        final ConnectorEntity result = getConnectorClient().endTroubleshooting(connectorId, entity.getRevision().getClientId(), entity.getRevision().getVersion());
+        waitForConnectorStopped(connectorId);
+        return result;
     }
 
     public ParameterProviderEntity createParameterProvider(final String simpleTypeName) throws NiFiClientException, IOException {

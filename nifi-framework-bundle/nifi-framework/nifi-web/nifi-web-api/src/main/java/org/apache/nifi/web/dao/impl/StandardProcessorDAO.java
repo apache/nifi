@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
@@ -79,20 +80,41 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     private ComponentStateDAO componentStateDAO;
 
     private ProcessorNode locateProcessor(final String processorId) {
+        return locateProcessor(processorId, false);
+    }
+
+    ProcessorNode locateProcessor(final String processorId, final boolean includeConnectorManaged) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final ProcessorNode processor = rootGroup.findProcessor(processorId);
-
-        if (processor == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find processor with id '%s'.", processorId));
-        } else {
+        if (processor != null) {
             return processor;
         }
+
+        final ProcessorNode globalProcessor = flowController.getFlowManager().getProcessorNode(processorId);
+        if (globalProcessor != null) {
+            if (!includeConnectorManaged) {
+                verifyAccessibleForComponentOperation(globalProcessor.getProcessGroup(), processorId);
+            }
+            return globalProcessor;
+        }
+
+        throw new ResourceNotFoundException(String.format("Unable to find processor with id '%s'.", processorId));
     }
 
     @Override
     public boolean hasProcessor(String id) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        return rootGroup.findProcessor(id) != null;
+        if (rootGroup.findProcessor(id) != null) {
+            return true;
+        }
+
+        final ProcessorNode globalProcessor = flowController.getFlowManager().getProcessorNode(id);
+        if (globalProcessor == null) {
+            return false;
+        }
+        return globalProcessor.getProcessGroup().findOwningConnector()
+            .map(owningConnector -> owningConnector.getCurrentState() == ConnectorState.TROUBLESHOOTING)
+            .orElse(false);
     }
 
     @Override

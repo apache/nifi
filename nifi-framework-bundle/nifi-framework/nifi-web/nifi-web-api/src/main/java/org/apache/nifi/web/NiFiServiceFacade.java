@@ -220,6 +220,14 @@ public interface NiFiServiceFacade {
 
     ConnectorEntity cancelConnectorDrain(Revision revision, String id);
 
+    void verifyEnterConnectorTroubleshooting(String id);
+
+    ConnectorEntity enterConnectorTroubleshooting(Revision revision, String id);
+
+    void verifyEndConnectorTroubleshooting(String id);
+
+    ConnectorEntity endConnectorTroubleshooting(Revision revision, String id);
+
     ConfigurationStepNamesEntity getConnectorConfigurationSteps(String id);
 
     ConfigurationStepEntity getConnectorConfigurationStep(String id, String configurationStepName);

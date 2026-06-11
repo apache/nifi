@@ -52,6 +52,11 @@ public class DummyConnector implements Connector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        return getInitialFlow();
+    }
+
+    @Override
     public void start(final FlowContext flowContext) throws FlowUpdateException {
 
     }

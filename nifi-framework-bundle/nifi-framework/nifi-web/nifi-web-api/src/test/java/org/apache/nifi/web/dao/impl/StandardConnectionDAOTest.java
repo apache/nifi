@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Connection;
@@ -34,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,6 +48,7 @@ import static org.mockito.Mockito.when;
 class StandardConnectionDAOTest {
 
     private StandardConnectionDAO connectionDAO;
+    private StandardConnectorManagedComponentLookup connectorManagedComponentLookup;
 
     @Mock
     private FlowController flowController;
@@ -83,6 +86,9 @@ class StandardConnectionDAOTest {
         connectionDAO = new StandardConnectionDAO();
         connectionDAO.setFlowController(flowController);
 
+        connectorManagedComponentLookup = new StandardConnectorManagedComponentLookup();
+        connectorManagedComponentLookup.setConnectionDAO(connectionDAO);
+
         when(flowController.getFlowManager()).thenReturn(flowManager);
         when(flowManager.getRootGroup()).thenReturn(rootGroup);
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
@@ -92,13 +98,18 @@ class StandardConnectionDAOTest {
         when(rootGroup.findConnection(CONNECTOR_CONNECTION_ID)).thenReturn(null);
         when(rootGroup.findConnection(NON_EXISTENT_ID)).thenReturn(null);
 
-        // Setup connector managed group
         when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(connectorNode));
         when(connectorNode.getActiveFlowContext()).thenReturn(frameworkFlowContext);
         when(frameworkFlowContext.getManagedProcessGroup()).thenReturn(connectorManagedGroup);
         when(connectorManagedGroup.findConnection(CONNECTOR_CONNECTION_ID)).thenReturn(connectorConnection);
         when(connectorManagedGroup.findConnection(ROOT_CONNECTION_ID)).thenReturn(null);
         when(connectorManagedGroup.findConnection(NON_EXISTENT_ID)).thenReturn(null);
+
+        // Attach the connector-managed Connection to a ProcessGroup owned by a Connector that is not in
+        // Troubleshooting mode so that access checks behave as they would for a real connector-managed component.
+        when(connectorConnection.getProcessGroup()).thenReturn(connectorManagedGroup);
+        when(connectorManagedGroup.findOwningConnector()).thenReturn(Optional.of(connectorNode));
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
     }
 
     @Test
@@ -109,44 +120,38 @@ class StandardConnectionDAOTest {
     }
 
     @Test
-    void testGetConnectionFromRootGroupWithIncludeConnectorManagedFalse() {
-        final Connection result = connectionDAO.getConnection(ROOT_CONNECTION_ID, false);
+    void testConnectorManagedLookupReturnsRootConnection() {
+        final Connection result = connectorManagedComponentLookup.getConnection(ROOT_CONNECTION_ID);
 
         assertEquals(rootConnection, result);
     }
 
     @Test
-    void testGetConnectionFromRootGroupWithIncludeConnectorManagedTrue() {
-        final Connection result = connectionDAO.getConnection(ROOT_CONNECTION_ID, true);
-
-        assertEquals(rootConnection, result);
-    }
-
-    @Test
-    void testGetConnectionFromConnectorManagedGroupWithIncludeConnectorManagedTrue() {
-        final Connection result = connectionDAO.getConnection(CONNECTOR_CONNECTION_ID, true);
+    void testConnectorManagedLookupReturnsConnectorConnectionRegardlessOfConnectorState() {
+        final Connection result = connectorManagedComponentLookup.getConnection(CONNECTOR_CONNECTION_ID);
 
         assertEquals(connectorConnection, result);
     }
 
     @Test
-    void testGetConnectionFromConnectorManagedGroupWithIncludeConnectorManagedFalseThrows() {
-        assertThrows(ResourceNotFoundException.class, () ->
-            connectionDAO.getConnection(CONNECTOR_CONNECTION_ID, false)
-        );
-    }
-
-    @Test
-    void testGetConnectionWithDefaultDoesNotFindConnectorManagedConnection() {
-        assertThrows(ResourceNotFoundException.class, () ->
+    void testGetConnectionOnConnectorManagedConnectionThrowsWhenConnectorNotTroubleshooting() {
+        assertThrows(IllegalStateException.class, () ->
             connectionDAO.getConnection(CONNECTOR_CONNECTION_ID)
         );
     }
 
     @Test
+    void testGetConnectionFromConnectorManagedConnectionInTroubleshootingReturnsConnection() {
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.TROUBLESHOOTING);
+
+        final Connection result = connectionDAO.getConnection(CONNECTOR_CONNECTION_ID);
+        assertEquals(connectorConnection, result);
+    }
+
+    @Test
     void testGetConnectionWithNonExistentIdThrows() {
         assertThrows(ResourceNotFoundException.class, () ->
-            connectionDAO.getConnection(NON_EXISTENT_ID, true)
+            connectorManagedComponentLookup.getConnection(NON_EXISTENT_ID)
         );
     }
 
@@ -172,7 +177,7 @@ class StandardConnectionDAOTest {
         when(connectorNode.getActiveFlowContext()).thenReturn(null);
 
         assertThrows(ResourceNotFoundException.class, () ->
-            connectionDAO.getConnection(CONNECTOR_CONNECTION_ID, true)
+            connectorManagedComponentLookup.getConnection(CONNECTOR_CONNECTION_ID)
         );
     }
 
@@ -190,7 +195,7 @@ class StandardConnectionDAOTest {
         when(flowContext2.getManagedProcessGroup()).thenReturn(managedGroup2);
         when(managedGroup2.findConnection(secondConnectorConnectionId)).thenReturn(connectionInSecondConnector);
 
-        final Connection result = connectionDAO.getConnection(secondConnectorConnectionId, true);
+        final Connection result = connectorManagedComponentLookup.getConnection(secondConnectorConnectionId);
 
         assertEquals(connectionInSecondConnector, result);
     }

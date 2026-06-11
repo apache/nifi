@@ -23,6 +23,7 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,13 @@ public class GhostConnector implements Connector {
     @Override
     public VersionedExternalFlow getInitialFlow() {
         return null;
+    }
+
+    @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        final VersionedExternalFlow emptyFlow = new VersionedExternalFlow();
+        emptyFlow.setFlowContents(new VersionedProcessGroup());
+        return emptyFlow;
     }
 
     @Override

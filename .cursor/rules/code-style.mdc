@@ -80,3 +80,79 @@ final List<String> result = myList.stream()
     object, hold the object in a final reference and mutate the object's state. The same applies to
     `final Object[] holder = new Object[1]` for capturing a single reference; use `AtomicReference`
     instead.
+17. Always place a blank line after a closing brace (`}`) that ends a control-flow construct (such as an
+    `if`, `else`, `for`, `while`, `switch`, or `try` / `catch` / `finally` block) when the next line is a
+    new statement or another control-flow construct at the same indentation level. This also applies to
+    the line following the closing brace of a nested block within a method. The goal is to clearly
+    separate logical sections of code. Exceptions:
+      - No blank line is required immediately before a closing brace of the enclosing block.
+      - No blank line is required between `} else {`, `} else if (...) {`, `} catch (...) {`, or
+        `} finally {` on the same chain.
+
+    Bad:
+    ```java
+    for (final Connector connector : connectors) {
+        if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+            continue;
+        }
+        final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+        if (flowContext != null && flowContext.getManagedProcessGroup().findFunnel(funnelId) != null) {
+            return true;
+        }
+    }
+    return false;
+    ```
+
+    Good:
+    ```java
+    for (final Connector connector : connectors) {
+        if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+            continue;
+        }
+
+        final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+        if (flowContext != null && flowContext.getManagedProcessGroup().findFunnel(funnelId) != null) {
+            return true;
+        }
+    }
+
+    return false;
+    ```
+18. Rule #11 (prefer importing a class rather than using a fully qualified classname inline) is not
+    optional. Even when a class is referenced only a single time, add an `import` statement rather than
+    referring to it by fully qualified name inline. The only acceptable use of a fully qualified
+    classname is when there is an unavoidable naming conflict with another imported class in the same
+    file. Fully qualified references scattered throughout code make it much harder to read and maintain.
+19. Never combine a negative condition such as `if (x != null)`, `if (!collection.isEmpty())`, or
+    `if (!flag)` with an `else` clause. Negated conditions are harder to read, and pairing them with an
+    `else` branch forces the reader to mentally invert the predicate for the "happy path". Instead,
+    rewrite the condition in the positive form (for example, swap the branches so the `if` tests the
+    positive condition), or use an early `return`/`continue`/`throw` to eliminate the `else` entirely.
+
+    Bad:
+    ```java
+    if (persistedManagedGroup != null) {
+        restore(persistedManagedGroup);
+    } else {
+        logger.warn("No snapshot was persisted; leaving Managed Process Group unchanged");
+    }
+    ```
+
+    Good (positive predicate):
+    ```java
+    if (persistedManagedGroup == null) {
+        logger.warn("No snapshot was persisted; leaving Managed Process Group unchanged");
+    } else {
+        restore(persistedManagedGroup);
+    }
+    ```
+
+    Or, preferably, use an early action and drop the `else`:
+    ```java
+    if (persistedManagedGroup == null) {
+        logger.warn("No snapshot was persisted; leaving Managed Process Group unchanged");
+        return;
+    }
+
+    restore(persistedManagedGroup);
+    ```

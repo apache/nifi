@@ -18,6 +18,7 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.Asset;
+import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
@@ -73,14 +74,25 @@ public interface ConnectorRepository {
      * should be removed or rejected).</p>
      *
      * <p>When a {@link ConnectorConfigurationProvider} is configured, the provider's
-     * {@link ConnectorConfigurationProvider#getSyncDirective(String, org.apache.nifi.flow.ScheduledState)}
+     * {@link ConnectorConfigurationProvider#getSyncDirective(String, org.apache.nifi.flow.VersionedConnectorState)}
      * method is called to obtain a {@link ConnectorSyncDirective} that may override the
-     * working configuration, name, or ScheduledState from the versioned flow.</p>
+     * working configuration, name, or scheduled state from the versioned flow.</p>
      *
      * @param versionedConnector the proposed connector from the versioned flow
      * @return a {@link ConnectorSyncResult} indicating the outcome
      */
     ConnectorSyncResult syncConnector(VersionedConnector versionedConnector);
+
+    /**
+     * Verifies that the connector with the given identifier can be deleted. This checks
+     * the Connector's own lifecycle rules (e.g., no queued FlowFiles) and, if a
+     * {@link ConnectorConfigurationProvider} is configured, gives the provider an opportunity
+     * to veto the deletion.
+     *
+     * @param connector the Connector to verify
+     * @throws IllegalStateException if the Connector cannot be deleted
+     */
+    void verifyDelete(ConnectorNode connector);
 
     /**
      * Removes the given Connector from the Repository
@@ -150,6 +162,52 @@ public interface ConnectorRepository {
         List<VersionedConfigurationStep> workingFlowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
 
     void discardWorkingConfiguration(ConnectorNode connector);
+
+    /**
+     * Verifies that the given Connector can transition into Troubleshooting mode. This verification
+     * consults the Connector's own lifecycle rules (see {@link ConnectorNode#verifyCanEnterTroubleshooting()})
+     * and, if a {@link ConnectorConfigurationProvider} is configured, also delegates to the provider's
+     * {@link ConnectorConfigurationProvider#verifyEnterTroubleshooting(String)} so that an external
+     * system may veto the transition.
+     *
+     * @param connector the Connector to verify
+     * @throws IllegalStateException if the Connector cannot be transitioned into Troubleshooting mode
+     */
+    void verifyEnterTroubleshooting(ConnectorNode connector);
+
+    /**
+     * Transitions the given Connector into Troubleshooting mode. While in this mode, lifecycle operations
+     * (start, stop, drain, purge, verify, update, configure, and any methods defined for Connector customer UIs) are disabled and the user may directly edit
+     * the Connector's Managed Process Group.
+     *
+     * @param connector the Connector to transition into Troubleshooting mode
+     * @throws IllegalStateException if the Connector cannot be transitioned into Troubleshooting mode
+     */
+    void enterTroubleshooting(ConnectorNode connector);
+
+    /**
+     * Verifies that the given Connector can transition out of Troubleshooting mode. This verification
+     * consults the Connector's own lifecycle rules (see {@link ConnectorNode#verifyCanEndTroubleshooting()})
+     * and, if a {@link ConnectorConfigurationProvider} is configured, also delegates to the provider's
+     * {@link ConnectorConfigurationProvider#verifyEndTroubleshooting(String)} so that an external
+     * system may veto the transition.
+     *
+     * @param connector the Connector to verify
+     * @throws IllegalStateException if the Connector cannot be transitioned out of Troubleshooting mode
+     */
+    void verifyEndTroubleshooting(ConnectorNode connector);
+
+    /**
+     * Exits Troubleshooting mode on the given Connector by discarding any user edits made to the Managed
+     * Process Group and restoring the Connector's authoritative flow, as provided by
+     * {@link Connector#getActiveFlow(FlowContext)}.
+     *
+     * @param connector the Connector to transition out of Troubleshooting mode
+     * @throws IllegalStateException if the Connector cannot be transitioned out of Troubleshooting mode because it does not adhere
+     * to the pre-conditions enforced by {@link ConnectorNode#verifyCanEndTroubleshooting()}
+     * @throws FlowUpdateException if unable to apply the authoritative flow defined by the Connector
+     */
+    void endTroubleshooting(ConnectorNode connector) throws FlowUpdateException;
 
     SecretsManager getSecretsManager();
 

@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ScheduledState;
@@ -32,25 +36,60 @@ import java.util.Set;
 public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
 
     @Override
-    protected Port locatePort(final String portId) {
+    protected Port locatePort(final String portId, final boolean includeConnectorManaged) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         Port port = rootGroup.findInputPort(portId);
-
         if (port == null) {
             port = rootGroup.findOutputPort(portId);
         }
-
-        if (port == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find port with id '%s'.", portId));
-        } else {
+        if (port != null) {
             return port;
         }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+
+            final ProcessGroup managed = flowContext.getManagedProcessGroup();
+            port = managed.findInputPort(portId);
+            if (port == null) {
+                port = managed.findOutputPort(portId);
+            }
+            if (port != null) {
+                if (!includeConnectorManaged) {
+                    verifyAccessibleForComponentOperation(port.getProcessGroup(), portId);
+                }
+                return port;
+            }
+        }
+
+        throw new ResourceNotFoundException(String.format("Unable to find port with id '%s'.", portId));
     }
 
     @Override
     public boolean hasPort(String portId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        return rootGroup.findInputPort(portId) != null || rootGroup.findOutputPort(portId) != null;
+        if (rootGroup.findInputPort(portId) != null || rootGroup.findOutputPort(portId) != null) {
+            return true;
+        }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+                continue;
+            }
+
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null) {
+                final ProcessGroup managed = flowContext.getManagedProcessGroup();
+                if (managed.findInputPort(portId) != null || managed.findOutputPort(portId) != null) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -92,11 +131,6 @@ public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
         // add the port
         group.addInputPort(port);
         return port;
-    }
-
-    @Override
-    public Port getPort(String portId) {
-        return locatePort(portId);
     }
 
     @Override

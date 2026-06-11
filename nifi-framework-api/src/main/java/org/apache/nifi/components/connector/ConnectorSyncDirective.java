@@ -17,10 +17,10 @@
 
 package org.apache.nifi.components.connector;
 
-import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedConnectorState;
 
 /**
- * Directive returned by {@link ConnectorConfigurationProvider#getSyncDirective(String, ScheduledState)}
+ * Directive returned by {@link ConnectorConfigurationProvider#getSyncDirective(String, VersionedConnectorState)}
  * indicating how the connector repository should handle synchronization for a connector during
  * flow inheritance.
  */
@@ -32,7 +32,7 @@ public class ConnectorSyncDirective {
     public enum Action {
         /**
          * Proceed with synchronization. The directive may optionally include a
-         * {@link ScheduledState} override and/or a {@link ConnectorWorkingConfiguration}
+         * {@link VersionedConnectorState} override and/or a {@link ConnectorWorkingConfiguration}
          * containing the provider's working config and name.
          */
         ALLOW,
@@ -57,10 +57,10 @@ public class ConnectorSyncDirective {
     private static final ConnectorSyncDirective REMOVE_DIRECTIVE = new ConnectorSyncDirective(Action.REMOVE, null, null);
 
     private final Action action;
-    private final ScheduledState scheduledStateOverride;
+    private final VersionedConnectorState scheduledStateOverride;
     private final ConnectorWorkingConfiguration workingConfiguration;
 
-    private ConnectorSyncDirective(final Action action, final ScheduledState scheduledStateOverride,
+    private ConnectorSyncDirective(final Action action, final VersionedConnectorState scheduledStateOverride,
                                    final ConnectorWorkingConfiguration workingConfiguration) {
         this.action = action;
         this.scheduledStateOverride = scheduledStateOverride;
@@ -69,7 +69,7 @@ public class ConnectorSyncDirective {
 
     /**
      * Returns an ALLOW directive with no overrides. The connector repository will use the
-     * versioned flow's name, working config, and ScheduledState as-is. This is the default
+     * versioned flow's name, working config, and scheduled state as-is. This is the default
      * behavior when no {@link ConnectorConfigurationProvider} is configured (Apache NiFi).
      */
     public static ConnectorSyncDirective allow() {
@@ -78,7 +78,7 @@ public class ConnectorSyncDirective {
 
     /**
      * Returns an ALLOW directive with the provider's working configuration (name + working
-     * config steps) and no ScheduledState override.
+     * config steps) and no scheduled state override.
      *
      * @param workingConfiguration the provider's working configuration including name
      */
@@ -88,14 +88,14 @@ public class ConnectorSyncDirective {
 
     /**
      * Returns an ALLOW directive with the provider's working configuration and a
-     * ScheduledState override. The override replaces the versioned flow's ScheduledState,
+     * scheduled state override. The override replaces the versioned flow's scheduled state,
      * which may be stale due to in-flight DPS tasks.
      *
      * @param workingConfiguration the provider's working configuration including name
-     * @param scheduledStateOverride the ScheduledState to use instead of the versioned flow's value
+     * @param scheduledStateOverride the scheduled state to use instead of the versioned flow's value
      */
     public static ConnectorSyncDirective allow(final ConnectorWorkingConfiguration workingConfiguration,
-                                               final ScheduledState scheduledStateOverride) {
+                                               final VersionedConnectorState scheduledStateOverride) {
         return new ConnectorSyncDirective(Action.ALLOW, scheduledStateOverride, workingConfiguration);
     }
 
@@ -119,10 +119,10 @@ public class ConnectorSyncDirective {
     }
 
     /**
-     * Returns the ScheduledState override, or {@code null} if the versioned flow's
-     * ScheduledState should be used.
+     * Returns the scheduled state override, or {@code null} if the versioned flow's
+     * scheduled state should be used.
      */
-    public ScheduledState getScheduledStateOverride() {
+    public VersionedConnectorState getScheduledStateOverride() {
         return scheduledStateOverride;
     }
 

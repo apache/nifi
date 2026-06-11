@@ -178,6 +178,28 @@ public interface ConnectorClient {
     ConnectorEntity cancelDrain(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
 
     /**
+     * Transitions a connector into Troubleshooting mode.
+     *
+     * @param connectorEntity the connector entity (must contain id and revision)
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity enterTroubleshooting(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Transitions a connector out of Troubleshooting mode.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity endTroubleshooting(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
      * Gets the configuration step names for a connector.
      *
      * @param connectorId the connector ID

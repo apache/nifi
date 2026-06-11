@@ -1047,10 +1047,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 logger.info("Connector [{}] sync result: {}", versionedConnector.getInstanceIdentifier(), result);
 
                 if (result.getEffectiveScheduledState() != null && result.getConnectorNode() != null) {
-                    if (result.getEffectiveScheduledState() == ScheduledState.RUNNING) {
-                        flowController.startConnector(result.getConnectorNode());
-                    } else if (result.getEffectiveScheduledState() == ScheduledState.ENABLED) {
-                        connectorRepository.stopConnector(result.getConnectorNode());
+                    switch (result.getEffectiveScheduledState()) {
+                        case RUNNING -> flowController.startConnector(result.getConnectorNode());
+                        case ENABLED -> connectorRepository.stopConnector(result.getConnectorNode());
+                        case TROUBLESHOOTING -> logger.debug("Connector [{}] is in TROUBLESHOOTING state; leaving connector lifecycle alone", result.getConnectorNode().getIdentifier());
+                        default -> { }
                     }
                 }
             }

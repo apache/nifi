@@ -307,4 +307,44 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @return the list of available actions
      */
     List<ConnectorAction> getAvailableActions();
+
+    /**
+     * Verifies that the Connector is in a state that allows it to be transitioned into TROUBLESHOOTING.
+     * @throws IllegalStateException if the Connector cannot enter Troubleshooting mode
+     */
+    void verifyCanEnterTroubleshooting();
+
+    /**
+     * Verifies that the Connector is in a state that allows it to be transitioned out of TROUBLESHOOTING.
+     * The Connector must be in TROUBLESHOOTING. Additionally, all components within the Connector's Managed Process Group
+     * must be in a stopped / disabled state.
+     * @throws IllegalStateException if the Connector cannot exit Troubleshooting mode
+     */
+    void verifyCanEndTroubleshooting();
+
+    /**
+     * Transitions the Connector into TROUBLESHOOTING state. This method should only be invoked via the ConnectorRepository.
+     * @throws IllegalStateException if the Connector cannot enter Troubleshooting mode
+     */
+    void enterTroubleshooting();
+
+    /**
+     * Restores the Connector's state to TROUBLESHOOTING without stopping any components within the Managed Process Group
+     * and without running the pre-conditions enforced by {@link #enterTroubleshooting()}. This is intended to be used
+     * only by the flow synchronization layer when restoring a Connector that was persisted while in Troubleshooting
+     * mode so that components inside the Managed Process Group retain their persisted runtime state (for example,
+     * processors that were running when NiFi shut down stay running after restart).
+     */
+    void restoreTroubleshootingState();
+
+    /**
+     * Transitions the Connector out of TROUBLESHOOTING state. The Connector's Managed Process Group will be restored
+     * to the Connector's authoritative view of the flow as reported by {@link Connector#getActiveFlow}. This method should
+     * only be invoked via the ConnectorRepository.
+     *
+     * @throws IllegalStateException if the Connector cannot exit Troubleshooting mode
+     * @throws FlowUpdateException if unable to apply the authoritative flow (for example because data is queued in a
+     * Connection that would be removed by the restore)
+     */
+    void endTroubleshooting() throws FlowUpdateException;
 }

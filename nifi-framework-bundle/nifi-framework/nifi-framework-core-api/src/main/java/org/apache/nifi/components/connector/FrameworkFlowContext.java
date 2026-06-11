@@ -20,6 +20,7 @@ package org.apache.nifi.components.connector;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 
 public interface FrameworkFlowContext extends FlowContext {
@@ -29,4 +30,27 @@ public interface FrameworkFlowContext extends FlowContext {
     MutableConnectorConfigurationContext getConfigurationContext();
 
     void updateFlow(VersionedExternalFlow versionedExternalFlow, AssetManager assetManager) throws FlowUpdateException;
+
+    /**
+     * Verifies that the Managed Process Group can be updated to the given {@link VersionedExternalFlow}, without
+     * performing any modifications. This is a read-only preview of the checks performed at the start of
+     * {@link #updateFlow(VersionedExternalFlow, AssetManager)} and is intended to let callers reject update
+     * requests synchronously (e.g. during the REST verify-phase) before any state mutation occurs.
+     *
+     * @param versionedExternalFlow the proposed updated flow
+     * @throws FlowUpdateException if the Managed Process Group is not in a state that will allow the update
+     */
+    void verifyUpdateFlow(VersionedExternalFlow versionedExternalFlow) throws FlowUpdateException;
+
+    /**
+     * Restores the contents of the Managed Process Group from a snapshot persisted while the Connector was in
+     * Troubleshooting mode. Unlike {@link #updateFlow(VersionedExternalFlow, AssetManager)}, this method does
+     * <em>not</em> call {@code ProcessGroup#verifyCanUpdate} and is intended for use only when restoring a Connector
+     * that was persisted while in Troubleshooting mode. The persisted user modifications are re-applied on top of the
+     * Connector's current Managed Process Group contents.
+     *
+     * @param troubleshootingProcessGroup the VersionedProcessGroup representing the Managed Process Group contents
+     *                                    persisted while the Connector was in Troubleshooting mode
+     */
+    void restoreTroubleshootingFlow(VersionedProcessGroup troubleshootingProcessGroup);
 }

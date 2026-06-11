@@ -32,12 +32,15 @@ public class ConnectorEndpointMerger extends AbstractSingleEntityEndpoint<Connec
     public static final Pattern CONNECTORS_URI_PATTERN = Pattern.compile("/nifi-api/connectors");
     public static final Pattern CONNECTOR_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}");
     public static final Pattern CONNECTOR_RUN_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/run-status");
+    public static final Pattern CONNECTOR_TROUBLESHOOTING_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/troubleshooting");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (CONNECTOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
         } else if ("PUT".equalsIgnoreCase(method) && CONNECTOR_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
+            return true;
+        } else if (("POST".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) && CONNECTOR_TROUBLESHOOTING_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && CONNECTORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;

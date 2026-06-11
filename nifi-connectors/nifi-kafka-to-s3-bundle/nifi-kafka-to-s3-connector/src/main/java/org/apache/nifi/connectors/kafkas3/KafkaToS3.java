@@ -113,6 +113,14 @@ public class KafkaToS3 extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The authoritative Active flow for this Connector is the flow that is produced by applying the
+        // current configuration to the Kafka-to-S3 flow template. When the user exits Troubleshooting mode,
+        // this flow is reinstated to discard any manual edits made to the managed Process Group.
+        return buildFlow(activeFlowContext.getConfigurationContext());
+    }
+
+    @Override
     public void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
         final VersionedExternalFlow flow = buildFlow(workingContext.getConfigurationContext());
         getInitializationContext().updateFlow(workingContext, flow);

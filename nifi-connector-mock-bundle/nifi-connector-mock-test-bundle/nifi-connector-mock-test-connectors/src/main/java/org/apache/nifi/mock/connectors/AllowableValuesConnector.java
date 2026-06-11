@@ -67,6 +67,11 @@ public class AllowableValuesConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        return getInitialFlow();
+    }
+
+    @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return CONFIGURATION_STEPS;
     }

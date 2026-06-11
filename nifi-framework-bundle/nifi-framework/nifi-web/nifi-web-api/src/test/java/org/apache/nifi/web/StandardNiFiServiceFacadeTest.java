@@ -141,6 +141,7 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
+import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
@@ -158,6 +159,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -243,6 +245,7 @@ public class StandardNiFiServiceFacadeTest {
     private Authorizer authorizer;
     private FlowController flowController;
     private ProcessGroupDAO processGroupDAO;
+    private ConnectorManagedComponentLookup connectorManagedComponentLookup;
     private RuleViolationsManager ruleViolationsManager;
 
     @BeforeEach
@@ -269,7 +272,7 @@ public class StandardNiFiServiceFacadeTest {
 
         // authorizable lookup
         final AuthorizableLookup authorizableLookup = mock(AuthorizableLookup.class);
-        when(authorizableLookup.getProcessor(Mockito.anyString())).then(getProcessorInvocation -> {
+        final Answer<ComponentAuthorizable> processorLookupAnswer = getProcessorInvocation -> {
             final String processorId = getProcessorInvocation.getArgument(0);
 
             // processor-2 is no longer part of the flow
@@ -296,7 +299,8 @@ public class StandardNiFiServiceFacadeTest {
             });
 
             return componentAuthorizable;
-        });
+        };
+        when(authorizableLookup.getProcessor(Mockito.anyString())).then(processorLookupAnswer);
 
         // authorizer
         authorizer = mock(Authorizer.class);
@@ -342,6 +346,7 @@ public class StandardNiFiServiceFacadeTest {
 
         processGroupDAO = mock(ProcessGroupDAO.class, Answers.RETURNS_DEEP_STUBS);
         ruleViolationsManager = mock(RuleViolationsManager.class);
+        connectorManagedComponentLookup = mock(ConnectorManagedComponentLookup.class);
 
         serviceFacade = new StandardNiFiServiceFacade();
         serviceFacade.setAuditService(auditService);
@@ -352,6 +357,7 @@ public class StandardNiFiServiceFacadeTest {
         serviceFacade.setControllerFacade(controllerFacade);
         serviceFacade.setProcessGroupDAO(processGroupDAO);
         serviceFacade.setRuleViolationsManager(ruleViolationsManager);
+        serviceFacade.setConnectorManagedComponentLookup(connectorManagedComponentLookup);
 
     }
 
@@ -1130,7 +1136,7 @@ public class StandardNiFiServiceFacadeTest {
 
         final ProcessorNode approvingProcessor = approvingProcessorNode();
         when(processGroup.findProcessor(PROCESSOR_ID_2)).thenReturn(approvingProcessor);
-        when(processGroupDAO.getProcessGroup(groupId, true)).thenReturn(processGroup);
+        when(connectorManagedComponentLookup.getProcessGroup(groupId)).thenReturn(processGroup);
 
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
         final MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
@@ -1147,7 +1153,7 @@ public class StandardNiFiServiceFacadeTest {
         assertEquals(1, board.getBulletins().size());
         assertTrue(board.getBulletins().get(0).getCanRead(),
                 "Bulletin board canRead should be true when the source is resolved via the owning ProcessGroup");
-        verify(processGroupDAO).getProcessGroup(groupId, true);
+        verify(connectorManagedComponentLookup).getProcessGroup(groupId);
     }
 
     private ProcessGroupEntity invokeUpdateProcessGroupWithBulletin(final String groupId, final ProcessGroup processGroup,

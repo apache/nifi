@@ -50,6 +50,11 @@ public class BlockingConnector implements Connector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        return getInitialFlow();
+    }
+
+    @Override
     public void start(final FlowContext activeContext) throws FlowUpdateException {
         try {
             startLatch.await();

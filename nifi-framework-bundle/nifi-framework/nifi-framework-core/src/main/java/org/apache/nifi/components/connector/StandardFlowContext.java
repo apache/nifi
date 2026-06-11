@@ -77,7 +77,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
     }
 
     @Override
-    public void updateFlow(final VersionedExternalFlow versionedExternalFlow, final AssetManager assetManager) throws FlowUpdateException {
+    public void verifyUpdateFlow(final VersionedExternalFlow versionedExternalFlow) throws FlowUpdateException {
         if (versionedExternalFlow.getParameterContexts() == null) {
             versionedExternalFlow.setParameterContexts(new HashMap<>());
         }
@@ -85,8 +85,13 @@ public class StandardFlowContext implements FrameworkFlowContext {
         try {
             managedProcessGroup.verifyCanUpdate(versionedExternalFlow, true, false);
         } catch (final IllegalStateException e) {
-            throw new FlowUpdateException("Flow is not in a state that allows the requested updated", e);
+            throw new FlowUpdateException("Flow is not in a state that allows the requested update", e);
         }
+    }
+
+    @Override
+    public void updateFlow(final VersionedExternalFlow versionedExternalFlow, final AssetManager assetManager) throws FlowUpdateException {
+        verifyUpdateFlow(versionedExternalFlow);
 
         final ParameterContext managedGroupParameterContext = managedProcessGroup.getParameterContext();
         updateParameterContextNames(versionedExternalFlow.getFlowContents(), managedGroupParameterContext.getName());
@@ -101,6 +106,23 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
         final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(versionedExternalFlow.getParameterContexts().values(), assetManager);
         getParameterContext().updateParameters(parameterLookup.getParameterValues());
+        parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
+    }
+
+    @Override
+    public void restoreTroubleshootingFlow(final VersionedProcessGroup troubleshootingProcessGroup) {
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(troubleshootingProcessGroup);
+        externalFlow.setParameterContexts(Map.of());
+
+        final ParameterContext managedGroupParameterContext = managedProcessGroup.getParameterContext();
+        if (managedGroupParameterContext != null) {
+            updateParameterContextNames(troubleshootingProcessGroup, managedGroupParameterContext.getName());
+        }
+
+        managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow);
+
+        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
         parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 

@@ -101,6 +101,12 @@ public class NopConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // No-op Connector: the authoritative flow is always the initial flow and does not depend on configuration.
+        return getInitialFlow();
+    }
+
+    @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> propertyValueOverrides, final FlowContext flowContext) {
         return List.of(new ConfigVerificationResult.Builder()
             .outcome(Outcome.SUCCESSFUL)

@@ -64,6 +64,12 @@ public class AssetConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // This Connector does not manage a flow; there is no authoritative Active flow.
+        return null;
+    }
+
+    @Override
     public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
         // No-op: this connector does not manipulate the flow.
     }

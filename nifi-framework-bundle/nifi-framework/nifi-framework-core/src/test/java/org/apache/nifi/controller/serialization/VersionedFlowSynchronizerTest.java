@@ -34,6 +34,7 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorState;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -306,12 +307,12 @@ class VersionedFlowSynchronizerTest {
         versionedConnector.setName("Test Connector");
         versionedConnector.setType(connectorType);
         versionedConnector.setBundle(CORE_BUNDLE);
-        versionedConnector.setScheduledState(ScheduledState.RUNNING);
+        versionedConnector.setScheduledState(VersionedConnectorState.RUNNING);
 
         final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(versionedConnector))
-                .thenReturn(ConnectorSyncResult.synced(syncedNode, ScheduledState.RUNNING));
+                .thenReturn(ConnectorSyncResult.synced(syncedNode, VersionedConnectorState.RUNNING));
 
         setFlowController(connectorRepository);
         when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
@@ -334,12 +335,12 @@ class VersionedFlowSynchronizerTest {
         versionedConnector.setName("Test Connector");
         versionedConnector.setType(connectorType);
         versionedConnector.setBundle(CORE_BUNDLE);
-        versionedConnector.setScheduledState(ScheduledState.ENABLED);
+        versionedConnector.setScheduledState(VersionedConnectorState.ENABLED);
 
         final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(versionedConnector))
-                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
 
         setFlowController(connectorRepository);
         when(versionedDataflow.getConnectors()).thenReturn(List.of(versionedConnector));
@@ -363,7 +364,7 @@ class VersionedFlowSynchronizerTest {
         proposedConnector.setName("Proposed Connector");
         proposedConnector.setType("org.apache.nifi.connectors.TestConnector");
         proposedConnector.setBundle(CORE_BUNDLE);
-        proposedConnector.setScheduledState(ScheduledState.ENABLED);
+        proposedConnector.setScheduledState(VersionedConnectorState.ENABLED);
 
         final ConnectorNode orphanConnector = mock(ConnectorNode.class);
         org.mockito.Mockito.lenient().when(orphanConnector.getIdentifier()).thenReturn("orphan-connector-id");
@@ -372,7 +373,7 @@ class VersionedFlowSynchronizerTest {
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(proposedConnector))
-                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
@@ -402,11 +403,11 @@ class VersionedFlowSynchronizerTest {
         versionedConnector.setName("Test Connector");
         versionedConnector.setType("org.apache.nifi.connectors.TestConnector");
         versionedConnector.setBundle(CORE_BUNDLE);
-        versionedConnector.setScheduledState(ScheduledState.ENABLED);
+        versionedConnector.setScheduledState(VersionedConnectorState.ENABLED);
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(versionedConnector))
-                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
@@ -432,7 +433,7 @@ class VersionedFlowSynchronizerTest {
         proposedConnector.setName("Proposed Connector");
         proposedConnector.setType("org.apache.nifi.connectors.TestConnector");
         proposedConnector.setBundle(CORE_BUNDLE);
-        proposedConnector.setScheduledState(ScheduledState.ENABLED);
+        proposedConnector.setScheduledState(VersionedConnectorState.ENABLED);
 
         final ConnectorNode orphanConnector = mock(ConnectorNode.class);
         org.mockito.Mockito.lenient().when(orphanConnector.getIdentifier()).thenReturn("orphan-connector-id");
@@ -443,7 +444,7 @@ class VersionedFlowSynchronizerTest {
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(proposedConnector))
-                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, ScheduledState.ENABLED));
+                .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 

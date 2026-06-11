@@ -57,6 +57,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
+import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
@@ -247,6 +248,9 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     private AccessPolicyDAO accessPolicyDAO;
     private ParameterContextDAO parameterContextDAO;
 
+    private ConnectorManagedComponentLookup connectorManagedComponentLookup;
+    private final ConnectorManagedAuthorizableLookup connectorManagedAuthorizableLookup = new ConnectorManagedAuthorizableLookupImpl();
+
     @Override
     public Authorizable getController() {
         return controllerFacade;
@@ -346,12 +350,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ConnectionAuthorizable getConnection(final String id) {
-        return getConnection(id, false);
-    }
-
-    @Override
-    public ConnectionAuthorizable getConnection(final String id, final boolean includeConnectorManaged) {
-        final Connection connection = connectionDAO.getConnection(id, includeConnectorManaged);
+        final Connection connection = connectionDAO.getConnection(id);
         return new StandardConnectionAuthorizable(connection);
     }
 
@@ -362,12 +361,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ProcessGroupAuthorizable getProcessGroup(final String id) {
-        return getProcessGroup(id, false);
-    }
-
-    @Override
-    public ProcessGroupAuthorizable getProcessGroup(final String id, final boolean includeConnectorManaged) {
-        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id, includeConnectorManaged);
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
         return new StandardProcessGroupAuthorizable(processGroup, controllerFacade.getExtensionManager());
     }
 
@@ -423,6 +417,58 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     public ComponentAuthorizable getControllerService(final String id) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
         return new ControllerServiceComponentAuthorizable(controllerService, controllerFacade.getExtensionManager());
+    }
+
+    @Override
+    public ConnectorManagedAuthorizableLookup forConnectorManagedFlow() {
+        return connectorManagedAuthorizableLookup;
+    }
+
+    /**
+     * Inner implementation of {@link ConnectorManagedAuthorizableLookup} that resolves components through the
+     * {@link ConnectorManagedComponentLookup} facade and wraps them in the same authorizable types as the surrounding
+     * {@link StandardAuthorizableLookup}.
+     */
+    private final class ConnectorManagedAuthorizableLookupImpl implements ConnectorManagedAuthorizableLookup {
+
+        @Override
+        public ComponentAuthorizable getProcessor(final String id) {
+            final ProcessorNode processorNode = connectorManagedComponentLookup.getProcessor(id);
+            return new ProcessorComponentAuthorizable(processorNode, controllerFacade.getExtensionManager());
+        }
+
+        @Override
+        public Authorizable getInputPort(final String id) {
+            return connectorManagedComponentLookup.getInputPort(id);
+        }
+
+        @Override
+        public Authorizable getOutputPort(final String id) {
+            return connectorManagedComponentLookup.getOutputPort(id);
+        }
+
+        @Override
+        public ConnectionAuthorizable getConnection(final String id) {
+            final Connection connection = connectorManagedComponentLookup.getConnection(id);
+            return new StandardConnectionAuthorizable(connection);
+        }
+
+        @Override
+        public ProcessGroupAuthorizable getProcessGroup(final String id) {
+            final ProcessGroup processGroup = connectorManagedComponentLookup.getProcessGroup(id);
+            return new StandardProcessGroupAuthorizable(processGroup, controllerFacade.getExtensionManager());
+        }
+
+        @Override
+        public Authorizable getRemoteProcessGroup(final String id) {
+            return connectorManagedComponentLookup.getRemoteProcessGroup(id);
+        }
+
+        @Override
+        public ComponentAuthorizable getControllerService(final String id) {
+            final ControllerServiceNode controllerService = connectorManagedComponentLookup.getControllerService(id);
+            return new ControllerServiceComponentAuthorizable(controllerService, controllerFacade.getExtensionManager());
+        }
     }
 
     @Override
@@ -1361,6 +1407,11 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     @Autowired
     public void setProcessorDAO(ProcessorDAO processorDAO) {
         this.processorDAO = processorDAO;
+    }
+
+    @Autowired
+    public void setConnectorManagedComponentLookup(final ConnectorManagedComponentLookup connectorManagedComponentLookup) {
+        this.connectorManagedComponentLookup = connectorManagedComponentLookup;
     }
 
     @Autowired

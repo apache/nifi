@@ -47,6 +47,8 @@ public interface ConnectorDAO {
 
     void updateConnector(ConnectorDTO connectorDTO);
 
+    void verifyDelete(String id);
+
     void deleteConnector(String id);
 
     void startConnector(String id);
@@ -58,6 +60,14 @@ public interface ConnectorDAO {
     void cancelDrainFlowFiles(String id);
 
     void verifyCancelDrainFlowFile(String id);
+
+    void verifyEnterTroubleshooting(String id);
+
+    void enterTroubleshooting(String id);
+
+    void verifyEndTroubleshooting(String id);
+
+    void endTroubleshooting(String id);
 
     void verifyPurgeFlowFiles(String id);
 

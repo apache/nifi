@@ -73,6 +73,7 @@ import org.apache.nifi.flow.VersionedComponentState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorState;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -1094,7 +1095,17 @@ public class VersionedComponentFlowMapper {
                 : org.apache.nifi.flow.ScheduledState.ENABLED;
     }
 
-    public VersionedConnector mapConnector(final ConnectorNode connectorNode) {
+    /**
+     * Map the given ConnectorNode to a VersionedConnector. When the Connector is in Troubleshooting state, the Connector's
+     * Managed Process Group is also serialized into the VersionedConnector so that any user modifications made while in
+     * Troubleshooting mode survive a restart. The provided ControllerServiceProvider is required for mapping the Managed
+     * Process Group; if {@code null}, the Managed Process Group is not serialized even if the Connector is in Troubleshooting.
+     *
+     * @param connectorNode the connector node to map
+     * @param controllerServiceProvider the controller service provider used when mapping the Managed Process Group; may be null
+     * @return the mapped VersionedConnector
+     */
+    public VersionedConnector mapConnector(final ConnectorNode connectorNode, final ControllerServiceProvider controllerServiceProvider) {
         final VersionedConnector versionedConnector = new VersionedConnector();
         versionedConnector.setInstanceIdentifier(connectorNode.getIdentifier());
         versionedConnector.setName(connectorNode.getName());
@@ -1107,6 +1118,12 @@ public class VersionedComponentFlowMapper {
 
         final List<VersionedConfigurationStep> workingFlowConfiguration = createVersionedConfigurationSteps(connectorNode.getWorkingFlowContext());
         versionedConnector.setWorkingFlowConfiguration(workingFlowConfiguration);
+
+        if (connectorNode.getCurrentState() == ConnectorState.TROUBLESHOOTING && controllerServiceProvider != null) {
+            final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+            final VersionedProcessGroup versionedManagedGroup = mapNonVersionedProcessGroup(managedGroup, controllerServiceProvider);
+            versionedConnector.setManagedProcessGroup(versionedManagedGroup);
+        }
 
         return versionedConnector;
     }
@@ -1158,14 +1175,15 @@ public class VersionedComponentFlowMapper {
         return versionedProperties;
     }
 
-    private org.apache.nifi.flow.ScheduledState mapConnectorState(final ConnectorState connectorState) {
+    private VersionedConnectorState mapConnectorState(final ConnectorState connectorState) {
         if (connectorState == null) {
             return null;
         }
 
         return switch (connectorState) {
-            case RUNNING, STARTING -> org.apache.nifi.flow.ScheduledState.RUNNING;
-            default -> org.apache.nifi.flow.ScheduledState.ENABLED;
+            case RUNNING, STARTING -> VersionedConnectorState.RUNNING;
+            case TROUBLESHOOTING -> VersionedConnectorState.TROUBLESHOOTING;
+            default -> VersionedConnectorState.ENABLED;
         };
     }
 }
