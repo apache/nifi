@@ -92,6 +92,7 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -119,6 +120,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicReference<ScheduledExecutorService> executor = new AtomicReference<>(null);
     private final AtomicReference<SaveHolder> saveHolder = new AtomicReference<>(null);
+    private final AtomicLong connectionGeneration = new AtomicLong(0);
     private final ClusterCoordinator clusterCoordinator;
     private final RevisionManager revisionManager;
     private final NarManager narManager;
@@ -426,7 +428,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     return null;
                 }
                 case DISCONNECTION_REQUEST: {
-                    final Thread t = new Thread(() -> handleDisconnectionRequest((DisconnectMessage) request), "Disconnect from Cluster");
+                    final long generationAtDisconnect = connectionGeneration.get();
+                    final Thread t = new Thread(() -> handleDisconnectionRequest((DisconnectMessage) request, generationAtDisconnect), "Disconnect from Cluster");
                     t.setDaemon(true);
                     t.start();
 
@@ -600,6 +603,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
+    // Visible for testing
+    long getConnectionGeneration() {
+        return connectionGeneration.get();
+    }
+
     private void handleReconnectionRequest(final ReconnectionRequestMessage request) {
         try {
             logger.info("Processing reconnection request from cluster coordinator.");
@@ -719,32 +727,34 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private void handleDisconnectionRequest(final DisconnectMessage request) {
+    private void handleDisconnectionRequest(final DisconnectMessage request, final long expectedConnectionGeneration) {
         logger.info("Received disconnection request message from cluster coordinator with explanation: {}", request.getExplanation());
-        disconnect(request.getExplanation());
+
+        writeLock.lock();
+        try {
+            if (connectionGeneration.get() != expectedConnectionGeneration) {
+                logger.info("Ignoring disconnection request [{}] because the node has reconnected since the request was issued", request.getExplanation());
+                return;
+            }
+
+            disconnect(request.getExplanation());
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private void disconnect(final String explanation) {
         writeLock.lock();
         try {
-
             logger.info("Disconnecting node due to {}", explanation);
 
-            // mark node as not connected
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, DisconnectionCode.UNKNOWN, explanation));
-
-            // turn off primary flag
             controller.setPrimary(false);
-
-            // stop heartbeating
             controller.stopHeartbeating();
-
-            // set node to not clustered
             controller.setClustered(false, null);
             clusterCoordinator.setConnected(false);
 
             logger.info("Node disconnected due to {}", explanation);
-
         } finally {
             writeLock.unlock();
         }
@@ -912,6 +922,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private void loadFromConnectionResponse(final ConnectionResponse response) throws ConnectionException {
         writeLock.lock();
         try {
+            connectionGeneration.incrementAndGet();
+
             if (response.getNodeConnectionStatuses() != null) {
                 clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
                     .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status)));

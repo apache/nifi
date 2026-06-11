@@ -50,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -491,6 +492,31 @@ public class TestNodeClusterCoordinator {
         final NodeIdentifier registeredId = registeredNodeIds.iterator().next();
         assertEquals("loadbalance-2", registeredId.getLoadBalanceAddress());
         assertEquals(4848, registeredId.getLoadBalancePort());
+    }
+
+    @Test
+    @Timeout(value = 10)
+    public void testConnectionRequestCancelsPendingDisconnect() throws InterruptedException {
+        final NodeIdentifier nodeId1 = createNodeId(1);
+        final NodeIdentifier nodeId2 = createNodeId(2);
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId2, NodeConnectionState.CONNECTED));
+
+        while (nodeStatuses.size() < 2) {
+            Thread.sleep(10L);
+        }
+        nodeStatuses.clear();
+
+        coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
+
+        final Future<Void> pendingDisconnect = coordinator.getPendingDisconnectionFuture(nodeId2);
+        assertNotNull(pendingDisconnect);
+
+        requestConnection(nodeId2, coordinator);
+
+        final Future<Void> cancelledDisconnect = coordinator.getPendingDisconnectionFuture(nodeId2);
+        assertNull(cancelledDisconnect);
+        assertTrue(pendingDisconnect.isCancelled());
     }
 
     private NodeIdentifier createNodeId(final int index) {
