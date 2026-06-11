@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.coordination.node;
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
+import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -507,6 +508,7 @@ public class TestNodeClusterCoordinator {
         }
         nodeStatuses.clear();
 
+        Mockito.doThrow(new ProtocolException("Simulated")).when(senderListener).disconnect(any());
         coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
 
         final Future<Void> pendingDisconnect = coordinator.getPendingDisconnectionFuture(nodeId2);
