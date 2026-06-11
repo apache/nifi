@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
 import com.google.auth.http.HttpTransportFactory;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -46,8 +47,12 @@ public abstract class AbstractServiceAccountCredentialsStrategy extends Abstract
         }
 
         if (!(credentials instanceof ServiceAccountCredentials)) {
-            throw new IOException(("Configured credentials must be a Google Service Account key (\"type\": \"service_account\") but resolved to %s. "
-                    + "Use the Workload Identity Federation strategy for external account credentials.").formatted(credentials.getClass().getSimpleName()));
+            final StringBuilder message = new StringBuilder(
+                    "Configured credentials must be a Google Service Account key (\"type\": \"service_account\") but resolved to %s.".formatted(credentials.getClass().getSimpleName()));
+            if (credentials instanceof ExternalAccountCredentials) {
+                message.append(" Use the Workload Identity Federation strategy for external account credentials.");
+            }
+            throw new IOException(message.toString());
         }
 
         final String delegationStrategy = properties.get(CredentialPropertyDescriptors.DELEGATION_STRATEGY);

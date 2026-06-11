@@ -35,6 +35,7 @@ public class ServiceAccountJsonValidator implements Validator {
 
     private static final String TYPE_FIELD = "type";
     private static final String SERVICE_ACCOUNT_TYPE = "service_account";
+    private static final String EXTERNAL_ACCOUNT_TYPE = "external_account";
 
     @Override
     public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -59,9 +60,13 @@ public class ServiceAccountJsonValidator implements Validator {
                 builder.explanation("Service Account JSON found");
             } else {
                 final String foundType = typeNode == null ? "none" : typeNode.asText();
+                final StringBuilder explanation = new StringBuilder(
+                        "Expected a Service Account key with \"type\": \"service_account\" but found \"type\": \"%s\".".formatted(foundType));
+                if (EXTERNAL_ACCOUNT_TYPE.equals(foundType)) {
+                    explanation.append(" Use the Workload Identity Federation strategy for external account credentials.");
+                }
                 builder.valid(false);
-                builder.explanation(("Expected a Service Account key with \"type\": \"service_account\" but found type: %s. "
-                        + "Use the Workload Identity Federation strategy for external account credentials.").formatted(foundType));
+                builder.explanation(explanation.toString());
             }
         } catch (final Exception e) {
             builder.valid(false);
