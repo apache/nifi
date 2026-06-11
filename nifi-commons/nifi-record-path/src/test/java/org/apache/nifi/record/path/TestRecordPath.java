@@ -2642,6 +2642,167 @@ public class TestRecordPath {
         }
 
         @Nested
+        class Add {
+            @Test
+            public void supportsLhsLiteralRhsLiteral() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("add(3, 2)", record);
+
+                assertEquals("add", fieldValue.getField().getFieldName());
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("5", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsPathRhsLiteral() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("add(/id, 2)", record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("50", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsLiteralRhsPath() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("add(2, /id)", record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("50", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsPathRhsPath() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("add(/id, /id)", record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("96", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLongOverflow() {
+                final String addWithLongOverflow = "add(%s, 1)".formatted(Long.MAX_VALUE);
+                final FieldValue fieldValue = evaluateSingleFieldValue(addWithLongOverflow, record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                final String expected = "%s".formatted(Long.MIN_VALUE);
+                assertEquals(expected, fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsDoubleOverflow() {
+                final String addWithDoubleOverflow = "add('%s', '1e292')".formatted(Double.MAX_VALUE);
+                final FieldValue fieldValue = evaluateSingleFieldValue(addWithDoubleOverflow, record);
+
+                assertEquals(RecordFieldType.DOUBLE, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("Infinity", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsNull() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("add(/notAField, 0)", record);
+                assertTrue(fieldValues.isEmpty());
+            }
+            @Test
+            public void supportsRhsNull() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("add(0, /notAField)", record);
+                assertTrue(fieldValues.isEmpty());
+            }
+            @Test
+            public void throwsExceptionOnInvalidArityMissingLhs() {
+                Exception exception =
+                        assertThrows(Exception.class, () -> evaluateSingleFieldValue("add(add(/notAField, 0), add(/notAField, 0))", record));
+                assertEquals("add function requires a left-hand operand", exception.getMessage());
+            }
+            @Test
+            public void throwsExceptionOnInvalidArityMissingRhs() {
+                Exception exception =
+                        assertThrows(Exception.class, () -> evaluateSingleFieldValue("add(0, add(/notAField, 0))", record));
+                assertEquals("add function requires a right-hand operand", exception.getMessage());
+            }
+        }
+
+        @Nested
+        class Subtract {
+            @Test
+            public void supportsLhsLiteralRhsLiteral() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("subtract(3, 2)", record);
+
+                assertEquals("subtract", fieldValue.getField().getFieldName());
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("1", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsPathRhsLiteral() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("subtract(/id, 2)", record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("46", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsLiteralRhsPath() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("subtract(2, /id)", record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("-46", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsPathRhsPath() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("subtract(/id, /id)", record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("0", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsPositiveLongOverflow() {
+                final String subtractWithPositiveLongOverflow = "subtract(%s, -1)".formatted(Long.MAX_VALUE);
+                final FieldValue fieldValue = evaluateSingleFieldValue(subtractWithPositiveLongOverflow, record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                final String expected = "%s".formatted(Long.MIN_VALUE);
+                assertEquals(expected, fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsNegativeLongOverflow() {
+                final String subtractWithNegativeLongOverflow = "subtract(%s, 1)".formatted(Long.MIN_VALUE);
+                final FieldValue fieldValue = evaluateSingleFieldValue(subtractWithNegativeLongOverflow, record);
+
+                assertEquals(RecordFieldType.LONG, fieldValue.getField().getDataType().getFieldType());
+                final String expected = "%s".formatted(Long.MAX_VALUE);
+                assertEquals(expected, fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsPostiveDoubleOverflow() {
+                final String subtractionWithPostiveDoubleOverflow = "subtract('%s', '%s')".formatted(Double.MAX_VALUE, -1.0e308);
+                final FieldValue fieldValue = evaluateSingleFieldValue(subtractionWithPostiveDoubleOverflow, record);
+
+                assertEquals(RecordFieldType.DOUBLE, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("Infinity", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsNegativeDoubleOverflow() {
+                final String subtractionWithNegativeDoubleOverflow = "subtract('%s', '1e308')".formatted(-Double.MAX_VALUE);
+                final FieldValue fieldValue = evaluateSingleFieldValue(subtractionWithNegativeDoubleOverflow, record);
+
+                assertEquals(RecordFieldType.DOUBLE, fieldValue.getField().getDataType().getFieldType());
+                assertEquals("-Infinity", fieldValue.getValue().toString());
+            }
+            @Test
+            public void supportsLhsNull() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("subtract(/notAField, 0)", record);
+                assertTrue(fieldValues.isEmpty());
+            }
+            @Test
+            public void supportsRhsNull() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("subtract(0, /notAField)", record);
+                assertTrue(fieldValues.isEmpty());
+            }
+            @Test
+            public void throwsExceptionOnInvalidArityMissingLhs() {
+                Exception exception =
+                        assertThrows(Exception.class, () -> evaluateSingleFieldValue("subtract(subtract(/notAField, 0), subtract(/notAField, 0))", record));
+                assertEquals("subtract function requires a left-hand operand", exception.getMessage());
+            }
+            @Test
+            public void throwsExceptionOnInvalidArityMissingRhs() {
+                Exception exception =
+                        assertThrows(Exception.class, () -> evaluateSingleFieldValue("subtract(0, subtract(/notAField, 0))", record));
+                assertEquals("subtract function requires a right-hand operand", exception.getMessage());
+            }
+        }
+
+        @Nested
         class ToNumber {
             @Test
             public void supportsLiteral() {

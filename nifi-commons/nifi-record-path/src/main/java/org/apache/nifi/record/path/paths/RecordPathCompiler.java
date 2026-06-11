@@ -35,6 +35,7 @@ import org.apache.nifi.record.path.filter.NotEqualsFilter;
 import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
+import org.apache.nifi.record.path.functions.Add;
 import org.apache.nifi.record.path.functions.Anchored;
 import org.apache.nifi.record.path.functions.ArrayOf;
 import org.apache.nifi.record.path.functions.Base64Decode;
@@ -62,6 +63,7 @@ import org.apache.nifi.record.path.functions.SubstringAfter;
 import org.apache.nifi.record.path.functions.SubstringAfterLast;
 import org.apache.nifi.record.path.functions.SubstringBefore;
 import org.apache.nifi.record.path.functions.SubstringBeforeLast;
+import org.apache.nifi.record.path.functions.Subtract;
 import org.apache.nifi.record.path.functions.ToBytes;
 import org.apache.nifi.record.path.functions.ToDate;
 import org.apache.nifi.record.path.functions.ToLowerCase;
@@ -461,6 +463,10 @@ public class RecordPathCompiler {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new Anchored(args[0], args[1], absolute);
                     }
+                    case "add" : {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Add(args[0], args[1], absolute);
+                    }
                     case "multiply": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new Multiply(args[0], args[1], absolute);
@@ -468,6 +474,10 @@ public class RecordPathCompiler {
                     case "divide": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new Divide(args[0], args[1], absolute);
+                    }
+                    case "subtract" : {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Subtract(args[0], args[1], absolute);
                     }
                     case "toNumber": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
