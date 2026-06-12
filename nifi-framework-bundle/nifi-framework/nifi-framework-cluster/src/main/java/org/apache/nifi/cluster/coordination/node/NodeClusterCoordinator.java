@@ -128,7 +128,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     private final ConcurrentMap<String, NodeConnectionStatus> nodeStatuses = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, CircularFifoQueue<NodeEvent>> nodeEvents = new ConcurrentHashMap<>(); //NOPMD
-    private final ConcurrentMap<String, Future<Void>> pendingDisconnections = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Thread> pendingDisconnections = new ConcurrentHashMap<>();
 
     private final List<ClusterTopologyEventListener> eventListeners = new CopyOnWriteArrayList<>();
 
@@ -1013,10 +1013,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             final NodeIdentifier nodeId = request.getNodeId();
 
             try {
-                Exception lastException = null;
                 for (int i = 0; i < attempts; i++) {
-                    if (future.isCancelled()) {
+                    if (Thread.currentThread().isInterrupted()) {
                         logger.info("Disconnect request for {} was cancelled because the node submitted a new Connection Request", nodeId);
+                        future.cancel(true);
                         return;
                     }
 
@@ -1024,9 +1024,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     if (currentConnectionState == NodeConnectionState.CONNECTING || currentConnectionState == NodeConnectionState.CONNECTED) {
                         reportEvent(nodeId, Severity.INFO, String.format(
                             "State of Node %s has now transitioned from DISCONNECTED to %s so will no longer attempt to notify node that it is disconnected.", nodeId, currentConnectionState));
-                        future.completeExceptionally(new IllegalStateException("Node was marked as disconnected but its state transitioned from DISCONNECTED back to " + currentConnectionState +
-                            " before the node could be notified. This typically indicates that the node was restarted."));
-
+                        future.completeExceptionally(new IllegalStateException("Node was marked as disconnected but its state transitioned from DISCONNECTED back to " + currentConnectionState
+                            + " before the node could be notified. This typically indicates that the node was restarted."));
                         return;
                     }
 
@@ -1037,27 +1036,27 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         return;
                     } catch (final Exception e) {
                         logger.error("Failed to notify {} that it has been disconnected from the cluster due to {}", request.getNodeId(), request.getExplanation());
-                        lastException = e;
 
                         try {
                             Thread.sleep(retrySeconds * 1000L);
                         } catch (final InterruptedException ie) {
-                            future.completeExceptionally(ie);
+                            logger.info("Disconnect request for {} was cancelled because the node submitted a new Connection Request", nodeId);
+                            future.cancel(true);
                             Thread.currentThread().interrupt();
                             return;
                         }
                     }
                 }
 
-                future.completeExceptionally(lastException);
+                future.completeExceptionally(new ProtocolException("Failed to disconnect " + request.getNodeId() + " after " + attempts + " attempts"));
             } finally {
-                pendingDisconnections.remove(nodeUuid, future);
+                pendingDisconnections.remove(nodeUuid, Thread.currentThread());
             }
         }, "Disconnect " + request.getNodeId());
 
-        final Future<Void> previousDisconnect = pendingDisconnections.put(nodeUuid, future);
-        if (previousDisconnect != null) {
-            previousDisconnect.cancel(true);
+        final Thread previousThread = pendingDisconnections.put(nodeUuid, disconnectThread);
+        if (previousThread != null) {
+            previousThread.interrupt();
         }
         disconnectThread.start();
         return future;
@@ -1312,15 +1311,15 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private void cancelPendingDisconnection(final NodeIdentifier nodeIdentifier) {
-        final Future<Void> pendingDisconnect = pendingDisconnections.remove(nodeIdentifier.getId());
-        if (pendingDisconnect != null) {
-            final boolean cancelled = pendingDisconnect.cancel(true);
-            logger.info("Received Connection Request from {} while a disconnect request was still pending. Cancelled pending disconnect: {}", nodeIdentifier, cancelled);
+        final Thread disconnectThread = pendingDisconnections.remove(nodeIdentifier.getId());
+        if (disconnectThread != null) {
+            disconnectThread.interrupt();
+            logger.info("Received Connection Request from {} while a disconnect request was still pending; interrupted the disconnect thread", nodeIdentifier);
         }
     }
 
     // Visible for testing
-    Future<Void> getPendingDisconnectionFuture(final NodeIdentifier nodeIdentifier) {
+    Thread getPendingDisconnectionThread(final NodeIdentifier nodeIdentifier) {
         return pendingDisconnections.get(nodeIdentifier.getId());
     }
 

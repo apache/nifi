@@ -727,7 +727,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private void handleDisconnectionRequest(final DisconnectMessage request, final long expectedConnectionGeneration) {
+    // Visible for testing
+    void handleDisconnectionRequest(final DisconnectMessage request, final long expectedConnectionGeneration) {
         logger.info("Received disconnection request message from cluster coordinator with explanation: {}", request.getExplanation());
 
         writeLock.lock();

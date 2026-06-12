@@ -51,7 +51,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -511,14 +510,14 @@ public class TestNodeClusterCoordinator {
         Mockito.doThrow(new ProtocolException("Simulated")).when(senderListener).disconnect(any());
         coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
 
-        final Future<Void> pendingDisconnect = coordinator.getPendingDisconnectionFuture(nodeId2);
-        assertNotNull(pendingDisconnect);
+        final Thread disconnectThread = coordinator.getPendingDisconnectionThread(nodeId2);
+        assertNotNull(disconnectThread);
+        assertTrue(disconnectThread.isAlive());
 
         requestConnection(nodeId2, coordinator);
 
-        final Future<Void> cancelledDisconnect = coordinator.getPendingDisconnectionFuture(nodeId2);
-        assertNull(cancelledDisconnect);
-        assertTrue(pendingDisconnect.isCancelled());
+        assertNull(coordinator.getPendingDisconnectionThread(nodeId2));
+        assertTrue(disconnectThread.isInterrupted());
     }
 
     private NodeIdentifier createNodeId(final int index) {
