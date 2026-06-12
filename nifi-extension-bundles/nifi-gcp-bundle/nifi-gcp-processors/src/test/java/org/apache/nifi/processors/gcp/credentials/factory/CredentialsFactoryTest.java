@@ -27,6 +27,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
@@ -35,6 +36,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -137,6 +139,31 @@ public class CredentialsFactoryTest {
         assertNotNull(credentials);
         assertEquals(ServiceAccountCredentials.class, credentials.getClass(),
                 "credentials class should be equal");
+    }
+
+    @Test
+    public void testJsonFileCredentialsRejectsExternalAccount() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
+        runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
+        runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
+                "src/test/resources/external-account-credentials.json");
+        runner.assertValid();
+
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final CredentialsFactory factory = new CredentialsFactory();
+        final IOException exception = assertThrows(IOException.class, () -> factory.getGoogleCredentials(properties, TRANSPORT_FACTORY));
+        assertTrue(exception.getMessage().contains("service_account"));
+    }
+
+    @Test
+    public void testJsonStringCredentialsRejectsExternalAccount() throws Exception {
+        final String externalAccountJson = new String(
+                Files.readAllBytes(Paths.get("src/test/resources/external-account-credentials.json"))
+        );
+        final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
+        runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue());
+        runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON, externalAccountJson);
+        runner.assertNotValid();
     }
 
     @Test
