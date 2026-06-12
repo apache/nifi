@@ -930,6 +930,8 @@ public class NiFiProperties extends ApplicationProperties {
      * Returns the configured HTTP protocol version that the cluster node web client should prefer when communicating with other nodes.
      * Returned as a raw String matching one of the values of {@code java.net.http.HttpClient.Version} (i.e. {@code HTTP_1_1} or {@code HTTP_2}).
      * Defaults to {@link #DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION} when the property is missing or blank.
+     *
+     * @return the configured cluster node protocol HTTP version, or {@link #DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION} when the property is missing or blank
      */
     public String getClusterNodeProtocolHttpVersion() {
         final String configured = getProperty(CLUSTER_NODE_PROTOCOL_HTTP_VERSION);
