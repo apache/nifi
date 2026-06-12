@@ -204,6 +204,7 @@
         <nifi.cluster.node.address />
         <nifi.cluster.node.protocol.port />
         <nifi.cluster.node.protocol.max.threads>50</nifi.cluster.node.protocol.max.threads>
+        <nifi.cluster.node.protocol.http.version>HTTP_2</nifi.cluster.node.protocol.http.version>
         <nifi.cluster.node.event.history.size>25</nifi.cluster.node.event.history.size>
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
