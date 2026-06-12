@@ -107,7 +107,7 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
         // Add HostHeaderCustomizer to set Host Header for HTTP/2
         httpConfiguration.addCustomizer(new HostHeaderCustomizer());
 
-        final ProxyHeaderValidatorCustomizer proxyHeaderValidatorCustomizer = new ProxyHeaderValidatorCustomizer(validProxyHosts);
+        final ProxyHeaderValidatorCustomizer proxyHeaderValidatorCustomizer = new ProxyHeaderValidatorCustomizer(validProxyHosts, validPorts);
         httpConfiguration.addCustomizer(proxyHeaderValidatorCustomizer);
 
         final HostPortValidatorCustomizer hostPortValidatorCustomizer = new HostPortValidatorCustomizer(validPorts);

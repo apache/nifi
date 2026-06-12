@@ -31,12 +31,16 @@ import org.eclipse.jetty.server.Request;
 import java.security.cert.X509Certificate;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Jetty Request Customizer implementing validation for supported Proxy Request Headers
  */
 public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customizer {
     private static final String MISDIRECTED_REQUEST_REASON = "Invalid Proxy Host Requested";
+    private static final String MISDIRECTED_REQUEST_REASON_INVALID_PORT = "Invalid Port Requested";
+
+    private static final Pattern HOST_PORT_SEPARATOR = Pattern.compile(":");
 
     private static final Set<String> SUPPORTED_PROXY_HOST_HEADERS = Set.of(
             ProxyHeader.PROXY_HOST.getHeader(),
@@ -44,9 +48,11 @@ public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customi
     );
 
     private final Set<String> validProxyHosts;
+    private final Set<Integer> validPorts;
 
-    public ProxyHeaderValidatorCustomizer(final Set<String> validProxyHosts) {
+    public ProxyHeaderValidatorCustomizer(final Set<String> validProxyHosts, final Set<Integer> validPorts) {
         this.validProxyHosts = Objects.requireNonNull(validProxyHosts, "Valid Proxy Hosts required");
+        this.validPorts = Objects.requireNonNull(validPorts, "Valid Ports required");
     }
 
     /**
@@ -95,20 +101,44 @@ public class ProxyHeaderValidatorCustomizer implements HttpConfiguration.Customi
 
         final HttpFields requestHeaders = request.getHeaders();
         for (final String proxyHostHeader : SUPPORTED_PROXY_HOST_HEADERS) {
-            final String hostHeader = requestHeaders.get(proxyHostHeader);
+            String hostHeader = requestHeaders.get(proxyHostHeader);
             // Include empty and blank values for enforced validation of request headers
             if (hostHeader == null) {
                 continue;
             }
+
+            final String[] hostHeaderParts = HOST_PORT_SEPARATOR.split(hostHeader);
+            if (hostHeaderParts.length == 2) {
+                hostHeader = hostHeaderParts[0];
+            }
+
             // Allow proxy host header matching request host header based on TLS SNI and DNS SAN requirements
             if (requestHost.equals(hostHeader)) {
+                processProxyHostHeaderPortNumber(hostHeaderParts);
                 continue;
             }
+
             if (validProxyHosts.contains(hostHeader)) {
+                processProxyHostHeaderPortNumber(hostHeaderParts);
                 continue;
             }
 
             throw new HttpException.RuntimeException(HttpStatus.MISDIRECTED_REQUEST_421, MISDIRECTED_REQUEST_REASON);
+        }
+    }
+
+    private void processProxyHostHeaderPortNumber(String[] hostHeaderParts) {
+        if (hostHeaderParts.length == 2) {
+            try {
+                final int port = Integer.parseInt(hostHeaderParts[1]);
+                if (validPorts.contains(port)) {
+                    return;
+                } else {
+                    throw new HttpException.RuntimeException(HttpStatus.MISDIRECTED_REQUEST_421, MISDIRECTED_REQUEST_REASON_INVALID_PORT);
+                }
+            } catch (final NumberFormatException e) {
+                throw new HttpException.RuntimeException(HttpStatus.MISDIRECTED_REQUEST_421, MISDIRECTED_REQUEST_REASON_INVALID_PORT);
+            }
         }
     }
 
