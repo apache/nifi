@@ -241,6 +241,26 @@ public class NiFiPropertiesTest {
     }
 
     @Test
+    public void testGetClusterNodeProtocolHttpVersionDefault() {
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
+        assertEquals(NiFiProperties.DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION, properties.getClusterNodeProtocolHttpVersion());
+    }
+
+    @Test
+    public void testGetClusterNodeProtocolHttpVersionOverride() {
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null,
+                Map.of(NiFiProperties.CLUSTER_NODE_PROTOCOL_HTTP_VERSION, "HTTP_1_1"));
+        assertEquals("HTTP_1_1", properties.getClusterNodeProtocolHttpVersion());
+    }
+
+    @Test
+    public void testGetClusterNodeProtocolHttpVersionBlankFallsBackToDefault() {
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null,
+                Map.of(NiFiProperties.CLUSTER_NODE_PROTOCOL_HTTP_VERSION, "   "));
+        assertEquals(NiFiProperties.DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION, properties.getClusterNodeProtocolHttpVersion());
+    }
+
+    @Test
     public void testShouldHaveReasonableMaxContentLengthValues() {
         // Arrange with default values:
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
