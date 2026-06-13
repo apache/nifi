@@ -810,11 +810,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         eventAccess = new StandardEventAccess(flowManager, flowFileEventRepository, processScheduler, authorizer, provenanceRepository,
-                auditService, analyticsEngine, flowFileRepository, contentRepository);
+                auditService, analyticsEngine, flowFileRepository, contentRepository, connectorRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
             try {
-                statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus(), new Date());
+                statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), eventAccess.getConnectorStatuses(),
+                        getGarbageCollectionStatus(), new Date());
             } catch (final Exception e) {
                 LOG.error("Failed to capture component stats for Stats History", e);
             }

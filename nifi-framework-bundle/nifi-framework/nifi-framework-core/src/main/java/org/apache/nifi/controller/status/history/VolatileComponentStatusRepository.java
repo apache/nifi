@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.ConnectorStatus;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -28,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -108,6 +110,24 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
 
         logger.debug("Captured metrics for {}", this);
         lastCaptureTime = Math.max(lastCaptureTime, timestamp.getTime());
+    }
+
+    @Override
+    public synchronized void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final Collection<ConnectorStatus> connectorStatuses,
+                                     final List<GarbageCollectionStatus> gcStatus, final Date timestamp) {
+        capture(nodeStatus, rootGroupStatus, gcStatus, timestamp);
+
+        // Connector-managed flows are siblings of the root group and therefore are not reachable from
+        // rootGroupStatus. Capture each Connector's managed flow so that components running inside it have
+        // status history just like components in the primary flow.
+        if (connectorStatuses != null) {
+            for (final ConnectorStatus connectorStatus : connectorStatuses) {
+                final ProcessGroupStatus connectorRootGroupStatus = connectorStatus.getRootGroupStatus();
+                if (connectorRootGroupStatus != null) {
+                    capture(connectorRootGroupStatus, timestamp);
+                }
+            }
+        }
     }
 
     private void capture(final ProcessGroupStatus groupStatus, final Date timestamp) {

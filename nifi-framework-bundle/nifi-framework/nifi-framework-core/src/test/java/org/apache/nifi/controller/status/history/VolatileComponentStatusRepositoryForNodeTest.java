@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatusHistoryRepositoryTest {
@@ -127,6 +128,34 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
         assertEquals(400L, getMetricAtOrdinal(snapshot2, g1TimeDiffOrdinal));
         assertEquals(5L, getMetricAtOrdinal(snapshot2, g1CountOrdinal));
         assertEquals(3L, getMetricAtOrdinal(snapshot2, g1CountDiffOrdinal));
+    }
+
+    @Test
+    public void testConnectorManagedFlowStatusHistory() {
+        final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
+        Mockito.when(niFiProperties.getIntegerProperty(VolatileComponentStatusRepository.NUM_DATA_POINTS_PROPERTY, VolatileComponentStatusRepository.DEFAULT_NUM_DATA_POINTS)).thenReturn(10);
+        final VolatileComponentStatusRepository testSubject = new VolatileComponentStatusRepository(niFiProperties);
+
+        final Date capturedAt = new Date();
+        testSubject.capture(givenNodeStatus(0), givenRootProcessGroupStatus(), List.of(givenConnectorStatus()), givenGarbageCollectionStatuses(capturedAt), capturedAt);
+
+        // The Connector's managed root group is captured even though it is a sibling of (not reachable from) the root group
+        final StatusHistory connectorRootGroupStatus = testSubject.getProcessGroupStatusHistory(CONNECTOR_ROOT_GROUP_ID, new Date(0), new Date(), Integer.MAX_VALUE);
+        assertFalse(connectorRootGroupStatus.getStatusSnapshots().isEmpty());
+        assertEquals(CONNECTOR_ROOT_GROUP_ID, connectorRootGroupStatus.getComponentDetails().get("Id"));
+        assertEquals("Connector Root", connectorRootGroupStatus.getComponentDetails().get("Name"));
+
+        // A processor running inside the Connector-managed flow has status history just like a primary-flow processor
+        final StatusHistory connectorProcessorStatus = testSubject.getProcessorStatusHistory(CONNECTOR_PROCESSOR_ID, new Date(0), new Date(), Integer.MAX_VALUE, false);
+        assertFalse(connectorProcessorStatus.getStatusSnapshots().isEmpty());
+        assertEquals(CONNECTOR_PROCESSOR_ID, connectorProcessorStatus.getComponentDetails().get("Id"));
+        assertEquals("ConnectorProcessor", connectorProcessorStatus.getComponentDetails().get("Name"));
+
+        // The primary root flow is still captured alongside the connector flow
+        final StatusHistory rootGroupStatus = testSubject.getProcessGroupStatusHistory(ROOT_GROUP_ID, new Date(0), new Date(), Integer.MAX_VALUE);
+        assertFalse(rootGroupStatus.getStatusSnapshots().isEmpty());
+        assertEquals(ROOT_GROUP_ID, rootGroupStatus.getComponentDetails().get("Id"));
+        assertEquals("Root", rootGroupStatus.getComponentDetails().get("Name"));
     }
 
     private static long getMetricAtOrdinal(final StatusSnapshot snapshot, final long ordinal) {

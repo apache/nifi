@@ -234,6 +234,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String UNREGISTERED_PATH_SEGMENT = "UNREGISTERED";
 
     private final Map<String, String> loggingAttributes = new ConcurrentHashMap<>();
+    private volatile Map<String, String> connectorLoggingAttributes = Map.of();
     private volatile String logFileSuffix;
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
@@ -308,6 +309,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParent(final ProcessGroup newParent) {
         parent.set(newParent);
+        // Inherit connector-supplied MDC attributes from the parent so descendants of a connector's managed
+        // flow carry the same connector metadata (attributing their logs and status metrics to the connector).
+        // Runs on every re-parent (including initial attach), so PGs added later inherit automatically.
+        if (newParent instanceof StandardProcessGroup standardParent) {
+            this.connectorLoggingAttributes = standardParent.connectorLoggingAttributes;
+        }
         setLoggingAttributes();
     }
 
@@ -4829,6 +4836,47 @@ public final class StandardProcessGroup implements ProcessGroup {
             final String registeredFlowVersion = currentVersionControl.getVersion();
             loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_VERSION.attribute, registeredFlowVersion);
         }
+
+        loggingAttributes.putAll(connectorLoggingAttributes);
+    }
+
+    /**
+     * Stores the connector-managed MDC attributes for this process group and cascades the same
+     * attributes to all descendant process groups so that components anywhere in the connector's
+     * managed flow log with consistent connectorId/connectorName/etc. context.
+     *
+     * <p>This method is called by {@code StandardConnectorNode} against its managed root process
+     * group whenever the connector's framework keys (e.g. {@code connectorName}) change or when the
+     * connector provides updated custom logging attributes. Newly created descendant groups will
+     * also inherit the attributes lazily via {@link #setParent(ProcessGroup)}.</p>
+     *
+     * @param attributes the merged set of connector logging attributes; an empty or {@code null}
+     *                   map clears any previously assigned attributes
+     */
+    @Override
+    public void setConnectorLoggingAttributes(final Map<String, String> attributes) {
+        final Map<String, String> snapshot = (attributes == null || attributes.isEmpty())
+            ? Map.of()
+            : Map.copyOf(attributes);
+        this.connectorLoggingAttributes = snapshot;
+        setLoggingAttributes();
+
+        for (final ProcessGroup child : getProcessGroups()) {
+            if (child instanceof StandardProcessGroup standardChild) {
+                standardChild.setConnectorLoggingAttributes(snapshot);
+            }
+        }
+    }
+
+    /**
+     * Returns the connector-managed MDC attributes currently assigned to this process group (inherited from
+     * its connector's managed flow root, or empty if this group is not part of a connector flow).
+     *
+     * @return an immutable map of connector logging attributes; never {@code null}
+     */
+    @Override
+    public Map<String, String> getConnectorLoggingAttributes() {
+        return connectorLoggingAttributes;
     }
 
     private void setGroupPath() {

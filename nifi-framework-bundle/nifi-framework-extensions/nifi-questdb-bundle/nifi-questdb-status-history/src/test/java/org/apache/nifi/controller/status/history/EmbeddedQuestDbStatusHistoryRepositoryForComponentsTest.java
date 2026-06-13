@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -77,6 +78,24 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForComponentsTest extends Abs
         // requesting data from out of recorded range
         final StatusHistory rootGroupStatus2 = repository.getProcessGroupStatusHistory(ROOT_GROUP_ID, START, END_EARLY, PREFERRED_DATA_POINTS);
         assertStatusHistoryIsEmpty(rootGroupStatus2);
+    }
+
+    @Test
+    public void testWritingThenReadingConnectorManagedFlowComponents() throws Exception {
+        repository.capture(new NodeStatus(), givenRootProcessGroupStatus(), List.of(givenConnectorStatus()), new ArrayList<>(), INSERTED_AT);
+        waitUntilPersisted();
+
+        // The Connector's managed root group is captured even though it is a sibling of (not reachable from) the root group
+        final StatusHistory connectorRootGroupStatus = repository.getProcessGroupStatusHistory(CONNECTOR_ROOT_GROUP_ID, START, END, PREFERRED_DATA_POINTS);
+        assertCorrectStatusHistory(connectorRootGroupStatus, CONNECTOR_ROOT_GROUP_ID, "Connector Root");
+
+        // A processor running inside the Connector-managed flow has status history just like a primary-flow processor
+        final StatusHistory connectorProcessorStatus = repository.getProcessorStatusHistory(CONNECTOR_PROCESSOR_ID, START, END, PREFERRED_DATA_POINTS, false);
+        assertCorrectStatusHistory(connectorProcessorStatus, CONNECTOR_PROCESSOR_ID, "ConnectorProcessor");
+
+        // The primary root flow is still captured alongside the connector flow
+        final StatusHistory rootGroupStatus = repository.getProcessGroupStatusHistory(ROOT_GROUP_ID, START, END, PREFERRED_DATA_POINTS);
+        assertCorrectStatusHistory(rootGroupStatus, ROOT_GROUP_ID, "Root");
     }
 
     @Test

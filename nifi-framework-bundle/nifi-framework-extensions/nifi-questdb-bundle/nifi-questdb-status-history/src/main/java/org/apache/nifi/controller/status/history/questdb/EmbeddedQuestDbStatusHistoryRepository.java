@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.status.history.questdb;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.ConnectorStatus;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -124,6 +125,32 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
         captureGarbageCollectionStatus(garbageCollectionStatus, captured);
         captureComponentStatus(rootGroupStatus, captured);
         updateComponentDetails(rootGroupStatus);
+    }
+
+    @Override
+    public void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final Collection<ConnectorStatus> connectorStatuses,
+                        final List<GarbageCollectionStatus> garbageCollectionStatus, final Date timestamp) {
+        final Instant captured = timestamp.toInstant();
+        captureNodeStatus(nodeStatus, captured);
+        captureGarbageCollectionStatus(garbageCollectionStatus, captured);
+        captureComponentStatus(rootGroupStatus, captured);
+
+        // Connector-managed flows are siblings of the root group and therefore are not reachable from
+        // rootGroupStatus. Capture each Connector's managed flow so that components running inside it have
+        // status history just like components in the primary flow. Component details for the root group and
+        // every connector-managed flow are accumulated into a single map so that one does not overwrite another.
+        final Map<String, ComponentDetails> componentDetails = new HashMap<>();
+        updateComponentDetails(rootGroupStatus, componentDetails);
+        if (connectorStatuses != null) {
+            for (final ConnectorStatus connectorStatus : connectorStatuses) {
+                final ProcessGroupStatus connectorRootGroupStatus = connectorStatus.getRootGroupStatus();
+                if (connectorRootGroupStatus != null) {
+                    captureComponentStatus(connectorRootGroupStatus, captured);
+                    updateComponentDetails(connectorRootGroupStatus, componentDetails);
+                }
+            }
+        }
+        componentDetailsProvider.setComponentDetails(componentDetails);
     }
 
     private void captureNodeStatus(final NodeStatus nodeStatus, final Instant captured) {

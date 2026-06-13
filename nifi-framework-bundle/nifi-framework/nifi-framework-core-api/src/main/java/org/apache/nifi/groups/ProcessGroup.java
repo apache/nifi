@@ -1236,6 +1236,28 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     Map<String, String> getLoggingAttributes();
 
     /**
+     * Returns the connector-managed MDC attributes assigned to this Process Group. When this group is part of a
+     * Connector's managed flow, these attributes (for example, connectorId and connectorName) are inherited from the
+     * Connector's managed root group so that logs and status metrics emitted by components in the flow can be
+     * attributed to the Connector. Returns an empty map when this group is not part of a Connector flow.
+     *
+     * @return an immutable map of connector logging attributes; never {@code null}
+     */
+    default Map<String, String> getConnectorLoggingAttributes() {
+        return Map.of();
+    }
+
+    /**
+     * Assigns the connector-managed MDC attributes for this Process Group and cascades them to all descendant Process
+     * Groups, so that components anywhere in a Connector's managed flow log with consistent connector context. An empty
+     * or {@code null} map clears any previously assigned attributes.
+     *
+     * @param attributes the connector logging attributes to assign
+     */
+    default void setConnectorLoggingAttributes(final Map<String, String> attributes) {
+    }
+
+    /**
      * @return the log file suffix of the ProcessGroup for dedicated logging
      */
     String getLogFileSuffix();

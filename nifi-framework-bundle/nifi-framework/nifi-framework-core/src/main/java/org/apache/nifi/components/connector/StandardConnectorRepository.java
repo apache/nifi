@@ -63,6 +63,13 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorRepository.class);
     private static final Duration SYNC_POLL_INTERVAL = Duration.ofSeconds(2);
 
+    /**
+     * Soft cardinality limit beyond which a WARN is emitted when a {@link ConnectorConfigurationProvider}
+     * supplies logging attributes for a connector. Exceeding this threshold signals a potential metric/MDC
+     * cardinality risk for downstream observability backends but does not reject the attributes.
+     */
+    private static final int CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD = 5;
+
     private final Map<String, ConnectorNode> connectors = new ConcurrentHashMap<>();
     private final FlowEngine lifecycleExecutor = new FlowEngine(8, "NiFi Connector Lifecycle");
 
@@ -100,12 +107,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void addConnector(final ConnectorNode connector) {
+        applyProviderLoggingAttributes(connector);
         syncFromProvider(connector);
         connectors.put(connector.getIdentifier(), connector);
     }
 
     @Override
     public void restoreConnector(final ConnectorNode connector) {
+        applyProviderLoggingAttributes(connector);
         connectors.put(connector.getIdentifier(), connector);
         logger.debug("Successfully restored {}", connector);
     }
@@ -830,6 +839,39 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public SecretsManager getSecretsManager() {
         return secretsManager;
+    }
+
+    /**
+     * Sources provider-supplied logging attributes for the given connector and applies them to the node so that
+     * they are merged into the MDC of the connector's {@link org.apache.nifi.logging.ComponentLog} and the loggers
+     * of every component running inside its managed flow (and surfaced on connector metrics). Invoked when the
+     * connector node is added or restored. The framework-managed identity keys are always present regardless of
+     * what the provider supplies.
+     */
+    private void applyProviderLoggingAttributes(final ConnectorNode connector) {
+        connector.setCustomLoggingAttributes(resolveProviderLoggingAttributes(connector.getIdentifier()));
+    }
+
+    private Map<String, String> resolveProviderLoggingAttributes(final String connectorId) {
+        if (configurationProvider == null) {
+            return Map.of();
+        }
+        try {
+            final Map<String, String> attributes = configurationProvider.getLoggingAttributes(connectorId);
+            if (attributes == null || attributes.isEmpty()) {
+                return Map.of();
+            }
+            if (attributes.size() > CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD) {
+                logger.warn("ConnectorConfigurationProvider [{}] supplied {} logging attributes for connector [{}] which exceeds the soft threshold of {}; "
+                                + "high-cardinality attributes can degrade MDC logging and OpenTelemetry metric backends",
+                        configurationProvider.getClass().getSimpleName(), attributes.size(), connectorId, CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD);
+            }
+            return attributes;
+        } catch (final Exception e) {
+            logger.warn("ConnectorConfigurationProvider [{}] threw while computing logging attributes for connector [{}]; using empty map: {}",
+                    configurationProvider.getClass().getSimpleName(), connectorId, e.getMessage(), e);
+            return Map.of();
+        }
     }
 
     @Override
