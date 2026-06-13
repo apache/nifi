@@ -122,7 +122,7 @@
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.46.9</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.46.10</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.7</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
@@ -153,7 +153,7 @@
         <kafka-clients.version>4.3.0</kafka-clients.version>
         <avro.version>1.12.1</avro.version>
         <calcite.version>1.42.0</calcite.version>
-        <com.github.luben.zstd-jni.version>1.5.7-10</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-11</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>3.0.0</com.jayway.jsonpath.version>
         <gson.version>2.14.0</gson.version>
         <jackson.annotations.version>2.22</jackson.annotations.version>
