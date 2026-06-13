@@ -40,7 +40,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ldap.control.PagedResultsDirContextProcessor;
+import org.springframework.ldap.control.PagedResultsControlExchangeDirContextProcessor;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.DirContextOperations;
@@ -478,7 +478,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 if (pageSize == null) {
                     userProcessor = new NullDirContextProcessor();
                 } else {
-                    userProcessor = new PagedResultsDirContextProcessor(pageSize);
+                    userProcessor = new PagedResultsControlExchangeDirContextProcessor(pageSize);
                 }
 
                 // looking for objects matching the user object class
@@ -551,7 +551,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 if (pageSize == null) {
                     groupProcessor = new NullDirContextProcessor();
                 } else {
-                    groupProcessor = new PagedResultsDirContextProcessor(pageSize);
+                    groupProcessor = new PagedResultsControlExchangeDirContextProcessor(pageSize);
                 }
 
                 // looking for objects matching the group object class
@@ -692,7 +692,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     }
 
     private boolean hasMorePages(final DirContextProcessor processor) {
-        return processor instanceof PagedResultsDirContextProcessor && ((PagedResultsDirContextProcessor) processor).hasMore();
+        return processor instanceof PagedResultsControlExchangeDirContextProcessor && ((PagedResultsControlExchangeDirContextProcessor) processor).hasMore();
     }
 
     private User buildUser(final DirContextOperations dirContextOperations) {
