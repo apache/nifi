@@ -1854,7 +1854,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     }
 
                     parameterContext.setParameters(updatedParameters);
-                    parameterContext.setName(proposed.getName());
+                    contextManager.setParameterContextName(parameterContext.getIdentifier(), proposed.getName());
                     parameterContext.setDescription(proposed.getDescription());
                     parameterContext.setInheritedParameterContexts(inheritedContexts);
                     LOG.info("Successfully synchronized {} by updating it to match the proposed version", parameterContext);

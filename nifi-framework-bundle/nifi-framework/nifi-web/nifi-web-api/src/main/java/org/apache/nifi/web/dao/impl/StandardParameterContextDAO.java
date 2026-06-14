@@ -287,7 +287,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         if (parameterContextDto.getName() != null) {
             verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
-            context.setName(parameterContextDto.getName());
+            flowManager.getParameterContextManager().setParameterContextName(parameterContextDto.getId(), parameterContextDto.getName());
         }
 
         if (parameterContextDto.getDescription() != null) {
