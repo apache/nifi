@@ -25,12 +25,12 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
 import { Observable } from 'rxjs';
 import { selectBannerErrors } from '../../../state/error/error.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '@nifi/shared';
+import { Banner } from '@nifi/shared';
 import { ErrorContextKey } from '../../../state/error';
 
 @Component({
     selector: 'context-error-banner',
-    imports: [CommonModule, ErrorBanner],
+    imports: [CommonModule, Banner],
     templateUrl: './context-error-banner.component.html',
     styleUrl: './context-error-banner.component.scss'
 })

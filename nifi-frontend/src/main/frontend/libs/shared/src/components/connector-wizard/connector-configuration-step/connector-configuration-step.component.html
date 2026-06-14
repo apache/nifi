@@ -34,12 +34,12 @@
                 </wizard-context-banner>
 
                 <!-- Step-specific general errors (from verify-all on summary page) -->
-                <error-banner
+                <banner
                     [messages]="generalVerificationErrors()"
                     [allowDismiss]="true"
                     (dismiss)="onDismissGeneralVerificationErrors()"
                     data-qa="step-general-verification-errors">
-                </error-banner>
+                </banner>
 
                 @if (stringListOrphanStripBannerEntries().length > 0) {
                     <div class="mb-5" role="status" aria-live="polite" data-qa="string-list-orphan-strip-banner">

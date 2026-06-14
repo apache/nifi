@@ -23,7 +23,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { NifiSpinnerDirective } from '../../directives/spinner/nifi-spinner.directive';
 import { PropertyGroupCard } from '../property-group-card/property-group-card.component';
-import { ErrorBanner } from '../error-banner/error-banner.component';
+import { Banner } from '../banner/banner.component';
 import { ConnectorConfiguration, ConnectorPropertyDescriptor, ConfigVerificationResult } from '../../types';
 import {
     hasPropertyValue,
@@ -41,7 +41,7 @@ import {
         NgxSkeletonLoaderModule,
         NifiSpinnerDirective,
         PropertyGroupCard,
-        ErrorBanner
+        Banner
     ],
     templateUrl: './connector-configuration-summary-step.component.html',
     styleUrl: './connector-configuration-summary-step.component.scss'

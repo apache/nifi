@@ -18,10 +18,7 @@
 <h2 mat-dialog-title>Change Flow Version</h2>
 @if (flowUpdateRequest$ | async; as versionChangeRequest) {
     @if (versionChangeRequest.request.complete && versionChangeRequest.request.failureReason) {
-        <error-banner
-            [messages]="[versionChangeRequest.request.failureReason]"
-            [showErrorIcon]="true"
-            [allowDismiss]="false"></error-banner>
+        <banner [messages]="[versionChangeRequest.request.failureReason]" [allowDismiss]="false"></banner>
     }
 }
 <div class="change-version-progress">

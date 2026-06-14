@@ -28,7 +28,6 @@ export * from './codemirror/themes/baseTheme';
 export * from './yes-no-dialog/yes-no-dialog.component';
 export * from './tooltips/property-hint-tip/property-hint-tip.component';
 export * from './tooltips/text-tip/text-tip.component';
-export * from './error-banner/error-banner.component';
 export * from './banner/banner.component';
 export * from './wizard/wizard.component';
 export * from './connector-wizard/connector-wizard.types';
