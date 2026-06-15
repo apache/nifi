@@ -18,7 +18,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { authenticationGuard } from './service/guard/authentication.guard';
-import { connectorsFeatureGuard } from './service/guard/connectors-feature.guard';
 import { RouteNotFound } from './pages/route-not-found/feature/route-not-found.component';
 import { checkLoginConfiguration } from './service/guard/login-configuration.guard';
 import { LoginConfiguration } from './state/login-configuration';
@@ -115,7 +114,7 @@ const routes: Routes = [
     },
     {
         path: 'connectors',
-        canMatch: [authenticationGuard, connectorsFeatureGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/connectors/feature/connectors.module').then((m) => m.ConnectorsModule)
     },
     {

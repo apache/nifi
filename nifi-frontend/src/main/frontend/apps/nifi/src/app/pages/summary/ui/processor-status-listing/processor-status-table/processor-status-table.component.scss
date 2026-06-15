@@ -29,5 +29,7 @@
         border-radius: 8px;
         float: left;
         text-align: center;
+        min-width: 16px;
+        background-color: var(--mat-sys-background);
     }
 }

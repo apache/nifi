@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
 import com.google.auth.http.HttpTransportFactory;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.gcp.credentials.factory.DelegationStrategy;
@@ -38,14 +40,28 @@ public abstract class AbstractServiceAccountCredentialsStrategy extends Abstract
     protected abstract InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException;
 
     @Override
-    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException {
+    public GoogleCredentials getGoogleCredentials(final Map<PropertyDescriptor, String> properties, final HttpTransportFactory transportFactory) throws IOException {
+        final GoogleCredentials credentials;
+        try (final InputStream serviceAccountJson = getServiceAccountJson(properties)) {
+            credentials = GoogleCredentials.fromStream(serviceAccountJson, transportFactory);
+        }
+
+        if (!(credentials instanceof ServiceAccountCredentials)) {
+            final StringBuilder message = new StringBuilder(
+                    "Configured credentials must be a Google Service Account key (\"type\": \"service_account\") but resolved to %s.".formatted(credentials.getClass().getSimpleName()));
+            if (credentials instanceof ExternalAccountCredentials) {
+                message.append(" Use the Workload Identity Federation strategy for external account credentials.");
+            }
+            throw new IOException(message.toString());
+        }
+
         final String delegationStrategy = properties.get(CredentialPropertyDescriptors.DELEGATION_STRATEGY);
         if (delegationStrategy != null && delegationStrategy.equals(DelegationStrategy.DELEGATED_ACCOUNT.getValue())) {
             final String delegationUser = properties.get(CredentialPropertyDescriptors.DELEGATION_USER);
-            return GoogleCredentials.fromStream(getServiceAccountJson(properties), transportFactory).createDelegated(delegationUser);
-        } else {
-            return GoogleCredentials.fromStream(getServiceAccountJson(properties), transportFactory);
+            return credentials.createDelegated(delegationUser);
         }
+
+        return credentials;
     }
 
 }

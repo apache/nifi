@@ -53,6 +53,8 @@ export class ComponentTypeNamePipe implements PipeTransform {
                 return 'Remote Process Group';
             case ComponentType.ReportingTask:
                 return 'Reporting Task';
+            case ComponentType.Connector:
+                return 'Connector';
             default:
                 return type;
         }

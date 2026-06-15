@@ -35,6 +35,7 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
@@ -50,7 +51,9 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.StringUtils;
@@ -64,6 +67,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -81,8 +85,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class StandardConnectorNode implements ConnectorNode {
+public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorNode.class);
+
+    private static final Set<org.apache.nifi.controller.ScheduledState> STOPPED_STATES =
+            EnumSet.of(org.apache.nifi.controller.ScheduledState.STOPPED, org.apache.nifi.controller.ScheduledState.DISABLED);
 
     private final String identifier;
     private final FlowManager flowManager;
@@ -109,6 +116,10 @@ public class StandardConnectorNode implements ConnectorNode {
     private volatile String name;
     private volatile FrameworkConnectorInitializationContext initializationContext;
 
+    private final Object loggingAttributesLock = new Object();
+    private volatile Map<String, String> customLoggingAttributes = Map.of();
+    private volatile Map<String, String> mergedLoggingAttributes = Map.of();
+
 
     public StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
         final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails, final String componentType, final String componentCanonicalClass,
@@ -133,6 +144,8 @@ public class StandardConnectorNode implements ConnectorNode {
 
         final Bundle activeFlowBundle = new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion());
         this.activeFlowContext = flowContextFactory.createActiveFlowContext(identifier, connectorDetails.getComponentLog(), activeFlowBundle);
+
+        rebuildLoggingAttributes();
     }
 
     @Override
@@ -143,10 +156,117 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public void setName(final String name) {
         this.name = name;
+        rebuildLoggingAttributes();
+    }
+
+    /**
+     * Returns the {@link ProcessGroup} that holds the connector-managed flow (the connector's active
+     * managed root group), or {@code null} before the active flow context has been established.
+     *
+     * <p>This serves two purposes:
+     * <ul>
+     *   <li>It satisfies the {@link GroupedComponent} contract. The connector's own {@code ComponentLog}
+     *       uses a {@code StandardLoggingContext} bound to this node (see {@code ExtensionBuilder}), so the
+     *       connector's own log lines source their MDC from this group's
+     *       {@link ProcessGroup#getLoggingAttributes() logging attributes}.</li>
+     *   <li>It is the target onto which {@link #rebuildLoggingAttributes()} pushes the merged connector
+     *       logging attributes (via {@link ProcessGroup#setConnectorLoggingAttributes(Map)}); those then
+     *       cascade down the managed flow so components running inside it inherit the connector MDC through
+     *       their own logging contexts.</li>
+     * </ul>
+     *
+     * @return the connector's managed root process group, or {@code null} before the active flow context
+     *         has been established
+     */
+    @Override
+    public ProcessGroup getProcessGroup() {
+        final FrameworkFlowContext context = activeFlowContext;
+        return context == null ? null : context.getManagedProcessGroup();
+    }
+
+    /**
+     * Replaces the connector-supplied custom logging attributes. Reserved keys (those used by the
+     * framework, see {@link ConnectorLoggingAttribute}) are filtered out and a WARN is logged for
+     * each dropped entry.
+     *
+     * @param attributes the proposed custom attributes; {@code null} or empty clears the current set
+     */
+    @Override
+    public void setCustomLoggingAttributes(final Map<String, String> attributes) {
+        final Map<String, String> filtered = filterReservedKeys(attributes);
+
+        synchronized (loggingAttributesLock) {
+            this.customLoggingAttributes = filtered;
+        }
+        rebuildLoggingAttributes();
+    }
+
+    /**
+     * Returns an immutable snapshot of the merged framework + custom logging attributes currently
+     * advertised by this connector. The framework keys are populated by the framework from the
+     * connector's identifier, name, component type, and bundle coordinate.
+     *
+     * @return an immutable map of the connector's merged framework and custom logging attributes; never {@code null}
+     */
+    @Override
+    public Map<String, String> getLoggingAttributes() {
+        return mergedLoggingAttributes;
+    }
+
+    private Map<String, String> filterReservedKeys(final Map<String, String> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return Map.of();
+        }
+        final Map<String, String> filtered = new HashMap<>(attributes.size());
+        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+            final String key = entry.getKey();
+            if (key == null || key.isEmpty()) {
+                continue;
+            }
+            if (ConnectorLoggingAttribute.isReserved(key)) {
+                logger.warn("{} attempted to set reserved logging attribute [{}]; dropping the entry. Reserved keys are managed by the framework.", this, key);
+                continue;
+            }
+            filtered.put(key, entry.getValue());
+        }
+        return Collections.unmodifiableMap(filtered);
+    }
+
+    private void rebuildLoggingAttributes() {
+        final Map<String, String> merged;
+        final Map<String, String> custom;
+        synchronized (loggingAttributesLock) {
+            custom = customLoggingAttributes;
+            merged = new HashMap<>(custom.size() + ConnectorLoggingAttribute.values().length);
+            merged.putAll(custom);
+            // Framework keys are applied last so they always win against any not-yet-filtered overlap.
+            merged.put(ConnectorLoggingAttribute.CONNECTOR_ID.getAttribute(), identifier);
+            merged.put(ConnectorLoggingAttribute.CONNECTOR_NAME.getAttribute(), name == null ? "" : name);
+            merged.put(ConnectorLoggingAttribute.CONNECTOR_COMPONENT.getAttribute(), componentCanonicalClass == null ? "" : componentCanonicalClass);
+            if (bundleCoordinate != null) {
+                merged.put(ConnectorLoggingAttribute.CONNECTOR_BUNDLE_GROUP.getAttribute(), bundleCoordinate.getGroup());
+                merged.put(ConnectorLoggingAttribute.CONNECTOR_BUNDLE_ARTIFACT.getAttribute(), bundleCoordinate.getId());
+                merged.put(ConnectorLoggingAttribute.CONNECTOR_BUNDLE_VERSION.getAttribute(), bundleCoordinate.getVersion());
+            }
+            this.mergedLoggingAttributes = Collections.unmodifiableMap(merged);
+        }
+
+        pushLoggingAttributesToManagedFlow(merged);
+    }
+
+    private void pushLoggingAttributesToManagedFlow(final Map<String, String> attributes) {
+        final ProcessGroup managedProcessGroup = getProcessGroup();
+        if (managedProcessGroup != null) {
+            managedProcessGroup.setConnectorLoggingAttributes(attributes);
+        }
     }
 
     @Override
     public void transitionStateForUpdating() {
+        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot apply an update to " + this + " while it is in Troubleshooting mode; exit Troubleshooting mode before applying updates.");
+        }
+
         final ConnectorState initialState = getCurrentState();
         if (initialState == ConnectorState.UPDATING || initialState == ConnectorState.PREPARING_FOR_UPDATE) {
             return;
@@ -329,6 +449,11 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void setConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot modify configuration step " + stepName + " for " + this
+                + " while it is in Troubleshooting mode; exit Troubleshooting mode before modifying Connector configuration.");
+        }
+
         setConfiguration(stepName, configuration, false);
     }
 
@@ -444,6 +569,10 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> stop(final FlowEngine scheduler) {
+        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot stop " + this + " while it is in Troubleshooting mode; exit Troubleshooting mode to resume normal lifecycle control.");
+        }
+
         logger.info("Stopping {}", this);
         final CompletableFuture<Void> stopCompleteFuture = new CompletableFuture<>();
 
@@ -641,6 +770,9 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         final ConnectorState currentState = getCurrentState();
+        if (currentState == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot delete " + this + " because it is in Troubleshooting mode; exit Troubleshooting before deleting.");
+        }
         if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.UPDATE_FAILED || currentState == ConnectorState.UPDATED) {
             return;
         }
@@ -650,10 +782,177 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void verifyCanStart() {
+        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot start " + this + " because it is in Troubleshooting mode.");
+        }
         final ValidationState state = performValidation();
         if (state.getStatus() != ValidationStatus.VALID) {
             throw new IllegalStateException("Cannot start " + this + " because it is not valid: " + state.getValidationErrors());
         }
+    }
+
+    @Override
+    public void verifyCanEnterTroubleshooting() {
+        if (isExtensionMissing()) {
+            throw new IllegalStateException("Cannot enter Troubleshooting mode for " + this + " because it is a Ghost Connector (its underlying extension is missing).");
+        }
+
+        final ConnectorState currentState = getCurrentState();
+        switch (currentState) {
+            case TROUBLESHOOTING -> throw new IllegalStateException("Cannot enter Troubleshooting mode for " + this + " because it is already in Troubleshooting mode.");
+            case STARTING, STOPPING, DRAINING, PURGING, PREPARING_FOR_UPDATE, UPDATING ->
+                throw new IllegalStateException("Cannot enter Troubleshooting mode for " + this + " because its state is currently "
+                    + currentState + "; it must be in a stable state before entering Troubleshooting.");
+            default -> {
+                // STOPPED, RUNNING, UPDATED, UPDATE_FAILED are all acceptable to enter Troubleshooting from
+            }
+        }
+    }
+
+    @Override
+    public void verifyCanEndTroubleshooting() {
+        final Optional<String> reason = getReasonCannotEndTroubleshooting();
+        if (reason.isPresent()) {
+            throw new IllegalStateException("Cannot end Troubleshooting mode for " + this + ": " + reason.get());
+        }
+    }
+
+    private Optional<String> getReasonCannotEndTroubleshooting() {
+        final Optional<String> quickReason = getQuickReasonCannotEndTroubleshooting();
+        if (quickReason.isPresent()) {
+            return quickReason;
+        }
+
+        // After confirming all components are stopped or disabled, check if the managed flow can be safely reverted to the
+        // Connector's authoritative flow. This mirrors exactly what endTroubleshooting() will do so that any problem
+        // (e.g. a Connection whose contents cannot be preserved or a component that cannot be replaced) is reported
+        // synchronously rather than surfacing halfway through the state change. This check is intentionally not run by
+        // createEndTroubleshootingAction (which is called on every GET of the Connector entity) because it requires
+        // resolving the authoritative flow from the Connector plugin and running a full flow-comparison; that work is
+        // only paid by the explicit verify REST endpoint and by endTroubleshooting itself.
+        final VersionedExternalFlow authoritativeFlow = resolveAuthoritativeFlow();
+        try {
+            initializationContext.verifyUpdateFlow(activeFlowContext, authoritativeFlow, BundleCompatibility.RESOLVE_BUNDLE);
+        } catch (final FlowUpdateException e) {
+            return Optional.of("The Managed Process Group cannot be reverted to the Connector's authoritative flow: " + e.getMessage());
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Returns the cheap-to-compute portion of {@link #getReasonCannotEndTroubleshooting()}: the Connector must be in
+     * Troubleshooting, and every component in the managed flow must be stopped or disabled. Suitable for callers that
+     * are invoked on every REST GET of the Connector entity, where running the full flow-revert preflight on every
+     * call would add significant latency for large managed flows.
+     */
+    private Optional<String> getQuickReasonCannotEndTroubleshooting() {
+        final ConnectorState currentState = getCurrentState();
+        if (currentState != ConnectorState.TROUBLESHOOTING) {
+            return Optional.of("Connector is not in Troubleshooting mode; current state is " + currentState);
+        }
+
+        return findReasonComponentsNotStopped(getActiveFlowContext().getManagedProcessGroup());
+    }
+
+    private VersionedExternalFlow resolveAuthoritativeFlow() {
+        final VersionedExternalFlow authoritativeFlow;
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+            authoritativeFlow = getConnector().getActiveFlow(activeFlowContext);
+        }
+
+        if (authoritativeFlow == null || authoritativeFlow.getFlowContents() == null) {
+            logger.warn("Connector {} returned a null authoritative flow from getActiveFlow; using an empty flow.", this);
+            final VersionedExternalFlow empty = new VersionedExternalFlow();
+            empty.setFlowContents(new VersionedProcessGroup());
+            return empty;
+        }
+
+        return authoritativeFlow;
+    }
+
+    private Optional<String> findReasonComponentsNotStopped(final ProcessGroup group) {
+        for (final ProcessorNode processor : group.getProcessors()) {
+            final org.apache.nifi.controller.ScheduledState scheduledState = processor.getScheduledState();
+            if (!STOPPED_STATES.contains(scheduledState)) {
+                return Optional.of("Processor " + processor.getIdentifier() + " is in state " + scheduledState + "; it must be STOPPED or DISABLED");
+            }
+        }
+
+        for (final Port port : group.getInputPorts()) {
+            final org.apache.nifi.controller.ScheduledState scheduledState = port.getScheduledState();
+            if (!STOPPED_STATES.contains(scheduledState)) {
+                return Optional.of("Input Port " + port.getIdentifier() + " is in state " + scheduledState + "; it must be STOPPED or DISABLED");
+            }
+        }
+
+        for (final Port port : group.getOutputPorts()) {
+            final org.apache.nifi.controller.ScheduledState scheduledState = port.getScheduledState();
+            if (!STOPPED_STATES.contains(scheduledState)) {
+                return Optional.of("Output Port " + port.getIdentifier() + " is in state " + scheduledState + "; it must be STOPPED or DISABLED");
+            }
+        }
+
+        for (final RemoteProcessGroup remoteProcessGroup : group.getRemoteProcessGroups()) {
+            if (remoteProcessGroup.isTransmitting()) {
+                return Optional.of("Remote Process Group " + remoteProcessGroup.getIdentifier() + " is transmitting; it must be stopped");
+            }
+        }
+
+        for (final ControllerServiceNode serviceNode : group.getControllerServices(false)) {
+            if (serviceNode.isActive()) {
+                return Optional.of("Controller Service " + serviceNode.getIdentifier() + " is active; all Controller Services within the managed flow must be disabled");
+            }
+        }
+
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final Optional<String> childReason = findReasonComponentsNotStopped(childGroup);
+            if (childReason.isPresent()) {
+                return childReason;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    @Override
+    public void enterTroubleshooting() {
+        verifyCanEnterTroubleshooting();
+        logger.info("Transitioning {} into TROUBLESHOOTING state", this);
+
+        // Deliberately do NOT stop or otherwise mutate the managed flow here. The explicit contract of Troubleshooting
+        // mode (NIP-28) is that a user can "break glass" on a live, running Connector to inspect or stabilize a
+        // production issue without first having to shut the flow down. The components that were running before entering
+        // Troubleshooting remain running; the user may stop individual components as needed in order to edit them, and
+        // they must all be stopped/disabled before the Connector can leave Troubleshooting mode (enforced in
+        // verifyCanEndTroubleshooting).
+        stateTransition.setDesiredState(ConnectorState.TROUBLESHOOTING);
+        stateTransition.setCurrentState(ConnectorState.TROUBLESHOOTING);
+    }
+
+    @Override
+    public void restoreTroubleshootingState() {
+        logger.info("Restoring {} to TROUBLESHOOTING state from persisted flow", this);
+        stateTransition.setDesiredState(ConnectorState.TROUBLESHOOTING);
+        stateTransition.setCurrentState(ConnectorState.TROUBLESHOOTING);
+    }
+
+    @Override
+    public void endTroubleshooting() throws FlowUpdateException {
+        verifyCanEndTroubleshooting();
+        logger.info("Exiting TROUBLESHOOTING state for {} by restoring Connector's authoritative flow", this);
+
+        final VersionedExternalFlow flowToApply = resolveAuthoritativeFlow();
+
+        // Route the update through the ConnectorInitializationContext so that bundle coordinates referenced by the
+        // authoritative flow are resolved against the currently-available bundles. This mirrors how the initial flow
+        // is applied in initializeConnector and avoids failing validation when the Connector hard-codes a bundle
+        // version that differs from the currently-installed NAR (which is common in test Connectors).
+        initializationContext.updateFlow(activeFlowContext, flowToApply, BundleCompatibility.RESOLVE_BUNDLE);
+
+        stateTransition.setDesiredState(ConnectorState.STOPPED);
+        stateTransition.setCurrentState(ConnectorState.STOPPED);
+        logger.info("Successfully exited TROUBLESHOOTING state for {}; Connector is now STOPPED", this);
     }
 
     @Override
@@ -914,6 +1213,11 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
+        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot verify configuration step " + stepName + " for " + this
+                + " while it is in Troubleshooting mode; exit Troubleshooting mode before running configuration verification.");
+        }
+
         logger.debug("Verifying configuration step {} for {}", stepName, this);
         final List<ConfigVerificationResult> results = new ArrayList<>();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
@@ -931,7 +1235,9 @@ public class StandardConnectorNode implements ConnectorNode {
             final ConfigurationStep configurationStep = optionalStep.get();
             final List<SecretReference> invalidSecretRefs = new ArrayList<>();
             final List<AssetReference> invalidAssetRefs = new ArrayList<>();
-            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides, invalidSecretRefs, invalidAssetRefs);
+            // Bypass the Secret value cache during verification so the user sees results based on the current
+            // Secret values rather than potentially stale cached values awaiting TTL expiration.
+            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides, invalidSecretRefs, invalidAssetRefs, false);
 
             final DescribedValueProvider allowableValueProvider = (step, propertyName) -> fetchAllowableValues(step, propertyName, workingFlowContext);
 
@@ -986,7 +1292,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private Map<String, String> resolvePropertyReferences(final ConfigurationStep configurationStep, final StepConfiguration configurationOverrides,
-                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs) {
+                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs, final boolean useCache) {
 
         final Map<String, String> resolvedProperties = new HashMap<>();
         final Map<String, ConnectorPropertyDescriptor> descriptorLookup = buildPropertyDescriptorLookup(configurationStep);
@@ -1008,7 +1314,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
             final Map<SecretReference, Secret> secretsByReference = secretReferences.isEmpty()
                 ? Map.of()
-                : initializationContext.getSecretsManager().getSecrets(secretReferences);
+                : initializationContext.getSecretsManager().getSecrets(secretReferences, useCache);
             secretsByReference.forEach((ref, secret) -> {
                 if (secret == null) {
                     invalidSecretRefs.add(ref);
@@ -1268,6 +1574,11 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void discardWorkingConfiguration() {
+        if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
+            throw new IllegalStateException("Cannot discard the working configuration for " + this + " while it is in Troubleshooting mode; "
+                + "exit Troubleshooting mode before discarding configuration changes.");
+        }
+
         recreateWorkingFlowContext();
         logger.debug("Discarded working configuration for {}", this);
     }
@@ -1278,16 +1589,19 @@ public class StandardConnectorNode implements ConnectorNode {
         final ConnectorState currentState = getCurrentState();
         final boolean dataQueued = activeFlowContext.getManagedProcessGroup().isDataQueued();
         final boolean stopped = isStopped();
+        final boolean troubleshooting = currentState == ConnectorState.TROUBLESHOOTING;
 
-        actions.add(createStartAction(stopped));
+        actions.add(createStartAction(stopped && !troubleshooting, troubleshooting));
         actions.add(createStopAction(currentState));
-        actions.add(createConfigureAction());
-        actions.add(createDiscardWorkingConfigAction());
-        actions.add(createPurgeFlowFilesAction(stopped, dataQueued));
-        actions.add(createDrainFlowFilesAction(stopped, dataQueued));
+        actions.add(createConfigureAction(troubleshooting));
+        actions.add(createDiscardWorkingConfigAction(troubleshooting));
+        actions.add(createPurgeFlowFilesAction(stopped && !troubleshooting, dataQueued));
+        actions.add(createDrainFlowFilesAction(stopped && !troubleshooting, dataQueued));
         actions.add(createCancelDrainFlowFilesAction(currentState == ConnectorState.DRAINING));
-        actions.add(createApplyUpdatesAction(currentState));
-        actions.add(createDeleteAction(stopped, dataQueued));
+        actions.add(createApplyUpdatesAction(currentState, troubleshooting));
+        actions.add(createDeleteAction(stopped && !troubleshooting, dataQueued));
+        actions.add(createEnterTroubleshootingAction(currentState));
+        actions.add(createEndTroubleshootingAction());
 
         return actions;
     }
@@ -1304,11 +1618,14 @@ public class StandardConnectorNode implements ConnectorNode {
         return false;
     }
 
-    private ConnectorAction createStartAction(final boolean stopped) {
+    private ConnectorAction createStartAction(final boolean stopped, final boolean troubleshooting) {
         final boolean allowed;
         final String reason;
 
-        if (!stopped) {
+        if (troubleshooting) {
+            allowed = false;
+            reason = "Connector is in Troubleshooting mode";
+        } else if (!stopped) {
             allowed = false;
             reason = "Connector is not stopped";
         } else {
@@ -1329,25 +1646,70 @@ public class StandardConnectorNode implements ConnectorNode {
 
     private ConnectorAction createStopAction(final ConnectorState currentState) {
         final boolean allowed;
-        if (currentState == ConnectorState.RUNNING || currentState == ConnectorState.STARTING) {
+        final String reason;
+        if (currentState == ConnectorState.TROUBLESHOOTING) {
+            allowed = false;
+            reason = "Connector is in Troubleshooting mode";
+        } else if (currentState == ConnectorState.RUNNING || currentState == ConnectorState.STARTING) {
             allowed = true;
+            reason = null;
         } else if (currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED) {
             allowed = hasActiveThread(activeFlowContext.getManagedProcessGroup());
+            reason = allowed ? null : "Connector is not running";
         } else {
             allowed = false;
+            reason = "Connector is not running";
         }
 
-        final String reason = allowed ? null : "Connector is not running";
         return new StandardConnectorAction("STOP", "Stop the connector", allowed, reason);
     }
 
-    private ConnectorAction createConfigureAction() {
+    private ConnectorAction createConfigureAction(final boolean troubleshooting) {
+        if (troubleshooting) {
+            return new StandardConnectorAction("CONFIGURE", "Configure the connector", false, "Connector is in Troubleshooting mode");
+        }
         return new StandardConnectorAction("CONFIGURE", "Configure the connector", true, null);
     }
 
-    private ConnectorAction createDiscardWorkingConfigAction() {
-        final boolean allowed = hasWorkingConfigurationChanges();
-        final String reason = allowed ? null : "No pending changes to discard";
+    private ConnectorAction createEnterTroubleshootingAction(final ConnectorState currentState) {
+        if (isExtensionMissing()) {
+            return new StandardConnectorAction("ENTER_TROUBLESHOOTING", "Enter Troubleshooting mode for the connector", false,
+                "Connector's extension is missing");
+        }
+        switch (currentState) {
+            case TROUBLESHOOTING:
+                return new StandardConnectorAction("ENTER_TROUBLESHOOTING", "Enter Troubleshooting mode for the connector", false,
+                    "Connector is already in Troubleshooting mode");
+            case STARTING, STOPPING, DRAINING, PURGING, PREPARING_FOR_UPDATE, UPDATING:
+                return new StandardConnectorAction("ENTER_TROUBLESHOOTING", "Enter Troubleshooting mode for the connector", false,
+                    "Connector is currently transitioning; current state is " + currentState);
+            default:
+                return new StandardConnectorAction("ENTER_TROUBLESHOOTING", "Enter Troubleshooting mode for the connector", true, null);
+        }
+    }
+
+    private ConnectorAction createEndTroubleshootingAction() {
+        // Use the quick reason check rather than the full check because this is invoked on every REST GET of the
+        // Connector entity. The full check resolves the authoritative flow from the Connector plugin and runs a
+        // flow-comparison that can be expensive for large managed flows.
+        final Optional<String> reason = getQuickReasonCannotEndTroubleshooting();
+        return new StandardConnectorAction("END_TROUBLESHOOTING", "Exit Troubleshooting mode for the connector", reason.isEmpty(), reason.orElse(null));
+    }
+
+    private ConnectorAction createDiscardWorkingConfigAction(final boolean troubleshooting) {
+        final boolean allowed;
+        final String reason;
+
+        if (troubleshooting) {
+            allowed = false;
+            reason = "Connector is in Troubleshooting mode";
+        } else if (!hasWorkingConfigurationChanges()) {
+            allowed = false;
+            reason = "No pending changes to discard";
+        } else {
+            allowed = true;
+            reason = null;
+        }
 
         return new StandardConnectorAction("DISCARD_WORKING_CONFIGURATION", "Discard any changes made to the working configuration", allowed, reason);
     }
@@ -1403,11 +1765,14 @@ public class StandardConnectorNode implements ConnectorNode {
             "Connector is not currently draining FlowFiles");
     }
 
-    private ConnectorAction createApplyUpdatesAction(final ConnectorState currentState) {
+    private ConnectorAction createApplyUpdatesAction(final ConnectorState currentState, final boolean troubleshooting) {
         final boolean allowed;
         final String reason;
 
-        if (currentState == ConnectorState.PREPARING_FOR_UPDATE || currentState == ConnectorState.UPDATING) {
+        if (troubleshooting) {
+            allowed = false;
+            reason = "Connector is in Troubleshooting mode";
+        } else if (currentState == ConnectorState.PREPARING_FOR_UPDATE || currentState == ConnectorState.UPDATING) {
             allowed = false;
             reason = "Connector is updating";
         } else if (!hasWorkingConfigurationChanges()) {
@@ -1637,7 +2002,9 @@ public class StandardConnectorNode implements ConnectorNode {
             // Check for invalid Secret and Asset references
             final List<SecretReference> invalidSecrets = new ArrayList<>();
             final List<AssetReference> invalidAssets = new ArrayList<>();
-            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets);
+            // Regular validation may run frequently, so cached Secret values are used here to avoid
+            // repeatedly fetching from the underlying Secret Providers on every validation cycle.
+            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets, true);
             addInvalidReferenceResults(allResults, invalidSecrets, invalidAssets);
         }
     }

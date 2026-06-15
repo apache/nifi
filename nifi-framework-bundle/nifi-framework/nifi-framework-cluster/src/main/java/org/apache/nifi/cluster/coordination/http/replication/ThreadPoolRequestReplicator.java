@@ -256,6 +256,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                                           final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
+        // Strip any inbound replication marker headers so a client cannot spoof them; the framework sets the
+        // appropriate marker explicitly below
+        ReplicationHeaderUtils.stripReplicationMarkerHeaders(updatedHeaders);
+
         updatedHeaders.put(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), ComponentIdGenerator.generateId().toString());
         if (indicateReplicated) {
             updatedHeaders.put(ReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
@@ -307,6 +311,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final NiFiUser user, final String method,
                 final URI uri, final Object entity, final Map<String, String> headers) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
+
+        // Strip any inbound replication marker headers so a client cannot spoof them; the forwarded marker is set
+        // explicitly below
+        ReplicationHeaderUtils.stripReplicationMarkerHeaders(updatedHeaders);
+
+        // Indicate to the Cluster Coordinator that this request was forwarded by a node over mutual TLS, so the
+        // Coordinator can trust the proxy host headers without re-validating them against its own allowed proxy hosts
+        updatedHeaders.put(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader(), Boolean.TRUE.toString());
 
         // include the proxied entities header
         updateRequestHeaders(updatedHeaders, user);

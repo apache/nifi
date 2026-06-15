@@ -17,8 +17,56 @@
 
 .flow-status {
     box-sizing: content-box;
+    background-color: var(--mat-sys-background);
 
     .controller-bulletins {
         cursor: default;
+        background-color: unset;
+
+        .fa {
+            color: var(--mat-sys-primary);
+        }
+    }
+
+    .controller-bulletins.has-bulletins {
+        .fa {
+            color: var(--mat-sys-on-primary);
+        }
+
+        &.error {
+            .fa {
+                color: var(--mat-sys-on-error);
+            }
+
+            background-color: var(--mat-sys-error);
+        }
+        &.warning {
+            .fa {
+                color: var(--nf-caution-contrast);
+            }
+
+            background-color: var(--nf-caution-default);
+        }
+        &.info,
+        &.debug,
+        &.trace {
+            background-color: var(--nf-success-default);
+        }
+    }
+
+    .flow-analysis-notifications.warn {
+        background-color: var(--mat-sys-secondary);
+
+        .fa {
+            color: var(--mat-sys-on-secondary);
+        }
+    }
+
+    .flow-analysis-notifications.enforce {
+        background-color: var(--mat-sys-error);
+
+        .fa {
+            color: var(--mat-sys-on-error);
+        }
     }
 }

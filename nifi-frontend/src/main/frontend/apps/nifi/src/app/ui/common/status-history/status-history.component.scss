@@ -63,6 +63,8 @@
     }
 }
 
+// ::ng-deep is required: D3 creates the chart SVG/DOM elements dynamically at runtime;
+// they are not declared in the Angular template and do not receive [_ngcontent-xxx] attributes.
 :host ::ng-deep #status-history-chart-container,
 :host ::ng-deep #status-history-chart-control-container {
     overflow: hidden;
@@ -72,6 +74,7 @@
     .axis line {
         fill: none;
         shape-rendering: crispEdges;
+        stroke: var(--mat-sys-outline);
     }
 
     .chart-area {
@@ -90,6 +93,7 @@
     .brush .selection {
         fill-opacity: 0.125;
         shape-rendering: crispEdges;
+        stroke: var(--mat-sys-outline);
     }
 }
 
@@ -107,7 +111,7 @@
 }
 
 :host ::ng-deep #status-history-chart-container text,
-#status-history-chart-control-container text {
+:host ::ng-deep #status-history-chart-control-container text {
     font-family: Arial, sans-serif;
     font-size: 10px;
 }

@@ -27,5 +27,6 @@ public enum ConnectorState {
     PREPARING_FOR_UPDATE,
     UPDATING,
     UPDATE_FAILED,
-    UPDATED;
+    UPDATED,
+    TROUBLESHOOTING;
 }

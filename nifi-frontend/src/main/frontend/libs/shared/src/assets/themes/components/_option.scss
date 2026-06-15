@@ -1,0 +1,107 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+
+@mixin generate-material-theme() {
+    :root {
+        @include mat.option-overrides(
+            (
+                selected-state-layer-color: var(--mat-sys-secondary-container),
+                selected-state-label-text-color: var(--mat-sys-on-secondary-container)
+            )
+        );
+
+        .mat-mdc-option {
+            .mdc-list-item__primary-text {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap !important;
+            }
+
+            .fa {
+                font-size: 16px;
+                min-width: 16px;
+                flex: 0 0 16px;
+                color: inherit;
+                margin-right: 4px;
+                flex-shrink: 0;
+            }
+        }
+
+        .mat-mdc-option.mdc-list-item {
+            min-height: 48px;
+            padding: 0 16px;
+            align-items: center;
+            background: transparent;
+        }
+
+        .mdc-list-item.mdc-list-item--disabled {
+            cursor: default;
+            color: var(--nf-disabled);
+        }
+
+        .mat-mdc-option[disabled] {
+            color: var(--nf-disabled);
+            opacity: 1;
+        }
+
+        // MatOption's component styles are only auto-injected by Angular Material when a real
+        // <mat-option> element is rendered. MultiSelectOption provides MatOption via DI but uses
+        // a custom element, so the state-layer background rules are declared explicitly here.
+        .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+            background-color: var(
+                --mat-option-hover-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                    transparent
+                )
+            );
+        }
+
+        .mat-mdc-option:focus.mdc-list-item,
+        .mat-mdc-option.mat-mdc-option-active.mdc-list-item {
+            background-color: var(
+                --mat-option-focus-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-focus-state-layer-opacity) * 100%),
+                    transparent
+                )
+            );
+            outline: 0;
+        }
+
+        .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled):not(
+                .mat-mdc-option-active,
+                .mat-mdc-option-multiple,
+                :focus,
+                :hover
+            ) {
+            background-color: var(--mat-option-selected-state-layer-color, var(--mat-sys-secondary-container));
+
+            .mdc-list-item__primary-text {
+                color: var(--mat-option-selected-state-label-text-color, var(--mat-sys-on-secondary-container));
+            }
+        }
+
+        .mat-mdc-option-active .mat-focus-indicator::before {
+            content: '';
+        }
+    }
+}

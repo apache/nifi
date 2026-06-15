@@ -18,6 +18,8 @@
 .hint-pattern {
     padding: 0 2px;
     letter-spacing: 1px;
+    color: var(--mat-sys-background);
+    background-color: var(--mat-sys-primary);
 }
 
 .hint-keystroke {

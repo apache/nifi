@@ -97,6 +97,11 @@ public class MissingBundleConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        return getInitialFlow();
+    }
+
+    @Override
     public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
     }
 

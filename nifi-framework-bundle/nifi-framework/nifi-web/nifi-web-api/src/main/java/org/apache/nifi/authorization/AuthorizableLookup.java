@@ -137,15 +137,6 @@ public interface AuthorizableLookup {
     ConnectionAuthorizable getConnection(String id);
 
     /**
-     * Get the authorizable Connection, optionally including Connector-managed ProcessGroups in the search.
-     *
-     * @param id connection id
-     * @param includeConnectorManaged whether to search Connector-managed ProcessGroups
-     * @return authorizable
-     */
-    ConnectionAuthorizable getConnection(String id, boolean includeConnectorManaged);
-
-    /**
      * Get the authorizable root ProcessGroup.
      *
      * @return authorizable
@@ -159,15 +150,6 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     ProcessGroupAuthorizable getProcessGroup(String id);
-
-    /**
-     * Get the authorizable ProcessGroup, optionally including Connector-managed ProcessGroups in the search.
-     *
-     * @param id process group id
-     * @param includeConnectorManaged whether to search Connector-managed ProcessGroups
-     * @return authorizable
-     */
-    ProcessGroupAuthorizable getProcessGroup(String id, boolean includeConnectorManaged);
 
     /**
      * Get the authorizable RemoteProcessGroup.
@@ -209,6 +191,17 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     ComponentAuthorizable getControllerService(String id);
+
+    /**
+     * Returns a {@link ConnectorManagedAuthorizableLookup} view of this lookup that resolves components within
+     * Connector-managed Process Groups regardless of the owning Connector's state. Only Connector-scoped REST
+     * endpoints should use this view; standard endpoints continue to use the methods directly on this interface,
+     * which intentionally hide components inside Connector-managed flows unless the owning Connector is in
+     * Troubleshooting mode.
+     *
+     * @return the Connector-managed authorizable lookup facade
+     */
+    ConnectorManagedAuthorizableLookup forConnectorManagedFlow();
 
     /**
      * Get the authorizable referencing component.

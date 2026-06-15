@@ -72,8 +72,21 @@
                                     <mat-form-field subscriptSizing="dynamic">
                                         <mat-label>Action</mat-label>
                                         <mat-select formControlName="action" (selectionChange)="actionChanged()">
-                                            <mat-option [value]="Action.Read">view</mat-option>
-                                            <mat-option [value]="Action.Write">modify</mat-option>
+                                            @if (supportsConnectorActions) {
+                                                @for (option of connectorActionOptions; track option) {
+                                                    <mat-option
+                                                        [value]="option.value"
+                                                        nifiTooltip
+                                                        [tooltipComponentType]="TextTip"
+                                                        [tooltipInputData]="option.description"
+                                                        [delayClose]="false"
+                                                        >{{ option.text }}
+                                                    </mat-option>
+                                                }
+                                            } @else {
+                                                <mat-option [value]="Action.Read">view</mat-option>
+                                                <mat-option [value]="Action.Write">modify</mat-option>
+                                            }
                                         </mat-select>
                                     </mat-form-field>
                                 </div>
@@ -163,6 +176,27 @@
 </ng-template>
 <ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from the controller.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template #inheritedFromConnectors let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global connectors policy.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template #inheritedFromConnectorData let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global connector data policy.
+    @if (supportsConfigurableAuthorizer) {
+        <a (click)="overridePolicy()">Override</a> this policy.
+    }
+</ng-template>
+<ng-template
+    #inheritedFromConnectorProvenance
+    let-policy
+    let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from global connector provenance policy.
     @if (supportsConfigurableAuthorizer) {
         <a (click)="overridePolicy()">Override</a> this policy.
     }

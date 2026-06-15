@@ -80,6 +80,19 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // Build the flow that reflects the currently configured File path. This mirrors the logic in
+        // applyUpdate so that exiting Troubleshooting mode restores a flow equivalent to what would be
+        // installed by re-applying the active configuration.
+        final VersionedExternalFlow externalFlow = VersionedFlowUtils.loadFlowFromResource("flows/choose-color.json");
+        final VersionedProcessGroup rootGroup = externalFlow.getFlowContents();
+        final VersionedProcessor processor = rootGroup.getProcessors().iterator().next();
+        final String filePath = activeFlowContext.getConfigurationContext().getProperty(FILE_STEP, FILE_PATH).getValue();
+        processor.setProperties(Map.of("File", filePath == null ? "" : filePath));
+        return externalFlow;
+    }
+
+    @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return CONFIGURATION_STEPS;
     }

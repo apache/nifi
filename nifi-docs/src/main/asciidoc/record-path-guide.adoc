@@ -1510,6 +1510,32 @@ Coerces a String or Date value to a number. If the argument is already a number 
 | `toNumber(/date)` | 1768953600000
 |==============================================================================
 
+=== add
+
+Calculates the sum of two numbers.
+
+|==============================================================================
+| RecordPath | Return value
+| `add(2, 2)` | 4
+| `add('2.0', 2)` | 4.0
+| `add(/flags, 2)` | 9
+| `add(2, /temp)` | 57.0
+| `add(/load, /temp)` | 60.67
+|==============================================================================
+
+=== subtract
+
+Calculates the difference between two numbers.
+
+|==============================================================================
+| RecordPath | Return value
+| `subtract(2, 2)` | 0
+| `subtract('2.0', 2)` | 0.0
+| `subtract(/flags, 2)` | 5
+| `subtract(2, /temp)` | -53.0
+| `subtract(/load, /temp)` | -49.33
+|==============================================================================
+
 === multiply
 
 Calculates the product of two numbers.

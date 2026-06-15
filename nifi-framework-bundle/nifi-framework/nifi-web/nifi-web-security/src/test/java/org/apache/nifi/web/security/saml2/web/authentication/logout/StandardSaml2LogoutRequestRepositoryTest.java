@@ -131,6 +131,7 @@ class StandardSaml2LogoutRequestRepositoryTest {
                 .assertingPartyMetadata(assertingPartyMetadata -> {
                     assertingPartyMetadata.entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
                     assertingPartyMetadata.singleSignOnServiceLocation(LOCATION);
+                    assertingPartyMetadata.singleLogoutServiceLocation(LOCATION);
                 })
                 .build();
         return Saml2LogoutRequest.withRelyingPartyRegistration(registration).samlRequest(SAML_REQUEST).relayState(RELAY_STATE).build();

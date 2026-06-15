@@ -22,6 +22,10 @@
         width: 100%;
     }
 
+    h2 {
+        margin-bottom: 12px !important;
+    }
+
     .extension-links {
         a {
             display: block;
@@ -29,5 +33,49 @@
             overflow: hidden;
             white-space: nowrap;
         }
+
+        a:hover {
+            background-color: var(
+                --mat-menu-item-hover-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                    transparent
+                )
+            ) !important;
+        }
+
+        a.selected {
+            background-color: var(--mat-sys-tertiary-container) !important;
+        }
+    }
+
+    .external-links {
+        a:hover {
+            background-color: var(
+                --mat-menu-item-hover-state-layer-color,
+                color-mix(
+                    in srgb,
+                    var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                    transparent
+                )
+            ) !important;
+        }
+
+        a.selected {
+            background-color: var(--mat-sys-tertiary-container) !important;
+        }
+    }
+}
+
+// ::ng-deep is required: mat-expansion-panel renders header title/description in its own
+// component template, so those elements do not carry the parent's [_ngcontent-xxx] attribute.
+:host ::ng-deep .documentation {
+    .mat-expansion-panel-header-title,
+    .mat-expansion-panel-header-description {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block !important;
     }
 }

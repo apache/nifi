@@ -334,8 +334,7 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getProcessorStatusHistory(final String processorId) {
-        final ProcessGroup root = getRootGroup();
-        final ProcessorNode processor = root.findProcessor(processorId);
+        final ProcessorNode processor = flowController.getFlowManager().getProcessorNode(processorId);
 
         // ensure the processor was found
         if (processor == null) {
@@ -362,8 +361,7 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getConnectionStatusHistory(final String connectionId) {
-        final ProcessGroup root = getRootGroup();
-        final Connection connection = root.findConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
 
         // ensure the connection was found
         if (connection == null) {
@@ -392,8 +390,7 @@ public class ControllerFacade implements Authorizable {
         final FlowManager flowManager = flowController.getFlowManager();
 
         final String searchId = groupId.equals(FlowManager.ROOT_GROUP_ID_ALIAS) ? flowManager.getRootGroupId() : groupId;
-        final ProcessGroup root = flowManager.getRootGroup();
-        final ProcessGroup group = root.findProcessGroup(searchId);
+        final ProcessGroup group = flowManager.getGroup(searchId);
 
         // ensure the processor was found
         if (group == null) {
@@ -859,8 +856,7 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified connection
      */
     public ConnectionStatus getConnectionStatus(final String connectionId) {
-        final ProcessGroup root = getRootGroup();
-        final Connection connection = root.findConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
 
         // ensure the connection was found
         if (connection == null) {
@@ -889,8 +885,7 @@ public class ControllerFacade implements Authorizable {
      * @return the statistics for the specified connection
      */
     public StatusAnalytics getConnectionStatusAnalytics(final String connectionId) {
-        final ProcessGroup root = getRootGroup();
-        final Connection connection = root.findConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
 
         // ensure the connection was found
         if (connection == null) {
@@ -920,10 +915,8 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified input port
      */
     public PortStatus getInputPortStatus(final String portId) {
-        final ProcessGroup root = getRootGroup();
-        final Port port = root.findInputPort(portId);
+        final Port port = flowController.findInputPortIncludingConnectorManaged(portId);
 
-        // ensure the input port was found
         if (port == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate input port with id '%s'.", portId));
         }
@@ -949,10 +942,8 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified output port
      */
     public PortStatus getOutputPortStatus(final String portId) {
-        final ProcessGroup root = getRootGroup();
-        final Port port = root.findOutputPort(portId);
+        final Port port = flowController.findOutputPortIncludingConnectorManaged(portId);
 
-        // ensure the output port was found
         if (port == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate output port with id '%s'.", portId));
         }

@@ -521,10 +521,11 @@ public class ExtensionBuilder {
         }
 
         final String componentType = connector.getClass().getSimpleName();
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, new StandardLoggingContext());
+        final StandardLoggingContext loggingContext = new StandardLoggingContext();
+        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, loggingContext);
         final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
 
-        final ConnectorNode connectorNode = new StandardConnectorNode(
+        final StandardConnectorNode connectorNode = new StandardConnectorNode(
             identifier,
             flowController.getFlowManager(),
             extensionManager,
@@ -538,6 +539,11 @@ public class ExtensionBuilder {
             connectorValidationTrigger,
             false
         );
+        // Late-bind the logging context to the connector node so that MDC attributes assembled by
+        // the node (framework keys + provider-supplied custom keys) flow through the connector's
+        // own ComponentLog as well as the managed flow's nested components. Provider-supplied custom
+        // attributes are sourced and applied by the ConnectorRepository when the node is added/restored.
+        loggingContext.setComponent(connectorNode);
 
         try {
             initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
@@ -565,13 +571,14 @@ public class ExtensionBuilder {
         final GhostConnector ghostConnector = new GhostConnector(identifier, type, cause);
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, new StandardLoggingContext());
+        final StandardLoggingContext loggingContext = new StandardLoggingContext();
+        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, loggingContext);
         final ConnectorDetails connectorDetails = new ConnectorDetails(ghostConnector, bundleCoordinate, componentLog);
 
         // If an instance class loader has been created for this connector, remove it because it's no longer necessary.
         extensionManager.removeInstanceClassLoader(identifier);
 
-        final ConnectorNode connectorNode = new StandardConnectorNode(
+        final StandardConnectorNode connectorNode = new StandardConnectorNode(
             identifier,
             flowController.getFlowManager(),
             extensionManager,
@@ -585,6 +592,7 @@ public class ExtensionBuilder {
             connectorValidationTrigger,
             true
         );
+        loggingContext.setComponent(connectorNode);
 
         // Initialize the ghost connector so that it can be properly configured during flow synchronization
         final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);

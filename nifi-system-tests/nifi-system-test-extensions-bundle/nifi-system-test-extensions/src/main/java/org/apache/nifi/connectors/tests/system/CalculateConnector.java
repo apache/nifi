@@ -173,6 +173,13 @@ public class CalculateConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The flow structure does not depend on the Connector's configuration; applyUpdate only invokes a
+        // processor method and writes output to a file, it does not modify the flow itself.
+        return getInitialFlow();
+    }
+
+    @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return List.of(CALCULATION_STEP);
     }

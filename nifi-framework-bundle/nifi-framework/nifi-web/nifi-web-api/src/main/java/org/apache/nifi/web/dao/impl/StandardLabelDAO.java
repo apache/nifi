@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.FlowController;
@@ -37,20 +41,53 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     private FlowController flowController;
 
     private Label locateLabel(final String labelId) {
-        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        final Label label = rootGroup.findLabel(labelId);
+        return locateLabel(labelId, false);
+    }
 
-        if (label == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find label with id '%s'.", labelId));
-        } else {
+    Label locateLabel(final String labelId, final boolean includeConnectorManaged) {
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
+        Label label = rootGroup.findLabel(labelId);
+        if (label != null) {
             return label;
         }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+
+            label = flowContext.getManagedProcessGroup().findLabel(labelId);
+            if (label != null) {
+                if (!includeConnectorManaged) {
+                    verifyAccessibleForComponentOperation(label.getProcessGroup(), labelId);
+                }
+                return label;
+            }
+        }
+
+        throw new ResourceNotFoundException(String.format("Unable to find label with id '%s'.", labelId));
     }
 
     @Override
     public boolean hasLabel(String labelId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        return rootGroup.findLabel(labelId) != null;
+        if (rootGroup.findLabel(labelId) != null) {
+            return true;
+        }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+                continue;
+            }
+
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null && flowContext.getManagedProcessGroup().findLabel(labelId) != null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

@@ -77,13 +77,20 @@ final class LegacyCheckpointMigrator {
         return null;
     }
 
-    void cleanupLingeringMigration() {
+    void completeLingeringMigration() {
         final String lingeringMigration = findMigrationTable();
         if (lingeringMigration == null) {
             return;
         }
-        logger.info("Deleting orphaned migration table [{}]; legacy checkpoint table [{}] retains original data", lingeringMigration, checkpointTableName);
-        CheckpointTableUtils.deleteTable(dynamoDbClient, logger, lingeringMigration);
+        logger.info("Checkpoint table [{}] is in place but migration table [{}] still exists from a prior rename; not all checkpoints may have been migrated, re-copying before deletion",
+                checkpointTableName, lingeringMigration);
+        if (acquireRenameLock(lingeringMigration)) {
+            CheckpointTableUtils.waitForTableActive(dynamoDbClient, logger, lingeringMigration);
+            CheckpointTableUtils.copyCheckpointItems(dynamoDbClient, logger, lingeringMigration, checkpointTableName);
+            CheckpointTableUtils.deleteTable(dynamoDbClient, logger, lingeringMigration);
+        } else {
+            waitForTableRenamed(lingeringMigration);
+        }
     }
 
     void migrateAndRename() {

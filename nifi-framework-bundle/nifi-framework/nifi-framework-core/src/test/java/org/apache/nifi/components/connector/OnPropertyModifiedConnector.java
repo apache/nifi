@@ -61,6 +61,18 @@ public class OnPropertyModifiedConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The authoritative flow has the Configured Number parameter set to the currently configured value.
+        final VersionedExternalFlow versionedExternalFlow = getInitialFlow();
+        final String number = activeFlowContext.getConfigurationContext().getProperty(CONFIG_STEP, NUMBER_VALUE).getValue();
+        if (number != null) {
+            VersionedFlowUtils.setParameterValue(versionedExternalFlow, PARAMETER_NAME, number);
+        }
+
+        return versionedExternalFlow;
+    }
+
+    @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return List.of(CONFIG_STEP);
     }

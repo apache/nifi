@@ -14,3 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// ::ng-deep is required: rect.lineage and other SVG elements are created dynamically by D3
+// and do not receive Angular's [_ngcontent-xxx] scoping attribute.
+:host ::ng-deep {
+    rect.lineage {
+        fill: var(--mat-sys-background);
+    }
+
+    g.flowfile-icon text {
+        fill: var(--mat-sys-tertiary);
+    }
+
+    circle.event-circle {
+        fill: var(--mat-sys-secondary);
+        stroke: var(--mat-sys-on-surface);
+    }
+
+    path.link {
+        stroke: var(--mat-sys-on-surface);
+    }
+
+    marker {
+        color: var(--mat-sys-on-surface);
+        fill: var(--mat-sys-on-surface);
+    }
+
+    circle.flowfile-link {
+        fill: var(--mat-sys-background);
+        stroke: var(--mat-sys-on-surface);
+    }
+}

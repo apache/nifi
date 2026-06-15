@@ -27,7 +27,9 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.vault.authentication.LifecycleAwareSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
+import org.springframework.vault.client.VaultClient;
 import org.springframework.vault.client.VaultClients;
+import org.springframework.vault.client.VaultEndpoint;
 import org.springframework.vault.core.VaultKeyValueOperations;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.core.VaultTemplate;
@@ -36,7 +38,7 @@ import org.springframework.vault.support.Ciphertext;
 import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.Plaintext;
 import org.springframework.vault.support.VaultResponseSupport;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -102,10 +104,18 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
             }
         }
 
-        final RestOperations restOperations = VaultClients.createRestTemplate(vaultConfiguration.vaultEndpoint(), clientHttpRequestFactory);
+        final VaultEndpoint vaultEndpoint = vaultConfiguration.vaultEndpoint();
+        final RestTemplate restTemplate = VaultClients.createRestTemplate(vaultEndpoint, clientHttpRequestFactory);
 
-        sessionManager = new LifecycleAwareSessionManager(vaultConfiguration.clientAuthentication(), taskScheduler, restOperations);
-        vaultTemplate = new VaultTemplate(vaultConfiguration.vaultEndpoint(), clientHttpRequestFactory, sessionManager);
+        final VaultClient.Builder vaultClientBuilder = VaultClient.builder(restTemplate).endpoint(vaultEndpoint);
+        final String namespace = vaultConfiguration.getNamespace();
+        if (namespace != null && !namespace.isEmpty()) {
+            vaultClientBuilder.defaultNamespace(namespace);
+        }
+        final VaultClient vaultClient = vaultClientBuilder.build();
+
+        sessionManager = new LifecycleAwareSessionManager(vaultConfiguration.clientAuthentication(), taskScheduler, vaultClient);
+        vaultTemplate = new VaultTemplate(vaultClient, sessionManager);
 
         transitOperations = vaultTemplate.opsForTransit();
         keyValueBackend = vaultConfiguration.getKeyValueBackend();

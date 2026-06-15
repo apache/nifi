@@ -15,46 +15,4 @@
  * limitations under the License.
  */
 
-// Custom Theming for Angular Material
-// For more information: https://v16.material.angular.io/guide/theming-your-components
-@use '@angular/material' as mat;
-@use 'sass:map';
-@use 'sass:meta';
-@use 'tailwindcss';
-@use 'libs/shared/src/assets/styles/tailwind-theme';
-@use 'libs/shared/src/assets/styles/app' as app;
-@use 'libs/shared/src/assets/styles/listing-table' as listing-table;
-@use 'app/pages/update-attribute/ui/rule-listing/rule-listing.component-theme' as rule-listing;
-@use 'app/pages/update-attribute/ui/ua-editor/ua-editor.component-theme' as ua-editor;
-@use 'libs/shared/src/components/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
-
-// Plus imports for other components in your app.
-@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-
 @use 'libs/shared/src/assets/themes/material';
-
-@layer base {
-    @include meta.load-css('font-awesome');
-}
-
-@source #{"'libs/shared/src'"};
-
-// only include these once (not needed for dark mode)
-@include app.styles();
-@include listing-table.styles();
-
-html {
-    @include app.generate-material-theme();
-    @include listing-table.generate-theme();
-    @include rule-listing.generate-theme();
-    @include ua-editor.generate-theme();
-    @include property-hint-tip.generate-theme();
-
-    .darkMode {
-        @include app.generate-material-theme();
-        @include listing-table.generate-theme();
-        @include rule-listing.generate-theme();
-        @include ua-editor.generate-theme();
-        @include property-hint-tip.generate-theme();
-    }
-}

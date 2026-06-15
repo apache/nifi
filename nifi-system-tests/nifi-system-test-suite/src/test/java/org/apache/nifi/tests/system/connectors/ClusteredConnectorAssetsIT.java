@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -83,8 +84,8 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
         assertFalse(assetsEntity.getAssets().isEmpty());
 
         final boolean assetFound = assetsEntity.getAssets().stream()
-                .filter(a -> a.getAsset() != null)
-                .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
+                .filter(assetEntry -> assetEntry.getAsset() != null)
+                .anyMatch(assetEntry -> uploadedAssetId.equals(assetEntry.getAsset().getId()));
 
         assertTrue(assetFound);
 
@@ -129,7 +130,7 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
 
         // Start node 2 again and wait for it to rejoin the cluster
         getNiFiInstance().getNodeInstance(2).start(true);
-        waitForAllNodesConnected();
+        waitForStableClusterAfterNodeRejoin(2);
 
         // Verify that the connector state is RUNNING after node 2 rejoins
         getClientUtil().waitForConnectorState(connectorId, ConnectorState.RUNNING);
@@ -150,9 +151,54 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
         assertNotNull(assetsAfterRestart.getAssets());
 
         final boolean assetStillPresent = assetsAfterRestart.getAssets().stream()
-                .filter(a -> a.getAsset() != null)
-                .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
+                .filter(assetEntry -> assetEntry.getAsset() != null)
+                .anyMatch(assetEntry -> uploadedAssetId.equals(assetEntry.getAsset().getId()));
 
         assertTrue(assetStillPresent);
+    }
+
+    /**
+     * Waits for the cluster to report all nodes CONNECTED for long enough to outlast the
+     * missing-heartbeat threshold, recovering via reconnect if the freshly-rejoined node flips
+     * back to DISCONNECTED. Works around NIFI-15901, where a stale disconnection-notification
+     * retry can disconnect a node moments after it rejoins.
+     */
+    private void waitForStableClusterAfterNodeRejoin(final int rejoinedNodeIndex) throws NiFiClientException, IOException, InterruptedException {
+        waitForAllNodesConnected();
+
+        final int expectedNodeCount = getNiFiInstance().getNumberOfNodes();
+        final int requiredConsecutiveConnectedSamples = 25;
+        final long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(120);
+
+        int consecutiveConnectedSamples = 0;
+        boolean reconnectIssued = false;
+        while (consecutiveConnectedSamples < requiredConsecutiveConnectedSamples) {
+            boolean fullyConnected = false;
+            try {
+                fullyConnected = allNodesConnected(expectedNodeCount);
+            } catch (final Exception ignored) {
+            }
+
+            if (fullyConnected) {
+                consecutiveConnectedSamples++;
+            } else {
+                consecutiveConnectedSamples = 0;
+
+                if (!reconnectIssued) {
+                    try {
+                        reconnectNode(rejoinedNodeIndex);
+                    } catch (final Exception ignored) {
+                    }
+                    reconnectIssued = true;
+                }
+            }
+
+            if (System.currentTimeMillis() > deadline) {
+                throw new RuntimeException("Cluster did not remain stably connected for "
+                        + requiredConsecutiveConnectedSamples + " consecutive seconds within the allotted time");
+            }
+
+            Thread.sleep(1_000L);
+        }
     }
 }

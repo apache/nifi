@@ -81,12 +81,25 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
     @Override
     public void updateFlow(final FlowContext flowContext, final VersionedExternalFlow versionedExternalFlow,
                            final BundleCompatibility bundleCompatability) throws FlowUpdateException {
-        if (!(flowContext instanceof final FrameworkFlowContext frameworkFlowContext)) {
-            throw new IllegalArgumentException("FlowContext is not an instance provided by the framework");
-        }
+        final FrameworkFlowContext frameworkFlowContext = requireFrameworkFlowContext(flowContext);
 
         resolveBundles(versionedExternalFlow.getFlowContents(), bundleCompatability);
         frameworkFlowContext.updateFlow(versionedExternalFlow, assetManager);
+    }
+
+    @Override
+    public void verifyUpdateFlow(final FlowContext flowContext, final VersionedExternalFlow versionedExternalFlow, final BundleCompatibility bundleCompatability) throws FlowUpdateException {
+        final FrameworkFlowContext frameworkFlowContext = requireFrameworkFlowContext(flowContext);
+
+        resolveBundles(versionedExternalFlow.getFlowContents(), bundleCompatability);
+        frameworkFlowContext.verifyUpdateFlow(versionedExternalFlow);
+    }
+
+    private FrameworkFlowContext requireFrameworkFlowContext(final FlowContext flowContext) {
+        if (!(flowContext instanceof final FrameworkFlowContext frameworkFlowContext)) {
+            throw new IllegalArgumentException("FlowContext is not an instance provided by the framework");
+        }
+        return frameworkFlowContext;
     }
 
     protected void resolveBundles(final VersionedProcessGroup group, final BundleCompatibility bundleCompatability) {

@@ -23,11 +23,6 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.ResourcePropertySource;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.vault.client.RestTemplateBuilder;
-import org.springframework.vault.client.RestTemplateFactory;
-import org.springframework.vault.client.VaultEndpointProvider;
-import org.springframework.vault.client.VaultHttpHeaders;
 import org.springframework.vault.config.EnvironmentVaultConfiguration;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.support.ClientOptions;
@@ -150,22 +145,12 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
         return clientOptions;
     }
 
-    @Override
-    protected RestTemplateFactory getRestTemplateFactory() {
-        return this.restTemplateFactory(clientHttpRequestFactoryWrapper());
-    }
-
-    @Override
-    protected RestTemplateBuilder restTemplateBuilder(final VaultEndpointProvider endpointProvider,
-                                                       final ClientHttpRequestFactory requestFactory) {
-        RestTemplateBuilder builder = super.restTemplateBuilder(endpointProvider, requestFactory);
-        final String namespace = getEnvironment().getProperty(VaultConfigurationKey.NAMESPACE.key);
-
-        if (namespace != null && !namespace.isEmpty()) {
-            builder = builder.defaultHeader(VaultHttpHeaders.VAULT_NAMESPACE, namespace);
-        }
-
-        return builder;
+    /**
+     * Returns the configured Vault namespace, or {@code null} if no namespace is configured.
+     * @return The Vault namespace to send with each request, or {@code null} when unset
+     */
+    public String getNamespace() {
+        return getEnvironment().getProperty(VaultConfigurationKey.NAMESPACE.key);
     }
 
     @Override

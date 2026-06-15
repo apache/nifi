@@ -28,6 +28,7 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -60,6 +61,7 @@ import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorState;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -223,6 +225,12 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 verifyNoConnectionsWithDataRemoved(existingDataFlow, proposedFlow, controller, flowComparison);
             }
 
+            // Ensure that no Connector is in Troubleshooting mode locally while the proposed flow has it in a
+            // non-Troubleshooting state, or vice versa. Reconciling such a mismatch would require either dropping the
+            // user's in-progress Troubleshooting flow or forcing the rest of the cluster into Troubleshooting, so the
+            // node must not join until the mismatch is resolved.
+            verifyConnectorTroubleshootingStatesMatch(proposedFlow, controller);
+
             synchronizeFlow(controller, existingDataFlow, proposedFlow, affectedComponents);
         } finally {
             if (!existingFlowEmpty) {
@@ -268,6 +276,31 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         } else {
             throw new UninheritableFlowException("Proposed flow is not inheritable by the flow controller and cannot completely replace the current flow due to: "
                 + inheritability.getExplanation());
+        }
+    }
+
+    private void verifyConnectorTroubleshootingStatesMatch(final DataFlow proposedFlow, final FlowController controller) {
+        final VersionedDataflow proposedDataflow = proposedFlow.getVersionedDataflow();
+        if (proposedDataflow == null || proposedDataflow.getConnectors() == null) {
+            return;
+        }
+
+        final ConnectorRepository connectorRepository = controller.getConnectorRepository();
+        for (final VersionedConnector proposedConnector : proposedDataflow.getConnectors()) {
+            final ConnectorNode localConnector = connectorRepository.getConnector(proposedConnector.getInstanceIdentifier(), ConnectorSyncMode.LOCAL_ONLY);
+            if (localConnector == null) {
+                continue;
+            }
+
+            final boolean localTroubleshooting = localConnector.getCurrentState() == ConnectorState.TROUBLESHOOTING;
+            final boolean proposedTroubleshooting = proposedConnector.getScheduledState() == VersionedConnectorState.TROUBLESHOOTING;
+            if (localTroubleshooting != proposedTroubleshooting) {
+                final String troubleshootingDescription = localTroubleshooting
+                    ? "in Troubleshooting mode on this node but is not in Troubleshooting mode in the cluster flow"
+                    : "not in Troubleshooting mode on this node but is in Troubleshooting mode in the cluster flow";
+                throw new UninheritableFlowException("Proposed flow is not inheritable by the flow controller because " + localConnector + " is " + troubleshootingDescription
+                    + ". Exit or enter Troubleshooting mode for this Connector so that its state matches the cluster before joining.");
+            }
         }
     }
 
@@ -1047,10 +1080,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 logger.info("Connector [{}] sync result: {}", versionedConnector.getInstanceIdentifier(), result);
 
                 if (result.getEffectiveScheduledState() != null && result.getConnectorNode() != null) {
-                    if (result.getEffectiveScheduledState() == ScheduledState.RUNNING) {
-                        flowController.startConnector(result.getConnectorNode());
-                    } else if (result.getEffectiveScheduledState() == ScheduledState.ENABLED) {
-                        connectorRepository.stopConnector(result.getConnectorNode());
+                    switch (result.getEffectiveScheduledState()) {
+                        case RUNNING -> flowController.startConnector(result.getConnectorNode());
+                        case ENABLED -> connectorRepository.stopConnector(result.getConnectorNode());
+                        case TROUBLESHOOTING -> logger.debug("Connector [{}] is in TROUBLESHOOTING state; leaving connector lifecycle alone", result.getConnectorNode().getIdentifier());
+                        default -> { }
                     }
                 }
             }

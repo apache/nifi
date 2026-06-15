@@ -110,6 +110,13 @@ public class BundleResolutionConnector extends AbstractConnector {
         return flow;
     }
 
+    @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // After configuration, the authoritative flow is the one produced by createFlowWithBundleScenarios,
+        // which is what applyUpdate installs into the managed Process Group.
+        return createFlowWithBundleScenarios();
+    }
+
     private VersionedExternalFlow createFlowWithBundleScenarios() {
         final VersionedProcessGroup group = VersionedFlowUtils.createProcessGroup(UUID.randomUUID().toString(), "Bundle Resolution Flow");
 

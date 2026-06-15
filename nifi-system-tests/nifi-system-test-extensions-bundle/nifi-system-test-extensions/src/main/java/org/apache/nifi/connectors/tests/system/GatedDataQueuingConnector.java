@@ -95,6 +95,21 @@ public class GatedDataQueuingConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // The authoritative flow is the initial flow with the currently configured Gate File Path applied to the
+        // TerminateFlowFile processor. This mirrors the behavior of applyUpdate so that exiting Troubleshooting
+        // restores a flow equivalent to re-applying the active configuration.
+        final VersionedExternalFlow flow = getInitialFlow();
+        final String gateFilePath = activeFlowContext.getConfigurationContext().getProperty(CONFIG_STEP, GATE_FILE_PATH).getValue();
+        if (gateFilePath != null) {
+            VersionedFlowUtils.findProcessor(flow.getFlowContents(), processor -> processor.getType().endsWith("TerminateFlowFile"))
+                .ifPresent(processor -> processor.getProperties().put("Gate File", gateFilePath));
+        }
+
+        return flow;
+    }
+
+    @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> propertyValueOverrides, final FlowContext flowContext) {
         return List.of();
     }

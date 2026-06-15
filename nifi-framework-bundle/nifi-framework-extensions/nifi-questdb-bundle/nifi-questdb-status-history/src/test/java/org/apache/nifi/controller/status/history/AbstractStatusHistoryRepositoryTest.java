@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.ConnectorStatus;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -41,6 +42,9 @@ public abstract class AbstractStatusHistoryRepositoryTest {
     protected static final String PROCESSOR_WITH_COUNTER_ID = "f09c5bb8-7b67-4d3b-81c5-5373e1c03ed1";
     protected static final String CONNECTION_ID = "d5452f70-a0d9-44c5-aeda-c2026482e4ee";
     protected static final String REMOTE_PROCESS_GROUP_ID = "f5f4fe2a-0209-4ba7-8f15-f33df942cde5";
+    protected static final String CONNECTOR_ID = "a1111111-1111-1111-1111-111111111111";
+    protected static final String CONNECTOR_ROOT_GROUP_ID = "a2222222-2222-2222-2222-222222222222";
+    protected static final String CONNECTOR_PROCESSOR_ID = "a3333333-3333-3333-3333-333333333333";
 
     protected ProcessGroupStatus givenSimpleRootProcessGroupStatus() {
         final ProcessGroupStatus status = new ProcessGroupStatus();
@@ -72,6 +76,23 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setProcessGroupStatus(Collections.singleton(givenChildProcessGroupStatus()));
         status.setProcessorStatus(Collections.singleton(givenProcessorStatus()));
         return status;
+    }
+
+    protected ConnectorStatus givenConnectorStatus() {
+        final ProcessorStatus connectorProcessor = givenProcessorStatus();
+        connectorProcessor.setId(CONNECTOR_PROCESSOR_ID);
+        connectorProcessor.setName("ConnectorProcessor");
+
+        final ProcessGroupStatus connectorRootGroup = givenSimpleRootProcessGroupStatus();
+        connectorRootGroup.setId(CONNECTOR_ROOT_GROUP_ID);
+        connectorRootGroup.setName("Connector Root");
+        connectorRootGroup.setProcessorStatus(Collections.singleton(connectorProcessor));
+
+        final ConnectorStatus connectorStatus = new ConnectorStatus();
+        connectorStatus.setId(CONNECTOR_ID);
+        connectorStatus.setName("Test Connector");
+        connectorStatus.setRootGroupStatus(connectorRootGroup);
+        return connectorStatus;
     }
 
     protected ProcessGroupStatus givenChildProcessGroupStatus() {

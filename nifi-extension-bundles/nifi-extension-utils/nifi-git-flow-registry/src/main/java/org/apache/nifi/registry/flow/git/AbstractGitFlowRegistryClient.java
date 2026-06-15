@@ -504,6 +504,11 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
+        if (createContentCommitSha == null) {
+            throw new FlowRegistryException("Created Content Commit SHA is null");
+        } else if (createContentCommitSha.isEmpty() || createContentCommitSha.isBlank()) {
+            throw new FlowRegistryException("Created Content Commit SHA is empty");
+        }
 
         final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
         versionedFlowCoordinates.setRegistryId(getIdentifier());

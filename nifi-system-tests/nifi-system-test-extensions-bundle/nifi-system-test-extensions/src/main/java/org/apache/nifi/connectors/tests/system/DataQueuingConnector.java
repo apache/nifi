@@ -64,6 +64,12 @@ public class DataQueuingConnector extends AbstractConnector {
     }
 
     @Override
+    public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+        // This Connector's flow is static and does not depend on runtime configuration.
+        return getInitialFlow();
+    }
+
+    @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> propertyValueOverrides, final FlowContext flowContext) {
         return List.of();
     }

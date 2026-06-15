@@ -43,4 +43,35 @@
     .icon-import-from-registry-add:before {
         margin-left: 1px;
     }
+
+    .icon {
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
+
+        &.hovering {
+            box-shadow: var(--mat-sys-level2);
+            background: linear-gradient(var(--nf-new-canvas-item-hover), var(--nf-new-canvas-item-hover)) !important;
+
+            .component-button-grip {
+                background: repeating-linear-gradient(
+                    90deg,
+                    var(--nf-new-canvas-item-grip),
+                    var(--mat-sys-secondary) 4px,
+                    transparent 4px,
+                    transparent 6px
+                );
+            }
+        }
+
+        &.cdk-drag-dragging {
+            color: var(--mat-sys-secondary);
+            mix-blend-mode: difference;
+        }
+    }
+
+    .icon:disabled {
+        color: var(--nf-disabled);
+        fill: var(--nf-disabled);
+        cursor: not-allowed;
+    }
 }

@@ -87,6 +87,12 @@ class StandardServerProviderTest {
 
     private static final String PUBLIC_STAGED_HOST = "nifi.staged.apache.org";
 
+    private static final String PUBLIC_STAGED_HOST_WITH_PORT = "nifi.staged.apache.org:8443";
+
+    private static final String PUBLIC_STAGED_HOST_WITH_INVALID_PORT = "nifi.staged.apache.org:8444";
+
+    private static final String PUBLIC_STAGED_HOST_WITH_A_PORT_WHICH_NOT_NUMBER = "nifi.staged.apache.org:aaa";
+
     private static final String PROXY_HOST_PROPERTY = "nifi.apache.org,nifi.staged.apache.org:8443";
 
     private static final String PUBLIC_UNKNOWN_HOST = "nifi.unknown.apache.org";
@@ -255,6 +261,7 @@ class StandardServerProviderTest {
             assertMisdirectedRequestsCompleted(httpClient, localhostUri);
 
             assertReplicatedRequestCompleted(httpClient, localhostUri, HttpStatus.MISDIRECTED_REQUEST_421);
+            assertForwardedToCoordinatorRequestCompleted(httpClient, localhostUri, HttpStatus.MISDIRECTED_REQUEST_421);
         }
     }
 
@@ -272,6 +279,7 @@ class StandardServerProviderTest {
             assertMisdirectedRequestsCompleted(httpClient, localhostUri);
 
             assertReplicatedRequestCompleted(httpClient, localhostUri, HttpStatus.MOVED_TEMPORARILY_302);
+            assertForwardedToCoordinatorRequestCompleted(httpClient, localhostUri, HttpStatus.MOVED_TEMPORARILY_302);
         }
     }
 
@@ -282,6 +290,15 @@ class StandardServerProviderTest {
                 .header(ReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString())
                 .build();
         assertResponseStatusCode(httpClient, proxyHostRequestReplicatedRequest, statusCodeExpected);
+    }
+
+    void assertForwardedToCoordinatorRequestCompleted(final HttpClient httpClient, final URI localhostUri, final int statusCodeExpected) throws IOException, InterruptedException {
+        final HttpRequest proxyHostForwardedToCoordinatorRequest = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.PROXY_HOST.getHeader(), PUBLIC_UNKNOWN_HOST)
+                .header(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader(), Boolean.TRUE.toString())
+                .build();
+        assertResponseStatusCode(httpClient, proxyHostForwardedToCoordinatorRequest, statusCodeExpected);
     }
 
     void assertFrontendRedirectRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
@@ -339,6 +356,12 @@ class StandardServerProviderTest {
                 .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_STAGED_HOST)
                 .build();
         assertResponseStatusCode(httpClient, forwardedHostRequest, HttpStatus.MOVED_TEMPORARILY_302);
+
+        final HttpRequest forwardedHostRequestWithPort = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_STAGED_HOST_WITH_PORT)
+                .build();
+        assertResponseStatusCode(httpClient, forwardedHostRequestWithPort, HttpStatus.MOVED_TEMPORARILY_302);
     }
 
     void assertBadRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
@@ -373,6 +396,24 @@ class StandardServerProviderTest {
                 .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_UNKNOWN_HOST)
                 .build();
         assertResponseStatusCode(httpClient, publicUnknownForwardedHostRequest, HttpStatus.MISDIRECTED_REQUEST_421);
+
+        final HttpRequest publicStagedHostWithInvalidPort = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_STAGED_HOST_WITH_INVALID_PORT)
+                .build();
+        assertResponseStatusCode(httpClient, publicStagedHostWithInvalidPort, HttpStatus.MISDIRECTED_REQUEST_421);
+
+        final HttpRequest publicStagedHostWithAPortWhichNotNumber = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.FORWARDED_HOST.getHeader(), PUBLIC_STAGED_HOST_WITH_A_PORT_WHICH_NOT_NUMBER)
+                .build();
+        assertResponseStatusCode(httpClient, publicStagedHostWithAPortWhichNotNumber, HttpStatus.MISDIRECTED_REQUEST_421);
+
+        final HttpRequest sameHostNameWithInvalidPort = HttpRequest.newBuilder(localhostUri)
+                .version(HttpClient.Version.HTTP_1_1)
+                .header(ProxyHeader.FORWARDED_HOST.getHeader(), localhostUri.getHost() + ":" + localhostUri.getPort())
+                .build();
+        assertResponseStatusCode(httpClient, sameHostNameWithInvalidPort, HttpStatus.MISDIRECTED_REQUEST_421);
     }
 
     void assertStandardResponseHeadersFound(final HttpResponse<Void> response) {

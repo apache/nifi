@@ -62,8 +62,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorNode {
@@ -597,7 +601,7 @@ public class TestStandardConnectorNode {
         // that stopped short-circuiting on unsatisfied dependencies would surface the lookup attempt as a hard failure here
         // instead of silently being masked by the empty-stub filter or by a null-returning mock.
         final SecretsManager strictSecretsManager = mock(SecretsManager.class);
-        when(strictSecretsManager.getSecrets(anySet()))
+        when(strictSecretsManager.getSecrets(anySet(), anyBoolean()))
             .thenThrow(new AssertionError("SecretsManager.getSecrets must not be called when property dependencies are not satisfied"));
 
         final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
@@ -675,6 +679,48 @@ public class TestStandardConnectorNode {
             final String explanation = result.getExplanation();
             return explanation != null && explanation.contains("RequiredSecret is required");
         }), () -> "Expected required-property failure in active validation, got: " + errors);
+    }
+
+    @Test
+    public void testVerifyConfigurationStepResolvesSecretsBypassingCache() throws FlowUpdateException {
+        final SecretsManager recordingSecretsManager = mock(SecretsManager.class);
+        when(recordingSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+
+        final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, recordingSecretsManager);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("Mode", new StringLiteralValue("WITH_SECRET"));
+        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+
+        connectorNode.verifyConfigurationStep("authStep", new StepConfiguration(propertyValues));
+
+        verify(recordingSecretsManager).getSecrets(anySet(), eq(false));
+    }
+
+    @Test
+    public void testPerformValidationResolvesSecretsUsingCache() throws FlowUpdateException {
+        final SecretsManager recordingSecretsManager = mock(SecretsManager.class);
+        when(recordingSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(recordingSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+
+        final DependentSecretVerifyConnector connector = new DependentSecretVerifyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, recordingSecretsManager);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("Mode", new StringLiteralValue("WITH_SECRET"));
+        propertyValues.put("SecretKey", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+        connectorNode.setConfiguration("authStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        connectorNode.performValidation();
+
+        verify(recordingSecretsManager, atLeastOnce()).getSecrets(anySet(), eq(true));
     }
 
     @Test
@@ -783,6 +829,88 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
     }
 
+    @Test
+    public void testLoggingAttributesIncludeFrameworkKeys() throws Exception {
+        final SleepingConnector connector = new SleepingConnector(Duration.ofMillis(1));
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final Map<String, String> attributes = connectorNode.getLoggingAttributes();
+        assertEquals("test-connector-id", attributes.get("connectorId"));
+        assertEquals(connector.getClass().getCanonicalName(), attributes.get("connectorComponent"));
+        assertEquals("org.apache.nifi", attributes.get("connectorBundleGroup"));
+        assertEquals("test-standard-connector-node", attributes.get("connectorBundleArtifact"));
+        assertEquals("1.0.0", attributes.get("connectorBundleVersion"));
+        assertEquals(connector.getClass().getSimpleName(), attributes.get("connectorName"));
+    }
+
+    @Test
+    public void testSetNameRefreshesConnectorNameLoggingAttribute() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setName("Renamed Connector");
+
+        assertEquals("Renamed Connector", connectorNode.getLoggingAttributes().get("connectorName"));
+    }
+
+    @Test
+    public void testSetCustomLoggingAttributesMergesWithFrameworkKeys() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setCustomLoggingAttributes(Map.of(
+            "customA", "valueA",
+            "customB", "valueB"
+        ));
+
+        final Map<String, String> attributes = connectorNode.getLoggingAttributes();
+        assertEquals("valueA", attributes.get("customA"));
+        assertEquals("valueB", attributes.get("customB"));
+        assertEquals("test-connector-id", attributes.get("connectorId"));
+    }
+
+    @Test
+    public void testSetCustomLoggingAttributesFiltersReservedKeys() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setCustomLoggingAttributes(Map.of(
+            "connectorId", "attempted-override",
+            "connectorBundleVersion", "9.9.9",
+            "customA", "valueA"
+        ));
+
+        final Map<String, String> attributes = connectorNode.getLoggingAttributes();
+        // Reserved keys are owned by the framework: connectorId stays as the framework value.
+        assertEquals("test-connector-id", attributes.get("connectorId"));
+        assertEquals("1.0.0", attributes.get("connectorBundleVersion"));
+        // Non-reserved custom keys are preserved.
+        assertEquals("valueA", attributes.get("customA"));
+    }
+
+    @Test
+    public void testSetCustomLoggingAttributesNullClears() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        connectorNode.setCustomLoggingAttributes(Map.of("customA", "valueA"));
+        assertTrue(connectorNode.getLoggingAttributes().containsKey("customA"));
+
+        connectorNode.setCustomLoggingAttributes(null);
+        assertFalse(connectorNode.getLoggingAttributes().containsKey("customA"));
+        // Framework keys remain.
+        assertEquals("test-connector-id", connectorNode.getLoggingAttributes().get("connectorId"));
+    }
+
+    @Test
+    public void testReservedKeysExposeFrameworkAttributeNames() {
+        final Set<String> reserved = ConnectorLoggingAttribute.getReservedKeys();
+        assertTrue(reserved.contains("connectorId"));
+        assertTrue(reserved.contains("connectorName"));
+        assertTrue(reserved.contains("connectorComponent"));
+        assertTrue(reserved.contains("connectorBundleGroup"));
+        assertTrue(reserved.contains("connectorBundleArtifact"));
+        assertTrue(reserved.contains("connectorBundleVersion"));
+    }
+
+    @Test
+    public void testGetProcessGroupReturnsManagedFlowRoot() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        assertEquals(managedProcessGroup, connectorNode.getProcessGroup());
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
@@ -792,6 +920,7 @@ public class TestStandardConnectorNode {
         final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
         when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
         when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        when(defaultSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
         return createConnectorNode(connector, defaultSecretsManager);
     }
 
@@ -882,6 +1011,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -948,6 +1082,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -994,6 +1133,11 @@ public class TestStandardConnectorNode {
 
         @Override
         public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
             return null;
         }
 
@@ -1069,6 +1213,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -1125,6 +1274,11 @@ public class TestStandardConnectorNode {
         }
 
         @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
         public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         }
 
@@ -1166,6 +1320,11 @@ public class TestStandardConnectorNode {
         @Override
         public VersionedExternalFlow getInitialFlow() {
             return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
         }
 
         @Override

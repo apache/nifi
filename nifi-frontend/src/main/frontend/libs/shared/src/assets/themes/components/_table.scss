@@ -1,0 +1,108 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+
+@mixin generate-material-theme() {
+    .listing-table {
+        @include mat.table-density(-4);
+        border-width: 1px;
+        border-style: solid;
+
+        table {
+            width: 100%;
+            table-layout: fixed;
+
+            td,
+            th {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding: 0 8px;
+                cursor: default;
+            }
+
+            .mat-column-actions {
+                width: 52px;
+            }
+        }
+    }
+
+    .informational-table {
+        @extend .listing-table;
+
+        table {
+            td,
+            th {
+                text-wrap: wrap;
+                padding: 8px;
+                word-break: break-word;
+            }
+
+            ul {
+                list-style-type: disc;
+                list-style-position: inside;
+
+                text-wrap: wrap;
+                word-break: break-all;
+            }
+        }
+    }
+
+    .mat-sort-header-content {
+        overflow: hidden;
+    }
+
+    .listing-table {
+        table {
+            background-color: inherit;
+
+            th.mat-mdc-header-cell {
+                color: var(--mat-sys-on-secondary);
+                fill: var(--mat-sys-on-secondary);
+                background-color: var(--mat-sys-secondary);
+                user-select: none;
+
+                .mat-sort-header-arrow {
+                    color: var(--mat-sys-on-secondary);
+                    fill: var(--mat-sys-on-secondary);
+                }
+            }
+
+            th,
+            td {
+                border-bottom-width: 1px;
+                border-bottom-style: solid;
+            }
+
+            tr:hover {
+                background-color: var(
+                    --mat-menu-item-hover-state-layer-color,
+                    color-mix(
+                        in srgb,
+                        var(--mat-sys-on-surface) calc(var(--mat-sys-hover-state-layer-opacity) * 100%),
+                        transparent
+                    )
+                );
+            }
+
+            .selected {
+                background-color: var(--mat-sys-tertiary-container);
+            }
+        }
+    }
+}

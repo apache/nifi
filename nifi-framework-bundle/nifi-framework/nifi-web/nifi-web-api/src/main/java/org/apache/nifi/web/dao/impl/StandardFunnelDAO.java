@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -34,20 +38,53 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     private FlowController flowController;
 
     private Funnel locateFunnel(final String funnelId) {
-        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        final Funnel funnel = rootGroup.findFunnel(funnelId);
+        return locateFunnel(funnelId, false);
+    }
 
-        if (funnel == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find funnel with id '%s'.", funnelId));
-        } else {
+    Funnel locateFunnel(final String funnelId, final boolean includeConnectorManaged) {
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
+        Funnel funnel = rootGroup.findFunnel(funnelId);
+        if (funnel != null) {
             return funnel;
         }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+
+            funnel = flowContext.getManagedProcessGroup().findFunnel(funnelId);
+            if (funnel != null) {
+                if (!includeConnectorManaged) {
+                    verifyAccessibleForComponentOperation(funnel.getProcessGroup(), funnelId);
+                }
+                return funnel;
+            }
+        }
+
+        throw new ResourceNotFoundException(String.format("Unable to find funnel with id '%s'.", funnelId));
     }
 
     @Override
     public boolean hasFunnel(String funnelId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        return rootGroup.findFunnel(funnelId) != null;
+        if (rootGroup.findFunnel(funnelId) != null) {
+            return true;
+        }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+                continue;
+            }
+
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null && flowContext.getManagedProcessGroup().findFunnel(funnelId) != null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

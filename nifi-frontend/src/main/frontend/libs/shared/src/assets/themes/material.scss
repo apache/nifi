@@ -16,17 +16,297 @@
  */
 
 @use 'sass:map';
+@use 'sass:meta';
 @use '@angular/material' as mat;
+@use 'tailwindcss';
+@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 
-@use '@fontsource/inter' as inter-normal;
-@use '@fontsource/inter/400.css' as inter-400;
-@use '@fontsource/inter/400-italic.css' as inter-italic;
-@use '@fontsource/inter/700.css' as inter-700;
+@use './components/button' as buttons;
+@use './components/card' as card;
+@use './components/checkbox' as checkbox;
+@use './components/date-picker' as date-picker;
+@use './components/dialog' as dialog;
+@use './components/drag-and-drop' as drag-and-drop;
+@use './components/expansion-panel' as expansion;
+@use './components/form-field' as form-field;
+@use './components/markdown' as markdown;
+@use './components/menu' as menu;
+@use './components/option' as option;
+@use './components/paginator' as paginator;
+@use './components/prism-theme' as prism-theme;
+@use './components/progress-bar' as progress-bar;
+@use './components/progress-spinner' as progress-spinner;
+@use './components/searchable-overlay' as searchable-overlay;
+@use './components/sidenav' as sidenav;
+@use './components/skeleton' as skeleton;
+@use './components/snackbar' as snackbar;
+@use './components/status-variant' as status-variant;
+@use './components/tab' as tab;
+@use './components/table' as table;
+@use './components/tailwind-theme' as tailwind-theme;
+@use './components/tree' as tree;
+@use './components/typography' as typography;
 
 @layer base {
-    @font-face {
-        font-family: 'Inter';
+    @include meta.load-css('font-awesome');
+}
+
+@source #{"'libs/shared/src'"};
+
+@mixin styles() {
+    /* Light Theme */
+    html {
+        color-scheme: light;
+        @include mat.theme(
+            (
+                color: (
+                    primary: $primary-palette,
+                    tertiary: $tertiary-palette
+                ),
+                typography: (
+                    plain-family: var(--md-ref-typeface-plain),
+                    brand-family: var(--md-ref-typeface-brand),
+                    bold-weight: var(--md-ref-typeface-weight-bold),
+                    regular-weight: var(--md-ref-typeface-weight-regular)
+                ),
+                density: (
+                    scale: -3
+                )
+            )
+        );
     }
+
+    /* Nifi classes and styles */
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        margin: 0;
+    }
+
+    a {
+        cursor: pointer;
+        display: inline-block;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .tooltip {
+        max-height: 70vh;
+        max-width: 500px;
+        padding: 10px;
+        border-radius: 2px;
+        border-width: 1px;
+        word-wrap: break-word;
+        white-space: normal;
+
+        ul {
+            list-style: disc outside;
+            margin-left: 1em;
+        }
+    }
+
+    .blank,
+    .empty,
+    .unset,
+    .sensitive {
+        font-weight: normal !important;
+        font-style: italic !important;
+        opacity: 0.8 !important;
+    }
+
+    .context-logo {
+        text-align: start;
+        height: 40px;
+    }
+
+    .context-name {
+        font-size: 15px;
+        line-height: 15px;
+        height: 15px;
+        width: 225px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .context-type {
+        font-size: 12px;
+        line-height: 12px;
+    }
+
+    .context-id {
+        font-size: 12px;
+        line-height: 14px;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
+    .flex-2 {
+        display: flex;
+        flex: 2;
+        flex-basis: 100%;
+    }
+
+    .flex-1a {
+        display: flex;
+        flex-direction: column;
+        flex-basis: 100%;
+        flex: 1;
+    }
+
+    .fa-rotate-45 {
+        transform: rotate(-45deg);
+    }
+
+    /* end Nifi classes and styles */
+
+    /* overriding 3rd party styles */
+
+    .CodeMirror-hints {
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
+
+    /* end overriding 3rd party styles */
+}
+
+@mixin generate-material-theme() {
+    /* semantic color classes */
+    .primary-contrast {
+        color: var(--mat-sys-on-primary);
+        fill: var(--mat-sys-on-primary);
+    }
+
+    .primary-color {
+        color: var(--mat-sys-primary);
+        fill: var(--mat-sys-primary);
+    }
+
+    .secondary-contrast {
+        color: var(--mat-sys-on-secondary);
+        fill: var(--mat-sys-on-secondary);
+    }
+
+    .secondary-color {
+        color: var(--mat-sys-secondary);
+        fill: var(--mat-sys-secondary);
+    }
+
+    .tertiary-color {
+        color: var(--mat-sys-tertiary);
+        fill: var(--mat-sys-tertiary);
+    }
+
+    .error-color {
+        color: var(--mat-sys-error);
+        fill: var(--mat-sys-error);
+    }
+
+    .error-color-variant {
+        color: var(--nf-error-variant);
+        fill: var(--nf-error-variant);
+    }
+
+    .neutral-color {
+        color: var(--nf-neutral);
+        fill: var(--nf-neutral);
+    }
+
+    .success-color-variant {
+        color: var(--nf-success-variant);
+        fill: var(--nf-success-variant);
+    }
+
+    .success-color-default {
+        color: var(--nf-success-default);
+        fill: var(--nf-success-default);
+    }
+
+    .caution-color {
+        color: var(--nf-caution-default);
+        fill: var(--nf-caution-default);
+    }
+
+    .caution-color-background {
+        background-color: var(--nf-caution-default);
+    }
+
+    .neutral-contrast {
+        color: var(--mat-sys-on-surface);
+        fill: var(--mat-sys-on-surface);
+    }
+
+    .disabled {
+        color: var(--nf-disabled);
+        fill: var(--nf-disabled);
+    }
+
+    /* end semantic color classes */
+
+    /* Nifi classes and styles */
+
+    .tooltip {
+        background-color: var(--mat-sys-background);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        color: var(--mat-sys-on-surface);
+    }
+
+    .property-editor {
+        border-radius: 4px;
+        box-shadow: var(--mat-sys-level4);
+    }
+
+    .text-editor {
+        border-radius: 4px;
+        box-shadow: var(--mat-sys-level4);
+    }
+
+    a {
+        color: var(--mat-sys-primary);
+        text-decoration-color: var(--mat-sys-primary);
+    }
+
+    .has-errors,
+    .invalid,
+    .stopped,
+    .running,
+    .transmitting,
+    .text-shadow {
+        text-shadow: var(--nf-text-shadow);
+    }
+
+    .zero {
+        opacity: var(--nf-zero-opactiy) !important;
+    }
+
+    /* end Nifi classes and styles */
+
+    /* overriding 3rd party styles */
+
+    *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']):not([class^='CodeMirror-cursor']) {
+        // Tailwind sets a default that doesn't shift with light and dark themes
+        border-color: var(--mat-sys-outline);
+    }
+
+    // This will override the above rule in cases where the tailwind style is explicitly set (even on the 'exception' elements)
+    .border-t,
+    .border-b,
+    .border,
+    .border-l,
+    .border-r {
+        border-color: var(--mat-sys-outline);
+    }
+
+    /* end overriding 3rd party styles */
 }
 
 :root {
@@ -262,151 +542,6 @@
             inverse-tertiary: var(--md-ref-palette-tertiary-80)
         )
     );
-
-    @include mat.sidenav-overrides(
-        (
-            container-width: auto,
-            container-shape: 0
-        )
-    );
-
-    @include mat.expansion-overrides(
-        (
-            container-shape: 6px,
-            header-expanded-state-height: 50px
-        )
-    );
-
-    @include mat.menu-overrides(
-        (
-            divider-top-spacing: 0,
-            divider-bottom-spacing: 0
-        )
-    );
-
-    @include mat.dialog-overrides(
-        (
-            content-padding: 20px 24px,
-            headline-padding: 0 24px 9px,
-            container-shape: 6px
-        )
-    );
-
-    @include mat.icon-button-overrides(
-        (
-            state-layer-size: 36px,
-            icon-size: 14px
-        )
-    );
-
-    @include mat.button-overrides(
-        (
-            filled-container-shape: 4px,
-            filled-label-text-tracking: normal,
-            filled-label-text-weight: 400,
-            outlined-container-shape: 4px,
-            outlined-label-text-tracking: normal,
-            outlined-label-text-weight: 400,
-            outlined-horizontal-padding: 15px,
-            outlined-container-height: 32px,
-            text-container-shape: 4px,
-            text-label-text-tracking: normal,
-            text-label-text-weight: 400
-        )
-    );
-
-    @include mat.tabs-overrides(
-        (
-            label-text-tracking: normal,
-            label-text-weight: 400,
-            container-height: 36px
-        )
-    );
-
-    @include mat.snack-bar-overrides(
-        (
-            button-color: var(--md-ref-palette-secondary-80)
-        )
-    );
-
-    .tertiary-checkbox {
-        @include mat.checkbox-overrides(
-            (
-                selected-icon-color: var(--md-ref-palette-tertiary-40)
-            )
-        );
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-overrides(
-            (
-                icon-color: var(--md-ref-palette-primary-40)
-            )
-        );
-    }
-
-    .error-button {
-        @include mat.button-overrides(
-            (
-                filled-container-color: var(--md-ref-palette-error-40),
-                filled-label-text-color: var(--md-ref-palette-error-100)
-            )
-        );
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-overrides(
-            (
-                active-indicator-color: var(--md-ref-palette-tertiary-40)
-            )
-        );
-    }
-
-    // NOTE: The following styles are for the status badge and status banner components. The `.status-variant` class should only be applied to a div or span element that should adhear to the variant color and background.
-    .status-variant {
-        &.neutral {
-            color: var(--mat-sys-on-surface);
-            background-color: var(--mat-sys-surface-dim);
-        }
-        &.critical {
-            color: var(--mat-sys-on-error);
-            background-color: var(--mat-sys-error);
-        }
-        &.caution {
-            color: var(--nf-caution-contrast);
-            background-color: var(--nf-caution-default);
-        }
-        &.success {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-default);
-        }
-        &.info {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-variant);
-        }
-
-        .fa {
-            &.neutral {
-                color: var(--mat-sys-on-surface);
-            }
-
-            &.critical {
-                color: var(--mat-sys-on-error);
-            }
-
-            &.caution {
-                color: var(--nf-caution-contrast);
-            }
-
-            &.success {
-                color: var(--nf-success-contrast);
-            }
-
-            &.info {
-                color: var(--nf-success-contrast);
-            }
-        }
-    }
 }
 
 // Note: Color palettes are generated from primary: #6750a4
@@ -540,30 +675,6 @@ $_rest: (
 
 $primary-palette: map.merge(map.get($_palettes, primary), $_rest);
 $tertiary-palette: map.merge(map.get($_palettes, tertiary), $_rest);
-
-@include mat.app-background();
-
-/* Light Theme */
-html {
-    color-scheme: light;
-    @include mat.theme(
-        (
-            color: (
-                primary: $primary-palette,
-                tertiary: $tertiary-palette
-            ),
-            typography: (
-                plain-family: var(--md-ref-typeface-plain),
-                brand-family: var(--md-ref-typeface-brand),
-                bold-weight: var(--md-ref-typeface-weight-bold),
-                regular-weight: var(--md-ref-typeface-weight-regular)
-            ),
-            density: (
-                scale: -3
-            )
-        )
-    );
-}
 
 /* Dark Theme */
 .darkMode {
@@ -801,149 +912,34 @@ html {
             inverse-tertiary: var(--md-ref-palette-tertiary-70)
         )
     );
-
-    @include mat.sidenav-overrides(
-        (
-            container-width: auto,
-            container-shape: 0
-        )
-    );
-
-    @include mat.expansion-overrides(
-        (
-            container-shape: 6px,
-            header-expanded-state-height: 50px
-        )
-    );
-
-    @include mat.menu-overrides(
-        (
-            divider-top-spacing: 0,
-            divider-bottom-spacing: 0
-        )
-    );
-
-    @include mat.dialog-overrides(
-        (
-            content-padding: 20px 24px,
-            headline-padding: 0 24px 9px,
-            container-shape: 6px
-        )
-    );
-
-    @include mat.icon-button-overrides(
-        (
-            state-layer-size: 36px,
-            icon-size: 14px
-        )
-    );
-
-    @include mat.button-overrides(
-        (
-            filled-container-shape: 4px,
-            filled-label-text-tracking: normal,
-            filled-label-text-weight: 400,
-            outlined-container-shape: 4px,
-            outlined-label-text-tracking: normal,
-            outlined-label-text-weight: 400,
-            outlined-horizontal-padding: 15px,
-            outlined-container-height: 32px,
-            text-container-shape: 4px,
-            text-label-text-tracking: normal,
-            text-label-text-weight: 400
-        )
-    );
-
-    @include mat.tabs-overrides(
-        (
-            label-text-tracking: normal,
-            label-text-weight: 400,
-            container-height: 36px
-        )
-    );
-
-    @include mat.snack-bar-overrides(
-        (
-            button-color: #004849
-        )
-    );
-
-    .tertiary-checkbox {
-        @include mat.checkbox-overrides(
-            (
-                selected-icon-color: var(--md-ref-palette-tertiary-70)
-            )
-        );
-    }
-
-    .primary-icon-button {
-        @include mat.icon-button-overrides(
-            (
-                icon-color: var(--md-ref-palette-primary-80)
-            )
-        );
-    }
-
-    .error-button {
-        @include mat.button-overrides(
-            (
-                filled-container-color: var(--md-ref-palette-error-50),
-                filled-label-text-color: var(--md-ref-palette-error-100)
-            )
-        );
-    }
-
-    .tertiary-spinner {
-        @include mat.progress-spinner-overrides(
-            (
-                active-indicator-color: var(--md-ref-palette-tertiary-70)
-            )
-        );
-    }
-
-    // NOTE: The following styles are for the status badge and status banner components. The `.status-variant` class should only be applied to a div or span element that should adhear to the variant color and background.
-    .status-variant {
-        &.neutral {
-            color: var(--mat-sys-on-surface);
-            background-color: var(--mat-sys-surface-dim);
-        }
-        &.critical {
-            color: var(--mat-sys-on-error);
-            background-color: var(--mat-sys-error);
-        }
-        &.caution {
-            color: var(--nf-caution-contrast);
-            background-color: var(--nf-caution-default);
-        }
-        &.success {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-default);
-        }
-        &.info {
-            color: var(--nf-success-contrast);
-            background-color: var(--nf-success-variant);
-        }
-
-        .fa {
-            &.neutral {
-                color: var(--mat-sys-on-surface);
-            }
-
-            &.critical {
-                color: var(--mat-sys-on-error);
-            }
-
-            &.caution {
-                color: var(--nf-caution-contrast);
-            }
-
-            &.success {
-                color: var(--nf-success-contrast);
-            }
-
-            &.info {
-                color: var(--nf-success-contrast);
-            }
-        }
-    }
 }
+
+@include styles();
+@include generate-material-theme();
+@include buttons.generate-material-theme();
+@include card.generate-material-theme();
+@include checkbox.generate-material-theme();
+@include date-picker.generate-material-theme();
+@include dialog.generate-material-theme();
+@include drag-and-drop.generate-material-theme();
+@include expansion.generate-material-theme();
+@include form-field.generate-material-theme();
+@include markdown.generate-material-theme();
+@include menu.generate-material-theme();
+@include option.generate-material-theme();
+@include paginator.generate-material-theme();
+@include prism-theme.generate-material-theme();
+@include progress-bar.generate-material-theme();
+@include progress-spinner.generate-material-theme();
+@include searchable-overlay.generate-material-theme();
+@include sidenav.generate-material-theme();
+@include skeleton.generate-material-theme();
+@include snackbar.generate-material-theme();
+@include status-variant.generate-material-theme();
+@include tab.generate-material-theme();
+@include table.generate-material-theme();
+@include tailwind-theme.configure;
+@include tree.generate-material-theme();
+@include typography.generate-material-theme();
+@include mat.elevation-classes();
+@include mat.app-background();

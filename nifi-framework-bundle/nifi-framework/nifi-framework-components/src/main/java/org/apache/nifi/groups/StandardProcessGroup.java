@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -233,6 +234,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String UNREGISTERED_PATH_SEGMENT = "UNREGISTERED";
 
     private final Map<String, String> loggingAttributes = new ConcurrentHashMap<>();
+    private volatile Map<String, String> connectorLoggingAttributes = Map.of();
     private volatile String logFileSuffix;
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
@@ -307,6 +309,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParent(final ProcessGroup newParent) {
         parent.set(newParent);
+        // Inherit connector-supplied MDC attributes from the parent so descendants of a connector's managed
+        // flow carry the same connector metadata (attributing their logs and status metrics to the connector).
+        // Runs on every re-parent (including initial attach), so PGs added later inherit automatically.
+        if (newParent instanceof StandardProcessGroup standardParent) {
+            this.connectorLoggingAttributes = standardParent.connectorLoggingAttributes;
+        }
         setLoggingAttributes();
     }
 
@@ -353,6 +361,22 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public Optional<String> getConnectorIdentifier() {
         return Optional.ofNullable(connectorId);
+    }
+
+    @Override
+    public Optional<ConnectorNode> findOwningConnector() {
+        ProcessGroup group = this;
+        while (group != null) {
+            final Optional<String> owningConnectorId = group.getConnectorIdentifier();
+            if (owningConnectorId.isPresent()) {
+                final ConnectorNode connectorNode = flowManager.getConnector(owningConnectorId.get());
+                return Optional.ofNullable(connectorNode);
+            }
+
+            group = group.getParent();
+        }
+
+        return Optional.empty();
     }
 
     @Override
@@ -2128,7 +2152,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             return this;
         }
 
-        final ProcessGroup group = flowManager.getGroup(id, getConnectorIdentifier().orElse(null));
+        final ProcessGroup group = flowManager.getGroup(id);
         if (group == null) {
             return null;
         }
@@ -3958,6 +3982,48 @@ public final class StandardProcessGroup implements ProcessGroup {
         synchronizeFlow(proposedSnapshot, synchronizationOptions, flowMappingOptions);
     }
 
+    @Override
+    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot) {
+        // Use the Instance Identifier captured in the persisted flow as the runtime identifier for every component. This is
+        // required so that Connection identifiers (and therefore FlowFile queue identifiers) match what was in use before
+        // the flow was persisted. Without this, queued FlowFiles in the FlowFile Repository cannot be re-associated with
+        // their Connections upon restore.
+        final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
+        final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.IDENTITY_LOOKUP;
+        final ComponentScheduler componentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
+
+        final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
+            .componentIdGenerator(idGenerator)
+            .componentComparisonIdLookup(VersionedComponent::getInstanceIdentifier)
+            .componentScheduler(componentScheduler)
+            .ignoreLocalModifications(true)
+            .updateDescendantVersionedFlows(true)
+            .updateGroupSettings(true)
+            .updateRpgUrls(false)
+            .propertyDecryptor(encryptor::decrypt)
+            .build();
+
+        // Sensitive property values in the proposed snapshot were encrypted using the same PropertyEncryptor when the snapshot
+        // was persisted (for example, when a Connector-managed flow is persisted in Troubleshooting mode). The currently loaded
+        // flow therefore must also be mapped with an equivalent SensitiveValueEncryptor so the comparison between "current" and
+        // "proposed" sensitive values operates on matching ciphertext; otherwise every sensitive property appears to differ and
+        // the decrypted value written back to the live component is the encrypted payload rather than the plaintext (or parameter
+        // reference) that was originally captured.
+        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
+            .mapSensitiveConfiguration(true)
+            .mapPropertyDescriptors(true)
+            .stateLookup(stateLookup)
+            .sensitiveValueEncryptor(encryptor::encrypt)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
+            .mapControllerServiceReferencesToVersionedId(true)
+            .mapFlowRegistryClientId(false)
+            .mapAssetReferences(false)
+            .build();
+
+        synchronizeFlow(proposedSnapshot, synchronizationOptions, flowMappingOptions);
+    }
+
     private ProcessContext createProcessContext(final ProcessorNode processorNode) {
         final org.apache.nifi.processor.Processor processor = processorNode.getProcessor();
         final Class<?> componentClass = processor == null ? null : processor.getClass();
@@ -4770,6 +4836,47 @@ public final class StandardProcessGroup implements ProcessGroup {
             final String registeredFlowVersion = currentVersionControl.getVersion();
             loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_VERSION.attribute, registeredFlowVersion);
         }
+
+        loggingAttributes.putAll(connectorLoggingAttributes);
+    }
+
+    /**
+     * Stores the connector-managed MDC attributes for this process group and cascades the same
+     * attributes to all descendant process groups so that components anywhere in the connector's
+     * managed flow log with consistent connectorId/connectorName/etc. context.
+     *
+     * <p>This method is called by {@code StandardConnectorNode} against its managed root process
+     * group whenever the connector's framework keys (e.g. {@code connectorName}) change or when the
+     * connector provides updated custom logging attributes. Newly created descendant groups will
+     * also inherit the attributes lazily via {@link #setParent(ProcessGroup)}.</p>
+     *
+     * @param attributes the merged set of connector logging attributes; an empty or {@code null}
+     *                   map clears any previously assigned attributes
+     */
+    @Override
+    public void setConnectorLoggingAttributes(final Map<String, String> attributes) {
+        final Map<String, String> snapshot = (attributes == null || attributes.isEmpty())
+            ? Map.of()
+            : Map.copyOf(attributes);
+        this.connectorLoggingAttributes = snapshot;
+        setLoggingAttributes();
+
+        for (final ProcessGroup child : getProcessGroups()) {
+            if (child instanceof StandardProcessGroup standardChild) {
+                standardChild.setConnectorLoggingAttributes(snapshot);
+            }
+        }
+    }
+
+    /**
+     * Returns the connector-managed MDC attributes currently assigned to this process group (inherited from
+     * its connector's managed flow root, or empty if this group is not part of a connector flow).
+     *
+     * @return an immutable map of connector logging attributes; never {@code null}
+     */
+    @Override
+    public Map<String, String> getConnectorLoggingAttributes() {
+        return connectorLoggingAttributes;
     }
 
     private void setGroupPath() {

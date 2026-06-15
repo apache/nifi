@@ -17,6 +17,10 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Position;
@@ -52,20 +56,53 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     private ComponentStateDAO componentStateDAO;
 
     private RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        final RemoteProcessGroup remoteProcessGroup = rootGroup.findRemoteProcessGroup(remoteProcessGroupId);
+        return locateRemoteProcessGroup(remoteProcessGroupId, false);
+    }
 
-        if (remoteProcessGroup == null) {
-            throw new ResourceNotFoundException(String.format("Unable to find remote process group with id '%s'.", remoteProcessGroupId));
-        } else {
+    RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId, final boolean includeConnectorManaged) {
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
+        RemoteProcessGroup remoteProcessGroup = rootGroup.findRemoteProcessGroup(remoteProcessGroupId);
+        if (remoteProcessGroup != null) {
             return remoteProcessGroup;
         }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+
+            remoteProcessGroup = flowContext.getManagedProcessGroup().findRemoteProcessGroup(remoteProcessGroupId);
+            if (remoteProcessGroup != null) {
+                if (!includeConnectorManaged) {
+                    verifyAccessibleForComponentOperation(remoteProcessGroup.getProcessGroup(), remoteProcessGroupId);
+                }
+                return remoteProcessGroup;
+            }
+        }
+
+        throw new ResourceNotFoundException(String.format("Unable to find remote process group with id '%s'.", remoteProcessGroupId));
     }
 
     @Override
     public boolean hasRemoteProcessGroup(String remoteProcessGroupId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
-        return rootGroup.findRemoteProcessGroup(remoteProcessGroupId) != null;
+        if (rootGroup.findRemoteProcessGroup(remoteProcessGroupId) != null) {
+            return true;
+        }
+
+        for (final ConnectorNode connector : flowController.getConnectorRepository().getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            if (connector.getCurrentState() != ConnectorState.TROUBLESHOOTING) {
+                continue;
+            }
+
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null && flowContext.getManagedProcessGroup().findRemoteProcessGroup(remoteProcessGroupId) != null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -108,9 +145,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
      */
     @Override
     public RemoteProcessGroup getRemoteProcessGroup(String remoteProcessGroupId) {
-        final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
-
-        return remoteProcessGroup;
+        return locateRemoteProcessGroup(remoteProcessGroupId);
     }
 
     /**

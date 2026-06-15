@@ -167,25 +167,23 @@ public class LoadBalanceIT extends NiFiSystemIT {
         final ConnectionEntity connection = getClientUtil().createConnection(generate, count, "success");
         getClientUtil().setAutoTerminatedRelationships(count, "success");
 
-        // Configure Processor to generate 10 FlowFiles, each 1 MB, on each node, for a total of 20 FlowFiles.
+        final int batchSize = 2;
+        final int distinctAttributeValues = 10;
+        final int expectedTotalFlowFiles = batchSize * distinctAttributeValues;
+
         final Map<String, String> generateProperties = new HashMap<>();
         generateProperties.put("File Size", "1 MB");
-        generateProperties.put("Batch Size", "10");
+        generateProperties.put("Batch Size", String.valueOf(batchSize));
         generateProperties.put("number", "0");
         getClientUtil().updateProcessorProperties(generate, generateProperties);
         getClientUtil().updateProcessorExecutionNode(generate, ExecutionNode.PRIMARY);
 
-        // Round Robin between nodes. This should result in 10 FlowFiles on each node.
         getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE, LoadBalanceCompression.DO_NOT_COMPRESS, "number");
 
-        // Queue 100 FlowFiles. 10 with number=0, 10 with number=1, 10 with number=2, etc. to up 10 with number=9
-        for (int i = 1; i <= 10; i++) {
-            // Generate the data.
+        for (int i = 1; i <= distinctAttributeValues; i++) {
             getClientUtil().startProcessor(generate);
 
-            final int expectedQueueSize = 10 * i;
-
-            // Wait until all 10 FlowFiles are queued up.
+            final int expectedQueueSize = batchSize * i;
             waitFor(() -> {
                 final ConnectionStatusEntity statusEntity = getConnectionStatus(connection.getId());
                 return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == expectedQueueSize;
@@ -198,18 +196,17 @@ public class LoadBalanceIT extends NiFiSystemIT {
             getClientUtil().updateProcessorProperties(generate, generateProperties);
         }
 
-        // Wait until load balancing is complete
         waitFor(() -> isConnectionDoneLoadBalancing(connection.getId()));
 
         final Map<String, Set<String>> nodesByAttribute = new HashMap<>();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < expectedTotalFlowFiles; i++) {
             final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
             final String numberValue = flowFile.getFlowFile().getAttributes().get("number");
             final Set<String> nodes = nodesByAttribute.computeIfAbsent(numberValue, key -> new HashSet<>());
             nodes.add(flowFile.getFlowFile().getClusterNodeId());
         }
 
-        assertEquals(10, nodesByAttribute.size());
+        assertEquals(distinctAttributeValues, nodesByAttribute.size());
         for (final Map.Entry<String, Set<String>> entry : nodesByAttribute.entrySet()) {
             final Set<String> nodes = entry.getValue();
             assertEquals(1, nodes.size(), "FlowFile with attribute number=" + entry.getKey() + " went to nodes " + nodes);

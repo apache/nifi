@@ -15,15 +15,23 @@
  * limitations under the License.
  */
 
+// ::ng-deep is required: the #birdseye SVG and its contents are created dynamically by D3
+// and do not receive Angular's [_ngcontent-xxx] scoping attribute.
 :host ::ng-deep #birdseye {
     width: 266px;
     height: 150px;
     overflow: hidden;
     box-sizing: content-box;
+    background: var(--mat-sys-background);
 
     canvas,
     svg {
         position: absolute;
         overflow: hidden;
+    }
+
+    rect.birdseye-brush {
+        stroke: var(--mat-sys-primary);
+        fill: transparent;
     }
 }

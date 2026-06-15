@@ -63,6 +63,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -1153,11 +1154,20 @@ public class AvroTypeUtil {
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_DATE.equals(logicalName)) {
                     // date logical name means that the value is number of days since Jan 1, 1970
-                    // Handle both Integer (legacy) and LocalDate (newer Avro libraries)
-                    if (value instanceof LocalDate localDate) {
-                        return java.sql.Date.valueOf(localDate);
+                    // Handle both Integer (legacy) and LocalDate (newer Avro libraries).
+                    final LocalDate localDate;
+                    if (value instanceof LocalDate ld) {
+                        localDate = ld;
+                    } else {
+                        localDate = LocalDate.ofEpochDay((int) value);
                     }
-                    return java.sql.Date.valueOf(LocalDate.ofEpochDay((int) value));
+
+                    // Convert to ZonedDateTime using system default zone to allow for later conversion to Instant
+                    final ZonedDateTime zonedDate = localDate.atStartOfDay(ZoneId.systemDefault());
+
+                    // Create Date from Instant epoch millis to preserve proleptic Gregorian calendar for pre-1582 dates
+                    final long epochMillis = zonedDate.toInstant().toEpochMilli();
+                    return new Date(epochMillis);
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)

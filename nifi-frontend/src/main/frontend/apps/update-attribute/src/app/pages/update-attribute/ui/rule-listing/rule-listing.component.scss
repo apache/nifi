@@ -22,6 +22,14 @@
 }
 
 .rule-listing {
+    .cdk-drop-list-dragging {
+        background-color: unset !important;
+    }
+
+    .cdk-drop-list {
+        background: unset;
+    }
+
     .reorder-header {
         mat-panel-title {
             overflow: hidden;

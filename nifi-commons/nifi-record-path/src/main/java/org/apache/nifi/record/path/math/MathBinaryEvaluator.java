@@ -27,12 +27,20 @@ public class MathBinaryEvaluator extends MathEvaluator<MathBinaryOperator> {
         super(op);
     }
 
+    public static MathBinaryEvaluator add() {
+        return new MathBinaryEvaluator(new MathAddOperator());
+    }
+
     public static MathBinaryEvaluator divide() {
         return new MathBinaryEvaluator(new MathDivideOperator());
     }
 
     public static MathBinaryEvaluator multiply() {
         return new MathBinaryEvaluator(new MathMultiplyOperator());
+    }
+
+    public static MathBinaryEvaluator subtract() {
+        return new MathBinaryEvaluator(new MathSubtractOperator());
     }
 
     public FieldValue evaluate(FieldValue lhs, FieldValue rhs) {

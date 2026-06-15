@@ -810,11 +810,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         eventAccess = new StandardEventAccess(flowManager, flowFileEventRepository, processScheduler, authorizer, provenanceRepository,
-                auditService, analyticsEngine, flowFileRepository, contentRepository);
+                auditService, analyticsEngine, flowFileRepository, contentRepository, connectorRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
             try {
-                statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus(), new Date());
+                statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), eventAccess.getConnectorStatuses(),
+                        getGarbageCollectionStatus(), new Date());
             } catch (final Exception e) {
                 LOG.error("Failed to capture component stats for Stats History", e);
             }
@@ -1060,6 +1061,54 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 if (managedConnection != null) {
                     return managedConnection;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds an input Port by ID, searching both the root process group hierarchy and all connector-managed process
+     * groups. Returns null when the Port cannot be located.
+     */
+    public Port findInputPortIncludingConnectorManaged(final String portId) {
+        final Port port = flowManager.getRootGroup().findInputPort(portId);
+        if (port != null) {
+            return port;
+        }
+
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+            final Port managedPort = flowContext.getManagedProcessGroup().findInputPort(portId);
+            if (managedPort != null) {
+                return managedPort;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds an output Port by ID, searching both the root process group hierarchy and all connector-managed process
+     * groups. Returns null when the Port cannot be located.
+     */
+    public Port findOutputPortIncludingConnectorManaged(final String portId) {
+        final Port port = flowManager.getRootGroup().findOutputPort(portId);
+        if (port != null) {
+            return port;
+        }
+
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext == null) {
+                continue;
+            }
+            final Port managedPort = flowContext.getManagedProcessGroup().findOutputPort(portId);
+            if (managedPort != null) {
+                return managedPort;
             }
         }
 

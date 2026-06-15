@@ -149,7 +149,7 @@ final class KinesisShardManager {
             }
             case NEW -> {
                 CheckpointTableUtils.waitForTableActive(dynamoDbClient, logger, checkpointTableName);
-                migrator.cleanupLingeringMigration();
+                migrator.completeLingeringMigration();
             }
             case LEGACY -> {
                 migrator.migrateAndRename();

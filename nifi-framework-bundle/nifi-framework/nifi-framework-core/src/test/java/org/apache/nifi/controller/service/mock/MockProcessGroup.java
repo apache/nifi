@@ -719,6 +719,10 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedFlow) {
+    }
+
+    @Override
     public void synchronizeFlow(final VersionedExternalFlow proposedSnapshot, final FlowSynchronizationOptions synchronizationOptions, final FlowMappingOptions flowMappingOptions) {
     }
 
