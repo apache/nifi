@@ -54,7 +54,7 @@ public class TestJSLTTransformJSON {
     @TempDir
     private static Path tempDir;
 
-    private TestRunner runner = TestRunners.newTestRunner(new JSLTTransformJSON());
+    private TestRunner runner;
 
     @BeforeEach
     public void setup() {
