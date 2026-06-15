@@ -256,7 +256,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read(), StandardCharsets.UTF_8))) {
             return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
-            throw new UncheckedIOException("Read JOLT Transform failed", e);
+            throw new UncheckedIOException("Read JOLT Transform failed, reason: " + e.getMessage(), e);
         }
     }
 
