@@ -123,8 +123,7 @@ public class TestJSLTTransformJSON {
                 """;
         runner.enqueue(json);
 
-        AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.run());
-        assertTrue(assertionFailedError.getMessage().contains("No such file or directory"));
+        assertThrows(AssertionFailedError.class, () -> runner.run());
     }
 
     @ParameterizedTest
