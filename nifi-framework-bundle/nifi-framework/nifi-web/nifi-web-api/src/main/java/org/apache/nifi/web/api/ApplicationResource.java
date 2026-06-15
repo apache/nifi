@@ -86,6 +86,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -551,6 +554,8 @@ public abstract class ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         if (isTwoPhaseRequest(httpServletRequest)) {
+            drainRequestBody();
+
             if (isValidationPhase(httpServletRequest)) {
                 // authorize access
                 serviceFacade.authorizeAccess(authorizer);
@@ -605,6 +610,8 @@ public abstract class ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         if (isTwoPhaseRequest(httpServletRequest)) {
+            drainRequestBody();
+
             if (isValidationPhase(httpServletRequest)) {
                 // authorize access
                 serviceFacade.authorizeAccess(authorizer);
@@ -656,6 +663,8 @@ public abstract class ApplicationResource {
                                                         final Runnable verifier, final Function<T, Response> action) {
 
         if (isTwoPhaseRequest(httpServletRequest)) {
+            drainRequestBody();
+
             if (isValidationPhase(httpServletRequest)) {
                 // authorize access
                 serviceFacade.authorizeAccess(authorizer);
@@ -690,6 +699,25 @@ public abstract class ApplicationResource {
 
             // run the action
             return action.apply(entity);
+        }
+    }
+
+    /**
+     * Fully consumes the request body for a request received as part of a two-phase commit replication.
+     *
+     * Several resource methods do not declare a request entity parameter, so the JAX-RS layer never reads the
+     * request body even though the replicating node always sends one. When a node returns the validation,
+     * execution, or cancellation response without first consuming that body, an HTTP/2 server resets the stream
+     * with CANCEL, which surfaces on the replicating node as an "RST_STREAM received Stream cancelled" failure.
+     * Reading the body to end-of-stream before responding allows the replicating node to complete its upload
+     * cleanly. When the body has already been consumed (for example by entity deserialization) this is a no-op.
+     */
+    private void drainRequestBody() {
+        try {
+            final InputStream requestInputStream = httpServletRequest.getInputStream();
+            requestInputStream.transferTo(OutputStream.nullOutputStream());
+        } catch (final IOException e) {
+            logger.debug("Failed to drain request body before returning early cluster replication response", e);
         }
     }
 

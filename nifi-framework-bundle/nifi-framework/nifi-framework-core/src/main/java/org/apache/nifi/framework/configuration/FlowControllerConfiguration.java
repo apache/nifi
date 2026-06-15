@@ -74,14 +74,11 @@ import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.redirect.RedirectHandling;
 import org.apache.nifi.web.client.ssl.TlsContext;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -94,8 +91,6 @@ import javax.net.ssl.X509TrustManager;
  */
 @Configuration
 public class FlowControllerConfiguration {
-
-    private static final Logger logger = LoggerFactory.getLogger(FlowControllerConfiguration.class);
 
     private static final String FLOW_ACTION_REPORTER_IMPLEMENTATION = "nifi.flow.action.reporter.implementation";
 
@@ -391,7 +386,6 @@ public class FlowControllerConfiguration {
         webClientService.setConnectTimeout(timeout);
         webClientService.setReadTimeout(timeout);
         webClientService.setRedirectHandling(RedirectHandling.FOLLOWED);
-        webClientService.setHttpVersion(resolveClusterNodeProtocolHttpVersion());
 
         if (sslContext != null) {
             webClientService.setTlsContext(new TlsContext() {
@@ -413,17 +407,6 @@ public class FlowControllerConfiguration {
         }
 
         return webClientService;
-    }
-
-    private HttpClient.Version resolveClusterNodeProtocolHttpVersion() {
-        final String configured = properties.getClusterNodeProtocolHttpVersion();
-        try {
-            return HttpClient.Version.valueOf(configured);
-        } catch (final IllegalArgumentException e) {
-            logger.warn("Property {} value [{}] is not a valid HttpClient.Version; falling back to {}",
-                    NiFiProperties.CLUSTER_NODE_PROTOCOL_HTTP_VERSION, configured, NiFiProperties.DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION);
-            return HttpClient.Version.valueOf(NiFiProperties.DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION);
-        }
     }
 
     @Bean

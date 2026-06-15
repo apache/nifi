@@ -247,7 +247,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CLUSTER_NODE_ADDRESS = "nifi.cluster.node.address";
     public static final String CLUSTER_NODE_PROTOCOL_PORT = "nifi.cluster.node.protocol.port";
     public static final String CLUSTER_NODE_PROTOCOL_MAX_THREADS = "nifi.cluster.node.protocol.max.threads";
-    public static final String CLUSTER_NODE_PROTOCOL_HTTP_VERSION = "nifi.cluster.node.protocol.http.version";
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
     public static final String CLUSTER_NODE_MAX_CONCURRENT_REQUESTS = "nifi.cluster.node.max.concurrent.requests";
@@ -420,7 +419,6 @@ public class NiFiProperties extends ApplicationProperties {
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 10;
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS = 50;
-    public static final String DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION = "HTTP_2";
     public static final String DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME = "5 mins";
 
     // cluster load balance defaults
@@ -924,21 +922,6 @@ public class NiFiProperties extends ApplicationProperties {
         } catch (NumberFormatException nfe) {
             return DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS;
         }
-    }
-
-    /**
-     * Returns the configured HTTP protocol version that the cluster node web client should prefer when communicating with other nodes.
-     * Returned as a raw String matching one of the values of {@code java.net.http.HttpClient.Version} (i.e. {@code HTTP_1_1} or {@code HTTP_2}).
-     * Defaults to {@link #DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION} when the property is missing or blank.
-     *
-     * @return the configured cluster node protocol HTTP version, or {@link #DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION} when the property is missing or blank
-     */
-    public String getClusterNodeProtocolHttpVersion() {
-        final String configured = getProperty(CLUSTER_NODE_PROTOCOL_HTTP_VERSION);
-        if (configured == null || configured.isBlank()) {
-            return DEFAULT_CLUSTER_NODE_PROTOCOL_HTTP_VERSION;
-        }
-        return configured.trim();
     }
 
     public boolean isClustered() {
