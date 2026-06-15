@@ -98,6 +98,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -2161,6 +2162,194 @@ public class ConnectorResource extends ApplicationResource {
         // resolved ProcessGroup directly (no DAO locate calls for Connector-managed components), so the normal
         // Troubleshooting access gate does not apply.
         final ProcessGroupStatusEntity entity = serviceFacade.getConnectorProcessGroupStatus(id, recursive);
+        return generateOkResponse(entity).build();
+    }
+
+    // -----------------
+    // Status History
+    // -----------------
+
+    /**
+     * Gets the status history for a Processor inside the Connector's managed flow. The status history is available
+     * regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param processorId the processor id within the connector's managed flow
+     * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/processors/{processorId}/status/history")
+    @Operation(
+            summary = "Gets the status history for a processor within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            }
+    )
+    public Response getConnectorProcessorStatusHistory(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The processor id.", required = true)
+            @PathParam("processorId") final String processorId) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final StatusHistoryEntity entity = serviceFacade.getConnectorProcessorStatusHistory(connectorId, processorId);
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the status history for a Connection inside the Connector's managed flow. The status history is available
+     * regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param connectionId the connection id within the connector's managed flow
+     * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/connections/{connectionId}/status/history")
+    @Operation(
+            summary = "Gets the status history for a connection within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            }
+    )
+    public Response getConnectorConnectionStatusHistory(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The connection id.", required = true)
+            @PathParam("connectionId") final String connectionId) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final StatusHistoryEntity entity = serviceFacade.getConnectorConnectionStatusHistory(connectorId, connectionId);
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the status history for a Process Group inside the Connector's managed flow. The status history is available
+     * regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param processGroupId the process group id within the connector's managed flow
+     * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/process-groups/{processGroupId}/status/history")
+    @Operation(
+            summary = "Gets the status history for a process group within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            }
+    )
+    public Response getConnectorProcessGroupStatusHistory(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("processGroupId") final String processGroupId) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final StatusHistoryEntity entity = serviceFacade.getConnectorProcessGroupStatusHistory(connectorId, processGroupId);
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the status history for a Remote Process Group inside the Connector's managed flow. The status history is
+     * available regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param remoteProcessGroupId the remote process group id within the connector's managed flow
+     * @return A statusHistoryEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/remote-process-groups/{remoteProcessGroupId}/status/history")
+    @Operation(
+            summary = "Gets the status history for a remote process group within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            }
+    )
+    public Response getConnectorRemoteProcessGroupStatusHistory(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The remote process group id.", required = true)
+            @PathParam("remoteProcessGroupId") final String remoteProcessGroupId) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final StatusHistoryEntity entity = serviceFacade.getConnectorRemoteProcessGroupStatusHistory(connectorId, remoteProcessGroupId);
         return generateOkResponse(entity).build();
     }
 

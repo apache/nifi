@@ -57,6 +57,11 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     public static final Pattern REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status/history");
     public static final Pattern CONNECTION_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/connections/[a-f0-9\\-]{36}/status/history");
     public static final Pattern NODE_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/controller/status/history");
+    public static final Pattern CONNECTOR_PROCESSOR_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/processors/[a-f0-9\\-]{36}/status/history");
+    public static final Pattern CONNECTOR_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/process-groups/[a-f0-9\\-]{36}/status/history");
+    public static final Pattern CONNECTOR_REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN =
+            Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/remote-process-groups/[a-f0-9\\-]{36}/status/history");
+    public static final Pattern CONNECTOR_CONNECTION_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/connections/[a-f0-9\\-]{36}/status/history");
 
     private final long componentStatusSnapshotMillis;
 
@@ -69,19 +74,19 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
         final Map<String, MetricDescriptor<?>> metricDescriptors = new HashMap<>();
 
-        if (PROCESSOR_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
+        if (PROCESSOR_STATUS_HISTORY_URI_PATTERN.matcher(path).matches() || CONNECTOR_PROCESSOR_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
             for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
                 metricDescriptors.put(descriptor.getField(), descriptor.getDescriptor());
             }
-        } else if (PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
+        } else if (PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN.matcher(path).matches() || CONNECTOR_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
             for (final ProcessGroupStatusDescriptor descriptor : ProcessGroupStatusDescriptor.values()) {
                 metricDescriptors.put(descriptor.getField(), descriptor.getDescriptor());
             }
-        } else if (REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
+        } else if (REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN.matcher(path).matches() || CONNECTOR_REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
             for (final RemoteProcessGroupStatusDescriptor descriptor : RemoteProcessGroupStatusDescriptor.values()) {
                 metricDescriptors.put(descriptor.getField(), descriptor.getDescriptor());
             }
-        } else if (CONNECTION_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
+        } else if (CONNECTION_STATUS_HISTORY_URI_PATTERN.matcher(path).matches() || CONNECTOR_CONNECTION_STATUS_HISTORY_URI_PATTERN.matcher(path).matches()) {
             for (final ConnectionStatusDescriptor descriptor : ConnectionStatusDescriptor.values()) {
                 metricDescriptors.put(descriptor.getField(), descriptor.getDescriptor());
             }

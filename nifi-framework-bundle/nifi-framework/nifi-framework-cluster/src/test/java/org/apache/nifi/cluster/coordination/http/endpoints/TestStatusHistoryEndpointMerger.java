@@ -19,11 +19,34 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStatusHistoryEndpointMerger {
+
+    private static final String UUID = "12345678-1234-1234-1234-123456789012";
+
+    @Test
+    public void testCanHandleConnectorStatusHistory() {
+        final StatusHistoryEndpointMerger merger = new StatusHistoryEndpointMerger(300000);
+
+        assertTrue(merger.canHandle(URI.create("/nifi-api/connectors/" + UUID + "/processors/" + UUID + "/status/history"), "GET"));
+        assertTrue(merger.canHandle(URI.create("/nifi-api/connectors/" + UUID + "/connections/" + UUID + "/status/history"), "GET"));
+        assertTrue(merger.canHandle(URI.create("/nifi-api/connectors/" + UUID + "/process-groups/" + UUID + "/status/history"), "GET"));
+        assertTrue(merger.canHandle(URI.create("/nifi-api/connectors/" + UUID + "/remote-process-groups/" + UUID + "/status/history"), "GET"));
+
+        // The top-level flow endpoints continue to be handled alongside the connector endpoints.
+        assertTrue(merger.canHandle(URI.create("/nifi-api/flow/processors/" + UUID + "/status/history"), "GET"));
+
+        // Non-GET methods and unrelated connector paths are not handled.
+        assertFalse(merger.canHandle(URI.create("/nifi-api/connectors/" + UUID + "/processors/" + UUID + "/status/history"), "POST"));
+        assertFalse(merger.canHandle(URI.create("/nifi-api/connectors/" + UUID + "/status"), "GET"));
+    }
+
     @Test
     public void testNormalizedStatusSnapshotDate() {
         final Date date1 = new Date(1388538000000L);
