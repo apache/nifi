@@ -32,6 +32,8 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -69,6 +71,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -140,8 +144,19 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .name("Input Directory")
             .description("The input directory from which files to pull files")
             .required(true)
-            .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ENVIRONMENT)
+            .build();
+
+    public static final PropertyDescriptor ALLOW_MISSING_DIRECTORY = new Builder()
+            .name("allow-missing-directory")
+            .displayName("Allow Missing Directory")
+            .description("When set to true, the processor will not fail validation if the Input Directory does not exist. " +
+                    "Instead, the processor will log a warning and return an empty listing when the directory is missing. " +
+                    "This is useful in environments such as MiNiFi where the directory may be created after the flow starts.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
             .build();
 
     public static final PropertyDescriptor RECURSE = new Builder()
@@ -266,6 +281,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DIRECTORY,
+            ALLOW_MISSING_DIRECTORY,
             LISTING_STRATEGY,
             RECURSE,
             RECORD_WRITER,
@@ -324,6 +340,33 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    protected void customValidate(final ValidationContext context, final Collection<ValidationResult> results) {
+        super.customValidate(context, results);
+
+        if (!context.getProperty(ALLOW_MISSING_DIRECTORY).asBoolean()) {
+            final String path = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+            if (path != null && !path.isBlank()) {
+                final File dir = new File(path);
+                if (!dir.exists()) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(DIRECTORY.getDisplayName())
+                            .input(path)
+                            .valid(false)
+                            .explanation("Directory does not exist: " + path)
+                            .build());
+                } else if (!dir.isDirectory()) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(DIRECTORY.getDisplayName())
+                            .input(path)
+                            .valid(false)
+                            .explanation("Path is not a directory: " + path)
+                            .build());
+                }
+            }
+        }
     }
 
     @Override
@@ -524,6 +567,15 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
         final Path basePath = new File(evaluatedPath).toPath();
         final Boolean recurse = context.getProperty(RECURSE).asBoolean();
+
+        if (!basePath.toFile().exists()) {
+            if (context.getProperty(ALLOW_MISSING_DIRECTORY).asBoolean()) {
+                getLogger().warn("Input Directory does not exist: {}; returning empty listing", basePath);
+                return Collections.emptyList();
+            }
+            throw new IOException("Input Directory does not exist: " + basePath);
+        }
+
         final Map<Path, BasicFileAttributes> lastModifiedMap = new HashMap<>();
 
         final BiPredicate<Path, BasicFileAttributes> fileFilter;

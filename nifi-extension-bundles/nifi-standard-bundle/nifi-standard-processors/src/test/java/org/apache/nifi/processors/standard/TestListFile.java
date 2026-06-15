@@ -893,6 +893,22 @@ public class TestListFile {
     }
 
     @Test
+    void testMissingDirectoryInvalidWhenAllowMissingFalse() {
+        runner.setProperty(ListFile.DIRECTORY, "target/test/data/nonexistent-" + System.currentTimeMillis());
+        runner.setProperty(ListFile.ALLOW_MISSING_DIRECTORY, "false");
+        runner.assertNotValid();
+    }
+
+    @Test
+    void testMissingDirectoryValidAndProducesEmptyListingWhenAllowMissingTrue() {
+        runner.setProperty(ListFile.DIRECTORY, "target/test/data/nonexistent-" + System.currentTimeMillis());
+        runner.setProperty(ListFile.ALLOW_MISSING_DIRECTORY, "true");
+        runner.assertValid();
+        runner.run();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+    }
+
+    @Test
     void testMigrateProperties() {
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("track-performance", ListFile.TRACK_PERFORMANCE.getName()),

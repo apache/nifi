@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -52,6 +54,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -98,8 +101,18 @@ public class GetFile extends AbstractProcessor {
             .name("Input Directory")
             .description("The input directory from which to pull files")
             .required(true)
-            .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+    public static final PropertyDescriptor ALLOW_MISSING_DIRECTORY = new PropertyDescriptor.Builder()
+            .name("allow-missing-directory")
+            .displayName("Allow Missing Directory")
+            .description("When set to true, the processor will not fail validation if the Input Directory does not exist. " +
+                    "Instead, the processor will yield and log a warning when the directory is missing at runtime. " +
+                    "This is useful in environments such as MiNiFi where the directory may be created after the flow starts.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
             .build();
     public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder()
             .name("Recurse Subdirectories")
@@ -185,6 +198,7 @@ public class GetFile extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DIRECTORY,
+            ALLOW_MISSING_DIRECTORY,
             FILE_FILTER,
             PATH_FILTER,
             BATCH_SIZE,
@@ -222,6 +236,35 @@ public class GetFile extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+
+        if (!context.getProperty(ALLOW_MISSING_DIRECTORY).asBoolean()) {
+            final String path = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+            if (path != null && !path.isBlank()) {
+                final File dir = new File(path);
+                if (!dir.exists()) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(DIRECTORY.getDisplayName())
+                            .input(path)
+                            .valid(false)
+                            .explanation("Directory does not exist: " + path)
+                            .build());
+                } else if (!dir.isDirectory()) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(DIRECTORY.getDisplayName())
+                            .input(path)
+                            .valid(false)
+                            .explanation("Path is not a directory: " + path)
+                            .build());
+                }
+            }
+        }
+
+        return results;
     }
 
     @Override
@@ -291,13 +334,13 @@ public class GetFile extends AbstractProcessor {
 
     private Set<File> performListing(final File directory, final FileFilter filter, final boolean recurseSubdirectories) {
         Path p = directory.toPath();
+        if (!directory.exists()) {
+            return new HashSet<>();
+        }
         if (!Files.isWritable(p) || !Files.isReadable(p)) {
             throw new IllegalStateException("Directory '" + directory + "' does not have sufficient permissions (i.e., not writable and readable)");
         }
         final Set<File> queue = new HashSet<>();
-        if (!directory.exists()) {
-            return queue;
-        }
 
         final File[] children = directory.listFiles();
         if (children == null) {
@@ -359,6 +402,16 @@ public class GetFile extends AbstractProcessor {
         final File directory = new File(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
         final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final ComponentLog logger = getLogger();
+
+        if (!directory.exists()) {
+            if (context.getProperty(ALLOW_MISSING_DIRECTORY).asBoolean()) {
+                logger.warn("Input Directory does not exist: {}; yielding", directory);
+                context.yield();
+                return;
+            }
+            throw new ProcessException("Input Directory does not exist: " + directory);
+        }
+
         final FileFilter fileFilter = createFileFilter(context, directory.toPath());
 
         if (fileQueue.size() < 100) {

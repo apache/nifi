@@ -64,6 +64,24 @@ public class TestGetFile {
         assertEquals(absTargetPathStr, absolutePath);
     }
 
+    @Test
+    public void testMissingDirectoryInvalidWhenAllowMissingFalse() {
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, "target/test/data/nonexistent-" + System.currentTimeMillis());
+        runner.setProperty(GetFile.ALLOW_MISSING_DIRECTORY, "false");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testMissingDirectoryValidWhenAllowMissingTrue() {
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, "target/test/data/nonexistent-" + System.currentTimeMillis());
+        runner.setProperty(GetFile.ALLOW_MISSING_DIRECTORY, "true");
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 0);
+    }
+
     private void deleteDirectory(final File directory) {
         if (directory != null && directory.exists()) {
             for (final File file : directory.listFiles()) {
