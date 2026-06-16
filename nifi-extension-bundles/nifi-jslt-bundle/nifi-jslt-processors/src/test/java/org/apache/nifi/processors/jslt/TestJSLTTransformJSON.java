@@ -42,9 +42,9 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationStrategy.ENTIRE_FLOWFILE;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJSLTTransformJSON {
 
@@ -104,7 +104,7 @@ public class TestJSLTTransformJSON {
                 """;
         runner.enqueue(json);
 
-        assertDoesNotThrow(() -> runner.run());
+        runner.run();
         runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
     }
 
@@ -122,7 +122,8 @@ public class TestJSLTTransformJSON {
                 """;
         runner.enqueue(json);
 
-        assertThrows(AssertionFailedError.class, () -> runner.run());
+        final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.run());
+        assertTrue(assertionFailedError.getMessage().contains("'JSLT Transformation' is invalid because Read JSLT Transform failed, reason:"));
     }
 
     @ParameterizedTest
@@ -139,9 +140,7 @@ public class TestJSLTTransformJSON {
                 """;
         runner.enqueue(json);
 
-        // TODO Uncomment after NIFI-15982 is accepted and merged and NIFI uses the next version of nifi-api
-        //  since with that fix then even the text case should pass.
-        assertDoesNotThrow(() -> runner.run());
+        runner.run();
         runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
     }
 
