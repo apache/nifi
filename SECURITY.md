@@ -50,3 +50,9 @@ Apache NiFi follows the [ASF Project Security For Committers](https://www.apache
 * The [Apache NiFi Security Page](https://nifi.apache.org/security.html)
 
 Thank you for helping keep Apache NiFi and our users safe!
+
+## Threat Model
+
+What the project treats as in scope and out of scope, the security
+properties it provides and disclaims, the adversary model, and how
+findings are triaged are documented in the project [Security Model](https://nifi.apache.org/documentation/security/#security-model).
