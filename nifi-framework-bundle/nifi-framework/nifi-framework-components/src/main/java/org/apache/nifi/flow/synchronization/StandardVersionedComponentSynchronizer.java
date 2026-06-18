@@ -63,7 +63,6 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedComponentState;
-import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -4117,45 +4116,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void validateLocalStateTopology(final VersionedProcessGroup proposed) {
-        final int connectedNodeCount = context.getConnectedNodeCount();
-        if (connectedNodeCount <= 0) {
-            return;
-        }
-
-        final int maxSourceNodes = findMaxLocalStateNodeCount(proposed);
-        if (maxSourceNodes > connectedNodeCount) {
-            throw new IllegalStateException(
-                    "Cannot import flow with component state: the flow definition contains local state from %d source node(s) but the destination cluster has only %d connected node(s). "
-                            .formatted(maxSourceNodes, connectedNodeCount)
-                    + "Import into a cluster with at least %d node(s), or export without component state.".formatted(maxSourceNodes));
-        }
-    }
-
-    private int findMaxLocalStateNodeCount(final VersionedProcessGroup group) {
-        int max = 0;
-        for (final VersionedConfigurableExtension ext : getStatefulExtensions(group)) {
-            final VersionedComponentState state = ext.getComponentState();
-            if (state != null && state.getLocalNodeStates() != null) {
-                max = Math.max(max, state.getLocalNodeStates().size());
-            }
-        }
-        if (group.getProcessGroups() != null) {
-            for (final VersionedProcessGroup child : group.getProcessGroups()) {
-                max = Math.max(max, findMaxLocalStateNodeCount(child));
-            }
-        }
-        return max;
-    }
-
-    private List<VersionedConfigurableExtension> getStatefulExtensions(final VersionedProcessGroup group) {
-        final List<VersionedConfigurableExtension> extensions = new ArrayList<>();
-        if (group.getProcessors() != null) {
-            extensions.addAll(group.getProcessors());
-        }
-        if (group.getControllerServices() != null) {
-            extensions.addAll(group.getControllerServices());
-        }
-        return extensions;
+        VersionedComponentStateValidator.validateLocalStateTopology(proposed, context.getConnectedNodeCount());
     }
 
     private void restoreComponentState(final String componentId, final VersionedComponentState componentState, final ComponentNode componentNode) {
