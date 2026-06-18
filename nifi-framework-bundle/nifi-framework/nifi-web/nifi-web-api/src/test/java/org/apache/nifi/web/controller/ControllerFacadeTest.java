@@ -31,15 +31,20 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.search.query.SearchQuery;
 import org.apache.nifi.web.search.query.SearchQueryParser;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
@@ -59,6 +64,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -526,6 +532,61 @@ public class ControllerFacadeTest {
         when(flowController.getProvenanceAuthorizableFactory()).thenReturn(provenanceAuthorizableFactory);
 
         return flowController;
+    }
+
+    @Test
+    public void testGetRemoteProcessGroupStatusReturnsStatusForConnectorManagedRPG() {
+        final String rpgId = "connector-managed-rpg-id";
+        final String groupId = "connector-managed-group-id";
+
+        final ProcessGroup connectorManagedGroup = mock(ProcessGroup.class);
+        when(connectorManagedGroup.getIdentifier()).thenReturn(groupId);
+
+        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(remoteProcessGroup.getProcessGroup()).thenReturn(connectorManagedGroup);
+
+        final RemoteProcessGroupStatus expectedStatus = new RemoteProcessGroupStatus();
+        expectedStatus.setId(rpgId);
+        final ProcessGroupStatus groupStatus = new ProcessGroupStatus();
+        groupStatus.setRemoteProcessGroupStatus(List.of(expectedStatus));
+
+        final UserAwareEventAccess eventAccess = mock(UserAwareEventAccess.class);
+        when(eventAccess.getGroupStatus(eq(groupId), any(NiFiUser.class), eq(1))).thenReturn(groupStatus);
+
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.findRemoteProcessGroupIncludingConnectorManaged(rpgId)).thenReturn(remoteProcessGroup);
+        when(flowController.getEventAccess()).thenReturn(eventAccess);
+
+        final ControllerFacade facade = new ControllerFacade();
+        facade.setFlowController(flowController);
+        facade.setAuthorizer(mock(Authorizer.class));
+
+        final RemoteProcessGroupStatus result = facade.getRemoteProcessGroupStatus(rpgId);
+
+        assertNotNull(result);
+        assertEquals(rpgId, result.getId());
+    }
+
+    @Test
+    public void testGetRemoteProcessGroupStatusHistoryReturnsHistoryForConnectorManagedRPG() {
+        final String rpgId = "connector-managed-rpg-id";
+
+        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(remoteProcessGroup.isAuthorized(any(), any(), any())).thenReturn(true);
+
+        final StatusHistoryDTO expectedHistory = new StatusHistoryDTO();
+
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.findRemoteProcessGroupIncludingConnectorManaged(rpgId)).thenReturn(remoteProcessGroup);
+        when(flowController.getRemoteProcessGroupStatusHistory(rpgId)).thenReturn(expectedHistory);
+
+        final ControllerFacade facade = new ControllerFacade();
+        facade.setFlowController(flowController);
+        facade.setAuthorizer(mock(Authorizer.class));
+
+        final StatusHistoryDTO result = facade.getRemoteProcessGroupStatusHistory(rpgId);
+
+        assertSame(expectedHistory, result);
     }
 }
 

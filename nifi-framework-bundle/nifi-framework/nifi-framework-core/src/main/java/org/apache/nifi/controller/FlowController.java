@@ -1142,6 +1142,32 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return null;
     }
 
+    /**
+     * Finds a RemoteProcessGroup by ID, searching both the root process group hierarchy
+     * and all connector-managed process groups.
+     *
+     * @param remoteProcessGroupId the remote process group identifier
+     * @return the RemoteProcessGroup, or null if not found
+     */
+    public RemoteProcessGroup findRemoteProcessGroupIncludingConnectorManaged(final String remoteProcessGroupId) {
+        final RemoteProcessGroup remoteProcessGroup = flowManager.getRootGroup().findRemoteProcessGroup(remoteProcessGroupId);
+        if (remoteProcessGroup != null) {
+            return remoteProcessGroup;
+        }
+
+        for (final ConnectorNode connector : connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)) {
+            final FrameworkFlowContext flowContext = connector.getActiveFlowContext();
+            if (flowContext != null) {
+                final RemoteProcessGroup managedRemoteProcessGroup = flowContext.getManagedProcessGroup().findRemoteProcessGroup(remoteProcessGroupId);
+                if (managedRemoteProcessGroup != null) {
+                    return managedRemoteProcessGroup;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {
         final String pythonCommand = nifiProperties.getProperty(NiFiProperties.PYTHON_COMMAND);
         if (pythonCommand == null) {

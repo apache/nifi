@@ -414,10 +414,7 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String remoteProcessGroupId) {
-        final ProcessGroup root = getRootGroup();
-        final RemoteProcessGroup remoteProcessGroup = root.findRemoteProcessGroup(remoteProcessGroupId);
-
-        // ensure the output port was found
+        final RemoteProcessGroup remoteProcessGroup = flowController.findRemoteProcessGroupIncludingConnectorManaged(remoteProcessGroupId);
         if (remoteProcessGroup == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate remote process group with id '%s'.", remoteProcessGroupId));
         }
@@ -1017,10 +1014,7 @@ public class ControllerFacade implements Authorizable {
      * @return the status for the specified remote process group
      */
     public RemoteProcessGroupStatus getRemoteProcessGroupStatus(final String remoteProcessGroupId) {
-        final ProcessGroup root = getRootGroup();
-        final RemoteProcessGroup remoteProcessGroup = root.findRemoteProcessGroup(remoteProcessGroupId);
-
-        // ensure the output port was found
+        final RemoteProcessGroup remoteProcessGroup = flowController.findRemoteProcessGroupIncludingConnectorManaged(remoteProcessGroupId);
         if (remoteProcessGroup == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate remote process group with id '%s'.", remoteProcessGroupId));
         }
