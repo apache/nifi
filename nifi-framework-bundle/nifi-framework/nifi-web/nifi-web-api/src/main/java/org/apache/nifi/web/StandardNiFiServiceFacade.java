@@ -79,6 +79,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorMigrationSource;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
@@ -311,6 +312,7 @@ import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
+import org.apache.nifi.web.api.dto.VersionedFlowMigrationSourceDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
@@ -413,6 +415,7 @@ import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
@@ -480,6 +483,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -4195,6 +4199,63 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public VersionedFlowMigrationSourcesEntity getConnectorMigrationSources(final String connectorId) {
+        final List<VersionedFlowMigrationSourceDTO> migrationSources = connectorDAO.getMigrationSources(connectorId).stream()
+                .map(this::createVersionedFlowMigrationSourceDto)
+                .toList();
+
+        final VersionedFlowMigrationSourcesEntity entity = new VersionedFlowMigrationSourcesEntity();
+        entity.setMigrationSources(migrationSources);
+        return entity;
+    }
+
+    @Override
+    public void verifyCanMigrateConnector(final String connectorId, final String processGroupId) {
+        Objects.requireNonNull(processGroupId, "Process Group identifier must be specified to verify a local-source migration");
+        connectorDAO.verifyCanMigrateFromVersionedFlow(connectorId, processGroupId);
+    }
+
+    @Override
+    public ConnectorEntity migrateConnector(final String connectorId, final String processGroupId, final RegisteredFlowSnapshot flowSnapshot,
+            final BooleanSupplier cancellationCheck) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Revision revision = revisionManager.getRevision(connectorId);
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+        final VersionedExternalFlow externalFlow = createVersionedExternalFlow(flowSnapshot);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.migrateFromVersionedFlow(connectorId, processGroupId, externalFlow, cancellationCheck);
+            controllerFacade.save();
+
+            final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(connectorNode);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode connectorNode = connectorDAO.getConnector(snapshot.getComponent().getId(), ConnectorSyncMode.LOCAL_ONLY);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connectorNode);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(connectorNode));
+        final ConnectorStatusDTO statusDto = createConnectorStatusDto(connectorNode);
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, statusDto);
+    }
+
+    private VersionedFlowMigrationSourceDTO createVersionedFlowMigrationSourceDto(final ConnectorMigrationSource migrationSource) {
+        final VersionedFlowMigrationSourceDTO dto = new VersionedFlowMigrationSourceDTO();
+        dto.setProcessGroupId(migrationSource.getProcessGroupId());
+        dto.setProcessGroupName(migrationSource.getProcessGroupName());
+        dto.setParentProcessGroupId(migrationSource.getParentProcessGroupId());
+        dto.setRegistryClientId(migrationSource.getRegistryClientId());
+        dto.setBucketId(migrationSource.getBucketId());
+        dto.setFlowId(migrationSource.getFlowId());
+        dto.setFlowName(migrationSource.getFlowName());
+        dto.setVersion(migrationSource.getVersion());
+        dto.setReadyForMigration(migrationSource.isReadyForMigration());
+        dto.setIneligibilityReasons(migrationSource.getIneligibilityReasons());
+        return dto;
+    }
+
+    @Override
     public void verifyPurgeConnectorFlowFiles(final String connectorId) {
         connectorDAO.verifyPurgeFlowFiles(connectorId);
     }
@@ -6288,7 +6349,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .mapInstanceIdentifiers(false)
                 .mapControllerServiceReferencesToVersionedId(true)
                 .mapFlowRegistryClientId(false)
-                .mapAssetReferences(false)
+                .mapAssetReferences(true)
                 .mapComponentState(includeComponentState)
                 .stateManagerProvider(stateManagerProvider)
                 .localNodeOrdinal(clusterTopologyProvider.getLocalNodeOrdinal())

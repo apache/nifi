@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedConnector;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -259,6 +260,18 @@ public interface ConnectorRepository {
      * @param connectorId the identifier of the connector whose assets should be deleted
      */
     void deleteAssets(String connectorId);
+
+    /**
+     * Deletes only the specified assets from the given connector. Used by the connector migration
+     * rollback path to remove only the assets that the migration attempt created via
+     * {@link org.apache.nifi.components.connector.migration.ConnectorMigrationContext#copyAssetFromSource(String)},
+     * leaving any pre-existing assets intact.
+     *
+     * @param connectorId the identifier of the connector whose assets should be deleted
+     * @param assetIdentifiers the identifiers of the specific assets to delete; may be {@code null} or empty,
+     *                         in which case no assets are deleted
+     */
+    void deleteAssets(String connectorId, Collection<String> assetIdentifiers);
 
     /**
      * Ensures that asset binaries for the given connector are available locally by downloading

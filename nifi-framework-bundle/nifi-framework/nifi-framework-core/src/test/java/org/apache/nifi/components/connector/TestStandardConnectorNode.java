@@ -28,9 +28,12 @@ import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -57,6 +60,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -555,6 +559,75 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testApplyMigratedConfigurationReturnsMergedConfigurationWithoutMutatingActive() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        // Populate the active configuration with pre-migration values.
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("stepA", createStepConfiguration(Map.of("propA", "before-migration")));
+        connectorNode.setConfiguration("stepB", createStepConfiguration(Map.of("propB", "before-migration")));
+        connectorNode.applyUpdate();
+
+        // Build the merged working configuration the way the migration context does: clone the active configuration,
+        // merge new values onto stepA, and replace stepB wholesale.
+        final MutableConnectorConfigurationContext working = connectorNode.getActiveFlowContext().getConfigurationContext().clone();
+        working.setProperties("stepA", createStepConfiguration(Map.of("propA", "after-migration", "propC", "added-by-merge")));
+        working.replaceProperties("stepB", createStepConfiguration(Map.of("propB-renamed", "after-migration")));
+
+        final ConnectorConfiguration merged = connectorNode.applyMigratedConfiguration(working);
+
+        // The returned merged configuration must reflect the applied changes...
+        final NamedStepConfiguration mergedStepA = merged.getNamedStepConfiguration("stepA");
+        assertEquals(new StringLiteralValue("after-migration"), mergedStepA.configuration().getPropertyValues().get("propA"));
+        assertEquals(new StringLiteralValue("added-by-merge"), mergedStepA.configuration().getPropertyValues().get("propC"));
+        final NamedStepConfiguration mergedStepB = merged.getNamedStepConfiguration("stepB");
+        assertEquals(Map.of("propB-renamed", new StringLiteralValue("after-migration")), mergedStepB.configuration().getPropertyValues());
+
+        // ...but the active configuration must still hold the pre-migration values. This is the durability boundary:
+        // the migration outcome is only persisted onto active when commitMigratedConfiguration runs after the state
+        // phase succeeds.
+        assertEquals(Map.of("propA", new StringLiteralValue("before-migration")), activeStepProperties(connectorNode, "stepA"));
+        assertEquals(Map.of("propB", new StringLiteralValue("before-migration")), activeStepProperties(connectorNode, "stepB"));
+    }
+
+    @Test
+    public void testCommitMigratedConfigurationWritesMergedConfigurationOntoActive() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("stepA", createStepConfiguration(Map.of("propA", "before-migration")));
+        connectorNode.setConfiguration("stepB", createStepConfiguration(Map.of("propB", "before-migration")));
+        connectorNode.applyUpdate();
+
+        final MutableConnectorConfigurationContext working = connectorNode.getActiveFlowContext().getConfigurationContext().clone();
+        working.setProperties("stepA", createStepConfiguration(Map.of("propA", "after-migration")));
+        working.replaceProperties("stepB", createStepConfiguration(Map.of("propB-renamed", "after-migration")));
+
+        final ConnectorConfiguration merged = connectorNode.applyMigratedConfiguration(working);
+        connectorNode.commitMigratedConfiguration(merged);
+
+        assertEquals(Map.of("propA", new StringLiteralValue("after-migration")), activeStepProperties(connectorNode, "stepA"));
+        // replaceProperties removed propB and introduced propB-renamed.
+        assertEquals(Map.of("propB-renamed", new StringLiteralValue("after-migration")), activeStepProperties(connectorNode, "stepB"));
+    }
+
+    @Test
+    public void testCommitMigratedConfigurationRejectsNullMergedConfiguration() throws FlowUpdateException {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        assertThrows(NullPointerException.class, () -> connectorNode.commitMigratedConfiguration(null));
+    }
+
+    private static Map<String, ConnectorValueReference> activeStepProperties(final StandardConnectorNode connectorNode, final String stepName) {
+        final ConnectorConfiguration activeConfig = connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final NamedStepConfiguration namedStep = activeConfig.getNamedStepConfiguration(stepName);
+        return namedStep == null ? Map.of() : namedStep.configuration().getPropertyValues();
+    }
+
+    @Test
     public void testDiscardWorkingConfigurationContinuesOnStepFailure() throws FlowUpdateException {
         final FailingStepConnector failingStepConnector = new FailingStepConnector("failingStep");
         final StandardConnectorNode connectorNode = createConnectorNode(failingStepConnector);
@@ -911,6 +984,159 @@ public class TestStandardConnectorNode {
         assertEquals(managedProcessGroup, connectorNode.getProcessGroup());
     }
 
+    @Test
+    public void testMatchesInitialFlowReportsTrueWhenManagedProcessGroupIsNull() {
+        final Connector connector = mock(Connector.class);
+
+        // A Connector whose active flow context exposes no managed Process Group has not been modified from its
+        // initial flow by construction, so matchesInitialFlow() returns true without consulting the initial flow.
+        final FrameworkFlowContext contextWithoutManagedGroup = mock(FrameworkFlowContext.class);
+        flowContextFactory = new FlowContextFactory() {
+            @Override
+            public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
+                return contextWithoutManagedGroup;
+            }
+
+            @Override
+            public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
+                    final MutableConnectorConfigurationContext currentConfiguration, final Bundle bundle) {
+                return contextWithoutManagedGroup;
+            }
+        };
+
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> emptyVersionedGroup());
+
+        assertTrue(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsTrueWhenInitialFlowIsNullAndManagedFlowIsEmpty() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenReturn(null);
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> emptyVersionedGroup());
+
+        assertTrue(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsModifiedWhenInitialFlowIsNullAndManagedFlowHasComponents() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenReturn(null);
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
+            group -> versionedGroupWithProcessors("user-added"));
+
+        assertFalse(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsTrueWhenInitialAndCurrentAreStructurallyEqual() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1")));
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
+            group -> versionedGroupWithProcessors("processor-1"));
+
+        assertTrue(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsModifiedWhenCurrentAddsAComponent() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1")));
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
+            group -> versionedGroupWithProcessors("processor-1", "processor-2-user-added"));
+
+        assertFalse(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsModifiedWhenCurrentRemovesAComponent() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1", "processor-2")));
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
+            group -> versionedGroupWithProcessors("processor-1"));
+
+        assertFalse(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsModifiedWhenMappingThrows() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1")));
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> {
+            throw new RuntimeException("simulated mapping failure");
+        });
+
+        assertFalse(node.matchesInitialFlow());
+    }
+
+    @Test
+    public void testMatchesInitialFlowReportsModifiedWhenInitialFlowLookupThrows() {
+        final Connector connector = mock(Connector.class);
+        when(connector.getInitialFlow()).thenThrow(new RuntimeException("getInitialFlow blew up"));
+        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> emptyVersionedGroup());
+
+        assertFalse(node.matchesInitialFlow());
+    }
+
+    private StandardConnectorNode createConnectorNodeForInitialFlowComparison(final Connector connector,
+            final Function<ProcessGroup, VersionedProcessGroup> currentFlowMapperOverride) {
+        final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
+        final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
+        return new StandardConnectorNode(
+            "test-connector-id",
+            mock(FlowManager.class),
+            extensionManager,
+            mock(ControllerServiceProvider.class),
+            null,
+            createConnectorDetails(connector),
+            "TestConnector",
+            connector.getClass().getCanonicalName(),
+            new StandardConnectorConfigurationContext(assetManager, secretsManager),
+            stateTransition,
+            flowContextFactory,
+            validationTrigger,
+            false,
+            currentFlowMapperOverride);
+    }
+
+    private static VersionedExternalFlow externalFlow(final VersionedProcessGroup contents) {
+        final VersionedExternalFlow flow = new VersionedExternalFlow();
+        flow.setFlowContents(contents);
+        return flow;
+    }
+
+    private static VersionedProcessGroup emptyVersionedGroup() {
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setIdentifier("managed-group");
+        group.setName("Managed");
+        group.setProcessors(new HashSet<>());
+        group.setControllerServices(new HashSet<>());
+        group.setConnections(new HashSet<>());
+        group.setProcessGroups(new HashSet<>());
+        group.setInputPorts(new HashSet<>());
+        group.setOutputPorts(new HashSet<>());
+        group.setLabels(new HashSet<>());
+        group.setFunnels(new HashSet<>());
+        group.setRemoteProcessGroups(new HashSet<>());
+        return group;
+    }
+
+    private static VersionedProcessGroup versionedGroupWithProcessors(final String... processorIds) {
+        final VersionedProcessGroup group = emptyVersionedGroup();
+        final Set<VersionedProcessor> processors = new HashSet<>();
+        for (final String id : processorIds) {
+            final VersionedProcessor processor = new VersionedProcessor();
+            processor.setIdentifier(id);
+            processor.setInstanceIdentifier(id + "-instance");
+            processor.setName(id);
+            processor.setType("org.apache.nifi.processors.test.TestProcessor");
+            processor.setBundle(new Bundle("org.apache.nifi", "nifi-test-nar", "2.10.0-SNAPSHOT"));
+            processors.add(processor);
+        }
+        group.setProcessors(processors);
+        return group;
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
@@ -931,6 +1157,7 @@ public class TestStandardConnectorNode {
             "test-connector-id",
             mock(FlowManager.class),
             extensionManager,
+            mock(ControllerServiceProvider.class),
             null,
             createConnectorDetails(connector),
             "TestConnector",

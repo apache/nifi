@@ -372,6 +372,29 @@ public class ConnectorAuditor extends NiFiAuditor {
         }
     }
 
+    @Around("within(org.apache.nifi.web.dao.ConnectorDAO+) && "
+            + "execution(void migrateFromVersionedFlow(java.lang.String, java.lang.String, org.apache.nifi.flow.VersionedExternalFlow, java.util.function.BooleanSupplier)) && "
+            + "args(connectorId, processGroupId, sourceFlow, cancellationCheck) && "
+            + "target(connectorDAO)")
+    public void migrateConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final String processGroupId,
+                                       final Object sourceFlow, final Object cancellationCheck, final ConnectorDAO connectorDAO) throws Throwable {
+        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
+
+        proceedingJoinPoint.proceed();
+
+        if (isAuditable()) {
+            final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
+            actionDetails.setName("Connector migrated from Versioned Process Group");
+            actionDetails.setPreviousValue(null);
+            actionDetails.setValue(processGroupId == null ? "Uploaded payload" : processGroupId);
+
+            final Action action = generateAuditRecord(connector, Operation.Configure, actionDetails);
+            if (action != null) {
+                saveAction(action, logger);
+            }
+        }
+    }
+
     /**
      * Generates an audit record for a connector.
      *

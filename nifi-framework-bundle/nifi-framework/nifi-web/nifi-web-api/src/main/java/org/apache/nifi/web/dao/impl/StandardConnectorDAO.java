@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.ConnectorFlowSnapshotProvider;
+import org.apache.nifi.components.connector.ConnectorMigrationManager;
+import org.apache.nifi.components.connector.ConnectorMigrationSource;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
@@ -29,11 +33,14 @@ import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StandardConnectorMigrationManager;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.web.NiFiCoreException;
+import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
@@ -44,6 +51,7 @@ import org.apache.nifi.web.dao.ConnectorDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
@@ -55,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 @Repository
@@ -63,10 +72,29 @@ public class StandardConnectorDAO implements ConnectorDAO {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorDAO.class);
 
     private FlowController flowController;
+    private NiFiServiceFacade serviceFacade;
+    private ConnectorMigrationManager connectorMigrationManager;
 
     @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    /**
+     * Injected with {@link Lazy @Lazy} to break the circular dependency between this DAO and
+     * {@link NiFiServiceFacade}. The service facade is used solely as a {@link ConnectorFlowSnapshotProvider}
+     * for the migration manager constructed in {@link #initialize()}; the proxy is invoked lazily at
+     * migration time, so the real service-facade bean is not required at DAO construction.
+     */
+    @Autowired
+    public void setServiceFacade(@Lazy final NiFiServiceFacade serviceFacade) {
+        this.serviceFacade = serviceFacade;
+    }
+
+    @PostConstruct
+    public void initialize() {
+        final ConnectorFlowSnapshotProvider snapshotProvider = serviceFacade::getCurrentFlowSnapshotByGroupId;
+        this.connectorMigrationManager = new StandardConnectorMigrationManager(flowController, snapshotProvider);
     }
 
     private FlowManager getFlowManager() {
@@ -328,6 +356,29 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public Optional<Asset> getAsset(final String assetId) {
         return getConnectorRepository().getAsset(assetId);
+    }
+
+    @Override
+    public List<ConnectorMigrationSource> getMigrationSources(final String id) {
+        requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
+        return connectorMigrationManager.listMigrationSources(id);
+    }
+
+    @Override
+    public void verifyCanMigrateFromVersionedFlow(final String connectorId, final String processGroupId) {
+        requireConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        connectorMigrationManager.verifyEligibility(connectorId, processGroupId);
+    }
+
+    @Override
+    public void migrateFromVersionedFlow(final String connectorId, final String processGroupId, final VersionedExternalFlow sourceFlow,
+            final BooleanSupplier cancellationCheck) {
+        requireConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        try {
+            connectorMigrationManager.migrateFromVersionedFlow(connectorId, processGroupId, sourceFlow, cancellationCheck);
+        } catch (final Exception e) {
+            throw new NiFiCoreException("Failed to migrate Connector from Versioned Flow: " + e.getMessage(), e);
+        }
     }
 }
 

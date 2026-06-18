@@ -167,6 +167,7 @@ import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
@@ -181,6 +182,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -310,6 +312,12 @@ public interface NiFiServiceFacade {
     List<AssetEntity> getConnectorAssets(String connectorId);
 
     Optional<Asset> getConnectorAsset(String assetId);
+
+    VersionedFlowMigrationSourcesEntity getConnectorMigrationSources(String connectorId);
+
+    void verifyCanMigrateConnector(String connectorId, String processGroupId);
+
+    ConnectorEntity migrateConnector(String connectorId, String processGroupId, RegisteredFlowSnapshot flowSnapshot, BooleanSupplier cancellationCheck);
 
     /**
      * Verifies that the connector is in a state where FlowFiles can be purged.
