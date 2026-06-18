@@ -27,6 +27,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.processors.producer.wrapper.InjectMetadataRecord;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
+import org.apache.nifi.kafka.shared.property.HeaderFormat;
 import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -36,6 +37,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -185,5 +187,37 @@ class ConsumeKafkaWrapperRecordIT extends AbstractConsumeKafkaIT {
         assertEquals(flowFiles.size(), provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent.getEventType());
+    }
+
+    @Test
+    void testWrapperRecordHexHeaderEncoding()
+            throws InterruptedException, ExecutionException, IOException {
+        final String topic = UUID.randomUUID().toString();
+        final String groupId = topic.substring(0, topic.indexOf("-"));
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.RECORD);
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, AutoOffsetReset.EARLIEST);
+        runner.setProperty(ConsumeKafka.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER);
+        runner.setProperty(ConsumeKafka.KEY_FORMAT, KeyFormat.STRING);
+        runner.setProperty(ConsumeKafka.HEADER_FORMAT, HeaderFormat.HEX);
+
+        runner.run(1, false, true);
+        final String message = new String(IOUtils.toByteArray(Objects.requireNonNull(
+                getClass().getClassLoader().getResource(TEST_RESOURCE))), StandardCharsets.UTF_8);
+        final byte[] binaryValue = new byte[] {0x01, 0x02, (byte) 0xab, (byte) 0xff};
+        produceOne(topic, 0, MESSAGE_KEY, message, Collections.singletonList(
+                new RecordHeader("binary", binaryValue)));
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
+            runner.run(1, false, false);
+        }
+        runner.run(1, true, false);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
+        final ArrayNode arrayNode = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
+        final ObjectNode wrapper = assertInstanceOf(ObjectNode.class, arrayNode.get(0));
+        final ObjectNode headers = assertInstanceOf(ObjectNode.class, wrapper.get("headers"));
+        assertEquals("0102abff", headers.get("binary").asText());
     }
 }

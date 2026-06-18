@@ -72,7 +72,7 @@ class RecordStreamKafkaMessageConverterTest {
         final RecordStreamKafkaMessageConverter converter = new RecordStreamKafkaMessageConverter(
                 readerFactory,
                 writerFactory,
-                StandardCharsets.UTF_8,
+                value -> new String(value, StandardCharsets.UTF_8),
                 Pattern.compile(".*"),
                 KeyEncoding.UTF8,
                 true,

@@ -24,6 +24,7 @@ import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.kafka.shared.property.HeaderFormat;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -162,6 +163,37 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         flowFile.assertAttributeExists("uuid"); // Core attribute exists
         flowFile.assertAttributeNotEquals("uuid", "test-uuid-value"); // But not with Kafka header value
         flowFile.assertAttributeNotExists("custom"); // Non-core attributes should not exist without prefix
+    }
+
+    @Test
+    void testProcessingStrategyFlowFileHexHeaderEncoding() throws InterruptedException, ExecutionException {
+        final String topic = UUID.randomUUID().toString();
+        final String groupId = topic.substring(0, topic.indexOf("-"));
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
+        runner.setProperty(ConsumeKafka.HEADER_NAME_PATTERN, ".*");
+        runner.setProperty(ConsumeKafka.HEADER_NAME_PREFIX, "kafka.header.");
+        runner.setProperty(ConsumeKafka.HEADER_FORMAT, HeaderFormat.HEX.getValue());
+
+        runner.run(1, false, true);
+
+        final byte[] binaryValue = new byte[] {0x01, 0x02, (byte) 0xab, (byte) 0xff};
+        final List<Header> headers = List.of(new RecordHeader("binary", binaryValue));
+        produceOne(topic, 0, null, RECORD_VALUE, headers);
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
+            runner.run(1, false, false);
+        }
+
+        runner.run(1, true, false);
+
+        final Iterator<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).iterator();
+        assertTrue(flowFiles.hasNext());
+
+        final MockFlowFile flowFile = flowFiles.next();
+        flowFile.assertContentEquals(RECORD_VALUE);
+        flowFile.assertAttributeEquals("kafka.header.binary", "0102abff");
     }
 
     /**

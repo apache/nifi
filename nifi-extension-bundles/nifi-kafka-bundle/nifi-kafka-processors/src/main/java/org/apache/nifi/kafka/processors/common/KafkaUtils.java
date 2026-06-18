@@ -21,7 +21,6 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,14 +71,14 @@ public class KafkaUtils {
     }
 
     public static Map<String, String> toAttributes(final ByteRecord consumerRecord, final KeyEncoding keyEncoding,
-                                                   final Pattern headerNamePattern, final Charset headerEncoding,
+                                                   final Pattern headerNamePattern, final HeaderValueConverter headerValueConverter,
                                                    final boolean commitOffsets) {
-        return toAttributes(consumerRecord, keyEncoding, headerNamePattern, null, headerEncoding, commitOffsets);
+        return toAttributes(consumerRecord, keyEncoding, headerNamePattern, null, headerValueConverter, commitOffsets);
     }
 
     public static Map<String, String> toAttributes(final ByteRecord consumerRecord, final KeyEncoding keyEncoding,
                                                    final Pattern headerNamePattern, final String headerNamePrefix,
-                                                   final Charset headerEncoding, final boolean commitOffsets) {
+                                                   final HeaderValueConverter headerValueConverter, final boolean commitOffsets) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(KafkaFlowFileAttribute.KAFKA_TOPIC, consumerRecord.getTopic());
         attributes.put(KafkaFlowFileAttribute.KAFKA_PARTITION, Long.toString(consumerRecord.getPartition()));
@@ -87,10 +86,10 @@ public class KafkaUtils {
         attributes.put(KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
         consumerRecord.getHeaders().stream()
                 .filter(h -> h.key().equals(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET)).findFirst()
-                .ifPresent(h -> attributes.put(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, new String(h.value(), headerEncoding)));
+                .ifPresent(h -> attributes.put(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, new String(h.value(), StandardCharsets.UTF_8)));
         consumerRecord.getHeaders().stream()
                 .filter(h -> h.key().equals(KafkaFlowFileAttribute.KAFKA_COUNT)).findFirst()
-                .ifPresent(h -> attributes.put(KafkaFlowFileAttribute.KAFKA_COUNT, new String(h.value(), headerEncoding)));
+                .ifPresent(h -> attributes.put(KafkaFlowFileAttribute.KAFKA_COUNT, new String(h.value(), StandardCharsets.UTF_8)));
         attributes.put(KafkaFlowFileAttribute.KAFKA_TIMESTAMP, Long.toString(consumerRecord.getTimestamp()));
         Optional.ofNullable(toKeyString(consumerRecord.getKey().orElse(null), keyEncoding))
                 .ifPresent(keyAttribute -> attributes.put(KafkaFlowFileAttribute.KAFKA_KEY, keyAttribute));
@@ -102,7 +101,7 @@ public class KafkaUtils {
             for (final RecordHeader header : headers) {
                 final String name = header.key();
                 if (headerNamePattern.matcher(name).matches()) {
-                    final String value = new String(header.value(), headerEncoding);
+                    final String value = headerValueConverter.convert(header.value());
                     final String attributeName = headerNamePrefix != null ? headerNamePrefix + name : name;
                     attributes.put(attributeName, value);
                 }

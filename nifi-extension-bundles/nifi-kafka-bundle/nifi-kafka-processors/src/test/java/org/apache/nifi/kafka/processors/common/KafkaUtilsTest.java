@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class KafkaUtilsTest {
 
@@ -36,6 +37,8 @@ class KafkaUtilsTest {
     private static final int TEST_PARTITION = 0;
     private static final long TEST_OFFSET = 100L;
     private static final long TEST_TIMESTAMP = System.currentTimeMillis();
+
+    private static final HeaderValueConverter STRING_CONVERTER = value -> new String(value, StandardCharsets.UTF_8);
 
     @Test
     void testToAttributesWithoutPrefix() {
@@ -48,7 +51,7 @@ class KafkaUtilsTest {
         final Pattern headerPattern = Pattern.compile(".*");
 
         final Map<String, String> attributes = KafkaUtils.toAttributes(
-                record, KeyEncoding.UTF8, headerPattern, StandardCharsets.UTF_8, true);
+                record, KeyEncoding.UTF8, headerPattern, STRING_CONVERTER, true);
 
         // Verify standard Kafka attributes
         assertEquals(TEST_TOPIC, attributes.get(KafkaFlowFileAttribute.KAFKA_TOPIC));
@@ -73,7 +76,7 @@ class KafkaUtilsTest {
         final String prefix = "kafka.header.";
 
         final Map<String, String> attributes = KafkaUtils.toAttributes(
-                record, KeyEncoding.UTF8, headerPattern, prefix, StandardCharsets.UTF_8, true);
+                record, KeyEncoding.UTF8, headerPattern, prefix, STRING_CONVERTER, true);
 
         // Verify standard Kafka attributes are NOT prefixed
         assertEquals(TEST_TOPIC, attributes.get(KafkaFlowFileAttribute.KAFKA_TOPIC));
@@ -105,7 +108,7 @@ class KafkaUtilsTest {
         final String prefix = "msg.";
 
         final Map<String, String> attributes = KafkaUtils.toAttributes(
-                record, KeyEncoding.UTF8, headerPattern, prefix, StandardCharsets.UTF_8, true);
+                record, KeyEncoding.UTF8, headerPattern, prefix, STRING_CONVERTER, true);
 
         // Verify matching headers are added with prefix
         assertEquals("test-uuid", attributes.get("msg.uuid"));
@@ -130,7 +133,7 @@ class KafkaUtilsTest {
 
         // Explicitly pass null for prefix
         final Map<String, String> attributes = KafkaUtils.toAttributes(
-                record, KeyEncoding.UTF8, headerPattern, null, StandardCharsets.UTF_8, true);
+                record, KeyEncoding.UTF8, headerPattern, null, STRING_CONVERTER, true);
 
         // Verify header is added without prefix when prefix is null
         assertEquals("value1", attributes.get("header1"));
@@ -148,10 +151,33 @@ class KafkaUtilsTest {
 
         // Pass empty string for prefix
         final Map<String, String> attributes = KafkaUtils.toAttributes(
-                record, KeyEncoding.UTF8, headerPattern, "", StandardCharsets.UTF_8, true);
+                record, KeyEncoding.UTF8, headerPattern, "", STRING_CONVERTER, true);
 
         // Verify header is added with empty prefix (effectively no prefix)
         assertEquals("value1", attributes.get("header1"));
+    }
+
+    @Test
+    void testToKeyStringUtf8() {
+        final byte[] key = "my-key".getBytes(StandardCharsets.UTF_8);
+        assertEquals("my-key", KafkaUtils.toKeyString(key, KeyEncoding.UTF8));
+    }
+
+    @Test
+    void testToKeyStringHexIsLowercase() {
+        final byte[] key = new byte[] {0x01, 0x02, (byte) 0xab, (byte) 0xff};
+        assertEquals("0102abff", KafkaUtils.toKeyString(key, KeyEncoding.HEX));
+    }
+
+    @Test
+    void testToKeyStringDoNotAdd() {
+        final byte[] key = "my-key".getBytes(StandardCharsets.UTF_8);
+        assertNull(KafkaUtils.toKeyString(key, KeyEncoding.DO_NOT_ADD));
+    }
+
+    @Test
+    void testToKeyStringNullKey() {
+        assertNull(KafkaUtils.toKeyString(null, KeyEncoding.UTF8));
     }
 
     private ByteRecord createByteRecord(final List<RecordHeader> headers) {

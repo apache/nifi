@@ -18,6 +18,7 @@ package org.apache.nifi.kafka.processors.consumer.convert;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.processors.ConsumeKafka;
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
@@ -25,13 +26,12 @@ import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.processor.ProcessSession;
 
-import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverter {
-    private final Charset headerEncoding;
+    private final HeaderValueConverter headerValueConverter;
     private final Pattern headerNamePattern;
     private final String headerNamePrefix;
     private final KeyEncoding keyEncoding;
@@ -40,14 +40,14 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
     private final String brokerUri;
 
     public FlowFileStreamKafkaMessageConverter(
-            final Charset headerEncoding,
+            final HeaderValueConverter headerValueConverter,
             final Pattern headerNamePattern,
             final String headerNamePrefix,
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
             final String brokerUri) {
-        this.headerEncoding = headerEncoding;
+        this.headerValueConverter = headerValueConverter;
         this.headerNamePattern = headerNamePattern;
         this.headerNamePrefix = headerNamePrefix;
         this.keyEncoding = keyEncoding;
@@ -71,7 +71,7 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
             }
 
             final Map<String, String> attributes = KafkaUtils.toAttributes(
-                    consumerRecord, keyEncoding, headerNamePattern, headerNamePrefix, headerEncoding, commitOffsets);
+                    consumerRecord, keyEncoding, headerNamePattern, headerNamePrefix, headerValueConverter, commitOffsets);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + consumerRecord.getTopic());

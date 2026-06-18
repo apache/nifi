@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
@@ -50,6 +51,7 @@ import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
 import org.apache.nifi.kafka.service.api.consumer.SessionContext;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.kafka.shared.property.HeaderFormat;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
@@ -75,6 +77,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +97,9 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
         + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
         + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
         + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two Kafka messages will be placed into the same FlowFile if they "
-        + "have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property.")
+        + "have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property. "
+        + "Kafka Record Header values selected for output are represented according to the Header Format property: as text decoded with the configured Header Encoding "
+        + "character set, or as a lowercase hexadecimal string for binary-safe output.")
 @Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
 @WritesAttributes({
         @WritesAttribute(attribute = "record.count", description = "The number of records received"),
@@ -194,12 +199,21 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor HEADER_FORMAT = new PropertyDescriptor.Builder()
+            .name("Header Format")
+            .description("Specifies how Kafka Record Header values are represented when written as FlowFile attributes or record fields")
+            .required(true)
+            .defaultValue(HeaderFormat.STRING)
+            .allowableValues(HeaderFormat.class)
+            .build();
+
     static final PropertyDescriptor HEADER_ENCODING = new PropertyDescriptor.Builder()
             .name("Header Encoding")
             .description("Character encoding applied when reading Kafka Record Header values and writing FlowFile attributes")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(StandardCharsets.UTF_8.name())
             .required(true)
+            .dependsOn(HEADER_FORMAT, HeaderFormat.STRING)
             .build();
 
     static final PropertyDescriptor HEADER_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -322,6 +336,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             MAX_UNCOMMITTED_SIZE,
             MAX_UNCOMMITTED_TIME,
             HEADER_NAME_PATTERN,
+            HEADER_FORMAT,
             HEADER_ENCODING,
             PROCESSING_STRATEGY,
             HEADER_NAME_PREFIX,
@@ -338,7 +353,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private static final Set<Relationship> SUCCESS_RELATIONSHIP = Set.of(SUCCESS);
     private static final Set<Relationship> SUCCESS_FAILURE_RELATIONSHIPS = Set.of(SUCCESS, PARSE_FAILURE);
 
-    private volatile Charset headerEncoding;
+    private volatile HeaderValueConverter headerValueConverter;
     private volatile Pattern headerNamePattern;
     private volatile String headerNamePrefix;
     private volatile ProcessingStrategy processingStrategy;
@@ -373,10 +388,21 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
     }
 
+    private static HeaderValueConverter createHeaderValueConverter(final ProcessContext context) {
+        final HeaderFormat headerFormat = context.getProperty(HEADER_FORMAT).asAllowableValue(HeaderFormat.class);
+        return switch (headerFormat) {
+            case STRING -> {
+                final Charset charset = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
+                yield value -> new String(value, charset);
+            }
+            case HEX -> value -> HexFormat.of().formatHex(value);
+        };
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         pollingContext = createPollingContext(context);
-        headerEncoding = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
+        headerValueConverter = createHeaderValueConverter(context);
 
         final String headerNamePatternProperty = context.getProperty(HEADER_NAME_PATTERN).getValue();
         if (StringUtils.isNotBlank(headerNamePatternProperty)) {
@@ -634,7 +660,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         for (final ByteRecord byteRecord : records) {
             recordIndex++;
             final Map<String, String> recordAttributes = KafkaUtils.toAttributes(
-                byteRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
+                byteRecord, keyEncoding, headerNamePattern, headerValueConverter, commitOffsets);
 
             try (final InputStream inputStream = new ByteArrayInputStream(byteRecord.getValue());
                  final RecordReader reader = readerFactory.createRecordReader(recordAttributes, inputStream, byteRecord.getValue().length, verificationLogger)) {
@@ -765,7 +791,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         final byte[] demarcator = demarcatorValue.getBytes(StandardCharsets.UTF_8);
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
-        return new ByteRecordBundler(demarcator, separateByKey, keyEncoding, headerNamePattern, headerEncoding, commitOffsets).bundle(consumerRecords);
+        return new ByteRecordBundler(demarcator, separateByKey, keyEncoding, headerNamePattern, headerValueConverter, commitOffsets).bundle(consumerRecords);
     }
 
     private void processInputRecords(final ProcessContext context, final ProcessSession session, final OffsetTracker offsetTracker, final Iterator<ByteRecord> consumerRecords) {
@@ -774,13 +800,13 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         final KafkaMessageConverter converter;
         if (outputStrategy == OutputStrategy.USE_VALUE) {
-            converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory, headerEncoding, headerNamePattern,
+            converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory, headerValueConverter, headerNamePattern,
                     keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
         } else if (outputStrategy == OutputStrategy.INJECT_OFFSET) {
             converter = new InjectOffsetRecordStreamKafkaMessageConverter(
                     readerFactory,
                     writerFactory,
-                    headerEncoding,
+                    headerValueConverter,
                     headerNamePattern,
                     keyEncoding,
                     commitOffsets,
@@ -793,7 +819,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 ? context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class) : null;
 
             converter = new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
-                headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy);
+                headerValueConverter, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy);
         }
 
         converter.toFlowFiles(session, consumerRecords);
@@ -801,7 +827,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private void processInputFlowFile(final ProcessSession session, final OffsetTracker offsetTracker, final Iterator<ByteRecord> consumerRecords) {
         final KafkaMessageConverter converter = new FlowFileStreamKafkaMessageConverter(
-            headerEncoding, headerNamePattern, headerNamePrefix, keyEncoding, commitOffsets, offsetTracker, brokerUri);
+            headerValueConverter, headerNamePattern, headerNamePrefix, keyEncoding, commitOffsets, offsetTracker, brokerUri);
         converter.toFlowFiles(session, consumerRecords);
     }
 
