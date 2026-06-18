@@ -4044,6 +4044,59 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public StatusHistoryEntity getConnectorProcessorStatusHistory(final String connectorId, final String processorId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        if (managedGroup.findProcessor(processorId) == null) {
+            throw new ResourceNotFoundException("Unable to find processor with id '%s' within connector '%s'.".formatted(processorId, connectorId));
+        }
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connectorNode);
+        final StatusHistoryDTO dto = controllerFacade.getConnectorProcessorStatusHistory(processorId);
+        return entityFactory.createStatusHistoryEntity(dto, permissions);
+    }
+
+    @Override
+    public StatusHistoryEntity getConnectorConnectionStatusHistory(final String connectorId, final String connectionId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        if (managedGroup.findConnection(connectionId) == null) {
+            throw new ResourceNotFoundException("Unable to find connection with id '%s' within connector '%s'.".formatted(connectionId, connectorId));
+        }
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connectorNode);
+        final StatusHistoryDTO dto = controllerFacade.getConnectorConnectionStatusHistory(connectionId);
+        return entityFactory.createStatusHistoryEntity(dto, permissions);
+    }
+
+    @Override
+    public StatusHistoryEntity getConnectorProcessGroupStatusHistory(final String connectorId, final String processGroupId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroup processGroup = managedGroup.getIdentifier().equals(processGroupId) ? managedGroup : managedGroup.findProcessGroup(processGroupId);
+        if (processGroup == null) {
+            throw new ResourceNotFoundException("Unable to find process group with id '%s' within connector '%s'.".formatted(processGroupId, connectorId));
+        }
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connectorNode);
+        final StatusHistoryDTO dto = controllerFacade.getConnectorProcessGroupStatusHistory(processGroupId);
+        return entityFactory.createStatusHistoryEntity(dto, permissions);
+    }
+
+    @Override
+    public StatusHistoryEntity getConnectorRemoteProcessGroupStatusHistory(final String connectorId, final String remoteProcessGroupId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        if (managedGroup.findRemoteProcessGroup(remoteProcessGroupId) == null) {
+            throw new ResourceNotFoundException("Unable to find remote process group with id '%s' within connector '%s'.".formatted(remoteProcessGroupId, connectorId));
+        }
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connectorNode);
+        final StatusHistoryDTO dto = controllerFacade.getConnectorRemoteProcessGroupStatusHistory(remoteProcessGroupId);
+        return entityFactory.createStatusHistoryEntity(dto, permissions);
+    }
+
+    @Override
     public Set<ControllerServiceEntity> getConnectorControllerServices(final String connectorId, final String processGroupId,
             final boolean includeAncestorGroups, final boolean includeDescendantGroups, final boolean includeReferencingComponents) {
         final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);

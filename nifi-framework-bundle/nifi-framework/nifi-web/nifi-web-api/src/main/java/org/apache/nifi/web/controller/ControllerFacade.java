@@ -434,6 +434,54 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Returns the status history for a Processor inside a Connector's managed flow. The component is resolved and
+     * authorized at the Connector level before this method is invoked, so the status history is read directly from the
+     * repository by id without consulting the root flow hierarchy or applying per-component authorization masking.
+     *
+     * @param processorId processor id
+     * @return status history
+     */
+    public StatusHistoryDTO getConnectorProcessorStatusHistory(final String processorId) {
+        return flowController.getProcessorStatusHistory(processorId, true);
+    }
+
+    /**
+     * Returns the status history for a Connection inside a Connector's managed flow. The component is resolved and
+     * authorized at the Connector level before this method is invoked, so the status history is read directly from the
+     * repository by id without consulting the root flow hierarchy or applying per-component authorization masking.
+     *
+     * @param connectionId connection id
+     * @return status history
+     */
+    public StatusHistoryDTO getConnectorConnectionStatusHistory(final String connectionId) {
+        return flowController.getConnectionStatusHistory(connectionId);
+    }
+
+    /**
+     * Returns the status history for a Process Group inside a Connector's managed flow. The component is resolved and
+     * authorized at the Connector level before this method is invoked, so the status history is read directly from the
+     * repository by id without consulting the root flow hierarchy or applying per-component authorization masking.
+     *
+     * @param processGroupId process group id
+     * @return status history
+     */
+    public StatusHistoryDTO getConnectorProcessGroupStatusHistory(final String processGroupId) {
+        return flowController.getProcessGroupStatusHistory(processGroupId);
+    }
+
+    /**
+     * Returns the status history for a Remote Process Group inside a Connector's managed flow. The component is resolved
+     * and authorized at the Connector level before this method is invoked, so the status history is read directly from
+     * the repository by id without consulting the root flow hierarchy or applying per-component authorization masking.
+     *
+     * @param remoteProcessGroupId remote process group id
+     * @return status history
+     */
+    public StatusHistoryDTO getConnectorRemoteProcessGroupStatusHistory(final String remoteProcessGroupId) {
+        return flowController.getRemoteProcessGroupStatusHistory(remoteProcessGroupId);
+    }
+
+    /**
      * Get the node id of this controller.
      *
      * @return node identifier

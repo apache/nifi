@@ -36,6 +36,7 @@ import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 
 import java.io.File;
@@ -524,6 +525,82 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
             }
 
             return getRequestBuilder(target).get(ProcessGroupStatusEntity.class);
+        });
+    }
+
+    @Override
+    public StatusHistoryEntity getProcessorStatusHistory(final String connectorId, final String processorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving processor status history for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/processors/{processorId}/status/history")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("processorId", processorId);
+
+            return getRequestBuilder(target).get(StatusHistoryEntity.class);
+        });
+    }
+
+    @Override
+    public StatusHistoryEntity getConnectionStatusHistory(final String connectorId, final String connectionId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(connectionId)) {
+            throw new IllegalArgumentException("Connection id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving connection status history for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/connections/{connectionId}/status/history")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("connectionId", connectionId);
+
+            return getRequestBuilder(target).get(StatusHistoryEntity.class);
+        });
+    }
+
+    @Override
+    public StatusHistoryEntity getProcessGroupStatusHistory(final String connectorId, final String processGroupId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving process group status history for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/process-groups/{processGroupId}/status/history")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("processGroupId", processGroupId);
+
+            return getRequestBuilder(target).get(StatusHistoryEntity.class);
+        });
+    }
+
+    @Override
+    public StatusHistoryEntity getRemoteProcessGroupStatusHistory(final String connectorId, final String remoteProcessGroupId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(remoteProcessGroupId)) {
+            throw new IllegalArgumentException("Remote process group id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving remote process group status history for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/remote-process-groups/{remoteProcessGroupId}/status/history")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("remoteProcessGroupId", remoteProcessGroupId);
+
+            return getRequestBuilder(target).get(StatusHistoryEntity.class);
         });
     }
 

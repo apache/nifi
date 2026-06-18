@@ -242,6 +242,46 @@ public interface NiFiServiceFacade {
 
     ProcessGroupStatusEntity getConnectorProcessGroupStatus(String id, Boolean recursive);
 
+    /**
+     * Gets the status history for a Processor inside the Connector's managed flow. The status history is available
+     * regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param processorId the processor id within the connector's managed flow
+     * @return the status history
+     */
+    StatusHistoryEntity getConnectorProcessorStatusHistory(String connectorId, String processorId);
+
+    /**
+     * Gets the status history for a Connection inside the Connector's managed flow. The status history is available
+     * regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param connectionId the connection id within the connector's managed flow
+     * @return the status history
+     */
+    StatusHistoryEntity getConnectorConnectionStatusHistory(String connectorId, String connectionId);
+
+    /**
+     * Gets the status history for a Process Group inside the Connector's managed flow. The status history is available
+     * regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param processGroupId the process group id within the connector's managed flow
+     * @return the status history
+     */
+    StatusHistoryEntity getConnectorProcessGroupStatusHistory(String connectorId, String processGroupId);
+
+    /**
+     * Gets the status history for a Remote Process Group inside the Connector's managed flow. The status history is
+     * available regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param remoteProcessGroupId the remote process group id within the connector's managed flow
+     * @return the status history
+     */
+    StatusHistoryEntity getConnectorRemoteProcessGroupStatusHistory(String connectorId, String remoteProcessGroupId);
+
     Set<ControllerServiceEntity> getConnectorControllerServices(String connectorId, String processGroupId, boolean includeAncestorGroups,
                                                                 boolean includeDescendantGroups, boolean includeReferencingComponents);
 
