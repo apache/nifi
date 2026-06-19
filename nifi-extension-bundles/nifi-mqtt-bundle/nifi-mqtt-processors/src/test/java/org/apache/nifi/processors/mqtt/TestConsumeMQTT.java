@@ -532,7 +532,7 @@ public class TestConsumeMQTT {
         testRunner.run(1, false, false);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        assertEquals(flowFiles.size(), 1);
+        assertEquals(1, flowFiles.size());
         assertEquals("{\"name\":\"Apache NiFi\"}\\n"
                         + THIS_IS_NOT_JSON + "\\n"
                         + "{\"name\":\"Apache NiFi\"}",

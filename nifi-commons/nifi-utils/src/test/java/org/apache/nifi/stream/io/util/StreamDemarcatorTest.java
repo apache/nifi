@@ -221,7 +221,7 @@ public class StreamDemarcatorTest {
         ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
         StreamDemarcator scanner = new StreamDemarcator(is, null, 20);
         byte[] b = scanner.nextToken();
-        assertArrayEquals(b, new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
+        assertArrayEquals(new byte[] {0, 0, 0, 0, -1, 0, 0, 0}, b);
     }
 
     @Test
@@ -229,15 +229,15 @@ public class StreamDemarcatorTest {
         ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
         StreamDemarcator scanner = new StreamDemarcator(is, "water".getBytes(StandardCharsets.UTF_8), 20, 1024);
         byte[] b = scanner.nextToken();
-        assertArrayEquals(b, new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
+        assertArrayEquals(new byte[] {0, 0, 0, 0, -1, 0, 0, 0}, b);
     }
 
     @Test
     public void verifyScannerHandlesNegativeOneByteDelimiter() throws IOException {
         ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {0, 0, 0, 0, -1, 0, 0, 0});
         StreamDemarcator scanner = new StreamDemarcator(is, new byte[] {-1}, 20, 1024);
-        assertArrayEquals(scanner.nextToken(), new byte[] {0, 0, 0, 0});
-        assertArrayEquals(scanner.nextToken(), new byte[] {0, 0, 0});
+        assertArrayEquals(new byte[] {0, 0, 0, 0}, scanner.nextToken());
+        assertArrayEquals(new byte[] {0, 0, 0}, scanner.nextToken());
     }
 
     @Test
@@ -266,8 +266,8 @@ public class StreamDemarcatorTest {
         assertNotNull(first);
         assertNotNull(second);
 
-        assertArrayEquals(first, new byte[] {'Y', 'e', 's'});
-        assertArrayEquals(second, new byte[] {'N', 'o'});
+        assertArrayEquals(new byte[] {'Y', 'e', 's'}, first);
+        assertArrayEquals(new byte[] {'N', 'o'}, second);
     }
 
     @Test
@@ -316,9 +316,9 @@ public class StreamDemarcatorTest {
         assertNotNull(second);
         assertNotNull(third);
 
-        assertArrayEquals(first, new byte[] {'1', '2', '3'});
-        assertArrayEquals(second, new byte[] {'4', '5', '6'});
-        assertArrayEquals(third, new byte[] {'7', '8', '9'});
+        assertArrayEquals(new byte[] {'1', '2', '3'}, first);
+        assertArrayEquals(new byte[] {'4', '5', '6'}, second);
+        assertArrayEquals(new byte[] {'7', '8', '9'}, third);
     }
 
 }

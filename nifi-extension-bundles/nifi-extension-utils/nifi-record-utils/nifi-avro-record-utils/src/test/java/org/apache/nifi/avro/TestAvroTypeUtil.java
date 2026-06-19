@@ -313,7 +313,7 @@ public class TestAvroTypeUtil {
         Record r = builder.build();
         @SuppressWarnings("unchecked")
         GenericArray<Integer> values = (GenericArray<Integer>) r.get("listOfInt");
-        assertEquals(values.size(), 1);
+        assertEquals(1, values.size());
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, field.getDataType().getFieldType());

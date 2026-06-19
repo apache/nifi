@@ -182,10 +182,10 @@ public class TestGetHDFSFileInfo {
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).getFirst();
         ProcessContext context = runner.getProcessContext();
 
-        assertEquals(context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue(), "/some/home/mydir");
-        assertEquals(context.getProperty(GetHDFSFileInfo.DIR_FILTER).evaluateAttributeExpressions(mff).getValue(), "^(dir.*)$");
-        assertEquals(context.getProperty(GetHDFSFileInfo.FILE_FILTER).evaluateAttributeExpressions(mff).getValue(), "^(.*)$");
-        assertEquals(context.getProperty(GetHDFSFileInfo.FILE_EXCLUDE_FILTER).evaluateAttributeExpressions(mff).getValue(), "^(none.*)$");
+        assertEquals("/some/home/mydir", context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue());
+        assertEquals("^(dir.*)$", context.getProperty(GetHDFSFileInfo.DIR_FILTER).evaluateAttributeExpressions(mff).getValue());
+        assertEquals("^(.*)$", context.getProperty(GetHDFSFileInfo.FILE_FILTER).evaluateAttributeExpressions(mff).getValue());
+        assertEquals("^(none.*)$", context.getProperty(GetHDFSFileInfo.FILE_EXCLUDE_FILTER).evaluateAttributeExpressions(mff).getValue());
     }
 
     @Test
@@ -211,7 +211,7 @@ public class TestGetHDFSFileInfo {
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).getFirst();
         ProcessContext context = runner.getProcessContext();
 
-        assertEquals(context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue(), "/some/home/mydir");
+        assertEquals("/some/home/mydir", context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue());
     }
 
     @Test
@@ -528,7 +528,7 @@ public class TestGetHDFSFileInfo {
                 runner.assertNotValid();
             }
         }
-        assertEquals(matchCount, 9);
+        assertEquals(9, matchCount);
     }
 
     @Test
@@ -632,7 +632,7 @@ public class TestGetHDFSFileInfo {
                 runner.assertNotValid();
             }
         }
-        assertEquals(matchCount, 5);
+        assertEquals(5, matchCount);
     }
 
     @Test

@@ -259,8 +259,8 @@ public class TestExecuteProcess {
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(1, succeeded.size());
         assertTrue(new String(succeeded.getFirst().toByteArray()).contains("DOES-NOT-EXIST"));
-        assertEquals(succeeded.getFirst().getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND), "ls");
-        assertEquals(succeeded.getFirst().getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND_ARGS), "DOES-NOT-EXIST");
+        assertEquals("ls", succeeded.getFirst().getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND));
+        assertEquals("DOES-NOT-EXIST", succeeded.getFirst().getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND_ARGS));
     }
 
     /**

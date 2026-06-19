@@ -185,7 +185,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue destination = object.get("destinationName");
-        assertEquals(destination, JsonValue.NULL);
+        assertEquals(JsonValue.NULL, destination);
 
     }
 
@@ -268,7 +268,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue activeThreadCount = object.get("activeThreadCount");
-        assertEquals(activeThreadCount, JsonValue.NULL);
+        assertEquals(JsonValue.NULL, activeThreadCount);
     }
 
     @Test
@@ -311,7 +311,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
         JsonValue targetURI = firstElement.get("targetURI");
-        assertEquals(targetURI, JsonValue.NULL);
+        assertEquals(JsonValue.NULL, targetURI);
     }
 
     @Test
@@ -361,7 +361,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
         JsonValue type = object.get("processorType");
-        assertEquals(type, JsonValue.NULL);
+        assertEquals(JsonValue.NULL, type);
     }
 
     /***********************************

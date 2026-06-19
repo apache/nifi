@@ -99,6 +99,6 @@ public class TestPCAP {
         assertEquals(packetHeaderValues.get("origLen"), litteEndianBuffer.getInt());
         byte[] body = new byte[30];
         litteEndianBuffer.get(40, body, 0, 30);
-        assertArrayEquals(body, PACKET_DATA);
+        assertArrayEquals(PACKET_DATA, body);
     }
 }

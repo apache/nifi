@@ -33,9 +33,9 @@ public class ByteCountingInputStreamTest {
 
         /* verify first 2 bytes */
         tmp = bcis.read();
-        assertEquals(tmp, 97);
+        assertEquals(97, tmp);
         tmp = bcis.read();
-        assertEquals(tmp, 98);
+        assertEquals(98, tmp);
 
         /* save bytes read and place mark */
         final long bytesAtMark = bcis.getBytesRead();
@@ -43,9 +43,9 @@ public class ByteCountingInputStreamTest {
 
         /* verify next 2 bytes */
         tmp = bcis.read();
-        assertEquals(tmp, 99);
+        assertEquals(99, tmp);
         tmp = bcis.read();
-        assertEquals(tmp, 100);
+        assertEquals(100, tmp);
 
         /* verify reset returns to position when mark was placed */
         bcis.reset();
@@ -69,9 +69,9 @@ public class ByteCountingInputStreamTest {
         // Act
         /* verify first 2 bytes */
         tmp = bcis.read();
-        assertEquals(tmp, 97);
+        assertEquals(97, tmp);
         tmp = bcis.read();
-        assertEquals(tmp, 98);
+        assertEquals(98, tmp);
 
         int availableBytes = bcis.available();
         assertEquals(alphabet.length() - 2, availableBytes);

@@ -218,8 +218,8 @@ public class PutHDFSTest {
         }
         assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            assertEquals(vr.getSubject(), "Codec");
-            assertEquals(vr.getExplanation(), "Compression codec cannot be set when used in 'append avro' mode");
+            assertEquals("Codec", vr.getSubject());
+            assertEquals("Compression codec cannot be set when used in 'append avro' mode", vr.getExplanation());
         }
 
         results = new HashSet<>();

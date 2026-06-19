@@ -59,12 +59,12 @@ public class RemoteProcessGroupSchemaV2Test {
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "RAW");
         RemoteProcessGroupSchemaV2 first =  new RemoteProcessGroupSchemaV2(map);
         validateIssuesNumMatches(0, first);
-        assertEquals(first.getTransportProtocol(), "RAW");
+        assertEquals("RAW", first.getTransportProtocol());
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "HTTP");
         RemoteProcessGroupSchemaV2 second =  new RemoteProcessGroupSchemaV2(map);
         validateIssuesNumMatches(0, second);
-        assertEquals(second.getTransportProtocol(), "HTTP");
+        assertEquals("HTTP", second.getTransportProtocol());
     }
 
     private PortSchema createPortSchema(String id, String name, String wrapperName) {

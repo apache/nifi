@@ -42,7 +42,7 @@ public class StandardOidcIdentityProviderTest {
         Scope scope = provider.getScope();
 
         // two additional scopes are set, two (openid, email) are hard-coded
-        assertEquals(scope.toArray().length, 4);
+        assertEquals(4, scope.toArray().length);
         assertTrue(scope.contains("openid"));
         assertTrue(scope.contains("email"));
         assertTrue(scope.contains(additionalScopeProfile));
@@ -59,7 +59,7 @@ public class StandardOidcIdentityProviderTest {
 
         // three additional scopes are set but one is duplicated and mustn't be returned; note that there is
         // another one inserted in between the duplicated; two (openid, email) are hard-coded
-        assertEquals(scope.toArray().length, 4);
+        assertEquals(4, scope.toArray().length);
     }
 
     private StandardOidcIdentityProvider createOidcProviderWithAdditionalScopes(String... additionalScopes) throws IllegalAccessException {

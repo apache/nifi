@@ -143,7 +143,7 @@ public class TestSyslogRecordReader {
                 count++;
                 record = deserializer.nextRecord();
             }
-            assertEquals(count, 3);
+            assertEquals(3, count);
             deserializer.close();
         }
     }

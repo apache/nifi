@@ -69,7 +69,7 @@ class ConfluentEncodedSchemaReferenceReaderTest {
 
                 final OptionalLong schemaVersionId = schemaIdentifier.getSchemaVersionId();
                 assertTrue(schemaVersionId.isPresent());
-                assertEquals(schemaVersionId.getAsLong(), ID);
+                assertEquals(ID, schemaVersionId.getAsLong());
             }
         }
     }

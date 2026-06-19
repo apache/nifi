@@ -108,7 +108,7 @@ public class TestPutS3Object {
         ArgumentCaptor<RequestBody> captureRequestBody = ArgumentCaptor.forClass(RequestBody.class);
         verify(mockS3Client).putObject(captureRequest.capture(), captureRequestBody.capture());
         PutObjectRequest putObjectRequest = captureRequest.getValue();
-        assertEquals(putObjectRequest.contentLength(), contentLength);
+        assertEquals(contentLength, putObjectRequest.contentLength());
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
     }

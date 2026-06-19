@@ -2102,7 +2102,7 @@ public class StandardProcessSessionIT {
             StreamUtils.fillBuffer(in, buffer);
         }
 
-        assertEquals(new String(buffer), "hello, world");
+        assertEquals("hello, world", new String(buffer));
     }
 
     @Test

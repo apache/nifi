@@ -139,11 +139,11 @@ class HandleHttpRequestCertificateAttributesProviderTest {
 
         assertSubjectIssuerFound(attributes);
 
-        assertEquals(attributes.get(FIRST_SAN_NAME_ATTRIBUTE_KEY), EMAIL_ADDRESS);
-        assertEquals(attributes.get(FIRST_SAN_NAME_TYPE_ATTRIBUTE_KEY), RFC_822_NAME_GENERAL_NAME);
+        assertEquals(EMAIL_ADDRESS, attributes.get(FIRST_SAN_NAME_ATTRIBUTE_KEY));
+        assertEquals(RFC_822_NAME_GENERAL_NAME, attributes.get(FIRST_SAN_NAME_TYPE_ATTRIBUTE_KEY));
 
-        assertEquals(attributes.get(SECOND_SAN_NAME_ATTRIBUTE_KEY), DNS_NAME);
-        assertEquals(attributes.get(SECOND_SAN_NAME_TYPE_ATTRIBUTE_KEY), DNS_NAME_GENERAL_NAME);
+        assertEquals(DNS_NAME, attributes.get(SECOND_SAN_NAME_ATTRIBUTE_KEY));
+        assertEquals(DNS_NAME_GENERAL_NAME, attributes.get(SECOND_SAN_NAME_TYPE_ATTRIBUTE_KEY));
     }
 
     private void assertSubjectIssuerFound(final Map<String, String> attributes) {

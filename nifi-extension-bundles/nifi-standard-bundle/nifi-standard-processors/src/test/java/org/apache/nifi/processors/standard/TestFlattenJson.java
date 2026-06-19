@@ -65,7 +65,7 @@ public class TestFlattenJson {
                     }
                 }""";
         final Map parsed = (Map) baseTest(testRunner, json, 2);
-        assertEquals(parsed.get("test.msg"), "Hello, world", "test.msg should exist, but doesn't");
+        assertEquals("Hello, world", parsed.get("test.msg"), "test.msg should exist, but doesn't");
         assertEquals(parsed.get("first.second.third"),
                 Arrays.asList("one", "two", "three", "four", "five"),
                 "Three level block doesn't exist.");

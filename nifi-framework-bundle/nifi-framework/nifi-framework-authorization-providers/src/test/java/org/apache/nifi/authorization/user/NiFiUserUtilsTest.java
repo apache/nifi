@@ -70,7 +70,7 @@ public class NiFiUserUtilsTest {
         final List<String> proxiedEntitiesChain = NiFiUserUtils.buildProxiedEntitiesChain(null);
         logger.info("Proxied entities chain: {}", proxiedEntitiesChain);
 
-        assertEquals(proxiedEntitiesChain, Collections.EMPTY_LIST);
+        assertEquals(Collections.EMPTY_LIST, proxiedEntitiesChain);
     }
 
     private NiFiUser createMockNiFiUser(final String identity, final NiFiUser chain, final boolean isAnonymous) {

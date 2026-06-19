@@ -233,7 +233,7 @@ public class ConsumeJMSIT {
             Message message = jmst.receive("errorQueue");
 
             assertNotNull(message);
-            assertEquals(message.getStringProperty("unsupportedMessagePropertyKey"), "unsupportedMessagePropertyValue");
+            assertEquals("unsupportedMessagePropertyValue", message.getStringProperty("unsupportedMessagePropertyKey"));
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }

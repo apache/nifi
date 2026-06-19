@@ -53,7 +53,7 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 2);
+        assertEquals(2, actual.size());
         assertTrue(actual.containsAll(results));
     }
 
@@ -63,7 +63,7 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 2);
+        assertEquals(2, actual.size());
         assertTrue(actual.containsAll(results));
     }
 
@@ -73,7 +73,7 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 1);
+        assertEquals(1, actual.size());
         assertTrue(actual.contains(RESULT_ONE));
         assertFalse(actual.contains(RESULT_TWO));
     }
@@ -84,7 +84,7 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 2);
+        assertEquals(2, actual.size());
         assertTrue(actual.containsAll(results));
     }
 
@@ -103,7 +103,7 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 2);
+        assertEquals(2, actual.size());
         assertTrue(actual.containsAll(results));
     }
 
@@ -131,7 +131,7 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 1);
+        assertEquals(1, actual.size());
         assertFalse(actual.contains(RESULT_ONE));
         assertTrue(actual.contains(RESULT_TWO));
     }

@@ -123,7 +123,7 @@ class S3FileResourceServiceTest {
     private void assertFileResource(FileResource fileResource) {
         assertNotNull(fileResource);
         assertEquals(fileResource.getInputStream(), responseStream);
-        assertEquals(fileResource.getSize(), CONTENT_LENGTH);
+        assertEquals(CONTENT_LENGTH, fileResource.getSize());
         verify(client).getObject(request);
         verify(responseStream).response();
         verify(response).contentLength();

@@ -192,7 +192,7 @@ public class TestSyslog5424RecordReader {
                 count++;
                 record = deserializer.nextRecord();
             }
-            assertEquals(count, 3);
+            assertEquals(3, count);
             deserializer.close();
         }
     }
@@ -220,8 +220,8 @@ public class TestSyslog5424RecordReader {
                     exceptionCount++;
                 }
             }
-            assertEquals(count, 3);
-            assertEquals(exceptionCount, 1);
+            assertEquals(3, count);
+            assertEquals(1, exceptionCount);
             deserializer.close();
         }
     }

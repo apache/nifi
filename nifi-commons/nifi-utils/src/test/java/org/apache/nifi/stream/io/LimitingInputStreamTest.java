@@ -50,7 +50,7 @@ public class LimitingInputStreamTest {
     public void testReadLimitExceeded() throws IOException {
         final LimitingInputStream is = new LimitingInputStream(new ByteArrayInputStream(TEST_BUFFER), 9);
         final long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
-        assertEquals(bytesRead, 9);
+        assertEquals(9, bytesRead);
         assertTrue(is.hasReachedLimit());
     }
 }

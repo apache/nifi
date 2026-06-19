@@ -356,7 +356,7 @@ public class TestConsumeKinesisStream {
 
         assertSchedulerConfigs(processor.scheduler, hostname);
         assertConfigsBuilder(processor.configsBuilder);
-        assertEquals(processor.scheduler.applicationName(), "test-application");
+        assertEquals("test-application", processor.scheduler.applicationName());
 
         if (!waitForFailure) {
             // re-trigger the processor to ensure the Worker isn't re-initialised when already running
@@ -386,11 +386,11 @@ public class TestConsumeKinesisStream {
 
     private void assertSchedulerConfigs(final Scheduler scheduler, final String hostname) {
         assertTrue(scheduler.leaseManagementConfig().workerIdentifier().startsWith(hostname));
-        assertEquals(scheduler.coordinatorConfig().applicationName(), "test-application");
-        assertEquals(scheduler.leaseManagementConfig().streamName(), "test-stream");
-        assertEquals(scheduler.retrievalConfig().streamTracker().streamConfigList().getFirst().initialPositionInStreamExtended().getInitialPositionInStream(),
-                InitialPositionInStream.TRIM_HORIZON);
-        assertEquals(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), 1);
+        assertEquals("test-application", scheduler.coordinatorConfig().applicationName());
+        assertEquals("test-stream", scheduler.leaseManagementConfig().streamName());
+        assertEquals(InitialPositionInStream.TRIM_HORIZON,
+                scheduler.retrievalConfig().streamTracker().streamConfigList().getFirst().initialPositionInStreamExtended().getInitialPositionInStream());
+        assertEquals(1, scheduler.coordinatorConfig().parentShardPollIntervalMillis());
     }
 
     // public so TestRunners is able to see and instantiate the class for the tests

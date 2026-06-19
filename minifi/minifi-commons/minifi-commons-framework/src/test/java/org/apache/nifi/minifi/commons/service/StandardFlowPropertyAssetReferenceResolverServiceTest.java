@@ -99,10 +99,10 @@ public class StandardFlowPropertyAssetReferenceResolverServiceTest {
     }
 
     private void verifyProperties() {
-        assertEquals(processorProperties.get("assetReferenceProperty"), "asset1Path");
-        assertEquals(processorProperties.get("notAssetReferenceProperty"), "some value1");
-        assertEquals(controllerServiceProperties.get("assetReferenceProperty"), "asset2Path");
-        assertEquals(controllerServiceProperties.get("notAssetReferenceProperty"), "some value2");
+        assertEquals("asset1Path", processorProperties.get("assetReferenceProperty"));
+        assertEquals("some value1", processorProperties.get("notAssetReferenceProperty"));
+        assertEquals("asset2Path", controllerServiceProperties.get("assetReferenceProperty"));
+        assertEquals("some value2", controllerServiceProperties.get("notAssetReferenceProperty"));
     }
 
     private VersionedDataflow aVersionedDataflow() {
