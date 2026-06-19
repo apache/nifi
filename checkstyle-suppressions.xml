@@ -25,4 +25,9 @@
     <suppress checks="MethodName|TypeName" files="WEvtApi\.java$"/>
     <!-- Suppress TypeName for MariaDB version-specific class naming convention -->
     <suppress checks="TypeName" files="MariaDB10_3DataSourceFactory\.java$"/>
+    <!-- Type-pattern switches bind a pattern variable purely for type dispatch and never read it. Java 21
+         (without preview features) cannot use the unnamed variable '_', so the readable switch is preferred
+         over an instanceof chain in these classes and UnusedLocalVariable is suppressed for them. -->
+    <suppress checks="UnusedLocalVariable" files="serialization[\\/]record[\\/]util[\\/]DataTypeUtils\.java$"/>
+    <suppress checks="UnusedLocalVariable" files="schema[\\/]access[\\/]InferenceSchemaStrategy\.java$"/>
 </suppressions>

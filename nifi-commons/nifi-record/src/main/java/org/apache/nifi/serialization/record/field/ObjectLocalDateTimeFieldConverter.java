@@ -82,8 +82,8 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
 
                 return toLocalDateTime(number.longValue());
             }
-            case String ignored -> {
-                final String string = field.toString().trim();
+            case String stringField -> {
+                final String string = stringField.trim();
                 if (string.isEmpty()) {
                     return null;
                 }

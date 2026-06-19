@@ -56,8 +56,8 @@ class ObjectOffsetDateTimeFieldConverter implements FieldConverter<Object, Offse
                 final Instant instant = Instant.ofEpochMilli(number.longValue());
                 return ofInstant(instant);
             }
-            case String ignored -> {
-                final String string = field.toString().trim();
+            case String stringField -> {
+                final String string = stringField.trim();
                 if (string.isEmpty()) {
                     return null;
                 }
