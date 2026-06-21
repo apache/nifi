@@ -50,7 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -92,7 +92,7 @@ public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.6"; // January 2026
+    public static final String IMAGE_NAME = System.getProperty("kafka.docker.image", "apache/kafka:4.2.0");
 
     private static final String DELIVERY_TIMEOUT_MS_KEY = "delivery.timeout.ms";
     private static final String DELIVERY_TIMEOUT_MS_VALUE = "60000";
@@ -142,7 +142,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     protected TestRunner runner;
 
-    private ConfluentKafkaContainer kafkaContainer;
+    private KafkaContainer kafkaContainer;
 
     private Kafka3ConnectionService service;
 
@@ -169,7 +169,7 @@ public class Kafka3ConnectionServiceBaseIT {
             trustStore.store(outputStream, KEY_STORE_PASSWORD.toCharArray());
         }
 
-        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
         initializeContainer();
         kafkaContainer.start();
     }

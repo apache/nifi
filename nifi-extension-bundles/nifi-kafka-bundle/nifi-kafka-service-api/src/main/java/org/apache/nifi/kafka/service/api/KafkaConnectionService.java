@@ -19,6 +19,8 @@ package org.apache.nifi.kafka.service.api;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
+import org.apache.nifi.kafka.service.api.consumer.share.KafkaShareConsumerService;
+import org.apache.nifi.kafka.service.api.consumer.share.ShareGroupContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 
@@ -29,4 +31,18 @@ public interface KafkaConnectionService extends ControllerService {
     KafkaProducerService getProducerService(ProducerConfiguration producerConfiguration);
 
     String getBrokerUri();
+
+    /**
+     * Build a Kafka share-group consumer for the given subscription.
+     * Implementations that do not support share groups (KIP-932) may throw
+     * {@link UnsupportedOperationException}; the default implementation does so to preserve
+     * backward compatibility for existing connection services.
+     *
+     * @param shareGroupContext Subscription context describing the share group, topics, and
+     *                          acknowledgement mode
+     * @return Share-group consumer service
+     */
+    default KafkaShareConsumerService getShareConsumerService(ShareGroupContext shareGroupContext) {
+        throw new UnsupportedOperationException("Share consumer not supported by this Kafka Connection Service");
+    }
 }

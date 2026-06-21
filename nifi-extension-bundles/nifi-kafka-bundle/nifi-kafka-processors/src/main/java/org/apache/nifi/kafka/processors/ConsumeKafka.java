@@ -33,6 +33,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.connector.components.ConnectorMethod;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
+import org.apache.nifi.kafka.processors.consumer.GroupType;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.processors.consumer.bundle.ByteRecordBundler;
@@ -48,6 +49,10 @@ import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
 import org.apache.nifi.kafka.service.api.consumer.SessionContext;
+import org.apache.nifi.kafka.service.api.consumer.share.Acknowledgement;
+import org.apache.nifi.kafka.service.api.consumer.share.KafkaShareConsumerService;
+import org.apache.nifi.kafka.service.api.consumer.share.ShareAcknowledgementMode;
+import org.apache.nifi.kafka.service.api.consumer.share.ShareGroupContext;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
@@ -89,6 +94,9 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
 @CapabilityDescription("Consumes messages from Apache Kafka Consumer API. "
         + "The complementary NiFi processor for sending messages is PublishKafka. The Processor supports consumption of Kafka messages, optionally interpreted as NiFi records. "
+        + "By default the Processor uses a classic consumer group, which assigns whole partitions to consumers. "
+        + "When configured for 'Share Group' the Processor uses Kafka share groups (KIP-932, requires Kafka 4.2+ brokers configured for share-group operation), "
+        + "which distribute records cooperatively across the consumers of a share group with per-record acknowledgement instead of per-partition offset commits. "
         + "Please note that, at this time (in read record mode), the Processor assumes that "
         + "all records that are retrieved from a given partition have the same schema. For this mode, if any of the Kafka messages are pulled but cannot be parsed or written with the "
         + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
@@ -125,20 +133,50 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .required(true)
             .build();
 
+    static final PropertyDescriptor GROUP_TYPE = new PropertyDescriptor.Builder()
+            .name("Group Type")
+            .description("Selects the Kafka consumer group model. Choose 'Consumer Group' for the classic offset-committed model used by NiFi historically. "
+                    + "Choose 'Share Group' to use Kafka share groups (KIP-932), which require Kafka 4.1+ brokers configured for share-group operation and "
+                    + "deliver records cooperatively with per-record acknowledgement instead of per-partition offset commits. "
+                    + "When 'Share Group' is selected the [Acknowledgement Mode] property controls how records are acknowledged to the broker.")
+            .required(true)
+            .allowableValues(GroupType.class)
+            .defaultValue(GroupType.CONSUMER)
+            .expressionLanguageSupported(NONE)
+            .build();
+
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name("Group ID")
-            .description("Kafka Consumer Group Identifier corresponding to Kafka group.id property")
+            .description("Kafka group identifier. For 'Consumer Group' this corresponds to the Kafka group.id property. "
+                    + "For 'Share Group' this is the share-group identifier used by the broker to track per-record acknowledgements.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(NONE)
             .build();
 
+    static final PropertyDescriptor ACKNOWLEDGEMENT_MODE = new PropertyDescriptor.Builder()
+            .name("Acknowledgement Mode")
+            .description("Controls how share-group records are acknowledged to the broker. "
+                    + "'Explicit' (the default) acknowledges every delivered record individually so a session rollback can release records back to the share group "
+                    + "for immediate redelivery to another consumer. "
+                    + "'Implicit' relies on the broker's default behavior of accepting all delivered records on the next poll or commit; "
+                    + "in this mode a session rollback cannot actively release records, and they only become eligible for redelivery once the broker's "
+                    + "acquisition lock expires (controlled by the broker-level 'group.share.record.lock.duration.ms' configuration).")
+            .required(true)
+            .allowableValues(ShareAcknowledgementMode.class)
+            .defaultValue(ShareAcknowledgementMode.EXPLICIT)
+            .dependsOn(GROUP_TYPE, GroupType.SHARE)
+            .expressionLanguageSupported(NONE)
+            .build();
+
     static final PropertyDescriptor TOPIC_FORMAT = new PropertyDescriptor.Builder()
             .name("Topic Format")
-            .description("Specifies whether the Topics provided are a comma separated list of names or a single regular expression")
+            .description("Specifies whether the Topics provided are a comma separated list of names or a single regular expression. "
+                    + "Pattern subscription is not available for share groups in Kafka 4.1.")
             .required(true)
             .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
             .defaultValue(TOPIC_NAME)
+            .dependsOn(GROUP_TYPE, GroupType.CONSUMER)
             .build();
 
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
@@ -152,21 +190,25 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
             .name("auto.offset.reset")
             .displayName("Auto Offset Reset")
-            .description("Automatic offset configuration applied when no previous consumer offset found corresponding to Kafka auto.offset.reset property")
+            .description("Automatic offset configuration applied when no previous consumer offset found corresponding to Kafka auto.offset.reset property. "
+                    + "Not applicable to share groups, which manage starting positions at the group level via Kafka admin tools.")
             .required(true)
             .allowableValues(AutoOffsetReset.class)
             .defaultValue(AutoOffsetReset.LATEST)
             .expressionLanguageSupported(NONE)
+            .dependsOn(GROUP_TYPE, GroupType.CONSUMER)
             .build();
 
     static final PropertyDescriptor COMMIT_OFFSETS = new PropertyDescriptor.Builder()
             .name("Commit Offsets")
             .description("Specifies whether this Processor should commit the offsets to Kafka after receiving messages. Typically, this value should be set to true " +
                     "so that messages that are received are not duplicated. However, in certain scenarios, we may want to avoid committing the offsets, that the data can be " +
-                    "processed and later acknowledged by PublishKafka in order to provide Exactly Once semantics.")
+                    "processed and later acknowledged by PublishKafka in order to provide Exactly Once semantics. "
+                    + "Not applicable to share groups, which acknowledge per record rather than committing offsets.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
+            .dependsOn(GROUP_TYPE, GroupType.CONSUMER)
             .build();
 
     static final PropertyDescriptor MAX_UNCOMMITTED_SIZE = new PropertyDescriptor.Builder()
@@ -179,6 +221,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             )
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .dependsOn(GROUP_TYPE, GroupType.CONSUMER)
             .build();
 
     static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new PropertyDescriptor.Builder()
@@ -314,7 +357,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECTION_SERVICE,
+            GROUP_TYPE,
             GROUP_ID,
+            ACKNOWLEDGEMENT_MODE,
             TOPIC_FORMAT,
             TOPICS,
             AUTO_OFFSET_RESET,
@@ -348,12 +393,16 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private volatile boolean commitOffsets;
     private volatile boolean useReader;
     private volatile String brokerUri;
+    private volatile GroupType groupType;
     private volatile PollingContext pollingContext;
+    private volatile ShareGroupContext shareGroupContext;
+    private volatile ShareAcknowledgementMode shareAcknowledgementMode;
     private volatile int maxConsumerCount;
     private volatile boolean maxUncommittedSizeConfigured;
     private volatile long maxUncommittedSize;
 
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
+    private final Queue<KafkaShareConsumerService> shareConsumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
 
     @Override
@@ -375,7 +424,16 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        pollingContext = createPollingContext(context);
+        groupType = context.getProperty(GROUP_TYPE).asAllowableValue(GroupType.class);
+        if (groupType == GroupType.SHARE) {
+            shareAcknowledgementMode = context.getProperty(ACKNOWLEDGEMENT_MODE).asAllowableValue(ShareAcknowledgementMode.class);
+            shareGroupContext = createShareGroupContext(context, shareAcknowledgementMode);
+            pollingContext = null;
+        } else {
+            pollingContext = createPollingContext(context);
+            shareGroupContext = null;
+            shareAcknowledgementMode = null;
+        }
         headerEncoding = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
 
         final String headerNamePatternProperty = context.getProperty(HEADER_NAME_PATTERN).getValue();
@@ -386,7 +444,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
-        commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
+        commitOffsets = groupType == GroupType.SHARE || context.getProperty(COMMIT_OFFSETS).asBoolean();
         processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
 
         // Only read HEADER_NAME_PREFIX when PROCESSING_STRATEGY is FLOW_FILE (property dependency)
@@ -401,25 +459,37 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         maxConsumerCount = context.getMaxConcurrentTasks();
         activeConsumerCount.set(0);
 
-        final PropertyValue maxUncommittedSizeProperty = context.getProperty(MAX_UNCOMMITTED_SIZE);
-        maxUncommittedSizeConfigured = maxUncommittedSizeProperty.isSet();
-        if (maxUncommittedSizeConfigured) {
-            maxUncommittedSize = maxUncommittedSizeProperty.asDataSize(DataUnit.B).longValue();
+        if (groupType == GroupType.CONSUMER) {
+            final PropertyValue maxUncommittedSizeProperty = context.getProperty(MAX_UNCOMMITTED_SIZE);
+            maxUncommittedSizeConfigured = maxUncommittedSizeProperty.isSet();
+            if (maxUncommittedSizeConfigured) {
+                maxUncommittedSize = maxUncommittedSizeProperty.asDataSize(DataUnit.B).longValue();
+            }
+        } else {
+            maxUncommittedSizeConfigured = false;
         }
     }
 
     @OnStopped
     public void onStopped() {
-        // Ensure that we close all Producer services when stopped
         KafkaConsumerService service;
-
         while ((service = consumerServices.poll()) != null) {
             close(service, "Processor stopped");
+        }
+
+        KafkaShareConsumerService shareService;
+        while ((shareService = shareConsumerServices.poll()) != null) {
+            closeShareConsumer(shareService, "Processor stopped");
         }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        if (groupType == GroupType.SHARE) {
+            triggerShareGroup(context, session);
+            return;
+        }
+
         final KafkaConsumerService consumerService = getConsumerService(context);
         if (consumerService == null) {
             getLogger().debug("No Kafka Consumer Service available; will yield and return immediately");
@@ -581,6 +651,36 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        final GroupType verifyGroupType = context.getProperty(GROUP_TYPE).asAllowableValue(GroupType.class);
+
+        if (verifyGroupType == GroupType.SHARE) {
+            // Verification always samples-and-RELEASEs records, which requires EXPLICIT acknowledgement
+            // regardless of the user-selected acknowledgement mode for runtime processing.
+            final ShareGroupContext verifyShareContext = createShareGroupContext(context, ShareAcknowledgementMode.EXPLICIT);
+            try (final KafkaShareConsumerService shareConsumerService = connectionService.getShareConsumerService(verifyShareContext)) {
+                verificationResults.add(verifyShareGroup(shareConsumerService, verifyShareContext));
+            } catch (final UnsupportedOperationException e) {
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Verify Share Group Subscription")
+                        .outcome(Outcome.FAILED)
+                        .explanation("Configured Kafka Connection Service does not support share groups: " + e.getMessage())
+                        .build());
+            } catch (final IOException e) {
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Communicate with Kafka Broker")
+                        .outcome(Outcome.FAILED)
+                        .explanation("There was an I/O failure when communicating with Kafka: " + e)
+                        .build());
+            } catch (final RuntimeException e) {
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Verify Share Group Subscription")
+                        .outcome(Outcome.FAILED)
+                        .explanation("Failed to verify the share group subscription against the broker. The broker may not support Kafka share groups or share-group operation may be disabled: " + e)
+                        .build());
+            }
+            return verificationResults;
+        }
+
         final PollingContext pollingContext = createPollingContext(context, null, AutoOffsetReset.EARLIEST);
         try (final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext)) {
             final ConfigVerificationResult partitionVerification = verifyPartitions(consumerService, pollingContext);
@@ -597,6 +697,37 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         return verificationResults;
+    }
+
+    private ConfigVerificationResult verifyShareGroup(final KafkaShareConsumerService shareConsumerService, final ShareGroupContext shareContext) {
+        final ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder()
+                .verificationStepName("Verify Share Group Subscription");
+
+        try {
+            final Iterable<ByteRecord> records = shareConsumerService.poll(Duration.ofSeconds(5));
+            int sampled = 0;
+            for (final ByteRecord byteRecord : records) {
+                sampled++;
+                shareConsumerService.acknowledge(byteRecord, Acknowledgement.RELEASE);
+            }
+            // Always commit pending acknowledgements; if no records, this is a no-op.
+            shareConsumerService.commit();
+
+            if (sampled == 0) {
+                builder.outcome(Outcome.SUCCESSFUL).explanation(
+                        "Successfully subscribed to topics %s for share group [%s]. No records were available within the verification window; "
+                                .formatted(shareContext.getTopics(), shareContext.getGroupId())
+                                + "ensure the share group's starting offset has been set via Kafka admin tools (kafka-share-groups.sh) if records are expected.");
+            } else {
+                builder.outcome(Outcome.SUCCESSFUL).explanation(
+                        "Successfully subscribed to topics %s for share group [%s] and sampled [%d] records (released back to the share group)."
+                                .formatted(shareContext.getTopics(), shareContext.getGroupId(), sampled));
+            }
+        } catch (final Exception e) {
+            builder.outcome(Outcome.FAILED).explanation("Share group subscription failed: " + e);
+        }
+
+        return builder.build();
     }
 
     private ConfigVerificationResult verifyPartitions(final KafkaConsumerService consumerService, final PollingContext pollingContext) {
@@ -672,6 +803,28 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     )
     public List<byte[]> sampleTopics(final ProcessContext context) throws IOException {
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        final GroupType sampleGroupType = context.getProperty(GROUP_TYPE).asAllowableValue(GroupType.class);
+
+        if (sampleGroupType == GroupType.SHARE) {
+            // Sampling RELEASEs records back to the share group so they remain available to real consumers,
+            // which requires EXPLICIT acknowledgement regardless of the user-selected acknowledgement mode.
+            final ShareGroupContext sampleShareContext = createShareGroupContext(context, ShareAcknowledgementMode.EXPLICIT);
+            try (final KafkaShareConsumerService shareConsumerService = connectionService.getShareConsumerService(sampleShareContext)) {
+                final Iterable<ByteRecord> records = shareConsumerService.poll(Duration.ofSeconds(60));
+                final List<byte[]> samples = new ArrayList<>();
+                for (final ByteRecord record : records) {
+                    samples.add(record.getValue());
+                    // Release sampled records so they remain available to real consumers
+                    shareConsumerService.acknowledge(record, Acknowledgement.RELEASE);
+                    if (samples.size() >= 10) {
+                        break;
+                    }
+                }
+                shareConsumerService.commit();
+                return samples;
+            }
+        }
+
         final PollingContext pollingContext = createPollingContext(context, "nifi-validation-" + System.currentTimeMillis(), AutoOffsetReset.EARLIEST);
         try (final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext)) {
             final Iterable<ByteRecord> records = consumerService.poll(Duration.ofSeconds(60));
@@ -810,6 +963,136 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final String offsetReset = context.getProperty(AUTO_OFFSET_RESET).getValue();
         final AutoOffsetReset autoOffsetReset = AutoOffsetReset.valueOf(offsetReset.toUpperCase());
         return createPollingContext(context, groupId, autoOffsetReset);
+    }
+
+    private ShareGroupContext createShareGroupContext(final ProcessContext context, final ShareAcknowledgementMode acknowledgementMode) {
+        final String groupId = context.getProperty(GROUP_ID).getValue();
+        final String topics = context.getProperty(TOPICS).evaluateAttributeExpressions().getValue();
+        final Collection<String> topicList = KafkaUtils.toTopicList(topics);
+        return new ShareGroupContext(groupId, topicList, acknowledgementMode);
+    }
+
+    private void triggerShareGroup(final ProcessContext context, final ProcessSession session) {
+        final KafkaShareConsumerService shareConsumerService = getShareConsumerService(context);
+        if (shareConsumerService == null) {
+            getLogger().debug("No Kafka Share Consumer Service available; will yield and return immediately");
+            context.yield();
+            return;
+        }
+
+        final long maxUncommittedMillis = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        final OffsetTracker offsetTracker = new OffsetTracker();
+
+        // The share consumer requires every in-flight record to be acknowledged (explicitly or implicitly)
+        // before the next poll. Acknowledgement happens in the session-commit callback below, after
+        // FlowFiles are durably committed. To respect this contract we perform a single poll per trigger;
+        // the poll itself blocks up to Max Uncommitted Time waiting for records, so a retry loop is
+        // unnecessary and would violate the share consumer contract by polling again before the
+        // previous batch has been acknowledged.
+        try {
+            final Iterator<ByteRecord> consumerRecords = shareConsumerService.poll(Duration.ofMillis(maxUncommittedMillis)).iterator();
+            if (!consumerRecords.hasNext()) {
+                getLogger().trace("No Kafka share-group records consumed for {}; re-queuing share consumer", shareGroupContext);
+                shareConsumerServices.offer(shareConsumerService);
+                return;
+            }
+
+            processConsumerRecords(context, session, offsetTracker, consumerRecords);
+
+            session.commitAsync(
+                    () -> commitShareConsumer(shareConsumerService, offsetTracker, session),
+                    throwable -> {
+                        getLogger().error("Failed to commit session for share group; will roll back any uncommitted records", throwable);
+                        rollbackShareConsumer(shareConsumerService, offsetTracker, session);
+                        context.yield();
+                    });
+        } catch (final Exception e) {
+            getLogger().error("Failed to consume Kafka share-group records", e);
+            // Best-effort rollback so EXPLICIT-mode consumers can release records immediately;
+            // in IMPLICIT mode this is a no-op and we rely on the close+lock-expiry below for redelivery.
+            if (!shareConsumerService.isClosed()) {
+                try {
+                    shareConsumerService.rollback();
+                } catch (final Exception rollbackException) {
+                    getLogger().warn("Failed to release records back to the share group", rollbackException);
+                }
+            }
+            closeShareConsumer(shareConsumerService, "Encountered Exception while consuming or writing out Kafka share-group records");
+            context.yield();
+            session.rollback();
+        }
+    }
+
+    private void commitShareConsumer(final KafkaShareConsumerService shareConsumerService, final OffsetTracker offsetTracker, final ProcessSession session) {
+        try {
+            shareConsumerService.commit();
+
+            offsetTracker.getRecordCounts().forEach((topic, count) -> session.adjustCounter("Records Acknowledged for " + topic, count, true));
+
+            shareConsumerServices.offer(shareConsumerService);
+            getLogger().debug("Committed acknowledgements for Kafka Share Consumer Service");
+        } catch (final Exception e) {
+            getLogger().error("Failed to commit acknowledgements for Kafka Share Consumer Service; will release records back to the share group", e);
+            rollbackShareConsumer(shareConsumerService, offsetTracker, session);
+        }
+    }
+
+    private void rollbackShareConsumer(final KafkaShareConsumerService shareConsumerService, final OffsetTracker offsetTracker, final ProcessSession session) {
+        if (shareConsumerService.isClosed()) {
+            return;
+        }
+
+        try {
+            shareConsumerService.rollback();
+            if (shareAcknowledgementMode == ShareAcknowledgementMode.EXPLICIT) {
+                // EXPLICIT-mode rollback actively RELEASEs records to the broker, so the consumer can be re-pooled.
+                shareConsumerServices.offer(shareConsumerService);
+                getLogger().debug("Released records back to the share group for Kafka Share Consumer Service");
+            } else {
+                // IMPLICIT-mode rollback cannot actively release records. Close the consumer so the broker's
+                // acquisition lock expires and the records become eligible for redelivery to another consumer.
+                closeShareConsumer(shareConsumerService, "IMPLICIT-mode session rollback - awaiting broker acquisition lock expiry");
+            }
+        } catch (final Exception e) {
+            getLogger().warn("Failed to release records back to the share group", e);
+            closeShareConsumer(shareConsumerService, "Failed to release records back to the share group");
+        }
+
+        offsetTracker.getRecordCounts().forEach((topic, count) -> session.adjustCounter("Records Released for " + topic, count, true));
+    }
+
+    private KafkaShareConsumerService getShareConsumerService(final ProcessContext context) {
+        final KafkaShareConsumerService shareConsumerService = shareConsumerServices.poll();
+        if (shareConsumerService != null) {
+            return shareConsumerService;
+        }
+
+        final int activeCount = activeConsumerCount.incrementAndGet();
+        if (activeCount > getMaxConsumerCount()) {
+            getLogger().trace("No Kafka Share Consumer Service available; have already reached max count of {} so will not create a new one", getMaxConsumerCount());
+            activeConsumerCount.decrementAndGet();
+            return null;
+        }
+
+        getLogger().info("No Kafka Share Consumer Service available; creating a new one. Active count: {}", activeCount);
+        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        return connectionService.getShareConsumerService(shareGroupContext);
+    }
+
+    private void closeShareConsumer(final KafkaShareConsumerService shareConsumerService, final String reason) {
+        if (shareConsumerService.isClosed()) {
+            getLogger().debug("Asked to close Kafka Share Consumer Service but consumer already closed");
+            return;
+        }
+
+        getLogger().info("Closing Kafka Share Consumer due to: {}", reason);
+
+        try {
+            shareConsumerService.close();
+            activeConsumerCount.decrementAndGet();
+        } catch (final IOException ioe) {
+            getLogger().warn("Failed to close Kafka Share Consumer Service", ioe);
+        }
     }
 
     private PollingContext createPollingContext(final ProcessContext context, final String groupId, final AutoOffsetReset autoOffsetReset) {

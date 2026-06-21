@@ -34,11 +34,10 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
@@ -51,7 +50,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-@Disabled("circle back to this")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class PublishKafkaAuthSaslPlaintextIT {
     private static final String SERVICE_ID = Kafka3ConnectionService.class.getSimpleName();
@@ -61,28 +59,30 @@ public class PublishKafkaAuthSaslPlaintextIT {
     private static final String USERNAME = "nifi";
     private static final String PASSWORD = UUID.randomUUID().toString();
 
-    private static ConfluentKafkaContainer kafka;
+    private static KafkaContainer kafka;
 
     @BeforeAll
     static void beforeAll() {
-        kafka = new ConfluentKafkaContainer(DockerImageName.parse(AbstractKafkaBaseIT.IMAGE_NAME))
+        kafka = new KafkaContainer(DockerImageName.parse(AbstractKafkaBaseIT.IMAGE_NAME))
                 .withEnv(getEnvironmentSaslPlaintext());
         kafka.start();
     }
 
     /**
      * Environment to be provided to docker container to enable SASL authentication.
-     * <p>
-     * Disable this test for now:
-     * <ul>
-     * <li><a href="https://github.com/testcontainers/testcontainers-java/issues/3899">Kafka SASL mechanism</a></li>
-     * <li><a href="https://github.com/testcontainers/testcontainers-java/issues/6423">Kafka SASL mechanism</a></li>
-     * </ul>
+     *
+     * <p>The testcontainers {@link KafkaContainer} for the apache/kafka image runs Kafka in KRaft
+     * mode with three listeners: the externally-mapped {@code PLAINTEXT} listener that
+     * {@link KafkaContainer#getBootstrapServers()} exposes, an internal {@code BROKER} listener for
+     * intra-cluster traffic, and a {@code CONTROLLER} listener for the KRaft controller quorum.
+     * The protocol map below remaps the externally-mapped listener to {@code SASL_PLAINTEXT} while
+     * keeping {@code BROKER} and {@code CONTROLLER} on PLAINTEXT so the KRaft bootstrap succeeds.</p>
      */
     private static Map<String, String> getEnvironmentSaslPlaintext() {
         final Map<String, String> environment = new LinkedHashMap<>();
-        environment.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT");
+        environment.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT");
         environment.put("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN");
+        environment.put("KAFKA_SASL_ENABLED_MECHANISMS", "PLAIN");
         environment.put("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", String.format(
                 "%s required user_%s=\"%s\";", PlainLoginModule.class.getName(), USERNAME, PASSWORD));
         return environment;
