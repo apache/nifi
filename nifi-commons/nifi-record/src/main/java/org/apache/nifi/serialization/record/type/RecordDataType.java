@@ -101,11 +101,10 @@ public class RecordDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordDataType)) {
+        if (!(obj instanceof RecordDataType other)) {
             return false;
         }
 
-        final RecordDataType other = (RecordDataType) obj;
         return Objects.equals(childSchema, other.childSchema);
     }
 

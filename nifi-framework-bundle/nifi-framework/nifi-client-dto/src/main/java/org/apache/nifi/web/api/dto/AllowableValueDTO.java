@@ -74,11 +74,10 @@ public class AllowableValueDTO {
             return true;
         }
 
-        if (!(obj instanceof AllowableValueDTO)) {
+        if (!(obj instanceof AllowableValueDTO other)) {
             return false;
         }
 
-        final AllowableValueDTO other = (AllowableValueDTO) obj;
         return (this.value.equals(other.getValue()));
     }
 

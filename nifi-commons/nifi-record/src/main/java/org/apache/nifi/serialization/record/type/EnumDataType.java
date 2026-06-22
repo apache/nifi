@@ -46,13 +46,12 @@ public class EnumDataType extends DataType {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof EnumDataType)) {
+        if (!(o instanceof EnumDataType that)) {
             return false;
         }
         if (!super.equals(o)) {
             return false;
         }
-        EnumDataType that = (EnumDataType) o;
         return Objects.equals(getEnums(), that.getEnums());
     }
 

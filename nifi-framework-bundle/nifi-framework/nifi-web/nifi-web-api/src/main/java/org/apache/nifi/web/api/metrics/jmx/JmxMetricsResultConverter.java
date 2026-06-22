@@ -27,8 +27,7 @@ public class JmxMetricsResultConverter {
     private static final String COMPOSITE_DATA_KEY = "CompositeData%s";
 
     public Object convert(final Object attributeValue) {
-        if (attributeValue instanceof CompositeData[]) {
-            final CompositeData[] valueArray = (CompositeData[]) attributeValue;
+        if (attributeValue instanceof CompositeData[] valueArray) {
             final Map<String, Object> values = new LinkedHashMap<>();
 
             for (int i = 0; i < valueArray.length; i++) {

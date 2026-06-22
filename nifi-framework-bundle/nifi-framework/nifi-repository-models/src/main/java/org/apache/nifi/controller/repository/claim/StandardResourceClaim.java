@@ -79,10 +79,9 @@ public class StandardResourceClaim implements ResourceClaim, Comparable<Resource
             return false;
         }
 
-        if (!(other instanceof ResourceClaim)) {
+        if (!(other instanceof ResourceClaim otherClaim)) {
             return false;
         }
-        final ResourceClaim otherClaim = (ResourceClaim) other;
         return id.equals(otherClaim.getId()) && container.equals(otherClaim.getContainer()) && section.equals(otherClaim.getSection());
     }
 

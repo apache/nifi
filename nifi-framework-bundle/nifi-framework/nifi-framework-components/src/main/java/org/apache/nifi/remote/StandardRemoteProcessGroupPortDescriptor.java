@@ -172,11 +172,10 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RemoteProcessGroupPortDescriptor)) {
+        if (!(obj instanceof RemoteProcessGroupPortDescriptor other)) {
             return false;
         }
 
-        final RemoteProcessGroupPortDescriptor other = (RemoteProcessGroupPortDescriptor) obj;
         if (name == null && other.getName() == null) {
             return true;
         }

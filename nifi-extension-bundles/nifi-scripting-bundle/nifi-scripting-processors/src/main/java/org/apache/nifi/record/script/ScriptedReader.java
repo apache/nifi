@@ -128,8 +128,7 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
             }
             // get the engine and ensure its invocable
             ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
-            if (scriptEngine instanceof Invocable) {
-                final Invocable invocable = (Invocable) scriptEngine;
+            if (scriptEngine instanceof Invocable invocable) {
 
                 // evaluate the script
                 scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));

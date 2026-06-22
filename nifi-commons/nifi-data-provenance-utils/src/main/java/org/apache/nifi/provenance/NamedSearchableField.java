@@ -90,11 +90,10 @@ public class NamedSearchableField implements SearchableField {
             return false;
         }
 
-        if (!(obj instanceof SearchableField)) {
+        if (!(obj instanceof SearchableField other)) {
             return false;
         }
 
-        final SearchableField other = (SearchableField) obj;
         return attribute == other.isAttribute() && this.searchableName.equals(other.getSearchableFieldName());
     }
 }

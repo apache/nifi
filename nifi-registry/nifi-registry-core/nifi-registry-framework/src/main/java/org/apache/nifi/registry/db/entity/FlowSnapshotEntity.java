@@ -82,11 +82,10 @@ public class FlowSnapshotEntity {
             return false;
         }
 
-        if (!(obj instanceof FlowSnapshotEntity)) {
+        if (!(obj instanceof FlowSnapshotEntity other)) {
             return false;
         }
 
-        final FlowSnapshotEntity other = (FlowSnapshotEntity) obj;
         return Objects.equals(this.flowId, other.flowId) && Objects.equals(this.version, other.version);
     }
 

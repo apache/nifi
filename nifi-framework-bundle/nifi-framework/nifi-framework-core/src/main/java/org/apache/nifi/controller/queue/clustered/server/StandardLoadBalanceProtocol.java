@@ -207,12 +207,10 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
-        if (!(flowFileQueue instanceof LoadBalancedFlowFileQueue)) {
+        if (!(flowFileQueue instanceof LoadBalancedFlowFileQueue loadBalancedFlowFileQueue)) {
             throw new TransactionAbortedException("Attempted to receive FlowFiles from Peer " + peerDescription + " for Connection with ID " + connectionId + " but the Connection with that ID is " +
                     "not configured to allow for Load Balancing");
         }
-
-        final LoadBalancedFlowFileQueue loadBalancedFlowFileQueue = (LoadBalancedFlowFileQueue) flowFileQueue;
 
         final int spaceCheck = dataIn.read();
         if (spaceCheck < 0) {

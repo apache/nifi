@@ -28,8 +28,7 @@ public class CloseContextIdleStateHandler extends ChannelDuplexHandler {
 
     @Override
     public void userEventTriggered(final ChannelHandlerContext context, final Object event) {
-        if (event instanceof IdleStateEvent) {
-            final IdleStateEvent idleStateEvent = (IdleStateEvent) event;
+        if (event instanceof IdleStateEvent idleStateEvent) {
             if (idleStateEvent.state() == IdleState.ALL_IDLE) {
                 context.close();
             }

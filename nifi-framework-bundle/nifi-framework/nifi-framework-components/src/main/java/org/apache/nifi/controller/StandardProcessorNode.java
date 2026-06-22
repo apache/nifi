@@ -1231,11 +1231,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public boolean equals(final Object other) {
-        if (!(other instanceof ProcessorNode)) {
+        if (!(other instanceof ProcessorNode on)) {
             return false;
         }
 
-        final ProcessorNode on = (ProcessorNode) other;
         return Objects.equals(identifier, on.getIdentifier());
     }
 

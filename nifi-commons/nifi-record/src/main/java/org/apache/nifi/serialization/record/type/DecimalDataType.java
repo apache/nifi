@@ -54,11 +54,10 @@ public class DecimalDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof DecimalDataType)) {
+        if (!(obj instanceof DecimalDataType other)) {
             return false;
         }
 
-        final DecimalDataType other = (DecimalDataType) obj;
         return getPrecision() == other.getPrecision() && getScale() == other.getScale();
     }
 

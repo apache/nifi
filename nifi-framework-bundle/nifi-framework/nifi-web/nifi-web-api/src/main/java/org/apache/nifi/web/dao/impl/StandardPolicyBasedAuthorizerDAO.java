@@ -255,8 +255,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public Group createUserGroup(final UserGroupDTO userGroupDTO) {
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider configurableUserGroupProvider) {
             return configurableUserGroupProvider.addGroup(buildUserGroup(userGroupDTO.getId(), userGroupDTO));
         } else {
             throw new IllegalStateException(MSG_NON_CONFIGURABLE_USERS);
@@ -314,8 +313,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public Group updateUserGroup(final UserGroupDTO userGroupDTO) {
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider configurableUserGroupProvider) {
             return configurableUserGroupProvider.updateGroup(buildUserGroup(getUserGroup(userGroupDTO.getId()).getIdentifier(), userGroupDTO));
         } else {
             throw new IllegalStateException(MSG_NON_CONFIGURABLE_USERS);
@@ -324,8 +322,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public Group deleteUserGroup(final String userGroupId) {
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider configurableUserGroupProvider) {
 
             final Group group = getUserGroup(userGroupId);
             final Group removedGroup = configurableUserGroupProvider.deleteGroup(group);
@@ -336,9 +333,8 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
             }
 
             // remove any references to the user group being deleted from policies if possible
-            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
+            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
                 for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
-                    final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) accessPolicyProvider;
 
                     // ensure this policy contains a reference to the user group and this policy is configurable (check proactively to prevent an exception)
                     if (policy.getGroups().contains(removedGroup.getIdentifier()) && configurableAccessPolicyProvider.isConfigurable(policy)) {
@@ -370,8 +366,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public User createUser(final UserDTO userDTO) {
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider configurableUserGroupProvider) {
             return configurableUserGroupProvider.addUser(buildUser(userDTO.getId(), userDTO));
         } else {
             throw new IllegalStateException(MSG_NON_CONFIGURABLE_USERS);
@@ -394,8 +389,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public User updateUser(final UserDTO userDTO) {
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider configurableUserGroupProvider) {
             return configurableUserGroupProvider.updateUser(buildUser(getUser(userDTO.getId()).getIdentifier(), userDTO));
         } else {
             throw new IllegalStateException(MSG_NON_CONFIGURABLE_USERS);
@@ -404,8 +398,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public User deleteUser(final String userId) {
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            final ConfigurableUserGroupProvider configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider configurableUserGroupProvider) {
 
             final User user = getUser(userId);
             final User removedUser = configurableUserGroupProvider.deleteUser(user);
@@ -416,9 +409,8 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
             }
 
             // remove any references to the user being deleted from policies if possible
-            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
+            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
                 for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
-                    final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) accessPolicyProvider;
 
                     // ensure this policy contains a reference to the user and this policy is configurable (check proactively to prevent an exception)
                     if (policy.getUsers().contains(removedUser.getIdentifier()) && configurableAccessPolicyProvider.isConfigurable(policy)) {

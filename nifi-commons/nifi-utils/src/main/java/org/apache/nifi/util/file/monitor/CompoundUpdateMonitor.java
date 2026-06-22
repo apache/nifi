@@ -76,11 +76,10 @@ public class CompoundUpdateMonitor implements UpdateMonitor {
                 return false;
             }
 
-            if (!(obj instanceof DeferredMonitorAction)) {
+            if (!(obj instanceof DeferredMonitorAction other)) {
                 return false;
             }
 
-            final DeferredMonitorAction other = (DeferredMonitorAction) obj;
             try {
                 // Go through each UpdateMonitor's value and check if the value has changed.
                 for (int i = 0; i < preCalculated.length; i++) {

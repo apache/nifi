@@ -348,10 +348,9 @@ public final class StandardConnection implements Connection {
 
     @Override
     public boolean equals(final Object other) {
-        if (!(other instanceof Connection)) {
+        if (!(other instanceof Connection con)) {
             return false;
         }
-        final Connection con = (Connection) other;
         return new EqualsBuilder().append(id, con.getIdentifier()).isEquals();
     }
 

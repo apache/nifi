@@ -136,8 +136,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             return null;
         }
 
-        if (value instanceof List) {
-            final List<?> list = (List<?>) value;
+        if (value instanceof List<?> list) {
             final Object[] array = new Object[list.size()];
 
             final DataType elementDataType;
@@ -214,14 +213,13 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             return defaultValue;
         }
 
-        if (value instanceof List) {
+        if (value instanceof List<?> list) {
             if (dataType.getFieldType() != RecordFieldType.ARRAY) {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type Array to " + dataType);
             }
 
             final ArrayDataType arrayType = (ArrayDataType) dataType;
 
-            final List<?> list = (List<?>) value;
             final Object[] coercedValues = new Object[list.size()];
             int i = 0;
             for (final Object rawValue : list) {

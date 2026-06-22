@@ -157,11 +157,10 @@ public class NodeConnectionStatus {
             return false;
         }
 
-        if (!(obj instanceof NodeConnectionStatus)) {
+        if (!(obj instanceof NodeConnectionStatus other)) {
             return false;
         }
 
-        NodeConnectionStatus other = (NodeConnectionStatus) obj;
         return Objects.deepEquals(getNodeIdentifier(), other.getNodeIdentifier())
             && Objects.deepEquals(getState(), other.getState());
     }

@@ -68,11 +68,10 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
         }
 
         final Object service = configs.get(PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER);
-        if (!(service instanceof OAuth2AccessTokenProvider)) {
+        if (!(service instanceof OAuth2AccessTokenProvider accessTokenProvider)) {
             throw new ProcessException(String.format("OAuth2AccessTokenProvider must be provided via %s property in Kafka configuration", PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER));
         }
 
-        final OAuth2AccessTokenProvider accessTokenProvider = (OAuth2AccessTokenProvider) service;
         if (!accessTokenProvider.getIdentifier().equals(serviceId)) {
             throw new ProcessException(String.format("OAuth2AccessTokenProvider's identifier [%s] does not mach %s [%s] in JAAS configuration",
                     accessTokenProvider.getIdentifier(), OAuthBearerLoginConfigProvider.SERVICE_ID_KEY, serviceId));

@@ -38,8 +38,7 @@ public class SearchableMatcher implements AttributeMatcher<ProcessorNode> {
     public void match(final ProcessorNode component, final SearchQuery query, final List<String> matches) {
         final Processor processor = component.getProcessor();
 
-        if (processor instanceof Searchable) {
-            final Searchable searchable = (Searchable) processor;
+        if (processor instanceof Searchable searchable) {
             final String searchTerm = query.getTerm();
             final SearchContext context = new StandardSearchContext(searchTerm, component, flowController.getControllerServiceProvider());
 

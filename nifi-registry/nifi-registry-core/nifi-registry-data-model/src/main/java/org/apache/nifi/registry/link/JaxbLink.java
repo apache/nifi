@@ -106,11 +106,9 @@ public class JaxbLink {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof JaxbLink)) {
+        if (!(o instanceof JaxbLink jaxbLink)) {
             return false;
         }
-
-        JaxbLink jaxbLink = (JaxbLink) o;
 
         if (uri != null ? !uri.equals(jaxbLink.uri) : jaxbLink.uri != null) {
             return false;

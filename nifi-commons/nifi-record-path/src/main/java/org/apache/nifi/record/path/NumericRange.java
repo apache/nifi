@@ -52,11 +52,10 @@ public class NumericRange {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof NumericRange)) {
+        if (!(obj instanceof NumericRange other)) {
             return false;
         }
 
-        final NumericRange other = (NumericRange) obj;
         return getMin() == other.getMin() && getMax() == other.getMax();
     }
 }

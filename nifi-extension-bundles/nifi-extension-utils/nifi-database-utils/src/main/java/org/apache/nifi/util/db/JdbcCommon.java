@@ -465,8 +465,7 @@ public class JdbcCommon {
                     nrOfRows += 1;
                 } catch (DataFileWriter.AppendWriteException awe) {
                     Throwable rootCause = ExceptionUtils.getRootCause(awe);
-                    if (rootCause instanceof UnresolvedUnionException) {
-                        UnresolvedUnionException uue = (UnresolvedUnionException) rootCause;
+                    if (rootCause instanceof UnresolvedUnionException uue) {
                         throw new RuntimeException(
                                 "Unable to resolve union for value " + uue.getUnresolvedDatum() +
                                 " with type " + uue.getUnresolvedDatum().getClass().getCanonicalName() +

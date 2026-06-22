@@ -306,11 +306,9 @@ public class RegistryService {
 
     private void addBucketItem(final List<BucketItem> bucketItems, final BucketItemEntity itemEntity) {
         // Currently we don't populate the bucket name for items so we pass in null in the map methods
-        if (itemEntity instanceof FlowEntity) {
-            final FlowEntity flowEntity = (FlowEntity) itemEntity;
+        if (itemEntity instanceof FlowEntity flowEntity) {
             bucketItems.add(FlowMappings.map(null, flowEntity));
-        } else if (itemEntity instanceof BundleEntity) {
-            final BundleEntity bundleEntity = (BundleEntity) itemEntity;
+        } else if (itemEntity instanceof BundleEntity bundleEntity) {
             bucketItems.add(ExtensionMappings.map(null, bundleEntity));
         } else {
             LOGGER.error("Unknown type of BucketItemEntity: {}", itemEntity.getClass().getCanonicalName());

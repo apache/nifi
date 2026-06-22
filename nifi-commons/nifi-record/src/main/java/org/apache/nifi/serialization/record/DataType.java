@@ -58,11 +58,10 @@ public class DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof DataType)) {
+        if (!(obj instanceof DataType other)) {
             return false;
         }
 
-        final DataType other = (DataType) obj;
         return getFieldType().equals(other.getFieldType()) && Objects.equals(getFormat(), other.getFormat());
     }
 

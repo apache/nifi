@@ -120,8 +120,7 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
     }
 
     private static Set<String> getUserGroups(final Authorizer authorizer, final String userIdentity) {
-        if (authorizer instanceof ManagedAuthorizer) {
-            final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
+        if (authorizer instanceof ManagedAuthorizer managedAuthorizer) {
             final UserGroupProvider userGroupProvider = managedAuthorizer.getAccessPolicyProvider().getUserGroupProvider();
             final UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(userIdentity);
             final Set<Group> userGroups = userAndGroups.getGroups();

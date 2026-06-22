@@ -42,11 +42,10 @@ public class Tuple<A, B> {
         if (other == this) {
             return true;
         }
-        if (!(other instanceof Tuple)) {
+        if (!(other instanceof Tuple<?, ?> tuple)) {
             return false;
         }
 
-        final Tuple<?, ?> tuple = (Tuple<?, ?>) other;
         if (key == null) {
             if (tuple.key != null) {
                 return false;

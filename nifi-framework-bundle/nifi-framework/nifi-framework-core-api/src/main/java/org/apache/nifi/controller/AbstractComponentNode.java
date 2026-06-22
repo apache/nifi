@@ -846,11 +846,10 @@ public abstract class AbstractComponentNode implements ComponentNode {
             return false;
         }
 
-        if (!(obj instanceof ComponentNode)) {
+        if (!(obj instanceof ComponentNode other)) {
             return false;
         }
 
-        final ComponentNode other = (ComponentNode) obj;
         return id.equals(other.getIdentifier());
     }
 

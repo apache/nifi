@@ -301,8 +301,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
             return m;
         } else if (o instanceof Object[]) {
             return Arrays.stream(((Object[]) o)).map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
-        } else if (o instanceof Collection) {
-            Collection<?> c = (Collection<?>) o;
+        } else if (o instanceof Collection<?> c) {
             return c.stream().map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else {
             return o;
@@ -322,8 +321,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                 objectArray[i] = normalizeRecordObjects(objectList.get(i));
             }
             return objectArray;
-        } else if (o instanceof Collection) {
-            Collection<?> c = (Collection<?>) o;
+        } else if (o instanceof Collection<?> c) {
             final List<Object> objectList = new ArrayList<>();
             for (Object obj : c) {
                 objectList.add(normalizeRecordObjects(obj));

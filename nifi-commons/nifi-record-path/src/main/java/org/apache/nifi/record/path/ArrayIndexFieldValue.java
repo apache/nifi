@@ -82,11 +82,10 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof ArrayIndexFieldValue)) {
+        if (!(obj instanceof ArrayIndexFieldValue other)) {
             return false;
         }
 
-        final ArrayIndexFieldValue other = (ArrayIndexFieldValue) obj;
         return Objects.equals(getValue(), other.getValue()) && Objects.equals(getField(), other.getField())
             && Objects.equals(getParent(), other.getParent()) && getArrayIndex() == other.getArrayIndex();
     }

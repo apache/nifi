@@ -246,11 +246,10 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
             @Override
             public InputStream readContent(final FlowFile flowFile) throws IOException {
-                if (!(flowFile instanceof FlowFileRecord)) {
+                if (!(flowFile instanceof FlowFileRecord flowFileRecord)) {
                     throw new IllegalArgumentException("FlowFile was not created by this flow");
                 }
 
-                final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
                 final ContentClaim contentClaim = flowFileRecord.getContentClaim();
 
                 final InputStream in = contentRepository.read(contentClaim);
@@ -264,7 +263,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
             @Override
             public byte[] readContentAsByteArray(final FlowFile flowFile) throws IOException {
-                if (!(flowFile instanceof FlowFileRecord)) {
+                if (!(flowFile instanceof FlowFileRecord flowFileRecord)) {
                     throw new IllegalArgumentException("FlowFile was not created by this flow");
                 }
 
@@ -272,8 +271,6 @@ public class StandardExecutionProgress implements ExecutionProgress {
                     throw new IOException("Cannot return contents of " + flowFile + " as a byte array because the contents exceed the maximum length supported for byte arrays ("
                         + Integer.MAX_VALUE + " bytes)");
                 }
-
-                final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
 
                 final long size = flowFileRecord.getSize();
                 final byte[] flowFileContents = new byte[(int) size];

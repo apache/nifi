@@ -50,11 +50,10 @@ public class LogoutRequest {
             return false;
         }
 
-        if (!(obj instanceof LogoutRequest)) {
+        if (!(obj instanceof LogoutRequest other)) {
             return false;
         }
 
-        final LogoutRequest other = (LogoutRequest) obj;
         return Objects.equals(this.requestIdentifier, other.requestIdentifier)
                 && Objects.equals(this.mappedUserIdentity, other.mappedUserIdentity);
     }

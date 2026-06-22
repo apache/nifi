@@ -67,11 +67,10 @@ public class StandardFieldValue implements FieldValue {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof StandardFieldValue)) {
+        if (!(obj instanceof StandardFieldValue other)) {
             return false;
         }
 
-        final StandardFieldValue other = (StandardFieldValue) obj;
         return Objects.equals(getValue(), other.getValue()) && Objects.equals(getField(), other.getField()) && Objects.equals(getParent(), other.getParent());
     }
 

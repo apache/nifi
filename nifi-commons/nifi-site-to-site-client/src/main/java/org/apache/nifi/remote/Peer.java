@@ -117,11 +117,10 @@ public class Peer implements Communicant {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof Peer)) {
+        if (!(obj instanceof Peer other)) {
             return false;
         }
 
-        final Peer other = (Peer) obj;
         return this.url.equals(other.url);
     }
 

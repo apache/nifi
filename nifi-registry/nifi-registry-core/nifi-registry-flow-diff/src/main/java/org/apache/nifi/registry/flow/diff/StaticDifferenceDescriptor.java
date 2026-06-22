@@ -68,9 +68,7 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
                         componentA == null ? getId(componentB) : getId(componentA), valueA, flowAName, valueB, flowBName);
                 break;
             case VERSIONED_FLOW_COORDINATES_CHANGED:
-                if (valueA instanceof VersionedFlowCoordinates && valueB instanceof VersionedFlowCoordinates) {
-                    final VersionedFlowCoordinates coordinatesA = (VersionedFlowCoordinates) valueA;
-                    final VersionedFlowCoordinates coordinatesB = (VersionedFlowCoordinates) valueB;
+                if (valueA instanceof VersionedFlowCoordinates coordinatesA && valueB instanceof VersionedFlowCoordinates coordinatesB) {
 
                     // If the two vary only by version, then use a more concise message. If anything else is different, then use a fully explanation.
                     if (Objects.equals(coordinatesA.getStorageLocation(), coordinatesB.getStorageLocation()) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())

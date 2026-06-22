@@ -74,13 +74,12 @@ public class ArrayDataType extends DataType {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ArrayDataType)) {
+        if (!(o instanceof ArrayDataType that)) {
             return false;
         }
         if (!super.equals(o)) {
             return false;
         }
-        ArrayDataType that = (ArrayDataType) o;
         return isElementsNullable() == that.isElementsNullable()
                 && Objects.equals(getElementType(), that.getElementType());
     }

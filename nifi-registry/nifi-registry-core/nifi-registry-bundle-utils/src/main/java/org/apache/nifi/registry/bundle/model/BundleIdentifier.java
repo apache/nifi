@@ -67,11 +67,10 @@ public class BundleIdentifier {
             return false;
         }
 
-        if (!(obj instanceof BundleIdentifier)) {
+        if (!(obj instanceof BundleIdentifier other)) {
             return false;
         }
 
-        final BundleIdentifier other = (BundleIdentifier) obj;
         return getIdentifier().equals(other.getIdentifier());
     }
 

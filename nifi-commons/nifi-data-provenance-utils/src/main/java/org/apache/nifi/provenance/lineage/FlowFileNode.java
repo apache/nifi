@@ -62,11 +62,10 @@ public class FlowFileNode implements LineageNode {
             return true;
         }
 
-        if (!(obj instanceof FlowFileNode)) {
+        if (!(obj instanceof FlowFileNode other)) {
             return false;
         }
 
-        final FlowFileNode other = (FlowFileNode) obj;
         return flowFileUuid.equals(other.flowFileUuid);
     }
 

@@ -66,12 +66,11 @@ public class InsertRecordFieldsJoinStrategy extends IndexCorrelatedJoinStrategy 
         final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
             final Object value = fieldValue.getValue();
-            if (!(value instanceof Record)) {
+            if (!(value instanceof Record parentRecord)) {
                 getLogger().debug("Did not find a Record after evaluating RecordPath {} but found {} instead", recordPath.getPath(), value);
                 continue;
             }
 
-            final Record parentRecord = (Record) value;
             if (incorporateEnrichmentSchema) {
                 parentRecord.incorporateSchema(enrichmentRecord.getSchema());
             }

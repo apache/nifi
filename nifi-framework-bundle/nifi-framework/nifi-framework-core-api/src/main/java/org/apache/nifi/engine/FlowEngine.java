@@ -129,8 +129,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     @Override
     protected void afterExecute(final Runnable runnable, final Throwable throwable) {
         super.afterExecute(runnable, throwable);
-        if (runnable instanceof FutureTask<?>) {
-            final FutureTask<?> task = (FutureTask<?>) runnable;
+        if (runnable instanceof FutureTask<?> task) {
             try {
                 if (task.isDone()) {
                     if (task.isCancelled()) {

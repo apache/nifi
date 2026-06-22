@@ -80,11 +80,10 @@ public class PeerStatus {
             return false;
         }
 
-        if (!(obj instanceof PeerStatus)) {
+        if (!(obj instanceof PeerStatus other)) {
             return false;
         }
 
-        final PeerStatus other = (PeerStatus) obj;
         return description.equals(other.getPeerDescription());
     }
 }

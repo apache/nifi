@@ -345,11 +345,10 @@ public class ReflectionUtils {
                 return true;
             }
 
-            if (!(other instanceof Annotations)) {
+            if (!(other instanceof Annotations otherAnnotations)) {
                 return false;
             }
 
-            final Annotations otherAnnotations = (Annotations) other;
             return Arrays.equals(this.array, otherAnnotations.array);
         }
     }

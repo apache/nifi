@@ -69,11 +69,10 @@ public class SimpleRecordField implements RecordField {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordField)) {
+        if (!(obj instanceof RecordField other)) {
             return false;
         }
 
-        final RecordField other = (RecordField) obj;
         return fieldName.equals(other.getFieldName());
     }
 

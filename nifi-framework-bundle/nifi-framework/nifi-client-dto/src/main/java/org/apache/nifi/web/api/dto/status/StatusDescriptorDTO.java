@@ -113,10 +113,9 @@ public class StatusDescriptorDTO {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof StatusDescriptorDTO)) {
+        if (!(obj instanceof StatusDescriptorDTO other)) {
             return false;
         }
-        final StatusDescriptorDTO other = (StatusDescriptorDTO) obj;
         return Objects.equals(field, other.field);
     }
 }

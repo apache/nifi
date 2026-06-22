@@ -65,8 +65,7 @@ public class InMemoryJanusGraphClientService extends AbstractControllerService i
         try {
             Object response = engine.eval(query);
 
-            if (response instanceof Map) {
-                Map resp = (Map) response;
+            if (response instanceof Map resp) {
                 Map<String, Object> result = new HashMap<>();
                 result.put("result", resp.entrySet().iterator().next());
                 handler.process(result, false);

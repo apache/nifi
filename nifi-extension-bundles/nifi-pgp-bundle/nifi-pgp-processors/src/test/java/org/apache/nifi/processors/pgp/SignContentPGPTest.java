@@ -233,28 +233,25 @@ public class SignContentPGPTest {
         PGPOnePassSignature onePassSignature = null;
         boolean verified = false;
         for (final Object object : dataObjectFactory) {
-            if (object instanceof PGPOnePassSignatureList) {
-                final PGPOnePassSignatureList onePassSignatureList = (PGPOnePassSignatureList) object;
+            if (object instanceof PGPOnePassSignatureList onePassSignatureList) {
                 onePassSignature = onePassSignatureList.iterator().next();
                 onePassSignature.init(new JcaPGPContentVerifierBuilderProvider(), rsaPublicKey);
-            } else if (object instanceof PGPLiteralData) {
+            } else if (object instanceof PGPLiteralData literalData) {
                 if (onePassSignature == null) {
                     throw new IllegalStateException("One-Pass Signature not found before Literal Data");
                 }
 
-                final PGPLiteralData literalData = (PGPLiteralData) object;
                 final InputStream literalInputStream = literalData.getDataStream();
                 int read;
                 while ((read = literalInputStream.read()) >= 0) {
                     onePassSignature.update((byte) read);
                     outputStream.write(read);
                 }
-            } else if (object instanceof PGPSignatureList) {
+            } else if (object instanceof PGPSignatureList signatureList) {
                 if (onePassSignature == null) {
                     throw new IllegalStateException("One-Pass Signature not found before Signature");
                 }
 
-                final PGPSignatureList signatureList = (PGPSignatureList) object;
                 final PGPSignature signature = signatureList.iterator().next();
                 verified = onePassSignature.verify(signature);
             } else {

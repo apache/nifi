@@ -36,8 +36,7 @@ public class UserGroupUtil {
      * @return the listing of groups for the user
      */
     public static Set<String> getUserGroups(final Authorizer authorizer, final String userIdentity) {
-        if (authorizer instanceof ManagedAuthorizer) {
-            final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
+        if (authorizer instanceof ManagedAuthorizer managedAuthorizer) {
             final UserGroupProvider userGroupProvider = managedAuthorizer.getAccessPolicyProvider().getUserGroupProvider();
             final UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(userIdentity);
             final Set<Group> userGroups = userAndGroups.getGroups();
