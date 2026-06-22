@@ -612,6 +612,7 @@ public class ParameterContextIT extends NiFiSystemIT {
             }
         } finally {
             getClientUtil().disableControllerService(serviceEntity);
+            getClientUtil().waitForControllerServiceRunStatus(serviceEntity.getId(), "DISABLED");
             getNifiClient().getControllerServicesClient().deleteControllerService(serviceEntity);
         }
     }

@@ -76,6 +76,7 @@ public class ClassloaderIsolationWithControllerServicePropertyIT extends NiFiSys
         stopProcessorAndEmptyQueue(classloaderIsolationProcessor, classloaderIsolationConnection);
 
         getClientUtil().disableControllerService(service);
+        getClientUtil().waitForControllerServiceRunStatus(service.getId(), "DISABLED");
         getClientUtil().updateControllerServiceProperties(service, Collections.singletonMap("Key Field", "Updated value"));
         getClientUtil().enableControllerService(service);
 
