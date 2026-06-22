@@ -758,7 +758,7 @@ public class TestAttributesToCSV {
 
         final String contentDataString = new String(contentData, StandardCharsets.UTF_8);
         assertEquals("beach-name,beach-location,path,filename,uuid", contentDataString.split(newline)[0]);
-        assertEquals(contentDataString.split(newline)[1], "Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid);
+        assertEquals("Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid, contentDataString.split(newline)[1]);
     }
 
     @Test

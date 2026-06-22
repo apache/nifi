@@ -334,7 +334,7 @@ public class PutBigQueryIT {
         TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
         Iterator<FieldValueList> iterator = result.getValues().iterator();
         FieldValueList firstElt = iterator.next();
-        assertEquals(0, firstElt.getFirst().getNumericValue().intValue());
+        assertEquals(0, firstElt.get(0).getNumericValue().intValue());
 
         deleteTable(tableName);
     }
@@ -375,7 +375,7 @@ public class PutBigQueryIT {
         TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
         Iterator<FieldValueList> iterator = result.getValues().iterator();
         FieldValueList firstElt = iterator.next();
-        assertEquals(1.0, firstElt.getFirst().getDoubleValue());
+        assertEquals(1.0, firstElt.get(0).getDoubleValue());
 
         deleteTable(tableName);
     }
@@ -416,7 +416,7 @@ public class PutBigQueryIT {
         TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
         Iterator<FieldValueList> iterator = result.getValues().iterator();
         FieldValueList firstElt = iterator.next();
-        assertEquals(1.0, firstElt.getFirst().getDoubleValue());
+        assertEquals(1.0, firstElt.get(0).getDoubleValue());
 
         deleteTable(tableName);
     }
@@ -532,7 +532,7 @@ public class PutBigQueryIT {
         john = firstElt.get("name").getStringValue().equals("John Doe") ? firstElt : sndElt;
         jane = firstElt.get("name").getStringValue().equals("Jane Doe") ? firstElt : sndElt;
 
-        assertEquals("Director", jane.get("job").getRecordValue().getFirst().getStringValue());
+        assertEquals("Director", jane.get("job").getRecordValue().get(0).getStringValue());
         assertEquals(2, john.get("alias").getRepeatedValue().size());
         assertTrue(john.get("addresses").getRepeatedValue().get(0).getRecordValue().get(0).getStringValue().endsWith("000"));
 
