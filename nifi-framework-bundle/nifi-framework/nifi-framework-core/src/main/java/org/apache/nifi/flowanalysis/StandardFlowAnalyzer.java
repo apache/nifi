@@ -27,6 +27,7 @@ import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.nar.ExtensionManager;
@@ -256,7 +257,9 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     private String getDisplayName(VersionedComponent component) {
         final String displayName;
 
-        if (component instanceof VersionedConnection) {
+        if (component instanceof VersionedFunnel) {
+            displayName = "Funnel";
+        } else if (component instanceof VersionedConnection) {
             VersionedConnection connection = (VersionedConnection) component;
             displayName = connection.getSource().getName() + " > " + connection.getSelectedRelationships().stream().collect(Collectors.joining(","));
         } else {

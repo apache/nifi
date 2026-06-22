@@ -155,8 +155,35 @@ export class FlowAnalysisDrawerComponent {
         this.store.dispatch(openRuleDetailsDialog({ violation, rule: ruleTest }));
     }
 
-    getProcessorLink(violation: FlowAnalysisRuleViolation): string[] {
-        return ['/process-groups', violation.groupId, violation.subjectComponentType, violation.subjectId];
+    getComponentLink(violation: FlowAnalysisRuleViolation): string[] | null {
+        const componentType = this.getComponentType(violation.subjectComponentType);
+
+        if (componentType && violation.groupId) {
+            return ['/process-groups', violation.groupId, componentType, violation.subjectId];
+        }
+
+        return null;
+    }
+
+    private getComponentType(subjectComponentType: string): ComponentType | null {
+        switch (subjectComponentType) {
+            case 'PROCESSOR':
+                return ComponentType.Processor;
+            case 'PROCESS_GROUP':
+                return ComponentType.ProcessGroup;
+            case 'REMOTE_PROCESS_GROUP':
+                return ComponentType.RemoteProcessGroup;
+            case 'INPUT_PORT':
+                return ComponentType.InputPort;
+            case 'OUTPUT_PORT':
+                return ComponentType.OutputPort;
+            case 'FUNNEL':
+                return ComponentType.Funnel;
+            case 'CONNECTION':
+                return ComponentType.Connection;
+            default:
+                return null;
+        }
     }
 
     getRuleName(id: string) {

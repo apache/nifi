@@ -261,8 +261,8 @@
             [disabled]="!violation?.subjectPermissionDto?.canRead">
             <i class="fa fa-info-circle mr-2 primary-color"></i>Violation details
         </button>
-        @if (violation?.subjectComponentType === 'PROCESSOR' && violation?.subjectPermissionDto?.canRead) {
-            <button mat-menu-item [routerLink]="getProcessorLink(violation)">
+        @if (violation?.subjectPermissionDto?.canRead && getComponentLink(violation); as componentLink) {
+            <button mat-menu-item [routerLink]="componentLink">
                 <i class="fa mr-2 fa-long-arrow-right primary-color"></i>Go to component
             </button>
         }

@@ -22,9 +22,10 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { initialState as initialErrorState } from '../../../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../../../state/error';
 import { initialState as initialFlowAnalysisState } from '../../../../state/flow-analysis/flow-analysis.reducer';
-import { flowAnalysisFeatureKey } from '../../../../state/flow-analysis';
+import { flowAnalysisFeatureKey, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
 import { initialState as initialFlowState } from '../../../../state/flow/flow.reducer';
 import { flowFeatureKey } from '../../../../state/flow';
+import { ComponentType } from '@nifi/shared';
 
 describe('FlowAnalysisDrawerComponent', () => {
     let component: FlowAnalysisDrawerComponent;
@@ -54,4 +55,59 @@ describe('FlowAnalysisDrawerComponent', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    const supportedComponentTypes: [string, ComponentType][] = [
+        ['PROCESSOR', ComponentType.Processor],
+        ['PROCESS_GROUP', ComponentType.ProcessGroup],
+        ['REMOTE_PROCESS_GROUP', ComponentType.RemoteProcessGroup],
+        ['INPUT_PORT', ComponentType.InputPort],
+        ['OUTPUT_PORT', ComponentType.OutputPort],
+        ['FUNNEL', ComponentType.Funnel],
+        ['CONNECTION', ComponentType.Connection]
+    ];
+
+    it.each(supportedComponentTypes)(
+        'should get a component link for %s violations',
+        (subjectComponentType: string, componentType: ComponentType) => {
+            const violation = createViolation(subjectComponentType);
+
+            expect(component.getComponentLink(violation)).toEqual([
+                '/process-groups',
+                'group-id',
+                componentType,
+                'subject-id'
+            ]);
+        }
+    );
+
+    it('should not get a component link for unsupported subject types', () => {
+        const violation = createViolation('CONTROLLER_SERVICE');
+
+        expect(component.getComponentLink(violation)).toBeNull();
+    });
+
+    it('should not get a component link for label violations', () => {
+        const violation = createViolation('LABEL');
+
+        expect(component.getComponentLink(violation)).toBeNull();
+    });
+
+    function createViolation(subjectComponentType: string): FlowAnalysisRuleViolation {
+        return {
+            enforcementPolicy: 'WARN',
+            scope: 'scope',
+            subjectId: 'subject-id',
+            subjectDisplayName: 'Subject',
+            groupId: 'group-id',
+            ruleId: 'rule-id',
+            issueId: 'issue-id',
+            violationMessage: 'Violation message',
+            subjectComponentType,
+            subjectPermissionDto: {
+                canRead: true,
+                canWrite: true
+            },
+            enabled: true
+        };
+    }
 });
