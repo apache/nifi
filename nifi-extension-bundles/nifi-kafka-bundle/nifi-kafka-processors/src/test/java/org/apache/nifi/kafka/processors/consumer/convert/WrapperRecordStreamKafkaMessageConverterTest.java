@@ -75,7 +75,7 @@ class WrapperRecordStreamKafkaMessageConverterTest {
                 readerFactory,
                 writerFactory,
                 keyReaderFactory,
-                StandardCharsets.UTF_8,
+                value -> new String(value, StandardCharsets.UTF_8),
                 Pattern.compile(".*"),
                 KeyFormat.STRING,
                 KeyEncoding.UTF8,

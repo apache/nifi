@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors.consumer.convert;
 
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.processors.consumer.wrapper.ConsumeWrapperRecord;
 import org.apache.nifi.kafka.processors.consumer.wrapper.WrapperRecordKeyReader;
@@ -36,7 +37,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Map;
 
 public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStreamKafkaMessageConverter {
@@ -49,7 +49,7 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
             final RecordReaderFactory readerFactory,
             final RecordSetWriterFactory writerFactory,
             final RecordReaderFactory keyReaderFactory,
-            final Charset headerEncoding,
+            final HeaderValueConverter headerValueConverter,
             final java.util.regex.Pattern headerNamePattern,
             final KeyFormat keyFormat,
             final KeyEncoding keyEncoding,
@@ -58,7 +58,7 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
             final ComponentLog logger,
             final String brokerUri,
             final OutputStrategy outputStrategy) {
-        super(readerFactory, writerFactory, headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri);
+        super(readerFactory, writerFactory, headerValueConverter, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri);
         this.keyReaderFactory = keyReaderFactory;
         this.keyFormat = keyFormat;
         this.outputStrategy = outputStrategy;
@@ -84,8 +84,8 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
             final WrapperRecordKeyReader keyReader = new WrapperRecordKeyReader(keyFormat, keyReaderFactory, keyEncoding, logger);
             final Tuple<RecordField, Object> recordKey = keyReader.toWrapperRecordKey(consumerRecord.getKey().orElse(null), attributes);
             return outputStrategy == OutputStrategy.USE_WRAPPER
-                    ? new ConsumeWrapperRecord(headerEncoding).toWrapperRecord(consumerRecord, record, recordKey)
-                    : InjectMetadataRecord.toWrapperRecord(headerEncoding, consumerRecord, record, recordKey);
+                    ? new ConsumeWrapperRecord(headerValueConverter).toWrapperRecord(consumerRecord, record, recordKey)
+                    : InjectMetadataRecord.toWrapperRecord(headerValueConverter, consumerRecord, record, recordKey);
         } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
             throw new IOException("Unable to convert record", e);
         }

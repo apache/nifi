@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.processors.consumer.convert;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.kafka.processors.ConsumeKafka;
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
@@ -42,7 +43,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -55,7 +55,7 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
 
     protected final RecordReaderFactory readerFactory;
     protected final RecordSetWriterFactory writerFactory;
-    protected final Charset headerEncoding;
+    protected final HeaderValueConverter headerValueConverter;
     protected final Pattern headerNamePattern;
     protected final KeyEncoding keyEncoding;
     protected final boolean commitOffsets;
@@ -66,7 +66,7 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
     public AbstractRecordStreamKafkaMessageConverter(
             final RecordReaderFactory readerFactory,
             final RecordSetWriterFactory writerFactory,
-            final Charset headerEncoding,
+            final HeaderValueConverter headerValueConverter,
             final Pattern headerNamePattern,
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
@@ -75,7 +75,7 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
             final String brokerUri) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
-        this.headerEncoding = headerEncoding;
+        this.headerValueConverter = headerValueConverter;
         this.headerNamePattern = headerNamePattern;
         this.keyEncoding = keyEncoding;
         this.commitOffsets = commitOffsets;
@@ -96,7 +96,7 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
 
             // shared attribute extraction
             final Map<String, String> attributes = KafkaUtils.toAttributes(
-                    consumerRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
+                    consumerRecord, keyEncoding, headerNamePattern, headerValueConverter, commitOffsets);
 
             // hook for subclasses to expose headers (if desired)
             final Map<String, String> extraAttrs = extractHeaders(consumerRecord);

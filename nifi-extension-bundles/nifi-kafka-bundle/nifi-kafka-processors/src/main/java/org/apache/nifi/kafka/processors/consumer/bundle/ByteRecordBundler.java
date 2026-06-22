@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors.consumer.bundle;
 
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
@@ -23,7 +24,6 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,18 +36,18 @@ public class ByteRecordBundler {
     private final boolean separateByKey;
     private final KeyEncoding keyEncoding;
     private final Pattern headerNamePattern;
-    private final Charset headerEncoding;
+    private final HeaderValueConverter headerValueConverter;
     private final boolean commitOffsets;
 
     private final Map<BundleKey, BundleValue> bundles;
 
     public ByteRecordBundler(final byte[] demarcator, final boolean separateByKey, final KeyEncoding keyEncoding,
-                             final Pattern headerNamePattern, final Charset headerEncoding, final boolean commitOffsets) {
+                             final Pattern headerNamePattern, final HeaderValueConverter headerValueConverter, final boolean commitOffsets) {
         this.demarcator = demarcator;
         this.separateByKey = separateByKey;
         this.keyEncoding = keyEncoding;
         this.headerNamePattern = headerNamePattern;
-        this.headerEncoding = headerEncoding;
+        this.headerValueConverter = headerValueConverter;
         this.commitOffsets = commitOffsets;
         this.bundles = new HashMap<>();
     }
@@ -74,7 +74,7 @@ public class ByteRecordBundler {
         final List<RecordHeader> headers = byteRecord.getHeaders();
         final List<RecordHeader> headersFiltered = KafkaUtils.toHeadersFiltered(byteRecord, headerNamePattern);
         final byte[] messageKey = (separateByKey ? byteRecord.getKey().orElse(null) : null);
-        final Map<String, String> attributes = KafkaUtils.toAttributes(byteRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
+        final Map<String, String> attributes = KafkaUtils.toAttributes(byteRecord, keyEncoding, headerNamePattern, headerValueConverter, commitOffsets);
         final BundleKey bundleKey = new BundleKey(topicPartition, byteRecord.getTimestamp(), headers, headersFiltered, attributes, messageKey);
         if (bundles.containsKey(bundleKey)) {
             update(bundles, byteRecord, bundleKey);

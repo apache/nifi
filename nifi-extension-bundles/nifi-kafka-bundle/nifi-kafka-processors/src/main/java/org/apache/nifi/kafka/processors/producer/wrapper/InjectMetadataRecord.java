@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors.producer.wrapper;
 
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -108,7 +109,7 @@ public class InjectMetadataRecord extends MapRecord {
         return new SimpleRecordSchema(valueFieldsWithInjectedMetadata);
     }
 
-    public static MapRecord toWrapperRecord(final Charset headerCharacterSet, final ByteRecord consumerRecord, final Record record, final Tuple<RecordField, Object> tupleKey) {
+    public static MapRecord toWrapperRecord(final HeaderValueConverter headerValueConverter, final ByteRecord consumerRecord, final Record record, final Tuple<RecordField, Object> tupleKey) {
         final RecordSchema schema = record.getSchema();
         RecordSchema finalSchema = InjectMetadataRecord.toWrapperSchema(tupleKey.getKey(), schema);
 
@@ -123,7 +124,7 @@ public class InjectMetadataRecord extends MapRecord {
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
         for (RecordHeader header : consumerRecord.getHeaders()) {
-            valuesHeaders.put(header.key(), new String(header.value(), headerCharacterSet));
+            valuesHeaders.put(header.key(), headerValueConverter.convert(header.value()));
         }
         valuesMetadata.put(InjectMetadataRecord.HEADERS, valuesHeaders);
 

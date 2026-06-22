@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors.consumer.convert;
 
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
@@ -28,7 +29,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -38,14 +38,14 @@ public class RecordStreamKafkaMessageConverter extends AbstractRecordStreamKafka
     public RecordStreamKafkaMessageConverter(
             final RecordReaderFactory readerFactory,
             final RecordSetWriterFactory writerFactory,
-            final Charset headerEncoding,
+            final HeaderValueConverter headerValueConverter,
             final Pattern headerNamePattern,
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
             final ComponentLog logger,
             final String brokerUri) {
-        super(readerFactory, writerFactory, headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri);
+        super(readerFactory, writerFactory, headerValueConverter, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri);
     }
 
     @Override
@@ -72,7 +72,7 @@ public class RecordStreamKafkaMessageConverter extends AbstractRecordStreamKafka
         for (final RecordHeader h : consumerRecord.getHeaders()) {
             final String name = h.key();
             if (headerNamePattern.matcher(name).matches()) {
-                headers.put(name, new String(h.value(), headerEncoding));
+                headers.put(name, headerValueConverter.convert(h.value()));
             }
         }
         return headers;

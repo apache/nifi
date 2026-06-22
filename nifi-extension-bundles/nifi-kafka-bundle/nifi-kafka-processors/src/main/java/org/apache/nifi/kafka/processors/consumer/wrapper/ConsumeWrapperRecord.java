@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors.consumer.wrapper;
 
+import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.producer.wrapper.WrapperRecord;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
@@ -27,7 +28,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
 
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +36,10 @@ public class ConsumeWrapperRecord {
 
     private static final RecordSchema EMPTY_SCHEMA = new SimpleRecordSchema(List.of());
 
-    private final Charset headerCharacterSet;
+    private final HeaderValueConverter headerValueConverter;
 
-    public ConsumeWrapperRecord(final Charset headerCharacterSet) {
-        this.headerCharacterSet = headerCharacterSet;
+    public ConsumeWrapperRecord(final HeaderValueConverter headerValueConverter) {
+        this.headerValueConverter = headerValueConverter;
     }
 
     public MapRecord toWrapperRecord(final ByteRecord consumerRecord,
@@ -72,7 +72,7 @@ public class ConsumeWrapperRecord {
         final RecordField recordField = new RecordField(WrapperRecord.HEADERS, RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
         final Map<String, String> headers = new HashMap<>();
         for (final RecordHeader header : consumerRecord.getHeaders()) {
-            headers.put(header.key(), new String(header.value(), headerCharacterSet));
+            headers.put(header.key(), headerValueConverter.convert(header.value()));
         }
         return new Tuple<>(recordField, headers);
     }

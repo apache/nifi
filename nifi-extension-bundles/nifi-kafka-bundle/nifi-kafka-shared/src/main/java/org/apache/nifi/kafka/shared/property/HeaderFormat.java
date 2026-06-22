@@ -19,18 +19,17 @@ package org.apache.nifi.kafka.shared.property;
 import org.apache.nifi.components.DescribedValue;
 
 /**
- * Enumeration of supported Kafka Key Encoding Strategies
+ * Enumeration of supported Kafka Record Header Value Formats
  */
-public enum KeyEncoding implements DescribedValue {
-    UTF8("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string."),
-    HEX("hex", "Hex Encoded", "The key is interpreted as arbitrary binary data and is encoded as a lowercase hexadecimal string"),
-    DO_NOT_ADD("do-not-add", "Do Not Add Key as Attribute", "The key will not be added as an Attribute");
+public enum HeaderFormat implements DescribedValue {
+    STRING("string", "String", "The header value is decoded as a string using the configured Header Encoding character set."),
+    HEX("hex", "Hex Encoded", "The header value is interpreted as arbitrary binary data and is encoded as a lowercase hexadecimal string");
 
     private final String value;
     private final String displayName;
     private final String description;
 
-    KeyEncoding(final String value, final String displayName, final String description) {
+    HeaderFormat(final String value, final String displayName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
