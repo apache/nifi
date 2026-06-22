@@ -17,16 +17,22 @@
 
 package org.apache.nifi.tests.system.provenance;
 
+import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProvenanceClient.ReplayEventNodes;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -52,6 +58,10 @@ public class ReplayProvenanceIT extends NiFiSystemIT {
         waitForQueueCount(connection.getId(), 0);
         getClientUtil().stopProcessor(terminate);
 
+        // Provenance events are indexed asynchronously after the FlowFile is processed, and replaying the last event reads from
+        // that index on each node. Wait until every node has registered terminate's event so that replaying across all nodes is deterministic.
+        waitForProvenanceEventCount(terminate.getId(), getNumberOfNodes());
+
         // Replay last event for terminate and ensure that data is queued up.
         final ReplayLastEventResponseEntity replayResponse = getNifiClient().getProvenanceClient().replayLastEvent(terminate.getId(), nodes);
         assertNull(replayResponse.getAggregateSnapshot().getFailureExplanation());
@@ -69,6 +79,19 @@ public class ReplayProvenanceIT extends NiFiSystemIT {
         // The failure text is not provided if multiple nodes failed, as it can get too unwieldy to understand.
         final String expectedFailureText = (nodes == ReplayEventNodes.ALL && getNumberOfNodes() > 1) ? "See logs for more details" : "Source FlowFile Queue";
         assertTrue(failureExplanation.contains(expectedFailureText), failureExplanation);
+    }
+
+    private void waitForProvenanceEventCount(final String componentId, final int expectedCount) throws InterruptedException {
+        final ProvenanceSearchValueDTO searchValue = new ProvenanceSearchValueDTO();
+        searchValue.setValue(componentId);
+        searchValue.setInverse(false);
+
+        final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms = Collections.singletonMap(SearchableFields.ComponentID, searchValue);
+
+        waitFor(() -> {
+            final ProvenanceEntity provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
+            return provenanceEntity.getProvenance().getResults().getProvenanceEvents().size() >= expectedCount;
+        }, 500L);
     }
 
 }
