@@ -23,9 +23,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -41,12 +43,18 @@ import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationStrategy.ENTIRE_FLOWFILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJSLTTransformJSON {
 
-    private TestRunner runner = TestRunners.newTestRunner(new JSLTTransformJSON());
     private static final Path RESOURCE_DIR = Paths.get("src/test/resources");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @TempDir
+    private static Path tempDir;
+
+    private TestRunner runner;
 
     @BeforeEach
     public void setup() {
@@ -72,6 +80,86 @@ public class TestJSLTTransformJSON {
         final String invalidTransform = "invalid";
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, invalidTransform);
         runner.assertNotValid();
+    }
+
+    @Test
+    public void testMultipleLetStatementsOnDifferentLinesDoNotCollide() {
+        final String transformWithMultilines = """
+                let id = .value.id
+                let client_name = replace(.value.client_name, "-[^-]+$", ""){
+                "id": $id,
+                "name": $client_name
+                }
+                """;
+
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transformWithMultilines);
+        runner.setProperty(JSLTTransformJSON.TRANSFORMATION_STRATEGY, ENTIRE_FLOWFILE.getValue());
+        final String json = """
+                {
+                    "value" : {
+                        "id" : "jdoe",
+                        "client_name": "John"
+                    }
+                }
+                """;
+        runner.enqueue(json);
+
+        runner.run();
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testImprovedInvalidTransformReadMessage() {
+        final Path nonExistentTransformFile = tempDir.resolve("transform.json");
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, nonExistentTransformFile.toString());
+        runner.setProperty(JSLTTransformJSON.TRANSFORMATION_STRATEGY, ENTIRE_FLOWFILE.getValue());
+
+        final String json = """
+                {
+                    "userId" : "jdoe",
+                    "firstName": "John"
+                }
+                """;
+        runner.enqueue(json);
+
+        final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.run());
+        assertTrue(assertionFailedError.getMessage().contains("'JSLT Transformation' is invalid because Read JSLT Transform failed, reason:"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("singleLineCommentArgs")
+    public void testJSLTTransformWithSingleLineComment(String transform) {
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
+        runner.setProperty(JSLTTransformJSON.TRANSFORMATION_STRATEGY, ENTIRE_FLOWFILE.getValue());
+
+        final String json = """
+                {
+                    "userId" : "jdoe",
+                    "firstName": "John"
+                }
+                """;
+        runner.enqueue(json);
+
+        runner.run();
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+    }
+
+    private static Stream<Arguments> singleLineCommentArgs() throws IOException {
+        final String transformWithSingleLineComment = """
+                // This is a single line comment in JSLT
+                {
+                "id": .userId,
+                "name": .firstName
+                }
+                """;
+
+        final Path transformFile = tempDir.resolve("transformWithComment.json");
+        Files.writeString(transformFile, transformWithSingleLineComment);
+
+        return Stream.of(
+                Arguments.argumentSet("File", transformFile.toString()),
+                Arguments.argumentSet("Text", transformWithSingleLineComment)
+        );
     }
 
     @Test
