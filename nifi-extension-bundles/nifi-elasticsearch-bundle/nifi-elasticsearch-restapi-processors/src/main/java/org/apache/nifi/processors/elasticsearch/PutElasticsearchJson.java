@@ -241,6 +241,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .name("Identifier Field")
             .description("""
                     The name of the field within each document to use as the Elasticsearch document ID. \
+                    A nested field can be referenced with a "/"-delimited path: for a document \
+                    {"@metadata": {"id": "abc"}, ...} the path "@metadata/id" selects the value "abc". \
+                    To reference a field whose name literally contains a "/", escape the slash as "\\/" \
+                    (and a literal backslash as "\\\\"): for a document {"a/b": "abc", ...} the path "a\\/b" \
+                    selects the top-level field "a/b". \
                     If the field is not present in a document or this property is left blank, no document ID is set \
                     and Elasticsearch will auto-generate one.\
                     """)
@@ -255,7 +260,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     Whether to keep the Identifier Field in the document body after extracting it \
                     for use as the Elasticsearch document ID. \
-                    When true (default), the field is left in the document; set to false to remove it before indexing.\
+                    When true (default), the field is left in the document; set to false to remove it before indexing. \
+                    For a nested ("/"-delimited) path, any parent object left empty by the removal is also pruned.\
                     """)
             .required(true)
             .allowableValues("true", "false")
@@ -267,6 +273,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .name("Index Field")
             .description("""
                     The name of the field within each document to use as the Elasticsearch index name. \
+                    A nested field can be referenced with a "/"-delimited path: for a document \
+                    {"@metadata": {"index": "my-index"}, ...} the path "@metadata/index" selects "my-index". \
+                    To reference a field whose name literally contains a "/", escape the slash as "\\/" \
+                    (and a literal backslash as "\\\\"): for a document {"a/b": "my-index", ...} the path "a\\/b" \
+                    selects the top-level field "a/b". \
                     If the field is not present in a document or this property is left blank, \
                     the configured Index property value is used as the fallback.\
                     """)
@@ -280,7 +291,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     Whether to keep the Index Field in the document body after extracting it \
                     for use as the Elasticsearch index name. \
-                    When true (default), the field is left in the document; set to false to remove it before indexing.\
+                    When true (default), the field is left in the document; set to false to remove it before indexing. \
+                    For a nested ("/"-delimited) path, any parent object left empty by the removal is also pruned.\
                     """)
             .required(true)
             .allowableValues("true", "false")
@@ -293,6 +305,12 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     The name of a field within each document whose value will be written to \
                     Elasticsearch as the @timestamp field. \
+                    A nested field can be referenced with a "/"-delimited path: for a document \
+                    {"@metadata": {"event_time": "2026-01-02T03:04:05Z"}, ...} the path "@metadata/event_time" \
+                    selects "2026-01-02T03:04:05Z". \
+                    To reference a field whose name literally contains a "/", escape the slash as "\\/" \
+                    (and a literal backslash as "\\\\"): for a document {"a/b": "2026-01-02T03:04:05Z", ...} \
+                    the path "a\\/b" selects the top-level field "a/b". \
                     If the field is absent or this property is left blank, no @timestamp is set.\
                     """)
             .required(false)
@@ -305,7 +323,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     Whether to keep the Timestamp Field in the document body after copying its \
                     value to @timestamp. \
-                    When true (default), the field is left in the document; set to false to remove it before indexing.\
+                    When true (default), the field is left in the document; set to false to remove it before indexing. \
+                    For a nested ("/"-delimited) path, any parent object left empty by the removal is also pruned.\
                     """)
             .required(true)
             .allowableValues("true", "false")
@@ -471,6 +490,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 : null;
         final String documentIndexField = context.getProperty(INDEX_FIELD).evaluateAttributeExpressions().getValue();
         final String documentTimestampField = context.getProperty(TIMESTAMP_FIELD).evaluateAttributeExpressions().getValue();
+        // The id/index field paths are loop-invariant, so classify them as nested-vs-flat and decode
+        // the flat names once here rather than per record in the NDJSON raw-bytes fast path below.
+        final boolean nestedExtractionField = isNestedPath(documentIdField) || isNestedPath(documentIndexField);
+        final String documentIdFieldName = documentIdField == null ? null : decodeSegment(documentIdField);
+        final String documentIndexFieldName = documentIndexField == null ? null : decodeSegment(documentIndexField);
         // The Retain toggles depend on their source field being set, so only read them when it is —
         // reading a property whose dependency is unsatisfied is invalid. When the source field is
         // blank no extraction or stripping occurs, so the retain value is irrelevant anyway.
@@ -541,16 +565,18 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                 final boolean stripId = !retainIdentifierField && StringUtils.isNotBlank(documentIdField);
                                 final boolean stripIdx = !retainIndexField && StringUtils.isNotBlank(documentIndexField);
                                 final boolean needsTimestamp = StringUtils.isNotBlank(documentTimestampField);
-                                if (suppressingWriter != null || stripId || stripIdx || needsTimestamp) {
+                                // The raw streaming scan only matches flat field names; a nested
+                                // (/-delimited) id or index path requires the parsed Map.
+                                if (suppressingWriter != null || stripId || stripIdx || needsTimestamp || nestedExtractionField) {
                                     // Map is needed anyway — extract both fields from the Map directly.
                                     final Map<String, Object> contentMap = mapReader.readValue(trimmedLine);
                                     id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
                                     docIndex = resolveIndex(contentMap, documentIndexField, index);
                                     if (stripId) {
-                                        contentMap.remove(documentIdField);
+                                        removeAtPath(contentMap, documentIdField);
                                     }
                                     if (stripIdx) {
-                                        contentMap.remove(documentIndexField);
+                                        removeAtPath(contentMap, documentIndexField);
                                     }
                                     applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                     rawJsonBytes = suppressingWriter != null
@@ -558,7 +584,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                             : mapper.writeValueAsBytes(contentMap);
                                 } else {
                                     // Raw-bytes path: single streaming scan finds both fields at once.
-                                    final String[] extracted = extractIdAndIndex(trimmedLine, documentIdField, flowFileIdAttribute, documentIndexField, index);
+                                    // The field names are pre-decoded and known to be flat (non-nested) here.
+                                    final String[] extracted = extractIdAndIndex(trimmedLine, documentIdFieldName, flowFileIdAttribute, documentIndexFieldName, index);
                                     id = extracted[0];
                                     docIndex = extracted[1];
                                     rawJsonBytes = trimmedLine.getBytes(StandardCharsets.UTF_8);
@@ -580,10 +607,10 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                 final String id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
                                 final String docIndex = resolveIndex(contentMap, documentIndexField, index);
                                 if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
-                                    contentMap.remove(documentIdField);
+                                    removeAtPath(contentMap, documentIdField);
                                 }
                                 if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
-                                    contentMap.remove(documentIndexField);
+                                    removeAtPath(contentMap, documentIndexField);
                                 }
                                 applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                 opRequest = IndexOperationRequest.builder()
@@ -649,10 +676,10 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
                                         docIndex = resolveIndex(contentMap, documentIndexField, index);
                                         if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
-                                            contentMap.remove(documentIdField);
+                                            removeAtPath(contentMap, documentIdField);
                                         }
                                         if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
-                                            contentMap.remove(documentIndexField);
+                                            removeAtPath(contentMap, documentIndexField);
                                         }
                                         applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                         rawJsonBytes = suppressingWriter.writeValueAsBytes(contentMap);
@@ -667,10 +694,10 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         if (node.isObject()) {
                                             final ObjectNode objectNode = (ObjectNode) node;
                                             if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
-                                                objectNode.remove(documentIdField);
+                                                removeAtPath(objectNode, documentIdField);
                                             }
                                             if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
-                                                objectNode.remove(documentIndexField);
+                                                removeAtPath(objectNode, documentIndexField);
                                             }
                                             applyTimestamp(objectNode, documentTimestampField, retainTimestampField);
                                         }
@@ -695,10 +722,10 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                     final String id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
                                     final String docIndex = resolveIndex(contentMap, documentIndexField, index);
                                     if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
-                                        contentMap.remove(documentIdField);
+                                        removeAtPath(contentMap, documentIdField);
                                     }
                                     if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
-                                        contentMap.remove(documentIndexField);
+                                        removeAtPath(contentMap, documentIndexField);
                                     }
                                     applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                     opRequest = IndexOperationRequest.builder()
@@ -736,7 +763,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                         final String id = StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
                         final String docIndex = resolveIndex(contentMap, documentIndexField, index);
                         if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
-                            contentMap.remove(documentIndexField);
+                            removeAtPath(contentMap, documentIndexField);
                         }
                         applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                         final IndexOperationRequest opRequest = IndexOperationRequest.builder()
@@ -1029,36 +1056,38 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     }
 
     /**
-     * Copies the value of {@code timestampField} to {@code @timestamp} in the Map.
-     * If {@code retain} is false, the source field is removed after copying.
-     * Does nothing when {@code timestampField} is blank or not present in the document.
+     * Copies the value at {@code timestampField} to a top-level {@code @timestamp} in the Map.
+     * The field may be a {@code /}-delimited path into nested objects (e.g. {@code @metadata/event_time}).
+     * If {@code retain} is false, the source field is removed after copying, pruning any ancestor
+     * objects that become empty. Does nothing when {@code timestampField} is blank or absent.
      */
     private void applyTimestamp(final Map<String, Object> contentMap, final String timestampField, final boolean retain) {
         if (StringUtils.isBlank(timestampField)) {
             return;
         }
-        final Object value = contentMap.get(timestampField);
+        final Object value = valueAtPath(contentMap, timestampField);
         if (value != null) {
             if (!retain) {
-                contentMap.remove(timestampField);
+                removeAtPath(contentMap, timestampField);
             }
             contentMap.put("@timestamp", value);
         }
     }
 
     /**
-     * Copies the value of {@code timestampField} to {@code @timestamp} in the ObjectNode.
-     * If {@code retain} is false, the source field is removed after copying.
-     * Does nothing when {@code timestampField} is blank or not present in the document.
+     * Copies the value at {@code timestampField} to a top-level {@code @timestamp} in the ObjectNode.
+     * The field may be a {@code /}-delimited path into nested objects (e.g. {@code @metadata/event_time}).
+     * If {@code retain} is false, the source field is removed after copying, pruning any ancestor
+     * objects that become empty. Does nothing when {@code timestampField} is blank or absent.
      */
     private void applyTimestamp(final ObjectNode node, final String timestampField, final boolean retain) {
         if (StringUtils.isBlank(timestampField)) {
             return;
         }
-        final JsonNode value = node.get(timestampField);
+        final JsonNode value = nodeAtPath(node, timestampField);
         if (value != null && !value.isNull()) {
             if (!retain) {
-                node.remove(timestampField);
+                removeAtPath(node, timestampField);
             }
             node.set("@timestamp", value);
         }
@@ -1069,13 +1098,16 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
      * Stops as soon as both fields have been found to avoid scanning the rest of the document.
      * Returns a two-element array: {@code [id, docIndex]}.
      * Used for NDJSON Index/Create when neither suppression nor field-removal requires a Map parse.
+     * <p>
+     * {@code idFieldName} and {@code indexFieldName} are the already-decoded flat field names (any
+     * escaped slash/backslash resolved by the caller), compared directly against the raw JSON keys.
      */
     private String[] extractIdAndIndex(
             final String rawJson,
-            final String idField, final String flowFileIdAttribute,
-            final String indexField, final String fallbackIndex) throws IOException {
-        final boolean needId = StringUtils.isNotBlank(idField);
-        final boolean needIndex = StringUtils.isNotBlank(indexField);
+            final String idFieldName, final String flowFileIdAttribute,
+            final String indexFieldName, final String fallbackIndex) throws IOException {
+        final boolean needId = StringUtils.isNotBlank(idFieldName);
+        final boolean needIndex = StringUtils.isNotBlank(indexFieldName);
 
         String id = needId ? null : (StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null);
         String docIndex = fallbackIndex;
@@ -1092,11 +1124,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 if (foundId && foundIndex) {
                     break;
                 }
-                if (!foundId && idField.equals(p.currentName()) && p.nextToken() != null && isScalarValue(p.currentToken())) {
+                if (!foundId && idFieldName.equals(p.currentName()) && p.nextToken() != null && isScalarValue(p.currentToken())) {
                     final String value = p.getText();
                     id = StringUtils.isNotBlank(value) ? value : (StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null);
                     foundId = true;
-                } else if (!foundIndex && indexField.equals(p.currentName()) && p.nextToken() != null && isScalarValue(p.currentToken())) {
+                } else if (!foundIndex && indexFieldName.equals(p.currentName()) && p.nextToken() != null && isScalarValue(p.currentToken())) {
                     final String value = p.getText();
                     docIndex = StringUtils.isNotBlank(value) ? value : fallbackIndex;
                     foundIndex = true;
@@ -1113,12 +1145,13 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     /**
      * Extracts the document ID from a pre-parsed JsonNode.
      * Used for JSON Array Index/Create operations where the node is already available.
+     * The field may be a {@code /}-delimited path into nested objects.
      */
     private String extractId(final JsonNode node, final String idAttribute, final String flowFileIdAttribute) {
         if (StringUtils.isBlank(idAttribute)) {
             return StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
         }
-        final String value = fieldNodeToString(node.get(idAttribute));
+        final String value = fieldNodeToString(nodeAtPath(node, idAttribute));
         if (StringUtils.isNotBlank(value)) {
             return value;
         }
@@ -1127,13 +1160,14 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
     /**
      * Resolves the document ID for Update/Delete/Upsert operations from the already-parsed content Map.
+     * The field may be a {@code /}-delimited path into nested objects.
      * Falls back to the FlowFile attribute value when the field is absent from the document.
      */
     private String resolveId(final Map<String, Object> contentMap, final String idAttribute, final String flowFileIdAttribute) {
         if (StringUtils.isBlank(idAttribute)) {
             return null;
         }
-        final String value = fieldValueToString(contentMap.get(idAttribute));
+        final String value = fieldValueToString(valueAtPath(contentMap, idAttribute));
         if (StringUtils.isNotBlank(value)) {
             return value;
         }
@@ -1143,28 +1177,224 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     /**
      * Extracts the index name from a pre-parsed {@link JsonNode}.
      * Used for JSON Array Index/Create operations where the node is already available.
+     * The field may be a {@code /}-delimited path into nested objects.
      * Falls back to {@code fallbackIndex} when the field is absent or blank.
      */
     private String extractIndex(final JsonNode node, final String indexField, final String fallbackIndex) {
         if (StringUtils.isBlank(indexField)) {
             return fallbackIndex;
         }
-        final String value = fieldNodeToString(node.get(indexField));
+        final String value = fieldNodeToString(nodeAtPath(node, indexField));
         return StringUtils.isNotBlank(value) ? value : fallbackIndex;
     }
 
     /**
      * Resolves the index name from an already-parsed content Map.
      * Used for Update/Delete/Upsert operations and suppression-enabled Index/Create paths
-     * where the Map is already available. Falls back to {@code fallbackIndex} when the
-     * field is absent or blank.
+     * where the Map is already available. The field may be a {@code /}-delimited path into
+     * nested objects. Falls back to {@code fallbackIndex} when the field is absent or blank.
      */
     private String resolveIndex(final Map<String, Object> contentMap, final String indexField, final String fallbackIndex) {
         if (StringUtils.isBlank(indexField)) {
             return fallbackIndex;
         }
-        final String value = fieldValueToString(contentMap.get(indexField));
+        final String value = fieldValueToString(valueAtPath(contentMap, indexField));
         return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+    }
+
+    /**
+     * Whether {@code field} is a {@code /}-delimited nested path rather than a flat field name.
+     * A {@code /} preceded by a backslash is an escaped literal slash within a single field name
+     * (see {@link #splitPath(String)}) and does not make the field a nested path.
+     */
+    private static boolean isNestedPath(final String field) {
+        if (field == null) {
+            return false;
+        }
+        for (int i = 0; i < field.length(); i++) {
+            final char c = field.charAt(i);
+            if (c == '\\' && i + 1 < field.length()) {
+                final char next = field.charAt(i + 1);
+                if (next == '/' || next == '\\') {
+                    i++; // skip the escaped character
+                    continue;
+                }
+            } else if (c == '/') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Splits a {@code /}-delimited field path into its decoded segments, ignoring empty segments
+     * produced by leading, trailing, or repeated slashes. A field name containing no unescaped
+     * slash yields a single segment equal to the (decoded) name itself.
+     * <p>
+     * A backslash escapes the following character so it is taken literally: {@code \/} is a slash
+     * that is part of a field name rather than a separator, and {@code \\} is a literal backslash.
+     * A backslash before any other character (or at the end of the string) is kept as a literal
+     * backslash, so field names containing stray backslashes are unaffected.
+     */
+    private static String[] splitPath(final String path) {
+        final List<String> segments = new ArrayList<>();
+        final StringBuilder current = new StringBuilder(path.length());
+        for (int i = 0; i < path.length(); i++) {
+            final char c = path.charAt(i);
+            if (c == '\\' && i + 1 < path.length()) {
+                final char next = path.charAt(i + 1);
+                if (next == '/' || next == '\\') {
+                    current.append(next);
+                    i++; // consume the escaped character
+                    continue;
+                }
+                current.append(c); // lone backslash, kept literal
+            } else if (c == '/') {
+                if (current.length() > 0) {
+                    segments.add(current.toString());
+                    current.setLength(0);
+                }
+            } else {
+                current.append(c);
+            }
+        }
+        if (current.length() > 0) {
+            segments.add(current.toString());
+        }
+        return segments.toArray(new String[0]);
+    }
+
+    /**
+     * Decodes a single flat field name, resolving the same backslash escapes as
+     * {@link #splitPath(String)} ({@code \/} to {@code /}, {@code \\} to {@code \}) without treating
+     * any slash as a separator. Returns the input unchanged when it contains no backslash.
+     */
+    private static String decodeSegment(final String field) {
+        if (field.indexOf('\\') < 0) {
+            return field;
+        }
+        final StringBuilder sb = new StringBuilder(field.length());
+        for (int i = 0; i < field.length(); i++) {
+            final char c = field.charAt(i);
+            if (c == '\\' && i + 1 < field.length()) {
+                final char next = field.charAt(i + 1);
+                if (next == '/' || next == '\\') {
+                    sb.append(next);
+                    i++;
+                    continue;
+                }
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Returns the value at the {@code /}-delimited {@code path} within {@code map}, or {@code null}
+     * when any segment is missing or an intermediate segment is not a JSON object. A path with no
+     * slash is a direct top-level lookup (no allocation).
+     */
+    private static Object valueAtPath(final Map<String, Object> map, final String path) {
+        if (!isNestedPath(path)) {
+            return map.get(decodeSegment(path));
+        }
+        Object current = map;
+        for (final String segment : splitPath(path)) {
+            if (!(current instanceof Map)) {
+                return null;
+            }
+            current = ((Map<?, ?>) current).get(segment);
+            if (current == null) {
+                return null;
+            }
+        }
+        return current;
+    }
+
+    /**
+     * Returns the {@link JsonNode} at the {@code /}-delimited {@code path} within {@code node}, or
+     * {@code null} when any segment is missing or an intermediate segment is not a JSON object.
+     * A path with no slash is a direct field lookup.
+     */
+    private static JsonNode nodeAtPath(final JsonNode node, final String path) {
+        if (!isNestedPath(path)) {
+            return node.get(decodeSegment(path));
+        }
+        JsonNode current = node;
+        for (final String segment : splitPath(path)) {
+            if (current == null || !current.isObject()) {
+                return null;
+            }
+            current = current.get(segment);
+        }
+        return current;
+    }
+
+    /**
+     * Removes the leaf at the {@code /}-delimited {@code path} within {@code root}, then prunes any
+     * ancestor objects that become empty as a result (the transient envelope often used for routing
+     * metadata, e.g. {@code @metadata}, should not be indexed once its fields are extracted).
+     * Does nothing when the path is absent. A path with no slash is a direct top-level removal.
+     */
+    private static void removeAtPath(final Map<String, Object> root, final String path) {
+        if (!isNestedPath(path)) {
+            root.remove(decodeSegment(path));
+            return;
+        }
+        final String[] segments = splitPath(path);
+        final List<Map<String, Object>> chain = new ArrayList<>();
+        Map<String, Object> current = root;
+        chain.add(current);
+        for (int i = 0; i < segments.length - 1; i++) {
+            final Object next = current.get(segments[i]);
+            if (!(next instanceof Map)) {
+                return;
+            }
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> nextMap = (Map<String, Object>) next;
+            current = nextMap;
+            chain.add(current);
+        }
+        chain.get(chain.size() - 1).remove(segments[segments.length - 1]);
+        for (int i = chain.size() - 1; i >= 1; i--) {
+            if (chain.get(i).isEmpty()) {
+                chain.get(i - 1).remove(segments[i - 1]);
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Removes the leaf at the {@code /}-delimited {@code path} within {@code root}, then prunes any
+     * ancestor objects that become empty as a result. Does nothing when the path is absent.
+     * A path with no slash is a direct field removal.
+     */
+    private static void removeAtPath(final ObjectNode root, final String path) {
+        if (!isNestedPath(path)) {
+            root.remove(decodeSegment(path));
+            return;
+        }
+        final String[] segments = splitPath(path);
+        final List<ObjectNode> chain = new ArrayList<>();
+        ObjectNode current = root;
+        chain.add(current);
+        for (int i = 0; i < segments.length - 1; i++) {
+            final JsonNode next = current.get(segments[i]);
+            if (next == null || !next.isObject()) {
+                return;
+            }
+            current = (ObjectNode) next;
+            chain.add(current);
+        }
+        chain.get(chain.size() - 1).remove(segments[segments.length - 1]);
+        for (int i = chain.size() - 1; i >= 1; i--) {
+            if (chain.get(i).isEmpty()) {
+                chain.get(i - 1).remove(segments[i - 1]);
+            } else {
+                break;
+            }
+        }
     }
 
     /**
