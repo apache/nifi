@@ -112,7 +112,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .name("Subwindow Length")
             .description("When set, values will be batched into sub-windows of the set length. This allows for much larger length total windows to be set but sacrifices some precision. If this is " +
                     "not set (or is 0) then each value is stored in state with the timestamp of when it was received. After the length of time stated in " + TIME_WINDOW.getDisplayName() +
-                    " elaspes the value will be removed. If this is set, values will be batched together every X amount of time (where X is the time period set for this property) and removed " +
+                    " elapses the value will be removed. If this is set, values will be batched together every X amount of time (where X is the time period set for this property) and removed " +
                     "all at once.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(false)

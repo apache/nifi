@@ -46,7 +46,7 @@ public class JerseyPoliciesClient extends AbstractJerseyClient implements Polici
     @Override
     public AccessPolicyEntity getAccessPolicy(final String resource, final String action) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(resource) || StringUtils.isBlank(action)) {
-            throw new IllegalArgumentException("Resouce and action cannot be null");
+            throw new IllegalArgumentException("Resource and action cannot be null");
         }
 
         return executeAction("Error retrieving configuration of access policy", () -> {

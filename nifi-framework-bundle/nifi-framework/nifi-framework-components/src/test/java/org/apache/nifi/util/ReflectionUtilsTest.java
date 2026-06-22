@@ -61,7 +61,7 @@ public class ReflectionUtilsTest {
     }
 
     @Test
-    public void ensureOnlyOverridenMethodIsCalled() throws Exception {
+    public void ensureOnlyOverriddenMethodIsCalled() throws Exception {
         ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new D(), "String");
         assertEquals(1, this.invocations.size());
         assertEquals("D", this.invocations.get(0));
@@ -95,7 +95,7 @@ public class ReflectionUtilsTest {
     }
 
     @Test
-    public void validateNoFailureIfQuiatelyIfOneOfArgumentsWrongTypeAndProcessLog() throws Exception {
+    public void validateNoFailureIfQuietlyIfOneOfArgumentsWrongTypeAndProcessLog() throws Exception {
         ComponentLog pl = mock(ComponentLog.class);
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, new E(), pl, 3, "hjk", "hjk");
         verify(pl, Mockito.atMost(1)).error(Mockito.anyString());

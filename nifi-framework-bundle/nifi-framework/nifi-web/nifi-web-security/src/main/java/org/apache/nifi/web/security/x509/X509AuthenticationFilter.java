@@ -38,7 +38,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
 
     @Override
     public Authentication attemptAuthentication(final HttpServletRequest request) {
-        // only suppport x509 login when running securely
+        // only support x509 login when running securely
         if (!request.isSecure()) {
             return null;
         }

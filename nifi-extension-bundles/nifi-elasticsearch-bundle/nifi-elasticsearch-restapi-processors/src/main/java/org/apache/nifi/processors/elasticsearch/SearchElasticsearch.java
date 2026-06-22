@@ -223,9 +223,9 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     void resetQueryParamsIfRequired(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final ProcessContext context) throws IOException {
         final boolean expiredQuery = this.paginationType.hasExpiry() && StringUtils.isNotEmpty(paginatedJsonQueryParameters.getPageExpirationTimestamp())
                 && Instant.ofEpochMilli(Long.parseLong(paginatedJsonQueryParameters.getPageExpirationTimestamp())).isBefore(Instant.now());
-        final boolean restaredQuery = paginatedJsonQueryParameters.isFinished() && this.restartOnFinish;
+        final boolean restartedQuery = paginatedJsonQueryParameters.isFinished() && this.restartOnFinish;
 
-        if (expiredQuery || restaredQuery) {
+        if (expiredQuery || restartedQuery) {
             getLogger().debug("Existing paginated query has expired or restarted, resetting for new query");
 
             final Map<String, String> newStateMap = new HashMap<>(1, 1);

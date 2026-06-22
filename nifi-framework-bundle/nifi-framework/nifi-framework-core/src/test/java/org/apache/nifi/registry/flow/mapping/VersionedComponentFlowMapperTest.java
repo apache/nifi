@@ -314,7 +314,7 @@ public class VersionedComponentFlowMapperTest {
     /**
      * Test mapping a versioned ProcessGroup model to a non-versioned VersionedProcessGroup. Version info is ignored.
      * Most elements are exercised here... including labels, ports, processors, connections, funnels, nested process groups,
-     * remote process groups, congtroller services, external controller service references and variable registries.
+     * remote process groups, controller services, external controller service references and variable registries.
      */
     @Test
     public void testMapNonVersionedProcessGroups() {

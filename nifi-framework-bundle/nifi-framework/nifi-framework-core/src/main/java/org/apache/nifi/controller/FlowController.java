@@ -1990,7 +1990,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             if (this.timerDrivenEngineRef.get().isTerminated()) {
                 LOG.info("Controller has been terminated successfully.");
             } else {
-                LOG.warn("Controller hasn't terminated properly.  There exists an uninterruptable thread that "
+                LOG.warn("Controller hasn't terminated properly.  There exists an uninterruptible thread that "
                         + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
             }
 

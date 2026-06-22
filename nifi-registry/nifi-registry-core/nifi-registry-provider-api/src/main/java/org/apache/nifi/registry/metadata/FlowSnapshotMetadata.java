@@ -17,7 +17,7 @@
 package org.apache.nifi.registry.metadata;
 
 /**
- * Meatadata about a snapshot returned from MetadataAwareFlowPersistenceProvider.
+ * Metadata about a snapshot returned from MetadataAwareFlowPersistenceProvider.
  */
 public class FlowSnapshotMetadata {
 

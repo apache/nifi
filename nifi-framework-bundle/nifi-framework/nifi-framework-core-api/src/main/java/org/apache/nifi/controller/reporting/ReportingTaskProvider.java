@@ -101,7 +101,7 @@ public interface ReportingTaskProvider {
     void enableReportingTask(ReportingTaskNode reportingTask);
 
     /**
-     * Disables the ability to schedul the reporting task to run
+     * Disables the ability to schedule the reporting task to run
      *
      * @param reportingTask to disable
      *

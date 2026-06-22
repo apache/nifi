@@ -168,7 +168,7 @@ public abstract class SocketListener {
             if (executorService.isTerminated()) {
                 logger.info("Socket Listener has been terminated successfully.");
             } else {
-                logger.warn("Socket Listener has not terminated properly.  There exists an uninterruptable thread that will take an indeterminate amount of time to stop.");
+                logger.warn("Socket Listener has not terminated properly.  There exists an uninterruptible thread that will take an indeterminate amount of time to stop.");
             }
         }
 

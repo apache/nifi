@@ -39,7 +39,7 @@ public class RepositoryConfiguration {
 
     public static final String CONCURRENT_MERGE_THREADS = "nifi.provenance.repository.concurrent.merge.threads";
     public static final String WARM_CACHE_FREQUENCY = "nifi.provenance.repository.warm.cache.frequency";
-    public static final String MAINTENACE_FREQUENCY = "nifi.provenance.repository.maintenance.frequency";
+    public static final String MAINTENANCE_FREQUENCY = "nifi.provenance.repository.maintenance.frequency";
 
     private final Map<String, File> storageDirectories = new LinkedHashMap<>();
     private long recordLifeMillis = TimeUnit.MILLISECONDS.convert(24, TimeUnit.HOURS);
@@ -395,7 +395,7 @@ public class RepositoryConfiguration {
         final int journalCount = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_JOURNAL_COUNT, 16);
         final int concurrentMergeThreads = nifiProperties.getIntegerProperty(CONCURRENT_MERGE_THREADS, 2);
         final String warmCacheFrequency = nifiProperties.getProperty(WARM_CACHE_FREQUENCY);
-        final String maintenanceFrequency = nifiProperties.getProperty(MAINTENACE_FREQUENCY);
+        final String maintenanceFrequency = nifiProperties.getProperty(MAINTENANCE_FREQUENCY);
         final long storageMillis = FormatUtils.getTimeDuration(storageTime, TimeUnit.MILLISECONDS);
         final long maxStorageBytes = DataUnit.parseDataSize(storageSize, DataUnit.B).longValue();
         final long rolloverMillis = FormatUtils.getTimeDuration(rolloverTime, TimeUnit.MILLISECONDS);

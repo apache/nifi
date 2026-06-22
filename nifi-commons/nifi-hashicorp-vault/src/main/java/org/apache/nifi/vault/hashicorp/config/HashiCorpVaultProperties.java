@@ -188,7 +188,7 @@ public class HashiCorpVaultProperties {
         }
 
         /**
-         * Sets the trustStore passsword.
+         * Sets the trustStore password.
          * @param trustStorePassword TrustStore password
          * @return Builder
          */

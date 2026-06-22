@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * do not stomp on one another when unpacking NAR's. To do that, we need a mechanism by which a single lock can be shared
  * across multiple classes, as the Extension Repository as well as the bootstrap logic may attempt to unpack NARs.
  * Because these classes exist across multiple modules, and because statically defined locks at that level may not be enough
- * (due to multiple classloders being used for the 'stateless nar'), we define a singleton Lock within the nifi-stateless-api module.
+ * (due to multiple classloaders being used for the 'stateless nar'), we define a singleton Lock within the nifi-stateless-api module.
  * This lock should always be obtained before attempting to unpack nars.
  */
 public class NarUnpackLock {

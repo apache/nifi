@@ -147,7 +147,7 @@ public class ProcessorConfigDTO {
      *
      * @return the concurrently schedulable task count
      */
-    @Schema(description = "The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallol processing then any positive input will be ignored."
+    @Schema(description = "The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallel processing then any positive input will be ignored."
     )
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -230,7 +230,7 @@ public class ProcessorConfigDTO {
      *
      * @return The annotation data
      */
-    @Schema(description = "The annotation data for the processor used to relay configuration between a custom UI and the procesosr."
+    @Schema(description = "The annotation data for the processor used to relay configuration between a custom UI and the processor."
     )
     public String getAnnotationData() {
         return annotationData;

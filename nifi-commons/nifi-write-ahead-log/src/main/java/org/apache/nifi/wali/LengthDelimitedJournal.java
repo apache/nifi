@@ -193,7 +193,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         final int encodingVersion = in.readInt();
         logger.debug("Encoding version for {} is {}", journalFile, encodingVersion);
         if (encodingVersion > JOURNAL_ENCODING_VERSION) {
-            throw new IOException("Cannot read journal file " + journalFile + " because it is encoded using veresion " + encodingVersion
+            throw new IOException("Cannot read journal file " + journalFile + " because it is encoded using version " + encodingVersion
                 + " but this version of the code only understands version " + JOURNAL_ENCODING_VERSION + " and below");
         }
 
@@ -210,7 +210,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         final int serdeVersion = in.readInt();
         logger.debug("Serde version is {}", serdeVersion);
         if (serdeVersion > serde.getVersion()) {
-            throw new IOException("Cannot read journal file " + journalFile + " because it is encoded using veresion " + encodingVersion
+            throw new IOException("Cannot read journal file " + journalFile + " because it is encoded using version " + encodingVersion
                 + " of the serializer/deserializer but this version of the code only understands version " + serde.getVersion() + " and below");
         }
 
@@ -319,7 +319,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     baos.writeTo(out);
                     out.flush();
                 } catch (final Throwable t) {
-                    // While the outter Throwable that wraps this "catch" will call Poison, it is imperative that we call poison()
+                    // While the outer Throwable that wraps this "catch" will call Poison, it is imperative that we call poison()
                     // before the synchronized block is excited. Otherwise, another thread could potentially corrupt the journal before
                     // the poison method closes the file.
                     poison(t);

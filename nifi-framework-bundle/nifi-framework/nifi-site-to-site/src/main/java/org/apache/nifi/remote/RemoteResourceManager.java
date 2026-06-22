@@ -175,7 +175,7 @@ public class RemoteResourceManager {
     public static ServerProtocol createServerProtocol(final String protocolName) {
         final Set<Class<? extends ServerProtocol>> classSet = getServerProtocolClasses(protocolName);
         if (classSet.isEmpty()) {
-            throw new IllegalArgumentException("Unknkown Server Protocol: " + protocolName);
+            throw new IllegalArgumentException("Unknown Server Protocol: " + protocolName);
         }
 
         Class<? extends ServerProtocol> desiredClass = desiredServerProtocolClassMap.get(protocolName);
@@ -201,7 +201,7 @@ public class RemoteResourceManager {
     public static ClientProtocol createClientProtocol(final String protocolName) {
         final Set<Class<? extends ClientProtocol>> classSet = getClientProtocolClasses(protocolName);
         if (classSet.isEmpty()) {
-            throw new IllegalArgumentException("Unknkown Client Protocol: " + protocolName);
+            throw new IllegalArgumentException("Unknown Client Protocol: " + protocolName);
         }
 
         Class<? extends ClientProtocol> desiredClass = desiredClientProtocolClassMap.get(protocolName);

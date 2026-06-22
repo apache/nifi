@@ -146,7 +146,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     private void writeBundleInfo(final ExtensionMetadata extensionMetadata, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final BundleInfo bundleInfo = extensionMetadata.getBundleInfo();
 
-        final String extenstionType = switch (extensionMetadata.getType()) {
+        final String extensionType = switch (extensionMetadata.getType()) {
             case PROCESSOR -> "Processor";
             case CONTROLLER_SERVICE -> "Controller Service";
             case REPORTING_TASK -> "Reporting Task";
@@ -167,7 +167,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
 
         xmlStreamWriter.writeStartElement("tr");
         writeSimpleElement(xmlStreamWriter, "td", "Type", true, "bundle-info");
-        writeSimpleElement(xmlStreamWriter, "td", extenstionType);
+        writeSimpleElement(xmlStreamWriter, "td", extensionType);
         xmlStreamWriter.writeEndElement();
 
         xmlStreamWriter.writeStartElement("tr");

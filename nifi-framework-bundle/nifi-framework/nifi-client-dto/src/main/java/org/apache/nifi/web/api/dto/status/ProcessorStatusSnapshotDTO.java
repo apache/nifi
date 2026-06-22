@@ -71,7 +71,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return The processor name
      */
-    @Schema(description = "The name of the prcessor.")
+    @Schema(description = "The name of the processor.")
     public String getName() {
         return name;
     }
@@ -225,7 +225,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.tasksDuration = tasksDuration;
     }
 
-    @Schema(description = "The number of bytes read by this Processor in the last 5 mintues")
+    @Schema(description = "The number of bytes read by this Processor in the last 5 minutes")
     public Long getBytesRead() {
         return bytesRead;
     }

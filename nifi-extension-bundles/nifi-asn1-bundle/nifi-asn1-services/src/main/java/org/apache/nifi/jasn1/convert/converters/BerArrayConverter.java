@@ -50,7 +50,7 @@ public class BerArrayConverter implements JASN1TypeAndValueConverter {
 
     @Override
     public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
-        // If the field is declared with a direct SEQUENCE OF, then this value is a Parent$Children innerclass,
+        // If the field is declared with a direct SEQUENCE OF, then this value is a Parent$Children inner class,
         // in such a case, use the parent instance to get the seqOfContainer.
         // Otherwise, the value is a separated class holding only seqOf field.
 

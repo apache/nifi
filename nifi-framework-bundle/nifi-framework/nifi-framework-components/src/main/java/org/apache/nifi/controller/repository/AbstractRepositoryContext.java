@@ -209,7 +209,7 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
      * A Relationship is said to be Available if and only if all Connections for that Relationship are either self-loops or have non-full queues.
      *
      * @param requiredNumber minimum number of relationships that must have availability
-     * @return Checks if at least <code>requiredNumber</code> of Relationationships are "available." If so, returns <code>true</code>, otherwise returns <code>false</code>
+     * @return Checks if at least <code>requiredNumber</code> of Relationships are "available." If so, returns <code>true</code>, otherwise returns <code>false</code>
      */
     @Override
     public boolean isRelationshipAvailabilitySatisfied(final int requiredNumber) {

@@ -567,7 +567,7 @@ public class TestStandardProcessScheduler {
         rootGroup.addProcessor(procNode);
 
         scheduler.startProcessor(procNode, true);
-        while (!proc.isSucceess()) {
+        while (!proc.isSucceeded()) {
             Thread.sleep(5L);
         }
 
@@ -595,7 +595,7 @@ public class TestStandardProcessScheduler {
 
         procNode.performValidation();
         scheduler.startProcessor(procNode, true);
-        while (!proc.isSucceess()) {
+        while (!proc.isSucceeded()) {
             Thread.sleep(5L);
         }
 

@@ -285,7 +285,7 @@ public class BucketFlowResource extends ApplicationResource {
         verifyPathParamsMatchBody(bucketId, flowId, snapshot);
 
         // bucketId and flowId fields are optional in the body parameter, but required before calling the service layer
-        setSnaphotMetadataIfMissing(bucketId, flowId, snapshot);
+        setSnapshotMetadataIfMissing(bucketId, flowId, snapshot);
 
         if (preserveSourceProperties) {
             if (StringUtils.isBlank(snapshot.getSnapshotMetadata().getAuthor())) {
@@ -616,7 +616,7 @@ public class BucketFlowResource extends ApplicationResource {
         }
     }
 
-    private static void setSnaphotMetadataIfMissing(
+    private static void setSnapshotMetadataIfMissing(
             @NotNull String bucketIdParam,
             @NotNull String flowIdParam,
             @NotNull VersionedFlowSnapshot flowSnapshot) {

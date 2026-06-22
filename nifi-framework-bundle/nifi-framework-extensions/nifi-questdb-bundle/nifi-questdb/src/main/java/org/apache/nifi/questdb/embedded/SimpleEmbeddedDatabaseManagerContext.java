@@ -29,7 +29,7 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
     private String backupLocation;
     private int numberOfAttemptedRetries;
     private Duration lockAttemptDuration;
-    private Duration rolloverFrequnecyDuration;
+    private Duration rolloverFrequencyDuration;
 
     @Override
     public String getPersistLocation() {
@@ -63,7 +63,7 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
 
     @Override
     public Duration getRolloverFrequency() {
-        return rolloverFrequnecyDuration;
+        return rolloverFrequencyDuration;
     }
 
     @Override
@@ -88,7 +88,7 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
     }
 
     void setRolloverFrequencyDuration(final Duration rolloverFreqencyDuration) {
-        this.rolloverFrequnecyDuration = rolloverFreqencyDuration;
+        this.rolloverFrequencyDuration = rolloverFreqencyDuration;
     }
 
     void addTableDefinition(final ManagedTableDefinition tableDefinition) {
@@ -103,7 +103,7 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
                 ", backupLocation='" + backupLocation + '\'' +
                 ", numberOfAttemptedRetries=" + numberOfAttemptedRetries +
                 ", lockAttemptDuration=" + lockAttemptDuration +
-                ", rolloverFrequnecyDuration=" + rolloverFrequnecyDuration +
+                ", rolloverFrequencyDuration=" + rolloverFrequencyDuration +
                 '}';
     }
 }

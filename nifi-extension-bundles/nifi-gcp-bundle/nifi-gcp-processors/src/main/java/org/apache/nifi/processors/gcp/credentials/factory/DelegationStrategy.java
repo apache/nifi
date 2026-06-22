@@ -21,7 +21,7 @@ import org.apache.nifi.components.DescribedValue;
 public enum DelegationStrategy implements DescribedValue {
     SERVICE_ACCOUNT("Service Account", "The service account should access data using it's own identity and permissions."),
     DELEGATED_ACCOUNT("Delegated Account", "The service account should access data on behalf of a specified user account." +
-            " This setting requires domain-wide delgation to be enabled for the service account for the scopes that it will be used in.");
+            " This setting requires domain-wide delegation to be enabled for the service account for the scopes that it will be used in.");
 
     private final String displayName;
     private final String description;

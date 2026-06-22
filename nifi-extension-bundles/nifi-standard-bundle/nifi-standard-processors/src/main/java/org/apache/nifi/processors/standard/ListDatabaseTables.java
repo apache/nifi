@@ -84,7 +84,7 @@ import java.util.stream.Stream;
         @WritesAttribute(attribute = "db.table.name", description = "Contains the name of a database table from the connection"),
         @WritesAttribute(attribute = "db.table.catalog", description = "Contains the name of the catalog to which the table belongs (may be null)"),
         @WritesAttribute(attribute = "db.table.schema", description = "Contains the name of the schema to which the table belongs (may be null)"),
-        @WritesAttribute(attribute = "db.table.fullname", description = "Contains the fully-qualifed table name (possibly including catalog, schema, etc.)"),
+        @WritesAttribute(attribute = "db.table.fullname", description = "Contains the fully-qualified table name (possibly including catalog, schema, etc.)"),
         @WritesAttribute(attribute = "db.table.type",
                 description = "Contains the type of the database table from the connection. Typical types are \"TABLE\", \"VIEW\", \"SYSTEM TABLE\", "
                         + "\"GLOBAL TEMPORARY\", \"LOCAL TEMPORARY\", \"ALIAS\", \"SYNONYM\""),

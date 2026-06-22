@@ -2379,7 +2379,7 @@ public class TestRecordPath {
                 record.setValue("name", "<xml>value</xml>");
                 Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("unescapeJson(/name)", record));
-                assertEquals("Unable to deserialise JSON String into Record Path value", exception.getMessage());
+                assertEquals("Unable to deserialize JSON String into Record Path value", exception.getMessage());
             }
         }
 
@@ -2763,9 +2763,9 @@ public class TestRecordPath {
                 assertEquals(expected, fieldValue.getValue().toString());
             }
             @Test
-            public void supportsPostiveDoubleOverflow() {
-                final String subtractionWithPostiveDoubleOverflow = "subtract('%s', '%s')".formatted(Double.MAX_VALUE, -1.0e308);
-                final FieldValue fieldValue = evaluateSingleFieldValue(subtractionWithPostiveDoubleOverflow, record);
+            public void supportsPositiveDoubleOverflow() {
+                final String subtractionWithPositiveDoubleOverflow = "subtract('%s', '%s')".formatted(Double.MAX_VALUE, -1.0e308);
+                final FieldValue fieldValue = evaluateSingleFieldValue(subtractionWithPositiveDoubleOverflow, record);
 
                 assertEquals(RecordFieldType.DOUBLE, fieldValue.getField().getDataType().getFieldType());
                 assertEquals("Infinity", fieldValue.getValue().toString());

@@ -102,7 +102,7 @@ public class ProvenanceEventDTO {
     /**
      * @return event id
      */
-    @Schema(description = "The event id. This is a one up number thats unique per node."
+    @Schema(description = "The event id. This is a one up number that's unique per node."
     )
     public Long getEventId() {
         return eventId;
@@ -638,7 +638,7 @@ public class ProvenanceEventDTO {
      * @return identifier of the FlowFile Queue / Connection from which the FlowFile was pulled to generate this event, or <code>null</code> if either the queue is unknown or the FlowFile was created
      * by this event
      */
-    @Schema(description = "The identifier of the queue/connection from which the flowfile was pulled to genereate this event. May be null if the queue/connection is unknown or the "
+    @Schema(description = "The identifier of the queue/connection from which the flowfile was pulled to generate this event. May be null if the queue/connection is unknown or the "
                     + "flowfile was generated from this event."
     )
     public String getSourceConnectionIdentifier() {

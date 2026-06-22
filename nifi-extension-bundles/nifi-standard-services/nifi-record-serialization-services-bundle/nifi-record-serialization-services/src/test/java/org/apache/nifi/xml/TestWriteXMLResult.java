@@ -258,7 +258,7 @@ public class TestWriteXMLResult {
     }
 
     @Test
-    public void testSimpleRecordWithNullValuesSuppressMissings() throws IOException {
+    public void testSimpleRecordWithNullValuesSuppressMissing() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
         WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
@@ -373,7 +373,7 @@ public class TestWriteXMLResult {
     }
 
     @Test
-    public void testNestedRecordWithNullValuesSuppressMissings() throws IOException {
+    public void testNestedRecordWithNullValuesSuppressMissing() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
         WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
@@ -865,7 +865,7 @@ public class TestWriteXMLResult {
     }
 
     @Test
-    public void testWriteWithoutSchemaSimpleRecordWithNullValuesSuppressMissings() throws IOException {
+    public void testWriteWithoutSchemaSimpleRecordWithNullValuesSuppressMissing() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
         WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),

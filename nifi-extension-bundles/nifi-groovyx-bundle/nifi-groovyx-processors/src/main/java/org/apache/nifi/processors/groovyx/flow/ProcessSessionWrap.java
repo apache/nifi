@@ -963,7 +963,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
      * FlowFile content; if an attempt is made to access the OutputStream
-     * provided to the given OutputStreamCallaback after this method completed
+     * provided to the given OutputStreamCallback after this method completed
      * its execution
      */
     @Override

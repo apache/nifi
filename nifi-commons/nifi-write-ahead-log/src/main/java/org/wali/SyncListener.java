@@ -19,9 +19,9 @@ package org.wali;
 /**
  * <p>
  * Provides a callback mechanism by which applicable listeners can be notified
- * when a WriteAheadRepository is synched (via the
+ * when a WriteAheadRepository is synced (via the
  * {@link WriteAheadRepository#sync()} method) or one of its partitions is
- * synched via
+ * synced via
  * {@link WriteAheadRepository#update(java.util.Collection, boolean)} with a
  * value of <code>true</code> for the second argument.
  * </p>
@@ -46,16 +46,16 @@ package org.wali;
 public interface SyncListener {
 
     /**
-     * This method is called whenever a specific partition is synched via the
+     * This method is called whenever a specific partition is synced via the
      * {@link WriteAheadRepository#update(java.util.Collection, boolean)} method
      *
-     * @param partitionIndex the index of the partition that was synched
+     * @param partitionIndex the index of the partition that was synced
      */
     void onSync(int partitionIndex);
 
     /**
      * This method is called whenever the entire
-     * <code>WriteAheadRepository</code> is synched via the
+     * <code>WriteAheadRepository</code> is synced via the
      * {@link WriteAheadRepository#sync()} method.
      */
     void onGlobalSync();

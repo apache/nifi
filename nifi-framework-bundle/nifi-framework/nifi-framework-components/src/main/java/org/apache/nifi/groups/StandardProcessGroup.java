@@ -3439,7 +3439,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
         }
 
-        // For each Parameter that was in the previous parameter context that is not in the updated Paramter Context, add a ParameterUpdate to our map with `null` for the updated value
+        // For each Parameter that was in the previous parameter context that is not in the updated Parameter Context, add a ParameterUpdate to our map with `null` for the updated value
         for (final Map.Entry<ParameterDescriptor, Parameter> entry : previousParameterContext.getEffectiveParameters().entrySet()) {
             final ParameterDescriptor previousDescriptor = entry.getKey();
             final Parameter previousParameter = entry.getValue();
@@ -4067,8 +4067,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private String generateUuid(final String propposedId, final String destinationGroupId, final String seed) {
-        long msb = UUID.nameUUIDFromBytes((propposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
+    private String generateUuid(final String proposedId, final String destinationGroupId, final String seed) {
+        long msb = UUID.nameUUIDFromBytes((proposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
 
         UUID uuid;
         if (StringUtils.isBlank(seed)) {
@@ -4076,10 +4076,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             // since msb is extracted from type-one UUID, the type-one semantics will be preserved
             uuid = new UUID(msb, lsb);
         } else {
-            UUID seedId = UUID.nameUUIDFromBytes((propposedId + destinationGroupId + seed).getBytes(StandardCharsets.UTF_8));
+            UUID seedId = UUID.nameUUIDFromBytes((proposedId + destinationGroupId + seed).getBytes(StandardCharsets.UTF_8));
             uuid = new UUID(msb, seedId.getLeastSignificantBits());
         }
-        LOG.debug("Generating UUID {} from currentId={}, seed={}", uuid, propposedId, seed);
+        LOG.debug("Generating UUID {} from currentId={}, seed={}", uuid, proposedId, seed);
         return uuid.toString();
     }
 

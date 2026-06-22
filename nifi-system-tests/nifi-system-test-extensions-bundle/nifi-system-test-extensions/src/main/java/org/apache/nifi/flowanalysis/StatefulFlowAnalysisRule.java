@@ -30,30 +30,30 @@ import java.util.Map;
 
 @Stateful(scopes = Scope.LOCAL, description = "Stores the timestamp of the last initialization")
 public class StatefulFlowAnalysisRule extends AbstractFlowAnalysisRule {
-    private static final String LAST_ANALYIZE_COMPONENT_TIMESTAMP = "last.analyze.component.timestamp";
-    private static final String LAST_ANALYIZE_PROCESS_GROUP_TIMESTAMP = "last.analyze.component.timestamp";
+    private static final String LAST_ANALYZE_COMPONENT_TIMESTAMP = "last.analyze.component.timestamp";
+    private static final String LAST_ANALYZE_PROCESS_GROUP_TIMESTAMP = "last.analyze.component.timestamp";
 
     @Override
     public Collection<ComponentAnalysisResult> analyzeComponent(VersionedComponent component, FlowAnalysisRuleContext context) {
-        final String lastAnalyizeTimestampKey = LAST_ANALYIZE_COMPONENT_TIMESTAMP;
+        final String lastAnalyzeTimestampKey = LAST_ANALYZE_COMPONENT_TIMESTAMP;
 
-        updateState(context, lastAnalyizeTimestampKey);
+        updateState(context, lastAnalyzeTimestampKey);
 
         return super.analyzeComponent(component, context);
     }
 
     @Override
     public Collection<GroupAnalysisResult> analyzeProcessGroup(VersionedProcessGroup processGroup, FlowAnalysisRuleContext context) {
-        updateState(context, LAST_ANALYIZE_PROCESS_GROUP_TIMESTAMP);
+        updateState(context, LAST_ANALYZE_PROCESS_GROUP_TIMESTAMP);
 
         return super.analyzeProcessGroup(processGroup, context);
     }
 
-    private void updateState(FlowAnalysisRuleContext context, String lastAnalyizeTimestampKey) {
+    private void updateState(FlowAnalysisRuleContext context, String lastAnalyzeTimestampKey) {
         final StateManager stateManager = context.getStateManager();
 
         final Map<String, String> state = new HashMap<>();
-        state.put(lastAnalyizeTimestampKey, System.currentTimeMillis() + "");
+        state.put(lastAnalyzeTimestampKey, System.currentTimeMillis() + "");
 
         try {
             stateManager.setState(state, Scope.LOCAL);

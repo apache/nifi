@@ -36,7 +36,7 @@ public interface RebalancingPartition extends QueuePartition {
     void rebalance(FlowFileQueueContents queueContents);
 
     /**
-     * Inherits all of the givne FlowFiles in order to redistribute them across the cluster
+     * Inherits all the given FlowFiles in order to redistribute them across the cluster
      *
      * @param flowFiles the FlowFiles to redistribute
      */

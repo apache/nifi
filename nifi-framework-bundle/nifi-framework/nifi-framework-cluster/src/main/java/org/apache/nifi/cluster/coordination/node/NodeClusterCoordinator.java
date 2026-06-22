@@ -189,7 +189,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         localNodeId = nodeId;
                     } else {
                         logger.warn("When recovering state, determined that two Node Identifiers claim to be the local Node Identifier: {} and {}. Will ignore both of these and wait until " +
-                            "connecting to cluster to determine which Node Identiifer is the local Node Identifier", localNodeId.getFullDescription(), nodeId.getFullDescription());
+                            "connecting to cluster to determine which Node Identifier is the local Node Identifier", localNodeId.getFullDescription(), nodeId.getFullDescription());
                         localNodeId = null;
                     }
                 }

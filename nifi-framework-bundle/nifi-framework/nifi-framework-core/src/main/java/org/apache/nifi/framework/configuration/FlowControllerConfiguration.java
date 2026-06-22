@@ -465,7 +465,7 @@ public class FlowControllerConfiguration {
     }
 
     /**
-     * Parameter Conext Asset Synchronizer depends on ClusterCoordinator, WebClientService, and NiFiProperties
+     * Parameter Context Asset Synchronizer depends on ClusterCoordinator, WebClientService, and NiFiProperties
      *
      * @return Asset Synchronizer
      */

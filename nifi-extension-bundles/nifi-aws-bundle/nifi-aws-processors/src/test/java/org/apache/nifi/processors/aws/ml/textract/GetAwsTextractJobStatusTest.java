@@ -108,7 +108,7 @@ public class GetAwsTextractJobStatusTest {
     }
 
     @Test
-    public void testTextractDocAnalysisTaskUnkownStatus() {
+    public void testTextractDocAnalysisTaskUnknownStatus() {
         testTextractDocAnalysis(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
     }
 
@@ -146,7 +146,7 @@ public class GetAwsTextractJobStatusTest {
     }
 
     @Test
-    public void testTextractExpenseAnalysisTaskUnkownStatus() {
+    public void testTextractExpenseAnalysisTaskUnknownStatus() {
         testTextractExpenseAnalysis(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
     }
 
@@ -195,7 +195,7 @@ public class GetAwsTextractJobStatusTest {
     }
 
     @Test
-    public void testTextractDocumentTextDetectionTaskUnkownStatus() {
+    public void testTextractDocumentTextDetectionTaskUnknownStatus() {
         testTextractDocumentTextDetection(JobStatus.UNKNOWN_TO_SDK_VERSION, REL_FAILURE);
     }
 

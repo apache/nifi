@@ -335,14 +335,14 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                 flowMetadata.setIdentifier(flowId);
                 flowMetadata.setName(flowName);
                 flowMetadata.setDescription(latestFlowPointer.getFlowDescription());
-                flowMetadata.setFlowSnapshotMetadata(createFlowSnapshotMetdata(flow));
+                flowMetadata.setFlowSnapshotMetadata(createFlowSnapshotMetadata(flow));
                 flowMetadataList.add(flowMetadata);
             }
         }
         return flowMetadataList;
     }
 
-    private List<FlowSnapshotMetadata> createFlowSnapshotMetdata(final Flow flow) {
+    private List<FlowSnapshotMetadata> createFlowSnapshotMetadata(final Flow flow) {
         final List<FlowSnapshotMetadata> flowSnapshotMetadataList = new ArrayList<>();
 
         final Map<Integer, Flow.FlowPointer> versions = flow.getVersions();

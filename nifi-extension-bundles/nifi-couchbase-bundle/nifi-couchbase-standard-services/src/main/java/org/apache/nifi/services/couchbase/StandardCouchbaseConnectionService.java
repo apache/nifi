@@ -49,7 +49,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
 
     public static final PropertyDescriptor CONNECTION_STRING = new PropertyDescriptor.Builder()
             .name("Connection String")
-            .description("The hostnames or ip addresses of the bootstraping nodes and optional parameters."
+            .description("The hostnames or ip addresses of the bootstrapping nodes and optional parameters."
                     + " Syntax: couchbase://node1,node2,nodeN?param1=value1&param2=value2&paramN=valueN")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

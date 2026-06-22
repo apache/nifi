@@ -347,7 +347,7 @@ public class TestLinkService {
     }
 
     @Test
-    public void testPopulateExtensionRepoExtensionMetdataFullLinks() {
+    public void testPopulateExtensionRepoExtensionMetadataFullLinks() {
         extensionRepoExtensionMetadata.forEach(i -> assertNull(i.getLink()));
         extensionRepoExtensionMetadata.forEach(i -> assertNull(i.getLinkDocs()));
 

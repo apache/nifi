@@ -371,7 +371,7 @@ public class TestStandardAuthorizableLookup {
     }
 
     /**
-     * ArugmentMatcher for AuthorizationRequest.
+     * ArgumentMatcher for AuthorizationRequest.
      */
     private static class AuthorizationRequestMatcher implements ArgumentMatcher<AuthorizationRequest> {
 

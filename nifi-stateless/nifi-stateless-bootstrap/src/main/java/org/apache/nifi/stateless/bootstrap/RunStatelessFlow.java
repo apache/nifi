@@ -44,7 +44,7 @@ public class RunStatelessFlow {
         try {
             bootstrapConfiguration = BootstrapConfiguration.fromCommandLineArgs(args);
         } catch (final IllegalArgumentException iae) {
-            System.out.println("* " + iae.getMessage()); // There may be a lot of output to the console; Use an astrisk at the front just to make this line stand out.
+            System.out.println("* " + iae.getMessage()); // There may be a lot of output to the console; Use an asterisk at the front just to make this line stand out.
             System.out.println();
             BootstrapConfiguration.printUsage();
             System.exit(1);

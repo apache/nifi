@@ -156,7 +156,7 @@ public interface ExtensionManager {
      * (i.e getExtensions(Processor.class)
      *
      * @param definition the extension definition, such as Processor.class
-     * @return the set of extension definitions that describe the the extensions implementing the defintion
+     * @return the set of extension definitions that describe the extensions implementing the definition
      */
     Set<ExtensionDefinition> getExtensions(Class<?> definition);
 

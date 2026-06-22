@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
 
-@EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "Stress test - longrunning. For manual testing.")
+@EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "Stress test - long running. For manual testing.")
 public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario {
     private static List<Arguments> parameters = new ArrayList<>();
 

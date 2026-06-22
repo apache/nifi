@@ -289,7 +289,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 return validationErrors;
             }
 
-            // attempt to location the proprosed destination
+            // attempt to locate the proposed destination
             final ProcessGroup destinationParentGroup = locateProcessGroup(flowController, groupId);
             final RemoteProcessGroup remoteProcessGroup = destinationParentGroup.getRemoteProcessGroup(proposedDestination.getGroupId());
             if (remoteProcessGroup == null) {

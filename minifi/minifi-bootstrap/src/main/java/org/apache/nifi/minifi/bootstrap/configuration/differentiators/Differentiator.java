@@ -38,7 +38,7 @@ public interface Differentiator<T> {
     /**
      * Determine whether the config file changed
      *
-     * @param input the conetnt of the new config file
+     * @param input the content of the new config file
      * @return true if changed and false if not
      * @throws IOException when there is a config file reading related error
      */

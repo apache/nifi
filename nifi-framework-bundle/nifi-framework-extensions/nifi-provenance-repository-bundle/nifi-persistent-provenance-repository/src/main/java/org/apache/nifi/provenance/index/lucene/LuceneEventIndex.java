@@ -831,7 +831,7 @@ public class LuceneEventIndex implements EventIndex {
             final long earliestEventTime;
             if (firstEvents.isEmpty()) {
                 earliestEventTime = System.currentTimeMillis();
-                logger.debug("Found no events in the Provenance Repository. In order to perform maintenace of the indices, "
+                logger.debug("Found no events in the Provenance Repository. In order to perform maintenance of the indices, "
                     + "will assume that the first event time is now ({})", System.currentTimeMillis());
             } else {
                 final ProvenanceEventRecord firstEvent = firstEvents.get(0);
@@ -881,7 +881,7 @@ public class LuceneEventIndex implements EventIndex {
             directoryManager.removeDirectory(indexDirectory);
             logger.info("Successfully removed expired Lucene Index {}", indexDirectory);
         } else {
-            logger.warn("The Lucene Index located at {} has expired and contains no Provenance Events that still exist in the respository. "
+            logger.warn("The Lucene Index located at {} has expired and contains no Provenance Events that still exist in the repository. "
                 + "However, the directory could not be deleted because it is still actively being used. Will continue to try to delete "
                 + "in a subsequent maintenance cycle.", indexDirectory);
         }

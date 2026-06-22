@@ -141,8 +141,8 @@ public class FileSystemRepository implements ContentRepository {
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
         this.nifiProperties = nifiProperties;
         // determine the file repository paths and ensure they exist
-        final Map<String, Path> fileRespositoryPaths = nifiProperties.getContentRepositoryPaths();
-        for (final Path path : fileRespositoryPaths.values()) {
+        final Map<String, Path> fileRepositoryPaths = nifiProperties.getContentRepositoryPaths();
+        for (final Path path : fileRepositoryPaths.values()) {
             Files.createDirectories(path);
         }
         this.writableClaimQueue = new LinkedBlockingQueue<>(1024);
@@ -160,7 +160,7 @@ public class FileSystemRepository implements ContentRepository {
         }
         this.minTruncatableClaimLength = Math.min(1_000_000L, this.maxAppendableClaimLength);
 
-        this.containers = new HashMap<>(fileRespositoryPaths);
+        this.containers = new HashMap<>(fileRepositoryPaths);
         this.containerNames = new ArrayList<>(containers.keySet());
         index = new AtomicLong(0L);
 

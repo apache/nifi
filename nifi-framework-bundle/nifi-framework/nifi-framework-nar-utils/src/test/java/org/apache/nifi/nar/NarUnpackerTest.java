@@ -146,12 +146,12 @@ public class NarUnpackerTest {
     }
 
     @Test
-    public void testUnpackNarsFromNonExistantDir() {
-        final File nonExistantDir = new File("./target/this/dir/should/not/exist/");
-        nonExistantDir.deleteOnExit();
+    public void testUnpackNarsFromNonExistentDir() {
+        final File nonExistentDir = new File("./target/this/dir/should/not/exist/");
+        nonExistentDir.deleteOnExit();
 
         final Map<String, String> others = new HashMap<>();
-        others.put("nifi.nar.library.directory.alt", nonExistantDir.toString());
+        others.put("nifi.nar.library.directory.alt", nonExistentDir.toString());
         NiFiProperties properties = loadSpecifiedProperties(others);
 
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, SystemBundle.create(properties), NarUnpackMode.UNPACK_INDIVIDUAL_JARS);

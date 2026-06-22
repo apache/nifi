@@ -235,7 +235,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         testRunner.enableControllerService(registry);
         testRunner.enableControllerService(reader);
         prepareMockTest();
-        // override partiton key for this test case
+        // override partition key for this test case
         testRunner.setProperty(PutAzureCosmosDBRecord.PARTITION_KEY, "sport");
 
         Map<String, String> attrs = new HashMap<>();

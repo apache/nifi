@@ -54,9 +54,9 @@ public class QueuePrioritizer implements Comparator<FlowFileRecord>, Serializabl
             }
         }
 
-        final int claimComparisionResult = claimComparator.compare(f1, f2);
-        if (claimComparisionResult != 0) {
-            return claimComparisionResult;
+        final int claimComparisonResult = claimComparator.compare(f1, f2);
+        if (claimComparisonResult != 0) {
+            return claimComparisonResult;
         }
 
         return idComparator.compare(f1, f2);

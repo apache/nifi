@@ -68,7 +68,7 @@ public class DocumentedTypeDTO {
     /**
      * @return An optional collection of explicit restrictions
      */
-    @Schema(description = "An optional collection of explicit restrictions. If specified, these explicit restrictions will be enfored."
+    @Schema(description = "An optional collection of explicit restrictions. If specified, these explicit restrictions will be enforced."
     )
     public Set<ExplicitRestrictionDTO> getExplicitRestrictions() {
         return explicitRestrictions;

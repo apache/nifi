@@ -1475,7 +1475,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * Similar to {@link #start(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback, boolean, boolean)}, except for the following:
      * <ul>
      *     <li>
-     *         Once the {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory)} method has been invoked successfully, the processor is scehduled to be stopped immediately.
+     *         Once the {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory)} method has been invoked successfully, the processor is scheduled to be stopped immediately.
      *         All appropriate lifecycle methods will be executed as well.
      *     </li>
      *     <li>

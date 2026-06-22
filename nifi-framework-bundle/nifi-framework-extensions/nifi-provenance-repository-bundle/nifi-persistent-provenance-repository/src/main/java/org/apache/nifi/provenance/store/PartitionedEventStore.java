@@ -277,7 +277,7 @@ public abstract class PartitionedEventStore implements EventStore {
         } catch (final Exception e) {
             logger.error("Failed to perform periodic maintenance", e);
             eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY,
-                "Failed to perform periodic maintenace for Provenance Repository. See logs for more information.");
+                "Failed to perform periodic maintenance for Provenance Repository. See logs for more information.");
         }
     }
 

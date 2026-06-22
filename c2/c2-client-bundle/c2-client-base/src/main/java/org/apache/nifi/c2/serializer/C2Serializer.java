@@ -41,7 +41,7 @@ public interface C2Serializer {
      * @param content   the string representation of the object to be deserialized
      * @param valueType the class of the target object
      * @param <T>       the type of the target object
-     * @return the deserialised object if successful empty otherwise
+     * @return the deserialized object if successful empty otherwise
      */
     <T> Optional<T> deserialize(String content, Class<T> valueType);
 

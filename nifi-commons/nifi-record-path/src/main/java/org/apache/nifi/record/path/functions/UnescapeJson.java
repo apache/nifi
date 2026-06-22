@@ -90,7 +90,7 @@ public class UnescapeJson extends RecordPathSegment {
                                     fv.getField(), fv.getParent().orElse(null)
                             );
                         } catch (IOException e) {
-                            throw new RecordPathException("Unable to deserialise JSON String into Record Path value", e);
+                            throw new RecordPathException("Unable to deserialize JSON String into Record Path value", e);
                         }
                     } else {
                         throw new IllegalArgumentException("Argument supplied to unescapeJson must be a String");

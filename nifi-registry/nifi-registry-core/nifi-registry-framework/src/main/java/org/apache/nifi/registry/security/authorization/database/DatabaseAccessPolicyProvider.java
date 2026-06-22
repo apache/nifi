@@ -183,7 +183,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         Objects.requireNonNull(accessPolicy);
 
         // determine if policy exists
-        final DatabaseAccessPolicy existingPolicy = getDatabaseAcessPolicy(accessPolicy.getIdentifier());
+        final DatabaseAccessPolicy existingPolicy = getDatabaseAccessPolicy(accessPolicy.getIdentifier());
         if (existingPolicy == null) {
             return null;
         }
@@ -300,7 +300,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         refreshAccessPolicyHolder();
     }
 
-    protected DatabaseAccessPolicy getDatabaseAcessPolicy(final String policyIdentifier) {
+    protected DatabaseAccessPolicy getDatabaseAccessPolicy(final String policyIdentifier) {
         final String sql = "SELECT * FROM APP_POLICY WHERE IDENTIFIER = ?";
         return queryForObject(sql, new DatabaseAccessPolicyRowMapper(), policyIdentifier);
     }

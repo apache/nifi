@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command to create process-groups childs of the root process group.
+ * Command to create process-groups child of the root process group.
  */
 public class PGCreate extends AbstractNiFiCommand<StringResult> {
 

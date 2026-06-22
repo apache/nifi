@@ -246,7 +246,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      */
     public ConnectDetails createConnectDetails(final Connection connection, final Connectable source, final Collection<Relationship> relationships, final Connectable destination) {
         final Component sourceType = determineConnectableType(source);
-        final Component destiantionType = determineConnectableType(destination);
+        final Component destinationType = determineConnectableType(destination);
 
         // format the relationship names
         Collection<String> relationshipNames = new HashSet<>(connection.getRelationships().size());
@@ -263,7 +263,7 @@ public class RelationshipAuditor extends NiFiAuditor {
         connectDetails.setRelationship(formattedRelationships);
         connectDetails.setDestinationId(destination.getIdentifier());
         connectDetails.setDestinationName(destination.getName());
-        connectDetails.setDestinationType(destiantionType);
+        connectDetails.setDestinationType(destinationType);
         return connectDetails;
     }
 

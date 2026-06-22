@@ -696,7 +696,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testSchemaWithCoreAttribuesToAttribute() {
+    public void testSchemaWithCoreAttributesToAttribute() {
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");
         testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
@@ -727,7 +727,7 @@ public class TestAttributesToCSV {
     }
 
     @Test
-    public void testSchemaWithCoreAttribuesToContent() {
+    public void testSchemaWithCoreAttributesToContent() {
         //set the destination of the csv string to be an attribute
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_OVERWRITE_CONTENT);
         testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");

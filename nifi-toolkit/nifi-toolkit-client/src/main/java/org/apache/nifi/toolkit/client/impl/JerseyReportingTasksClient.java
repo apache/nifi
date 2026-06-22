@@ -86,7 +86,7 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
         }
 
         if (runStatusEntity == null) {
-            throw new IllegalArgumentException("Entity cannnot be null");
+            throw new IllegalArgumentException("Entity cannot be null");
         }
 
         return executeAction("Error starting or stopping report task", () -> {

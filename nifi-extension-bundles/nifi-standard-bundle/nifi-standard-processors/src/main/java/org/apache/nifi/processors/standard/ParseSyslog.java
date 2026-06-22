@@ -51,7 +51,7 @@ import java.util.Set;
 @Tags({"logs", "syslog", "attributes", "system", "event", "message"})
 @CapabilityDescription("Attempts to parses the contents of a Syslog message in accordance to RFC5424 and RFC3164 " +
         "formats and adds attributes to the FlowFile for each of the parts of the Syslog message." +
-        "Note: Be mindfull that RFC3164 is informational and a wide range of different implementations are present in" +
+        "Note: Be mindful that RFC3164 is informational and a wide range of different implementations are present in" +
         " the wild. If messages fail parsing, considering using RFC5424 or using a generic parsing processors such as " +
         "ExtractGrok.")
 @WritesAttributes({@WritesAttribute(attribute = "syslog.priority", description = "The priority of the Syslog message."),

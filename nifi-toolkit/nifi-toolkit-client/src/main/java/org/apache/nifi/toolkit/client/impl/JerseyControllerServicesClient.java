@@ -72,7 +72,7 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
         }
 
         if (runStatusEntity == null) {
-            throw new IllegalArgumentException("Entity cannnot be null");
+            throw new IllegalArgumentException("Entity cannot be null");
         }
 
         return executeAction("Error enabling or disabling controller service", () -> {
@@ -86,8 +86,8 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
     }
 
     @Override
-    public ControllerServiceEntity createControllerService(final String parentGroupdId, final ControllerServiceEntity controllerServiceEntity) throws NiFiClientException, IOException {
-        if (StringUtils.isBlank(parentGroupdId)) {
+    public ControllerServiceEntity createControllerService(final String parentGroupId, final ControllerServiceEntity controllerServiceEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(parentGroupId)) {
             throw new IllegalArgumentException("Parent process group id cannot be null or blank");
         }
 
@@ -98,7 +98,7 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
         return executeAction("Error creating Controller Service", () -> {
             final WebTarget target = processGroupTarget
                     .path("/controller-services")
-                    .resolveTemplate("pgId", parentGroupdId);
+                    .resolveTemplate("pgId", parentGroupId);
 
             return getRequestBuilder(target).post(
                     Entity.entity(controllerServiceEntity, MediaType.APPLICATION_JSON_TYPE),

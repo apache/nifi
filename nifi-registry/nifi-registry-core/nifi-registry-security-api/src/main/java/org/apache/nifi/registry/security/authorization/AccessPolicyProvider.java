@@ -54,7 +54,7 @@ public interface AccessPolicyProvider {
      *
      * @param resourceIdentifier the resource identifier
      * @param action the request action
-     * @return the policy matching the resouce and action, or null if no matching policy exists
+     * @return the policy matching the resource and action, or null if no matching policy exists
      * @throws AuthorizationAccessException if there was any unexpected error performing the operation
      */
     AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException;

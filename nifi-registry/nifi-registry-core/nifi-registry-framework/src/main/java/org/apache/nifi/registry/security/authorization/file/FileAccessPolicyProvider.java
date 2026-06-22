@@ -242,13 +242,13 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         return deleteAccessPolicy(accessPolicy.getIdentifier());
     }
 
-    private synchronized AccessPolicy deleteAccessPolicy(String accessPolicyIdentifer) throws AuthorizationAccessException {
-        if (accessPolicyIdentifer == null) {
+    private synchronized AccessPolicy deleteAccessPolicy(String accessPolicyIdentifier) throws AuthorizationAccessException {
+        if (accessPolicyIdentifier == null) {
             throw new IllegalArgumentException("Access policy identifier cannot be null");
         }
 
         final AuthorizationsHolder holder = this.authorizationsHolder.get();
-        AccessPolicy deletedPolicy = holder.getPoliciesById().get(accessPolicyIdentifer);
+        AccessPolicy deletedPolicy = holder.getPoliciesById().get(accessPolicyIdentifier);
         if (deletedPolicy == null) {
             return null;
         }
@@ -258,7 +258,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         Iterator<Policy> policyIter = authorizations.getPolicies().getPolicy().iterator();
         while (policyIter.hasNext()) {
             final Policy policy = policyIter.next();
-            if (policy.getIdentifier().equals(accessPolicyIdentifer)) {
+            if (policy.getIdentifier().equals(accessPolicyIdentifier)) {
                 policyIter.remove();
                 break;
             }

@@ -686,7 +686,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
             reindexedCount.get(), eventFilesToReindex.size(), partitionDirectory, seconds, millisRemainder);
     }
 
-    EventIterator getEventsByTimestamp(final long minTimestmap, final long maxTimestamp) throws IOException {
+    EventIterator getEventsByTimestamp(final long minTimestamp, final long maxTimestamp) throws IOException {
         // Get a list of all Files and order them based on their ID such that the largest ID is first.
         // This allows us to step through the event files in order and read the first event in the file.
         // If the first event comes after out maxTimestamp, then we know that all other events do as well,
@@ -714,13 +714,13 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
             relevantEventFiles.add(eventFile);
 
-            if (eventTime < minTimestmap) {
+            if (eventTime < minTimestamp) {
                 break;
             }
         }
 
         final EventIterator rawEventIterator = new SequentialRecordReaderEventIterator(relevantEventFiles, recordReaderFactory, 0, config.getMaxAttributeChars());
-        return rawEventIterator.filter(event -> event.getEventTime() >= minTimestmap && event.getEventTime() <= maxTimestamp);
+        return rawEventIterator.filter(event -> event.getEventTime() >= minTimestamp && event.getEventTime() <= maxTimestamp);
     }
 
     private ProvenanceEventRecord getFirstEvent(final File eventFile) throws IOException {

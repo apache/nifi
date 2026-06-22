@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExecuteGraphQueryRecordTest {
     private TestRunner runner;
-    Map<String, String> enqueProperties = new HashMap<>();
+    Map<String, String> enqueueProperties = new HashMap<>();
 
     @BeforeEach
     public void setup() throws InitializationException {
@@ -74,7 +74,7 @@ public class ExecuteGraphQueryRecordTest {
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
         runner.setProperty("M", "/M");
-        runner.enqueue(json, enqueProperties);
+        runner.enqueue(json, enqueueProperties);
 
         runner.run();
         runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
@@ -100,7 +100,7 @@ public class ExecuteGraphQueryRecordTest {
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
         runner.setProperty("M", "/M");
-        runner.enqueue(json, enqueProperties);
+        runner.enqueue(json, enqueueProperties);
 
         runner.run();
         runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
@@ -169,7 +169,7 @@ public class ExecuteGraphQueryRecordTest {
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
         runner.setProperty("M", "/M");
-        runner.enqueue(json, enqueProperties);
+        runner.enqueue(json, enqueueProperties);
 
         runner.run();
         runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 0);
@@ -198,6 +198,6 @@ public class ExecuteGraphQueryRecordTest {
         runner.enableControllerService(graphClient);
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, "[ 'testProperty': 'testResponse' ]");
         runner.assertValid();
-        enqueProperties.put("graph.name", "graph");
+        enqueueProperties.put("graph.name", "graph");
     }
 }

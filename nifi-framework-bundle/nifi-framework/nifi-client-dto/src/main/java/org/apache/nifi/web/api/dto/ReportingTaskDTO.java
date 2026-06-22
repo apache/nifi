@@ -288,7 +288,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return currently configured annotation data for the reporting task
      */
-    @Schema(description = "The annotation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
+    @Schema(description = "The annotation data for the reporting task. This is how the custom UI relays configuration to the reporting task."
     )
     public String getAnnotationData() {
         return annotationData;

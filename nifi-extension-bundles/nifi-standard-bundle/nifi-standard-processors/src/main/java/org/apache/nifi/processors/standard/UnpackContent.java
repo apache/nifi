@@ -435,8 +435,8 @@ public class UnpackContent extends AbstractProcessor {
                             }
 
                             if (tarEntry.getLastAccessTime() != null) {
-                                final String lastAccesTime = DATE_TIME_FORMATTER.format(tarEntry.getLastAccessTime().toInstant());
-                                attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccesTime);
+                                final String lastAccessTime = DATE_TIME_FORMATTER.format(tarEntry.getLastAccessTime().toInstant());
+                                attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccessTime);
                             }
 
                             attributes.put(FRAGMENT_ID, fragmentId);

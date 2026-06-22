@@ -188,7 +188,7 @@ public class BinaryReader {
     }
 
     /**
-     * Reads 8 bytes in litte endian order and returns the UnsignedLong value
+     * Reads 8 bytes in little endian order and returns the UnsignedLong value
      *
      * @return the value
      */

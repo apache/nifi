@@ -63,16 +63,16 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     }
 
     @Override
-    public ProcessGroupEntity createProcessGroup(final String parentGroupdId, final ProcessGroupEntity entity)
+    public ProcessGroupEntity createProcessGroup(final String parentGroupId, final ProcessGroupEntity entity)
             throws NiFiClientException, IOException {
-        return createProcessGroup(parentGroupdId, entity, true);
+        return createProcessGroup(parentGroupId, entity, true);
     }
 
     @Override
-    public ProcessGroupEntity createProcessGroup(final String parentGroupdId, final ProcessGroupEntity entity, boolean keepExisting)
+    public ProcessGroupEntity createProcessGroup(final String parentGroupId, final ProcessGroupEntity entity, boolean keepExisting)
             throws NiFiClientException, IOException {
 
-        if (StringUtils.isBlank(parentGroupdId)) {
+        if (StringUtils.isBlank(parentGroupId)) {
             throw new IllegalArgumentException("Parent process group id cannot be null or blank");
         }
 
@@ -84,7 +84,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
             final WebTarget target = processGroupsTarget
                     .path("{id}/process-groups")
                     .queryParam("parameterContextHandlingStrategy", keepExisting ? "KEEP_EXISTING" : "REPLACE")
-                    .resolveTemplate("id", parentGroupdId);
+                    .resolveTemplate("id", parentGroupId);
 
             return getRequestBuilder(target).post(
                     Entity.entity(entity, MediaType.APPLICATION_JSON_TYPE),

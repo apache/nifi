@@ -159,8 +159,8 @@ public class TestClientSideEncryptionSupport {
         assertFalse(result.isEmpty(), "There should be validation error");
     }
 
-    private void assertContains(Collection<ValidationResult> result, String explaination) {
+    private void assertContains(Collection<ValidationResult> result, String explanation) {
         assertFalse(result.isEmpty(), "There should be validation error");
-        assertTrue(result.stream().anyMatch(v -> v.getExplanation().contains(explaination)));
+        assertTrue(result.stream().anyMatch(v -> v.getExplanation().contains(explanation)));
     }
 }

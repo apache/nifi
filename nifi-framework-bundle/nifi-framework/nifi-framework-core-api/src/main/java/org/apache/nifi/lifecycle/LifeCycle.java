@@ -17,13 +17,13 @@
 package org.apache.nifi.lifecycle;
 
 /**
- * Represents a start/stop lifecyle for a component.  <code>start</code> should only be called once per lifecyle unless otherwise documented by implementing classes.
+ * Represents a start/stop lifecycle for a component.  <code>start</code> should only be called once per lifecycle unless otherwise documented by implementing classes.
  *
  */
 public interface LifeCycle {
 
     /**
-     * Initiates the start state of the lifecyle. Should not throw an exception if the component is already running.
+     * Initiates the start state of the lifecycle. Should not throw an exception if the component is already running.
      *
      * @throws LifeCycleStartException if startup or initialization failed
      */
