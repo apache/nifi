@@ -27,7 +27,7 @@
     <properties>
         <janusgraph.version>1.2.0-20260518-231441.3ed2758</janusgraph.version>
         <guava.version>33.6.0-jre</guava.version>
-        <amqp-client.version>5.31.0</amqp-client.version>
+        <amqp-client.version>5.32.0</amqp-client.version>
     </properties>
     <dependencyManagement>
         <dependencies>

@@ -49,8 +49,8 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
             case null -> {
                 return null;
             }
-            case String ignored -> {
-                return field.toString();
+            case String string -> {
+                return string;
             }
             case Timestamp timestamp -> {
                 if (pattern.isEmpty()) {
