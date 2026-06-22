@@ -278,10 +278,10 @@ public class PutMongoIT extends MongoWriteTestBase {
         assertEquals(found.get("department"), document.get("department"));
         Document contacts = (Document) found.get("contacts");
         assertNotNull(contacts);
-        assertEquals(contacts.get("twitter"), "@JohnSmith");
-        assertEquals(contacts.get("email"), "john.smith@test.com");
-        assertEquals(contacts.get("phone"), "555-555-5555");
-        assertEquals(collection.countDocuments(document), 1);
+        assertEquals("@JohnSmith", contacts.get("twitter"));
+        assertEquals("john.smith@test.com", contacts.get("email"));
+        assertEquals("555-555-5555", contacts.get("phone"));
+        assertEquals(1, collection.countDocuments(document));
     }
 
     @Test
@@ -614,7 +614,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         for (Document doc : array) {
             String msg = doc.getString("msg");
             assertNotNull(msg, "Msg was null");
-            assertEquals(msg, "Hi", "Msg had wrong value");
+            assertEquals("Hi", msg, "Msg had wrong value");
         }
     }
 

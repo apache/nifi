@@ -129,7 +129,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         for (MockFlowFile mff : flowFiles) {
             String val = mff.getAttribute(AGG_ATTR);
             assertNotNull("Missing query attribute", val);
-            assertEquals(val, queryInput, "Value was wrong");
+            assertEquals(queryInput, val, "Value was wrong");
         }
     }
 

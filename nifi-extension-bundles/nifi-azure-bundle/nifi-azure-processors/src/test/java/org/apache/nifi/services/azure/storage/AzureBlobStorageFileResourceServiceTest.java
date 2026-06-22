@@ -161,7 +161,7 @@ class AzureBlobStorageFileResourceServiceTest {
     private void assertFileResource(FileResource fileResource) {
         assertNotNull(fileResource);
         assertEquals(fileResource.getInputStream(), blobInputStream);
-        assertEquals(fileResource.getSize(), CONTENT_LENGTH);
+        assertEquals(CONTENT_LENGTH, fileResource.getSize());
     }
 
     private void verifyMockInvocations(String customContainer, String customBlobName) {

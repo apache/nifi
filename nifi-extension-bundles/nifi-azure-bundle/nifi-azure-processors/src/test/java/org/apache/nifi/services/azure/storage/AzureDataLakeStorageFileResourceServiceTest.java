@@ -223,7 +223,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
     private void assertFileResource(FileResource fileResource) {
         assertNotNull(fileResource);
         assertEquals(fileResource.getInputStream(), inputStream);
-        assertEquals(fileResource.getSize(), CONTENT_LENGTH);
+        assertEquals(CONTENT_LENGTH, fileResource.getSize());
     }
 
     private void verifyMockInvocations() {

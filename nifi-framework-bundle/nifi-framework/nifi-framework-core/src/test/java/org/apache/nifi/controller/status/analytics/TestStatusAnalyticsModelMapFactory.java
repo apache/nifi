@@ -59,7 +59,7 @@ public class TestStatusAnalyticsModelMapFactory {
         StatusAnalyticsModel bytesModel = modelMap.get("queuedBytes").getKey();
         assertNotNull(countModel);
         assertNotNull(bytesModel);
-        assertEquals(countModel.getClass().getName(), "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");
-        assertEquals(bytesModel.getClass().getName(), "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");
+        assertEquals("org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares", countModel.getClass().getName());
+        assertEquals("org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares", bytesModel.getClass().getName());
     }
 }

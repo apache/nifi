@@ -465,7 +465,7 @@ public class TestUnpackContent {
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            assertEquals(flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
+            assertEquals("data", flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME));
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
@@ -502,7 +502,7 @@ public class TestUnpackContent {
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            assertEquals(flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
+            assertEquals("data", flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME));
         }
 
         final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());

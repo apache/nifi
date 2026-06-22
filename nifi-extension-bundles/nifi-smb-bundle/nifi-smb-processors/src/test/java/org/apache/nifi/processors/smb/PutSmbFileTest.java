@@ -270,8 +270,8 @@ public class PutSmbFileTest {
 
         verify(connection).authenticate(authenticationContext.capture());
         AuthenticationContext acObj = authenticationContext.getValue();
-        assertEquals(acObj.getUsername(), USERNAME);
-        assertEquals(acObj.getDomain(), DOMAIN);
+        assertEquals(USERNAME, acObj.getUsername());
+        assertEquals(DOMAIN, acObj.getDomain());
         assertArrayEquals(acObj.getPassword(), PASSWORD.toCharArray());
     }
 

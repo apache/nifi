@@ -104,7 +104,7 @@ public class GitHubFlowRegistryClientTest {
     public void testDirExclusion() throws IOException, FlowRegistryException {
         setupClientConfigurationContextWithDefaults();
         final Set<FlowRegistryBucket> buckets = flowRegistryClient.getBuckets(clientConfigurationContext, DEFAULT_REPO_BRANCH);
-        assertEquals(buckets.stream().filter(b -> b.getName().equals(".github")).count(), 0);
+        assertEquals(0, buckets.stream().filter(b -> b.getName().equals(".github")).count());
     }
 
     @Test

@@ -253,7 +253,7 @@ public class NiFiPropertiesTest {
         properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(NiFiProperties.WEB_MAX_CONTENT_SIZE, size));
 
         // Assert specific values are used:
-        assertEquals(properties.getWebMaxContentSize(),  size);
+        assertEquals(size, properties.getWebMaxContentSize());
     }
 
     @Test

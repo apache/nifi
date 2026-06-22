@@ -77,7 +77,7 @@ public class BulletinMergerTest {
         assertTrue(merged.contains(bulletinEntity2), "Second Bulletin not found");
         assertTrue(merged.contains(unauthorizedBulletin), "Protected Bulletin not found");
 
-        assertEquals(bulletinEntity1.getNodeAddress(), ALL_NODES_MESSAGE);
+        assertEquals(ALL_NODES_MESSAGE, bulletinEntity1.getNodeAddress());
     }
 
     @Test

@@ -74,7 +74,7 @@ public class CreateConnectorIT {
                 .build()) {
 
             final List<ValidationResult> results = testRunner.validate();
-            assertEquals(results.size(), 1);
+            assertEquals(1, results.size());
             final String message = results.getFirst().getExplanation();
             assertTrue(message.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected exception message to contain missing bundle coordinates but was: " + message);
             assertTrue(message.contains("com.example.nonexistent.MissingProcessor"), "Expected exception message to contain missing processor type but was: " + message);

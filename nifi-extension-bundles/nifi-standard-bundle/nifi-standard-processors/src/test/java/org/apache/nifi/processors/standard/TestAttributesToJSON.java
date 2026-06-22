@@ -143,7 +143,7 @@ public class TestAttributesToJSON {
 
         Map<String, String> val = MAPPER.readValue(json, new TypeReference<>() { });
 
-        assertEquals(val.get(nonPresentAttributeKey), "");
+        assertEquals("", val.get(nonPresentAttributeKey));
     }
 
     @Test
