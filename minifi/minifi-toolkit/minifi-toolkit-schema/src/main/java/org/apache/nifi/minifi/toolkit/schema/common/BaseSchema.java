@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.schema.common;
 
-import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiationException;
+import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiatonException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -151,7 +151,7 @@ public abstract class BaseSchema implements Schema {
                 if (val != null) {
                     result.add(val);
                 }
-            } catch (SchemaInstantiationException e) {
+            } catch (SchemaInstantiatonException e) {
                 addValidationIssue(simpleListType + " number " + i, wrapperName, e.getMessage());
             }
         }
@@ -159,12 +159,12 @@ public abstract class BaseSchema implements Schema {
     }
 
     private <InputT, OutputT> OutputT interpretValueAsType(Class<InputT> inputType, InputT input, Function<InputT, OutputT> conversionFunction, Supplier<OutputT> instantiator)
-            throws SchemaInstantiationException {
+            throws SchemaInstantiatonException {
         if (input == null && instantiator != null) {
             return instantiator.get();
         }
         if (!inputType.isInstance(input)) {
-            throw new SchemaInstantiationException("was expecting object of type " + inputType + " but was " + input.getClass());
+            throw new SchemaInstantiatonException("was expecting object of type " + inputType + " but was " + input.getClass());
         }
         return conversionFunction.apply(input);
     }

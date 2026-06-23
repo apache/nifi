@@ -26,7 +26,7 @@ import org.apache.nifi.minifi.toolkit.configuration.PathOutputStreamFactory;
 import org.apache.nifi.minifi.toolkit.schema.ConfigSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.Schema;
-import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiationException;
+import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiatonException;
 import org.apache.nifi.minifi.toolkit.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.toolkit.schema.serialization.SchemaLoader;
 
@@ -116,7 +116,7 @@ public class TransformYamlCommandFactory {
 
     private <T extends Schema> T throwIfInvalid(T schema) throws SchemaLoaderException {
         if (!schema.isValid()) {
-            throw new SchemaInstantiationException("Failed to transform config file due to:["
+            throw new SchemaInstantiatonException("Failed to transform config file due to:["
                 + schema.getValidationIssues().stream().sorted().collect(joining("], [")) + "]");
         }
         return schema;

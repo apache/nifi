@@ -19,12 +19,12 @@
 
 package org.apache.nifi.minifi.toolkit.schema.exception;
 
-public class SchemaInstantiationException extends RuntimeException {
-    public SchemaInstantiationException(String message) {
+public class SchemaInstantiatonException extends RuntimeException {
+    public SchemaInstantiatonException(String message) {
         super(message);
     }
 
-    public SchemaInstantiationException(String message, Throwable cause) {
+    public SchemaInstantiatonException(String message, Throwable cause) {
         super(message, cause);
     }
 }
