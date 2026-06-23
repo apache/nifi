@@ -904,6 +904,42 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
     }
 
     @Test
+    void testDocumentFieldNamesWithSlashAndBackslashPassThroughRaw() {
+        // Only the configured Identifier/Index/Timestamp Field property values are parsed as nested
+        // paths; field names in the document body are never interpreted. With no extraction configured,
+        // the raw bytes -- including field names that contain "/" and "\" -- are passed through unchanged.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        final String doc = "{\"a/b\":\"x\",\"c\\\\d\":\"y\",\"msg\":\"hello\"}";
+        runner.enqueue(doc + "\n");
+        runner.run();
+
+        runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
+        assertEquals(doc, docContent(ops.getFirst()), "document body passed through byte-for-byte");
+    }
+
+    @Test
+    void testUnrelatedSlashFieldRetainedWhenExtractingId() {
+        // Even on the parse-and-re-serialize path (here forced by removing the extracted id field), a
+        // document field whose name contains a "/" is not the configured path and is left untouched.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "doc_id");
+        runner.setProperty(PutElasticsearchJson.RETAIN_IDENTIFIER_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"doc_id\":\"1\",\"a/b\":\"x\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertEquals("1", ops.getFirst().getId());
+        final String content = docContent(ops.getFirst());
+        assertTrue(content.contains("\"a/b\""), "unrelated slash-named field retained");
+        assertFalse(content.contains("doc_id"), "only the configured field is removed");
+    }
+
+    @Test
     void testIndexFieldNdjsonExtractionRetainedByDefault() {
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "target_index");

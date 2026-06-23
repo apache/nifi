@@ -30,6 +30,40 @@ failed to an errors queue so that only failed FlowFiles can be processed downstr
 The index, operation and (optional) type fields are configured with default values. The ID (optional unless the
 operation is "index") can be set as an attribute on the FlowFile(s).
 
+### Nested Field Paths
+
+The **Identifier Field**, **Index Field** and **Timestamp Field** properties each name a field within the document
+whose value is extracted (and used as the document ID, index name, or `@timestamp` respectively). The value of these
+properties may be a single field name or a `/`-delimited path into nested objects.
+
+For a document:
+
+```json
+{
+  "@metadata": {
+    "id": "abc",
+    "index": "my-index"
+  },
+  "message": "Hello, world"
+}
+```
+
+* the Identifier Field path `@metadata/id` selects `abc`
+* the Index Field path `@metadata/index` selects `my-index`
+
+#### Field names that contain a slash
+
+Because `/` separates path segments, a field whose name literally contains a `/` must have that slash escaped as `\/`,
+and a literal backslash must be escaped as `\\`. For example, for the document `{"a/b": "abc"}` the path `a\/b` selects
+the top-level field named `a/b`.
+
+#### Removal and pruning
+
+When the corresponding **Retain** property is set to `false`, the field is removed from the document body after its
+value is extracted. For a nested path, any parent object that is left empty by the removal is also pruned. For example,
+extracting and removing `@metadata/id` from `{"@metadata": {"id": "abc"}, "message": "Hello, world"}` leaves
+`{"message": "Hello, world"}`, with the now-empty `@metadata` object removed.
+
 ### Dynamic Templates
 
 Index and Create operations can use Dynamic Templates. The Dynamic Templates property must be parsable as a JSON object.

@@ -241,11 +241,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .name("Identifier Field")
             .description("""
                     The name of the field within each document to use as the Elasticsearch document ID. \
-                    A nested field can be referenced with a "/"-delimited path: for a document \
-                    {"@metadata": {"id": "abc"}, ...} the path "@metadata/id" selects the value "abc". \
-                    To reference a field whose name literally contains a "/", escape the slash as "\\/" \
-                    (and a literal backslash as "\\\\"): for a document {"a/b": "abc", ...} the path "a\\/b" \
-                    selects the top-level field "a/b". \
+                    A nested field can be referenced with a "/"-delimited path (e.g. "@metadata/id"); see \
+                    the processor's Additional Details for the full path syntax, including how to reference \
+                    a field name that literally contains a "/". \
                     If the field is not present in a document or this property is left blank, no document ID is set \
                     and Elasticsearch will auto-generate one.\
                     """)
@@ -273,11 +271,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .name("Index Field")
             .description("""
                     The name of the field within each document to use as the Elasticsearch index name. \
-                    A nested field can be referenced with a "/"-delimited path: for a document \
-                    {"@metadata": {"index": "my-index"}, ...} the path "@metadata/index" selects "my-index". \
-                    To reference a field whose name literally contains a "/", escape the slash as "\\/" \
-                    (and a literal backslash as "\\\\"): for a document {"a/b": "my-index", ...} the path "a\\/b" \
-                    selects the top-level field "a/b". \
+                    A nested field can be referenced with a "/"-delimited path (e.g. "@metadata/index"); see \
+                    the processor's Additional Details for the full path syntax, including how to reference \
+                    a field name that literally contains a "/". \
                     If the field is not present in a document or this property is left blank, \
                     the configured Index property value is used as the fallback.\
                     """)
@@ -305,12 +301,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .description("""
                     The name of a field within each document whose value will be written to \
                     Elasticsearch as the @timestamp field. \
-                    A nested field can be referenced with a "/"-delimited path: for a document \
-                    {"@metadata": {"event_time": "2026-01-02T03:04:05Z"}, ...} the path "@metadata/event_time" \
-                    selects "2026-01-02T03:04:05Z". \
-                    To reference a field whose name literally contains a "/", escape the slash as "\\/" \
-                    (and a literal backslash as "\\\\"): for a document {"a/b": "2026-01-02T03:04:05Z", ...} \
-                    the path "a\\/b" selects the top-level field "a/b". \
+                    A nested field can be referenced with a "/"-delimited path (e.g. "@metadata/event_time"); see \
+                    the processor's Additional Details for the full path syntax, including how to reference \
+                    a field name that literally contains a "/". \
                     If the field is absent or this property is left blank, no @timestamp is set.\
                     """)
             .required(false)
@@ -1341,28 +1334,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             root.remove(decodeSegment(path));
             return;
         }
-        final String[] segments = splitPath(path);
-        final List<Map<String, Object>> chain = new ArrayList<>();
-        Map<String, Object> current = root;
-        chain.add(current);
-        for (int i = 0; i < segments.length - 1; i++) {
-            final Object next = current.get(segments[i]);
-            if (!(next instanceof Map)) {
-                return;
-            }
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> nextMap = (Map<String, Object>) next;
-            current = nextMap;
-            chain.add(current);
-        }
-        chain.get(chain.size() - 1).remove(segments[segments.length - 1]);
-        for (int i = chain.size() - 1; i >= 1; i--) {
-            if (chain.get(i).isEmpty()) {
-                chain.get(i - 1).remove(segments[i - 1]);
-            } else {
-                break;
-            }
-        }
+        removeAtPath(root, splitPath(path), MAP_ACCESSOR);
     }
 
     /**
@@ -1375,27 +1347,87 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             root.remove(decodeSegment(path));
             return;
         }
-        final String[] segments = splitPath(path);
-        final List<ObjectNode> chain = new ArrayList<>();
-        ObjectNode current = root;
+        removeAtPath(root, splitPath(path), OBJECT_NODE_ACCESSOR);
+    }
+
+    /**
+     * Shared descend-and-prune walk for both the {@link Map} and {@link ObjectNode} object models.
+     * Descends the parent {@code segments}, removes the leaf, then walks back up removing each
+     * ancestor that the removal left empty. The {@link NodeAccessor} isolates the few model-specific
+     * operations so the traversal logic exists in exactly one place.
+     */
+    private static <T> void removeAtPath(final T root, final String[] segments, final NodeAccessor<T> accessor) {
+        final List<T> chain = new ArrayList<>();
+        T current = root;
         chain.add(current);
         for (int i = 0; i < segments.length - 1; i++) {
-            final JsonNode next = current.get(segments[i]);
-            if (next == null || !next.isObject()) {
+            final T next = accessor.childObject(current, segments[i]);
+            if (next == null) {
                 return;
             }
-            current = (ObjectNode) next;
+            current = next;
             chain.add(current);
         }
-        chain.get(chain.size() - 1).remove(segments[segments.length - 1]);
+        accessor.remove(chain.get(chain.size() - 1), segments[segments.length - 1]);
         for (int i = chain.size() - 1; i >= 1; i--) {
-            if (chain.get(i).isEmpty()) {
-                chain.get(i - 1).remove(segments[i - 1]);
+            if (accessor.isEmpty(chain.get(i))) {
+                accessor.remove(chain.get(i - 1), segments[i - 1]);
             } else {
                 break;
             }
         }
     }
+
+    /**
+     * The model-specific operations the shared {@link #removeAtPath(Object, String[], NodeAccessor)}
+     * walk needs: fetching a child only when it is itself an object, removing a key, and testing
+     * emptiness.
+     */
+    private interface NodeAccessor<T> {
+        /** The child object at {@code key}, or {@code null} when absent or not itself an object. */
+        T childObject(T node, String key);
+
+        void remove(T node, String key);
+
+        boolean isEmpty(T node);
+    }
+
+    private static final NodeAccessor<Map<String, Object>> MAP_ACCESSOR = new NodeAccessor<>() {
+        @Override
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> childObject(final Map<String, Object> node, final String key) {
+            final Object next = node.get(key);
+            return next instanceof Map ? (Map<String, Object>) next : null;
+        }
+
+        @Override
+        public void remove(final Map<String, Object> node, final String key) {
+            node.remove(key);
+        }
+
+        @Override
+        public boolean isEmpty(final Map<String, Object> node) {
+            return node.isEmpty();
+        }
+    };
+
+    private static final NodeAccessor<ObjectNode> OBJECT_NODE_ACCESSOR = new NodeAccessor<>() {
+        @Override
+        public ObjectNode childObject(final ObjectNode node, final String key) {
+            final JsonNode next = node.get(key);
+            return next != null && next.isObject() ? (ObjectNode) next : null;
+        }
+
+        @Override
+        public void remove(final ObjectNode node, final String key) {
+            node.remove(key);
+        }
+
+        @Override
+        public boolean isEmpty(final ObjectNode node) {
+            return node.isEmpty();
+        }
+    };
 
     /**
      * Converts a document field value taken from a parsed content Map into its string form for use
