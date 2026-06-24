@@ -1146,7 +1146,7 @@ public class SwappablePriorityQueue {
                 logger.error("", ioe);
                 if (eventReporter != null) {
                     eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to determine whether or not any Swap Files exist for FlowFile Queue " +
-                        getQueueIdentifier() + "; see logs for more detials");
+                        getQueueIdentifier() + "; see logs for more details");
                 }
                 return null;
             }

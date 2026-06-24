@@ -19,7 +19,7 @@ package org.apache.nifi.registry.metadata;
 import java.util.List;
 
 /**
- * Meatadata about a flow returned from MetadataAwareFlowPersistenceProvider.
+ * Metadata about a flow returned from MetadataAwareFlowPersistenceProvider.
  */
 public class FlowMetadata {
 

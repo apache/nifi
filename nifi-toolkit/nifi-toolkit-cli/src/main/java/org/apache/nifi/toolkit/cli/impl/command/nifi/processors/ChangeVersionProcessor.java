@@ -52,7 +52,7 @@ public class ChangeVersionProcessor extends AbstractNiFiCommand<ProcessorsResult
     @Override
     public String getDescription() {
         return "Recursively changes the version of the instances of the specified processor. If the process group is specified, the changes "
-                + "will be scoped to that process group and its childs ; if not specified the changes will recursively apply to the root process "
+                + "will be scoped to that process group and its child's ; if not specified the changes will recursively apply to the root process "
                 + "group. If the source version is specified, only instances with this version will be updated to the new version.";
     }
 

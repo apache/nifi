@@ -76,7 +76,7 @@ public class TestVolatileSchemaCache {
     }
 
     @Test
-    public void testIdentifierCollission() throws InitializationException {
+    public void testIdentifierCollision() throws InitializationException {
         final List<RecordField> stringFields = new ArrayList<>();
         final List<RecordField> intFields = new ArrayList<>();
 

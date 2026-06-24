@@ -74,14 +74,14 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Populates the uri for the specified input ports.
      *
-     * @param inputPortEntites ports
+     * @param inputPortEntities ports
      * @return ports
      */
-    public Set<PortEntity> populateRemainingInputPortEntitiesContent(Set<PortEntity> inputPortEntites) {
-        for (PortEntity inputPortEntity : inputPortEntites) {
+    public Set<PortEntity> populateRemainingInputPortEntitiesContent(Set<PortEntity> inputPortEntities) {
+        for (PortEntity inputPortEntity : inputPortEntities) {
             populateRemainingInputPortEntityContent(inputPortEntity);
         }
-        return inputPortEntites;
+        return inputPortEntities;
     }
 
     /**

@@ -19,7 +19,7 @@ package org.apache.nifi.registry.metadata;
 import java.util.List;
 
 /**
- * Meatadata about a bucket returned from MetadataAwareFlowPersistenceProvider.
+ * Metadata about a bucket returned from MetadataAwareFlowPersistenceProvider.
  */
 public class BucketMetadata {
 

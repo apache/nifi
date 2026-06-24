@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 public class TestAvroSchemaRegistry {
 
     @Test
-    public void validateSchemaRegistrationFromrDynamicProperties() throws Exception {
+    public void validateSchemaRegistrationFromDynamicProperties() throws Exception {
         String schemaName = "fooSchema";
 
         PropertyDescriptor fooSchema = new PropertyDescriptor.Builder()

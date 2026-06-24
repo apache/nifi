@@ -456,7 +456,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         try {
             // minTimestamp = 0L by default on this strategy to ignore any future
-            // comparision in lastModifiedMap to the same entity.
+            // comparison in lastModifiedMap to the same entity.
             entityList = performListing(context, IGNORE_MIN_TIMESTAMP_VALUE, ListingMode.EXECUTION);
         } catch (final IOException pe) {
             getLogger().error("Failed to perform listing on remote host due to {}", pe.getMessage(), pe);

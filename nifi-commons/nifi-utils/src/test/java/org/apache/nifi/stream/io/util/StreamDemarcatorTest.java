@@ -64,7 +64,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void vaidateOnPartialMatchThenSubsequentPartialMatch() throws IOException {
+    public void validateOnPartialMatchThenSubsequentPartialMatch() throws IOException {
         final byte[] inputData = "A Great Big Boy".getBytes(StandardCharsets.UTF_8);
         final byte[] delimBytes = "AB".getBytes(StandardCharsets.UTF_8);
 

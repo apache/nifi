@@ -134,7 +134,7 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testDateNoCoersionExpectedFormat() throws IOException, MalformedRecordException {
+    public void testDateNoCoercionExpectedFormat() throws IOException, MalformedRecordException {
         final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
@@ -153,7 +153,7 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testDateNoCoersionUnexpectedFormat() throws IOException, MalformedRecordException {
+    public void testDateNoCoercionUnexpectedFormat() throws IOException, MalformedRecordException {
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -205,7 +205,7 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException {
+    public void testTimeNoCoercionExpectedFormat() throws IOException, MalformedRecordException {
         final String timeFormat = "HH!mm!ss";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormat);
         final String timeVal = "19!02!03";
@@ -228,7 +228,7 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testTimeNoCoersionUnexpectedFormat() throws IOException, MalformedRecordException {
+    public void testTimeNoCoercionUnexpectedFormat() throws IOException, MalformedRecordException {
         final String text = "time\n01:02:03";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -279,7 +279,7 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testTimestampNoCoersionUnexpectedFormat() throws IOException, MalformedRecordException {
+    public void testTimestampNoCoercionUnexpectedFormat() throws IOException, MalformedRecordException {
         final String text = "timestamp\n01:02:03";
 
         final List<RecordField> fields = new ArrayList<>();

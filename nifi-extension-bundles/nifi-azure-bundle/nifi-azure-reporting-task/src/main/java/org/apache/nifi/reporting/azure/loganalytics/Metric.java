@@ -57,7 +57,7 @@ public class Metric {
     public String getComputer() {
         return computer;
     }
-    public void setCoumputer(String computer) {
+    public void setComputer(String computer) {
         this.computer = computer;
     }
 

@@ -222,7 +222,7 @@ public class TestStandardSchemaValidator {
     }
 
     @Test
-    public void testValidateWrongButCoerceableType() {
+    public void testValidateWrongButCoercibleType() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
@@ -248,7 +248,7 @@ public class TestStandardSchemaValidator {
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
 
-        // Update Map to set value to a String that is coerceable to an int
+        // Update Map to set value to a String that is coercible to an int
         valueMap.put("id", "1");
         record = new MapRecord(schema, valueMap);
 

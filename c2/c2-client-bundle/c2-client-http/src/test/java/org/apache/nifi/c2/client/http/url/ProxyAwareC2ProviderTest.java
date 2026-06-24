@@ -69,17 +69,17 @@ public class ProxyAwareC2ProviderTest {
     }
 
     private static Stream<Arguments> testValidProviderConstructorArguments() {
-        String expectedHearbeatUrl = "http://c2/api/path1";
+        String expectedHeartbeatUrl = "http://c2/api/path1";
         String expectedAckUrl = "http://c2/api/path2";
         return Stream.of(
-            Arguments.of("http://c2/api", "path1", "path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api", "/path1", "path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api", "path1", "/path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api", "/path1", "/path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api/", "path1", "path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api/", "/path1", "path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api/", "path1", "/path2", expectedHearbeatUrl, expectedAckUrl),
-            Arguments.of("http://c2/api/", "/path1", "/path2", expectedHearbeatUrl, expectedAckUrl)
+            Arguments.of("http://c2/api", "path1", "path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api", "/path1", "path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api", "path1", "/path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api", "/path1", "/path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api/", "path1", "path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api/", "/path1", "path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api/", "path1", "/path2", expectedHeartbeatUrl, expectedAckUrl),
+            Arguments.of("http://c2/api/", "/path1", "/path2", expectedHeartbeatUrl, expectedAckUrl)
         );
     }
 

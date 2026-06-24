@@ -54,7 +54,7 @@ public class NarProviderAndAutoLoaderIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testProviedNarsLoadedAndLinkedCorrectly() throws IOException, NiFiClientException, InterruptedException {
+    public void testProvidedNarsLoadedAndLinkedCorrectly() throws IOException, NiFiClientException, InterruptedException {
         final ControllerServiceEntity classLoaderInfoService = getClientUtil().createControllerService(CLASSLOADER_INFO_SERVICE_CLASS_NAME,
                 ROOT_GROUP_ID, NIFI_GROUP_ID, CLASSLOADER_INFO_SERVICE_NAR_ARTIFACT, getNiFiVersion());
 

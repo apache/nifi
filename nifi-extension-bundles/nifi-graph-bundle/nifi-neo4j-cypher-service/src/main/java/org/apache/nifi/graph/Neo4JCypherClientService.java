@@ -61,7 +61,7 @@ import static org.neo4j.driver.Config.TrustStrategy.trustCustomCertificateSigned
 public class Neo4JCypherClientService extends AbstractControllerService implements GraphClientService {
     public static final PropertyDescriptor CONNECTION_URL = new PropertyDescriptor.Builder()
             .name("Neo4j Connection URL")
-            .description("Neo4J endpoing to connect to.")
+            .description("Neo4J endpoint to connect to.")
             .required(true)
             .defaultValue("bolt://localhost:7687")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

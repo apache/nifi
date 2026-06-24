@@ -82,7 +82,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
         .build();
     static final PropertyDescriptor HASH_ATTRIBUTE = new PropertyDescriptor.Builder()
         .name("Hash Attribute")
-        .description("If uniquness enforcement is enabled and the file hash is part of the constraint, this must be set to an attribute that " +
+        .description("If uniqueness enforcement is enabled and the file hash is part of the constraint, this must be set to an attribute that " +
                 "exists on all incoming FlowFiles.")
         .defaultValue("hash.value")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

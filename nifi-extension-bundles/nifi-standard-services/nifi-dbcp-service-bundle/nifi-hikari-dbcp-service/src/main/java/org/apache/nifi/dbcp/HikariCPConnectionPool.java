@@ -530,7 +530,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         try {
             final Driver driver = DriverManager.getDriver(url);
             // Ensure drivers that register themselves during class loading can be set as the registeredDriver.
-            // This ensures drivers that register themselves can be deregisterd when the componet is removed.
+            // This ensures drivers that register themselves can be deregistered when the component is removed.
             // These drivers should be loaded in the same InstanceClassloader that load this component
             if (driver != registeredDriver
                     && driver.getClass().getClassLoader().equals(getClass().getClassLoader())) {

@@ -38,7 +38,7 @@ public class RoutingWebSocketListener extends AbstractAutoDemanding {
         super.onWebSocketOpen(session);
         if (sessionId == null || sessionId.isEmpty()) {
             // If sessionId is already assigned to this instance, don't publish new one.
-            // So that existing sesionId can be reused when reconnecting.
+            // So that existing sessionId can be reused when reconnecting.
             sessionId = UUID.randomUUID().toString();
         }
         final boolean secureConnection = secure || isSessionSecure(session);

@@ -41,7 +41,7 @@ public class AbstractTestTailFileScenario {
     public static final String TEST_DIRECTORY = "testTailFileScenario";
     public static final String TARGET_FILE_PATH = "target/" + TEST_DIRECTORY + "/in.txt";
     public static final String NUL_SUBSTITUTE = "X";
-    public static final Long POST_ROLLOVER_WAIT_PERSIOD_SECONDS = 100L;
+    public static final Long POST_ROLLOVER_WAIT_PERIOD_SECONDS = 100L;
 
     protected File file;
     protected RandomAccessFile randomAccessFile;
@@ -83,7 +83,7 @@ public class AbstractTestTailFileScenario {
         runner.setProperty(TailFile.FILENAME, TARGET_FILE_PATH);
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "in.txt*");
         runner.setProperty(TailFile.REREAD_ON_NUL, "true");
-        runner.setProperty(TailFile.POST_ROLLOVER_TAIL_PERIOD, POST_ROLLOVER_WAIT_PERSIOD_SECONDS + " sec");
+        runner.setProperty(TailFile.POST_ROLLOVER_TAIL_PERIOD, POST_ROLLOVER_WAIT_PERIOD_SECONDS + " sec");
         runner.assertValid();
 
         runner.run(1, false, true);
@@ -232,7 +232,7 @@ public class AbstractTestTailFileScenario {
     }
 
     private void expireRolloverWaitPeriod() throws Exception {
-        long waitPeriod = POST_ROLLOVER_WAIT_PERSIOD_SECONDS * 1000 + 100;
+        long waitPeriod = POST_ROLLOVER_WAIT_PERIOD_SECONDS * 1000 + 100;
         timeAdjustment.set(timeAdjustment.get() + waitPeriod);
     }
 

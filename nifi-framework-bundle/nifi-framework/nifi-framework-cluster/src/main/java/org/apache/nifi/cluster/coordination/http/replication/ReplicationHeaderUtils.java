@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 /**
  * Shared header-preparation logic for cluster request replication. Both {@link ThreadPoolRequestReplicator}
  * and {@link StandardUploadRequestReplicator} use these utilities so that credential stripping, proxied-entity
- * injection, and replication-header sanitisation follow the same policy.
+ * injection, and replication-header sanitization follow the same policy.
  */
 public final class ReplicationHeaderUtils {
 

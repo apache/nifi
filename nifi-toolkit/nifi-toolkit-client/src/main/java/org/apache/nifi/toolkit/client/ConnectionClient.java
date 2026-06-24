@@ -29,7 +29,7 @@ public interface ConnectionClient {
 
     ConnectionEntity deleteConnection(ConnectionEntity connectionEntity) throws NiFiClientException, IOException;
 
-    ConnectionEntity deleteConnection(String id, String clientId, long verison) throws NiFiClientException, IOException;
+    ConnectionEntity deleteConnection(String id, String clientId, long version) throws NiFiClientException, IOException;
 
     ConnectionEntity createConnection(String parentGroupId, ConnectionEntity connectionEntity) throws NiFiClientException, IOException;
 

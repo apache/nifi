@@ -24,7 +24,7 @@ import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 import java.io.IOException;
 
 /**
- * Node containging a 32 bit hex value
+ * Node containing a 32 bit hex value
  */
 public class Hex32TypeNode extends VariantTypeNode {
     private final String value;

@@ -248,7 +248,7 @@ public interface TestRunner {
      * unit test to fail
      *
      * @param descriptor descriptor
-     * @param value allowable valu
+     * @param value allowable value
      * @return result
      */
     ValidationResult setProperty(PropertyDescriptor descriptor, DescribedValue value);

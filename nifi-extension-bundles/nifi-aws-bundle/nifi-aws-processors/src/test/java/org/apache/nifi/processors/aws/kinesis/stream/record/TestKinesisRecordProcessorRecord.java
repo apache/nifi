@@ -151,7 +151,7 @@ public class TestKinesisRecordProcessorRecord {
     }
 
     private static Stream<Arguments.ArgumentSet> testProcessRecordsArgs() {
-        final List<Pair<String, Boolean>> endpointOverriden = List.of(
+        final List<Pair<String, Boolean>> endpointOverridden = List.of(
                 Pair.of("Overriden Endpoint", true),
                 Pair.of("Default Endpoint", false)
         );
@@ -162,7 +162,7 @@ public class TestKinesisRecordProcessorRecord {
         final List<Pair<String, SchemaDifferenceHandlingStrategy>> schemaChangeStrategy = Arrays.stream(SchemaDifferenceHandlingStrategy.values())
                 .map(strategy -> Pair.of(strategy.name(), strategy))
                 .toList();
-        return endpointOverriden.stream()
+        return endpointOverridden.stream()
                 .flatMap(endpoint -> schemaChangeStrategy.stream()
                         .flatMap(strategy -> usingWrapper.stream()
                                 .map(wrapper -> Arguments.argumentSet(

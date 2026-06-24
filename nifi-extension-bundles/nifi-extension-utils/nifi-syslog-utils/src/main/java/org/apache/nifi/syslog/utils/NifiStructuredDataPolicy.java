@@ -27,7 +27,7 @@ public enum NifiStructuredDataPolicy {
      */
     FLATTEN,
     /**
-     * The Structued Data will be returned as a Map field named structuredData.
+     * The Structured Data will be returned as a Map field named structuredData.
      * Each map entry will have the value of the Structured Data ID, and a value
      * of a map of each element param name and value
      */

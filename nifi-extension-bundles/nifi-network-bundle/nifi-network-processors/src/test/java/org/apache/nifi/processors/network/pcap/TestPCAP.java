@@ -82,23 +82,23 @@ public class TestPCAP {
         // Assert the expected byte array values
         ByteBuffer buffer = ByteBuffer.wrap(result);
         assertEquals(0xa1b2c3d4, buffer.getInt());
-        ByteBuffer litteEndianBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
-        litteEndianBuffer.position(4);
+        ByteBuffer littleEndianBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
+        littleEndianBuffer.position(4);
 
         for (int[] value : PCAP_HEADER_VALUES) {
             if (value[1] == 2) {
-                assertEquals(value[0], litteEndianBuffer.getShort());
+                assertEquals(value[0], littleEndianBuffer.getShort());
             } else {
-                assertEquals(value[0], litteEndianBuffer.getInt());
+                assertEquals(value[0], littleEndianBuffer.getInt());
             }
         }
 
-        assertEquals(packetHeaderValues.get("tsSec"), litteEndianBuffer.getInt());
-        assertEquals(packetHeaderValues.get("tsUsec"), litteEndianBuffer.getInt());
-        assertEquals(packetHeaderValues.get("inclLen"), litteEndianBuffer.getInt());
-        assertEquals(packetHeaderValues.get("origLen"), litteEndianBuffer.getInt());
+        assertEquals(packetHeaderValues.get("tsSec"), littleEndianBuffer.getInt());
+        assertEquals(packetHeaderValues.get("tsUsec"), littleEndianBuffer.getInt());
+        assertEquals(packetHeaderValues.get("inclLen"), littleEndianBuffer.getInt());
+        assertEquals(packetHeaderValues.get("origLen"), littleEndianBuffer.getInt());
         byte[] body = new byte[30];
-        litteEndianBuffer.get(40, body, 0, 30);
+        littleEndianBuffer.get(40, body, 0, 30);
         assertArrayEquals(PACKET_DATA, body);
     }
 }

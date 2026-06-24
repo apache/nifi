@@ -41,7 +41,7 @@ public class PrioritiesMatcherTest extends AbstractAttributeMatcherTest {
     public void setUp() {
         super.setUp();
         Mockito.when(component.getFlowFileQueue()).thenReturn(flowFileQueue);
-        Mockito.when(flowFileQueue.getPriorities()).thenReturn(givenPriorizers());
+        Mockito.when(flowFileQueue.getPriorities()).thenReturn(givenPrioritizers());
     }
 
     @Test
@@ -59,7 +59,7 @@ public class PrioritiesMatcherTest extends AbstractAttributeMatcherTest {
                 "Prioritizer: org.apache.nifi.web.search.attributematchers.PrioritiesMatcherTest$FlowFilePrioritizerTwo");
     }
 
-    private List<FlowFilePrioritizer> givenPriorizers() {
+    private List<FlowFilePrioritizer> givenPrioritizers() {
         final List<FlowFilePrioritizer> result = new ArrayList<>();
         result.add(new FlowFilePrioritizerOne());
         result.add(new FlowFilePrioritizerTwo());

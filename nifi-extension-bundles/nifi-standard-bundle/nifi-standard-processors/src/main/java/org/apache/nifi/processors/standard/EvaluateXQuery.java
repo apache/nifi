@@ -86,7 +86,7 @@ import javax.xml.transform.stream.StreamResult;
         + "respectively) will be created for each result (attributes will have a '.n' one-up number appended to the "
         + "specified attribute name).  If any provided XQuery returns a result, the FlowFile(s) will be routed to "
         + "'matched'. If no provided XQuery returns a result, the FlowFile will be routed to 'unmatched'.  If the "
-        + "Destination is 'flowfile-attribute' and the XQueries matche nothing, no attributes will be applied to the "
+        + "Destination is 'flowfile-attribute' and the XQueries match nothing, no attributes will be applied to the "
         + "FlowFile.")
 @WritesAttribute(attribute = "user-defined", description = "This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute .")
 @DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value = "An XQuery", description = "If <Destination>='flowfile-attribute' "

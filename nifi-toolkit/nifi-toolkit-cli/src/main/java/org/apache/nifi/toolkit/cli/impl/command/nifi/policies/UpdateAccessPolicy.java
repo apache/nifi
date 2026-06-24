@@ -90,17 +90,17 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
             userEntities.addAll(generateTenantEntities(userIds));
         }
 
-        final Set<TenantEntity> groupEntites = new LinkedHashSet<>();
+        final Set<TenantEntity> groupEntities = new LinkedHashSet<>();
 
         if (StringUtils.isNotBlank(groups)) {
-            groupEntites.addAll(generateTenantEntities(groups, tenantsClient.getUserGroups()));
+            groupEntities.addAll(generateTenantEntities(groups, tenantsClient.getUserGroups()));
         }
 
         if (StringUtils.isNotBlank(groupIds)) {
-            groupEntites.addAll(generateTenantEntities(groupIds));
+            groupEntities.addAll(generateTenantEntities(groupIds));
         }
 
-        if (userEntities.isEmpty() && groupEntites.isEmpty()) {
+        if (userEntities.isEmpty() && groupEntities.isEmpty()) {
             throw new CommandException("Users and groups were blank, nothing to update");
         }
 
@@ -129,7 +129,7 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
             policyEntity = new AccessPolicyEntity();
             policyEntity.setComponent(policyDTO);
             policyEntity.setRevision(getInitialRevisionDTO());
-            setTenant(policyEntity, userEntities, groupEntites, overwrite, properties);
+            setTenant(policyEntity, userEntities, groupEntities, overwrite, properties);
 
             final AccessPolicyEntity createdEntity = policiesClient.createAccessPolicy(policyEntity);
 
@@ -152,7 +152,7 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
             policyEntity = new AccessPolicyEntity();
             policyEntity.setComponent(policyDTO);
             policyEntity.setRevision(getInitialRevisionDTO());
-            setTenant(policyEntity, userEntities, groupEntites, overwrite, properties);
+            setTenant(policyEntity, userEntities, groupEntities, overwrite, properties);
 
             final AccessPolicyEntity createdEntity = policiesClient.createAccessPolicy(policyEntity);
 
@@ -163,7 +163,7 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
         } else {
             final String clientId = getContext().getSession().getNiFiClientID();
             policyEntity.getRevision().setClientId(clientId);
-            setTenant(policyEntity, userEntities, groupEntites, overwrite, properties);
+            setTenant(policyEntity, userEntities, groupEntities, overwrite, properties);
 
             policiesClient.updateAccessPolicy(policyEntity);
 

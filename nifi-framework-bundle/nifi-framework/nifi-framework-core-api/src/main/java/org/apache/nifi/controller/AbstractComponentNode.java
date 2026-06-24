@@ -362,7 +362,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 logger.debug("Resetting Validation State of {} due to setting properties", this);
                 resetValidationState();
             } else {
-                logger.debug("Properties set for {} but not resettingn validation state because validation is paused", this);
+                logger.debug("Properties set for {} but not resetting validation state because validation is paused", this);
             }
         } finally {
             lock.unlock();

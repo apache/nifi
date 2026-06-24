@@ -171,7 +171,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return Whether the controller service has been deprecated.
      */
-    @Schema(description = "Whether the ontroller service has been deprecated."
+    @Schema(description = "Whether the controller service has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;

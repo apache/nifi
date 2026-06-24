@@ -123,7 +123,7 @@ public class X509IdentityProvider implements IdentityProvider {
     /**
      * For a given {@link AuthenticationRequest}, this validates the client certificate and creates a populated {@link AuthenticationResponse}.
      *
-     * The {@link AuthenticationRequest} authenticationRequest paramenter is expected to be populated as:
+     * The {@link AuthenticationRequest} authenticationRequest parameter is expected to be populated as:
      *  - username: principal DN from first client cert
      *  - credentials: first client certificate (X509Certificate)
      *  - details: proxied-entities chain (String)

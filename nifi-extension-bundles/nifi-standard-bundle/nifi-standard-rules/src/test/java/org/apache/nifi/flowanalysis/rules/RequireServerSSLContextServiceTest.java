@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class RequireServerSSLContextServiceTest extends AbstractFlowAnalaysisRuleTest<RequireServerSSLContextService> {
+public class RequireServerSSLContextServiceTest extends AbstractFlowAnalysisRuleTest<RequireServerSSLContextService> {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")

@@ -165,16 +165,16 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         }
 
         if (CredentialProvider.STATIC == credentialProvider) {
-            final String accesKeyValue = configurationContext.getProperties().get(ACCESS_KEY_PROP);
+            final String accessKeyValue = configurationContext.getProperties().get(ACCESS_KEY_PROP);
             final String secretAccessKey = configurationContext.getProperties().get(SECRET_ACCESS_KEY_PROP);
 
-            if (StringUtils.isBlank(accesKeyValue) || StringUtils.isBlank(secretAccessKey)) {
+            if (StringUtils.isBlank(accessKeyValue) || StringUtils.isBlank(secretAccessKey)) {
                 throw new ProviderCreationException("The properties '" + ACCESS_KEY_PROP + "' and '" + SECRET_ACCESS_KEY_PROP
                         + "' must be provided when using " + CredentialProvider.STATIC + " credentials provider");
             }
 
             LOGGER.debug("Creating StaticCredentialsProvider");
-            final AwsCredentials awsCredentials = AwsBasicCredentials.create(accesKeyValue, secretAccessKey);
+            final AwsCredentials awsCredentials = AwsBasicCredentials.create(accessKeyValue, secretAccessKey);
             return StaticCredentialsProvider.create(awsCredentials);
 
         } else {

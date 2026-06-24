@@ -98,7 +98,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             + "args(reportingTaskDTO) && "
             + "target(reportingTaskDAO)")
     public Object updateReportingTaskAdvice(ProceedingJoinPoint proceedingJoinPoint, ReportingTaskDTO reportingTaskDTO, ReportingTaskDAO reportingTaskDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(reportingTask, reportingTaskDTO);
         final ScheduledState scheduledState = reportingTask.getScheduledState();

@@ -54,8 +54,8 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
     }
 
     @Override
-    public ProcessorEntity createProcessor(final String parentGroupdId, final ProcessorEntity processorEntity) throws NiFiClientException, IOException {
-        if (StringUtils.isBlank(parentGroupdId)) {
+    public ProcessorEntity createProcessor(final String parentGroupId, final ProcessorEntity processorEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(parentGroupId)) {
             throw new IllegalArgumentException("Parent process group id cannot be null or blank");
         }
 
@@ -66,7 +66,7 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
         return executeAction("Error creating Processor", () -> {
             final WebTarget target = processGroupTarget
                     .path("/processors")
-                    .resolveTemplate("pgId", parentGroupdId);
+                    .resolveTemplate("pgId", parentGroupId);
 
             return getRequestBuilder(target).post(
                     Entity.entity(processorEntity, MediaType.APPLICATION_JSON_TYPE),

@@ -251,7 +251,7 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                 throw new ProtocolException("Expected message type '" + MessageType.NODE_CONNECTION_STATUS_RESPONSE + "' but found '" + response.getType() + "'");
             }
         } catch (final IOException ioe) {
-            throw new ProtocolException("Failed to request Node Identifer from " + hostname + ":" + port, ioe);
+            throw new ProtocolException("Failed to request Node Identifier from " + hostname + ":" + port, ioe);
         }
     }
 

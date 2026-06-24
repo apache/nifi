@@ -1128,7 +1128,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final File assetFile1 = new File("src/test/resources/sample-assets/helloworld.txt");
         final AssetEntity asset = createAsset(paramContext.getId(), assetFile1);
 
-        // Uupdate the parameter to reference the asset
+        // Update the parameter to reference the asset
         final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
                 paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());

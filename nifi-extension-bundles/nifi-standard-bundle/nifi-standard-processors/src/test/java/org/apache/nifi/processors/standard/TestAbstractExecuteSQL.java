@@ -46,11 +46,11 @@ public class TestAbstractExecuteSQL {
     public void testGetQueries() {
         // GIVEN
         String queriesString = "SOME kind of PRE-QUERY statement;\n" +
-            "AND another PRE-QUERY statment;";
+            "AND another PRE-QUERY statement;";
 
         List<String> expected = Arrays.asList(
             "SOME kind of PRE-QUERY statement",
-            "AND another PRE-QUERY statment"
+            "AND another PRE-QUERY statement"
         );
 
         // WHEN
@@ -65,12 +65,12 @@ public class TestAbstractExecuteSQL {
         // GIVEN
         String queriesString = "SET COMPLEX_KEY = 'KEYPART_1=value1\\;KEYPART_2=<valuePart2>\\;’ FOR SESSION;\n" +
             "SOME other PRE-QUERY statement;\n" +
-            "AND another PRE-QUERY statment;";
+            "AND another PRE-QUERY statement;";
 
         List<String> expected = Arrays.asList(
             "SET COMPLEX_KEY = 'KEYPART_1=value1;KEYPART_2=<valuePart2>;’ FOR SESSION",
             "SOME other PRE-QUERY statement",
-            "AND another PRE-QUERY statment"
+            "AND another PRE-QUERY statement"
         );
 
         // WHEN

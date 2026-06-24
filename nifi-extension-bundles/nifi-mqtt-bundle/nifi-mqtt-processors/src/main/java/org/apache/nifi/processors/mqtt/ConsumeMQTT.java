@@ -392,7 +392,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             mqttClient.subscribe(topicPrefix + topicFilter, qos, this::handleReceivedMessage);
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
-            mqttClient = null; // prevent stucked processor when subscribe fails
+            mqttClient = null; // prevent stuck processor when subscribe fails
             context.yield();
         }
     }

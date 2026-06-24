@@ -132,7 +132,7 @@ public class AuthorizeParameterReference {
 
     /**
      * Ensures that any Parameter Context that is referenced by the given VersionedParameterContext is readable by the given user. If the Versioned Parameter Context references a Parameter Context
-     * (by name) that does not exist in the current flow, ensures that the user has persmissions to create a new Parameter Context. If the Versioned Parameter Context contains any Parameters that
+     * (by name) that does not exist in the current flow, ensures that the user has permissions to create a new Parameter Context. If the Versioned Parameter Context contains any Parameters that
      * do not currently exist in the Parameter Context that is referenced, ensures that the usre has permissions to WRITE to the Parameter Context so that the additional Parameter can be added.
      *
      * @param versionedParameterContext the Versioned Parameter Context

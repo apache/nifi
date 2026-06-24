@@ -131,7 +131,7 @@ public class TestSplitRecord {
     }
 
     @Test
-    public void testAllSplitsOneDesintation() throws InitializationException {
+    public void testAllSplitsOneDestination() throws InitializationException {
         final MockRecordParser readerService = new MockRecordParser();
         final MockRecordWriter writerService = new MockRecordWriter("header", false);
 

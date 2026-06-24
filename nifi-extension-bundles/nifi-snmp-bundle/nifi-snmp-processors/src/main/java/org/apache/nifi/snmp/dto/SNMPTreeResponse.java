@@ -55,7 +55,7 @@ public class SNMPTreeResponse {
     public void logErrors(final ComponentLog logger) {
         events.stream()
                 .filter(TreeEvent::isError)
-                .forEach(event -> logger.error("Error occured in SNMP walk event: {}", event.getErrorMessage()));
+                .forEach(event -> logger.error("Error occurred in SNMP walk event: {}", event.getErrorMessage()));
     }
 
     public boolean isError() {

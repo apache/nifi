@@ -68,7 +68,7 @@ public class ResultProcessorTest {
     }
 
     @Test
-    public void testProcessResultFileFalure() {
+    public void testProcessResultFileFailure() {
         ProcessSession processSession = mock(ProcessSession.class);
         ComponentLog componentLog = mock(ComponentLog.class);
         FlowFile flowFile = mock(FlowFile.class);

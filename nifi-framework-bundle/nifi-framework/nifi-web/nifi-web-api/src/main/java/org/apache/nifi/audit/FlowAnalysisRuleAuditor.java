@@ -101,7 +101,7 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
             + "args(flowAnalysisRuleDTO) && "
             + "target(flowAnalysisRuleDAO)")
     public Object updateFlowAnalysisRuleAdvice(ProceedingJoinPoint proceedingJoinPoint, FlowAnalysisRuleDTO flowAnalysisRuleDTO, FlowAnalysisRuleDAO flowAnalysisRuleDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(flowAnalysisRule, flowAnalysisRuleDTO);
         final FlowAnalysisRuleState state = flowAnalysisRule.getState();

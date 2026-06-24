@@ -47,8 +47,8 @@ public interface ExecutionProgress {
     CompletionAction awaitCompletionAction() throws InterruptedException;
 
     /**
-     * Enqueues a TriggerResult so that the result can be acknowledged or canceled but does not block waiting for the acknowledgment or cancelation.
-     * Instead, provides callsbacks for the appropriate actions
+     * Enqueues a TriggerResult so that the result can be acknowledged or canceled but does not block waiting for the acknowledgment or cancellation.
+     * Instead, provides callbacks for the appropriate actions
      * @param onAcknowledge the callback to perform when the result is acknowledged
      * @param onFailure the callback to perform when failure occurs
      */

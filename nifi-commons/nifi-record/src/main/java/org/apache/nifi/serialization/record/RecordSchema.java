@@ -33,7 +33,7 @@ public interface RecordSchema {
 
     /**
      * @param index the 0-based index of which field to return
-     * @return the index'th field
+     * @return the field at the given index
      *
      * @throws IndexOutOfBoundsException if the index is < 0 or >= the number of fields (determined by {@link #getFieldCount()}).
      */

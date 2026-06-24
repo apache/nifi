@@ -268,7 +268,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                 }
             }
 
-            // When the Content Claim is created initially, it has a Claimaint Count of 1. We then increment the Claimant Count for each FlowFile that we add to the Content Claim,
+            // When the Content Claim is created initially, it has a Claimant Count of 1. We then increment the Claimant Count for each FlowFile that we add to the Content Claim,
             // which means that the claimant count is currently 1 larger than it needs to be. So we will decrement the claimant count now. If that results in a count of 0, then
             // we can go ahead and remove the Content Claim, since we know it's not being referenced.
             final int count = contentRepository.decrementClaimantCount(contentClaim);

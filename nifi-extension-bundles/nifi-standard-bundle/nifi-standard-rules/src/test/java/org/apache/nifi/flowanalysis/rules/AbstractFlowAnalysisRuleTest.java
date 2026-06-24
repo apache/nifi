@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
-public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalysisRule> {
+public abstract class AbstractFlowAnalysisRuleTest<T extends AbstractFlowAnalysisRule> {
 
     private static final ObjectMapper FLOW_MAPPER = new ObjectMapper();
     protected Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();

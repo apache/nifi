@@ -55,7 +55,7 @@ import java.util.Set;
 @Tags({"syslog", "logs", "logfiles", "parse", "text", "record", "reader"})
 @CapabilityDescription("Attempts to parses the contents of a Syslog message in accordance to RFC5424 and RFC3164. In the " +
         "case of RFC5424 formatted messages, structured data is not supported, and will be returned as part of the message." +
-        "Note: Be mindfull that RFC3164 is informational and a wide range of different implementations are present in" +
+        "Note: Be mindful that RFC3164 is informational and a wide range of different implementations are present in" +
         " the wild.")
 public class SyslogReader extends SchemaRegistryService implements RecordReaderFactory {
 

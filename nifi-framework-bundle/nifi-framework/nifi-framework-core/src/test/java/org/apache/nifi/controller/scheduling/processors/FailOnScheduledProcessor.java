@@ -79,7 +79,7 @@ public class FailOnScheduledProcessor extends AbstractProcessor {
         return invocationCount;
     }
 
-    public boolean isSucceess() {
+    public boolean isSucceeded() {
         return succeeded.get();
     }
 

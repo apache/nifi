@@ -467,7 +467,7 @@ public final class NarUnpacker {
                 // Spring Handler configuration
                 //
                 // Of these, the License/Notice isn't particularly critical because this is a temporary file that's being created and loaded, not a file that is
-                // distributed. The Service Loader configurtion, Spring Handler, etc. can be dealt with by simply concatenating the contents together.
+                // distributed. The Service Loader configuration, Spring Handler, etc. can be dealt with by simply concatenating the contents together.
                 // But the MANIFEST.MF file is special. If it's not properly formed, it will prefer the ClassLoader from loading the JAR file, and we can't simply
                 // concatenate the files together. However, it's not required and generally contains information that we don't care about in this context. So we can
                 // simply ignore it.

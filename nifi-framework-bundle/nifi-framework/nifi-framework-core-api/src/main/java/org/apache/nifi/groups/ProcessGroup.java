@@ -763,7 +763,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
 
     /**
      * @return a List of all Labels that are children or descendants of this
-     * ProcessGroup. This performsn a recursive search of all descendant
+     * ProcessGroup. This performs a recursive search of all descendant
      * ProcessGroups
      */
     List<Label> findAllLabels();

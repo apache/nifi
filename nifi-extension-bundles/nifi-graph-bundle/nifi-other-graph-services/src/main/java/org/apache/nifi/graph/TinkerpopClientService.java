@@ -89,7 +89,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
 
     private static final AllowableValue SERVICE_SETTINGS = new AllowableValue("service-settings", "Service-Defined Settings",
             "Connection to the gremlin server will be specified via values on this controller (simpler). " +
-                    "Only recommended for testing and development with a simple grpah instance. ");
+                    "Only recommended for testing and development with a simple graph instance. ");
 
     public static final PropertyDescriptor SUBMISSION_TYPE = new PropertyDescriptor.Builder()
             .name("Script Submission Type")

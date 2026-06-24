@@ -24,7 +24,7 @@ import java.io.IOException;
 public interface AccessClient {
 
     /**
-     * Get an access token by authenticating with a username and password aginst the configured identity provider.
+     * Get an access token by authenticating with a username and password against the configured identity provider.
      *
      * @param username the username
      * @param password the password

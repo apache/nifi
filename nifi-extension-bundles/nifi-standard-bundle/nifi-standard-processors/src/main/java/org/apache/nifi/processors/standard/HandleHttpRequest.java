@@ -448,8 +448,8 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
         final Set<String> parametersToMakeAttributes = new HashSet<>();
         final String parametersToAttributesPropertyValue = context.getProperty(PARAMETERS_TO_ATTRIBUTES).getValue();
         if (parametersToAttributesPropertyValue != null) {
-            for (final String paremeterName : parametersToAttributesPropertyValue.split(",")) {
-                final String trimmed = paremeterName.trim();
+            for (final String parameterName : parametersToAttributesPropertyValue.split(",")) {
+                final String trimmed = parameterName.trim();
                 if (!trimmed.isEmpty()) {
                     parametersToMakeAttributes.add(trimmed);
                 }

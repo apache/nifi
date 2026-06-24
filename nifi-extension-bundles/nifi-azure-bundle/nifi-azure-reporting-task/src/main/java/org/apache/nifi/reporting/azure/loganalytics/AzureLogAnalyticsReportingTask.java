@@ -125,7 +125,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
      * @param linuxPrimaryKey your azure log analytics workspace key
      * @param allMetrics      collected metrics to be sent
      * @throws IOException              when there is an error in https url
-     *                                  connection or read/write to the onnection
+     *                                  connection or read/write to the connection
      * @throws IllegalArgumentException when there a exception in converting metrics
      *                                  to json string with Gson.toJson
      * @throws RuntimeException         when httpPost fails with none 200 status

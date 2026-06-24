@@ -86,7 +86,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     }
 
     /**
-     * @return the offset into the the Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
+     * @return the offset into the Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
     @Schema(description = "The offset into the content claim where the flowfile's content begins."
     )

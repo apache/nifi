@@ -193,7 +193,7 @@ public class BundleResource extends ApplicationResource {
             ) final String artifactId,
             @QueryParam("version")
             @Parameter(
-                    description = "Optional version to filter results. The value maye be an exact match, or a wildcard, " +
+                    description = "Optional version to filter results. The value may be an exact match, or a wildcard, " +
                             "such as '1.0.%' to select all bundle versions where the version starts with '1.0.'."
             ) final String version
     ) {

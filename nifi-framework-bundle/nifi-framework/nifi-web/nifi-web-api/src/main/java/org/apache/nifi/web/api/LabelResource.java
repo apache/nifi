@@ -67,7 +67,7 @@ public class LabelResource extends ApplicationResource {
      * Populates the uri for the specified labels.
      *
      * @param labelEntities labels
-     * @return entites
+     * @return entities
      */
     public Set<LabelEntity> populateRemainingLabelEntitiesContent(Set<LabelEntity> labelEntities) {
         for (LabelEntity labelEntity : labelEntities) {

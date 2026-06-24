@@ -42,7 +42,7 @@ public class MockTestBase {
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.CONTAINER_ID, MOCK_CONTAINER_ID);
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.PARTITION_KEY, MOCK_PARTITION_FIELD_NAME);
             if (withConnectionService) {
-                // setup connnection controller service
+                // setup connection controller service
                 AzureCosmosDBClientService service = new MockConnectionService();
                 testRunner.addControllerService("connService", service);
                 testRunner.setProperty(service, AzureCosmosDBUtils.URI, MOCK_URI);

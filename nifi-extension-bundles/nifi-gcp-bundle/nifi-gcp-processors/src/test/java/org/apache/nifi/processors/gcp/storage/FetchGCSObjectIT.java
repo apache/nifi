@@ -100,7 +100,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
     }
 
     @Test
-    public void testFetchNonexistantFile() throws Exception {
+    public void testFetchNonexistentFile() throws Exception {
         final TestRunner runner = buildNewRunner(new FetchGCSObject());
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.enqueue(new byte[0], Collections.singletonMap(

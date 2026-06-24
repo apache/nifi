@@ -96,7 +96,7 @@ public class ParameterProviderAuditor extends NiFiAuditor {
             + "target(parameterProviderDAO)")
     public Object updateParameterProviderAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ParameterProviderDTO parameterProviderDTO, final ParameterProviderDAO parameterProviderDAO)
             throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(parameterProvider, parameterProviderDTO);
 

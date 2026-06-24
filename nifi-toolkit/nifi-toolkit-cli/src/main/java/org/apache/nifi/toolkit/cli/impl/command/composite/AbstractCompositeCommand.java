@@ -99,7 +99,7 @@ public abstract class AbstractCompositeCommand<R extends Result> extends Abstrac
     private Properties createProperties(final CommandLine commandLine, final CommandOption propertyOption, final SessionVariable sessionVariable)
             throws IOException, SessionException {
 
-        // use the properties file specified by the properyOption if it exists
+        // use the properties file specified by the propertyOption if it exists
         if (commandLine.hasOption(propertyOption.getLongName())) {
             final String propertiesFile = commandLine.getOptionValue(propertyOption.getLongName());
             if (!StringUtils.isBlank(propertiesFile)) {

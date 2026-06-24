@@ -445,7 +445,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 logger.error("Failed to determine the names of the Partitions that have swapped FlowFiles for queue with ID {}.", getIdentifier(), ioe);
                 if (eventReporter != null) {
                     eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to determine the names of Partitions that have swapped FlowFiles for queue with ID " +
-                            getIdentifier() + "; see logs for more detials");
+                            getIdentifier() + "; see logs for more details");
                 }
 
                 partitionNamesToRecover = Collections.emptySet();
@@ -495,7 +495,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                     logger.error("Failed to determine whether or not any Swap Files exist for FlowFile Queue {} and Partition {}", getIdentifier(), partitionName, e);
                     if (eventReporter != null) {
                         eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to determine whether or not any Swap Files exist for FlowFile Queue " +
-                                getIdentifier() + "; see logs for more detials");
+                                getIdentifier() + "; see logs for more details");
                     }
                 }
             }

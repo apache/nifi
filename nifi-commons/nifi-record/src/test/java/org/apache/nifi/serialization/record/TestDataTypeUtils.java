@@ -768,7 +768,7 @@ public class TestDataTypeUtils {
                     @Override
                     public String getFormat() {
                         exceptionThrown.set(true);
-                        throw new RuntimeException("maching error");
+                        throw new RuntimeException("matching error");
                     }
                 };
             } else if (type.equals(matchingType)) {
