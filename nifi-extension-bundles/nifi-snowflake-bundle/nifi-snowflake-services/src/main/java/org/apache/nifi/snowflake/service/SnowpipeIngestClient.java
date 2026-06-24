@@ -22,23 +22,21 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.api.WebClientServiceException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
  * Client for Snowflake Snowpipe REST API using Java HttpClient
  */
-class SnowpipeIngestClient implements AutoCloseable {
-
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+class SnowpipeIngestClient {
 
     private static final String INSERT_FILES_PATH = "/v1/data/pipes/%s/insertFiles";
 
@@ -56,7 +54,7 @@ class SnowpipeIngestClient implements AutoCloseable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    private final HttpClient httpClient;
+    private final WebClientService webClientService;
 
     private final URI insertFilesUri;
 
@@ -74,11 +72,13 @@ class SnowpipeIngestClient implements AutoCloseable {
     SnowpipeIngestClient(
             final URI baseUri,
             final String pipeName,
-            final RSAKeyAuthorizationProvider authorizationProvider
+            final RSAKeyAuthorizationProvider authorizationProvider,
+            final WebClientService webClientService
     ) {
         Objects.requireNonNull(baseUri, "Base URI required");
         Objects.requireNonNull(pipeName, "Pipe Name required");
         Objects.requireNonNull(authorizationProvider, "Authorization Provider required");
+        Objects.requireNonNull(webClientService, "Web Service Client required");
 
         final String insertFilesPath = INSERT_FILES_PATH.formatted(pipeName);
         this.insertFilesUri = baseUri.resolve(insertFilesPath);
@@ -87,14 +87,7 @@ class SnowpipeIngestClient implements AutoCloseable {
         this.insertReportUri = baseUri.resolve(insertReportPath);
 
         this.authorizationProvider = authorizationProvider;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(CONNECT_TIMEOUT)
-                .build();
-    }
-
-    @Override
-    public void close() {
-        httpClient.close();
+        this.webClientService = webClientService;
     }
 
     /**
@@ -110,18 +103,25 @@ class SnowpipeIngestClient implements AutoCloseable {
         final URI requestUri = appendRequestId(insertFilesUri);
         final String authorization = authorizationProvider.getRequestAuthorization().authorization();
 
-        final HttpRequest request = HttpRequest.newBuilder()
-                .uri(requestUri)
-                .header(AUTHORIZATION_HEADER, authorization)
-                .header(CONTENT_TYPE_HEADER, APPLICATION_JSON)
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
-
-        final HttpResponse<String> response = sendRequest(request);
-        final int statusCode = response.statusCode();
-        if (statusCode != HttpURLConnection.HTTP_OK) {
-            final String message = "Insert Files POST [%s] HTTP %d Response [%s]".formatted(requestUri, statusCode, response.body());
-            throw new SnowpipeResponseException(message);
+        try (
+                HttpResponseEntity responseEntity = webClientService.post()
+                        .uri(requestUri)
+                        .header(AUTHORIZATION_HEADER, authorization)
+                        .header(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+                        .body(requestBody)
+                        .retrieve();
+                InputStream responseBodyStream = responseEntity.body()
+        ) {
+            final int statusCode = responseEntity.statusCode();
+            if (statusCode != HttpURLConnection.HTTP_OK) {
+                final byte[] responseBodyBytes = responseBodyStream.readAllBytes();
+                final String responseBody = new String(responseBodyBytes);
+                final String message = "Insert Files POST [%s] HTTP %d Response [%s]".formatted(requestUri, statusCode, responseBody);
+                throw new SnowpipeResponseException(message);
+            }
+        } catch (final IOException | WebClientServiceException e) {
+            final String message = "Insert Files POST [%s] request failed".formatted(requestUri);
+            throw new SnowpipeResponseException(message, e);
         }
     }
 
@@ -135,26 +135,34 @@ class SnowpipeIngestClient implements AutoCloseable {
         final URI requestUri = appendRequestId(insertReportUri);
         final String authorization = authorizationProvider.getRequestAuthorization().authorization();
 
-        final HttpRequest request = HttpRequest.newBuilder()
-                .uri(requestUri)
-                .header(AUTHORIZATION_HEADER, authorization)
-                .header(ACCEPT_HEADER, APPLICATION_JSON)
-                .GET()
-                .build();
-
-        final HttpResponse<String> response = sendRequest(request);
-        final int statusCode = response.statusCode();
-        final String responseBody = response.body();
-        if (statusCode == HttpURLConnection.HTTP_OK) {
-            try {
-                return objectMapper.readValue(responseBody, InsertReport.class);
-            } catch (final JsonProcessingException e) {
-                final String message = "Insert Report [%s] response parsing failed [%s]".formatted(requestUri, responseBody);
-                throw new SnowpipeResponseException(message, e);
+        try (
+                HttpResponseEntity responseEntity = webClientService.get()
+                        .uri(requestUri)
+                        .header(AUTHORIZATION_HEADER, authorization)
+                        .header(ACCEPT_HEADER, APPLICATION_JSON)
+                        .retrieve();
+                InputStream responseBodyStream = responseEntity.body()
+        ) {
+            final int statusCode = responseEntity.statusCode();
+            if (statusCode == HttpURLConnection.HTTP_OK) {
+                try {
+                    return objectMapper.readValue(responseBodyStream, InsertReport.class);
+                } catch (final JsonProcessingException e) {
+                    final byte[] responseBodyBytes = responseBodyStream.readAllBytes();
+                    final String responseBody = new String(responseBodyBytes);
+                    final String message = "Insert Report [%s] response parsing failed [%s]".formatted(requestUri, responseBody);
+                    throw new SnowpipeResponseException(message, e);
+                }
+            } else {
+                final byte[] responseBodyBytes = responseBodyStream.readAllBytes();
+                final String responseBody = new String(responseBodyBytes);
+                final String message = "Insert Report failed GET [%s] HTTP %d Response [%s]".formatted(requestUri, statusCode, responseBody);
+                throw new SnowpipeResponseException(message);
             }
-        } else {
-            final String message = "Insert Report failed GET [%s] HTTP %d Response [%s]".formatted(requestUri, statusCode, responseBody);
-            throw new SnowpipeResponseException(message);
+
+        } catch (final IOException | WebClientServiceException e) {
+            final String message = "Insert Report [%s] request failed".formatted(requestUri);
+            throw new SnowpipeResponseException(message, e);
         }
     }
 
@@ -163,17 +171,6 @@ class SnowpipeIngestClient implements AutoCloseable {
             return objectMapper.writeValueAsString(insertFiles);
         } catch (final JsonProcessingException e) {
             throw new SnowpipeResponseException("Failed to serialize Snowpipe insertFiles request", e);
-        }
-    }
-
-    private HttpResponse<String> sendRequest(final HttpRequest request) {
-        try {
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (final IOException e) {
-            throw new SnowpipeResponseException("Request failed for URI [%s]".formatted(request.uri()), e);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new SnowpipeResponseException("Request interrupted for URI [%s]".formatted(request.uri()), e);
         }
     }
 
