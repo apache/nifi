@@ -18,16 +18,23 @@
 package org.apache.nifi.schema.validation;
 
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.validation.SchemaValidators;
 
 public class SchemaValidationContext {
     private final RecordSchema schema;
     private final boolean allowExtraFields;
     private final boolean strictTypeChecking;
+    private final SchemaValidators schemaValidators;
 
     public SchemaValidationContext(final RecordSchema schema, final boolean allowExtraFields, final boolean strictTypeChecking) {
+        this(schema, allowExtraFields, strictTypeChecking, SchemaValidators.EMPTY);
+    }
+
+    public SchemaValidationContext(final RecordSchema schema, final boolean allowExtraFields, final boolean strictTypeChecking, final SchemaValidators schemaValidators) {
         this.schema = schema;
         this.allowExtraFields = allowExtraFields;
         this.strictTypeChecking = strictTypeChecking;
+        this.schemaValidators = schemaValidators == null ? SchemaValidators.EMPTY : schemaValidators;
     }
 
     public RecordSchema getSchema() {
@@ -40,5 +47,9 @@ public class SchemaValidationContext {
 
     public boolean isStrictTypeChecking() {
         return strictTypeChecking;
+    }
+
+    public SchemaValidators getSchemaValidators() {
+        return schemaValidators;
     }
 }
