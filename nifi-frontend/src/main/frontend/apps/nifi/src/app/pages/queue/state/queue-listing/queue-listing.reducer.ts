@@ -24,7 +24,8 @@ import {
     resetQueueListingState,
     queueListingApiError,
     loadConnectionLabelSuccess,
-    deleteQueueListingRequestSuccess
+    deleteQueueListingRequestSuccess,
+    stopPollingQueueListingRequest
 } from './queue-listing.actions';
 import { produce } from 'immer';
 
@@ -79,6 +80,10 @@ export const queueListingReducer = createReducer(
             }
         });
     }),
+    on(stopPollingQueueListingRequest, (state) => ({
+        ...state,
+        status: 'success' as const
+    })),
     on(deleteQueueListingRequestSuccess, (state) => ({
         ...state,
         activeListingRequest: null
