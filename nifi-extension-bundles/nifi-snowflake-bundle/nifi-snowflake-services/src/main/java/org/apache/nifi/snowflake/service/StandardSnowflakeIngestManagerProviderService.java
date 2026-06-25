@@ -19,7 +19,6 @@ package org.apache.nifi.snowflake.service;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -36,11 +35,15 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormat;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormatParameters;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.net.URI;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Tags({"snowflake", "snowpipe", "database", "connection"})
 @CapabilityDescription("Provides a Snowflake Ingest Manager for Snowflake pipe processors")
@@ -106,6 +109,13 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .required(true)
             .build();
 
+    public static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Web Client Service Provider")
+            .description("Provider implementation for Web Client Service supporting HTTP request and response handling")
+            .identifiesControllerService(WebClientServiceProvider.class)
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SnowflakeProperties.DATABASE)
             .required(true)
@@ -134,6 +144,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             ACCOUNT_NAME,
             USER_NAME,
             PRIVATE_KEY_SERVICE,
+            WEB_CLIENT_SERVICE_PROVIDER,
             DATABASE,
             SCHEMA,
             PIPE
@@ -147,12 +158,12 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
 
     private static final char HYPHEN = '-';
 
+    private volatile SnowpipeIngestClient ingestClient;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
     }
-
-    private volatile SnowpipeIngestClient ingestClient;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
@@ -173,17 +184,12 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
 
             final URI baseUri = URI.create(HTTPS_URI_FORMAT.formatted(hostNormalized));
             final RSAKeyAuthorizationProvider authorizationProvider = new RSAKeyAuthorizationProvider(account, user, rsaPrivateKey);
-            ingestClient = new SnowpipeIngestClient(baseUri, qualifiedPipeName, authorizationProvider);
+
+            final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
+            final WebClientService webClientService = webClientServiceProvider.getWebClientService();
+            ingestClient = new SnowpipeIngestClient(baseUri, qualifiedPipeName, authorizationProvider, webClientService);
         } else {
             throw new InitializationException("RSA Private Key not provided");
-        }
-    }
-
-    @OnDisabled
-    public void onDisabled() {
-        if (ingestClient != null) {
-            ingestClient.close();
-            ingestClient = null;
         }
     }
 
@@ -211,6 +217,12 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_NAME_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_NAME.getName());
         config.renameProperty(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName());
         config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
+
+        final Optional<String> webClientServiceProviderConfigured = config.getPropertyValue(WEB_CLIENT_SERVICE_PROVIDER);
+        if (webClientServiceProviderConfigured.isEmpty()) {
+            final String webClientServiceProviderId = config.createControllerService("org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider", Map.of());
+            config.setProperty(WEB_CLIENT_SERVICE_PROVIDER, webClientServiceProviderId);
+        }
     }
 
     private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(ConfigurationContext context) {

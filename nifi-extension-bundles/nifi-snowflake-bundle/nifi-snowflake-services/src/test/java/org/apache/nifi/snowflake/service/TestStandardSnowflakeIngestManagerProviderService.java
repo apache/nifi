@@ -28,6 +28,9 @@ import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
 import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
+import org.apache.nifi.web.client.StandardWebClientService;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -40,8 +43,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -101,11 +106,19 @@ public class TestStandardSnowflakeIngestManagerProviderService {
     @StartStop
     public final MockWebServer mockWebServer = new MockWebServer();
 
+    private StandardWebClientService webClientService;
+
     private SnowpipeIngestClient client;
 
     @BeforeEach
     void setUp() throws NoSuchAlgorithmException {
-        client = createClient(mockWebServer);
+        webClientService = new StandardWebClientService();
+        client = createClient(mockWebServer, webClientService);
+    }
+
+    @AfterEach
+    void closeClient() {
+        webClientService.close();
     }
 
     @Test
@@ -134,6 +147,12 @@ public class TestStandardSnowflakeIngestManagerProviderService {
         final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
 
         assertEquals(expectedRenamed, propertiesRenamed);
+
+        final Set<MockPropertyConfiguration.CreatedControllerService> createdControllerServices = result.getCreatedControllerServices();
+        assertFalse(createdControllerServices.isEmpty());
+
+        final MockPropertyConfiguration.CreatedControllerService createdControllerService = createdControllerServices.iterator().next();
+        assertTrue(createdControllerService.implementationClassName().endsWith("StandardWebClientServiceProvider"));
     }
 
     @Test
@@ -202,12 +221,12 @@ public class TestStandardSnowflakeIngestManagerProviderService {
         assertTrue(exception.getMessage().contains(String.valueOf(HttpURLConnection.HTTP_NOT_FOUND)));
     }
 
-    private static SnowpipeIngestClient createClient(final MockWebServer mockWebServer) throws NoSuchAlgorithmException {
+    private static SnowpipeIngestClient createClient(final MockWebServer mockWebServer, final WebClientService webClientService) throws NoSuchAlgorithmException {
         final URI baseUri = URI.create(HTTP_URI_FORMAT.formatted(mockWebServer.getHostName(), mockWebServer.getPort()));
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
         final KeyPair keyPair = keyPairGenerator.generateKeyPair();
         final RSAPrivateCrtKey privateKey = (RSAPrivateCrtKey) keyPair.getPrivate();
         final RSAKeyAuthorizationProvider authProvider = new RSAKeyAuthorizationProvider(ACCOUNT, USER, privateKey);
-        return new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider);
+        return new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider, webClientService);
     }
 }

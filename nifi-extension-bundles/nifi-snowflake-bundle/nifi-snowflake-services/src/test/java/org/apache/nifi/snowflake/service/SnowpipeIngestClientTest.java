@@ -26,6 +26,7 @@ import org.apache.nifi.processors.snowflake.snowpipe.InsertFile;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertFileStatus;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertFiles;
 import org.apache.nifi.processors.snowflake.snowpipe.InsertReport;
+import org.apache.nifi.web.client.StandardWebClientService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -128,6 +129,8 @@ class SnowpipeIngestClientTest {
     @StartStop
     public final MockWebServer mockWebServer = new MockWebServer();
 
+    private StandardWebClientService webClientService;
+
     private SnowpipeIngestClient client;
 
     @BeforeEach
@@ -135,12 +138,13 @@ class SnowpipeIngestClientTest {
         final URI baseUri = URI.create(HTTP_URI_FORMAT.formatted(mockWebServer.getHostName(), mockWebServer.getPort()));
         final RSAPrivateCrtKey privateKey = generatePrivateKey();
         final RSAKeyAuthorizationProvider authProvider = new RSAKeyAuthorizationProvider(ACCOUNT, USER, privateKey);
-        client = new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider);
+        webClientService = new StandardWebClientService();
+        client = new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider, webClientService);
     }
 
     @AfterEach
     void closeClient() {
-        client.close();
+        webClientService.close();
     }
 
     @Test
