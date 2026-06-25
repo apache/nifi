@@ -233,7 +233,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String STANDARD_PROCESS_GROUP_NAME = "StandardProcessGroup";
     private static final String UNREGISTERED_PATH_SEGMENT = "UNREGISTERED";
 
-    private final Map<String, String> loggingAttributes = new ConcurrentHashMap<>();
+    private volatile Map<String, String> loggingAttributes = Map.of();
     private volatile Map<String, String> connectorLoggingAttributes = Map.of();
     private volatile String logFileSuffix;
 
@@ -4579,7 +4579,7 @@ public final class StandardProcessGroup implements ProcessGroup {
      */
     @Override
     public Map<String, String> getLoggingAttributes() {
-        return Collections.unmodifiableMap(loggingAttributes);
+        return loggingAttributes;
     }
 
     @Override
@@ -4816,28 +4816,36 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private void setLoggingAttributes() {
-        loggingAttributes.clear();
+        final Map<String, String> attributes = new HashMap<>();
 
-        loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_ID.attribute, id);
+        attributes.put(LoggingAttribute.PROCESS_GROUP_ID.attribute, id);
 
         final String processGroupName = name.get();
         if (processGroupName == null) {
-            loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, STANDARD_PROCESS_GROUP_NAME);
+            attributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, STANDARD_PROCESS_GROUP_NAME);
         } else {
-            loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, processGroupName);
-            setGroupPath();
+            attributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, processGroupName);
+            setGroupPath(attributes);
         }
 
         final VersionControlInformation currentVersionControl = versionControlInfo.get();
         if (currentVersionControl != null) {
             final String registeredFlowIdentifier = currentVersionControl.getFlowIdentifier();
-            loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_IDENTIFIER.attribute, registeredFlowIdentifier);
+            attributes.put(LoggingAttribute.REGISTERED_FLOW_IDENTIFIER.attribute, registeredFlowIdentifier);
 
             final String registeredFlowVersion = currentVersionControl.getVersion();
-            loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_VERSION.attribute, registeredFlowVersion);
+            attributes.put(LoggingAttribute.REGISTERED_FLOW_VERSION.attribute, registeredFlowVersion);
         }
 
-        loggingAttributes.putAll(connectorLoggingAttributes);
+        attributes.putAll(connectorLoggingAttributes);
+
+        this.loggingAttributes = Map.copyOf(attributes);
+
+        for (final ProcessGroup childGroup : processGroups.values()) {
+            if (childGroup instanceof StandardProcessGroup standardChildGroup) {
+                standardChildGroup.setLoggingAttributes();
+            }
+        }
     }
 
     /**
@@ -4879,7 +4887,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return connectorLoggingAttributes;
     }
 
-    private void setGroupPath() {
+    private void setGroupPath(final Map<String, String> attributes) {
         final StringBuilder namePathBuilder = new StringBuilder();
         namePathBuilder.append(PATH_SEPARATOR);
         namePathBuilder.append(name.get());
@@ -4910,14 +4918,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         final String idPath = idPathBuilder.toString();
-        loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_ID_PATH.attribute, idPath);
+        attributes.put(LoggingAttribute.PROCESS_GROUP_ID_PATH.attribute, idPath);
 
         final String namePath = namePathBuilder.toString();
-        loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME_PATH.attribute, namePath);
+        attributes.put(LoggingAttribute.PROCESS_GROUP_NAME_PATH.attribute, namePath);
 
         if (versionControlFound) {
             final String registeredFlowIdentifierPath = registeredFlowIdentifierPathBuilder.toString();
-            loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_IDENTIFIER_PATH.attribute, registeredFlowIdentifierPath);
+            attributes.put(LoggingAttribute.REGISTERED_FLOW_IDENTIFIER_PATH.attribute, registeredFlowIdentifierPath);
         }
     }
 
