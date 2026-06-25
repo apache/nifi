@@ -1479,14 +1479,7 @@ public final class DtoFactory {
         dto.setPortFunction(port.getPortFunction().name());
 
         // if this port is remotely accessible, determine if its actually connected to another nifi
-        if (port instanceof PublicPort) {
-            final PublicPort publicPort = (PublicPort) port;
-            dto.setAllowRemoteAccess(true);
-            dto.setTransmitting(publicPort.isTransmitting());
-        }
-        // if this port is remotely accessible, determine if its actually connected to another nifi
-        if (port instanceof PublicPort) {
-            final PublicPort publicPort = (PublicPort) port;
+        if (port instanceof final PublicPort publicPort) {
             dto.setAllowRemoteAccess(true);
             dto.setTransmitting(publicPort.isTransmitting());
         }
