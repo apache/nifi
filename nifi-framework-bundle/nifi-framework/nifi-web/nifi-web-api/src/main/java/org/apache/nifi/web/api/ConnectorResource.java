@@ -152,6 +152,10 @@ public class ConnectorResource extends ApplicationResource {
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
     private static final long MAX_ASSET_SIZE_BYTES = (long) DataUnit.GB.toB(1);
+    // Exported flow snapshots are typically a few megabytes; cap uploads well below the 1 GB asset limit because the
+    // deserialized payload is held in memory for the payload TTL and a malformed or hostile upload should not be able
+    // to exhaust heap.
+    private static final long MAX_MIGRATION_PAYLOAD_SIZE_BYTES = (long) DataUnit.MB.toB(100);
     private static final long MIGRATION_REQUEST_TTL_MILLIS = TimeUnit.MINUTES.toMillis(1L);
     private static final long MIGRATION_PAYLOAD_TTL_MILLIS = TimeUnit.MINUTES.toMillis(10L);
     private static final long MIGRATION_PAYLOAD_SWEEP_INTERVAL_SECONDS = 30L;
@@ -2481,9 +2485,11 @@ public class ConnectorResource extends ApplicationResource {
             return generateOkResponse(entity).build();
         }
 
+        // Cap the upload so a malformed or hostile payload cannot exhaust heap; the deserialized snapshot is pinned
+        // in memory for the payload TTL. MaxLengthInputStream throws once the limit is exceeded during deserialization.
         final RegisteredFlowSnapshot flowSnapshot;
         try {
-            flowSnapshot = OBJECT_MAPPER.readValue(payloadContents, RegisteredFlowSnapshot.class);
+            flowSnapshot = OBJECT_MAPPER.readValue(new MaxLengthInputStream(payloadContents, MAX_MIGRATION_PAYLOAD_SIZE_BYTES), RegisteredFlowSnapshot.class);
         } catch (final IOException e) {
             throw new IllegalArgumentException("Deserialization of uploaded migration payload failed", e);
         }
@@ -2562,6 +2568,11 @@ public class ConnectorResource extends ApplicationResource {
                     connector.authorize(authorizer, RequestAction.WRITE, user);
                 },
                 () -> {
+                    // Verify the target Connector is ready (stopped and unmodified from its initial flow) for every
+                    // source type, so an unready Connector is reported on submission rather than only after the
+                    // asynchronous migration task runs. The uploaded-payload path has no source Process Group to
+                    // verify, so this is the only synchronous readiness check it receives.
+                    serviceFacade.verifyConnectorReadyForMigration(connectorId);
                     if (hasLocalSource) {
                         serviceFacade.verifyCanMigrateConnector(connectorId, request.getLocalSource().getProcessGroupId());
                     }
@@ -2687,7 +2698,9 @@ public class ConnectorResource extends ApplicationResource {
             // The local-source path uses the framework's snapshot facility, which already returns a snapshot
             // whose bundles match this NiFi instance. discoverCompatibleBundles is intentionally not invoked
             // here because it is reserved for snapshots that originate from external sources (uploaded payloads).
-            return serviceFacade.getCurrentFlowSnapshotByGroupId(localSource.getProcessGroupId(), true, true);
+            // Asset references are mapped because the migration must carry them so the target Connector can copy
+            // the referenced assets; this is the only caller of this path that maps asset references.
+            return serviceFacade.getCurrentFlowSnapshotByGroupId(localSource.getProcessGroupId(), true, true, true);
         }
 
         final String payloadId = migrationRequest.getPayloadId();

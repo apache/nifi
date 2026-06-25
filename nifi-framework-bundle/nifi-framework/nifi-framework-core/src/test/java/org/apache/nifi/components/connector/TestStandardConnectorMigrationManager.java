@@ -665,6 +665,62 @@ public class TestStandardConnectorMigrationManager {
     }
 
     @Test
+    public void testVerifyConnectorReadyForMigration() {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorNode connectorNode = wireFreshConnector(flowController, CONNECTOR_ID);
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+
+        // A stopped Connector still at its initial flow is ready: no exception.
+        migrationManager.verifyConnectorReadyForMigration(CONNECTOR_ID);
+
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.RUNNING);
+        when(connectorNode.getDesiredState()).thenReturn(ConnectorState.RUNNING);
+        final IllegalStateException notStopped = assertThrows(IllegalStateException.class,
+                () -> migrationManager.verifyConnectorReadyForMigration(CONNECTOR_ID));
+        assertTrue(notStopped.getMessage().contains("must be stopped before it can be migrated"), notStopped.getMessage());
+
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connectorNode.getDesiredState()).thenReturn(ConnectorState.STOPPED);
+        when(connectorNode.matchesInitialFlow()).thenReturn(false);
+        final IllegalStateException modified = assertThrows(IllegalStateException.class,
+                () -> migrationManager.verifyConnectorReadyForMigration(CONNECTOR_ID));
+        assertTrue(modified.getMessage().contains("modified since it was created"), modified.getMessage());
+    }
+
+    @Test
+    public void testMigrateMarksMigrationInProgressAndClearsItOnSuccess() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        wireSourceProcessGroup(flowController, SOURCE_GROUP_ID, SOURCE_GROUP_NAME);
+        wireFreshConnector(flowController, CONNECTOR_ID);
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, SOURCE_GROUP_ID, sourceFlow);
+
+        verify(connectorRepository).beginMigration(CONNECTOR_ID);
+        verify(connectorRepository).endMigration(CONNECTOR_ID);
+    }
+
+    @Test
+    public void testMigrateClearsMigrationInProgressOnFailure() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        final ConnectorNode connectorNode = wireFreshConnector(flowController, CONNECTOR_ID);
+        final MigratableConnector connector = (MigratableConnector) connectorNode.getConnector();
+        doThrow(new FlowUpdateException("boom")).when(connector).migrateConfiguration(any(ConnectorMigrationContext.class));
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        assertThrows(FlowUpdateException.class, () -> migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, null, sourceFlow));
+
+        // The marker must be cleared even when the migration fails and rolls back.
+        verify(connectorRepository).beginMigration(CONNECTOR_ID);
+        verify(connectorRepository).endMigration(CONNECTOR_ID);
+    }
+
+    @Test
     public void testListMigrationSourcesPropagatesEligibilityWrapper() throws Exception {
         final FlowController flowController = createFlowController(1);
         final ConnectorRepository connectorRepository = flowController.getConnectorRepository();

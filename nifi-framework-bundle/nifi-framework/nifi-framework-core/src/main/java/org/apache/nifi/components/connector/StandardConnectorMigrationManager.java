@@ -121,7 +121,27 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
     }
 
     @Override
+    public void verifyConnectorReadyForMigration(final String connectorId) {
+        final ConnectorNode connector = getRequiredConnector(connectorId);
+        verifyConnectorCanReceiveMigration(connector);
+        verifyTargetIsAtInitialFlow(connector);
+    }
+
+    @Override
     public void migrateFromVersionedFlow(final String connectorId, final String processGroupId, final VersionedExternalFlow sourceFlow,
+            final BooleanSupplier cancellationCheck) throws FlowUpdateException {
+        // Mark the migration in progress so a concurrent flow synchronization does not reclaim the assets this
+        // migration copies before the managed Process Group is rebuilt to reference them. The marker is cleared in
+        // the finally block whether the migration succeeds, fails, or rolls back.
+        flowController.getConnectorRepository().beginMigration(connectorId);
+        try {
+            performMigration(connectorId, processGroupId, sourceFlow, cancellationCheck);
+        } finally {
+            flowController.getConnectorRepository().endMigration(connectorId);
+        }
+    }
+
+    private void performMigration(final String connectorId, final String processGroupId, final VersionedExternalFlow sourceFlow,
             final BooleanSupplier cancellationCheck) throws FlowUpdateException {
         final BooleanSupplier cancellation = cancellationCheck == null ? () -> false : cancellationCheck;
         final ConnectorNode connector = getRequiredConnector(connectorId);
@@ -408,10 +428,12 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
     }
 
     private void clearConnectorComponentState(final ConnectorNode connector) {
-        // Migration is only permitted on a Connector whose active flow is empty, so every Processor and Controller
-        // Service currently inside the Connector's managed flow was created by the failed migration. Clearing
-        // state for those components is safe and avoids the brittle approach of trying to map source-flow versioned
-        // identifiers to runtime component identifiers.
+        // Migration is only permitted on a Connector whose active flow has not been modified from its initial flow.
+        // Rollback restores that initial flow immediately after this call, so clearing state for every Processor and
+        // Controller Service currently in the managed flow is acceptable: any component carried over from the initial
+        // flow is rebuilt fresh by loadInitialFlow(), and any component introduced by the failed migration is
+        // discarded. Clearing the whole managed flow this way avoids the brittle approach of trying to map source-flow
+        // versioned identifiers to runtime component identifiers.
         final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
         if (activeFlowContext == null) {
             return;

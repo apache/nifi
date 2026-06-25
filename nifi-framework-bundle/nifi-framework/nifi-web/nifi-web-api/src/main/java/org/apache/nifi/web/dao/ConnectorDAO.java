@@ -100,6 +100,8 @@ public interface ConnectorDAO {
 
     void verifyCanMigrateFromVersionedFlow(String connectorId, String processGroupId);
 
+    void verifyConnectorReadyForMigration(String connectorId);
+
     void migrateFromVersionedFlow(String connectorId, String processGroupId, VersionedExternalFlow sourceFlow, BooleanSupplier cancellationCheck);
 
 }

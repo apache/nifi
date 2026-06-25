@@ -68,9 +68,13 @@ public class MigrationRequestEndpointMerger extends AbstractSingleEntityEndpoint
                 clientRequest.setFailureReason(existingReason == null ? nodeReason : existingReason + "; " + nodeReason);
             }
 
+            // Surface the most recent activity across the cluster. percentCompleted and complete are merged as the
+            // worst case across nodes because they describe whether every node has finished, but lastUpdated is an
+            // activity timestamp: a polling client expects it to reflect the latest update from any node rather than
+            // the oldest, which would otherwise make the displayed timestamp appear to move backward as nodes report.
             final Date clientLastUpdated = clientRequest.getLastUpdated();
             final Date nodeLastUpdated = nodeRequest.getLastUpdated();
-            if (nodeLastUpdated != null && (clientLastUpdated == null || nodeLastUpdated.before(clientLastUpdated))) {
+            if (nodeLastUpdated != null && (clientLastUpdated == null || nodeLastUpdated.after(clientLastUpdated))) {
                 clientRequest.setLastUpdated(nodeLastUpdated);
             }
 
