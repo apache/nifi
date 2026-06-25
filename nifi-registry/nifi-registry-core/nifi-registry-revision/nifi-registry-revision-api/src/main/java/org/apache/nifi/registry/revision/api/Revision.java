@@ -76,7 +76,7 @@ public class Revision {
             return true;
         }
 
-        if (!(obj instanceof Revision thatRevision)) {
+        if (!(obj instanceof final Revision thatRevision)) {
             return false;
         }
 

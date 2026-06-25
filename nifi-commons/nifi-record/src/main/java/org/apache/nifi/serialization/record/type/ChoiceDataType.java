@@ -79,7 +79,7 @@ public class ChoiceDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof ChoiceDataType other)) {
+        if (!(obj instanceof final ChoiceDataType other)) {
             return false;
         }
 

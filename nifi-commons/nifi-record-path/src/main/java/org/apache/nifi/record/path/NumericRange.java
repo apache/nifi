@@ -52,7 +52,7 @@ public class NumericRange {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof NumericRange other)) {
+        if (!(obj instanceof final NumericRange other)) {
             return false;
         }
 

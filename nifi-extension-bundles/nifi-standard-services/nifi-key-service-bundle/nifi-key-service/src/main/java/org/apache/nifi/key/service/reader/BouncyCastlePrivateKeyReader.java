@@ -61,11 +61,11 @@ public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
 
             if (object instanceof PrivateKeyInfo) {
                 privateKeyInfo = (PrivateKeyInfo) object;
-            } else if (object instanceof PKCS8EncryptedPrivateKeyInfo encryptedPrivateKeyInfo) {
+            } else if (object instanceof final PKCS8EncryptedPrivateKeyInfo encryptedPrivateKeyInfo) {
                 privateKeyInfo = readEncryptedPrivateKey(encryptedPrivateKeyInfo, keyPassword);
-            } else if (object instanceof PEMKeyPair pemKeyPair) {
+            } else if (object instanceof final PEMKeyPair pemKeyPair) {
                 privateKeyInfo = pemKeyPair.getPrivateKeyInfo();
-            } else if (object instanceof PEMEncryptedKeyPair encryptedKeyPair) {
+            } else if (object instanceof final PEMEncryptedKeyPair encryptedKeyPair) {
                 privateKeyInfo = readEncryptedPrivateKey(encryptedKeyPair, keyPassword);
             } else {
                 final String objectType = object == null ? INVALID_PEM : object.getClass().getName();

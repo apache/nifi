@@ -48,7 +48,7 @@ public class ToString extends RecordPathSegment {
                     Object value = fv.getValue();
                     final String stringValue;
 
-                    if (value instanceof Object[] o) {
+                    if (value instanceof final Object[] o) {
                         if (o.length > 0) {
 
                             byte[] dest = new byte[o.length];

@@ -74,7 +74,7 @@ public class AllowableValueDTO {
             return true;
         }
 
-        if (!(obj instanceof AllowableValueDTO other)) {
+        if (!(obj instanceof final AllowableValueDTO other)) {
             return false;
         }
 

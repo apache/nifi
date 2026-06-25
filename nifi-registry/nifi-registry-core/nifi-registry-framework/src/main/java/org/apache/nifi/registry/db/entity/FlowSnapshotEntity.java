@@ -82,7 +82,7 @@ public class FlowSnapshotEntity {
             return false;
         }
 
-        if (!(obj instanceof FlowSnapshotEntity other)) {
+        if (!(obj instanceof final FlowSnapshotEntity other)) {
             return false;
         }
 

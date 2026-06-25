@@ -106,7 +106,7 @@ public class JaxbLink {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof JaxbLink jaxbLink)) {
+        if (!(o instanceof final JaxbLink jaxbLink)) {
             return false;
         }
 

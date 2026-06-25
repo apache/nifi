@@ -157,7 +157,7 @@ public class NodeConnectionStatus {
             return false;
         }
 
-        if (!(obj instanceof NodeConnectionStatus other)) {
+        if (!(obj instanceof final NodeConnectionStatus other)) {
             return false;
         }
 

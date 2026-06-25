@@ -89,7 +89,7 @@ public class ComponentDifferenceDTO {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof ComponentDifferenceDTO other)) {
+        if (!(obj instanceof final ComponentDifferenceDTO other)) {
             return false;
         }
 

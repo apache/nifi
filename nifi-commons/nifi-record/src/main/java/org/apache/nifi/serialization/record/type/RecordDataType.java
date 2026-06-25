@@ -101,7 +101,7 @@ public class RecordDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordDataType other)) {
+        if (!(obj instanceof final RecordDataType other)) {
             return false;
         }
 

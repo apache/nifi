@@ -78,7 +78,7 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
         for (final Entry<Object, Object> entry : props.entrySet()) {
             final Object keyObject = entry.getKey();
             final Object valueObject = entry.getValue();
-            if (!(keyObject instanceof String key)) {
+            if (!(keyObject instanceof final String key)) {
                 throw new IOException("Flow file attributes object contains key of type "
                         + keyObject.getClass().getCanonicalName()
                         + " but expected java.lang.String");

@@ -86,7 +86,7 @@ public class SchemaRecordWriter {
                     break;
                 }
 
-                if (!(value instanceof Collection<?> collection)) {
+                if (!(value instanceof final Collection<?> collection)) {
                     throw new IllegalArgumentException("Record contains a value of type '" + value.getClass() +
                         "' for the '" + field.getFieldName() + "' but expected a Collection because the Repetition for the field is " + field.getRepetition());
                 }

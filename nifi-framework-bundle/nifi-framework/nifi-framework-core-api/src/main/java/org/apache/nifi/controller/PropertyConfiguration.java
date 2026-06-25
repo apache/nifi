@@ -89,7 +89,7 @@ public class PropertyConfiguration {
             return false;
         }
 
-        if (!(o instanceof PropertyConfiguration that)) {
+        if (!(o instanceof final PropertyConfiguration that)) {
             return false;
         }
 

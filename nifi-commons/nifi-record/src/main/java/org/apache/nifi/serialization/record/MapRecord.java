@@ -557,14 +557,14 @@ public class MapRecord implements Record {
             } else if (fieldValue instanceof final Record childRecord) {
                 childRecord.regenerateSchema();
                 schemaFields.add(new RecordField(schemaField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(childRecord.getSchema()), schemaField.isNullable()));
-            } else if (schemaField.getDataType().getFieldType() == RecordFieldType.ARRAY && fieldValue instanceof Object[] array) {
+            } else if (schemaField.getDataType().getFieldType() == RecordFieldType.ARRAY && fieldValue instanceof final Object[] array) {
                 // Handle arrays of records - regenerate schema based on actual element schemas
                 final ArrayDataType arrayType = (ArrayDataType) schemaField.getDataType();
                 final DataType elementType = arrayType.getElementType();
                 if (elementType.getFieldType() == RecordFieldType.RECORD) {
                     RecordSchema mergedElementSchema = null;
                     for (final Object element : array) {
-                        if (element instanceof Record elementRecord) {
+                        if (element instanceof final Record elementRecord) {
                             elementRecord.regenerateSchema();
                             if (mergedElementSchema == null) {
                                 mergedElementSchema = elementRecord.getSchema();
@@ -647,7 +647,7 @@ public class MapRecord implements Record {
         if (arrayObject == null) {
             return;
         }
-        if (!(arrayObject instanceof Object[] array)) {
+        if (!(arrayObject instanceof final Object[] array)) {
             return;
         }
 
@@ -764,7 +764,7 @@ public class MapRecord implements Record {
             return specField;
         }
 
-        if (fieldType == RecordFieldType.RECORD && value instanceof Record childRecord) {
+        if (fieldType == RecordFieldType.RECORD && value instanceof final Record childRecord) {
             childRecord.incorporateInactiveFields();
 
             final RecordSchema definedChildSchema = ((RecordDataType) dataType).getChildSchema();
@@ -775,7 +775,7 @@ public class MapRecord implements Record {
             return new RecordField(specField.getFieldName(), combinedDataType, specField.getDefaultValue(), specField.getAliases(), specField.isNullable());
         }
 
-        if (fieldType == RecordFieldType.ARRAY && value instanceof Object[] array) {
+        if (fieldType == RecordFieldType.ARRAY && value instanceof final Object[] array) {
             final DataType elementType = ((ArrayDataType) dataType).getElementType();
             final RecordFieldType elementFieldType = elementType.getFieldType();
 
@@ -805,7 +805,7 @@ public class MapRecord implements Record {
             final List<DataType> possibleTypes = choiceDataType.getPossibleSubTypes();
 
             final DataType chosenDataType = DataTypeUtils.chooseDataType(value, choiceDataType);
-            if (chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof Record childRecord)) {
+            if (chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof final Record childRecord)) {
                 return specField;
             }
 

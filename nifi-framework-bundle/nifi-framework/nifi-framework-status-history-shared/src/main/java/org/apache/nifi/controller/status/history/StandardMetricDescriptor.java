@@ -48,7 +48,7 @@ public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof MetricDescriptor<?> other)) {
+        if (!(obj instanceof final MetricDescriptor<?> other)) {
             return false;
         }
 

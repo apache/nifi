@@ -68,7 +68,7 @@ public class MapEntryFieldValue extends StandardFieldValue {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof MapEntryFieldValue other)) {
+        if (!(obj instanceof final MapEntryFieldValue other)) {
             return false;
         }
 

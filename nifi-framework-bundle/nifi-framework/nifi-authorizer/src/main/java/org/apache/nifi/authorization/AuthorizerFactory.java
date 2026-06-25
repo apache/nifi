@@ -115,7 +115,7 @@ public final class AuthorizerFactory {
     public static Authorizer installIntegrityChecks(final Authorizer baseAuthorizer) {
         Authorizer authorizer;
 
-        if (baseAuthorizer instanceof ManagedAuthorizer baseManagedAuthorizer) {
+        if (baseAuthorizer instanceof final ManagedAuthorizer baseManagedAuthorizer) {
             authorizer = new ManagedAuthorizer() {
                 @Override
                 public String getFingerprint() throws AuthorizationAccessException {
@@ -140,7 +140,7 @@ public final class AuthorizerFactory {
                 @Override
                 public AccessPolicyProvider getAccessPolicyProvider() {
                     final AccessPolicyProvider baseAccessPolicyProvider = baseManagedAuthorizer.getAccessPolicyProvider();
-                    if (baseAccessPolicyProvider instanceof ConfigurableAccessPolicyProvider baseConfigurableAccessPolicyProvider) {
+                    if (baseAccessPolicyProvider instanceof final ConfigurableAccessPolicyProvider baseConfigurableAccessPolicyProvider) {
                         return new ConfigurableAccessPolicyProvider() {
                             @Override
                             public String getFingerprint() throws AuthorizationAccessException {
@@ -209,7 +209,7 @@ public final class AuthorizerFactory {
                             @Override
                             public UserGroupProvider getUserGroupProvider() {
                                 final UserGroupProvider baseUserGroupProvider = baseConfigurableAccessPolicyProvider.getUserGroupProvider();
-                                if (baseUserGroupProvider instanceof ConfigurableUserGroupProvider baseConfigurableUserGroupProvider) {
+                                if (baseUserGroupProvider instanceof final ConfigurableUserGroupProvider baseConfigurableUserGroupProvider) {
                                     return new ConfigurableUserGroupProvider() {
                                         @Override
                                         public String getFingerprint() throws AuthorizationAccessException {

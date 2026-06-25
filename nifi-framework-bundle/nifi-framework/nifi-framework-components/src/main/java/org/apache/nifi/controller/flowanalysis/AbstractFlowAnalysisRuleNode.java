@@ -316,7 +316,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
             }
 
             final FlowAnalysisRule flowAnalysisRule = getFlowAnalysisRule();
-            if (flowAnalysisRule instanceof VerifiableFlowAnalysisRule verifiable) {
+            if (flowAnalysisRule instanceof final VerifiableFlowAnalysisRule verifiable) {
                 logger.debug("{} is a VerifiableFlowAnalysisRule. Will perform full verification of configuration.", this);
 
                 // Check if the given configuration requires a different classloader than the current configuration

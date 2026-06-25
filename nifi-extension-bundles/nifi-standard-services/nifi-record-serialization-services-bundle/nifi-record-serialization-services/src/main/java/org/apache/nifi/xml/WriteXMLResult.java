@@ -506,7 +506,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
     private boolean writeUnknownField(Deque<String> tagsToOpen, Object value, String fieldName) throws XMLStreamException {
 
-        if (value instanceof Record valueAsRecord) {
+        if (value instanceof final Record valueAsRecord) {
             tagsToOpen.addLast(fieldName);
 
             boolean hasWritten = iterateThroughRecordWithoutSchema(tagsToOpen, valueAsRecord);
@@ -526,7 +526,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             }
         }
 
-        if (value instanceof Object[] valueAsArray) {
+        if (value instanceof final Object[] valueAsArray) {
 
             final String elementName;
             final String wrapperName;

@@ -210,7 +210,7 @@ public class RemoteProcessGroupPortDTO {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RemoteProcessGroupPortDTO other)) {
+        if (!(obj instanceof final RemoteProcessGroupPortDTO other)) {
             return false;
         }
         if (name == null && other.name == null) {

@@ -43,9 +43,9 @@ public class UsernamePasswordCallbackHandler implements CallbackHandler {
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         for (final Callback callback : callbacks) {
-            if (callback instanceof NameCallback nameCallback) {
+            if (callback instanceof final NameCallback nameCallback) {
                 nameCallback.setName(username);
-            } else if (callback instanceof PasswordCallback passwordCallback) {
+            } else if (callback instanceof final PasswordCallback passwordCallback) {
                 passwordCallback.setPassword(password.toCharArray());
             } else {
                 throw new IllegalStateException("Unexpected callback type: " + callback.getClass().getCanonicalName());

@@ -67,7 +67,7 @@ public class NodeInformation {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof NodeInformation other)) {
+        if (!(obj instanceof final NodeInformation other)) {
             return false;
         }
 

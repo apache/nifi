@@ -429,7 +429,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             }
 
             final ParameterProvider parameterProvider = getParameterProvider();
-            if (parameterProvider instanceof VerifiableParameterProvider verifiable) {
+            if (parameterProvider instanceof final VerifiableParameterProvider verifiable) {
                 logger.debug("{} is a VerifiableParameterProvider. Will perform full verification of configuration.", this);
 
                 // Check if the given configuration requires a different classloader than the current configuration

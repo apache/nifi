@@ -323,7 +323,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof StandardProvenanceEventRecord other)) {
+        if (!(obj instanceof final StandardProvenanceEventRecord other)) {
             return false;
         }
 
@@ -519,7 +519,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 
             sourceQueueIdentifier = event.getSourceQueueIdentifier();
 
-            if (event instanceof StandardProvenanceEventRecord standardProvEvent) {
+            if (event instanceof final StandardProvenanceEventRecord standardProvEvent) {
                 storageByteOffset = standardProvEvent.storageByteOffset;
                 storageFilename = standardProvEvent.storageFilename;
             }

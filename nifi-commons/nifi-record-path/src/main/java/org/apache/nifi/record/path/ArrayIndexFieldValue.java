@@ -82,7 +82,7 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof ArrayIndexFieldValue other)) {
+        if (!(obj instanceof final ArrayIndexFieldValue other)) {
             return false;
         }
 

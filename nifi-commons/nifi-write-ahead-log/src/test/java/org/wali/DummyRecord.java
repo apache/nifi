@@ -88,7 +88,7 @@ public class DummyRecord {
             return true;
         }
 
-        if (!(obj instanceof DummyRecord other)) {
+        if (!(obj instanceof final DummyRecord other)) {
             return false;
         }
         return Objects.equals(id, other.id) && Objects.equals(props, other.props) && Objects.equals(updateType, other.updateType) && Objects.equals(swapLocation, other.swapLocation);

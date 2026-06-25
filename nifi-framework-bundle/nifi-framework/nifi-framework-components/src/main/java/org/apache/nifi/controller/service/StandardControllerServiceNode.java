@@ -531,7 +531,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             }
 
             final ControllerService controllerService = getControllerServiceImplementation();
-            if (controllerService instanceof VerifiableControllerService verifiable) {
+            if (controllerService instanceof final VerifiableControllerService verifiable) {
                 LOG.debug("{} is a VerifiableControllerService. Will perform full verification of configuration.", this);
 
                 // Check if the given configuration requires a different classloader than the current configuration

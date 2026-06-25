@@ -58,7 +58,7 @@ public class DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof DataType other)) {
+        if (!(obj instanceof final DataType other)) {
             return false;
         }
 

@@ -55,7 +55,7 @@ public class FlowMetadataSynchronizer {
     public void synchronize() {
         LOGGER.info("**************************************************");
 
-        if (!(persistenceProvider instanceof MetadataAwareFlowPersistenceProvider metadataAwareFlowPersistenceProvider)) {
+        if (!(persistenceProvider instanceof final MetadataAwareFlowPersistenceProvider metadataAwareFlowPersistenceProvider)) {
             LOGGER.info("*  FlowPersistenceProvider is not metadata-aware, nothing to synchronize");
             LOGGER.info("**************************************************");
             return;

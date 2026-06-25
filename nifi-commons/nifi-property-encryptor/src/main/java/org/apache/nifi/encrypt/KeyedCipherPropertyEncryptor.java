@@ -125,7 +125,7 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         boolean equals = false;
         if (this == object) {
             equals = true;
-        } else if (object instanceof KeyedCipherPropertyEncryptor encryptor) {
+        } else if (object instanceof final KeyedCipherPropertyEncryptor encryptor) {
             equals = Objects.equals(secretKey, encryptor.secretKey);
         }
         return equals;

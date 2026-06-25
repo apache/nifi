@@ -497,7 +497,7 @@ public class ResultSetRecordSetTest {
             when(resultSetMetaData.getColumnName(column.getIndex())).thenReturn(column.getColumnName());
             when(resultSetMetaData.getColumnType(column.getIndex())).thenReturn(column.getSqlType());
 
-            if (column.getRecordFieldType() instanceof DecimalDataType ddt) {
+            if (column.getRecordFieldType() instanceof final DecimalDataType ddt) {
                 when(resultSetMetaData.getPrecision(column.getIndex())).thenReturn(ddt.getPrecision());
                 when(resultSetMetaData.getScale(column.getIndex())).thenReturn(ddt.getScale());
             }
@@ -671,7 +671,7 @@ public class ResultSetRecordSetTest {
 
     private void thenActualArrayElementTypesMatchExpected(Map<String, DataType> expectedTypes, RecordSchema actualSchema) {
         for (RecordField recordField : actualSchema.getFields()) {
-            if (recordField.getDataType() instanceof ArrayDataType arrayType) {
+            if (recordField.getDataType() instanceof final ArrayDataType arrayType) {
                 assertEquals(expectedTypes.get(recordField.getFieldName()), arrayType.getElementType(),
                         "Array element type for " + recordField.getFieldName()
                                 + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString());

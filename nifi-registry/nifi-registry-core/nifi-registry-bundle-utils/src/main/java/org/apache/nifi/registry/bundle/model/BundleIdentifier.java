@@ -67,7 +67,7 @@ public class BundleIdentifier {
             return false;
         }
 
-        if (!(obj instanceof BundleIdentifier other)) {
+        if (!(obj instanceof final BundleIdentifier other)) {
             return false;
         }
 

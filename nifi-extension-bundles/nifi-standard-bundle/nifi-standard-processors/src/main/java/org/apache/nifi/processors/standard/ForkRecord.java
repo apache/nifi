@@ -417,7 +417,7 @@ public class ForkRecord extends AbstractProcessor {
                                 }
                             }
 
-                            if (!(dataType instanceof ArrayDataType arrayDataType) || fieldObject == null) {
+                            if (!(dataType instanceof final ArrayDataType arrayDataType) || fieldObject == null) {
                                 getLogger().debug("The record path {} is matching a field of type {} when the type ARRAY is expected.", recordPath.getPath(), dataType.getFieldType());
                                 continue;
                             }

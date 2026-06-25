@@ -1231,7 +1231,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public boolean equals(final Object other) {
-        if (!(other instanceof ProcessorNode on)) {
+        if (!(other instanceof final ProcessorNode on)) {
             return false;
         }
 

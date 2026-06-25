@@ -62,7 +62,7 @@ public class FlowFileNode implements LineageNode {
             return true;
         }
 
-        if (!(obj instanceof FlowFileNode other)) {
+        if (!(obj instanceof final FlowFileNode other)) {
             return false;
         }
 

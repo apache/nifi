@@ -311,7 +311,7 @@ public class LinkService {
         final Link link = linkBuilder.createLink(entity);
         entity.setLink(link);
 
-        if (entity instanceof LinkableDocs docsEntity) {
+        if (entity instanceof final LinkableDocs docsEntity) {
             final LinkBuilder docsLinkBuilder = DOCS_LINK_BUILDERS.get(entity.getClass());
             if (docsLinkBuilder == null) {
                 throw new IllegalArgumentException("No documentation LinkBuilder found for " + entity.getClass().getCanonicalName());
@@ -344,7 +344,7 @@ public class LinkService {
         final Link fullLink = getFullLink(baseUri, relativeLink);
         entity.setLink(fullLink);
 
-        if (entity instanceof LinkableDocs docsEntity) {
+        if (entity instanceof final LinkableDocs docsEntity) {
             final LinkBuilder docsLinkBuilder = DOCS_LINK_BUILDERS.get(entity.getClass());
             if (docsLinkBuilder == null) {
                 throw new IllegalArgumentException("No documentation LinkBuilder found for " + entity.getClass().getCanonicalName());

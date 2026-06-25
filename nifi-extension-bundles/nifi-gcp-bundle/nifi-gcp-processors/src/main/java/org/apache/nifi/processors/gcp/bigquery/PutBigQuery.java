@@ -453,7 +453,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                     .orElse(new RuntimeException(throwable)));
 
             // Provide detailed row-level error logging when available from the client
-            if (throwable instanceof Exceptions.AppendSerializationError serializationError) {
+            if (throwable instanceof final Exceptions.AppendSerializationError serializationError) {
                 try {
                     final Map<Integer, String> rowErrors = serializationError.getRowIndexToErrorMessage();
                     if (rowErrors != null && !rowErrors.isEmpty()) {

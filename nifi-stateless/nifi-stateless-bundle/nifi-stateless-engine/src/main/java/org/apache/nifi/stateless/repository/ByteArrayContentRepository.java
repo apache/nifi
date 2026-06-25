@@ -197,7 +197,7 @@ public class ByteArrayContentRepository implements ContentRepository {
             return new ByteArrayInputStream(new byte[0]);
         }
 
-        if (!(claim instanceof ByteArrayResourceClaim byteArrayResourceClaim)) {
+        if (!(claim instanceof final ByteArrayResourceClaim byteArrayResourceClaim)) {
             throw new IllegalArgumentException("Cannot access Resource Claim " + claim + " because the Resource Claim does not belong to this Content Repository");
         }
 

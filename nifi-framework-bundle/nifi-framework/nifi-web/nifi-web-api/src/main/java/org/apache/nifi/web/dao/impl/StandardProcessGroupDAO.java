@@ -226,7 +226,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         for (final String componentId : componentIds) {
             final Connectable connectable = findConnectable(componentId, groupId, validGroups);
 
-            if (connectable instanceof RemoteGroupPort remotePort) {
+            if (connectable instanceof final RemoteGroupPort remotePort) {
 
                 if (ScheduledState.RUNNING.equals(state)) {
                     remotePort.verifyCanStart();

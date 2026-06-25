@@ -85,7 +85,7 @@ public class FlowSnapshotEntityV1 {
             return false;
         }
 
-        if (!(obj instanceof FlowSnapshotEntityV1 other)) {
+        if (!(obj instanceof final FlowSnapshotEntityV1 other)) {
             return false;
         }
 

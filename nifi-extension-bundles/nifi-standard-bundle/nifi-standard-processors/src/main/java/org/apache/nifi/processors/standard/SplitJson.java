@@ -195,7 +195,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
             return;
         }
 
-        if (!(jsonPathResult instanceof List resultList)) {
+        if (!(jsonPathResult instanceof final List<?> resultList)) {
             logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", jsonPathResult, jsonPath.getPath());
             processSession.transfer(original, REL_FAILURE);
             return;

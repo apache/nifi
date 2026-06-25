@@ -590,7 +590,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             final List<RemoteQueuePartitionDiagnostics> remoteDiagnostics = new ArrayList<>(queuePartitions.length - 1);
 
             for (final QueuePartition partition : queuePartitions) {
-                if (partition instanceof RemoteQueuePartition queuePartition) {
+                if (partition instanceof final RemoteQueuePartition queuePartition) {
                     final RemoteQueuePartitionDiagnostics diagnostics = queuePartition.getDiagnostics();
                     remoteDiagnostics.add(diagnostics);
                 }

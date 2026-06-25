@@ -202,10 +202,10 @@ public class FlowDifferenceFilters {
         if (difference.getDifferenceType() != DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED) {
             return false;
         }
-        if (!(difference.getValueA() instanceof VersionedFlowCoordinates coordinatesA)) {
+        if (!(difference.getValueA() instanceof final VersionedFlowCoordinates coordinatesA)) {
             return false;
         }
-        if (!(difference.getValueB() instanceof VersionedFlowCoordinates coordinatesB)) {
+        if (!(difference.getValueB() instanceof final VersionedFlowCoordinates coordinatesB)) {
             return false;
         }
 
@@ -226,7 +226,7 @@ public class FlowDifferenceFilters {
 
     public static boolean isPublicPortNameChange(final FlowDifference fd) {
         final VersionedComponent versionedComponent = fd.getComponentA();
-        if (fd.getDifferenceType() == DifferenceType.NAME_CHANGED && versionedComponent instanceof VersionedPort versionedPort) {
+        if (fd.getDifferenceType() == DifferenceType.NAME_CHANGED && versionedComponent instanceof final VersionedPort versionedPort) {
             if (versionedPort.isAllowRemoteAccess()) {
                 return true;
             }
@@ -263,7 +263,7 @@ public class FlowDifferenceFilters {
         }
 
         final VersionedComponent componentB = fd.getComponentB();
-        if (!(componentB instanceof VersionedLabel versionedLabel)) {
+        if (!(componentB instanceof final VersionedLabel versionedLabel)) {
             return false;
         }
 
@@ -287,7 +287,7 @@ public class FlowDifferenceFilters {
         }
 
         final VersionedComponent componentB = fd.getComponentB();
-        if (!(componentB instanceof VersionedConnection versionedConnection)) {
+        if (!(componentB instanceof final VersionedConnection versionedConnection)) {
             return false;
         }
 
@@ -311,7 +311,7 @@ public class FlowDifferenceFilters {
         }
 
         final VersionedComponent componentB = fd.getComponentB();
-        if (!(componentB instanceof InstantiatedVersionedProcessor instantiatedProcessor)) {
+        if (!(componentB instanceof final InstantiatedVersionedProcessor instantiatedProcessor)) {
             return false;
         }
 
@@ -339,10 +339,10 @@ public class FlowDifferenceFilters {
 
         final VersionedComponent componentB = fd.getComponentB();
 
-        if (componentB instanceof InstantiatedVersionedProcessor instantiatedProcessor) {
+        if (componentB instanceof final InstantiatedVersionedProcessor instantiatedProcessor) {
             final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceIdentifier());
             return isNewPropertyWithDefaultValue(fd, processorNode);
-        } else if (componentB instanceof InstantiatedVersionedControllerService instantiatedControllerService) {
+        } else if (componentB instanceof final InstantiatedVersionedControllerService instantiatedControllerService) {
             final ControllerServiceNode controllerService = flowManager.getControllerServiceNode(instantiatedControllerService.getInstanceIdentifier());
             return isNewPropertyWithDefaultValue(fd, controllerService);
         }
@@ -432,7 +432,7 @@ public class FlowDifferenceFilters {
             return false;
         }
 
-        if (!(fd.getComponentA() instanceof VersionedProcessor processorA) || !(fd.getComponentB() instanceof InstantiatedVersionedProcessor processorB)) {
+        if (!(fd.getComponentA() instanceof final VersionedProcessor processorA) || !(fd.getComponentB() instanceof final InstantiatedVersionedProcessor processorB)) {
             // Should not happen, since only processors have auto-terminated relationships.
             return false;
         }
@@ -598,10 +598,10 @@ public class FlowDifferenceFilters {
 
         final VersionedComponent componentB = difference.getComponentB();
 
-        if (componentB instanceof InstantiatedVersionedProcessor instantiatedProcessor) {
+        if (componentB instanceof final InstantiatedVersionedProcessor instantiatedProcessor) {
             final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceIdentifier());
             return isStaticPropertyRemoved(fieldName.get(), processorNode);
-        } else if (componentB instanceof InstantiatedVersionedControllerService instantiatedControllerService) {
+        } else if (componentB instanceof final InstantiatedVersionedControllerService instantiatedControllerService) {
             final ControllerServiceNode controllerService = flowManager.getControllerServiceNode(instantiatedControllerService.getInstanceIdentifier());
             return isStaticPropertyRemoved(fieldName.get(), controllerService);
         }

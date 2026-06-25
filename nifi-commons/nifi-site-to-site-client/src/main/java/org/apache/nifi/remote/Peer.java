@@ -117,7 +117,7 @@ public class Peer implements Communicant {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof Peer other)) {
+        if (!(obj instanceof final Peer other)) {
             return false;
         }
 

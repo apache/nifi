@@ -109,7 +109,7 @@ public class StandardFlowDifference implements FlowDifference {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof StandardFlowDifference other)) {
+        if (!(obj instanceof final StandardFlowDifference other)) {
             return false;
         }
         final String componentAId = componentA == null ? null : componentA.getIdentifier();

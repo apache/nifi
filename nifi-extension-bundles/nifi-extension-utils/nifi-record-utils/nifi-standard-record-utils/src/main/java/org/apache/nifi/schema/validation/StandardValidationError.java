@@ -75,7 +75,7 @@ public class StandardValidationError implements ValidationError {
         if (fieldName.isPresent()) {
             if (inputValue.isPresent()) {
                 final Object input = inputValue.get();
-                if (input instanceof Object[] array) {
+                if (input instanceof final Object[] array) {
                     final StringBuilder sb = new StringBuilder("[");
                     for (int i = 0; i < array.length; i++) {
 
@@ -117,7 +117,7 @@ public class StandardValidationError implements ValidationError {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof ValidationError other)) {
+        if (!(obj instanceof final ValidationError other)) {
             return false;
         }
 

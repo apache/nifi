@@ -74,7 +74,7 @@ public class ArrayDataType extends DataType {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ArrayDataType that)) {
+        if (!(o instanceof final ArrayDataType that)) {
             return false;
         }
         if (!super.equals(o)) {

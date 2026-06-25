@@ -50,7 +50,7 @@ public class LogoutRequest {
             return false;
         }
 
-        if (!(obj instanceof LogoutRequest other)) {
+        if (!(obj instanceof final LogoutRequest other)) {
             return false;
         }
 

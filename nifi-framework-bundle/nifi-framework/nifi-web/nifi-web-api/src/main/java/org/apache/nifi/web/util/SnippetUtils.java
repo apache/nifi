@@ -1038,7 +1038,7 @@ public final class SnippetUtils {
         for (ComponentDTO component : components) {
             // Connections don't have positions themselves but their bendpoints do, so we need
             // to check those bend points for the smallest x,y coordinates
-            if (component instanceof ConnectionDTO connection) {
+            if (component instanceof final ConnectionDTO connection) {
                 for (final PositionDTO position : connection.getBends()) {
                     smallestX = Math.min(smallestX, position.getX());
                     smallestY = Math.min(smallestY, position.getY());
@@ -1051,7 +1051,7 @@ public final class SnippetUtils {
 
         // position the components accordingly
         for (ComponentDTO component : components) {
-            if (component instanceof ConnectionDTO connection) {
+            if (component instanceof final ConnectionDTO connection) {
                 for (final PositionDTO position : connection.getBends()) {
                     position.setX(position.getX() - smallestX);
                     position.setY(position.getY() - smallestY);

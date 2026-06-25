@@ -39,7 +39,7 @@ public class InputStreamMessageEncoder extends MessageToMessageEncoder<InputStre
         out.add(chunkedMessage);
 
         // If the message being sent requires a delimiter added to the end of the message, provide a DelimitedInputStream
-        if (messageStream instanceof DelimitedInputStream delimStream) {
+        if (messageStream instanceof final DelimitedInputStream delimStream) {
             out.add(Unpooled.wrappedBuffer(delimStream.getDelimiter()));
         }
     }

@@ -2125,7 +2125,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public boolean equals(final Object obj) {
-        if (obj instanceof StandardProcessGroup other) {
+        if (obj instanceof final StandardProcessGroup other) {
             return (getIdentifier().equals(other.getIdentifier()));
         } else {
             return false;

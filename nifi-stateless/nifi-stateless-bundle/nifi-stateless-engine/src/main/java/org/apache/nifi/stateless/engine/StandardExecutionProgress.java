@@ -246,7 +246,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
             @Override
             public InputStream readContent(final FlowFile flowFile) throws IOException {
-                if (!(flowFile instanceof FlowFileRecord flowFileRecord)) {
+                if (!(flowFile instanceof final FlowFileRecord flowFileRecord)) {
                     throw new IllegalArgumentException("FlowFile was not created by this flow");
                 }
 
@@ -263,7 +263,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
             @Override
             public byte[] readContentAsByteArray(final FlowFile flowFile) throws IOException {
-                if (!(flowFile instanceof FlowFileRecord flowFileRecord)) {
+                if (!(flowFile instanceof final FlowFileRecord flowFileRecord)) {
                     throw new IllegalArgumentException("FlowFile was not created by this flow");
                 }
 

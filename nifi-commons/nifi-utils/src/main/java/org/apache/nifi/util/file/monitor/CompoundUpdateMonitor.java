@@ -76,7 +76,7 @@ public class CompoundUpdateMonitor implements UpdateMonitor {
                 return false;
             }
 
-            if (!(obj instanceof DeferredMonitorAction other)) {
+            if (!(obj instanceof final DeferredMonitorAction other)) {
                 return false;
             }
 

@@ -66,7 +66,7 @@ public class FlowFileLineage implements Lineage {
             return true;
         }
 
-        if (!(obj instanceof FlowFileLineage other)) {
+        if (!(obj instanceof final FlowFileLineage other)) {
             return false;
         }
 

@@ -80,7 +80,7 @@ public class PeerStatus {
             return false;
         }
 
-        if (!(obj instanceof PeerStatus other)) {
+        if (!(obj instanceof final PeerStatus other)) {
             return false;
         }
 

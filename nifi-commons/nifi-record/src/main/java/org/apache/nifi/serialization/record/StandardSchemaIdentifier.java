@@ -76,7 +76,7 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof SchemaIdentifier other)) {
+        if (!(obj instanceof final SchemaIdentifier other)) {
             return false;
         }
         return getName().equals(other.getName())

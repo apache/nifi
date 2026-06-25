@@ -1083,7 +1083,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
             // For public ports we need to consider if another public port exists somewhere else in the flow with the
             // same name, and if so then rename the incoming port so the flow can still be imported
-            if (port instanceof PublicPort publicPort) {
+            if (port instanceof final PublicPort publicPort) {
                 final String publicPortFinalName = getPublicPortFinalName(publicPort, finalName);
                 updatePortToSetFinalName(publicPort, publicPortFinalName);
             } else {
@@ -2944,7 +2944,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component, intendedState);
             } else if (component instanceof ControllerServiceNode) {
                 synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ControllerServiceNode) component, intendedState);
-            } else if (component instanceof ReportingTaskNode reportingTaskNode) {
+            } else if (component instanceof final ReportingTaskNode reportingTaskNode) {
                 if (intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && reportingTaskNode.getScheduledState() == ScheduledState.DISABLED) {
                     return;
                 }
@@ -3573,7 +3573,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void terminateComponents(final Set<Connectable> components, final FlowSynchronizationOptions synchronizationOptions) {
         for (final Connectable component : components) {
-            if (!(component instanceof ProcessorNode processor)) {
+            if (!(component instanceof final ProcessorNode processor)) {
                 continue;
             }
 

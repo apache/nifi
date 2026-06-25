@@ -246,14 +246,14 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
         }
 
         // If a single Record was returned, write it out
-        if (returnValue instanceof Record transformedRecord) {
+        if (returnValue instanceof final Record transformedRecord) {
             getLogger().trace("Successfully transformed Record {} from {} to {} for {}", index, inputRecord, transformedRecord, flowFile);
             recordWriteAction.write(transformedRecord);
             return;
         }
 
         // If a Collection was returned, ensure that every element in the collection is a Record and write them out
-        if (returnValue instanceof Collection<?> collection) {
+        if (returnValue instanceof final Collection<?> collection) {
             getLogger().trace("Successfully transformed Record {} from {} to {} for {}", index, inputRecord, collection, flowFile);
 
             for (final Object element : collection) {

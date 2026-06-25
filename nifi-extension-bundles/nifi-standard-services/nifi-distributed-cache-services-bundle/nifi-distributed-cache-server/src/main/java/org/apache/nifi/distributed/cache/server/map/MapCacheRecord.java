@@ -59,7 +59,7 @@ public class MapCacheRecord extends CacheRecord {
             return true;
         }
 
-        if (obj instanceof MapCacheRecord that) {
+        if (obj instanceof final MapCacheRecord that) {
             return key.equals(that.key) && value.equals(that.value) && revision == that.revision;
         }
 

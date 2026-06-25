@@ -84,7 +84,7 @@ public class VirtualPath {
         if (o == this) {
             return true;
         }
-        if (!(o instanceof VirtualPath other)) {
+        if (!(o instanceof final VirtualPath other)) {
             return false;
         }
         return path.equals(other.path);

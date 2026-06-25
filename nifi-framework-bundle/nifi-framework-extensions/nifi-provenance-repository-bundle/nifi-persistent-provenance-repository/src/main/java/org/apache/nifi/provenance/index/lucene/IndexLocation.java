@@ -65,7 +65,7 @@ public class IndexLocation {
             return true;
         }
 
-        if (!(obj instanceof IndexLocation other)) {
+        if (!(obj instanceof final IndexLocation other)) {
             return false;
         }
 

@@ -54,7 +54,7 @@ public class DecimalDataType extends DataType {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof DecimalDataType other)) {
+        if (!(obj instanceof final DecimalDataType other)) {
             return false;
         }
 

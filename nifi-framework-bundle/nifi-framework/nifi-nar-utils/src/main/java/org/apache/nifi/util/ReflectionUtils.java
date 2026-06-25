@@ -345,7 +345,7 @@ public class ReflectionUtils {
                 return true;
             }
 
-            if (!(other instanceof Annotations otherAnnotations)) {
+            if (!(other instanceof final Annotations otherAnnotations)) {
                 return false;
             }
 

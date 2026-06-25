@@ -147,7 +147,7 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof StandardFlowFileRecord otherRecord)) {
+        if (!(other instanceof final StandardFlowFileRecord otherRecord)) {
             return false;
         }
         return id == otherRecord.getId();

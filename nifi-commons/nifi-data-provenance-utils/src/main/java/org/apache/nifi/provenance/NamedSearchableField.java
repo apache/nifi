@@ -90,7 +90,7 @@ public class NamedSearchableField implements SearchableField {
             return false;
         }
 
-        if (!(obj instanceof SearchableField other)) {
+        if (!(obj instanceof final SearchableField other)) {
             return false;
         }
 

@@ -69,7 +69,7 @@ public class SimpleRecordField implements RecordField {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordField other)) {
+        if (!(obj instanceof final RecordField other)) {
             return false;
         }
 

@@ -727,7 +727,7 @@ public class StandardFlowComparator implements FlowComparator {
             return true;
         }
 
-        if (potentialString instanceof String string) {
+        if (potentialString instanceof final String string) {
             return string.isEmpty();
         } else {
             return false;

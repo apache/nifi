@@ -233,10 +233,10 @@ public class SignContentPGPTest {
         PGPOnePassSignature onePassSignature = null;
         boolean verified = false;
         for (final Object object : dataObjectFactory) {
-            if (object instanceof PGPOnePassSignatureList onePassSignatureList) {
+            if (object instanceof final PGPOnePassSignatureList onePassSignatureList) {
                 onePassSignature = onePassSignatureList.iterator().next();
                 onePassSignature.init(new JcaPGPContentVerifierBuilderProvider(), rsaPublicKey);
-            } else if (object instanceof PGPLiteralData literalData) {
+            } else if (object instanceof final PGPLiteralData literalData) {
                 if (onePassSignature == null) {
                     throw new IllegalStateException("One-Pass Signature not found before Literal Data");
                 }
@@ -247,7 +247,7 @@ public class SignContentPGPTest {
                     onePassSignature.update((byte) read);
                     outputStream.write(read);
                 }
-            } else if (object instanceof PGPSignatureList signatureList) {
+            } else if (object instanceof final PGPSignatureList signatureList) {
                 if (onePassSignature == null) {
                     throw new IllegalStateException("One-Pass Signature not found before Signature");
                 }

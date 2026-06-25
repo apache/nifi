@@ -365,7 +365,7 @@ public class ExpressionCompiler {
         }
 
         final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
-        if (rootEvaluator instanceof MultiAttributeEvaluator multiAttrEval) {
+        if (rootEvaluator instanceof final MultiAttributeEvaluator multiAttrEval) {
             switch (multiAttrEval.getEvaluationType()) {
                 case ALL_ATTRIBUTES:
                 case ALL_MATCHING_ATTRIBUTES:
@@ -416,7 +416,7 @@ public class ExpressionCompiler {
         Evaluator<?> chosenEvaluator = evaluator;
         final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
         if (rootEvaluator != null) {
-            if (rootEvaluator instanceof MultiAttributeEvaluator multiAttrEval) {
+            if (rootEvaluator instanceof final MultiAttributeEvaluator multiAttrEval) {
 
                 switch (multiAttrEval.getEvaluationType()) {
                     case ANY_ATTRIBUTE:

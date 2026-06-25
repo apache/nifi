@@ -70,7 +70,7 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
             return false;
         }
 
-        if (!(obj instanceof ContentClaim other)) {
+        if (!(obj instanceof final ContentClaim other)) {
             return false;
         }
 

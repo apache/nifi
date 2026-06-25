@@ -103,7 +103,7 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
                 references.add(componentType.cast(referencingComponent));
             }
 
-            if (referencingComponent instanceof ControllerServiceNode referencingNode) {
+            if (referencingComponent instanceof final ControllerServiceNode referencingNode) {
 
                 // find components recursively that depend on referencingNode.
                 final boolean added = servicesVisited.add(referencingNode);

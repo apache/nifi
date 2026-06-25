@@ -846,7 +846,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             return false;
         }
 
-        if (!(obj instanceof ComponentNode other)) {
+        if (!(obj instanceof final ComponentNode other)) {
             return false;
         }
 

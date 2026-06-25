@@ -38,7 +38,7 @@ public class StandardSocketPeerIdentityProvider implements SocketPeerIdentityPro
     public Optional<String> getPeerIdentity(final Socket socket) {
         final Optional<String> peerIdentity;
 
-        if (socket instanceof SSLSocket sslSocket) {
+        if (socket instanceof final SSLSocket sslSocket) {
             final SSLSession sslSession = sslSocket.getSession();
             peerIdentity = getPeerIdentity(sslSession);
         } else {

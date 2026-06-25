@@ -52,13 +52,13 @@ public final class HDFSResourceHelper {
         statsField.setAccessible(true);
 
         final Object statsObj = statsField.get(fileSystem);
-        if (statsObj instanceof FileSystem.Statistics statistics) {
+        if (statsObj instanceof final FileSystem.Statistics statistics) {
 
             final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
             statsThreadField.setAccessible(true);
 
             final Object statsThreadObj = statsThreadField.get(statistics);
-            if (statsThreadObj instanceof Thread statsThread) {
+            if (statsThreadObj instanceof final Thread statsThread) {
                 try {
                     statsThread.interrupt();
                 } catch (Exception e) {

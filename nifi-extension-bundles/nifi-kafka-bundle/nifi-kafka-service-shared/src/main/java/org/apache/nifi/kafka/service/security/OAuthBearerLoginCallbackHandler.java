@@ -68,7 +68,7 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
         }
 
         final Object service = configs.get(PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER);
-        if (!(service instanceof OAuth2AccessTokenProvider accessTokenProvider)) {
+        if (!(service instanceof final OAuth2AccessTokenProvider accessTokenProvider)) {
             throw new ProcessException(String.format("OAuth2AccessTokenProvider must be provided via %s property in Kafka configuration", PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER));
         }
 

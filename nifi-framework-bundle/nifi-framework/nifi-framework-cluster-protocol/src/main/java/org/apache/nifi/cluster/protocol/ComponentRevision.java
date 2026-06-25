@@ -69,7 +69,7 @@ public class ComponentRevision {
             return true;
         }
 
-        if (!(obj instanceof ComponentRevision thatRevision)) {
+        if (!(obj instanceof final ComponentRevision thatRevision)) {
             return false;
         }
 

@@ -59,7 +59,7 @@ public class EdgeNode implements LineageEdge {
             return false;
         }
 
-        if (!(obj instanceof EdgeNode other)) {
+        if (!(obj instanceof final EdgeNode other)) {
             return false;
         }
 

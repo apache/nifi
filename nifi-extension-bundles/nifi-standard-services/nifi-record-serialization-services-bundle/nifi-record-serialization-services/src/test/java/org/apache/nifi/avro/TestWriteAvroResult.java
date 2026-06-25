@@ -448,14 +448,14 @@ public abstract class TestWriteAvroResult {
                 avroValue = avroValue.toString();
             }
 
-            if (recordValue instanceof Object[] objectArray && avroValue instanceof ByteBuffer bb) {
+            if (recordValue instanceof final Object[] objectArray && avroValue instanceof final ByteBuffer bb) {
                 assertEquals(objectArray.length, bb.remaining(),
                         "For field " + fieldName + ", byte buffer remaining should have been " + objectArray.length + " but was " + bb.remaining());
 
                 for (Object o : objectArray) {
                     assertEquals(o, bb.get());
                 }
-            } else if (recordValue instanceof Object[] recordArray) {
+            } else if (recordValue instanceof final Object[] recordArray) {
                 assertInstanceOf(GenericArray.class, avroValue, fieldName + " should have been instanceof GenericArray");
                 final GenericArray<?> avroArray = (GenericArray<?>) avroValue;
                 assertEquals(recordArray.length, avroArray.size(),
@@ -468,7 +468,7 @@ public abstract class TestWriteAvroResult {
                 final ByteBuffer bb = ByteBuffer.wrap((byte[]) recordValue);
                 assertEquals(bb, avroValue,
                         fieldName + " not equal");
-            } else if (recordValue instanceof Map<?, ?> recordMap) {
+            } else if (recordValue instanceof final Map<?, ?> recordMap) {
                 assertInstanceOf(Map.class, avroValue, fieldName + " should have been instanceof Map");
                 final Map<?, ?> avroMap = (Map<?, ?>) avroValue;
                 assertEquals(recordMap.size(), avroMap.size(),

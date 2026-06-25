@@ -74,7 +74,7 @@ public class BundleCoordinate {
             return false;
         }
 
-        if (!(obj instanceof BundleCoordinate other)) {
+        if (!(obj instanceof final BundleCoordinate other)) {
             return false;
         }
 

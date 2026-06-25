@@ -42,7 +42,7 @@ public class Tuple<A, B> {
         if (other == this) {
             return true;
         }
-        if (!(other instanceof Tuple<?, ?> tuple)) {
+        if (!(other instanceof final Tuple<?, ?> tuple)) {
             return false;
         }
 

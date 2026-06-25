@@ -62,7 +62,7 @@ public class TransformFactory {
     }
 
     protected static List<JoltTransform> getChainrJoltTransformations(final ClassLoader classLoader, final Object specJson) throws Exception {
-        if (!(specJson instanceof List<?> operations)) {
+        if (!(specJson instanceof final List<?> operations)) {
             throw new SpecException("JOLT Chainr expects a JSON array of objects - Malformed spec.");
         } else {
 
@@ -72,7 +72,7 @@ public class TransformFactory {
                 final List<JoltTransform> entries = new ArrayList<>(operations.size());
 
                 for (final Object chainrEntryObj : operations) {
-                    if (!(chainrEntryObj instanceof Map<?, ?> chainrEntryMap)) {
+                    if (!(chainrEntryObj instanceof final Map<?, ?> chainrEntryMap)) {
                         throw new SpecException("JOLT ChainrEntry expects a JSON map - Malformed spec");
                     }
 

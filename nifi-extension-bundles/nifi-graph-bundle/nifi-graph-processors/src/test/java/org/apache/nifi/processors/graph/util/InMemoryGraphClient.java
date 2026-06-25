@@ -77,7 +77,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
             throw new ProcessException(ex);
         }
 
-        if (response instanceof Map resultMap) {
+        if (response instanceof final Map resultMap) {
             //The below logic helps with the handling of complex Map<String, Object> relationships
             if (!resultMap.isEmpty()) {
                 // Convert a resultMap to an entrySet iterator

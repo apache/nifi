@@ -67,7 +67,7 @@ public class StandardFieldValue implements FieldValue {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof StandardFieldValue other)) {
+        if (!(obj instanceof final StandardFieldValue other)) {
             return false;
         }
 

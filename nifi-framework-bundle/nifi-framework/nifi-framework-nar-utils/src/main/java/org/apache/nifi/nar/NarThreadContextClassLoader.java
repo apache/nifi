@@ -283,7 +283,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
 
         if (instanceClassLoadingAnnotation.cloneAncestorResources()) {
-            while (ancestorClassLoader instanceof NarClassLoader ancestorNarClassLoader) {
+            while (ancestorClassLoader instanceof final NarClassLoader ancestorNarClassLoader) {
                 final Bundle ancestorNarBundle = extensionManager.getBundle(ancestorClassLoader);
 
                 // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR

@@ -66,7 +66,7 @@ public class StandardParameterUpdate implements ParameterUpdate {
             return true;
         }
 
-        if (!(o instanceof StandardParameterUpdate that)) {
+        if (!(o instanceof final StandardParameterUpdate that)) {
             return false;
         }
 

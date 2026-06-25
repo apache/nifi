@@ -362,7 +362,7 @@ public class RelationshipAuditor extends NiFiAuditor {
         Component componentType = Component.Controller;
         if (connectable instanceof ProcessorNode) {
             componentType = Component.Processor;
-        } else if (connectable instanceof RemoteGroupPort remoteGroupPort) {
+        } else if (connectable instanceof final RemoteGroupPort remoteGroupPort) {
             if (TransferDirection.RECEIVE.equals(remoteGroupPort.getTransferDirection())) {
                 if (remoteGroupPort.getRemoteProcessGroup() == null) {
                     componentType = Component.InputPort;

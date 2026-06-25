@@ -70,7 +70,7 @@ public abstract class RecordPathSegment implements RecordPath {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordPath other)) {
+        if (!(obj instanceof final RecordPath other)) {
             return false;
         }
 

@@ -48,7 +48,7 @@ public class CacheVersionRequestHandler extends SimpleChannelInboundHandler<Cach
     protected void channelRead0(final ChannelHandlerContext channelHandlerContext, final CacheVersionRequest cacheVersionRequest) {
         for (final Map.Entry<String, ChannelHandler> entry : channelHandlerContext.channel().pipeline()) {
             final ChannelHandler channelHandler = entry.getValue();
-            if (channelHandler instanceof CacheRequestDecoder cacheRequestDecoder) {
+            if (channelHandler instanceof final CacheRequestDecoder cacheRequestDecoder) {
 
                 final int requestedVersion = cacheVersionRequest.getVersion();
                 final CacheVersionResponse cacheVersionResponse = handleVersion(cacheRequestDecoder, requestedVersion);

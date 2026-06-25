@@ -52,7 +52,7 @@ public class CounterMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof CounterMetricDescriptor<?> other)) {
+        if (!(obj instanceof final CounterMetricDescriptor<?> other)) {
             return false;
         }
 

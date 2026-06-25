@@ -74,7 +74,7 @@ public class MapDataType extends DataType {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof MapDataType that)) {
+        if (!(o instanceof final MapDataType that)) {
             return false;
         }
         if (!super.equals(o)) {

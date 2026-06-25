@@ -44,7 +44,7 @@ public class StandardPeerIdentityProvider implements PeerIdentityProvider {
         }
 
         final Certificate peerCertificate = peerCertificates[0];
-        if (peerCertificate instanceof X509Certificate certificate) {
+        if (peerCertificate instanceof final X509Certificate certificate) {
             try {
                 certificate.checkValidity();
             } catch (final CertificateException e) {
