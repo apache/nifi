@@ -144,18 +144,18 @@ class SnowpipeIngestClient {
                 InputStream responseBodyStream = responseEntity.body()
         ) {
             final int statusCode = responseEntity.statusCode();
+
+            final byte[] responseBodyBytes = responseBodyStream.readAllBytes();
+            final String responseBody = new String(responseBodyBytes);
+
             if (statusCode == HttpURLConnection.HTTP_OK) {
                 try {
-                    return objectMapper.readValue(responseBodyStream, InsertReport.class);
+                    return objectMapper.readValue(responseBody, InsertReport.class);
                 } catch (final JsonProcessingException e) {
-                    final byte[] responseBodyBytes = responseBodyStream.readAllBytes();
-                    final String responseBody = new String(responseBodyBytes);
                     final String message = "Insert Report [%s] response parsing failed [%s]".formatted(requestUri, responseBody);
                     throw new SnowpipeResponseException(message, e);
                 }
             } else {
-                final byte[] responseBodyBytes = responseBodyStream.readAllBytes();
-                final String responseBody = new String(responseBodyBytes);
                 final String message = "Insert Report failed GET [%s] HTTP %d Response [%s]".formatted(requestUri, statusCode, responseBody);
                 throw new SnowpipeResponseException(message);
             }
