@@ -371,6 +371,12 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
+    public void verifyConnectorReadyForMigration(final String connectorId) {
+        requireConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        connectorMigrationManager.verifyConnectorReadyForMigration(connectorId);
+    }
+
+    @Override
     public void migrateFromVersionedFlow(final String connectorId, final String processGroupId, final VersionedExternalFlow sourceFlow,
             final BooleanSupplier cancellationCheck) {
         requireConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);

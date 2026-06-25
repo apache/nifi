@@ -50,6 +50,17 @@ public interface ConnectorMigrationManager {
     void verifyEligibility(String connectorId, String processGroupId);
 
     /**
+     * Verifies that the target Connector is itself ready to receive a migration, independent of any particular source.
+     * This asserts that the Connector is stopped and that its active flow has not been modified from its initial flow.
+     * It is invoked synchronously when a migration request is submitted so the caller sees an unready Connector
+     * reported immediately rather than only after the asynchronous migration task runs. Throws an
+     * {@link IllegalStateException} when the Connector is not in a state that can receive a migration.
+     *
+     * @param connectorId the identifier of the target Connector
+     */
+    void verifyConnectorReadyForMigration(String connectorId);
+
+    /**
      * Migrates the target Connector by updating the Connector's own flow to mirror the configuration, parameters, and
      * component state captured in the given source flow. When {@code processGroupId} is non-null the migration is
      * treated as a local-source migration (and the source Process Group is disabled and renamed on success); when

@@ -30,9 +30,12 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Set;
 
@@ -85,9 +88,20 @@ public class AssetReadingProcessor extends AbstractProcessor {
             return;
         }
 
-        try (final InputStream inputStream = new FileInputStream(sourceFile);
-             final OutputStream outputStream = new FileOutputStream(outputFile)) {
-            StreamUtils.copy(inputStream, outputStream);
+        final Path outputPath = outputFile.toPath();
+        final Path temporaryPath = outputPath.resolveSibling(outputFile.getName() + ".tmp");
+        try {
+            try (final InputStream inputStream = new FileInputStream(sourceFile);
+                 final OutputStream outputStream = Files.newOutputStream(temporaryPath)) {
+                StreamUtils.copy(inputStream, outputStream);
+            }
+
+            try {
+                Files.move(temporaryPath, outputPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (final AtomicMoveNotSupportedException e) {
+                Files.move(temporaryPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
             getLogger().error("Failed to read asset file {} to {}", sourceFile.getAbsolutePath(), outputFile.getAbsolutePath(), e);

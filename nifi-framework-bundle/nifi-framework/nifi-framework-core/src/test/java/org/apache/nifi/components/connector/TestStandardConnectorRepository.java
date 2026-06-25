@@ -201,6 +201,35 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
+    public void testSyncConnectorSkipsAssetCleanupWhileMigrationInProgress() throws Exception {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset unreferencedAsset = mock(Asset.class);
+        when(unreferencedAsset.getIdentifier()).thenReturn("copied-during-migration");
+        when(unreferencedAsset.getName()).thenReturn("copied.txt");
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(unreferencedAsset));
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+
+        // While a migration is in progress, a sync must not reclaim assets the migration may have copied before the
+        // managed Process Group is rebuilt to reference them, even though they appear unreferenced.
+        repository.beginMigration("connector-1");
+        repository.syncConnector(versioned);
+        verify(assetManager, never()).deleteAsset(anyString());
+
+        // Once the migration completes, the next sync reclaims the now-genuinely-unreferenced asset.
+        repository.endMigration("connector-1");
+        repository.syncConnector(versioned);
+        verify(assetManager).deleteAsset("copied-during-migration");
+    }
+
+    @Test
     public void testSyncConnectorInTroubleshootingDoesNotCleanUpAssets() throws Exception {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
@@ -1149,6 +1178,34 @@ public class TestStandardConnectorRepository {
 
         verify(connector, timeout(5000)).abortUpdate(any(FlowUpdateException.class));
         verify(connector, never()).markInvalid(anyString(), anyString());
+    }
+
+    @Test
+    public void testApplyUpdateAbortsWhenClusterStateRepeatedlyUnavailable() throws Exception {
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(mock(FlowManager.class));
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+
+        final AssetManager assetManager = mock(AssetManager.class);
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of());
+        when(initContext.getAssetManager()).thenReturn(assetManager);
+
+        final ConnectorRequestReplicator requestReplicator = mock(ConnectorRequestReplicator.class);
+        when(requestReplicator.getState(anyString())).thenThrow(new IOException("cluster state unavailable"));
+        when(initContext.getRequestReplicator()).thenReturn(requestReplicator);
+        repository.initialize(initContext);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(connector.getDesiredState()).thenReturn(ConnectorState.STOPPED);
+        repository.addConnector(connector);
+
+        repository.applyUpdate(connector, mock(ConnectorUpdateContext.class));
+
+        // An inability to read cluster state must abort the update rather than retry indefinitely. The IOException
+        // propagates out of waitForState and is handed to abortUpdate, rather than being swallowed by a retry loop.
+        verify(connector, timeout(5000)).abortUpdate(any(IOException.class));
     }
 
     @Test

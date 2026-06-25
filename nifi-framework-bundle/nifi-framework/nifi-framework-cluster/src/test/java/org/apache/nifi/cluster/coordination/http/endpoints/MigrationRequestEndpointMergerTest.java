@@ -83,6 +83,31 @@ public class MigrationRequestEndpointMergerTest {
     }
 
     @Test
+    public void testMergeReflectsMostRecentLastUpdated() {
+        final MigrationRequestEntity client = createMigrationRequest(false, null, 90, new Date(2_000L));
+        final Map<NodeIdentifier, MigrationRequestEntity> map = new LinkedHashMap<>();
+        map.put(nodeId("node-1", 8080), createMigrationRequest(false, null, 60, new Date(3_500L)));
+        map.put(nodeId("node-2", 8081), createMigrationRequest(false, null, 25, new Date(1_000L)));
+
+        merger.mergeResponses(client, map, null, null);
+
+        // The merged timestamp must reflect the latest activity across the cluster rather than the oldest, so a
+        // polling client never sees the displayed timestamp move backward as nodes report.
+        assertEquals(new Date(3_500L), client.getRequest().getLastUpdated());
+    }
+
+    @Test
+    public void testMergeAdoptsNodeLastUpdatedWhenClientHasNone() {
+        final MigrationRequestEntity client = createMigrationRequest(false, null, 90, null);
+        final Map<NodeIdentifier, MigrationRequestEntity> map = new LinkedHashMap<>();
+        map.put(nodeId("node-1", 8080), createMigrationRequest(false, null, 60, new Date(1_200L)));
+
+        merger.mergeResponses(client, map, null, null);
+
+        assertEquals(new Date(1_200L), client.getRequest().getLastUpdated());
+    }
+
+    @Test
     public void testMergePropagatesPerStepFailures() {
         final MigrationRequestEntity client = createMigrationRequest(true, null, 100, new Date(2_000L));
         final MigrationRequestEntity nodeFailure = createMigrationRequest(true, null, 100, new Date(2_500L));

@@ -75,6 +75,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private static final int CUSTOM_LOGGING_ATTRIBUTE_CARDINALITY_WARN_THRESHOLD = 5;
 
     private final Map<String, ConnectorNode> connectors = new ConcurrentHashMap<>();
+    private final Set<String> connectorsBeingMigrated = ConcurrentHashMap.newKeySet();
     private final FlowEngine lifecycleExecutor = new FlowEngine(8, "NiFi Connector Lifecycle");
 
     private volatile FlowManager flowManager;
@@ -300,8 +301,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         // Clean up assets after configuration has been inherited so that the Connector's flow contexts reflect the
         // synchronized configuration; performing this before synchronization would treat still-referenced assets as
-        // unreferenced because the managed flow has not yet been populated.
-        cleanUpAssets(connector);
+        // unreferenced because the managed flow has not yet been populated. Skip cleanup while a migration is in
+        // progress for this Connector: a migration copies assets before it rebuilds the managed Process Group to
+        // reference them, so reclaiming unreferenced assets during that window could delete the just-copied assets.
+        if (connectorsBeingMigrated.contains(connectorId)) {
+            logger.debug("Skipping asset cleanup for {} because a migration is in progress", connector);
+        } else {
+            cleanUpAssets(connector);
+        }
 
         return configChanged
                 ? ConnectorSyncResult.synced(connector, effectiveScheduledState)
@@ -695,16 +702,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         int iterations = 0;
         final long startNanos = System.nanoTime();
         while (true) {
-            final ConnectorState clusterState;
-            try {
-                clusterState = requestReplicator.getState(connector.getIdentifier());
-            } catch (final IOException e) {
-                final long elapsedSeconds = Duration.ofNanos(System.nanoTime() - startNanos).toSeconds();
-                logger.warn("Failed to retrieve cluster state for {} while waiting for update completion; elapsed time = {} secs", connector, elapsedSeconds, e);
-                Thread.sleep(Duration.ofSeconds(1));
-                continue;
-            }
-
+            final ConnectorState clusterState = requestReplicator.getState(connector.getIdentifier());
             if (desiredStates.contains(clusterState)) {
                 logger.info("State for {} is now {}", connector, clusterState);
                 break;
@@ -724,6 +722,16 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
             throw new FlowUpdateException("While waiting for %s to transition to state in set %s, connector transitioned to unexpected state: %s".formatted(connector, desiredStates, clusterState));
         }
+    }
+
+    @Override
+    public void beginMigration(final String connectorId) {
+        connectorsBeingMigrated.add(connectorId);
+    }
+
+    @Override
+    public void endMigration(final String connectorId) {
+        connectorsBeingMigrated.remove(connectorId);
     }
 
     private void cleanUpAssets(final ConnectorNode connector) {

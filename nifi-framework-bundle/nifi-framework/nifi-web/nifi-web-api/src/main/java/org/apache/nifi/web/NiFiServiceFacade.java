@@ -317,6 +317,17 @@ public interface NiFiServiceFacade {
 
     void verifyCanMigrateConnector(String connectorId, String processGroupId);
 
+    /**
+     * Verifies that the target Connector is itself ready to receive a migration, independent of any particular
+     * source. This asserts the Connector is stopped and that its active flow has not been modified from its initial
+     * flow, so that a migration request submitted for an uploaded-payload source reports an unready Connector
+     * immediately rather than only after the asynchronous migration task runs.
+     *
+     * @param connectorId the identifier of the target Connector
+     * @throws IllegalStateException if the Connector is not in a state that can receive a migration
+     */
+    void verifyConnectorReadyForMigration(String connectorId);
+
     ConnectorEntity migrateConnector(String connectorId, String processGroupId, RegisteredFlowSnapshot flowSnapshot, BooleanSupplier cancellationCheck);
 
     /**
@@ -1934,6 +1945,21 @@ public interface NiFiServiceFacade {
      * @return the current Process Group converted to a Versioned Flow Snapshot for download
      */
     RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId, boolean includeReferencedServices, boolean includeComponentState);
+
+    /**
+     * Get the current state of the Process Group with the given ID, converted to a Versioned Flow Snapshot for download.
+     * Optionally includes referenced controller services from parent groups, component state, and asset references.
+     * Asset references identify assets by their NiFi-internal identifiers, which are meaningful only on this instance;
+     * they should be mapped only for the Connector migration source capture and not for general process-group export.
+     *
+     * @param processGroupId the ID of the Process Group
+     * @param includeReferencedServices whether to include referenced controller services from parent groups
+     * @param includeComponentState whether to include component state in the export. When true, all processors must be stopped
+     *                              and all controller services must be disabled.
+     * @param mapAssetReferences whether to include asset references in the exported snapshot
+     * @return the current Process Group converted to a Versioned Flow Snapshot for download
+     */
+    RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId, boolean includeReferencedServices, boolean includeComponentState, boolean mapAssetReferences);
 
     /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return

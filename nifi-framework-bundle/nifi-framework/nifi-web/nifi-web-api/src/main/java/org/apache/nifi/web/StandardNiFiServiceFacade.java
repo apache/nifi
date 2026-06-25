@@ -4216,6 +4216,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyConnectorReadyForMigration(final String connectorId) {
+        connectorDAO.verifyConnectorReadyForMigration(connectorId);
+    }
+
+    @Override
     public ConnectorEntity migrateConnector(final String connectorId, final String processGroupId, final RegisteredFlowSnapshot flowSnapshot,
             final BooleanSupplier cancellationCheck) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -6315,6 +6320,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedServices, final boolean includeComponentState) {
+        return getCurrentFlowSnapshotByGroupId(processGroupId, includeReferencedServices, includeComponentState, false);
+    }
+
+    @Override
+    public RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedServices, final boolean includeComponentState,
+            final boolean mapAssetReferences) {
         if (!includeComponentState) {
             return getCurrentFlowSnapshotByGroupId(processGroupId, includeReferencedServices);
         }
@@ -6349,7 +6360,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .mapInstanceIdentifiers(false)
                 .mapControllerServiceReferencesToVersionedId(true)
                 .mapFlowRegistryClientId(false)
-                .mapAssetReferences(true)
+                .mapAssetReferences(mapAssetReferences)
                 .mapComponentState(includeComponentState)
                 .stateManagerProvider(stateManagerProvider)
                 .localNodeOrdinal(clusterTopologyProvider.getLocalNodeOrdinal())

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.tests.system.connectors;
 
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -121,14 +123,12 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
                 "reasonNotAllowed must explain that the Connector has been modified; got: " + migrateAfterMigration.getReasonNotAllowed());
 
         // The migrate-time guard must also reject a second migration attempt; this is the safety net that prevents
-        // the action gate from being bypassed by a direct REST call. Migration requests are asynchronous, so we
-        // start the request and then verify that it ultimately fails with the same reason the action surfaced.
-        final MigrationRequestEntity secondAttempt = getClientUtil().startMigrationFromLocalSource(connectorId, sourceFixture.processGroup().getId());
-        final MigrationRequestEntity secondAttemptResult = getClientUtil().waitForMigrationFailure(connectorId, secondAttempt.getRequest().getRequestId());
-        final String secondAttemptFailure = secondAttemptResult.getRequest().getFailureReason();
-        assertNotNull(secondAttemptFailure, "A second migration attempt must report a failure reason");
-        assertTrue(secondAttemptFailure.toLowerCase().contains("modified"),
-                "Second migration attempt must be rejected because the Connector has been modified; got: " + secondAttemptFailure);
+        // the action gate from being bypassed by a direct REST call. The readiness check runs synchronously when the
+        // migration request is created, so the second attempt is rejected immediately rather than failing later.
+        final NiFiClientException secondAttemptException = assertThrows(NiFiClientException.class,
+                () -> getClientUtil().startMigrationFromLocalSource(connectorId, sourceFixture.processGroup().getId()));
+        assertTrue(secondAttemptException.getMessage().toLowerCase().contains("modified"),
+                "Second migration attempt must be rejected because the Connector has been modified; got: " + secondAttemptException.getMessage());
     }
 
     @Test

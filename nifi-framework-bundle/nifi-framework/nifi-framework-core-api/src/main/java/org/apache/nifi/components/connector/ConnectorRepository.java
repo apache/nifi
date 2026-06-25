@@ -282,4 +282,25 @@ public interface ConnectorRepository {
      * @param connector the connector whose assets should be synced
      */
     void syncAssetsFromProvider(ConnectorNode connector);
+
+    /**
+     * Marks the connector with the given identifier as having a migration in progress. While a migration is in
+     * progress, {@link #syncConnector(VersionedConnector)} must not reclaim unreferenced assets for the connector,
+     * because a migration copies assets before the managed Process Group is rebuilt to reference them; reclaiming
+     * during that window could delete assets the migration just copied.
+     *
+     * @param connectorId the identifier of the connector whose migration is starting
+     */
+    default void beginMigration(final String connectorId) {
+    }
+
+    /**
+     * Clears the migration-in-progress marker set by {@link #beginMigration(String)} for the connector with the
+     * given identifier. Implementations must invoke this from a {@code finally} block so the marker is cleared
+     * whether the migration succeeds or fails.
+     *
+     * @param connectorId the identifier of the connector whose migration has finished
+     */
+    default void endMigration(final String connectorId) {
+    }
 }
