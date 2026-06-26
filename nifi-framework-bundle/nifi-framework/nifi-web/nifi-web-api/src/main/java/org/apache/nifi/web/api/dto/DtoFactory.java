@@ -1482,11 +1482,6 @@ public final class DtoFactory {
             dto.setAllowRemoteAccess(true);
             dto.setTransmitting(publicPort.isTransmitting());
         }
-        // if this port is remotely accessible, determine if its actually connected to another nifi
-        if (port instanceof final PublicPort publicPort) {
-            dto.setAllowRemoteAccess(true);
-            dto.setTransmitting(publicPort.isTransmitting());
-        }
 
         final Collection<ValidationResult> validationErrors = port.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
