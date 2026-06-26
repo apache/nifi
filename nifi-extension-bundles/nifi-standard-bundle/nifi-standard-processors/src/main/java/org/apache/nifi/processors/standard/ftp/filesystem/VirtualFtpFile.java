@@ -159,10 +159,9 @@ public class VirtualFtpFile implements FtpFile {
         if (o == this) {
             return true;
         }
-        if (!(o instanceof VirtualFtpFile)) {
+        if (!(o instanceof final VirtualFtpFile other)) {
             return false;
         }
-        VirtualFtpFile other = (VirtualFtpFile) o;
         return fileSystem.equals(other.fileSystem) && path.equals(other.path);
     }
 

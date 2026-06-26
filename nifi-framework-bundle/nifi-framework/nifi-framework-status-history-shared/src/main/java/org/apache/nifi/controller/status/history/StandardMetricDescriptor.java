@@ -48,11 +48,10 @@ public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof MetricDescriptor)) {
+        if (!(obj instanceof final MetricDescriptor<?> other)) {
             return false;
         }
 
-        MetricDescriptor<?> other = (MetricDescriptor<?>) obj;
         return getField().equals(other.getField());
     }
 

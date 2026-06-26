@@ -40,8 +40,7 @@ public class OSql extends Sql {
     @Override
     protected void setObject(PreparedStatement statement, int i, Object value) throws SQLException {
         try {
-            if (value instanceof InParameter) {
-                InParameter p = (InParameter) value;
+            if (value instanceof final InParameter p) {
                 if (p.getType() == Types.BLOB && p.getValue() instanceof InputStream) {
                     statement.setBlob(i, (InputStream) p.getValue());
                     return;

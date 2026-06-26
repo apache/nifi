@@ -67,11 +67,10 @@ public class NodeInformation {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof NodeInformation)) {
+        if (!(obj instanceof final NodeInformation other)) {
             return false;
         }
 
-        final NodeInformation other = (NodeInformation) obj;
         if (!siteToSiteHostname.equals(other.siteToSiteHostname)) {
             return false;
         }

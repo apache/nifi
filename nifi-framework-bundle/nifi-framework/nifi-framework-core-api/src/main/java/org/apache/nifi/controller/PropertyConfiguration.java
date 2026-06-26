@@ -89,11 +89,10 @@ public class PropertyConfiguration {
             return false;
         }
 
-        if (!(o instanceof PropertyConfiguration)) {
+        if (!(o instanceof final PropertyConfiguration that)) {
             return false;
         }
 
-        final PropertyConfiguration that = (PropertyConfiguration) o;
         return Objects.equals(rawValue, that.rawValue);
     }
 

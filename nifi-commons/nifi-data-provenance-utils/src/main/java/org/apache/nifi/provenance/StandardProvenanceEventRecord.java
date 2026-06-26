@@ -323,11 +323,10 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof StandardProvenanceEventRecord)) {
+        if (!(obj instanceof final StandardProvenanceEventRecord other)) {
             return false;
         }
 
-        final StandardProvenanceEventRecord other = (StandardProvenanceEventRecord) obj;
         // If event ID's are populated and not equal, return false. If they have not yet been populated, do not
         // use them in the comparison.
         if (eventId > 0L && other.getEventId() > 0L && eventId != other.getEventId()) {
@@ -520,8 +519,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 
             sourceQueueIdentifier = event.getSourceQueueIdentifier();
 
-            if (event instanceof StandardProvenanceEventRecord) {
-                final StandardProvenanceEventRecord standardProvEvent = (StandardProvenanceEventRecord) event;
+            if (event instanceof final StandardProvenanceEventRecord standardProvEvent) {
                 storageByteOffset = standardProvEvent.storageByteOffset;
                 storageFilename = standardProvEvent.storageFilename;
             }

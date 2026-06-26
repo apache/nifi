@@ -89,11 +89,10 @@ public class ComponentDifferenceDTO {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof ComponentDifferenceDTO)) {
+        if (!(obj instanceof final ComponentDifferenceDTO other)) {
             return false;
         }
 
-        final ComponentDifferenceDTO other = (ComponentDifferenceDTO) obj;
         return componentId.equals(other.getComponentId());
     }
 }

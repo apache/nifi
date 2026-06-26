@@ -52,11 +52,10 @@ public class CounterMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof CounterMetricDescriptor)) {
+        if (!(obj instanceof final CounterMetricDescriptor<?> other)) {
             return false;
         }
 
-        MetricDescriptor<?> other = (MetricDescriptor<?>) obj;
         return getField().equals(other.getField());
     }
 

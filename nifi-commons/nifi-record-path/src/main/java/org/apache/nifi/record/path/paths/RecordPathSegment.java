@@ -70,11 +70,10 @@ public abstract class RecordPathSegment implements RecordPath {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof RecordPath)) {
+        if (!(obj instanceof final RecordPath other)) {
             return false;
         }
 
-        final RecordPath other = (RecordPath) obj;
         return getPath().equals(other.getPath());
     }
 

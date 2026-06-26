@@ -74,11 +74,10 @@ public class BundleCoordinate {
             return false;
         }
 
-        if (!(obj instanceof BundleCoordinate)) {
+        if (!(obj instanceof final BundleCoordinate other)) {
             return false;
         }
 
-        final BundleCoordinate other = (BundleCoordinate) obj;
         return getCoordinate().equals(other.getCoordinate());
     }
 

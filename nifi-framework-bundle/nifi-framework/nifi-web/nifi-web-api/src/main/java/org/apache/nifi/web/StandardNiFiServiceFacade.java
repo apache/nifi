@@ -3253,8 +3253,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final ComponentNode component : reference.getReferencingComponents()) {
 
             // if this is a ControllerService consider it's referencing components
-            if (component instanceof ControllerServiceNode) {
-                final ControllerServiceNode node = (ControllerServiceNode) component;
+            if (component instanceof final ControllerServiceNode node) {
                 if (!visited.contains(node)) {
                     visited.add(node);
                     findControllerServiceReferencingComponentIdentifiers(node.getReferences(), visited);
@@ -3320,8 +3319,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(flowMod);
             final ControllerServiceReferencingComponentDTO dto = dtoFactory.createControllerServiceReferencingComponentDTO(refComponent);
 
-            if (refComponent instanceof ControllerServiceNode) {
-                final ControllerServiceNode node = (ControllerServiceNode) refComponent;
+            if (refComponent instanceof final ControllerServiceNode node) {
 
                 // indicate if we've hit a cycle
                 dto.setReferenceCycle(visited.contains(node));

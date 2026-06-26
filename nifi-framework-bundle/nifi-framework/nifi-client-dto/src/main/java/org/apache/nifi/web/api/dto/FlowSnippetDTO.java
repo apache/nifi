@@ -210,8 +210,7 @@ public class FlowSnippetDTO {
 
                 id = new UUID(this.generateMsb(componentDto.getParentGroupId()), LSB);
                 componentDto.setParentGroupId(id.toString());
-                if (componentDto instanceof ControllerServiceDTO) {
-                    ControllerServiceDTO csDTO = (ControllerServiceDTO) componentDto;
+                if (componentDto instanceof final ControllerServiceDTO csDTO) {
                     Map<String, PropertyDescriptorDTO> map = csDTO.getDescriptors();
                     Map<String, String> props = csDTO.getProperties();
                     for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
@@ -222,8 +221,7 @@ public class FlowSnippetDTO {
                             props.put(key, id.toString());
                         }
                     }
-                } else if (componentDto instanceof ProcessorDTO) {
-                    ProcessorDTO processorDTO = (ProcessorDTO) componentDto;
+                } else if (componentDto instanceof final ProcessorDTO processorDTO) {
                     Map<String, PropertyDescriptorDTO> map = processorDTO.getConfig().getDescriptors();
                     Map<String, String> props = processorDTO.getConfig().getProperties();
                     for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
@@ -234,8 +232,7 @@ public class FlowSnippetDTO {
                             props.put(key, id.toString());
                         }
                     }
-                } else if (componentDto instanceof ConnectionDTO) {
-                    ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
+                } else if (componentDto instanceof final ConnectionDTO connectionDTO) {
 
                     ConnectableDTO cdto = connectionDTO.getSource();
                     if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {

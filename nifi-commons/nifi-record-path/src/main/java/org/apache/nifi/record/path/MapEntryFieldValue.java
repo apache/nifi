@@ -68,11 +68,10 @@ public class MapEntryFieldValue extends StandardFieldValue {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof MapEntryFieldValue)) {
+        if (!(obj instanceof final MapEntryFieldValue other)) {
             return false;
         }
 
-        final MapEntryFieldValue other = (MapEntryFieldValue) obj;
         return Objects.equals(getValue(), other.getValue()) && Objects.equals(getField(), other.getField())
             && Objects.equals(getParent(), other.getParent()) && Objects.equals(getMapKey(), other.getMapKey());
     }

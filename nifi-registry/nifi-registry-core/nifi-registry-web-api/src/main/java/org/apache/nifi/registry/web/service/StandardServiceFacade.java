@@ -1272,8 +1272,7 @@ public class StandardServiceFacade implements ServiceFacade {
     private void populateRevisableEntities(final List<?> entities) {
         if (!revisionFeature.isEnabled()) {
             for (final Object entity : entities) {
-                if (entity instanceof RevisableEntity) {
-                    final RevisableEntity revisableEntity = (RevisableEntity) entity;
+                if (entity instanceof final RevisableEntity revisableEntity) {
                     if (revisableEntity.getRevision() == null) {
                         revisableEntity.setRevision(new RevisionInfo(null, 0L));
                     }

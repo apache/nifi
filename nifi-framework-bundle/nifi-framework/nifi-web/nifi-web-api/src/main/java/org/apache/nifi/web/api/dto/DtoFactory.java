@@ -832,8 +832,7 @@ public final class DtoFactory {
         dto.setType(connectable.getConnectableType().name());
         dto.setVersionedComponentId(connectable.getVersionedComponentId().orElse(null));
 
-        if (connectable instanceof RemoteGroupPort) {
-            final RemoteGroupPort remoteGroupPort = (RemoteGroupPort) connectable;
+        if (connectable instanceof final RemoteGroupPort remoteGroupPort) {
             final RemoteProcessGroup remoteGroup = remoteGroupPort.getRemoteProcessGroup();
             dto.setGroupId(remoteGroup.getIdentifier());
             dto.setRunning(remoteGroupPort.isTargetRunning());
@@ -1964,8 +1963,7 @@ public final class DtoFactory {
         String processGroupId = null;
         List<PropertyDescriptor> propertyDescriptors = null;
         Collection<ValidationResult> validationErrors = null;
-        if (component instanceof ProcessorNode) {
-            final ProcessorNode node = ((ProcessorNode) component);
+        if (component instanceof final ProcessorNode node) {
             dto.setState(node.getScheduledState().name());
             dto.setActiveThreadCount(node.getActiveThreadCount());
             dto.setType(node.getComponentType());
@@ -1974,8 +1972,7 @@ public final class DtoFactory {
             propertyDescriptors = node.getProcessor().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = node.getProcessGroup().getIdentifier();
-        } else if (component instanceof ControllerServiceNode) {
-            final ControllerServiceNode node = ((ControllerServiceNode) component);
+        } else if (component instanceof final ControllerServiceNode node) {
             dto.setState(node.getState().name());
             dto.setType(node.getComponentType());
             dto.setReferenceType(ControllerService.class.getSimpleName());
@@ -1983,8 +1980,7 @@ public final class DtoFactory {
             propertyDescriptors = node.getControllerServiceImplementation().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = node.getProcessGroup() == null ? null : node.getProcessGroup().getIdentifier();
-        } else if (component instanceof ReportingTaskNode) {
-            final ReportingTaskNode node = ((ReportingTaskNode) component);
+        } else if (component instanceof final ReportingTaskNode node) {
             dto.setState(node.getScheduledState().name());
             dto.setActiveThreadCount(node.getActiveThreadCount());
             dto.setType(node.getComponentType());
@@ -1993,8 +1989,7 @@ public final class DtoFactory {
             propertyDescriptors = node.getReportingTask().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = null;
-        } else if (component instanceof FlowAnalysisRuleNode) {
-            final FlowAnalysisRuleNode node = ((FlowAnalysisRuleNode) component);
+        } else if (component instanceof final FlowAnalysisRuleNode node) {
             dto.setState(node.getState().name());
             dto.setType(node.getComponentType());
             dto.setReferenceType(FlowAnalysisRule.class.getSimpleName());
@@ -2002,16 +1997,14 @@ public final class DtoFactory {
             propertyDescriptors = node.getFlowAnalysisRule().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = null;
-        } else if (component instanceof ParameterProviderNode) {
-            final ParameterProviderNode node = ((ParameterProviderNode) component);
+        } else if (component instanceof final ParameterProviderNode node) {
             dto.setType(node.getComponentType());
             dto.setReferenceType(ParameterProvider.class.getSimpleName());
 
             propertyDescriptors = node.getParameterProvider().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
             processGroupId = null;
-        } else if (component instanceof FlowRegistryClientNode) {
-            final FlowRegistryClientNode node = (FlowRegistryClientNode) component;
+        } else if (component instanceof final FlowRegistryClientNode node) {
 
             dto.setType(node.getComponentType());
             dto.setReferenceType(FlowRegistryClient.class.getSimpleName());
@@ -2248,11 +2241,10 @@ public final class DtoFactory {
     }
 
     public ComponentReferenceDTO createComponentReferenceDto(final Authorizable authorizable) {
-        if (authorizable == null || !(authorizable instanceof ComponentAuthorizable)) {
+        if (authorizable == null || !(authorizable instanceof final ComponentAuthorizable componentAuthorizable)) {
             return null;
         }
 
-        final ComponentAuthorizable componentAuthorizable = (ComponentAuthorizable) authorizable;
         final ComponentReferenceDTO dto = new ComponentReferenceDTO();
         dto.setId(componentAuthorizable.getIdentifier());
         dto.setParentGroupId(componentAuthorizable.getProcessGroupIdentifier());
@@ -2473,13 +2465,11 @@ public final class DtoFactory {
         dto.setName(component.getName());
         dto.setProcessGroupId(component.getProcessGroupIdentifier());
 
-        if (component instanceof ProcessorNode) {
-            final ProcessorNode node = ((ProcessorNode) component);
+        if (component instanceof final ProcessorNode node) {
             dto.setState(node.getDesiredState().name());
             dto.setActiveThreadCount(node.getActiveThreadCount());
             dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
-        } else if (component instanceof ControllerServiceNode) {
-            final ControllerServiceNode node = ((ControllerServiceNode) component);
+        } else if (component instanceof final ControllerServiceNode node) {
             dto.setState(node.getState().name());
             dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
         }
@@ -2503,13 +2493,11 @@ public final class DtoFactory {
         dto.setName(component.getName());
         dto.setProcessGroupId(component.getProcessGroupIdentifier());
 
-        if (component instanceof ProcessorNode) {
-            final ProcessorNode node = ((ProcessorNode) component);
+        if (component instanceof final ProcessorNode node) {
             dto.setState(node.getScheduledState().name());
             dto.setActiveThreadCount(node.getActiveThreadCount());
             dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
-        } else if (component instanceof ControllerServiceNode) {
-            final ControllerServiceNode node = ((ControllerServiceNode) component);
+        } else if (component instanceof final ControllerServiceNode node) {
             dto.setState(node.getState().name());
             dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
         }
@@ -2979,8 +2967,7 @@ public final class DtoFactory {
         dto.setComponentName(component.getName());
         dto.setComponentType(component.getComponentType().toString());
 
-        if (component instanceof InstantiatedVersionedComponent) {
-            final InstantiatedVersionedComponent instantiatedComponent = (InstantiatedVersionedComponent) component;
+        if (component instanceof final InstantiatedVersionedComponent instantiatedComponent) {
             dto.setComponentId(instantiatedComponent.getInstanceIdentifier());
             dto.setProcessGroupId(instantiatedComponent.getInstanceGroupId());
         } else {

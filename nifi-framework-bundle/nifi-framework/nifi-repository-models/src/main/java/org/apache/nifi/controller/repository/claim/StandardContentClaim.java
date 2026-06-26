@@ -70,11 +70,10 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
             return false;
         }
 
-        if (!(obj instanceof ContentClaim)) {
+        if (!(obj instanceof final ContentClaim other)) {
             return false;
         }
 
-        final ContentClaim other = (ContentClaim) obj;
         if (offset != other.getOffset()) {
             return false;
         }

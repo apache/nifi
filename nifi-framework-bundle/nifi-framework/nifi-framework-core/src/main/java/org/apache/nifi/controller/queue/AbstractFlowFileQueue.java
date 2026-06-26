@@ -534,10 +534,9 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         if (o == this) {
             return true;
         }
-        if (!(o instanceof AbstractFlowFileQueue)) {
+        if (!(o instanceof final AbstractFlowFileQueue other)) {
             return false;
         }
-        AbstractFlowFileQueue other = (AbstractFlowFileQueue) o;
         return identifier.equals(other.identifier);
     }
 }

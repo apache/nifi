@@ -66,11 +66,10 @@ public class FlowFileLineage implements Lineage {
             return true;
         }
 
-        if (!(obj instanceof FlowFileLineage)) {
+        if (!(obj instanceof final FlowFileLineage other)) {
             return false;
         }
 
-        final FlowFileLineage other = (FlowFileLineage) obj;
         return nodes.equals(other.nodes) && edges.equals(other.edges);
     }
 }

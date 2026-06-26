@@ -38,8 +38,7 @@ public class HapiField implements HL7Field, HL7Component {
         this.value = PipeParser.encode(type, EncodingCharacters.defaultInstance());
 
         final List<HL7Component> componentList = new ArrayList<>();
-        if (type instanceof Composite) {
-            final Composite composite = (Composite) type;
+        if (type instanceof final Composite composite) {
 
             for (final Type component : composite.getComponents()) {
                 componentList.add(new HapiField(component));

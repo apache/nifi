@@ -47,8 +47,7 @@ public class DotEvaluator implements Evaluator<Object> {
         }
 
         final List<Object> results = new ArrayList<>();
-        if (lhsValue instanceof Collection) {
-            final Collection<?> lhsCollection = (Collection<?>) lhsValue;
+        if (lhsValue instanceof final Collection<?> lhsCollection) {
             for (final Object obj : lhsCollection) {
                 final Object val = getValue(obj, rhsValue);
                 results.add(val);

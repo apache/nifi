@@ -504,8 +504,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                 break;
             }
 
-            if (component instanceof ControllerServiceNode) {
-                final ControllerServiceNode refControllerService = (ControllerServiceNode) component;
+            if (component instanceof final ControllerServiceNode refControllerService) {
                 reference = findControllerServiceReferencingComponent(refControllerService.getReferences(), id);
                 if (reference != null) {
                     break;

@@ -152,8 +152,7 @@ abstract class MessageBodyToBytesConverter {
             while (mapNames.hasMoreElements()) {
                 String name = (String) mapNames.nextElement();
                 Object value = message.getObject(name);
-                if (value instanceof byte[]) {
-                    byte[] bytes = (byte[]) value;
+                if (value instanceof final byte[] bytes) {
                     List<Byte> byteList = new ArrayList<>(bytes.length);
                     for (byte aByte : bytes) {
                         byteList.add(aByte);

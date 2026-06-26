@@ -49,8 +49,7 @@ public class HandleHttpRequestCertificateAttributesProvider implements Certifica
         final Map<String, String> attributes;
 
         final Object requestCertificates = request.getAttribute(REQUEST_CERTIFICATES_ATTRIBUTE_NAME);
-        if (requestCertificates instanceof X509Certificate[]) {
-            final X509Certificate[] certificates = (X509Certificate[]) requestCertificates;
+        if (requestCertificates instanceof final X509Certificate[] certificates) {
             if (certificates.length == 0) {
                 attributes = Collections.emptyMap();
             } else {

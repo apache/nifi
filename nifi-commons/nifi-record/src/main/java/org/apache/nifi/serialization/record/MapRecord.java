@@ -557,16 +557,14 @@ public class MapRecord implements Record {
             } else if (fieldValue instanceof final Record childRecord) {
                 childRecord.regenerateSchema();
                 schemaFields.add(new RecordField(schemaField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(childRecord.getSchema()), schemaField.isNullable()));
-            } else if (schemaField.getDataType().getFieldType() == RecordFieldType.ARRAY && fieldValue instanceof Object[]) {
+            } else if (schemaField.getDataType().getFieldType() == RecordFieldType.ARRAY && fieldValue instanceof final Object[] array) {
                 // Handle arrays of records - regenerate schema based on actual element schemas
                 final ArrayDataType arrayType = (ArrayDataType) schemaField.getDataType();
                 final DataType elementType = arrayType.getElementType();
                 if (elementType.getFieldType() == RecordFieldType.RECORD) {
-                    final Object[] array = (Object[]) fieldValue;
                     RecordSchema mergedElementSchema = null;
                     for (final Object element : array) {
-                        if (element instanceof Record) {
-                            final Record elementRecord = (Record) element;
+                        if (element instanceof final Record elementRecord) {
                             elementRecord.regenerateSchema();
                             if (mergedElementSchema == null) {
                                 mergedElementSchema = elementRecord.getSchema();
@@ -649,11 +647,10 @@ public class MapRecord implements Record {
         if (arrayObject == null) {
             return;
         }
-        if (!(arrayObject instanceof Object[])) {
+        if (!(arrayObject instanceof final Object[] array)) {
             return;
         }
 
-        final Object[] array = (Object[]) arrayObject;
         if (arrayIndex >= array.length) {
             return;
         }
@@ -767,8 +764,7 @@ public class MapRecord implements Record {
             return specField;
         }
 
-        if (fieldType == RecordFieldType.RECORD && value instanceof Record) {
-            final Record childRecord = (Record) value;
+        if (fieldType == RecordFieldType.RECORD && value instanceof final Record childRecord) {
             childRecord.incorporateInactiveFields();
 
             final RecordSchema definedChildSchema = ((RecordDataType) dataType).getChildSchema();
@@ -779,12 +775,11 @@ public class MapRecord implements Record {
             return new RecordField(specField.getFieldName(), combinedDataType, specField.getDefaultValue(), specField.getAliases(), specField.isNullable());
         }
 
-        if (fieldType == RecordFieldType.ARRAY && value instanceof Object[]) {
+        if (fieldType == RecordFieldType.ARRAY && value instanceof final Object[] array) {
             final DataType elementType = ((ArrayDataType) dataType).getElementType();
             final RecordFieldType elementFieldType = elementType.getFieldType();
 
             if (elementFieldType == RecordFieldType.RECORD) {
-                final Object[] array = (Object[]) value;
                 RecordSchema mergedSchema = ((RecordDataType) elementType).getChildSchema();
 
                 for (final Object element : array) {
@@ -810,12 +805,11 @@ public class MapRecord implements Record {
             final List<DataType> possibleTypes = choiceDataType.getPossibleSubTypes();
 
             final DataType chosenDataType = DataTypeUtils.chooseDataType(value, choiceDataType);
-            if (chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof Record)) {
+            if (chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof final Record childRecord)) {
                 return specField;
             }
 
             final RecordDataType recordDataType = (RecordDataType) chosenDataType;
-            final Record childRecord = (Record) value;
             childRecord.incorporateInactiveFields();
 
             final RecordSchema definedChildSchema = recordDataType.getChildSchema();

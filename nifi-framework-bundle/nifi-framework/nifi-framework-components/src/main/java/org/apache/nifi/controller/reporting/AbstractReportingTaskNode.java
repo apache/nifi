@@ -357,9 +357,8 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
             }
 
             final ReportingTask reportingTask = getReportingTask();
-            if (reportingTask instanceof VerifiableReportingTask) {
+            if (reportingTask instanceof final VerifiableReportingTask verifiable) {
                 logger.debug("{} is a VerifiableReportingTask. Will perform full verification of configuration.", this);
-                final VerifiableReportingTask verifiable = (VerifiableReportingTask) reportingTask;
 
                 // Check if the given configuration requires a different classloader than the current configuration
                 final boolean classpathDifferent = isClasspathDifferent(context.getProperties());

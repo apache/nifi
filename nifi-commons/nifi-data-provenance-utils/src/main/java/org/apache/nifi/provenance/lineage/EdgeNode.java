@@ -59,11 +59,10 @@ public class EdgeNode implements LineageEdge {
             return false;
         }
 
-        if (!(obj instanceof EdgeNode)) {
+        if (!(obj instanceof final EdgeNode other)) {
             return false;
         }
 
-        final EdgeNode other = (EdgeNode) obj;
         return (source.equals(other.source) && destination.equals(other.destination));
     }
 

@@ -34,8 +34,7 @@ public class ReferenceOnlyParameterContext extends StandardParameterContext {
      */
     @Override
     public boolean equals(final Object obj) {
-        if (obj instanceof ReferenceOnlyParameterContext) {
-            final ReferenceOnlyParameterContext other = (ReferenceOnlyParameterContext) obj;
+        if (obj instanceof final ReferenceOnlyParameterContext other) {
             return (getIdentifier().equals(other.getIdentifier()));
         } else {
             return false;

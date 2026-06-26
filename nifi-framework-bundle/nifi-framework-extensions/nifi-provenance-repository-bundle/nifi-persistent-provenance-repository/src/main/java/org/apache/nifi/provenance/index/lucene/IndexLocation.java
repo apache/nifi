@@ -65,11 +65,10 @@ public class IndexLocation {
             return true;
         }
 
-        if (!(obj instanceof IndexLocation)) {
+        if (!(obj instanceof final IndexLocation other)) {
             return false;
         }
 
-        final IndexLocation other = (IndexLocation) obj;
         return indexDirectory.equals(other.getIndexDirectory());
     }
 

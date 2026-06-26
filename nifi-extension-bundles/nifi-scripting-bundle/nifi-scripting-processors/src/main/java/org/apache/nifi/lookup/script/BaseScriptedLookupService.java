@@ -361,8 +361,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
 
             // get the engine and ensure its invocable
             ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
-            if (scriptEngine instanceof Invocable) {
-                final Invocable invocable = (Invocable) scriptEngine;
+            if (scriptEngine instanceof final Invocable invocable) {
 
                 // evaluate the script
                 scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));

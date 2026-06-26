@@ -76,11 +76,10 @@ public class FieldMapRecord implements Record {
             return true;
         }
 
-        if (!(obj instanceof FieldMapRecord)) {
+        if (!(obj instanceof final FieldMapRecord other)) {
             return false;
         }
 
-        final FieldMapRecord other = (FieldMapRecord) obj;
         return values.equals(other.values);
     }
 }

@@ -417,7 +417,7 @@ public class ForkRecord extends AbstractProcessor {
                                 }
                             }
 
-                            if (!(dataType instanceof ArrayDataType) || fieldObject == null) {
+                            if (!(dataType instanceof final ArrayDataType arrayDataType) || fieldObject == null) {
                                 getLogger().debug("The record path {} is matching a field of type {} when the type ARRAY is expected.", recordPath.getPath(), dataType.getFieldType());
                                 continue;
                             }
@@ -429,7 +429,6 @@ public class ForkRecord extends AbstractProcessor {
                                     recordSetWriter.write(record);
                                 }
                             } else {
-                                final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                                 final DataType elementType = arrayDataType.getElementType();
 
                                 if (elementType.getFieldType() != RecordFieldType.RECORD) {

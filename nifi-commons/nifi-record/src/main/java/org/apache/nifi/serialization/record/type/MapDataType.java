@@ -74,13 +74,12 @@ public class MapDataType extends DataType {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof MapDataType)) {
+        if (!(o instanceof final MapDataType that)) {
             return false;
         }
         if (!super.equals(o)) {
             return false;
         }
-        MapDataType that = (MapDataType) o;
         return valuesNullable == that.valuesNullable
                 && Objects.equals(getValueType(), that.getValueType());
     }

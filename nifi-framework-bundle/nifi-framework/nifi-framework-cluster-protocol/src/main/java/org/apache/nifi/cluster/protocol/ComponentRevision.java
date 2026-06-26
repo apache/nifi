@@ -69,11 +69,10 @@ public class ComponentRevision {
             return true;
         }
 
-        if (!(obj instanceof ComponentRevision)) {
+        if (!(obj instanceof final ComponentRevision thatRevision)) {
             return false;
         }
 
-        ComponentRevision thatRevision = (ComponentRevision) obj;
         // ensure that component ID's are the same (including null)
         if (thatRevision.getComponentId() == null && getComponentId() != null) {
             return false;

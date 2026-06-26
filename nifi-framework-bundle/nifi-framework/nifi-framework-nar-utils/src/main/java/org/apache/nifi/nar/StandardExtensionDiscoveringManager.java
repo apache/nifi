@@ -591,7 +591,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                         final ConfigurableComponent component = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
                         final Set<BundleCoordinate> reachableApiBundles = findReachableApiBundles(component);
 
-                        while (ancestorClassLoader instanceof NarClassLoader) {
+                        while (ancestorClassLoader instanceof final NarClassLoader ancestorNarClassLoader) {
                             final Bundle ancestorNarBundle = classLoaderBundleLookup.get(ancestorClassLoader);
 
                             // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
@@ -599,8 +599,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                                 || ancestorNarBundle.getBundleDetails().getCoordinate().getId().equals(NarClassLoaders.JETTY_NAR_ID)) {
                                 break;
                             }
-
-                            final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
 
                             narNativeLibDirs.add(ancestorNarClassLoader.getNARNativeLibDir());
                             Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
@@ -699,8 +697,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public void closeURLClassLoader(final String instanceIdentifier, final ClassLoader classLoader) {
-        if ((classLoader instanceof URLClassLoader)) {
-            final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
+        if (classLoader instanceof final URLClassLoader urlClassLoader) {
             try {
                 urlClassLoader.close();
             } catch (IOException e) {
@@ -877,8 +874,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             return tempComponent;
         } catch (final Exception e) {
             logger.error("Could not instantiate class of type {} using ClassLoader for bundle {}", classType, bundleCoordinate, e);
-            if (logger.isDebugEnabled() && bundleClassLoader instanceof URLClassLoader) {
-                final URLClassLoader urlClassLoader = (URLClassLoader) bundleClassLoader;
+            if (logger.isDebugEnabled() && bundleClassLoader instanceof final URLClassLoader urlClassLoader) {
                 final List<URL> availableUrls = Arrays.asList(urlClassLoader.getURLs());
                 logger.debug("Available URLs for Bundle ClassLoader {}: {}", bundleCoordinate, availableUrls);
             }

@@ -55,7 +55,7 @@ public class FlowMetadataSynchronizer {
     public void synchronize() {
         LOGGER.info("**************************************************");
 
-        if (!(persistenceProvider instanceof MetadataAwareFlowPersistenceProvider)) {
+        if (!(persistenceProvider instanceof final MetadataAwareFlowPersistenceProvider metadataAwareFlowPersistenceProvider)) {
             LOGGER.info("*  FlowPersistenceProvider is not metadata-aware, nothing to synchronize");
             LOGGER.info("**************************************************");
             return;
@@ -69,7 +69,6 @@ public class FlowMetadataSynchronizer {
             return;
         }
 
-        final MetadataAwareFlowPersistenceProvider metadataAwareFlowPersistenceProvider = (MetadataAwareFlowPersistenceProvider) persistenceProvider;
         LOGGER.info("*  Synchronizing metadata from FlowPersistenceProvider to metadata database...");
 
         final List<BucketMetadata> metadata = metadataAwareFlowPersistenceProvider.getMetadata();

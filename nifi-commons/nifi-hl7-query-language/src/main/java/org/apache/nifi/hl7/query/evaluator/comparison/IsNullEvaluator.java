@@ -50,8 +50,7 @@ public class IsNullEvaluator extends BooleanEvaluator {
             subjectValue = ((HL7Component) subjectValue).getValue();
         }
 
-        if (subjectValue instanceof Collection) {
-            final Collection<?> collection = (Collection<?>) subjectValue;
+        if (subjectValue instanceof final Collection<?> collection) {
             if (collection.isEmpty()) {
                 return true;
             }

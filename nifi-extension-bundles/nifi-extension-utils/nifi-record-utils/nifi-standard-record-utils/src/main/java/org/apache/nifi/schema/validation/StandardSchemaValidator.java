@@ -189,14 +189,13 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 final List<String> enumList = enumDataType.getEnums();
                 return enumList.contains(value);
             case ARRAY:
-                if (!(value instanceof Object[])) {
+                if (!(value instanceof final Object[] array)) {
                     return false;
                 }
 
                 final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                 final DataType elementType = arrayDataType.getElementType();
 
-                final Object[] array = (Object[]) value;
                 for (final Object arrayVal : array) {
                     if (arrayVal == null && arrayDataType.isElementsNullable()) {
                         continue;
@@ -208,10 +207,9 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
                 return true;
             case MAP:
-                if (value instanceof Map) {
+                if (value instanceof final Map<?, ?> map) {
                     final MapDataType mapDataType = (MapDataType) dataType;
                     final DataType valueDataType = mapDataType.getValueType();
-                    final Map<?, ?> map = (Map<?, ?>) value;
 
                     for (final Object mapValue : map.values()) {
                         if (mapValue == null && mapDataType.isValuesNullable()) {
@@ -222,8 +220,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                         }
                     }
                     return true;
-                } else if (value instanceof Record) {
-                    Record record = (Record) value;
+                } else if (value instanceof final Record record) {
                     final MapDataType mapDataType = (MapDataType) dataType;
                     final DataType valueDataType = mapDataType.getValueType();
 

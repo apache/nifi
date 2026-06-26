@@ -120,8 +120,7 @@ public class LookupTableEventRecord implements Record {
         }
 
         // LOOKUP type
-        if (recordValue instanceof Integer) {
-            final Integer indexValue = (Integer) recordValue;
+        if (recordValue instanceof final Integer indexValue) {
             final int index = indexValue.intValue();
             if (index > lookup.size() - 1) {
                 return null;

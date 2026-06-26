@@ -88,11 +88,10 @@ public class EventNode implements ProvenanceEventLineageNode {
             return true;
         }
 
-        if (!(obj instanceof EventNode)) {
+        if (!(obj instanceof final EventNode other)) {
             return false;
         }
 
-        final EventNode other = (EventNode) obj;
         return record.equals(other.record);
     }
 

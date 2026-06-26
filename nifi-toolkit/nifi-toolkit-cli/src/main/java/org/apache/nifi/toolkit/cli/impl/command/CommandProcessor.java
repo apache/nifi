@@ -247,14 +247,12 @@ public class CommandProcessor {
             } else {
                 final Result result = command.execute(commandLine);
 
-                if (result instanceof WritableResult) {
-                    final WritableResult writableResult = (WritableResult) result;
+                if (result instanceof final WritableResult writableResult) {
                     writableResult.write(out);
                 }
 
                 // if the Result is Referenceable then create the resolver and store it in the holder for the next command
-                if (result instanceof Referenceable) {
-                    final Referenceable referenceable = (Referenceable) result;
+                if (result instanceof final Referenceable referenceable) {
                     final ReferenceResolver referenceResolver = referenceable.createReferenceResolver(context);
 
                     // only set the resolve if its not empty so that a resolver that was already in there sticks around

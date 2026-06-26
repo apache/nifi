@@ -86,11 +86,10 @@ public class StandardNiFiUser implements NiFiUser {
             return false;
         }
 
-        if (!(obj instanceof NiFiUser)) {
+        if (!(obj instanceof final NiFiUser other)) {
             return false;
         }
 
-        final NiFiUser other = (NiFiUser) obj;
         return Objects.equals(this.identity, other.getIdentity());
     }
 

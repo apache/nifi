@@ -255,8 +255,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     private void getUpdateActionsForReferencingComponents(final Collection<Action> actions, final Set<ComponentNode> referencingComponents) {
         // consider each component updates
         for (final ComponentNode component : referencingComponents) {
-            if (component instanceof ProcessorNode) {
-                final ProcessorNode processor = ((ProcessorNode) component);
+            if (component instanceof final ProcessorNode processor) {
 
                 // create the processor details
                 FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
@@ -285,8 +284,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 reportingTaskAction.setComponentDetails(taskDetails);
                 reportingTaskAction.setOperation(ScheduledState.RUNNING.equals(reportingTask.getScheduledState()) ? Operation.Start : Operation.Stop);
                 actions.add(reportingTaskAction);
-            } else if (component instanceof ControllerServiceNode) {
-                final ControllerServiceNode controllerService = ((ControllerServiceNode) component);
+            } else if (component instanceof final ControllerServiceNode controllerService) {
 
                 // create the controller service details
                 FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();

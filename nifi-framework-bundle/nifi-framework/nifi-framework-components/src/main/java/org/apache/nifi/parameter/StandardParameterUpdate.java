@@ -66,11 +66,10 @@ public class StandardParameterUpdate implements ParameterUpdate {
             return true;
         }
 
-        if (!(o instanceof StandardParameterUpdate)) {
+        if (!(o instanceof final StandardParameterUpdate that)) {
             return false;
         }
 
-        final StandardParameterUpdate that = (StandardParameterUpdate) o;
         return Objects.equals(parameterName, that.parameterName)
             && Objects.equals(previousValue, that.previousValue)
             && Objects.equals(updatedValue, that.updatedValue);
