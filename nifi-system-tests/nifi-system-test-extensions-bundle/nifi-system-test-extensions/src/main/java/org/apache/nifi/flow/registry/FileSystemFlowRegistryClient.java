@@ -47,7 +47,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -87,7 +86,7 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(DIRECTORY);
+        return List.of(DIRECTORY, SYNCHRONIZATION_INTERVAL);
     }
 
     @Override
