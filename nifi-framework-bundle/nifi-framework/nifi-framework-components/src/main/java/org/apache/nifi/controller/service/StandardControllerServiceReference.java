@@ -54,17 +54,17 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
      * Such components are considered "active" and would prevent the controller service from being disabled.
      */
     private boolean isActive(final ComponentNode component) {
-        if (component instanceof ReportingTaskNode reportingTaskNode) {
+        if (component instanceof final ReportingTaskNode reportingTaskNode) {
             final ScheduledState state = reportingTaskNode.getScheduledState();
             return state == ScheduledState.RUNNING || state == ScheduledState.STARTING;
         }
 
-        if (component instanceof ProcessorNode processorNode) {
+        if (component instanceof final ProcessorNode processorNode) {
             final ScheduledState state = processorNode.getPhysicalScheduledState();
             return state == ScheduledState.RUNNING || state == ScheduledState.STARTING;
         }
 
-        if (component instanceof ControllerServiceNode controllerServiceNode) {
+        if (component instanceof final ControllerServiceNode controllerServiceNode) {
             return controllerServiceNode.isActive();
         }
 

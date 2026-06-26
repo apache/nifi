@@ -242,7 +242,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
      */
     @Override
     public boolean replace(final StateMap currentState, final Map<String, String> state, final String componentId) throws IOException {
-        if (currentState instanceof StandardStateMap standardStateMap) {
+        if (currentState instanceof final StandardStateMap standardStateMap) {
             return replace(standardStateMap, state, componentId);
         } else {
             throw new IllegalStateException("Current state is not an instance of StandardStateMap");

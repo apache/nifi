@@ -100,7 +100,7 @@ public class JwtService {
     private Jws<Claims> parseTokenFromBase64EncodedString(final String base64EncodedToken) throws JwtException {
         try {
             return Jwts.parser().keyLocator(header -> {
-                if (header instanceof JwsHeader jwsHeader) {
+                if (header instanceof final JwsHeader jwsHeader) {
                     final String keyId = jwsHeader.getKeyId();
                     if (keyId == null) {
                         throw new UnsupportedJwtException("Key Identifier not found in header");

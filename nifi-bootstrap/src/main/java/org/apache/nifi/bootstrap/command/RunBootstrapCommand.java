@@ -114,7 +114,7 @@ class RunBootstrapCommand implements BootstrapCommand {
         logger.info("Available Processors: {}", runtime.availableProcessors());
 
         final OperatingSystemMXBean operatingSystem = ManagementFactory.getOperatingSystemMXBean();
-        if (operatingSystem instanceof UnixOperatingSystemMXBean unixOperatingSystem) {
+        if (operatingSystem instanceof final UnixOperatingSystemMXBean unixOperatingSystem) {
             logger.info("Total Memory: {}", unixOperatingSystem.getTotalMemorySize());
             logger.info("Maximum File Descriptors: {}", unixOperatingSystem.getMaxFileDescriptorCount());
         }

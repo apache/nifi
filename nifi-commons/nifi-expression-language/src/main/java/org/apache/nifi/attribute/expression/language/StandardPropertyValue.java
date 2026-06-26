@@ -240,7 +240,7 @@ public class StandardPropertyValue implements PropertyValue {
         }
 
         for (E enumConstant : enumType.getEnumConstants()) {
-            if (enumConstant instanceof DescribedValue describedValue) {
+            if (enumConstant instanceof final DescribedValue describedValue) {
                 if (describedValue.getValue().equals(rawValue)) {
                     return enumConstant;
                 }

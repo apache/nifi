@@ -175,7 +175,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         final PrivateKeyService privateKeyService = context.getProperty(PRIVATE_KEY_SERVICE).asControllerService(PrivateKeyService.class);
         final PrivateKey privateKey = privateKeyService.getPrivateKey();
 
-        if (privateKey instanceof RSAPrivateCrtKey rsaPrivateKey) {
+        if (privateKey instanceof final RSAPrivateCrtKey rsaPrivateKey) {
             final AccountIdentifierFormat accountIdentifierFormat = context.getProperty(ACCOUNT_IDENTIFIER_FORMAT).asAllowableValue(AccountIdentifierFormat.class);
             final AccountIdentifierFormatParameters parameters = getAccountIdentifierFormatParameters(context);
             final String account = accountIdentifierFormat.getAccount(parameters);

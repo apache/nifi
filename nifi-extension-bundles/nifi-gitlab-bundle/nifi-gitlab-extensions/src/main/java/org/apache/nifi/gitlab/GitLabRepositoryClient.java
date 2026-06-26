@@ -450,7 +450,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         connection.setReadTimeout(readTimeout);
 
         // Configure SSL context for HTTPS connections
-        if (sslContextProvider != null && connection instanceof HttpsURLConnection httpsConnection) {
+        if (sslContextProvider != null && connection instanceof final HttpsURLConnection httpsConnection) {
             httpsConnection.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
         }
 

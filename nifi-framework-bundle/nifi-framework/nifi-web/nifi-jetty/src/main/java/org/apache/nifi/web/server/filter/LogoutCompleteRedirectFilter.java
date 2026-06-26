@@ -42,7 +42,7 @@ public class LogoutCompleteRedirectFilter implements Filter {
 
     @Override
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse, final FilterChain filterChain) throws IOException, ServletException {
-        if (servletRequest instanceof HttpServletRequest httpServletRequest) {
+        if (servletRequest instanceof final HttpServletRequest httpServletRequest) {
             final String requestUri = httpServletRequest.getRequestURI();
             if (requestUri.endsWith(LOGOUT_COMPLETE_PATH)) {
                 final HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;

@@ -249,13 +249,13 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         final String disposition = parentPart.getDisposition();
 
         final Object parentContent = parentPart.getContent();
-        if (parentContent instanceof Multipart multipart) {
+        if (parentContent instanceof final Multipart multipart) {
             final int count = multipart.getCount();
 
             final int partDepth = depth + 1;
             for (int i = 0; i < count; i++) {
                 final BodyPart bodyPart = multipart.getBodyPart(i);
-                if (bodyPart instanceof MimeBodyPart mimeBodyPart) {
+                if (bodyPart instanceof final MimeBodyPart mimeBodyPart) {
                     countAttachments(counter, mimeBodyPart, partDepth);
                 }
             }

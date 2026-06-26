@@ -512,7 +512,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             shardManager = null;
         }
 
-        if (consumerClient instanceof EnhancedFanOutClient efo) {
+        if (consumerClient instanceof final EnhancedFanOutClient efo) {
             efoConsumerArn = efo.getConsumerArn();
         }
         if (consumerClient != null) {
@@ -1147,7 +1147,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             if (currentFlowFile != null) {
                 session.remove(currentFlowFile);
             }
-            if (e instanceof RuntimeException re) {
+            if (e instanceof final RuntimeException re) {
                 throw re;
             }
             throw new ProcessException(e);

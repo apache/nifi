@@ -622,7 +622,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
             final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
             final TrustManager trustManager = trustManagers[0];
 
-            if (trustManager instanceof X509TrustManager defaultTrustManager) {
+            if (trustManager instanceof final X509TrustManager defaultTrustManager) {
                 final X509Certificate[] defaultAcceptedIssuers = defaultTrustManager.getAcceptedIssuers();
                 final X509Certificate[] acceptedIssuers = configuredTrustManager.getAcceptedIssuers();
                 trustManagerConfigured = !Arrays.deepEquals(defaultAcceptedIssuers, acceptedIssuers);

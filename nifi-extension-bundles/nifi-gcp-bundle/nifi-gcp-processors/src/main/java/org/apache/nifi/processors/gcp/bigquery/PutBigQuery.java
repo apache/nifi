@@ -347,11 +347,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             }
 
             if (fieldSchema.getType() == TableFieldSchema.Type.STRUCT) {
-                if (value instanceof MapRecord mapRecord) {
+                if (value instanceof final MapRecord mapRecord) {
                     collectUnmatchedFields(mapRecord.toMap(), fieldSchema.getFieldsList(), fieldPath, unmatchedFields);
-                } else if (value instanceof Object[] arrayValue) {
+                } else if (value instanceof final Object[] arrayValue) {
                     for (final Object item : arrayValue) {
-                        if (item instanceof MapRecord mapRecordItem) {
+                        if (item instanceof final MapRecord mapRecordItem) {
                             collectUnmatchedFields(mapRecordItem.toMap(), fieldSchema.getFieldsList(), fieldPath, unmatchedFields);
                         }
                     }

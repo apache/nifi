@@ -6745,7 +6745,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             restoredInfo.setStorageLocation(updatedVersionControlInformation.getStorageLocation());
 
             group.setVersionControlInformation(restoredInfo, Collections.emptyMap());
-        } else if (updatedVci instanceof StandardVersionControlInformation standardVci) {
+        } else if (updatedVci instanceof final StandardVersionControlInformation standardVci) {
             standardVci.setFlowSnapshot(null);
         }
 
@@ -8251,7 +8251,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             flowChangeAction.setUserIdentity(userIdentity);
 
             final Object details = authentication.getDetails();
-            if (details instanceof NiFiWebAuthenticationDetails authenticationDetails) {
+            if (details instanceof final NiFiWebAuthenticationDetails authenticationDetails) {
                 final String remoteAddress = authenticationDetails.getRemoteAddress();
                 final String forwardedFor = authenticationDetails.getForwardedFor();
                 final String userAgent = authenticationDetails.getUserAgent();
@@ -8564,7 +8564,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private boolean isSecretAuthorized(final Secret secret, final NiFiUser user) {
-        if (secret instanceof AuthorizableSecret authorizableSecret) {
+        if (secret instanceof final AuthorizableSecret authorizableSecret) {
             final AuthorizationResult result = authorizableSecret.checkAuthorization(authorizer, RequestAction.READ, user);
             return Result.Approved.equals(result.getResult());
         }

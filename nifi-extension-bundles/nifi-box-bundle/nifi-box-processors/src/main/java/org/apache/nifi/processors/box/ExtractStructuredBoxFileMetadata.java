@@ -285,7 +285,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
             if (optionsObj instanceof Iterable<?> iterable) {
                 options = new ArrayList<>();
                 for (Object option : iterable) {
-                    if (option instanceof Record optionRecord) {
+                    if (option instanceof final Record optionRecord) {
                         final String optionKey = optionRecord.getAsString("key");
                         if (optionKey != null && !optionKey.isBlank()) {
                             options.add(new BoxAIExtractFieldOption(optionKey));

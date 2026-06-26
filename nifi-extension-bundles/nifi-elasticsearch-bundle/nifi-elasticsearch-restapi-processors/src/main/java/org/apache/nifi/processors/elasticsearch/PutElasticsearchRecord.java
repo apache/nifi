@@ -796,7 +796,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     }
 
     private Object cloneValue(final Object value) {
-        if (value instanceof Record recordValue) {
+        if (value instanceof final Record recordValue) {
             return cloneRecord(recordValue);
         }
         if (value instanceof Map<?, ?> mapValue) {

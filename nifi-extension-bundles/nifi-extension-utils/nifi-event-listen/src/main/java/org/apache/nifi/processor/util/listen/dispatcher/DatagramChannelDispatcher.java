@@ -125,7 +125,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                         while (!stopped && (socketAddress = channel.receive(buffer)) != null) {
                             String sender = "";
                             int port = 0;
-                            if (socketAddress instanceof InetSocketAddress inetSocketAddress) {
+                            if (socketAddress instanceof final InetSocketAddress inetSocketAddress) {
                                 sender = inetSocketAddress.getAddress().toString();
                                 port = inetSocketAddress.getPort();
                             }

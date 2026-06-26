@@ -58,7 +58,7 @@ public class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecuti
         }
 
         final Object testInstance = optionalTestInstance.get();
-        if (!(testInstance instanceof NiFiInstanceProvider provider)) {
+        if (!(testInstance instanceof final NiFiInstanceProvider provider)) {
             return;
         }
 
@@ -92,7 +92,7 @@ public class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecuti
             final Optional<Object> optionalTestInstance = context.getTestInstance();
             if (optionalTestInstance.isPresent()) {
                 final Object testInstance = optionalTestInstance.get();
-                if (testInstance instanceof NiFiInstanceProvider provider) {
+                if (testInstance instanceof final NiFiInstanceProvider provider) {
                     final String displayName = context.getDisplayName();
                     try {
                         final String testClassName = context.getTestClass().map(Class::getSimpleName).orElse("TestClassUnknown");

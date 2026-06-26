@@ -163,7 +163,7 @@ public abstract class NiFiAuditor {
             flowChangeAction.setUserIdentity(userIdentity);
 
             final Object details = authentication.getDetails();
-            if (details instanceof NiFiWebAuthenticationDetails authenticationDetails) {
+            if (details instanceof final NiFiWebAuthenticationDetails authenticationDetails) {
                 final String remoteAddress = authenticationDetails.getRemoteAddress();
                 final String forwardedFor = authenticationDetails.getForwardedFor();
                 final String userAgent = authenticationDetails.getUserAgent();

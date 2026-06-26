@@ -307,7 +307,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
-        if (value instanceof Record record) {
+        if (value instanceof final Record record) {
             writeRecord(record, record.getSchema(), generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
             return;
         }

@@ -51,7 +51,7 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
             return delegate;
         }
 
-        if (delegate instanceof DriverConnectionFactory driverConnectionFactory) {
+        if (delegate instanceof final DriverConnectionFactory driverConnectionFactory) {
             return new PasswordRefreshingConnectionFactory(driverConnectionFactory, databasePasswordProvider, passwordRequestContext);
         }
 

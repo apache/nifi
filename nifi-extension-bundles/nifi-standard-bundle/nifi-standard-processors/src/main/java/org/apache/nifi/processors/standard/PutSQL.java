@@ -1117,7 +1117,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             if (obj == this) {
                 return false;
             }
-            if (!(obj instanceof StatementFlowFileEnclosure other)) {
+            if (!(obj instanceof final StatementFlowFileEnclosure other)) {
                 return false;
             }
 

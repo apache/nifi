@@ -370,7 +370,7 @@ public class PartitionRecord extends AbstractProcessor {
             if (obj == null) {
                 return false;
             }
-            if (!(obj instanceof ValueWrapper other)) {
+            if (!(obj instanceof final ValueWrapper other)) {
                 return false;
             }
             if (value == null && other.value == null) {
@@ -444,7 +444,7 @@ public class PartitionRecord extends AbstractProcessor {
             if (obj == null) {
                 return false;
             }
-            if (!(obj instanceof RecordValueMap other)) {
+            if (!(obj instanceof final RecordValueMap other)) {
                 return false;
             }
             return values.equals(other.values);

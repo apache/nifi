@@ -823,7 +823,7 @@ public class AvroTypeUtil {
                     return ByteBuffer.wrap(bytes);
                 }
                 try {
-                    if (rawValue instanceof Blob blob) {
+                    if (rawValue instanceof final Blob blob) {
                         final InputStream binaryStream = blob.getBinaryStream();
                         final byte[] bytes = binaryStream.readAllBytes();
                         if (fieldSchema.getType() == Type.FIXED) {
@@ -1086,15 +1086,15 @@ public class AvroTypeUtil {
         if (value instanceof byte[]) {
             return ((byte[]) value).length;
         }
-        if (value instanceof ByteBuffer byteBuffer) {
+        if (value instanceof final ByteBuffer byteBuffer) {
             return byteBuffer.remaining();
         }
-        if (value instanceof Object[] objects) {
+        if (value instanceof final Object[] objects) {
             if (objects.length == 0 || objects[0] instanceof Byte) {
                 return objects.length;
             }
         }
-        if (value instanceof GenericFixed fixed) {
+        if (value instanceof final GenericFixed fixed) {
             return fixed.bytes().length;
         }
 
@@ -1152,7 +1152,7 @@ public class AvroTypeUtil {
                     // date logical name means that the value is number of days since Jan 1, 1970
                     // Handle both Integer (legacy) and LocalDate (newer Avro libraries).
                     final LocalDate localDate;
-                    if (value instanceof LocalDate ld) {
+                    if (value instanceof final LocalDate ld) {
                         localDate = ld;
                     } else {
                         localDate = LocalDate.ofEpochDay((int) value);
@@ -1167,7 +1167,7 @@ public class AvroTypeUtil {
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)
-                    if (value instanceof LocalTime localTime) {
+                    if (value instanceof final LocalTime localTime) {
                         return Time.valueOf(localTime);
                     }
                     return new Time((int) value);
@@ -1184,19 +1184,19 @@ public class AvroTypeUtil {
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_TIME_MICROS.equals(logicalName)) {
                     // Handle both Long (legacy) and LocalTime (newer Avro libraries)
-                    if (value instanceof LocalTime localTime) {
+                    if (value instanceof final LocalTime localTime) {
                         return Time.valueOf(localTime);
                     }
                     return new Time(TimeUnit.MICROSECONDS.toMillis((long) value));
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalName)) {
                     // Handle both Long (legacy) and Instant (newer Avro libraries)
-                    if (value instanceof Instant instant) {
+                    if (value instanceof final Instant instant) {
                         return Timestamp.from(instant);
                     }
                     return new Timestamp((long) value);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalName)) {
                     // Handle both Long (legacy) and Instant (newer Avro libraries)
-                    if (value instanceof Instant instant) {
+                    if (value instanceof final Instant instant) {
                         return Timestamp.from(instant);
                     }
                     return new Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));

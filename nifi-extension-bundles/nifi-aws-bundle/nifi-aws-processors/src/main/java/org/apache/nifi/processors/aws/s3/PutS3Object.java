@@ -937,7 +937,7 @@ public class PutS3Object extends AbstractS3Processor {
                 ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
             } catch (SdkException e) {
-                if (e instanceof S3Exception s3e
+                if (e instanceof final S3Exception s3e
                         && s3e.statusCode() == 403
                         && s3e.awsErrorDetails().errorCode().equals("AccessDenied")) {
                     getLogger().warn("AccessDenied checking S3 Multipart Upload list for {}: {} " +

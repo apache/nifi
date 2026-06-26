@@ -66,7 +66,7 @@ public class AmazonMSKCredentialsCallbackHandler implements AuthenticateCallback
     @Override
     public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         for (final Callback callback : callbacks) {
-            if (callback instanceof AWSCredentialsCallback awsCredentialsCallback) {
+            if (callback instanceof final AWSCredentialsCallback awsCredentialsCallback) {
                 handleCredentialsCallback(awsCredentialsCallback);
             } else {
                 throw new UnsupportedCallbackException(callback,

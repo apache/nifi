@@ -323,7 +323,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new WebApplicationException(new IllegalStateException("Security Context missing Authentication for current user"));
         } else {
             final Object details = authentication.getDetails();
-            if (details instanceof NiFiWebAuthenticationDetails authenticationDetails) {
+            if (details instanceof final NiFiWebAuthenticationDetails authenticationDetails) {
                 final String remoteAddress = authenticationDetails.getRemoteAddress();
                 final String forwardedFor = authenticationDetails.getForwardedFor();
                 final String userAgent = authenticationDetails.getUserAgent();

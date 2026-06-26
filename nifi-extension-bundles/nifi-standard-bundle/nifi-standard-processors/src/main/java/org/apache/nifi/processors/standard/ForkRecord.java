@@ -340,7 +340,7 @@ public class ForkRecord extends AbstractProcessor {
                                 }
                             }
 
-                            if (!(dataType instanceof ArrayDataType arrayDataType)) {
+                            if (!(dataType instanceof final ArrayDataType arrayDataType)) {
                                 continue;
                             }
 

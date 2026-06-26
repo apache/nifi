@@ -351,7 +351,7 @@ public class EncryptContentPGPTest {
             if (object instanceof PGPLiteralData) {
                 literalData = (PGPLiteralData) object;
                 break;
-            } else if (object instanceof PGPCompressedData compressedData) {
+            } else if (object instanceof final PGPCompressedData compressedData) {
                 final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
                 literalData = getLiteralData(compressedObjectFactory);
                 break;

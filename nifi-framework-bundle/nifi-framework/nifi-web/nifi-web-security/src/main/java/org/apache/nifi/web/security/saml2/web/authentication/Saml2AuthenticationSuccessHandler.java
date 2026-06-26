@@ -126,7 +126,7 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
         final Object principal = authentication.getPrincipal();
 
         final String identity;
-        if (principal instanceof Saml2AuthenticatedPrincipal authenticatedPrincipal) {
+        if (principal instanceof final Saml2AuthenticatedPrincipal authenticatedPrincipal) {
             identity = identityConverter.convert(authenticatedPrincipal);
         } else {
             identity = authentication.getName();

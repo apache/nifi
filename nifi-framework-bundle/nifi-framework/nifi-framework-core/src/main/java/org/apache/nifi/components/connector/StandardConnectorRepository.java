@@ -727,7 +727,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 continue;
             }
             for (final ConnectorValueReference valueReference : stepPropertyValues.values()) {
-                if (valueReference instanceof AssetReference assetReference) {
+                if (valueReference instanceof final AssetReference assetReference) {
                     referencedAssetIds.addAll(assetReference.getAssetIdentifiers());
                 }
             }

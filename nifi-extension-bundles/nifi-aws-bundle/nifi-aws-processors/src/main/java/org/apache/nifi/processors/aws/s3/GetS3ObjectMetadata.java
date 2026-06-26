@@ -195,7 +195,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                             .collect(Collectors.toMap(e -> ATTRIBUTE_FORMAT.formatted(e.getKey()), e -> {
                                 final Object value = e.getValue();
                                 final String attributeValue;
-                                if (value instanceof Instant instantValue) {
+                                if (value instanceof final Instant instantValue) {
                                     attributeValue = Long.toString(instantValue.toEpochMilli());
                                 } else {
                                     attributeValue = value.toString();

@@ -162,7 +162,7 @@ public class StandardRequestContentListener implements RequestContentListener {
         final List<KeyValue> clientSocketAttributes = getClientSocketAttributes(serviceRequestDescription);
 
         final T parsed = serviceRequestReader.read(inputStream, requestType);
-        if (parsed instanceof ExportLogsServiceRequest request) {
+        if (parsed instanceof final ExportLogsServiceRequest request) {
             for (final ResourceLogs resourceLogs : request.getResourceLogsList()) {
                 final Resource.Builder resource = resourceLogs.getResource().toBuilder();
                 resource.addAllAttributes(clientSocketAttributes);
@@ -170,7 +170,7 @@ public class StandardRequestContentListener implements RequestContentListener {
                 final Message message = resourceLogs.toBuilder().setResource(resource).build();
                 messages.add(message);
             }
-        } else if (parsed instanceof ExportMetricsServiceRequest request) {
+        } else if (parsed instanceof final ExportMetricsServiceRequest request) {
             for (final ResourceMetrics resourceMetrics : request.getResourceMetricsList()) {
                 final Resource.Builder resource = resourceMetrics.getResource().toBuilder();
                 resource.addAllAttributes(clientSocketAttributes);
@@ -178,7 +178,7 @@ public class StandardRequestContentListener implements RequestContentListener {
                 final Message message = resourceMetrics.toBuilder().setResource(resource).build();
                 messages.add(message);
             }
-        } else if (parsed instanceof ExportTraceServiceRequest request) {
+        } else if (parsed instanceof final ExportTraceServiceRequest request) {
             for (final ResourceSpans resourceSpans : request.getResourceSpansList()) {
                 final Resource.Builder resource = resourceSpans.getResource().toBuilder();
                 resource.addAllAttributes(clientSocketAttributes);

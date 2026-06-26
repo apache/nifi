@@ -294,7 +294,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             String tokenValue = null;
             if (additionalParameters != null) {
                 final Object idTokenValue = additionalParameters.get("id_token");
-                if (idTokenValue instanceof String idToken) {
+                if (idTokenValue instanceof final String idToken) {
                     if (StringUtils.isBlank(idToken)) {
                         throw new IllegalStateException("OAuth2AccessTokenProvider returned an empty id_token");
                     }

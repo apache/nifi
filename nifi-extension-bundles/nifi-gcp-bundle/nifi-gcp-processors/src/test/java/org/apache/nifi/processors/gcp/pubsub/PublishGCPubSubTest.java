@@ -76,7 +76,7 @@ public class PublishGCPubSubTest {
 
             @Override
             protected void addCallback(ApiFuture<String> apiFuture, ApiFutureCallback<? super String> callback, Executor executor) {
-                if (callback instanceof TrackedApiFutureCallback apiFutureCallback) {
+                if (callback instanceof final TrackedApiFutureCallback apiFutureCallback) {
                     if (throwable == null) {
                         apiFutureCallback.onSuccess(Long.toString(System.currentTimeMillis()));
                     } else {

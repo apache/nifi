@@ -1505,11 +1505,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         // ActiveProcessSessionFactory reachable for the offload/terminate path) so the underlying
         // StandardProcessSession can be located.
         ProcessSession resolvedOwner = newOwner;
-        while (resolvedOwner instanceof DelegatingProcessSession delegating) {
+        while (resolvedOwner instanceof final DelegatingProcessSession delegating) {
             resolvedOwner = delegating.getDelegate();
         }
 
-        if (!(resolvedOwner instanceof StandardProcessSession standardOwner)) {
+        if (!(resolvedOwner instanceof final StandardProcessSession standardOwner)) {
             throw new IllegalArgumentException("Cannot migrate from a StandardProcessSession to a " + newOwner.getClass());
         }
 

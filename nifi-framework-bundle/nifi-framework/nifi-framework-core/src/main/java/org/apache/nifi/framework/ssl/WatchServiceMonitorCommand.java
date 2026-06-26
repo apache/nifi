@@ -85,7 +85,7 @@ public class WatchServiceMonitorCommand implements Runnable {
             }
 
             final Object context = event.context();
-            if (context instanceof Path path) {
+            if (context instanceof final Path path) {
                 changedPaths.add(path);
             }
         }

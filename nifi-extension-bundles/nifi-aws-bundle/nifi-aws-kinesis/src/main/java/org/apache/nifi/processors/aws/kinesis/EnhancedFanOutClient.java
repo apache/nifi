@@ -523,7 +523,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
             if (t instanceof IOException || t instanceof SdkClientException) {
                 return true;
             }
-            if (t instanceof AwsServiceException ase && ase.statusCode() >= 500) {
+            if (t instanceof final AwsServiceException ase && ase.statusCode() >= 500) {
                 return true;
             }
             final String className = t.getClass().getName();
@@ -594,7 +594,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
 
             @Override
             public void onNext(final SubscribeToShardEventStream eventStream) {
-                if (!(eventStream instanceof SubscribeToShardEvent event)) {
+                if (!(eventStream instanceof final SubscribeToShardEvent event)) {
                     requestNext();
                     return;
                 }

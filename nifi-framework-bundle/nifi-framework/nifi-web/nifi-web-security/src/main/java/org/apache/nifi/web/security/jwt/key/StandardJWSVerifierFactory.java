@@ -53,9 +53,9 @@ public class StandardJWSVerifierFactory implements JWSVerifierFactory {
         final JWSVerifier verifier;
 
         if (SUPPORTED_ALGORITHMS.contains(algorithm)) {
-            if (key instanceof RSAPublicKey rsaPublicKey) {
+            if (key instanceof final RSAPublicKey rsaPublicKey) {
                 verifier = new RSASSAVerifier(rsaPublicKey);
-            } else if (key instanceof PublicKey publicKey) {
+            } else if (key instanceof final PublicKey publicKey) {
                 verifier = new Ed25519Verifier(publicKey);
             } else {
                 throw new KeyTypeException(PublicKey.class);

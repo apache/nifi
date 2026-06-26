@@ -66,9 +66,9 @@ public class Format extends RecordPathSegment {
                     final Object fieldValue = fv.getValue();
 
                     final Instant instant;
-                    if (fieldValue instanceof Date dateField) {
+                    if (fieldValue instanceof final Date dateField) {
                         instant = Instant.ofEpochMilli(dateField.getTime());
-                    } else if (fieldValue instanceof Number numberField) {
+                    } else if (fieldValue instanceof final Number numberField) {
                         instant = Instant.ofEpochMilli(numberField.longValue());
                     } else {
                         return fv;

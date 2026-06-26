@@ -205,9 +205,9 @@ public class StandardOidcAuthorizedClientRepository implements OAuth2AuthorizedC
     private OidcIdToken getOidcIdToken(final Authentication authentication) {
         final OidcIdToken oidcIdToken;
 
-        if (authentication instanceof OAuth2AuthenticationToken authenticationToken) {
+        if (authentication instanceof final OAuth2AuthenticationToken authenticationToken) {
             final OAuth2User oAuth2User = authenticationToken.getPrincipal();
-            if (oAuth2User instanceof OidcUser oidcUser) {
+            if (oAuth2User instanceof final OidcUser oidcUser) {
                 oidcIdToken = oidcUser.getIdToken();
             } else {
                 final String message = String.format("OpenID Connect User not found [%s]", oAuth2User.getClass());

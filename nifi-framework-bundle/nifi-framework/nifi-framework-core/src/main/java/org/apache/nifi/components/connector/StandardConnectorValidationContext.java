@@ -56,7 +56,7 @@ public class StandardConnectorValidationContext implements ConnectorValidationCo
         for (final Map.Entry<String, ConnectorValueReference> entry : stepProperties.entrySet()) {
             final ConnectorValueReference valueRef = entry.getValue();
 
-            if (valueRef instanceof StringLiteralValue stringLiteral) {
+            if (valueRef instanceof final StringLiteralValue stringLiteral) {
                 stringValues.put(entry.getKey(), stringLiteral.getValue());
             } else {
                 stringValues.put(entry.getKey(), null);

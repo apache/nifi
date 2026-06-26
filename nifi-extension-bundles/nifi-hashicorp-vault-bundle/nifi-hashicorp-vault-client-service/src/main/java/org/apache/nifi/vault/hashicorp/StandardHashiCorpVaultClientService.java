@@ -136,7 +136,7 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
 
     @OnDisabled
     public void onDisabled() {
-        if (communicationService instanceof AutoCloseable autoCloseableCommunicationService) {
+        if (communicationService instanceof final AutoCloseable autoCloseableCommunicationService) {
             try {
                 autoCloseableCommunicationService.close();
             } catch (final Exception e) {

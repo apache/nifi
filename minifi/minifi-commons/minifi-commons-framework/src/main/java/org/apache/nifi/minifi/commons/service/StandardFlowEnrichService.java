@@ -341,7 +341,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .filter(IS_LEGACY_COMPONENT)
             .forEach(versionedComponent -> {
                 versionedComponent.setInstanceIdentifier(randomUUID().toString());
-                if (versionedComponent instanceof VersionedProcessor processor) {
+                if (versionedComponent instanceof final VersionedProcessor processor) {
                     if (isBlank(processor.getBulletinLevel())) {
                         processor.setBulletinLevel(DEFAULT_BULLETIN_LEVEL);
                     }

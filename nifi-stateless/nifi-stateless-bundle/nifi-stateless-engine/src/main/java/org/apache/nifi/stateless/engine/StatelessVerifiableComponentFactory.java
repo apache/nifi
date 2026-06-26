@@ -57,7 +57,7 @@ public class StatelessVerifiableComponentFactory implements VerifiableComponentF
 
             final ProcessorInitializationContext tempInitializationContext = new StandardProcessorInitializationContext(identifier, processorNode.getLogger(),
                     controllerServiceProvider, new StatelessNodeTypeProvider(), kerberosConfig);
-            if (verifiableProcessor instanceof Processor processor) {
+            if (verifiableProcessor instanceof final Processor processor) {
                 processor.initialize(tempInitializationContext);
             }
         } catch (Exception e) {
@@ -80,7 +80,7 @@ public class StatelessVerifiableComponentFactory implements VerifiableComponentF
                     serviceNode.getLogger(),
                     controllerServiceProvider, stateManagerProvider.getStateManager(identifier),
                     kerberosConfig, new StatelessNodeTypeProvider());
-            if (verifiableControllerService instanceof ControllerService controllerService) {
+            if (verifiableControllerService instanceof final ControllerService controllerService) {
                 controllerService.initialize(tempInitializationContext);
             }
         } catch (Exception e) {

@@ -635,9 +635,9 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     private void initJWTSigner() {
         final JWSAlgorithm algorithm = JWSAlgorithm.parse(algorithmName);
 
-        if (privateKey instanceof RSAPrivateKey rsaPrivateKey) {
+        if (privateKey instanceof final RSAPrivateKey rsaPrivateKey) {
             signer = new RSASSASigner(rsaPrivateKey);
-        } else if (privateKey instanceof ECPrivateKey ecPrivateKey) {
+        } else if (privateKey instanceof final ECPrivateKey ecPrivateKey) {
             try {
                 signer = new ECDSASigner(ecPrivateKey);
             } catch (final JOSEException e) {

@@ -145,7 +145,7 @@ public class StandardFlowComparator implements FlowComparator {
             differences.add(difference(DifferenceType.COMPONENT_ADDED, componentA, componentB, componentA, componentB));
 
             if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
-                    && componentB instanceof VersionedProcessGroup groupB) {
+                    && componentB instanceof final VersionedProcessGroup groupB) {
                 // we want to also add the differences of the added sub process groups
                 extractPGConfigDifferences(null, groupB, differences);
                 extractPGComponentsDifferences(null, groupB, differences);
@@ -158,7 +158,7 @@ public class StandardFlowComparator implements FlowComparator {
             differences.add(difference(DifferenceType.COMPONENT_REMOVED, componentA, componentB, componentA, componentB));
 
             if (flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP
-                    && componentA instanceof VersionedProcessGroup groupA) {
+                    && componentA instanceof final VersionedProcessGroup groupA) {
                 // we want to also add the differences of the removed sub process groups
                 extractPGComponentsDifferences(groupA, null, differences);
             }

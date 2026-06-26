@@ -113,7 +113,7 @@ class DatabaseAdapterDatabaseDialectService extends AbstractControllerService im
     }
 
     private String getSelectStatement(final StatementRequest statementRequest) {
-        if (statementRequest instanceof QueryStatementRequest queryStatementRequest) {
+        if (statementRequest instanceof final QueryStatementRequest queryStatementRequest) {
             final TableDefinition tableDefinition = statementRequest.tableDefinition();
             final String qualifiedTableName = tableDefinition.tableName();
             final Optional<String> derivedTableFound = queryStatementRequest.derivedTable();

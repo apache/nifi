@@ -517,7 +517,7 @@ public class DataTypeUtils {
             return null;
         }
 
-        if (value instanceof Record record) {
+        if (value instanceof final Record record) {
             if (recursive) {
                 record.getRawFieldNames().forEach(name -> {
                     final Object rawValue = record.getValue(name);
@@ -787,7 +787,7 @@ public class DataTypeUtils {
         }
 
         try {
-            if (value instanceof Blob blob) {
+            if (value instanceof final Blob blob) {
                 long rawBlobLength = blob.length();
                 if (rawBlobLength > Integer.MAX_VALUE) {
                     throw new IllegalTypeConversionException("Value of type " + value.getClass() + " too large to convert to Object Array for field " + fieldName);
@@ -905,7 +905,7 @@ public class DataTypeUtils {
             chosenDataType = dataType;
         }
 
-        if (value instanceof Record record) {
+        if (value instanceof final Record record) {
             final RecordSchema recordSchema = record.getSchema();
             if (recordSchema == null) {
                 throw new IllegalTypeConversionException("Cannot convert value of type Record to Map because Record does not have an associated Schema");
@@ -1216,7 +1216,7 @@ public class DataTypeUtils {
             return array.length == 16;
         }
 
-        if (value instanceof String stringValue) {
+        if (value instanceof final String stringValue) {
             final String trimmed = stringValue.trim();
             if (trimmed.isEmpty()) {
                 return false;
@@ -1333,7 +1333,7 @@ public class DataTypeUtils {
             }
         }
 
-        if (value instanceof String string) {
+        if (value instanceof final String string) {
             try {
                 return string.isBlank() ? null : new BigDecimal(string);
             } catch (NumberFormatException nfe) {
@@ -1523,7 +1523,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isIntegerTypeCompatible(final Object value) {
-        if (value instanceof Number number) {
+        if (value instanceof final Number number) {
             try {
                 Math.toIntExact(number.longValue());
                 return true;
@@ -2086,7 +2086,7 @@ public class DataTypeUtils {
      * @return True in case of the value meets the conditions, false otherwise.
      */
     public static boolean isBigIntFitsToFloat(final Object value) {
-        if (!(value instanceof BigInteger bigIntValue)) {
+        if (!(value instanceof final BigInteger bigIntValue)) {
             return false;
         }
 
@@ -2102,7 +2102,7 @@ public class DataTypeUtils {
      * @return True in case of the value meets the conditions, false otherwise.
      */
     public static boolean isBigIntFitsToDouble(final Object value) {
-        if (!(value instanceof BigInteger bigIntValue)) {
+        if (!(value instanceof final BigInteger bigIntValue)) {
             return false;
         }
 
@@ -2123,7 +2123,7 @@ public class DataTypeUtils {
      */
     public static boolean isDoubleWithinFloatInterval(final Object value) {
 
-        if (!(value instanceof Double doubleValue)) {
+        if (!(value instanceof final Double doubleValue)) {
             return false;
         }
 
