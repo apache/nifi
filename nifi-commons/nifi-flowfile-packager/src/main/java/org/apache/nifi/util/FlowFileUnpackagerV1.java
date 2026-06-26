@@ -85,7 +85,7 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
             }
             if (!(valueObject instanceof final String value)) {
                 throw new IOException("Flow file attributes object contains value of type "
-                        + keyObject.getClass().getCanonicalName()
+                        + valueObject.getClass().getCanonicalName()
                         + " but expected java.lang.String");
             }
 
