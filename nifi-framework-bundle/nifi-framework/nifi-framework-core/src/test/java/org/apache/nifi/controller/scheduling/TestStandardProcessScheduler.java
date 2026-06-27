@@ -250,6 +250,101 @@ public class TestStandardProcessScheduler {
                 "After unscheduling Reporting Task, task ran an additional " + attemptsAfterStop + " times");
     }
 
+    /**
+     * Exercises the full reporting-task startup path with a real {@link VirtualThreadSchedulingAgent} (rather than a
+     * mock) so that an incorrect contract between {@link StandardProcessScheduler} and the agent is caught at the
+     * scheduler level. An earlier version of the agent threw {@link IllegalStateException} on entry if the lifecycle
+     * state was already marked scheduled; that condition is always true by the time the scheduler hands control to
+     * the agent for reporting tasks, which silently broke all reporting-task scheduling in production. This test will
+     * fail fast if that regression is ever reintroduced.
+     */
+    @Test
+    @Timeout(30)
+    public void testReportingTaskRunsWithVirtualThreadSchedulingAgent() throws InterruptedException, InitializationException {
+        final FlowController flowController = Mockito.mock(FlowController.class);
+        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        Mockito.when(flowController.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
+
+        final StandardProcessScheduler realScheduler = new StandardProcessScheduler(new FlowEngine(1, "VT Unit Test", true), extensionManager,
+                flowController, () -> serviceProvider, Mockito.mock(ReloadComponent.class), stateMgrProvider, nifiProperties, new StandardLifecycleStateManager());
+
+        final RepositoryContextFactory contextFactory = Mockito.mock(RepositoryContextFactory.class);
+        final VirtualThreadSchedulingAgent virtualThreadAgent = new VirtualThreadSchedulingAgent(flowController, contextFactory, nifiProperties, 10);
+        realScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, virtualThreadAgent);
+
+        // Build a reporting task that will not fail @OnScheduled so that control actually reaches the agent.
+        final TestReportingTask task = new TestReportingTask();
+        task.failOnScheduled.set(false);
+        final ReportingInitializationContext config = new StandardReportingInitializationContext(UUID.randomUUID().toString(), "VTTest", SchedulingStrategy.TIMER_DRIVEN,
+                "10 millis", Mockito.mock(ComponentLog.class), null, KerberosConfig.NOT_CONFIGURED, null);
+
+        task.initialize(config);
+        final LoggableComponent<ReportingTask> loggableTask = new LoggableComponent<>(task, systemBundle.getBundleDetails().getCoordinate(), Mockito.mock(TerminationAwareLogger.class));
+        final ReportingTaskNode taskNode = new StandardReportingTaskNode(loggableTask, UUID.randomUUID().toString(), flowController, realScheduler,
+                new StandardValidationContextFactory(null), Mockito.mock(ReloadComponent.class), extensionManager, new SynchronousValidationTrigger());
+        taskNode.setSchedulingPeriod("10 millis");
+        taskNode.performValidation();
+
+        realScheduler.schedule(taskNode);
+        try {
+            final long deadline = System.currentTimeMillis() + 5_000L;
+            while (task.triggerCount.get() == 0 && System.currentTimeMillis() < deadline) {
+                Thread.sleep(25L);
+            }
+
+            assertTrue(task.triggerCount.get() >= 1,
+                "Expected the VirtualThreadSchedulingAgent to invoke the reporting task at least once via the real scheduler wiring; got " + task.triggerCount.get() + " invocations");
+        } finally {
+            realScheduler.unschedule(taskNode);
+        }
+    }
+
+    /**
+     * Mirrors {@link #testReportingTaskRunsWithVirtualThreadSchedulingAgent()} but wires the scheduler with a real
+     * {@link TimerDrivenSchedulingAgent} to ensure the Timer-Driven scheduling path stays exercised when the
+     * {@code nifi.scheduler.virtual.threads.enabled} flag is disabled.
+     */
+    @Test
+    @Timeout(30)
+    public void testReportingTaskRunsWithTimerDrivenSchedulingAgent() throws InterruptedException, InitializationException {
+        final FlowController flowController = Mockito.mock(FlowController.class);
+        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        Mockito.when(flowController.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
+
+        final FlowEngine timerDrivenEngine = new FlowEngine(2, "Timer-Driven Unit Test", true);
+        final StandardProcessScheduler realScheduler = new StandardProcessScheduler(timerDrivenEngine, extensionManager,
+                flowController, () -> serviceProvider, Mockito.mock(ReloadComponent.class), stateMgrProvider, nifiProperties, new StandardLifecycleStateManager());
+
+        final RepositoryContextFactory contextFactory = Mockito.mock(RepositoryContextFactory.class);
+        final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(flowController, timerDrivenEngine, contextFactory, nifiProperties);
+        realScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
+
+        final TestReportingTask task = new TestReportingTask();
+        task.failOnScheduled.set(false);
+        final ReportingInitializationContext config = new StandardReportingInitializationContext(UUID.randomUUID().toString(), "TimerDrivenTest", SchedulingStrategy.TIMER_DRIVEN,
+                "10 millis", Mockito.mock(ComponentLog.class), null, KerberosConfig.NOT_CONFIGURED, null);
+
+        task.initialize(config);
+        final LoggableComponent<ReportingTask> loggableTask = new LoggableComponent<>(task, systemBundle.getBundleDetails().getCoordinate(), Mockito.mock(TerminationAwareLogger.class));
+        final ReportingTaskNode taskNode = new StandardReportingTaskNode(loggableTask, UUID.randomUUID().toString(), flowController, realScheduler,
+                new StandardValidationContextFactory(null), Mockito.mock(ReloadComponent.class), extensionManager, new SynchronousValidationTrigger());
+        taskNode.setSchedulingPeriod("10 millis");
+        taskNode.performValidation();
+
+        realScheduler.schedule(taskNode);
+        try {
+            final long deadline = System.currentTimeMillis() + 5_000L;
+            while (task.triggerCount.get() == 0 && System.currentTimeMillis() < deadline) {
+                Thread.sleep(25L);
+            }
+
+            assertTrue(task.triggerCount.get() >= 1,
+                "Expected the TimerDrivenSchedulingAgent to invoke the reporting task at least once via the real scheduler wiring; got " + task.triggerCount.get() + " invocations");
+        } finally {
+            realScheduler.unschedule(taskNode);
+        }
+    }
+
     @Test
     @Timeout(60)
     public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException, ExecutionException {

@@ -149,7 +149,7 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
         }
 
         scheduleState.setFutures(componentFuturesMap.values());
-        logger.info("Scheduled {} to run with {} threads on schedule {}", connectable, connectable.getMaxConcurrentTasks(), cronSchedule);
+        logger.info("Scheduled {} to run with {} Timer-Driven Threads on schedule {}", connectable, connectable.getMaxConcurrentTasks(), cronSchedule);
     }
 
     @Override
