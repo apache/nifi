@@ -24,6 +24,8 @@ import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.serialization.EventFileCompressor;
 import org.apache.nifi.provenance.store.iterator.AggregateEventIterator;
 import org.apache.nifi.provenance.store.iterator.EventIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,9 +39,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
+    private static final Logger logger = LoggerFactory.getLogger(PartitionedWriteAheadEventStore.class);
+    private static final long REINDEX_PROGRESS_LOG_INTERVAL_MINUTES = 1;
     private final BlockingQueue<File> filesToCompress;
     private final List<WriteAheadStorePartition> partitions;
     private final RepositoryConfiguration repoConfig;
@@ -125,14 +131,35 @@ public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
         }
 
         executor.shutdown();
+
+        final long startNanos = System.nanoTime();
+        final long warnIntervalNanos = TimeUnit.MINUTES.toNanos(REINDEX_PROGRESS_LOG_INTERVAL_MINUTES);
+        long nextWarnAtNanos = warnIntervalNanos;
+
         for (final Future<?> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Failed to re-index events because Thread was interrupted", e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException("Failed to re-index events", e);
+            while (true) {
+                try {
+                    future.get(REINDEX_PROGRESS_LOG_INTERVAL_MINUTES, TimeUnit.MINUTES);
+                    break;
+                } catch (final TimeoutException e) {
+                    final long elapsedNanos = System.nanoTime() - startNanos;
+                    if (elapsedNanos >= nextWarnAtNanos) {
+                        long pending = 0;
+                        for (final Future<?> f : futures) {
+                            if (!f.isDone()) {
+                                pending++;
+                            }
+                        }
+                        logger.info("Provenance re-indexing still in progress after {} seconds; {} of {} partitions still pending",
+                                TimeUnit.NANOSECONDS.toSeconds(elapsedNanos), pending, numPartitions);
+                        nextWarnAtNanos = elapsedNanos + warnIntervalNanos;
+                    }
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Failed to re-index events because Thread was interrupted", e);
+                } catch (final ExecutionException e) {
+                    throw new RuntimeException("Failed to re-index events", e);
+                }
             }
         }
     }
