@@ -263,7 +263,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
     private static int getPort(JettyServerUpgradeRequest servletUpgradeRequest) {
         Object localSocketAddress = servletUpgradeRequest.getLocalSocketAddress();
-        if (localSocketAddress instanceof InetSocketAddress inetSocketAddress) {
+        if (localSocketAddress instanceof final InetSocketAddress inetSocketAddress) {
             return inetSocketAddress.getPort();
         }
         throw new IllegalStateException(

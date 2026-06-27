@@ -439,7 +439,7 @@ public class TestPutEmail {
     }
 
     private String getMessageText(final Message message, final Charset charset) throws Exception {
-        if (message.getContent() instanceof MimeMultipart multipart) {
+        if (message.getContent() instanceof final MimeMultipart multipart) {
             final BodyPart part = multipart.getBodyPart(0);
             final InputStream is = part.getDataHandler().getInputStream();
             final String encoding = StandardCharsets.US_ASCII.equals(charset) ? "7bit" : "base64";

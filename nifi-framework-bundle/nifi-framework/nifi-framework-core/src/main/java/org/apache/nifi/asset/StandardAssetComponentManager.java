@@ -204,7 +204,7 @@ public class StandardAssetComponentManager implements AssetComponentManager {
         final Map<ComponentNode, Future<Void>> futures = controllerServiceProvider.unscheduleReferencingComponents(controllerServiceNode);
         for (final Map.Entry<ComponentNode, Future<Void>> entry : futures.entrySet()) {
             final ComponentNode component = entry.getKey();
-            if (component instanceof ProcessorNode processorNode) {
+            if (component instanceof final ProcessorNode processorNode) {
                 stoppedProcessors.add(processorNode);
             } else {
                 logger.warn("Unexpected stopped component of type {} with ID {}}", component.getCanonicalClassName(), component.getIdentifier());

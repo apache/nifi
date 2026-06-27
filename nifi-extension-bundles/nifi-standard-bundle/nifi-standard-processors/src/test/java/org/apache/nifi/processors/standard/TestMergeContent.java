@@ -597,7 +597,7 @@ public class TestMergeContent {
 
         Collection<ValidationResult> results = new HashSet<>();
         ProcessContext context = runner.getProcessContext();
-        if (context instanceof MockProcessContext mockContext) {
+        if (context instanceof final MockProcessContext mockContext) {
             results = mockContext.validate();
         }
 
@@ -619,7 +619,7 @@ public class TestMergeContent {
 
         Collection<ValidationResult> results = new HashSet<>();
         ProcessContext context = runner.getProcessContext();
-        if (context instanceof MockProcessContext mockContext) {
+        if (context instanceof final MockProcessContext mockContext) {
             results = mockContext.validate();
         }
 

@@ -57,7 +57,7 @@ public class DisallowComponentType extends AbstractFlowAnalysisRule {
 
         String componentType = context.getProperty(COMPONENT_TYPE).getValue();
 
-        if (component instanceof VersionedExtensionComponent versionedExtensionComponent) {
+        if (component instanceof final VersionedExtensionComponent versionedExtensionComponent) {
 
             String encounteredComponentType = versionedExtensionComponent.getType();
             String encounteredSimpleComponentType = encounteredComponentType.substring(encounteredComponentType.lastIndexOf(".") + 1);

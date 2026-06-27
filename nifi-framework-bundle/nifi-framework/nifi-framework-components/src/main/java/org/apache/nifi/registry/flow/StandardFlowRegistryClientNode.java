@@ -331,7 +331,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             }
 
             final ConfigurableComponent configurableComponent = client.get().getComponent();
-            if (configurableComponent instanceof VerifiableFlowRegistryClient verifiableClient) {
+            if (configurableComponent instanceof final VerifiableFlowRegistryClient verifiableClient) {
                 final boolean classpathDifferent = isClasspathDifferent(propertyValues);
                 final Map<String, String> verificationVariables = variables == null ? Collections.emptyMap() : variables;
 

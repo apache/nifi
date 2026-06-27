@@ -195,7 +195,7 @@ public class StandardDatabaseDialectService extends AbstractControllerService im
     }
 
     private StatementResponse getSelectStatement(final StatementRequest statementRequest) {
-        if (statementRequest instanceof QueryStatementRequest queryStatementRequest) {
+        if (statementRequest instanceof final QueryStatementRequest queryStatementRequest) {
             final TableDefinition tableDefinition = queryStatementRequest.tableDefinition();
             final String qualifiedTableName = getQualifiedTableName(tableDefinition);
             final Optional<String> derivedTableFound = queryStatementRequest.derivedTable();

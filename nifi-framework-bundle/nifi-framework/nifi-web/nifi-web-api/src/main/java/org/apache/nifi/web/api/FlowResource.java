@@ -439,9 +439,9 @@ public class FlowResource extends ApplicationResource {
 
     private CurrentUserEntity readReplicatedCurrentUserEntity(final Response replicatedResponse) {
         final Object entity = replicatedResponse.getEntity();
-        if (entity instanceof CurrentUserEntity replicatedCurrentUserEntity) {
+        if (entity instanceof final CurrentUserEntity replicatedCurrentUserEntity) {
             return replicatedCurrentUserEntity;
-        } else if (entity instanceof StreamingOutput streamingOutput) {
+        } else if (entity instanceof final StreamingOutput streamingOutput) {
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             try {
                 streamingOutput.write(outputStream);

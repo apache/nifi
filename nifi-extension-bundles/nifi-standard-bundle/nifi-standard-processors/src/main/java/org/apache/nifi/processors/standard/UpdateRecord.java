@@ -327,7 +327,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     private void updateFieldValue(final FieldValue fieldValue, final Object replacement) {
-        if (replacement instanceof FieldValue replacementFieldValue) {
+        if (replacement instanceof final FieldValue replacementFieldValue) {
             fieldValue.updateValue(replacementFieldValue.getValue(), replacementFieldValue.getField().getDataType());
         } else {
             fieldValue.updateValue(replacement);

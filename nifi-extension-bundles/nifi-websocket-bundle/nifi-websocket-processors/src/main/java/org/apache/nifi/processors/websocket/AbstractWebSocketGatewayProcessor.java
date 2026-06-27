@@ -150,7 +150,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     // @OnScheduled can not report error messages well on bulletin since it's an async method.
     // So, let's do it in onTrigger().
     public void onWebSocketServiceReady(final WebSocketService webSocketService, final ProcessContext context) throws IOException {
-        if (webSocketService instanceof WebSocketClientService webSocketClientService) {
+        if (webSocketService instanceof final WebSocketClientService webSocketClientService) {
             // If it's a ws client, then connect to the remote here.
             // Otherwise, ws server is already started at WebSocketServerService
             if (context.hasIncomingConnection()) {

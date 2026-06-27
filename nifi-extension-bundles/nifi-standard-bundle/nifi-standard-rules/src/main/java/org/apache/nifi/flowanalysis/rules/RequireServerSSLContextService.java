@@ -56,7 +56,7 @@ public class RequireServerSSLContextService extends AbstractFlowAnalysisRule {
     public Collection<ComponentAnalysisResult> analyzeComponent(VersionedComponent component, FlowAnalysisRuleContext context) {
         final Collection<ComponentAnalysisResult> results = new HashSet<>();
 
-        if (component instanceof VersionedConfigurableExtension versionedConfigurableExtension) {
+        if (component instanceof final VersionedConfigurableExtension versionedConfigurableExtension) {
             final String encounteredComponentType = versionedConfigurableExtension.getType();
 
             if (COMPONENT_TYPES.contains(encounteredComponentType)) {

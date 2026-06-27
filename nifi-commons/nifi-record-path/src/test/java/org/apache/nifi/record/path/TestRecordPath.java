@@ -3795,9 +3795,9 @@ public class TestRecordPath {
 
     private static DataType choiceTypeOf(final Object... fieldTypes) {
         final List<DataType> typedFieldTypes = Arrays.stream(fieldTypes).map(rawFieldType -> {
-            if (rawFieldType instanceof RecordFieldType recordFieldType) {
+            if (rawFieldType instanceof final RecordFieldType recordFieldType) {
                 return recordFieldType.getDataType();
-            } else if (rawFieldType instanceof DataType dataType) {
+            } else if (rawFieldType instanceof final DataType dataType) {
                 return dataType;
             }
             throw new IllegalArgumentException("fieldTypes passed to choiceTypeOf must be either RecordFieldType or DataType");

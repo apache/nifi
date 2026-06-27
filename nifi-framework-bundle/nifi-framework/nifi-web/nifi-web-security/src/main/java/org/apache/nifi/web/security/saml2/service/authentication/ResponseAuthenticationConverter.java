@@ -91,9 +91,9 @@ public class ResponseAuthenticationConverter implements Converter<ResponseToken,
     private String getAttributeValue(final XMLObject xmlObject) {
         final String attributeValue;
 
-        if (xmlObject instanceof XSAny any) {
+        if (xmlObject instanceof final XSAny any) {
             attributeValue = any.getTextContent();
-        } else if (xmlObject instanceof XSString string) {
+        } else if (xmlObject instanceof final XSString string) {
             attributeValue = string.getValue();
         } else {
             attributeValue = null;

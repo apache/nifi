@@ -309,7 +309,7 @@ public class LookupTableEventRecord implements Record {
         // NO_VALUE type
         builder.setCurrentContentClaim(null, null, null, null, 0L);
         if (contentClaimObject != null) {
-            if (contentClaimObject instanceof String contentClaimDescription) {
+            if (contentClaimObject instanceof final String contentClaimDescription) {
                 if (contentClaimDescription.equals(EventFieldNames.UNCHANGED_VALUE)) {
                     builder.setCurrentContentClaim((String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
                             (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SECTION),
@@ -317,7 +317,7 @@ public class LookupTableEventRecord implements Record {
                             (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_OFFSET),
                             (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
                 }
-            } else if (contentClaimObject instanceof Record currentClaimRecord) {
+            } else if (contentClaimObject instanceof final Record currentClaimRecord) {
                 builder.setCurrentContentClaim(
                     (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
                     (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SECTION),

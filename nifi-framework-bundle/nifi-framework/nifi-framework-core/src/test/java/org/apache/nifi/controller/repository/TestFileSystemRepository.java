@@ -964,7 +964,7 @@ public class TestFileSystemRepository {
         ContentClaim offsetZeroClaim = null;
         for (int i = 0; i < 20; i++) {
             final ContentClaim candidate = repository.create(false);
-            if (candidate instanceof StandardContentClaim standardContentClaim && standardContentClaim.getOffset() == 0) {
+            if (candidate instanceof final StandardContentClaim standardContentClaim && standardContentClaim.getOffset() == 0) {
                 // Write large data that exceeds maxAppendableClaimLength
                 try (final OutputStream out = repository.write(candidate)) {
                     out.write(new byte[(int) maxClaimLength + 1024]);

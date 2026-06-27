@@ -117,7 +117,7 @@ public class SslContextConfiguration {
 
             final X509ExtendedKeyManager keyManager = keyManager();
             final X509ExtendedTrustManager trustManager = trustManager();
-            if (keyManager instanceof KeyManagerListener keyManagerListener && trustManager instanceof TrustManagerListener trustManagerListener) {
+            if (keyManager instanceof final KeyManagerListener keyManagerListener && trustManager instanceof final TrustManagerListener trustManagerListener) {
                 final Set<Path> storeFileNames = getStoreFileNames();
                 final SecurityStoreChangedPathListener changedPathListener = new SecurityStoreChangedPathListener(
                         storeFileNames,

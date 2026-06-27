@@ -50,7 +50,7 @@ public class ConnectorRequestContextFilter implements Filter {
     public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain)
             throws IOException, ServletException {
         try {
-            if (request instanceof HttpServletRequest httpServletRequest) {
+            if (request instanceof final HttpServletRequest httpServletRequest) {
                 final ConnectorRequestContext context = createContext(httpServletRequest);
                 ConnectorRequestContextHolder.setContext(context);
             }

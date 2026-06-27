@@ -71,7 +71,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
             // only return the state from whichever single node was selected as the "client response".
             final ConnectorEntity connectorEntity;
             final Entity updatedEntity = mergedNodeResponse.getUpdatedEntity();
-            if (updatedEntity instanceof ConnectorEntity mergedConnectorEntity) {
+            if (updatedEntity instanceof final ConnectorEntity mergedConnectorEntity) {
                 logger.debug("getState: Connector [{}] - using merged updatedEntity", connectorId);
                 connectorEntity = mergedConnectorEntity;
             } else {

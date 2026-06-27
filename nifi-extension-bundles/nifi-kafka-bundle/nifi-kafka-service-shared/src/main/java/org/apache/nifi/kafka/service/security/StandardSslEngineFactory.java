@@ -49,7 +49,7 @@ public class StandardSslEngineFactory implements SslEngineFactory {
             throw new KafkaException("Required property [%s] not configured".formatted(SSL_CONTEXT_PROVIDER_PROPERTY));
         }
 
-        if (provider instanceof SSLContextProvider sslContextProvider) {
+        if (provider instanceof final SSLContextProvider sslContextProvider) {
             sslContext = sslContextProvider.createContext();
         } else {
             throw new KafkaException("Required property [%s] not valid [%s]".formatted(SSL_CONTEXT_PROVIDER_PROPERTY, provider.getClass().getName()));

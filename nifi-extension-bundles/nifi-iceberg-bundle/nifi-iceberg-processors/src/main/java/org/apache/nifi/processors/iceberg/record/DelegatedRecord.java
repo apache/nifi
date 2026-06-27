@@ -149,7 +149,7 @@ public class DelegatedRecord implements Record {
     public boolean equals(final Object other) {
         final boolean equals;
 
-        if (other instanceof DelegatedRecord otherRecord) {
+        if (other instanceof final DelegatedRecord otherRecord) {
             equals = record.equals(otherRecord.record);
         } else {
             equals = false;

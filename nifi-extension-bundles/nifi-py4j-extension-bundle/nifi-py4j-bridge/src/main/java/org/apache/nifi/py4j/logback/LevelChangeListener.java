@@ -68,7 +68,7 @@ public class LevelChangeListener implements LoggerContextListener {
     public static void registerLogbackListener(final LogLevelChangeListener logLevelChangeListener) {
         final LevelChangeListener levelChangeListener = new LevelChangeListener(logLevelChangeListener);
         final ILoggerFactory loggerFactory = LoggerFactory.getILoggerFactory();
-        if (loggerFactory instanceof LoggerContext loggerContext) {
+        if (loggerFactory instanceof final LoggerContext loggerContext) {
             loggerContext.addListener(levelChangeListener);
             levelChangeListener.onStart(loggerContext);
         }

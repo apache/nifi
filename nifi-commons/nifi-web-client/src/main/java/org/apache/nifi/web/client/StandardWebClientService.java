@@ -262,7 +262,7 @@ public class StandardWebClientService implements WebClientService, Closeable {
         if (proxyContext != null) {
             final Proxy proxy = proxyContext.getProxy();
             final SocketAddress proxyAddress = proxy.address();
-            if (proxyAddress instanceof InetSocketAddress proxySocketAddress) {
+            if (proxyAddress instanceof final InetSocketAddress proxySocketAddress) {
                 final ProxySelector proxySelector = ProxySelector.of(proxySocketAddress);
                 builder.proxy(proxySelector);
 

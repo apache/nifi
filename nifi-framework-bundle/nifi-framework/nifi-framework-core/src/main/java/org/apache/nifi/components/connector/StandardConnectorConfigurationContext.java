@@ -174,7 +174,7 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     private StepConfiguration resolvePropertyValues(final Map<String, ConnectorValueReference> propertyValues) {
         final Set<SecretReference> secretReferences = new HashSet<>();
         for (final ConnectorValueReference ref : propertyValues.values()) {
-            if (ref instanceof SecretReference secretRef) {
+            if (ref instanceof final SecretReference secretRef) {
                 secretReferences.add(secretRef);
             }
         }
@@ -244,7 +244,7 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
             final Set<SecretReference> allSecretReferences = new HashSet<>();
             for (final StepConfiguration stepConfig : propertyConfigurations.values()) {
                 for (final ConnectorValueReference ref : stepConfig.getPropertyValues().values()) {
-                    if (ref instanceof SecretReference secretRef) {
+                    if (ref instanceof final SecretReference secretRef) {
                         allSecretReferences.add(secretRef);
                     }
                 }

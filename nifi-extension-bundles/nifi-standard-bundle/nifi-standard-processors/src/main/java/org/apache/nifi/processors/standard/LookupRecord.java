@@ -669,7 +669,7 @@ public class LookupRecord extends AbstractProcessor {
                 final RecordPathResult resultPathResult = resultPath.evaluate(record);
 
                 final String resultContentsValue = context.getProperty(RESULT_CONTENTS).getValue();
-                if (RESULT_RECORD_FIELDS.getValue().equals(resultContentsValue) && lookupValue instanceof Record lookupRecord) {
+                if (RESULT_RECORD_FIELDS.getValue().equals(resultContentsValue) && lookupValue instanceof final Record lookupRecord) {
                     // User wants to add all fields of the resultant Record to the specified Record Path.
                     // If the destination Record Path returns to us a Record, then we will add all field values of
                     // the Lookup Record to the destination Record. However, if the destination Record Path returns

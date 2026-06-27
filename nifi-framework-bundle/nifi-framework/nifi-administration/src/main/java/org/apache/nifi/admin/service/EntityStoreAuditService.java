@@ -435,21 +435,21 @@ public class EntityStoreAuditService implements AuditService, Closeable {
     }
 
     private void addComponentDetails(final Entity actionEntity, final ComponentDetails componentDetails) {
-        if (componentDetails instanceof ExtensionDetails extensionDetails) {
+        if (componentDetails instanceof final ExtensionDetails extensionDetails) {
             actionEntity.setProperty(ActionEntity.EXTENSION_TYPE.getProperty(), extensionDetails.getType());
-        } else if (componentDetails instanceof RemoteProcessGroupDetails remoteProcessGroupDetails) {
+        } else if (componentDetails instanceof final RemoteProcessGroupDetails remoteProcessGroupDetails) {
             actionEntity.setProperty(ActionEntity.REMOTE_PROCESS_GROUP_URI.getProperty(), remoteProcessGroupDetails.getUri());
         }
     }
 
     private void addActionDetails(final StoreTransaction storeTransaction, final Entity actionEntity, final ActionDetails actionDetails) {
-        if (actionDetails instanceof ConnectDetails connectDetails) {
+        if (actionDetails instanceof final ConnectDetails connectDetails) {
             addConnectDetails(storeTransaction, actionEntity, connectDetails);
-        } else if (actionDetails instanceof MoveDetails moveDetails) {
+        } else if (actionDetails instanceof final MoveDetails moveDetails) {
             addMoveDetails(storeTransaction, actionEntity, moveDetails);
-        } else if (actionDetails instanceof ConfigureDetails configureDetails) {
+        } else if (actionDetails instanceof final ConfigureDetails configureDetails) {
             addConfigureDetails(storeTransaction, actionEntity, configureDetails);
-        } else if (actionDetails instanceof PurgeDetails purgeDetails) {
+        } else if (actionDetails instanceof final PurgeDetails purgeDetails) {
             addPurgeDetails(storeTransaction, actionEntity, purgeDetails);
         }
     }

@@ -1403,7 +1403,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         if (ref == null) {
             return descriptor.getDefaultValue();
         }
-        if (ref instanceof StringLiteralValue stringLiteralValue) {
+        if (ref instanceof final StringLiteralValue stringLiteralValue) {
             final String value = stringLiteralValue.getValue();
             return value != null ? value : descriptor.getDefaultValue();
         }

@@ -575,7 +575,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
     private void assertConflict(final NiFiClientException e) {
         final Throwable cause = e.getCause();
-        if (cause instanceof WebApplicationException wae) {
+        if (cause instanceof final WebApplicationException wae) {
             assertEquals(409, wae.getResponse().getStatus(), "Expected 409 Conflict, got: " + wae.getResponse().getStatus());
             return;
         }

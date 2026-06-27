@@ -107,7 +107,7 @@ public class StandardNiFiUser implements NiFiUser {
             return false;
         }
 
-        if (!(obj instanceof NiFiUser other)) {
+        if (!(obj instanceof final NiFiUser other)) {
             return false;
         }
 

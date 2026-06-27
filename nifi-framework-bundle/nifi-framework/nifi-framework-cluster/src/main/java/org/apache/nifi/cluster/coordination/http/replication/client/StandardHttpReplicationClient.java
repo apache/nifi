@@ -143,7 +143,7 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
      */
     @Override
     public Response replicate(final PreparedRequest request, final URI uri) throws IOException {
-        if (request instanceof StandardPreparedRequest preparedRequest) {
+        if (request instanceof final StandardPreparedRequest preparedRequest) {
             return replicate(preparedRequest, uri);
         } else {
             throw new IllegalArgumentException("HTTP Prepared Request not provided");

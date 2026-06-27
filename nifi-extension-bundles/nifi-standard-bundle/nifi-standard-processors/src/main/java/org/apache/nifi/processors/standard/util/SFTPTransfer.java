@@ -415,9 +415,9 @@ public class SFTPTransfer implements FileTransfer {
             final String resolvedPath = path == null ? "current directory" : path;
 
             final int status;
-            if (e instanceof SftpException sftpException) {
+            if (e instanceof final SftpException sftpException) {
                 status = sftpException.getStatus();
-            } else if (e.getCause() instanceof SftpException sftpException) {
+            } else if (e.getCause() instanceof final SftpException sftpException) {
                 status = sftpException.getStatus();
             } else {
                 status = SftpConstants.SSH_FX_FAILURE;

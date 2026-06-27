@@ -52,7 +52,7 @@ public class StandardVerifiableComponentFactory implements VerifiableComponentFa
 
             final ProcessorInitializationContext tempInitializationContext = new StandardProcessorInitializationContext(identifier, processorNode.getLogger(),
                     flowController.getControllerServiceProvider(), flowController, flowController.createKerberosConfig(nifiProperties));
-            if (verifiableProcessor instanceof Processor processor) {
+            if (verifiableProcessor instanceof final Processor processor) {
                 processor.initialize(tempInitializationContext);
             }
         } catch (Exception e) {
@@ -75,7 +75,7 @@ public class StandardVerifiableComponentFactory implements VerifiableComponentFa
                     serviceNode.getLogger(),
                     flowController.getControllerServiceProvider(), flowController.getStateManagerProvider().getStateManager(identifier),
                     flowController.createKerberosConfig(nifiProperties), flowController);
-            if (verifiableControllerService instanceof ControllerService controllerService) {
+            if (verifiableControllerService instanceof final ControllerService controllerService) {
                 controllerService.initialize(tempInitializationContext);
             }
         } catch (Exception e) {

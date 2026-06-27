@@ -84,7 +84,7 @@ public class ConnectableTask {
         this.flowController = flowController;
 
         final StateManager baseStateManager;
-        if (connectable instanceof ProcessorNode processorNode) {
+        if (connectable instanceof final ProcessorNode processorNode) {
             final Processor processor = processorNode.getProcessor();
             final Class<?> componentClass = processor == null ? null : processor.getClass();
             baseStateManager = flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier(), componentClass);

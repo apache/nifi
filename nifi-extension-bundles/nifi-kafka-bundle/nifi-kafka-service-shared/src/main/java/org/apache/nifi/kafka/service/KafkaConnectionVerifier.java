@@ -241,7 +241,7 @@ class KafkaConnectionVerifier {
     private boolean hasAuthorizationException(final Exception e) {
         final Throwable cause;
 
-        if (e instanceof ExecutionException executionException) {
+        if (e instanceof final ExecutionException executionException) {
             cause = executionException.getCause();
         } else {
             cause = e.getCause();

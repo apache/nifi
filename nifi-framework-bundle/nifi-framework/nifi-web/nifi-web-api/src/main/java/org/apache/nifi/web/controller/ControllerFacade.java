@@ -1993,7 +1993,7 @@ public class ControllerFacade implements Authorizable {
             final ConfigurationContext configurationContext = new StandardConfigurationContext(componentNode, controllerServiceProvider, null);
             final ConfigurableComponent component = componentNode.getComponent();
             // All components are expected to be ListenComponents, so this check is just for safe casting
-            if (component instanceof ListenComponent listenComponent) {
+            if (component instanceof final ListenComponent listenComponent) {
                 listenComponent.getListenPorts(configurationContext).forEach(listenPort -> {
                     final ListenPortDTO listenPortDTO = new ListenPortDTO();
                     listenPortDTO.setPortName(listenPort.getPortName());

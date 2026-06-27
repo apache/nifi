@@ -88,7 +88,7 @@ public class StandardReloadComponent implements ReloadComponent {
         // to prevent it from continuing to initialize while we're trying to reload/remove it.
         // This is important when a NAR is deleted while a processor is still initializing.
         final Processor existingProcessor = existingNode.getProcessor();
-        if (existingProcessor instanceof AsyncLoadedProcessor asyncProcessor) {
+        if (existingProcessor instanceof final AsyncLoadedProcessor asyncProcessor) {
             logger.debug("Cancelling async loading for processor {} before reload", id);
             asyncProcessor.cancelLoading();
         }

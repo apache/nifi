@@ -312,7 +312,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         // Inherit connector-supplied MDC attributes from the parent so descendants of a connector's managed
         // flow carry the same connector metadata (attributing their logs and status metrics to the connector).
         // Runs on every re-parent (including initial attach), so PGs added later inherit automatically.
-        if (newParent instanceof StandardProcessGroup standardParent) {
+        if (newParent instanceof final StandardProcessGroup standardParent) {
             this.connectorLoggingAttributes = standardParent.connectorLoggingAttributes;
         }
         setLoggingAttributes();
@@ -4861,7 +4861,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         setLoggingAttributes();
 
         for (final ProcessGroup child : getProcessGroups()) {
-            if (child instanceof StandardProcessGroup standardChild) {
+            if (child instanceof final StandardProcessGroup standardChild) {
                 standardChild.setConnectorLoggingAttributes(snapshot);
             }
         }

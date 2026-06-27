@@ -98,7 +98,7 @@ public interface C2OperationHandler {
         List<String> causeList = new LinkedList<>();
         populateCausedChain(ofNullable(exception.getCause()), causeList);
         failureCause.setCausedByMessages(causeList);
-        if (exception instanceof ValidationException validationException) {
+        if (exception instanceof final ValidationException validationException) {
             failureCause.setValidationResults(validationException.getValidationResults());
         }
         return failureCause;
@@ -140,7 +140,7 @@ public interface C2OperationHandler {
     default Optional<String> getOperationArg(C2Operation operation, String argument) {
         return ofNullable(operation.getArgs())
             .map(args -> args.get(argument))
-            .map(arg -> arg instanceof String s ? s : null);
+            .map(arg -> arg instanceof final String s ? s : null);
     }
 
     /**

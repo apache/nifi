@@ -260,7 +260,7 @@ public class LdapProvider implements LoginIdentityProvider {
             // use dn if configured
             if (IdentityStrategy.USE_DN.equals(identityStrategy)) {
                 // attempt to get the ldap user details to get the DN
-                if (authentication.getPrincipal() instanceof LdapUserDetails userDetails) {
+                if (authentication.getPrincipal() instanceof final LdapUserDetails userDetails) {
                     return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration, issuer);
                 } else {
                     logger.warn("Unable to determine user DN for {}, using username.", authentication.getName());

@@ -123,7 +123,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
                 // if the results list has results, then the transaction succeeded, and it should have the result of the setNX operation
                 if (results != null && !results.isEmpty()) {
                     final Object firstResult = results.getFirst();
-                    if (firstResult instanceof Boolean absent) {
+                    if (firstResult instanceof final Boolean absent) {
                         return absent ? null : valueDeserializer.deserialize(existingValue);
                     } else {
                         // this shouldn't really happen, but just in case there is a non-boolean result then bounce out of the loop

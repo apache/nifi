@@ -470,7 +470,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             throw new AuthorizerCreationException("Unable to locate initial admin " + initialAdminIdentity + " to seed policies");
         }
 
-        if (hasInitialAdminGroup && userGroupProvider instanceof ConfigurableUserGroupProvider configurableProvider) {
+        if (hasInitialAdminGroup && userGroupProvider instanceof final ConfigurableUserGroupProvider configurableProvider) {
             final Group initialAdminGroup = userGroupProvider.getGroupByName(this.initialAdminGroup);
             if (initialAdminGroup == null) {
                 throw new AuthorizerCreationException("Unable to locate initial admin group " + this.initialAdminGroup + " to seed policies");

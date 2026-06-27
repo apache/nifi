@@ -143,6 +143,6 @@ public class PropertiesPersister {
     }
 
     private String argToString(Object argument) {
-        return argument instanceof String arg ? arg : null;
+        return argument instanceof final String arg ? arg : null;
     }
 }

@@ -91,7 +91,7 @@ public final class FlowValidator {
     private static List<? extends ComponentNode> initializingAsyncLoadingComponents(List<? extends ComponentNode> componentNodes) {
         return componentNodes.stream()
             .filter(componentNode -> componentNode.performValidation() == INVALID)
-            .filter(componentNode -> componentNode.getComponent() instanceof AsyncLoadedProcessor asyncLoadedProcessor
+            .filter(componentNode -> componentNode.getComponent() instanceof final AsyncLoadedProcessor asyncLoadedProcessor
                 && INITIALIZING_ASYNC_PROCESSOR_STATES.contains(asyncLoadedProcessor.getState()))
             .toList();
     }
@@ -110,7 +110,7 @@ public final class FlowValidator {
 
     private static List<? extends ComponentNode> controllerServicesInEnablingState(List<? extends ComponentNode> componentNodes) {
         return componentNodes.stream()
-            .filter(componentNode -> componentNode instanceof StandardControllerServiceNode controllerServiceNode && controllerServiceNode.getState() == ENABLING)
+            .filter(componentNode -> componentNode instanceof final StandardControllerServiceNode controllerServiceNode && controllerServiceNode.getState() == ENABLING)
             .toList();
     }
 

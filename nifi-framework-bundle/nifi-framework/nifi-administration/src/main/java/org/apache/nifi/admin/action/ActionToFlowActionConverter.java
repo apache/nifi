@@ -54,7 +54,7 @@ public class ActionToFlowActionConverter implements ActionConverter {
         attributes.put(FlowActionAttribute.ACTION_SOURCE_TYPE.key(), action.getSourceType().name());
         attributes.put(FlowActionAttribute.ACTION_OPERATION.key(), action.getOperation().name());
 
-        if (action instanceof RequestAction requestAction) {
+        if (action instanceof final RequestAction requestAction) {
             populateRequestDetails(requestAction.getRequestDetails(), attributes);
         }
     }

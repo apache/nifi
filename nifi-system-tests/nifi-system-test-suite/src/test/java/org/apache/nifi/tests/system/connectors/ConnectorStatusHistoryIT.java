@@ -220,7 +220,7 @@ public class ConnectorStatusHistoryIT extends NiFiSystemIT {
             fail("Expected HTTP " + expectedStatus + " for " + description + " but request succeeded");
         } catch (final NiFiClientException e) {
             final Throwable cause = e.getCause();
-            if (cause instanceof WebApplicationException wae) {
+            if (cause instanceof final WebApplicationException wae) {
                 assertEquals(expectedStatus, wae.getResponse().getStatus(), "Unexpected status for " + description);
             } else {
                 fail("Expected WebApplicationException " + expectedStatus + " for " + description + ", got: " + cause);

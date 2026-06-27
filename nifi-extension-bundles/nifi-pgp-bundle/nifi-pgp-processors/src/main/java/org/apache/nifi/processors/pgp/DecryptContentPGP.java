@@ -367,7 +367,7 @@ public class DecryptContentPGP extends AbstractProcessor {
             PGPLiteralData literalData = null;
 
             for (final Object object : objectFactory) {
-                if (object instanceof PGPCompressedData compressedData) {
+                if (object instanceof final PGPCompressedData compressedData) {
                     getLogger().debug("PGP Compressed Data Algorithm [{}] Found", compressedData.getAlgorithm());
                     final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
                     literalData = getLiteralData(compressedObjectFactory);

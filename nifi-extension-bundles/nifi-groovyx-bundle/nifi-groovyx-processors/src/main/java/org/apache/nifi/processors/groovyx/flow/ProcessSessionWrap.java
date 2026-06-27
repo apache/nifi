@@ -91,7 +91,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *         if (f == null) {
      *             return null;
      *         }
-     *         if (f instanceof SessionFile sessionFile) {
+     *         if (f instanceof final SessionFile sessionFile) {
      *             return sessionFile;
      *         }
      *             return new SessionFile(this, f);
