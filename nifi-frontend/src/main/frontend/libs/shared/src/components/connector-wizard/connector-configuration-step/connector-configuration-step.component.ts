@@ -44,7 +44,7 @@ import { UploadService } from '../../../services/upload.service';
 import { ConnectorConfigurationService } from '../../../services/connector-configuration.service';
 import { ConnectorPropertyInput } from '../../connector-property-input/connector-property-input.component';
 import { StringListOrphansStrippedEvent } from '../../connector-property-input/connector-property-input.types';
-import { ErrorBanner } from '../../error-banner/error-banner.component';
+import { Banner } from '../../banner/banner.component';
 import { StatusBanner } from '../../status-banner/status-banner.component';
 import { StatusBannerDescriptionDirective } from '../../status-banner/status-banner.directives';
 import { fromValueReference, toValueReference, SecretReferenceOptions } from '../../../services/value-reference.helper';
@@ -103,7 +103,7 @@ export interface StringListOrphanStripBannerEntry {
         WizardContextBanner,
         WizardStepDocumentationPanel,
         MatProgressSpinner,
-        ErrorBanner,
+        Banner,
         StatusBanner,
         StatusBannerDescriptionDirective
     ],

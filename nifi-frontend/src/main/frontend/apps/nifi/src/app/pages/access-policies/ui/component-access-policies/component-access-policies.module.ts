@@ -29,7 +29,7 @@ import { ComponentAccessPoliciesRoutingModule } from './component-access-policie
 import { RouterModule } from '@angular/router';
 import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
-import { ComponentContext, NifiTooltipDirective, ErrorBanner } from '@nifi/shared';
+import { ComponentContext, NifiTooltipDirective } from '@nifi/shared';
 import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @NgModule({
@@ -50,7 +50,6 @@ import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/c
         NifiTooltipDirective,
         PolicyTable,
         MatButtonModule,
-        ErrorBanner,
         ComponentContext,
         ContextErrorBanner
     ]
