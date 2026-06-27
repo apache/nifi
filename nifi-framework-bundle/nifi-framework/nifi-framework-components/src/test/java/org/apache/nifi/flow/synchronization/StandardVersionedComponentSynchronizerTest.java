@@ -1126,6 +1126,75 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(service).setName("Hello");
     }
 
+    private ControllerServiceNode createMappableControllerService(final ProcessGroup processGroup) {
+        final ControllerServiceNode service = createMockControllerService();
+        when(service.getProcessGroup()).thenReturn(processGroup);
+        when(service.getVersionedComponentId()).thenReturn(Optional.of(UUID.randomUUID().toString()));
+        when(service.getCanonicalClassName()).thenReturn("org.apache.nifi.services.Test");
+        when(service.getReferences()).thenReturn(Mockito.mock(ControllerServiceReference.class));
+        return service;
+    }
+
+    @Test
+    public void testGroupSynchronizeDisablesEnabledControllerServiceBeforeUpdate() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final ControllerServiceNode service = createMappableControllerService(processGroup);
+        when(service.isActive()).thenReturn(true);
+        when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(service));
+
+        when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.emptyMap());
+        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
+
+        final VersionedControllerService versionedService = createMinimalVersionedControllerService();
+        versionedService.setIdentifier(service.getVersionedComponentId().orElse(service.getIdentifier()));
+        versionedService.setProperties(Collections.singletonMap("abc", "updated-value"));
+        versionedService.setScheduledState(ScheduledState.ENABLED);
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier("pg-v1");
+        versionedGroup.setControllerServices(Set.of(versionedService));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
+
+        verify(controllerServiceProvider).disableControllerServicesAsync(anyCollection());
+        verify(service).setProperties(anyMap(), anyBoolean(), anySet());
+        verify(componentScheduler).enableControllerServicesAsync(anySet());
+    }
+
+    @Test
+    public void testGroupSynchronizeDoesNotReEnableControllerServiceWhenProposedStateDisabled() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final ControllerServiceNode service = createMappableControllerService(processGroup);
+        when(service.isActive()).thenReturn(true);
+        when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(service));
+
+        when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.emptyMap());
+        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
+
+        final VersionedControllerService versionedService = createMinimalVersionedControllerService();
+        versionedService.setIdentifier(service.getVersionedComponentId().orElse(service.getIdentifier()));
+        versionedService.setProperties(Collections.singletonMap("abc", "updated-value"));
+        versionedService.setScheduledState(ScheduledState.DISABLED);
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier("pg-v1");
+        versionedGroup.setControllerServices(Set.of(versionedService));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
+
+        verify(controllerServiceProvider).disableControllerServicesAsync(anyCollection());
+        verify(service).setProperties(anyMap(), anyBoolean(), anySet());
+        verify(controllerServiceProvider, never()).enableControllerServicesAsync(anySet());
+    }
+
     @Test
     public void testCreatingParameterContext() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedParameterContext proposed = createVersionedParameterContext(CONTEXT_NAME_1, INITIAL_PARAMETERS, SENSITIVE_PARAM_NAMES);
