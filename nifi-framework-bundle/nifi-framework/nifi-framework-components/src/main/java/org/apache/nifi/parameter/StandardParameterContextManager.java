@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.parameter;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class StandardParameterContextManager implements ParameterContextManager {
     private final Map<String, ParameterContext> parameterContexts = new HashMap<>();
+    private final Map<String, ParameterContext> nameIndex = new HashMap<>();
+    private volatile Map<String, ParameterContext> cachedNameMapping = Collections.emptyMap();
 
     @Override
-    public boolean hasParameterContext(final String id) {
+    public synchronized boolean hasParameterContext(final String id) {
         return parameterContexts.get(id) != null;
     }
 
@@ -41,25 +42,55 @@ public class StandardParameterContextManager implements ParameterContextManager 
     public synchronized void addParameterContext(final ParameterContext parameterContext) {
         Objects.requireNonNull(parameterContext);
 
-        if (parameterContexts.containsKey(parameterContext.getIdentifier())) {
-            if (!(parameterContexts.get(parameterContext.getIdentifier()) instanceof ReferenceOnlyParameterContext)) {
-                throw new IllegalStateException("Cannot add Parameter Context because another Parameter Context already exists with the same ID");
-            }
+        final ParameterContext existingById = parameterContexts.get(parameterContext.getIdentifier());
+        if (existingById != null && !(existingById instanceof ReferenceOnlyParameterContext)) {
+            throw new IllegalStateException("Cannot add Parameter Context because another Parameter Context already exists with the same ID");
         }
 
-        for (final ParameterContext context : parameterContexts.values()) {
-            if (context.getName().equals(parameterContext.getName())) {
-                throw new IllegalStateException("Cannot add Parameter Context because another Parameter Context already exists with the name '" + parameterContext + "'");
-            }
+        final ParameterContext existingByName = nameIndex.get(parameterContext.getName());
+        if (existingByName != null && existingByName != existingById) {
+            throw new IllegalStateException("Cannot add Parameter Context because another Parameter Context already exists with the name '" + parameterContext + "'");
+        }
+
+        if (existingById instanceof ReferenceOnlyParameterContext) {
+            nameIndex.remove(existingById.getName(), existingById);
         }
 
         parameterContexts.put(parameterContext.getIdentifier(), parameterContext);
+        nameIndex.put(parameterContext.getName(), parameterContext);
+        updateCachedNameMapping();
     }
 
     @Override
     public synchronized ParameterContext removeParameterContext(final String parameterContextId) {
         Objects.requireNonNull(parameterContextId);
-        return parameterContexts.remove(parameterContextId);
+        final ParameterContext removed = parameterContexts.remove(parameterContextId);
+        if (removed != null) {
+            nameIndex.remove(removed.getName(), removed);
+            updateCachedNameMapping();
+        }
+        return removed;
+    }
+
+    @Override
+    public synchronized void setParameterContextName(final String parameterContextId, final String name) {
+        Objects.requireNonNull(parameterContextId);
+        Objects.requireNonNull(name);
+
+        final ParameterContext parameterContext = parameterContexts.get(parameterContextId);
+        if (parameterContext == null) {
+            throw new IllegalStateException("Cannot rename Parameter Context because no Parameter Context exists with the specified ID");
+        }
+
+        final ParameterContext existingByName = nameIndex.get(name);
+        if (existingByName != null && existingByName != parameterContext) {
+            throw new IllegalStateException("Cannot rename Parameter Context because another Parameter Context already exists with the name '" + name + "'");
+        }
+
+        nameIndex.remove(parameterContext.getName(), parameterContext);
+        parameterContext.setName(name);
+        nameIndex.put(parameterContext.getName(), parameterContext);
+        updateCachedNameMapping();
     }
 
     @Override
@@ -69,6 +100,10 @@ public class StandardParameterContextManager implements ParameterContextManager 
 
     @Override
     public Map<String, ParameterContext> getParameterContextNameMapping() {
-        return parameterContexts.values().stream().collect(Collectors.toMap(ParameterContext::getName, Function.identity()));
+        return cachedNameMapping;
+    }
+
+    private void updateCachedNameMapping() {
+        cachedNameMapping = Collections.unmodifiableMap(new HashMap<>(nameIndex));
     }
 }
