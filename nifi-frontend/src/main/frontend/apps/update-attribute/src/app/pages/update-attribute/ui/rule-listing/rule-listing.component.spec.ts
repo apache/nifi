@@ -20,6 +20,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RuleListing } from './rule-listing.component';
 import { provideMockStore } from '@ngrx/store/testing';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { initialState as rulesInitialState } from '../../state/rules/rules.reducer';
 import { initialState as evaluationContextInitialState } from '../../state/evaluation-context/evaluation-context.reducer';
 import { initialState as advancedUiParametersInitialState } from '../../state/advanced-ui-parameters/advanced-ui-parameters.reducer';
@@ -55,5 +56,24 @@ describe('RuleListing', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should disable rule reordering when switching to clone policy', () => {
+        component.setAllowRuleReordering({ checked: true } as MatSlideToggleChange);
+
+        component.flowFilePolicyChanged('USE_CLONE');
+
+        expect(component.allowRuleReordering).toBeFalse();
+    });
+
+    it('should disable rule reordering when clone policy is loaded', () => {
+        component.setAllowRuleReordering({ checked: true } as MatSlideToggleChange);
+
+        component.evaluationContext = {
+            ruleOrder: [],
+            flowFilePolicy: 'USE_CLONE'
+        };
+
+        expect(component.allowRuleReordering).toBeFalse();
     });
 });
