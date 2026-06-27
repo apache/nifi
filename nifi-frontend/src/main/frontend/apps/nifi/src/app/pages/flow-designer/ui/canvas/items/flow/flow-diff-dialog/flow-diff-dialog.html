@@ -1,0 +1,128 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>
+    Flow Version Diff - {{ flowName }}
+</h2>
+<div class="flow-diff">
+    <context-error-banner [context]="errorContext"></context-error-banner>
+    <mat-dialog-content>
+        <div class="dialog-content flex flex-col gap-y-4">
+            <div
+                class="space-y-3 text-sm"
+                data-qa="flow-diff-message"
+                *ngIf="comparisonSummary.length > 0">
+                <div class="font-semibold">Comparing versions</div>
+                <div class="grid gap-y-3">
+                    <div *ngFor="let summary of comparisonSummary" class="space-y-1" data-qa="flow-diff-summary-item">
+                        <div>{{ summary.label }}</div>
+                        <div class="tertiary-color font-medium flex flex-wrap gap-x-1">
+                            <span>{{ summary.version }}</span>
+                            <span *ngIf="summary.created" class="opacity-80">
+                                ({{ summary.created }})
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-diff-controls flex flex-wrap gap-4">
+                <div class="w-52">
+                    <mat-form-field class="w-full" appearance="outline">
+                        <mat-label>Current Version</mat-label>
+                        <mat-select [formControl]="currentVersionControl" data-qa="current-version-select">
+                            <mat-option *ngFor="let version of versionOptions" [value]="version">
+                                {{ formatVersionOption(version) }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+
+                <div class="w-52">
+                    <mat-form-field class="w-full" appearance="outline">
+                        <mat-label>Selected Version</mat-label>
+                        <mat-select [formControl]="selectedVersionControl" data-qa="selected-version-select">
+                            <mat-option *ngFor="let version of versionOptions" [value]="version">
+                                {{ formatVersionOption(version) }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+
+                <div class="flex-1 basis-60">
+                    <mat-form-field class="w-full" appearance="outline">
+                        <mat-label>Filter</mat-label>
+                        <input
+                            matInput
+                            type="text"
+                            [formControl]="filterControl"
+                            placeholder="Filter differences"
+                            data-qa="flow-diff-filter" />
+                    </mat-form-field>
+                </div>
+            </div>
+
+            <div class="listing-table flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                    <ng-container *ngIf="!isLoading && !hasError">
+                        <div *ngIf="noDifferences" class="py-3 tertiary-color" data-qa="flow-diff-empty">
+                            No differences to display.
+                        </div>
+
+                        <table
+                            mat-table
+                            *ngIf="dataSource.data.length > 0"
+                            [dataSource]="dataSource"
+                            matSort
+                            [matSortActive]="sort.active"
+                            [matSortDirection]="sort.direction"
+                            (matSortChange)="sortData($event)"
+                            matSortDisableClear
+                            data-qa="flow-diff-table">
+                            <ng-container matColumnDef="componentName">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Component Name</th>
+                                <td mat-cell *matCellDef="let row">
+                                    <span [title]="row.componentName">{{ row.componentName || 'Unknown' }}</span>
+                                </td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="changeType">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Change Type</th>
+                                <td mat-cell *matCellDef="let row">
+                                    <span [title]="row.changeType">{{ row.changeType }}</span>
+                                </td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="difference">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Difference</th>
+                                <td mat-cell *matCellDef="let row">
+                                    <span [title]="row.difference">{{ row.difference }}</span>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+                        </table>
+                    </ng-container>
+                </div>
+            </div>
+        </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-flat-button mat-dialog-close data-qa="close-flow-diff-dialog">Close</button>
+    </mat-dialog-actions>
+</div>
