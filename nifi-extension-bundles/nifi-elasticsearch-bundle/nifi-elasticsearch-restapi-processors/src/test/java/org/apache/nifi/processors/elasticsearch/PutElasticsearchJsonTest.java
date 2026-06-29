@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -903,6 +904,11 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         return item.getFields() == null ? "" : item.getFields().toString();
     }
 
+    /** Switches the processor to Nested Field Path mode (the field properties default to Literal Field Name). */
+    private void useNestedFieldPaths() {
+        runner.setProperty(PutElasticsearchJson.FIELD_PATH_MODE, FieldReferenceMode.NESTED_PATH.getValue());
+    }
+
     @Test
     void testDocumentFieldNamesWithSlashAndBackslashPassThroughRaw() {
         // Only the configured Identifier/Index/Timestamp Field property values are parsed as nested
@@ -1148,11 +1154,54 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
     }
 
     // -------------------------------------------------------------------------
+    // Field Path Mode: Literal Field Name (the default)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void testFieldPathModeDefaultsToLiteral() {
+        assertEquals(FieldReferenceMode.LITERAL.getValue(), PutElasticsearchJson.FIELD_PATH_MODE.getDefaultValue());
+    }
+
+    @Test
+    void testLiteralModeTreatsSlashAsLiteralFieldName() {
+        // Default (Literal Field Name) mode: "@metadata/id" names one top-level field, so a document whose
+        // id is nested under @metadata is NOT matched -- this is the pre-nested-path behavior preserved on upgrade.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "@metadata/id");
+        runner.setProperty(PutElasticsearchJson.RETAIN_IDENTIFIER_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"@metadata\":{\"id\":\"abc-123\"},\"msg\":\"x\"}\n");
+        runner.run();
+
+        assertNull(ops.getFirst().getId(), "literal mode does not descend into @metadata");
+        assertTrue(docContent(ops.getFirst()).contains("@metadata"), "nested object untouched in literal mode");
+    }
+
+    @Test
+    void testLiteralModeMatchesFieldNameContainingSlash() {
+        // In literal mode the value names the field verbatim, including a "/", with no escaping required.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "a/b");
+        runner.setProperty(PutElasticsearchJson.RETAIN_INDEX_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"a/b\":\"docs-x\",\"msg\":\"m\"}\n");
+        runner.run();
+
+        assertEquals("docs-x", ops.getFirst().getIndex(), "literal field named a/b matched verbatim");
+        assertFalse(docContent(ops.getFirst()).contains("a/b"), "literal field removed");
+    }
+
+    // -------------------------------------------------------------------------
     // Nested field paths (e.g. @metadata/index)
     // -------------------------------------------------------------------------
 
     @Test
     void testNestedIndexFieldNdjsonPrunesEmptyParent() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
         runner.setProperty(PutElasticsearchJson.RETAIN_INDEX_FIELD, "false");
@@ -1170,6 +1219,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIndexFieldJsonArrayPrunesEmptyParent() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
         runner.setProperty(PutElasticsearchJson.RETAIN_INDEX_FIELD, "false");
@@ -1185,6 +1235,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIndexFieldSingleJsonPrunesEmptyParent() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
         runner.setProperty(PutElasticsearchJson.RETAIN_INDEX_FIELD, "false");
         runner.assertValid();
@@ -1199,6 +1250,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIndexFieldKeepsParentWithRemainingSiblings() {
+        useNestedFieldPaths();
         // @metadata still holds another field after the index leaf is removed, so it must NOT be pruned
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
@@ -1218,6 +1270,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIndexFieldRetainedByDefault() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
         runner.assertValid();
@@ -1232,6 +1285,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIdentifierFieldNdjsonPrunesEmptyParent() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "@metadata/id");
         runner.setProperty(PutElasticsearchJson.RETAIN_IDENTIFIER_FIELD, "false");
@@ -1247,6 +1301,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedTimestampFieldNdjsonPrunesEmptyParent() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.TIMESTAMP_FIELD, "@metadata/event_time");
         runner.setProperty(PutElasticsearchJson.RETAIN_TIMESTAMP_FIELD, "false");
@@ -1264,6 +1319,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedTimestampFieldSingleJsonPrunesEmptyParent() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.TIMESTAMP_FIELD, "meta/ts");
         runner.setProperty(PutElasticsearchJson.RETAIN_TIMESTAMP_FIELD, "false");
         runner.assertValid();
@@ -1279,6 +1335,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIndexFieldMissingLeafFallsBack() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
         runner.assertValid();
@@ -1292,6 +1349,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIndexFieldConsistentAcrossFormats() {
+        useNestedFieldPaths();
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "@metadata/index");
         List<IndexOperationRequest> ops = captureOperations();
         runner.enqueue("{\"@metadata\":{\"index\":\"docs-x\"},\"msg\":\"a\"}");
@@ -1315,6 +1373,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testDeeplyNestedIndexFieldPrunesAllEmptyAncestors() {
+        useNestedFieldPaths();
         // A 3-level path (a/b/c): removing the leaf must recursively prune b and then a,
         // since each ancestor becomes empty in turn.
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
@@ -1336,6 +1395,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testDeeplyNestedIndexFieldKeepsAncestorWithRemainingSibling() {
+        useNestedFieldPaths();
         // A 3-level path (a/b/c) where the middle object 'b' retains a sibling after the leaf is
         // removed: pruning must stop at 'b' and leave 'a' intact.
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
@@ -1357,6 +1417,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedIdentifierFieldUpdateOperationResolvesAndPrunes() {
+        useNestedFieldPaths();
         // Update/Delete/Upsert resolve the ID from the parsed content Map via resolveId, a different
         // code path than the Index/Create streaming/JsonNode extraction. Verify the nested path is
         // honored and the now-empty parent is pruned from the doc body.
@@ -1381,6 +1442,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testEscapedSlashIndexFieldTreatedAsFlatNameAcrossFormats() {
+        useNestedFieldPaths();
         // "a\/b" must resolve the top-level field literally named "a/b" on every path,
         // including the NDJSON raw-bytes streaming scan.
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "a\\/b");
@@ -1406,6 +1468,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testEscapedSlashIndexFieldRemovedWhenRetainFalse() {
+        useNestedFieldPaths();
         // The escaped-slash field is flat, so removal must delete the top-level "a/b" key and must
         // NOT descend into a nonexistent "a" object.
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
@@ -1425,6 +1488,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testNestedPathWithEscapedSlashSegment() {
+        useNestedFieldPaths();
         // "a\/b/c": the first segment is the literal field "a/b", then nested field "c".
         // Removing the leaf prunes the now-empty "a/b" object.
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
@@ -1444,6 +1508,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testEscapedBackslashFieldName() {
+        useNestedFieldPaths();
         // "a\\b" addresses the flat field literally named "a\b" (single backslash).
         runner.setProperty(PutElasticsearchJson.INDEX_FIELD, "a\\\\b");
         final List<IndexOperationRequest> ops = captureOperations();
@@ -1454,6 +1519,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
 
     @Test
     void testEscapedSlashIdentifierFieldUpdateOperation() {
+        useNestedFieldPaths();
         // Update resolves the ID from the parsed Map via resolveId; verify the escaped-slash flat
         // field name is honored and removed.
         runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());

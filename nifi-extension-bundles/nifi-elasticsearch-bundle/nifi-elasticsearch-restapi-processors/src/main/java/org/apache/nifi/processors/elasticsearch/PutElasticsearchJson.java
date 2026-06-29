@@ -237,13 +237,25 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .dependsOn(INPUT_FORMAT, InputFormat.SINGLE_JSON)
             .build();
 
+    static final PropertyDescriptor FIELD_PATH_MODE = new PropertyDescriptor.Builder()
+            .name("Field Path Mode")
+            .description("""
+                    How the Identifier Field, Index Field, and Timestamp Field property values are interpreted \
+                    when locating a field within each document. In "Literal Field Name" mode (the default) each \
+                    value is the exact name of a top-level field. In "Nested Field Path" mode each value is a \
+                    "/"-delimited path into nested objects; see the processor's Additional Details for the full \
+                    path syntax, including how to reference a field name that contains a literal "/".\
+                    """)
+            .required(true)
+            .allowableValues(FieldReferenceMode.class)
+            .defaultValue(FieldReferenceMode.LITERAL.getValue())
+            .build();
+
     static final PropertyDescriptor IDENTIFIER_FIELD = new PropertyDescriptor.Builder()
             .name("Identifier Field")
             .description("""
-                    The name of the field within each document to use as the Elasticsearch document ID. \
-                    A nested field can be referenced with a "/"-delimited path (e.g. "@metadata/id"); see \
-                    the processor's Additional Details for the full path syntax, including how to reference \
-                    a field name that literally contains a "/". \
+                    The name of the field within each document to use as the Elasticsearch document ID, \
+                    interpreted as a literal field name or a nested "/"-delimited path per the Field Path Mode property. \
                     If the field is not present in a document or this property is left blank, no document ID is set \
                     and Elasticsearch will auto-generate one.\
                     """)
@@ -270,10 +282,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     static final PropertyDescriptor INDEX_FIELD = new PropertyDescriptor.Builder()
             .name("Index Field")
             .description("""
-                    The name of the field within each document to use as the Elasticsearch index name. \
-                    A nested field can be referenced with a "/"-delimited path (e.g. "@metadata/index"); see \
-                    the processor's Additional Details for the full path syntax, including how to reference \
-                    a field name that literally contains a "/". \
+                    The name of the field within each document to use as the Elasticsearch index name, \
+                    interpreted as a literal field name or a nested "/"-delimited path per the Field Path Mode property. \
                     If the field is not present in a document or this property is left blank, \
                     the configured Index property value is used as the fallback.\
                     """)
@@ -300,10 +310,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .name("Timestamp Field")
             .description("""
                     The name of a field within each document whose value will be written to \
-                    Elasticsearch as the @timestamp field. \
-                    A nested field can be referenced with a "/"-delimited path (e.g. "@metadata/event_time"); see \
-                    the processor's Additional Details for the full path syntax, including how to reference \
-                    a field name that literally contains a "/". \
+                    Elasticsearch as the @timestamp field, interpreted as a literal field name or a nested \
+                    "/"-delimited path per the Field Path Mode property. \
                     If the field is absent or this property is left blank, no @timestamp is set.\
                     """)
             .required(false)
@@ -353,6 +361,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             MAX_BATCH_SIZE,
             SUPPRESS_NULLS,
             ID_ATTRIBUTE,
+            FIELD_PATH_MODE,
             IDENTIFIER_FIELD,
             RETAIN_IDENTIFIER_FIELD,
             INDEX_FIELD,
@@ -478,11 +487,15 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         final String idAttribute = inputFormat == InputFormat.SINGLE_JSON
                 ? context.getProperty(ID_ATTRIBUTE).getValue()
                 : null;
+        // In Literal Field Name mode the configured values are escaped into single-segment paths so the
+        // shared path helpers resolve them to the exact (verbatim) field name; in Nested Field Path mode
+        // they are already "/"-delimited paths and used as-is.
+        final boolean nestedFieldPaths = FieldReferenceMode.NESTED_PATH.getValue().equals(context.getProperty(FIELD_PATH_MODE).getValue());
         final String documentIdField = inputFormat != InputFormat.SINGLE_JSON
-                ? context.getProperty(IDENTIFIER_FIELD).evaluateAttributeExpressions().getValue()
+                ? fieldPath(context.getProperty(IDENTIFIER_FIELD).evaluateAttributeExpressions().getValue(), nestedFieldPaths)
                 : null;
-        final String documentIndexField = context.getProperty(INDEX_FIELD).evaluateAttributeExpressions().getValue();
-        final String documentTimestampField = context.getProperty(TIMESTAMP_FIELD).evaluateAttributeExpressions().getValue();
+        final String documentIndexField = fieldPath(context.getProperty(INDEX_FIELD).evaluateAttributeExpressions().getValue(), nestedFieldPaths);
+        final String documentTimestampField = fieldPath(context.getProperty(TIMESTAMP_FIELD).evaluateAttributeExpressions().getValue(), nestedFieldPaths);
         // The id/index field paths are loop-invariant, so classify them as nested-vs-flat and decode
         // the flat names once here rather than per record in the NDJSON raw-bytes fast path below.
         final boolean nestedExtractionField = isNestedPath(documentIdField) || isNestedPath(documentIndexField);
@@ -1193,6 +1206,20 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         }
         final String value = fieldValueToString(valueAtPath(contentMap, indexField));
         return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+    }
+
+    /**
+     * Normalizes a configured Identifier/Index/Timestamp Field value into the path form consumed by the
+     * shared path helpers. In Nested Field Path mode the value is already a {@code /}-delimited path and
+     * is returned unchanged. In Literal Field Name mode the value names a single field verbatim, so any
+     * {@code /} or {@code \} is escaped ({@code \} to {@code \\} then {@code /} to {@code \/}) to produce
+     * a single-segment path that resolves back to that exact field name.
+     */
+    private static String fieldPath(final String configuredValue, final boolean nestedFieldPaths) {
+        if (configuredValue == null || nestedFieldPaths) {
+            return configuredValue;
+        }
+        return configuredValue.replace("\\", "\\\\").replace("/", "\\/");
     }
 
     /**

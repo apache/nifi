@@ -30,13 +30,35 @@ failed to an errors queue so that only failed FlowFiles can be processed downstr
 The index, operation and (optional) type fields are configured with default values. The ID (optional unless the
 operation is "index") can be set as an attribute on the FlowFile(s).
 
-### Nested Field Paths
+### Field Path Mode
 
 The **Identifier Field**, **Index Field** and **Timestamp Field** properties each name a field within the document
-whose value is extracted (and used as the document ID, index name, or `@timestamp` respectively). The value of these
-properties may be a single field name or a `/`-delimited path into nested objects.
+whose value is extracted (and used as the document ID, index name, or `@timestamp` respectively). The **Field Path
+Mode** property controls how those values are interpreted:
 
-For a document:
+* **Literal Field Name** (the default) &mdash; each value is the exact name of a top-level field. A `/` or `\` is just
+  a character in the field name, so a value like `@metadata/id` matches a top-level field literally named
+  `@metadata/id`.
+* **Nested Field Path** &mdash; each value is a `/`-delimited path into nested objects, as described below.
+
+#### Literal Field Name (default)
+
+For the document:
+
+```json
+{
+  "@metadata/id": "abc",
+  "message": "Hello, world"
+}
+```
+
+an Identifier Field of `@metadata/id` selects `abc` &mdash; the top-level field whose name is literally
+`@metadata/id`. The same value against `{"@metadata": {"id": "abc"}}` selects nothing, because there is no
+top-level field with that exact name.
+
+#### Nested Field Path
+
+The remainder of this section applies when **Field Path Mode** is set to **Nested Field Path**. For the document:
 
 ```json
 {
