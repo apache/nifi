@@ -143,7 +143,7 @@
         <ozone.version>1.4.1</ozone.version>
 
         <!-- Kubernetes -->
-        <io.fabric8.kubernetes.client.version>7.7.0</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>7.8.0</io.fabric8.kubernetes.client.version>
 
         <!-- Data access -->
         <commons.dbcp2.version>2.14.0</commons.dbcp2.version>
@@ -206,10 +206,10 @@
         <swagger.annotations.version>2.2.52</swagger.annotations.version>
 
         <!-- Testing and quality -->
-        <junit.version>6.1.0</junit.version>
+        <junit.version>6.1.1</junit.version>
         <mockito.version>5.23.0</mockito.version>
         <pmd.version>7.25.0</pmd.version>
-        <checkstyle.version>13.6.0</checkstyle.version>
+        <checkstyle.version>13.7.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
     </properties>
