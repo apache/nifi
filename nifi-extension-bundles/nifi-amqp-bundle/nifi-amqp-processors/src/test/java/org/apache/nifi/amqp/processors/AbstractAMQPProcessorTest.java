@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import com.rabbitmq.client.Connection;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.TestRunner;
@@ -23,7 +26,11 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.ExecutorService;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -88,6 +95,21 @@ public class AbstractAMQPProcessorTest {
         testRunner.assertNotValid();
     }
 
+    @Test
+    public void testExecutorShutdownWhenResourceCreationFails() throws Exception {
+        final FailingWorkerCreationConsumeAMQP processor = new FailingWorkerCreationConsumeAMQP();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(ConsumeAMQP.QUEUE, "queue");
+        runner.setProperty(AbstractAMQPProcessor.BROKERS, "localhost:5672");
+        runner.setProperty(AbstractAMQPProcessor.USER, "user");
+        runner.setProperty(AbstractAMQPProcessor.PASSWORD, "password");
+
+        runner.run();
+
+        assertTrue(processor.getExecutor().isShutdown());
+        verify(processor.getConnection()).close();
+    }
+
     private void configureSSLContextService() throws InitializationException {
         SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
         when(sslContextProvider.getIdentifier()).thenReturn("ssl-context");
@@ -95,5 +117,33 @@ public class AbstractAMQPProcessorTest {
         testRunner.enableControllerService(sslContextProvider);
 
         testRunner.setProperty(AbstractAMQPProcessor.SSL_CONTEXT_SERVICE, "ssl-context");
+    }
+
+    private static class FailingWorkerCreationConsumeAMQP extends ConsumeAMQP {
+        private final Connection connection = mock(Connection.class);
+        private ExecutorService executor;
+
+        private FailingWorkerCreationConsumeAMQP() {
+            when(connection.isOpen()).thenReturn(true);
+        }
+
+        @Override
+        protected Connection createConnection(final ProcessContext context, final ExecutorService executor) {
+            this.executor = executor;
+            return connection;
+        }
+
+        @Override
+        protected AMQPConsumer createAMQPWorker(final ProcessContext context, final Connection connection) {
+            throw new ProcessException("Worker creation failed");
+        }
+
+        private Connection getConnection() {
+            return connection;
+        }
+
+        private ExecutorService getExecutor() {
+            return executor;
+        }
     }
 }

@@ -285,8 +285,9 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
     private AMQPResource<T> createResource(final ProcessContext context) {
         Connection connection = null;
+        ExecutorService executor = null;
         try {
-            final ExecutorService executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
+            executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
                     .namingPattern("AMQP Client: " + getIdentifier() + "-%d")
                     .build());
             connection = createConnection(context, executor);
@@ -298,6 +299,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                     connection.close();
                 } catch (Exception closingEx) {
                     getLogger().error("Failed to close AMQP Connection", closingEx);
+                }
+            }
+            if (executor != null) {
+                try {
+                    executor.shutdown();
+                } catch (Exception closingEx) {
+                    getLogger().error("Failed to shut down AMQP Executor", closingEx);
+                    e.addSuppressed(closingEx);
                 }
             }
             throw e;
