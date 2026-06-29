@@ -40,6 +40,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -325,6 +326,46 @@ class StandardProcessGroupTest {
         final Map<String, String> loggingAttributes = processGroup.getLoggingAttributes();
         assertEquals("New Name", loggingAttributes.get("connectorName"));
         assertFalse(loggingAttributes.containsKey("customKey"));
+    }
+
+    @Test
+    void shouldPropagateLoggingAttributesChangesToChildren() {
+        final String rootId = "root";
+        final String rootName = "RootGroup";
+
+        final String middleId = "middle";
+        final String middleName = "MiddleGroup";
+
+        final String leafId = "leaf";
+        final String leafName = "LeafGroup";
+
+        final StandardProcessGroup leaf = createStandardProcessGroup(leafId);
+        leaf.setName(leafName);
+
+        final StandardProcessGroup middle = createStandardProcessGroup(middleId);
+        middle.setName(middleName);
+
+        final StandardProcessGroup versionedRoot = createStandardProcessGroup(rootId);
+        versionedRoot.setName(rootName);
+
+        when(flowManager.getFlowAnalyzer()).thenReturn(Optional.empty());
+        versionedRoot.addProcessGroup(middle);
+        middle.addProcessGroup(leaf);
+
+        when(versionControlInformation.getFlowIdentifier()).thenReturn(REGISTERED_FLOW_IDENTIFIER);
+        when(versionControlInformation.getVersion()).thenReturn(REGISTERED_FLOW_VERSION);
+        when(versionControlInformation.getStatus()).thenReturn(versionedFlowStatus);
+        versionedRoot.setVersionControlInformation(versionControlInformation, Map.of());
+
+        final Map<String, String> expected = Map.of(
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID.getAttribute(), leafId,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute(), leafName,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID_PATH.getAttribute(), "/" + rootId + "/" + middleId + "/" + leafId,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME_PATH.getAttribute(), "/" + rootName + "/" + middleName + "/" + leafName,
+                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_IDENTIFIER_PATH.getAttribute(), "/" + REGISTERED_FLOW_IDENTIFIER + ":" + REGISTERED_FLOW_VERSION + "/UNREGISTERED/UNREGISTERED"
+        );
+
+        assertEquals(expected, leaf.getLoggingAttributes());
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {
