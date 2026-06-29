@@ -20,20 +20,12 @@
     font-size: 13px;
 }
 
-.overlapping-connections-banner {
-    background-color: var(--mat-sys-surface-container);
-    border: 1px solid var(--mat-sys-outline-variant);
-    // !important needed to override the global *:not([class^=mat-])... border-color reset in material.scss
-    border-left: 4px solid var(--nf-caution-default) !important;
-    color: var(--mat-sys-on-surface);
+.overlap-link {
+    color: var(--mat-sys-primary);
+    cursor: pointer;
+    text-decoration: underline;
 
-    .overlap-link {
-        color: var(--mat-sys-primary);
-        cursor: pointer;
-        text-decoration: underline;
-
-        &:hover {
-            opacity: 0.6;
-        }
+    &:hover {
+        opacity: 0.6;
     }
 }

@@ -16,6 +16,8 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { StatusBanner } from '@nifi/shared';
 import { OverlappingConnectionsBannerComponent } from './overlapping-connections-banner.component';
 import { OverlappingConnectionGroup } from '../overlap-detection.utils';
 
@@ -50,8 +52,7 @@ describe('OverlappingConnectionsBannerComponent', () => {
     describe('rendering', () => {
         it('should not render when there are no overlapping groups', async () => {
             const { fixture } = await setup({ overlappingGroups: [] });
-            const banner = fixture.nativeElement.querySelector('.overlapping-connections-banner');
-            expect(banner).toBeNull();
+            expect(fixture.debugElement.query(By.directive(StatusBanner))).toBeNull();
         });
 
         it('should render when there are overlapping groups', async () => {
@@ -59,8 +60,9 @@ describe('OverlappingConnectionsBannerComponent', () => {
                 { sourceComponentId: 'a', destinationComponentId: 'b', connectionIds: ['c1', 'c2'] }
             ];
             const { fixture } = await setup({ overlappingGroups: groups });
-            const banner = fixture.nativeElement.querySelector('.overlapping-connections-banner');
-            expect(banner).toBeTruthy();
+            const statusBanner = fixture.debugElement.query(By.directive(StatusBanner));
+            expect(statusBanner).toBeTruthy();
+            expect(statusBanner.componentInstance.variant).toBe('caution');
         });
 
         it('should display the correct count of overlap groups', async () => {
@@ -69,8 +71,8 @@ describe('OverlappingConnectionsBannerComponent', () => {
                 { sourceComponentId: 'c', destinationComponentId: 'd', connectionIds: ['c3', 'c4'] }
             ];
             const { fixture } = await setup({ overlappingGroups: groups });
-            const banner = fixture.nativeElement.querySelector('.overlapping-connections-banner');
-            expect(banner.textContent).toContain('2 overlapping connection group(s) detected');
+            expect(fixture.debugElement.query(By.directive(StatusBanner))).toBeTruthy();
+            expect(fixture.nativeElement.textContent).toContain('2 overlapping connection group(s) detected');
         });
 
         it('should render a link for each overlap group', async () => {

@@ -16,12 +16,17 @@
  */
 
 import { Component, input, output } from '@angular/core';
+import {
+    StatusBanner,
+    StatusBannerDescriptionDirective,
+    StatusBannerTitleDirective
+} from '@nifi/shared';
 import { OverlappingConnectionGroup } from '../overlap-detection.utils';
 
 @Component({
     selector: 'overlapping-connections-banner',
     standalone: true,
-    imports: [],
+    imports: [StatusBanner, StatusBannerTitleDirective, StatusBannerDescriptionDirective],
     templateUrl: './overlapping-connections-banner.component.html',
     styleUrls: ['./overlapping-connections-banner.component.scss']
 })
