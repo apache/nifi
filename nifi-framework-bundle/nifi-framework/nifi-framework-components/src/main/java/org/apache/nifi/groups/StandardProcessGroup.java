@@ -315,7 +315,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         if (newParent instanceof StandardProcessGroup standardParent) {
             this.connectorLoggingAttributes = standardParent.connectorLoggingAttributes;
         }
-        setLoggingAttributes();
+        setLoggingAttributes(true);
     }
 
     @Override
@@ -355,7 +355,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         this.name.set(name);
-        setLoggingAttributes();
+        setLoggingAttributes(true);
     }
 
     @Override
@@ -3695,7 +3695,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 parent.onComponentModified();
             }
 
-            setLoggingAttributes();
+            setLoggingAttributes(true);
             scheduler.submitFrameworkTask(() -> synchronizeWithFlowRegistry(flowManager));
         } finally {
             writeLock.unlock();
@@ -3770,7 +3770,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             this.versionControlInfo.set(null);
-            setLoggingAttributes();
+            setLoggingAttributes(true);
         } finally {
             writeLock.unlock();
         }
@@ -4815,7 +4815,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private void setLoggingAttributes() {
+    private void setLoggingAttributes(final boolean recursive) {
         final Map<String, String> attributes = new HashMap<>();
 
         attributes.put(LoggingAttribute.PROCESS_GROUP_ID.attribute, id);
@@ -4841,9 +4841,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         this.loggingAttributes = Map.copyOf(attributes);
 
-        for (final ProcessGroup childGroup : processGroups.values()) {
-            if (childGroup instanceof StandardProcessGroup standardChildGroup) {
-                standardChildGroup.setLoggingAttributes();
+        if (recursive) {
+            for (final ProcessGroup childGroup : getProcessGroups()) {
+                if (childGroup instanceof StandardProcessGroup standardChildGroup) {
+                    standardChildGroup.setLoggingAttributes(true);
+                }
             }
         }
     }
@@ -4867,7 +4869,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             ? Map.of()
             : Map.copyOf(attributes);
         this.connectorLoggingAttributes = snapshot;
-        setLoggingAttributes();
+        setLoggingAttributes(false);
 
         for (final ProcessGroup child : getProcessGroups()) {
             if (child instanceof StandardProcessGroup standardChild) {
