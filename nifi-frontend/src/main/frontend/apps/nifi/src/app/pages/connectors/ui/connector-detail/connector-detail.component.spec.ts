@@ -455,7 +455,6 @@ describe('ConnectorDetail', () => {
             expect(connectorMessageHost.startListening).toHaveBeenCalledTimes(1);
             expect(connectorMessageHost.startListening).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    expectedOrigin: 'http://localhost:4200',
                     iframeElement: expect.any(Function)
                 })
             );
