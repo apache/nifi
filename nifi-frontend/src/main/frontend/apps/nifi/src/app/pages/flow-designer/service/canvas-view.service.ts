@@ -31,6 +31,15 @@ import { ConnectionManager } from './manager/connection-manager.service';
 import { deselectAllComponents } from '../state/flow/flow.actions';
 import { CanvasUtils } from './canvas-utils.service';
 import { Position } from '../state/shared';
+import {
+    clampScale,
+    isFiniteInBound,
+    isScaleInBound,
+    MAX_ABS_COORD,
+    MAX_ABS_TRANSLATE,
+    MAX_SCALE,
+    MIN_SCALE
+} from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'
@@ -47,8 +56,6 @@ export class CanvasView {
     private connectionManager = inject(ConnectionManager);
 
     private static readonly INCREMENT: number = 1.2;
-    private static readonly MAX_SCALE: number = 8;
-    private static readonly MIN_SCALE: number = 0.2;
     private static readonly MIN_SCALE_TO_RENDER: number = 0.4;
 
     private svg: any;
@@ -72,16 +79,19 @@ export class CanvasView {
         // define the behavior
         this.behavior = d3
             .zoom()
-            .scaleExtent([CanvasView.MIN_SCALE, CanvasView.MAX_SCALE])
+            .scaleExtent([MIN_SCALE, MAX_SCALE])
             .on('zoom', (event: any) => {
-                // update the local translation and scale
-                if (!isNaN(event.transform.x)) {
+                // Reject any translate component that is non-finite or catastrophically large, and
+                // reject scales outside [MIN_SCALE, MAX_SCALE] (also guards near-zero k that causes
+                // division-by-zero in birdseye arithmetic). Per-axis partial-commit so a bad x
+                // does not discard a valid y or k.
+                if (isFiniteInBound(event.transform.x, MAX_ABS_TRANSLATE)) {
                     this.x = event.transform.x;
                 }
-                if (!isNaN(event.transform.y)) {
+                if (isFiniteInBound(event.transform.y, MAX_ABS_TRANSLATE)) {
                     this.y = event.transform.y;
                 }
-                if (!isNaN(event.transform.k)) {
+                if (isScaleInBound(event.transform.k)) {
                     this.k = event.transform.k;
                 }
 
@@ -412,6 +422,10 @@ export class CanvasView {
             bbox = this.getSelectionBoundingClientRect(selection);
         }
 
+        if (!bbox) {
+            return;
+        }
+
         this.allowTransition = allowTransition;
         this.centerBoundingBox(bbox);
         this.allowTransition = false;
@@ -448,8 +462,13 @@ export class CanvasView {
 
     /**
      * Get a BoundingClientRect, normalized to the canvas, that encompasses all nodes in a given selection.
+     * Returns null when the selection is empty.
      */
-    public getSelectionBoundingClientRect(selection: any): any {
+    public getSelectionBoundingClientRect(selection: any): any | null {
+        if (selection.empty()) {
+            return null;
+        }
+
         let yOffset = 0;
 
         const canvasContainer: any = document.getElementById('canvas-container');
@@ -457,11 +476,15 @@ export class CanvasView {
             yOffset = canvasContainer.getBoundingClientRect().top;
         }
 
+        // Use POSITIVE/NEGATIVE_INFINITY as sentinel seeds so that selections
+        // that live entirely in negative canvas space are aggregated correctly.
+        // Number.MAX_VALUE / Number.MIN_VALUE seeds would clamp the aggregate
+        // to positive space and produce an incorrect bounding box.
         const initialBBox: any = {
-            x: Number.MAX_VALUE,
-            y: Number.MAX_VALUE,
-            right: Number.MIN_VALUE,
-            bottom: Number.MIN_VALUE
+            x: Number.POSITIVE_INFINITY,
+            y: Number.POSITIVE_INFINITY,
+            right: Number.NEGATIVE_INFINITY,
+            bottom: Number.NEGATIVE_INFINITY
         };
 
         const bbox = selection.nodes().reduce((aggregateBBox: any, node: any) => {
@@ -519,6 +542,13 @@ export class CanvasView {
             // adjust the x and y coordinates accordingly
             const x = canvasDropPoint.x / this.k - this.x / this.k;
             const y = canvasDropPoint.y / this.k - this.y / this.k;
+
+            // Reject any result that is outside the canvas-coordinate bound before it leaves
+            // this function: this is the write-side path that originally persists bad coordinates,
+            // so a corrupted transform must not produce a coordinate that re-poisons the backend.
+            if (!isFiniteInBound(x, MAX_ABS_COORD) || !isFiniteInBound(y, MAX_ABS_COORD)) {
+                return null;
+            }
 
             return { x, y };
         }
@@ -611,6 +641,15 @@ export class CanvasView {
      * @param scale
      */
     public transform(translate: any, scale: any): void {
+        // Reject degenerate transforms before they can overwrite d3's internal zoom state.
+        if (
+            !translate ||
+            !isFiniteInBound(translate[0], MAX_ABS_TRANSLATE) ||
+            !isFiniteInBound(translate[1], MAX_ABS_TRANSLATE) ||
+            !isScaleInBound(scale)
+        ) {
+            return;
+        }
         this.behavior.transform(this.svg, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
     }
 
@@ -642,9 +681,20 @@ export class CanvasView {
 
         // get the canvas normalized width and height
         const canvasContainer: any = document.getElementById('canvas-container');
+        if (canvasContainer == null) {
+            // DOM not yet mounted (e.g. called from the zoomFit fallback in restoreViewport$ before
+            // the canvas element exists). Nothing to fit — skip rather than throw.
+            return;
+        }
         const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
         const canvasWidth = canvasBoundingBox.width - 50;
         const canvasHeight = canvasBoundingBox.height - 50;
+
+        // Guard against a zero-size container (e.g. during component init before layout completes).
+        // Dividing by a zero dimension would produce Infinity, corrupting the d3 zoom transform.
+        if (canvasWidth <= 0 || canvasHeight <= 0) {
+            return;
+        }
 
         // get the bounding box for the graph
         const graph: any = d3.select('#canvas');
@@ -656,12 +706,21 @@ export class CanvasView {
         const x = translate[0] / scale;
         const y = translate[1] / scale;
 
+        // On an empty process group graphBox is 0×0. Reset to identity rather than letting
+        // 0/0 propagate as NaN through the transform computation.
+        if (graphBox.width === 0 && graphBox.height === 0) {
+            this.allowTransition = allowTransition;
+            this.transform([0, 0], 1);
+            this.allowTransition = false;
+            return;
+        }
+
         // adjust the scale to ensure the entire graph is visible
         if (graphWidth > canvasWidth || graphHeight > canvasHeight) {
             newScale = Math.min(canvasWidth / graphWidth, canvasHeight / graphHeight);
 
-            // ensure the scale is within bounds
-            newScale = Math.min(Math.max(newScale, CanvasView.MIN_SCALE), CanvasView.MAX_SCALE);
+            // clampScale handles NaN from 0/0 and out-of-range values in one step
+            newScale = clampScale(newScale);
         } else {
             newScale = 1;
 

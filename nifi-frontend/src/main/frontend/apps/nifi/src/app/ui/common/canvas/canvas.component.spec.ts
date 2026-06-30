@@ -1517,4 +1517,92 @@ describe('CanvasComponent', () => {
             expect(emittedValues).toHaveLength(0);
         });
     });
+
+    describe('Transform safety guards (NIFI-16025)', () => {
+        describe('applyTransform() — magnitude guard', () => {
+            it('does not throw when called with valid translate and scale', async () => {
+                const { component } = await setup();
+                expect(() => (component as any).applyTransform(100, 200, 1, false)).not.toThrow();
+            });
+
+            it('does not throw when translate is catastrophic-finite (~9e307)', async () => {
+                const { component } = await setup();
+                expect(() => (component as any).applyTransform(9e307, 0, 1, false)).not.toThrow();
+            });
+
+            it('does not throw when scale is Infinity', async () => {
+                const { component } = await setup();
+                expect(() => (component as any).applyTransform(0, 0, Infinity, false)).not.toThrow();
+            });
+
+            it('does not throw when scale is near-zero (0.0001)', async () => {
+                const { component } = await setup();
+                expect(() => (component as any).applyTransform(0, 0, 0.0001, false)).not.toThrow();
+            });
+        });
+
+        describe('restoreViewportFromStorage()', () => {
+            it('evicts a catastrophic-finite localStorage entry and does not throw', async () => {
+                const { component } = await setup();
+
+                const key = 'nifi-view-test-pg-id';
+                const corruptEntry = JSON.stringify({
+                    expires: Date.now() + 86400000,
+                    item: { scale: 1, translateX: 7.490388061926315e307, translateY: 0 }
+                });
+                localStorage.setItem(key, corruptEntry);
+
+                expect(() => component.restoreViewportFromStorage()).not.toThrow();
+                expect(localStorage.getItem(key)).toBeNull();
+
+                localStorage.removeItem(key);
+            });
+
+            it('does not throw when no localStorage entry exists', async () => {
+                const { component } = await setup();
+                localStorage.removeItem('nifi-view-test-pg-id');
+                expect(() => component.restoreViewportFromStorage()).not.toThrow();
+            });
+        });
+
+        describe('getCanvasPosition()', () => {
+            it('returns null when scale is near-zero causing overflow', async () => {
+                const { component } = await setup();
+                // Force a near-zero scale; result x = (400 - 0 - 0) / 1e-15 >> MAX_ABS_COORD
+                (component as any).currentScale = 1e-15;
+                (component as any).x = 0;
+                (component as any).y = 0;
+
+                const nativeEl = (component as any).elementRef.nativeElement;
+                vi.spyOn(nativeEl, 'getBoundingClientRect').mockReturnValue({
+                    left: 0,
+                    top: 0,
+                    width: 800,
+                    height: 600
+                } as DOMRect);
+
+                const result = component.getCanvasPosition({ x: 400, y: 300 });
+                expect(result).toBeNull();
+            });
+
+            it('returns a valid position for in-bounds inputs', async () => {
+                const { component } = await setup();
+                (component as any).currentScale = 1;
+                (component as any).x = 0;
+                (component as any).y = 0;
+
+                const nativeEl = (component as any).elementRef.nativeElement;
+                vi.spyOn(nativeEl, 'getBoundingClientRect').mockReturnValue({
+                    left: 0,
+                    top: 0,
+                    width: 800,
+                    height: 600
+                } as DOMRect);
+
+                const result = component.getCanvasPosition({ x: 400, y: 300 });
+                expect(result).not.toBeNull();
+                expect(Number.isFinite(result!.x)).toBe(true);
+            });
+        });
+    });
 });
