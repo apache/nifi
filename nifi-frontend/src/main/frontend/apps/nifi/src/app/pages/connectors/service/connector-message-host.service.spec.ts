@@ -22,7 +22,8 @@ import { CONNECTOR_MESSAGE_NAMESPACE } from '@nifi/shared';
 import { ConnectorMessageHost, ConnectorMessageHostOptions } from './connector-message-host.service';
 
 describe('ConnectorMessageHost', () => {
-    const TRUSTED_ORIGIN = 'http://localhost:4200';
+    // The host trusts only the application's own origin; tests dispatch from it.
+    const TRUSTED_ORIGIN = window.location.origin;
 
     function createMockDestroyRef(): DestroyRef {
         const callbacks: Array<() => void> = [];
@@ -49,7 +50,7 @@ describe('ConnectorMessageHost', () => {
         }).compileComponents();
 
         const service = TestBed.inject(ConnectorMessageHost);
-        const router = TestBed.inject(Router) as { navigate: ReturnType<typeof vi.fn> };
+        const router = TestBed.inject(Router) as unknown as { navigate: ReturnType<typeof vi.fn> };
 
         const destroyRef = createMockDestroyRef();
 
@@ -58,8 +59,7 @@ describe('ConnectorMessageHost', () => {
 
     function createDefaultOptions(destroyRef: DestroyRef): ConnectorMessageHostOptions {
         return {
-            destroyRef,
-            expectedOrigin: TRUSTED_ORIGIN
+            destroyRef
         };
     }
 
@@ -145,7 +145,7 @@ describe('ConnectorMessageHost', () => {
             expect(navigate).not.toHaveBeenCalled();
         });
 
-        it('should reject messages with empty origin when expectedOrigin is set', async () => {
+        it('should reject messages with empty origin', async () => {
             const { service, navigate, destroyRef } = await setup();
             service.startListening(createDefaultOptions(destroyRef));
 
@@ -252,7 +252,7 @@ describe('ConnectorMessageHost', () => {
             expect(onConnectorUiReady.mock.calls[0][0]).toBeInstanceOf(MessageEvent);
         });
 
-        it('should not invoke onConnectorUiReady when origin does not match expectedOrigin', async () => {
+        it('should not invoke onConnectorUiReady when origin does not match the trusted origin', async () => {
             const onConnectorUiReady = vi.fn();
             const { service, destroyRef } = await setup();
 
@@ -350,23 +350,43 @@ describe('ConnectorMessageHost', () => {
         });
     });
 
-    describe('extractOrigin', () => {
-        it('should extract origin from a valid URL', () => {
-            expect(ConnectorMessageHost.extractOrigin('https://connector-ui.example.com/config?id=123')).toBe(
-                'https://connector-ui.example.com'
+    describe('origin decoupling (FLOW-11982)', () => {
+        it('should drop messages whose origin matches an attacker-controlled configurationUrl', async () => {
+            const { service, navigate, destroyRef } = await setup();
+            service.startListening(createDefaultOptions(destroyRef));
+
+            // Simulate a connector entity whose configurationUrl points at an
+            // attacker origin. Even though that URL would load the iframe, the
+            // host must not trust messages claiming to come from it.
+            const attackerConfigurationUrl = 'https://attacker.example.com/custom-config';
+            const attackerOrigin = new URL(attackerConfigurationUrl).origin;
+
+            dispatchMessageEvent(
+                {
+                    namespace: CONNECTOR_MESSAGE_NAMESPACE,
+                    type: 'navigate-to-connector-listing',
+                    payload: { connectorId: 'c1' }
+                },
+                attackerOrigin
             );
+
+            expect(navigate).not.toHaveBeenCalled();
         });
 
-        it('should extract origin including port', () => {
-            expect(ConnectorMessageHost.extractOrigin('http://localhost:4200/wizard')).toBe('http://localhost:4200');
-        });
+        it('should accept messages from the application origin', async () => {
+            const { service, navigate, destroyRef } = await setup();
+            service.startListening(createDefaultOptions(destroyRef));
 
-        it('should return empty string for invalid URL', () => {
-            expect(ConnectorMessageHost.extractOrigin('not-a-url')).toBe('');
-        });
+            dispatchMessageEvent(
+                {
+                    namespace: CONNECTOR_MESSAGE_NAMESPACE,
+                    type: 'navigate-to-connector-listing',
+                    payload: { connectorId: 'c1' }
+                },
+                window.location.origin
+            );
 
-        it('should return empty string for empty string', () => {
-            expect(ConnectorMessageHost.extractOrigin('')).toBe('');
+            expect(navigate).toHaveBeenCalledWith(['/connectors', 'c1']);
         });
     });
 
@@ -395,47 +415,28 @@ describe('ConnectorMessageHost', () => {
         it('should tear down previous listener when startListening is called again', async () => {
             const { service, navigate, destroyRef } = await setup();
 
-            const firstOrigin = 'http://first-origin.example.com';
-            const secondOrigin = 'http://second-origin.example.com';
+            // Start first listener (simulates initial route activation)
+            service.startListening(createDefaultOptions(destroyRef));
 
-            service.startListening({
-                destroyRef,
-                expectedOrigin: firstOrigin
+            dispatchMessageEvent({
+                namespace: CONNECTOR_MESSAGE_NAMESPACE,
+                type: 'navigate-to-connector-listing',
+                payload: { connectorId: 'c1' }
             });
-
-            dispatchMessageEvent(
-                {
-                    namespace: CONNECTOR_MESSAGE_NAMESPACE,
-                    type: 'navigate-to-connector-listing',
-                    payload: { connectorId: 'c1' }
-                },
-                firstOrigin
-            );
             expect(navigate).toHaveBeenCalledTimes(1);
 
-            service.startListening({
-                destroyRef,
-                expectedOrigin: secondOrigin
+            // Start second listener (simulates route param change). The previous
+            // subscription must be torn down so handlers do not accumulate.
+            service.startListening(createDefaultOptions(destroyRef));
+
+            dispatchMessageEvent({
+                namespace: CONNECTOR_MESSAGE_NAMESPACE,
+                type: 'navigate-to-connector-listing',
+                payload: { connectorId: 'c2' }
             });
 
-            dispatchMessageEvent(
-                {
-                    namespace: CONNECTOR_MESSAGE_NAMESPACE,
-                    type: 'navigate-to-connector-listing',
-                    payload: { connectorId: 'c2' }
-                },
-                firstOrigin
-            );
-            expect(navigate).toHaveBeenCalledTimes(1);
-
-            dispatchMessageEvent(
-                {
-                    namespace: CONNECTOR_MESSAGE_NAMESPACE,
-                    type: 'navigate-to-connector-listing',
-                    payload: { connectorId: 'c3' }
-                },
-                secondOrigin
-            );
+            // Exactly one additional handler invocation, proving the old
+            // subscription was replaced rather than duplicated.
             expect(navigate).toHaveBeenCalledTimes(2);
         });
 
