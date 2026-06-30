@@ -23,7 +23,20 @@ import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as UserListingActions from './user-listing.actions';
 import { selectTenant } from './user-listing.actions';
-import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    catchError,
+    combineLatest,
+    filter,
+    from,
+    last,
+    map,
+    mergeMap,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap
+} from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
 import { YesNoDialog } from '@nifi/shared';
@@ -231,7 +244,7 @@ export class UserListingEffects {
                     if (userGroupUpdates.length === 0) {
                         return of(UserListingActions.createUserComplete({ response }));
                     } else {
-                        return userGroupUpdates;
+                        return from(userGroupUpdates);
                     }
                 } else {
                     return of(UserListingActions.createUserComplete({ response }));
@@ -263,17 +276,24 @@ export class UserListingEffects {
             ofType(UserListingActions.createUserSuccess),
             map((action) => action.response),
             filter((response) => response.userGroupUpdate != null),
-            mergeMap((createUserResponse) =>
-                this.actions$.pipe(
-                    ofType(UserListingActions.updateUserGroupSuccess),
+            mergeMap((createUserResponse) => {
+                const expectedCount = createUserResponse.userGroupUpdate?.userGroups?.length ?? 0;
+                if (expectedCount === 0) {
+                    return of(UserListingActions.createUserComplete({ response: createUserResponse }));
+                }
+                return this.actions$.pipe(
+                    ofType(UserListingActions.updateUserGroupSuccess, UserListingActions.updateUserGroupError),
                     filter(
-                        (updateSuccess) =>
+                        (action) =>
                             // @ts-ignore
-                            createUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
+                            createUserResponse.userGroupUpdate.requestId ===
+                            ('response' in action ? action.response.requestId : action.requestId)
                     ),
+                    take(expectedCount),
+                    last(),
                     map(() => UserListingActions.createUserComplete({ response: createUserResponse }))
-                )
-            )
+                );
+            })
         )
     );
 
@@ -525,7 +545,7 @@ export class UserListingEffects {
                     if (userGroupUpdates.length === 0) {
                         return of(UserListingActions.updateUserComplete());
                     } else {
-                        return userGroupUpdates;
+                        return from(userGroupUpdates);
                     }
                 } else {
                     return of(UserListingActions.updateUserComplete());
@@ -539,17 +559,28 @@ export class UserListingEffects {
             ofType(UserListingActions.updateUserSuccess),
             map((action) => action.response),
             filter((response) => response.userGroupUpdate != null),
-            mergeMap((updateUserResponse) =>
-                this.actions$.pipe(
-                    ofType(UserListingActions.updateUserGroupSuccess),
+            mergeMap((updateUserResponse) => {
+                const addedCount = updateUserResponse.userGroupUpdate?.userGroupsAdded?.length ?? 0;
+                const removedCount = updateUserResponse.userGroupUpdate?.userGroupsRemoved?.length ?? 0;
+                const expectedCount = addedCount + removedCount;
+
+                if (expectedCount === 0) {
+                    return of(UserListingActions.updateUserComplete());
+                }
+
+                return this.actions$.pipe(
+                    ofType(UserListingActions.updateUserGroupSuccess, UserListingActions.updateUserGroupError),
                     filter(
-                        (updateSuccess) =>
+                        (action) =>
                             // @ts-ignore
-                            updateUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
+                            updateUserResponse.userGroupUpdate.requestId ===
+                            ('response' in action ? action.response.requestId : action.requestId)
                     ),
+                    take(expectedCount),
+                    last(),
                     map(() => UserListingActions.updateUserComplete())
-                )
-            )
+                );
+            })
         )
     );
 
@@ -622,7 +653,7 @@ export class UserListingEffects {
         this.actions$.pipe(
             ofType(UserListingActions.updateUserGroup),
             map((action) => action.request),
-            switchMap((request) =>
+            mergeMap((request) =>
                 from(this.usersService.updateUserGroup(request)).pipe(
                     map((response) =>
                         UserListingActions.updateUserGroupSuccess({
@@ -634,12 +665,23 @@ export class UserListingEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            UserListingActions.usersApiBannerError({
+                            UserListingActions.updateUserGroupError({
+                                requestId: request.requestId,
                                 error: this.errorHelper.getErrorString(errorResponse)
                             })
                         )
                     )
                 )
+            )
+        )
+    );
+
+    updateUserGroupError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.updateUserGroupError),
+            map((action) => action.error),
+            switchMap((error) =>
+                of(ErrorActions.addBannerError({ errorContext: { errors: [error], context: ErrorContextKey.USERS } }))
             )
         )
     );
