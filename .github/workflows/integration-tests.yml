@@ -17,6 +17,8 @@ name: integration-tests
 
 on:
   push:
+    branches-ignore:
+      - dependabot/*
     paths:
       - '.github/workflows/integration-tests.yml'
       - 'pom.xml'
