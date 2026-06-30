@@ -116,7 +116,7 @@ class TestStandardJsonSchemaRegistry {
     private static Stream<Arguments> dynamicProperties() {
         return Stream.of(
                 Arguments.of(SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, "{}", 0, "empty object schema"),
-                Arguments.of(SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, "[]", 0, "empty array schema"),
+                Arguments.of(SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, "[]", 1, "array is not a valid schema"),
                 Arguments.of(SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR, "not a schema", 1, "non whitespace")
         );
     }
