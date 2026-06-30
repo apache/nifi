@@ -521,7 +521,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         Objects.requireNonNull(syncMode, "syncMode is required");
         final ConnectorNode connector = connectors.get(identifier);
         if (connector != null && syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
-            syncFromProvider(connector);
+            syncFromProviderForRead(connector);
         }
         return connector;
     }
@@ -532,10 +532,29 @@ public class StandardConnectorRepository implements ConnectorRepository {
         final List<ConnectorNode> connectorList = List.copyOf(connectors.values());
         if (syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
             for (final ConnectorNode connector : connectorList) {
-                syncFromProvider(connector);
+                syncFromProviderForRead(connector);
             }
         }
         return connectorList;
+    }
+
+    /**
+     * Sync a connector from the provider for a read operation, tolerating a configuration-load failure.
+     * A corrupt or otherwise unreadable stored configuration must not make a connector unreadable (and
+     * therefore undeletable): on failure the connector is marked invalid so the failure is visible to
+     * clients, and the in-memory node is returned without updating its working configuration. Write paths
+     * ({@code addConnector}, {@code applyUpdate}) call {@link #syncFromProvider(ConnectorNode)} directly
+     * and continue to propagate the exception so they do not proceed on a bad configuration.
+     */
+    private void syncFromProviderForRead(final ConnectorNode connector) {
+        try {
+            syncFromProvider(connector);
+        } catch (final ConnectorConfigurationProviderException e) {
+            logger.warn("Failed to load configuration from provider for connector [{}] during a read operation; "
+                    + "returning the connector marked invalid so it remains readable and deletable",
+                    connector.getIdentifier(), e);
+            connector.markInvalid("Configuration Load Failed", e.getMessage());
+        }
     }
 
     @Override

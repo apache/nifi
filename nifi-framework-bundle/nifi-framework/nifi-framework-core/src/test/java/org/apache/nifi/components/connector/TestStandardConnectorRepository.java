@@ -274,7 +274,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testGetConnectorWithProviderThrowsException() {
+    public void testGetConnectorToleratesProviderExceptionAndMarksInvalid() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -283,8 +283,46 @@ public class TestStandardConnectorRepository {
 
         when(provider.load("connector-1")).thenThrow(new ConnectorConfigurationProviderException("Provider failure"));
 
-        assertThrows(ConnectorConfigurationProviderException.class, () -> repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER));
+        // A configuration-load failure on a read must not propagate: the connector must remain readable
+        // (and therefore deletable). It is returned marked invalid so the failure is visible to clients.
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertNotNull(result);
+        assertEquals(connector, result);
+        verify(connector).markInvalid(eq("Configuration Load Failed"), anyString());
         verify(connector, never()).setName(anyString());
+    }
+
+    @Test
+    public void testGetConnectorsToleratesProviderExceptionAndMarksInvalid() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        repository.addConnector(connector);
+
+        when(provider.load("connector-1")).thenThrow(new ConnectorConfigurationProviderException("Provider failure"));
+
+        final List<ConnectorNode> results = repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertEquals(1, results.size());
+        assertTrue(results.contains(connector));
+        verify(connector).markInvalid(eq("Configuration Load Failed"), anyString());
+        verify(connector, never()).setName(anyString());
+    }
+
+    @Test
+    public void testAddConnectorPropagatesProviderException() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        when(provider.load("connector-1")).thenThrow(new ConnectorConfigurationProviderException("Provider failure"));
+
+        // Write paths must remain strict: a configuration-load failure during create must propagate so that
+        // create/apply-config does not silently proceed on a bad configuration (only reads are made tolerant).
+        assertThrows(ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
+        verify(connector, never()).markInvalid(anyString(), anyString());
     }
 
     @Test
