@@ -508,6 +508,89 @@ public class TestLookupRecord {
     }
 
     @Test
+    public void testResultPathNestedMissingParentScalar() throws InitializationException {
+        // NIFI-16002: when the result path has a parent that does not exist in the record,
+        // the intermediate Record should be auto-created and the value written inside it,
+        // not at the root level.
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("jsonReader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("jsonWriter", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(LookupRecord.RECORD_READER, "jsonReader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "jsonWriter");
+        runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/enrichment/sport");
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+
+        lookupService.addValue("John Doe", "Soccer");
+
+        runner.enqueue("""
+                [ { "name" : "John Doe", "age" : 48 } ]
+                """);
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
+        runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 0);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
+        final String content = new String(out.toByteArray());
+
+        // The value must be inside the auto-created /enrichment Record, not at the root
+        assertTrue(content.contains("\"enrichment\""), "Expected enrichment object in output: " + content);
+        assertTrue(content.contains("\"sport\"") && content.contains("\"Soccer\""), "Expected sport inside enrichment: " + content);
+        // Verify sport is NOT at root level (would appear before enrichment)
+        assertTrue(content.indexOf("\"enrichment\"") < content.indexOf("\"sport\""), "sport should be nested inside enrichment: " + content);
+    }
+
+    @Test
+    public void testResultPathNestedMissingParentRecord() throws InitializationException {
+        // NIFI-16002: same bug for Record-typed lookup values — intermediate parent must be
+        // auto-created so the looked-up Record is placed at /enrichment/details, not at /details.
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("jsonReader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("jsonWriter", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+
+        final RecordLookup recordLookupService = new RecordLookup();
+        final RecordSchema lookupSchema = new SimpleRecordSchema(List.of(
+                new RecordField("sport", RecordFieldType.STRING.getDataType()),
+                new RecordField("level", RecordFieldType.STRING.getDataType())));
+        recordLookupService.addValue("John Doe", new MapRecord(lookupSchema, Map.of("sport", "Soccer", "level", "Pro")));
+        runner.addControllerService("recordLookup", recordLookupService);
+        runner.enableControllerService(recordLookupService);
+
+        runner.setProperty(LookupRecord.RECORD_READER, "jsonReader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "jsonWriter");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "recordLookup");
+        runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/enrichment/details");
+        runner.setProperty(LookupRecord.RESULT_CONTENTS, LookupRecord.RESULT_RECORD_FIELDS);
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+        runner.setProperty("lookup", "/name");
+
+        runner.enqueue("""
+                [ { "name" : "John Doe" } ]
+                """);
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
+        final String content = new String(out.toByteArray());
+
+        assertTrue(content.contains("\"enrichment\""), "Expected enrichment object in output: " + content);
+        assertTrue(content.contains("\"details\""), "Expected details inside enrichment: " + content);
+        assertTrue(content.contains("\"sport\"") && content.contains("\"Soccer\""), "Expected sport field in output: " + content);
+        // Verify details is NOT at root level (would appear before enrichment)
+        assertTrue(content.indexOf("\"enrichment\"") < content.indexOf("\"details\""), "details should be nested inside enrichment: " + content);
+    }
+
+    @Test
     public void testResultPathNotFound() {
         runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/other");
 
