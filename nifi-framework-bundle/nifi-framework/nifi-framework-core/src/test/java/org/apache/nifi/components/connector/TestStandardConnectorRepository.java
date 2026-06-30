@@ -274,7 +274,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testGetConnectorToleratesProviderExceptionAndMarksInvalid() {
+    public void testGetConnectorToleratesProviderException() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -284,17 +284,19 @@ public class TestStandardConnectorRepository {
         when(provider.load("connector-1")).thenThrow(new ConnectorConfigurationProviderException("Provider failure"));
 
         // A configuration-load failure on a read must not propagate: the connector must remain readable
-        // (and therefore deletable). It is returned marked invalid so the failure is visible to clients.
+        // (and therefore deletable). The node is returned with its existing state untouched -- in particular
+        // it is NOT marked invalid, so a transient failure does not leave a healthy connector permanently
+        // invalid (markInvalid is not cleared by a subsequent successful read).
         final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertNotNull(result);
         assertEquals(connector, result);
-        verify(connector).markInvalid(eq("Configuration Load Failed"), anyString());
+        verify(connector, never()).markInvalid(anyString(), anyString());
         verify(connector, never()).setName(anyString());
     }
 
     @Test
-    public void testGetConnectorsToleratesProviderExceptionAndMarksInvalid() {
+    public void testGetConnectorsToleratesProviderException() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
@@ -307,7 +309,7 @@ public class TestStandardConnectorRepository {
 
         assertEquals(1, results.size());
         assertTrue(results.contains(connector));
-        verify(connector).markInvalid(eq("Configuration Load Failed"), anyString());
+        verify(connector, never()).markInvalid(anyString(), anyString());
         verify(connector, never()).setName(anyString());
     }
 

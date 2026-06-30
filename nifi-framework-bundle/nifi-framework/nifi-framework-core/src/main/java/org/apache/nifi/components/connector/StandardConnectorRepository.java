@@ -540,20 +540,21 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     /**
      * Sync a connector from the provider for a read operation, tolerating a configuration-load failure.
-     * A corrupt or otherwise unreadable stored configuration must not make a connector unreadable (and
-     * therefore undeletable): on failure the connector is marked invalid so the failure is visible to
-     * clients, and the in-memory node is returned without updating its working configuration. Write paths
-     * ({@code addConnector}, {@code applyUpdate}) call {@link #syncFromProvider(ConnectorNode)} directly
-     * and continue to propagate the exception so they do not proceed on a bad configuration.
+     * A configuration that cannot be loaded or parsed (e.g. a transient provider error, or a corrupt
+     * stored configuration left by a failed commit) must not make a connector unreadable — and therefore
+     * undeletable. On failure we log and return the in-memory node without updating its working
+     * configuration; the connector's own state is left untouched, so a subsequent successful read recovers
+     * normally. Write paths ({@code addConnector}, {@code applyUpdate}) call
+     * {@link #syncFromProvider(ConnectorNode)} directly and continue to propagate the exception so they do
+     * not proceed on a configuration that could not be loaded.
      */
     private void syncFromProviderForRead(final ConnectorNode connector) {
         try {
             syncFromProvider(connector);
         } catch (final ConnectorConfigurationProviderException e) {
             logger.warn("Failed to load configuration from provider for connector [{}] during a read operation; "
-                    + "returning the connector marked invalid so it remains readable and deletable",
+                    + "returning the connector with its existing configuration so it remains readable and deletable",
                     connector.getIdentifier(), e);
-            connector.markInvalid("Configuration Load Failed", e.getMessage());
         }
     }
 
