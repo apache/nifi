@@ -552,7 +552,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         try {
             syncFromProvider(connector);
         } catch (final ConnectorConfigurationProviderException e) {
-            logger.warn("Failed to load configuration from provider for connector [{}] during a read operation; "
+            logger.error("Failed to load configuration from provider for connector [{}] during a read operation; "
                     + "returning the connector with its existing configuration so it remains readable and deletable",
                     connector.getIdentifier(), e);
         }
