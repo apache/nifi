@@ -17,6 +17,8 @@ name: docker-tests
 
 on:
   push:
+    branches-ignore:
+      - dependabot/*
     paths:
       - '.github/workflows/docker-tests.yml'
       - 'pom.xml'

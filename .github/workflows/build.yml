@@ -15,7 +15,11 @@
 # limitations under the License.
 name: build
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - dependabot/*
+  pull_request:
 
 env:
   MAVEN_COMMAND: ./mvnw

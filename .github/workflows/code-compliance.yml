@@ -21,6 +21,8 @@ on:
     - cron: "0 0 * * *"
   pull_request:
   push:
+    branches-ignore:
+      - dependabot/*
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

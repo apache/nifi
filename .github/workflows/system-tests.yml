@@ -17,6 +17,8 @@ name: system-tests
 
 on:
   push:
+    branches-ignore:
+      - dependabot/*
     paths:
       - '.github/workflows/system-tests.yml'
       - 'c2/c2-protocol/**'
