@@ -218,6 +218,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final DataValve dataValve;
     private final Long nifiPropertiesBackpressureCount;
     private final String nifiPropertiesBackpressureSize;
+    private final boolean autoResumeState;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -272,6 +273,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.logFileSuffix = null;
 
         // save only the nifi properties needed, and account for the possibility those properties are missing
+        this.autoResumeState = nifiProperties == null ? NiFiProperties.DEFAULT_AUTO_RESUME_STATE : nifiProperties.getAutoResumeState();
+
         if (nifiProperties == null) {
             nifiPropertiesBackpressureCount = DEFAULT_BACKPRESSURE_OBJECT;
             nifiPropertiesBackpressureSize = DEFAULT_BACKPRESSURE_DATA_SIZE;
@@ -3989,7 +3992,13 @@ public final class StandardProcessGroup implements ProcessGroup {
         // their Connections upon restore.
         final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
         final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.IDENTITY_LOOKUP;
-        final ComponentScheduler componentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
+
+        // When nifi.flowcontroller.autoResumeState is false, restore the flow structure (so queued FlowFiles can be
+        // re-associated with their Connections) without resuming any component to its previously running or enabled
+        // state. Otherwise, restore each component to the running/enabled state captured in the persisted flow.
+        final ComponentScheduler componentScheduler = autoResumeState
+            ? new DefaultComponentScheduler(controllerServiceProvider, stateLookup)
+            : new NonStartingComponentScheduler(controllerServiceProvider, stateLookup);
 
         final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)
