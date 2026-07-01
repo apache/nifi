@@ -17,6 +17,7 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.RepositoryConfiguration;
@@ -498,10 +499,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
             .filter(this::delete)
             .collect(Collectors.toList());
 
+        String thresholdWords = DurationFormatUtils.formatDurationWords(olderThan, true, true);
+
         if (removed.isEmpty()) {
-            logger.debug("No Provenance Event files that exceed time-based threshold of {} {}", olderThan, unit);
+            logger.debug("No Provenance Event files that exceed time-based threshold of {}", thresholdWords);
         } else {
-            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} {}: {}", removed.size(), olderThan, unit, removed);
+            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} : {}", removed.size(), thresholdWords, removed);
         }
     }
 
