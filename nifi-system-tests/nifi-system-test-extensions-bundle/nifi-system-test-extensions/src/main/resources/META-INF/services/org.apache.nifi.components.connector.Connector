@@ -23,6 +23,7 @@ org.apache.nifi.connectors.tests.system.GatedDataQueuingConnector
 org.apache.nifi.connectors.tests.system.FailingConfigurationMigrationConnector
 org.apache.nifi.connectors.tests.system.FailingStateMigrationConnector
 org.apache.nifi.connectors.tests.system.MigrationTargetConnector
+org.apache.nifi.connectors.tests.system.MigratePropertiesConnector
 org.apache.nifi.connectors.tests.system.NestedProcessGroupConnector
 org.apache.nifi.connectors.tests.system.NonMigratingConnector
 org.apache.nifi.connectors.tests.system.NopConnector
