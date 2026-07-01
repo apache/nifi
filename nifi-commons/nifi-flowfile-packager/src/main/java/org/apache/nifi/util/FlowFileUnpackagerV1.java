@@ -82,13 +82,13 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
                 throw new IOException("Flow file attributes object contains key of type "
                         + keyObject.getClass().getCanonicalName()
                         + " but expected java.lang.String");
-            } else if (!(keyObject instanceof String)) {
+            }
+            if (!(valueObject instanceof final String value)) {
                 throw new IOException("Flow file attributes object contains value of type "
-                        + keyObject.getClass().getCanonicalName()
+                        + valueObject.getClass().getCanonicalName()
                         + " but expected java.lang.String");
             }
 
-            final String value = (String) valueObject;
             result.put(key, value);
         }
 
