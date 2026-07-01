@@ -35,6 +35,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * <p>
@@ -64,7 +66,9 @@ public class NiFiPythonGateway extends Gateway {
     private static final Logger logger = LoggerFactory.getLogger(NiFiPythonGateway.class);
     private final JavaObjectBindings objectBindings;
 
-    // Guarded by synchronized methods
+    // Guarded by invocationLock. Uses ReentrantLock instead of synchronized to avoid
+    // pinning virtual threads to their carrier threads (JDK 21 virtual thread limitation).
+    private final Lock invocationLock = new ReentrantLock();
     private final List<InvocationBindings> activeInvocations = new ArrayList<>();
 
     private static final ReturnObject END_OF_ITERATOR_OBJECT = ReturnObject.getErrorReturnObject(new NoSuchElementException());
@@ -132,23 +136,33 @@ public class NiFiPythonGateway extends Gateway {
     }
 
     @Override
-    public synchronized String putNewObject(final Object object) {
-        final String objectId = objectBindings.bind(object, activeInvocations.size() + 1);
+    public String putNewObject(final Object object) {
+        invocationLock.lock();
+        try {
+            final String objectId = objectBindings.bind(object, activeInvocations.size() + 1);
 
-        for (final InvocationBindings activeInvocation : activeInvocations) {
-            activeInvocation.add(objectId);
+            for (final InvocationBindings activeInvocation : activeInvocations) {
+                activeInvocation.add(objectId);
+            }
+
+            logger.debug("Binding {}: {} ({})", objectId, object, object == null ? "null" : object.getClass().getName());
+            return objectId;
+        } finally {
+            invocationLock.unlock();
         }
-
-        logger.debug("Binding {}: {} ({})", objectId, object, object == null ? "null" : object.getClass().getName());
-        return objectId;
     }
 
     @Override
-    public synchronized Object putObject(final String id, final Object object) {
-        objectBindings.bind(id, object, activeInvocations.size() + 1);
-        logger.debug("Binding {}: {} ({})", id, object, object == null ? "null" : object.getClass().getName());
+    public Object putObject(final String id, final Object object) {
+        invocationLock.lock();
+        try {
+            objectBindings.bind(id, object, activeInvocations.size() + 1);
+            logger.debug("Binding {}: {} ({})", id, object, object == null ? "null" : object.getClass().getName());
 
-        return super.putObject(id, object);
+            return super.putObject(id, object);
+        } finally {
+            invocationLock.unlock();
+        }
     }
 
     @Override
@@ -176,38 +190,48 @@ public class NiFiPythonGateway extends Gateway {
         };
     }
 
-    public synchronized InvocationBindings beginInvocation(final String objectId, final Method method, final Object[] args) {
+    public InvocationBindings beginInvocation(final String objectId, final Method method, final Object[] args) {
         final boolean unbind = isUnbind(method);
-
         final InvocationBindings bindings = new InvocationBindings(objectId, method, args, unbind);
 
-        // We don't want to keep track of invocations of the Ping method.
-        // The Ping method has no arguments or bound objects to free, and can occasionally
-        // even hang, if the timing is right because of the startup sequence of the Python side and how the
-        // communications are established.
-        if (!pingMethod.equals(method)) {
-            activeInvocations.add(bindings);
-        }
+        invocationLock.lock();
+        try {
+            // We don't want to keep track of invocations of the Ping method.
+            // The Ping method has no arguments or bound objects to free, and can occasionally
+            // even hang, if the timing is right because of the startup sequence of the Python side and how the
+            // communications are established.
+            if (!pingMethod.equals(method)) {
+                activeInvocations.add(bindings);
+            }
 
-        logger.debug("Beginning method invocation {}", bindings);
+            logger.debug("Beginning method invocation {}", bindings);
+        } finally {
+            invocationLock.unlock();
+        }
 
         return bindings;
     }
 
-    public synchronized void endInvocation(final InvocationBindings invocationBindings) {
-        final String methodName = invocationBindings.getMethod().getName();
-        logger.debug("Ending method invocation {}", invocationBindings);
+    public void endInvocation(final InvocationBindings invocationBindings) {
+        invocationLock.lock();
+        try {
+            final String methodName = invocationBindings.getMethod().getName();
+            logger.debug("Ending method invocation {}", invocationBindings);
 
-        final String objectId = invocationBindings.getTargetObjectId();
+            final String objectId = invocationBindings.getTargetObjectId();
 
-        activeInvocations.remove(invocationBindings);
-        invocationBindings.getObjectIds().forEach(id -> {
-            final Object unbound = objectBindings.unbind(id);
+            activeInvocations.remove(invocationBindings);
+            invocationBindings.getObjectIds().forEach(id -> {
+                final Object unbound = objectBindings.unbind(id);
 
-            if (logger.isDebugEnabled()) {
-                logger.debug("Unbinding {}: {} because invocation of {} on {} with args {} has completed", id, unbound, methodName, objectId, Arrays.toString(invocationBindings.getArgs()));
-            }
-        });
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Unbinding {}: {} because invocation of {} on {} with args {} has completed", id, unbound, methodName, objectId,
+                        Arrays.toString(invocationBindings.getArgs()));
+                }
+            });
+        } finally {
+            invocationLock.unlock();
+        }
     }
 
     protected boolean isUnbind(final Method method) {

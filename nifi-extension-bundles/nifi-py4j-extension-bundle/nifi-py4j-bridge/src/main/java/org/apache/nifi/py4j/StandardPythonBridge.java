@@ -85,6 +85,7 @@ public class StandardPythonBridge implements PythonBridge {
             final File envHome = new File(processConfig.getPythonWorkingDirectory(), "controller");
             controllerProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, true, "Controller", "Controller");
             controllerProcess.start();
+            controllerProcess.markReadyAndNotify();
             running = true;
         } catch (final Exception e) {
             shutdown();
@@ -118,18 +119,12 @@ public class StandardPythonBridge implements PythonBridge {
         controllerProcess.discoverExtensions(extensionsDirs, workDirPath);
     }
 
-    private PythonProcessorBridge createProcessorBridge(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    private PythonProcessorBridge createProcessorBridge(final String identifier, final String type, final String version,
+                                                        final boolean preferIsolatedProcess, final PythonProcessorDetails processorDetails) {
         ensureStarted();
 
-        final Optional<ExtensionId> extensionIdFound = findExtensionId(type, version);
-        final ExtensionId extensionId = extensionIdFound.orElseThrow(() -> new IllegalArgumentException("Processor Type [%s] Version [%s] not found".formatted(type, version)));
+        final ExtensionId extensionId = new ExtensionId(processorDetails.getProcessorType(), processorDetails.getProcessorVersion());
         logger.debug("Creating Python Processor Type [{}] Version [{}]", extensionId.type(), extensionId.version());
-
-        final PythonProcessorDetails processorDetails = getProcessorTypes().stream()
-            .filter(details -> details.getProcessorType().equals(type))
-            .filter(details -> details.getProcessorVersion().equals(version))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Could not find Processor Details for Python Processor type [%s] or version [%s]".formatted(type, version)));
 
         final String processorHome = processorDetails.getExtensionHome();
         final boolean bundledWithDependencies = processorDetails.isBundledWithDependencies();
@@ -138,7 +133,15 @@ public class StandardPythonBridge implements PythonBridge {
         // to avoid a deadlock between StandardPythonBridge and StandardExtensionDiscoveringManager locks
         final Set<String> narDirectories = getNarDirectories();
 
-        final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies, narDirectories);
+        final PythonProcess pythonProcess;
+        try {
+            pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies, narDirectories);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while obtaining Python process for processor type [%s] version [%s]".formatted(type, version), e);
+        } catch (final IOException e) {
+            throw new RuntimeException("Failed to obtain Python process for processor type [%s] version [%s]".formatted(type, version), e);
+        }
 
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
@@ -157,7 +160,7 @@ public class StandardPythonBridge implements PythonBridge {
             .orElseThrow(() -> new IllegalArgumentException("Unknown Python Processor type [%s] or version [%s]".formatted(type, version)));
 
         final String implementedInterface = processorDetails.getInterface();
-        final Supplier<PythonProcessorBridge> processorBridgeFactory = () -> createProcessorBridge(identifier, type, version, preferIsolatedProcess);
+        final Supplier<PythonProcessorBridge> processorBridgeFactory = () -> createProcessorBridge(identifier, type, version, preferIsolatedProcess, processorDetails);
 
         if (FlowFileTransform.class.getName().equals(implementedInterface)) {
             return new FlowFileTransformProxy(type, processorBridgeFactory, initialize);
@@ -229,28 +232,26 @@ public class StandardPythonBridge implements PythonBridge {
         return count;
     }
 
-    private synchronized PythonProcess getProcessForNextComponent(final ExtensionId extensionId, final String componentId, final String processorHome, final boolean preferIsolatedProcess,
-                final boolean packagedWithDependencies, final Set<String> narDirectories) {
+    private PythonProcess getProcessForNextComponent(final ExtensionId extensionId, final String componentId, final String processorHome, final boolean preferIsolatedProcess,
+                final boolean packagedWithDependencies, final Set<String> narDirectories) throws IOException, InterruptedException {
 
-        final int processorsOfThisType = processorCountByType.getOrDefault(extensionId, 0);
-        final int processIndex = processorsOfThisType % processConfig.getMaxPythonProcessesPerType();
+        PythonProcess processToStart = null;
+        PythonProcess processToWait = null;
 
-        // Check if we have any existing process that we can add the processor to.
-        // We can add the processor to an existing process if either the processor to be created doesn't prefer
-        // isolation (which is the case when Extension Manager creates a temp component), or if an existing process
-        // consists only of processors that don't prefer isolation. I.e., we don't want to collocate two Processors if
-        // they both prefer isolation.
-        final List<PythonProcess> processesForType = processesByProcessorType.computeIfAbsent(extensionId, key -> new CopyOnWriteArrayList<>());
-        for (final PythonProcess pythonProcess : processesForType) {
-            if (!preferIsolatedProcess || !pythonProcess.containsIsolatedProcessor()) {
-                logger.debug("Using {} to create Processor of type {}", pythonProcess, extensionId.type());
-                return pythonProcess;
+        synchronized (this) {
+            final int processorsOfThisType = processorCountByType.getOrDefault(extensionId, 0);
+            final int processIndex = processorsOfThisType % processConfig.getMaxPythonProcessesPerType();
+
+            final List<PythonProcess> processesForType = processesByProcessorType.computeIfAbsent(extensionId, key -> new CopyOnWriteArrayList<>());
+
+            for (final PythonProcess pythonProcess : processesForType) {
+                if (pythonProcess.isReady() && (!preferIsolatedProcess || !pythonProcess.containsIsolatedProcessor())) {
+                    logger.debug("Using {} to create Processor of type {}", pythonProcess, extensionId.type());
+                    return pythonProcess;
+                }
             }
-        }
 
-        if (processesForType.size() <= processIndex) {
-            try {
-                // Make sure that we don't have too many processes already launched.
+            if (processesForType.size() <= processIndex) {
                 final int totalProcessCount = getTotalProcessCount();
                 if (totalProcessCount >= processConfig.getMaxPythonProcesses()) {
                     throw new IllegalStateException("Cannot launch new Python Process because the maximum number of processes allowed, according to nifi.properties, is " +
@@ -260,8 +261,6 @@ public class StandardPythonBridge implements PythonBridge {
                 logger.info("In order to create Python Processor of type {}, launching a new Python Process because there are currently {} Python Processors of this type and {} Python Processes",
                     extensionId.type(), processorsOfThisType, processesByProcessorType.size());
 
-                // If the processor is packaged with its dependencies as a NAR, we can use the Processor Home as the Environment Home.
-                // Otherwise, we need to create a Virtual Environment for the Processor.
                 final File envHome;
                 if (packagedWithDependencies) {
                     envHome = new File(processorHome);
@@ -272,38 +271,48 @@ public class StandardPythonBridge implements PythonBridge {
                 }
 
                 final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, packagedWithDependencies, extensionId.type(), componentId);
-
-                // Add process to list before start() so removal requests during startup can find it
                 processesForType.add(pythonProcess);
-
-                try {
-                    pythonProcess.start();
-
-                    final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
-                        .map(File::getAbsolutePath)
-                        .collect(Collectors.toCollection(ArrayList::new));
-                    extensionsDirs.addAll(narDirectories);
-
-                    final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
-                    pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
-                } catch (final IOException e) {
-                    processesForType.remove(pythonProcess);
-                    throw e;
+                processToStart = pythonProcess;
+            } else {
+                final PythonProcess pythonProcess = processesForType.get(processIndex);
+                if (pythonProcess.isReady()) {
+                    logger.warn("Using existing process {} to create Processor of type {} because configuration indicates that no more than {} processes " +
+                        "should be created for any Processor Type. This may result in slower performance for Processors of this type",
+                        pythonProcess, extensionId.type(), processConfig.getMaxPythonProcessesPerType());
+                    return pythonProcess;
                 }
-
-                return pythonProcess;
-            } catch (final IOException ioe) {
-                final String message = String.format("Failed to launch Process for Python Processor [%s] Version [%s]", extensionId.type(), extensionId.version());
-                throw new RuntimeException(message, ioe);
+                processToWait = pythonProcess;
             }
-        } else {
-            final PythonProcess pythonProcess = processesForType.get(processIndex);
-            logger.warn("Using existing process {} to create Processor of type {} because configuration indicates that no more than {} processes " +
-                "should be created for any Processor Type. This may result in slower performance for Processors of this type",
-                pythonProcess, extensionId.type(), processConfig.getMaxPythonProcessesPerType());
-
-            return pythonProcess;
         }
+
+        if (processToStart != null) {
+            try {
+                processToStart.start();
+                final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
+                    .map(File::getAbsolutePath)
+                    .collect(Collectors.toCollection(ArrayList::new));
+                extensionsDirs.addAll(narDirectories);
+                final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
+                processToStart.discoverExtensions(extensionsDirs, workDirPath);
+                processToStart.markReadyAndNotify();
+                return processToStart;
+            } catch (final IOException e) {
+                synchronized (this) {
+                    final List<PythonProcess> processesForType = processesByProcessorType.get(extensionId);
+                    if (processesForType != null) {
+                        processesForType.remove(processToStart);
+                    }
+                }
+                throw e;
+            }
+        }
+
+        if (processToWait != null) {
+            processToWait.waitUntilReady();
+            return processToWait;
+        }
+
+        throw new IllegalStateException("No process to start or wait for");
     }
 
     @Override
