@@ -32,6 +32,8 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.MigrationRequestDTO;
+import org.apache.nifi.web.api.dto.MigrationRequestLocalSourceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -43,10 +45,12 @@ import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.junit.jupiter.api.AfterEach;
@@ -58,12 +62,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -160,6 +168,80 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade).getConnector(CONNECTOR_ID, false);
+    }
+
+    @Test
+    public void testGetMigrationSources() {
+        final VersionedFlowMigrationSourcesEntity migrationSourcesEntity = new VersionedFlowMigrationSourcesEntity();
+        when(serviceFacade.getConnectorMigrationSources(CONNECTOR_ID)).thenReturn(migrationSourcesEntity);
+
+        try (final Response response = connectorResource.getMigrationSources(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(migrationSourcesEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorMigrationSources(CONNECTOR_ID);
+    }
+
+    @Test
+    public void testCreateMigrationRequestRejectsMismatchedConnectorId() {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId("different-connector");
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> connectorResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+    }
+
+    @Test
+    public void testCreateMigrationRequestRequiresExactlyOneSource() {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+        requestDto.setPayloadId("payload-1");
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> connectorResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+    }
+
+    @Test
+    public void testCreateMigrationRequestVerifiesConnectorReadinessBeforeSubmission() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        doThrow(new IllegalStateException("Connector must be stopped before it can be migrated"))
+                .when(serviceFacade).verifyConnectorReadyForMigration(CONNECTOR_ID);
+
+        final IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> spyResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+        assertEquals("Connector must be stopped before it can be migrated", thrown.getMessage());
+
+        // Readiness is checked first, so an unready Connector aborts before the source-specific verification.
+        verify(serviceFacade).verifyConnectorReadyForMigration(CONNECTOR_ID);
+        verify(serviceFacade, never()).verifyCanMigrateConnector(anyString(), anyString());
+    }
+
+    @Test
+    public void testCreateMigrationRequestRequiresLocalSourceOrPayload() {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> connectorResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
     }
 
     @Test
@@ -877,5 +959,38 @@ public class TestConnectorResource {
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).verifyCanClearConnectorControllerServiceState(anyString(), anyString());
         verify(serviceFacade, never()).clearConnectorControllerServiceState(anyString(), anyString(), any());
+    }
+
+    @Test
+    public void testCreateMigrationPayloadRejectsContentExceedingSizeCap() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        // A stream that never ends will surpass the payload size cap, at which point the read fails and the upload is
+        // rejected rather than buffering an unbounded amount of content in memory.
+        final InputStream unboundedWhitespace = new InputStream() {
+            @Override
+            public int read() {
+                return ' ';
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) {
+                Arrays.fill(b, off, off + len, (byte) ' ');
+                return len;
+            }
+        };
+
+        final IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> spyResource.createMigrationPayload(CONNECTOR_ID, unboundedWhitespace));
+        assertEquals("Deserialization of uploaded migration payload failed", thrown.getMessage());
+        assertEquals(IOException.class, thrown.getCause().getClass());
+        assertTrue(thrown.getCause().getMessage().contains("maximum allowed length"), thrown.getCause().getMessage());
+    }
+
+    private MigrationRequestLocalSourceDTO createLocalMigrationSource(final String processGroupId) {
+        final MigrationRequestLocalSourceDTO localSource = new MigrationRequestLocalSourceDTO();
+        localSource.setProcessGroupId(processGroupId);
+        return localSource;
     }
 }

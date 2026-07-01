@@ -19,6 +19,11 @@ package org.apache.nifi.components.connector;
 
 import java.util.Map;
 
+/**
+ * Framework-internal mutable view of a Connector's configuration. Extension NARs do not see this
+ * type at runtime because it is bundled inside the framework NAR; framework code uses it directly
+ * to mutate the active configuration.
+ */
 public interface MutableConnectorConfigurationContext extends ConnectorConfigurationContext {
 
     /**

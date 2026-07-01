@@ -43,7 +43,9 @@ import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
@@ -716,6 +718,39 @@ public class StandardNiFiServiceFacadeTest {
         assertNull(versionedFlowSnapshot.getFlow());
         assertNull(versionedFlowSnapshot.getBucket());
         assertNull(versionedFlowSnapshot.getSnapshotMetadata());
+    }
+
+    @Test
+    public void testGetCurrentFlowSnapshotMapsAssetReferencesOnlyWhenRequested() {
+        // Asset references are NiFi-internal identifiers that are meaningful only on this instance, so the general
+        // export path must leave them out while the Connector migration source-capture path must include them.
+        assertTrue(captureComponentStateSnapshotMappingOptions(true).isMapAssetReferences());
+        assertFalse(captureComponentStateSnapshotMappingOptions(false).isMapAssetReferences());
+    }
+
+    private FlowMappingOptions captureComponentStateSnapshotMappingOptions(final boolean mapAssetReferences) {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final ClusterTopologyProvider clusterTopologyProvider = mock(ClusterTopologyProvider.class);
+        serviceFacade.setClusterTopologyProvider(clusterTopologyProvider);
+        serviceFacade.setStateManagerProvider(mock(StateManagerProvider.class));
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
+        final ArgumentCaptor<FlowMappingOptions> optionsCaptor = ArgumentCaptor.forClass(FlowMappingOptions.class);
+        doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(eq(extensionManager), optionsCaptor.capture());
+
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
+        when(flowMapper.mapNonVersionedProcessGroup(eq(processGroup), any())).thenReturn(nonVersionedProcessGroup);
+
+        serviceFacadeSpy.getCurrentFlowSnapshotByGroupId(groupId, false, true, mapAssetReferences);
+
+        return optionsCaptor.getValue();
     }
 
     @Test

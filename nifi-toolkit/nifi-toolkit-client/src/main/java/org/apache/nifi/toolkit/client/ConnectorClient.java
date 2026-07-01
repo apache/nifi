@@ -24,10 +24,13 @@ import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
+import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 
 import java.io.File;
 import java.io.IOException;
@@ -281,6 +284,16 @@ public interface ConnectorClient {
      */
     VerifyConnectorConfigStepRequestEntity deleteConfigStepVerificationRequest(String connectorId, String configurationStepName,
             String requestId) throws NiFiClientException, IOException;
+
+    VersionedFlowMigrationSourcesEntity listMigrationSources(String connectorId) throws NiFiClientException, IOException;
+
+    MigrationPayloadEntity uploadMigrationPayload(String connectorId, File file) throws NiFiClientException, IOException;
+
+    MigrationRequestEntity startMigration(MigrationRequestEntity requestEntity) throws NiFiClientException, IOException;
+
+    MigrationRequestEntity getMigrationStatus(String connectorId, String requestId) throws NiFiClientException, IOException;
+
+    MigrationRequestEntity cancelMigration(String connectorId, String requestId) throws NiFiClientException, IOException;
 
     /**
      * Applies an update to a connector.

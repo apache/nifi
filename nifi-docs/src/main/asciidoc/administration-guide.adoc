@@ -3847,6 +3847,93 @@ The Secrets Manager delegates to Parameter Providers to retrieve secret values.
 |`nifi.secrets.manager.cache.duration`|The duration for which resolved secret values are cached before being refreshed from the underlying Parameter Providers. Accepts any NiFi time duration value such as `5 mins`, `30 secs`, etc. A value of `0 sec` disables caching entirely. Defaults to `5 mins`.
 |====
 
+== Migrating a Connector from a Versioned Process Group
+
+NiFi supports a one-time path that migrates a newly created Connector from a source Versioned Process Group.
+The source Versioned Process Group is used as a reference: the Connector reads it and updates its own managed flow to mirror the source's configuration, parameters, and component state.
+The source flow itself is not installed onto the Connector.
+Only Connectors that explicitly opt in to migration support can use this capability.
+
+=== Prerequisites for a local migration
+
+When the source is a local Process Group on the same NiFi instance, the Process Group must satisfy all of the following requirements before NiFi will allow the migration:
+
+- The source Process Group must be under version control.
+- The source Process Group must be `UP_TO_DATE` with the latest published version in Flow Registry.
+- All processors in the source Process Group must be stopped.
+- All controller services in the source Process Group must be disabled.
+- All queues in the source Process Group must be empty.
+- The source Process Group must not reference controller services outside of the Process Group.
+- The target Connector must be newly created, stopped, and not previously migrated.
+- The target Connector's active flow must be empty when migration begins. Connectors that ship a non-empty initial flow are not compatible with the migration path.
+
+If the source Process Group is not under version control, export it and use the uploaded payload path instead.
+
+=== Migration paths
+
+There are two ways to run the migration:
+
+- Local Process Group migration:
+  Select an eligible Process Group that already exists on the current NiFi canvas.
+  NiFi validates the prerequisites listed above before starting the migration.
+- Uploaded payload migration:
+  Export a Process Group definition and upload the resulting flow snapshot payload to the Connector migration endpoint.
+  This path is intended for non-version-controlled sources, sources exported from another NiFi instance, or any other source that cannot satisfy the local version-control requirements.
+
+For uploaded payloads, NiFi does not require the source flow to be under version control.
+The Connector's own migration support check determines whether the uploaded flow can be imported.
+
+=== Running a migration
+
+. Create a new Connector instance.
+. If the source Process Group is local and registry-backed, choose it from the Connector migration source list.
+. If the source Process Group is not eligible for the local path, export it with component state included and upload the payload to the Connector migration payload endpoint.
+. Start the Connector migration request.
+. Poll the request until it completes.
+. Open the Connector configuration and supply any missing sensitive values or secrets.
+. Verify the configuration and start the Connector.
+
+=== What NiFi migrates
+
+During migration, NiFi provides the Connector with the exported flow definition, parameter contexts, referenced assets, and any attached component state for `@Stateful` components.
+The Connector performs the flow translation and updates its own managed flow to mirror the source.
+
+For local migrations, a Connector can also copy referenced assets from the source Process Group into the Connector's own asset namespace.
+Uploaded payload migrations do not include live access to source assets, so any required asset content must be re-uploaded separately after the migration.
+
+Sensitive parameter values are not present in exported flow definitions.
+After migration, configure the Connector with any missing secret values before starting it.
+
+=== Cleanup after a successful migration
+
+After a successful local migration, NiFi disables the source Process Group and renames it with the `(Migrated) ` prefix.
+This makes it clear that the source flow has already been used as the basis for a Connector migration.
+
+Uploaded payloads and migration request state are kept only in memory for the lifetime of the request.
+When the request succeeds, fails, or is cancelled, NiFi removes the uploaded payload associated with that request.
+
+=== Cluster-topology rule for component state
+
+When the source flow being migrated includes LOCAL component state for a stateful component (for example a `@Stateful` Processor or Controller Service), the destination cluster must have at least as many connected nodes as the source flow's exported state references.
+The rule applied by the migration manager is:
+
+----
+size(component.localNodeStates) <= number of connected nodes in the destination cluster
+----
+
+This is the same rule that applies when importing a Versioned Process Group into a destination cluster.
+NiFi enforces it for both the local migration path and the uploaded payload path so that LOCAL state can be unambiguously distributed across the destination cluster.
+
+When the migration request fails with a message such as `Cannot import flow with component state: the flow definition contains local state from N source node(s) but the destination cluster has only M connected node(s)`, take one of the following actions:
+
+- Reconnect any disconnected cluster nodes so that the destination cluster has at least `N` connected nodes, then re-run the migration.
+- Re-export the source flow without component state (uncheck the "include component state" option) and re-upload the payload.
+  The Connector will start with empty LOCAL state on every destination node, which is appropriate when the LOCAL state is reproducible from the upstream system.
+- Migrate into a cluster that has at least `N` connected nodes.
+
+The migration request is also rejected when any cluster node is in the `CONNECTING`, `DISCONNECTED`, or `DISCONNECTING` state at the time the request is submitted, because component state and asset content cannot be synchronized to a node that is not currently connected.
+Reconnect the disconnected nodes and re-submit the request.
+
 [[upgrading_nifi]]
 == Upgrading NiFi
 

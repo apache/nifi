@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.flow;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
@@ -126,12 +127,15 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
     private List<ParameterValue> createParameterValues(final ParameterContext context) {
         final List<ParameterValue> parameterValues = new ArrayList<>();
         for (final Parameter parameter : context.getParameters().values()) {
+            final List<Asset> referencedAssets = parameter.getReferencedAssets();
             final ParameterValue.Builder parameterValueBuilder = new ParameterValue.Builder()
                 .name(parameter.getDescriptor().getName())
                 .sensitive(parameter.getDescriptor().isSensitive())
-                .value(parameter.getValue());
+                .value(referencedAssets == null || referencedAssets.isEmpty() ? parameter.getValue() : null);
 
-            parameter.getReferencedAssets().forEach(parameterValueBuilder::addReferencedAsset);
+            if (referencedAssets != null) {
+                referencedAssets.forEach(parameterValueBuilder::addReferencedAsset);
+            }
             parameterValues.add(parameterValueBuilder.build());
         }
 

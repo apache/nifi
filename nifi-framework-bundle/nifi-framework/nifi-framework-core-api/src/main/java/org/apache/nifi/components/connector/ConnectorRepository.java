@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedConnector;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -261,6 +262,18 @@ public interface ConnectorRepository {
     void deleteAssets(String connectorId);
 
     /**
+     * Deletes only the specified assets from the given connector. Used by the connector migration
+     * rollback path to remove only the assets that the migration attempt created via
+     * {@link org.apache.nifi.components.connector.migration.ConnectorMigrationContext#copyAssetFromSource(String)},
+     * leaving any pre-existing assets intact.
+     *
+     * @param connectorId the identifier of the connector whose assets should be deleted
+     * @param assetIdentifiers the identifiers of the specific assets to delete; may be {@code null} or empty,
+     *                         in which case no assets are deleted
+     */
+    void deleteAssets(String connectorId, Collection<String> assetIdentifiers);
+
+    /**
      * Ensures that asset binaries for the given connector are available locally by downloading
      * any missing or changed assets from the external {@link ConnectorConfigurationProvider}.
      * This is a no-op if no provider is configured. This method should be called before operations
@@ -269,4 +282,25 @@ public interface ConnectorRepository {
      * @param connector the connector whose assets should be synced
      */
     void syncAssetsFromProvider(ConnectorNode connector);
+
+    /**
+     * Marks the connector with the given identifier as having a migration in progress. While a migration is in
+     * progress, {@link #syncConnector(VersionedConnector)} must not reclaim unreferenced assets for the connector,
+     * because a migration copies assets before the managed Process Group is rebuilt to reference them; reclaiming
+     * during that window could delete assets the migration just copied.
+     *
+     * @param connectorId the identifier of the connector whose migration is starting
+     */
+    default void beginMigration(final String connectorId) {
+    }
+
+    /**
+     * Clears the migration-in-progress marker set by {@link #beginMigration(String)} for the connector with the
+     * given identifier. Implementations must invoke this from a {@code finally} block so the marker is cleared
+     * whether the migration succeeds or fails.
+     *
+     * @param connectorId the identifier of the connector whose migration has finished
+     */
+    default void endMigration(final String connectorId) {
+    }
 }
