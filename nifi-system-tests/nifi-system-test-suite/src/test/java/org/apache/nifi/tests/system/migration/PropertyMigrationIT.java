@@ -18,7 +18,7 @@
 package org.apache.nifi.tests.system.migration;
 
 import org.apache.nifi.migration.StandardControllerServiceFactory;
-import org.apache.nifi.tests.system.NiFiSystemIT;
+import org.apache.nifi.tests.system.AbstractNarSwapMigrationIT;
 import org.apache.nifi.toolkit.client.ControllerServicesClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -27,51 +27,23 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PropertyMigrationIT extends NiFiSystemIT {
+public class PropertyMigrationIT extends AbstractNarSwapMigrationIT {
     private static final String SERVICE = "Service";
-
-    @Override
-    protected boolean isAllowFactoryReuse() {
-        return false;
-    }
-
-    @Override
-    protected boolean isDestroyEnvironmentAfterEachTest() {
-        return true;
-    }
-
-    @AfterEach
-    public void restoreNars() {
-        // Stop the NiFi instance, ensure that the nifi-system-test-extensions-nar and nifi-alternate-config-extensions bundles
-        // are where they need to be. Then, restart the instance so that everything is in the right state for the next test that
-        // will run
-        getNiFiInstance().stop();
-        switchNarsBack();
-        getNiFiInstance().start(true);
-    }
 
     @Test
     public void testControllerServiceCreated() throws NiFiClientException, IOException {
@@ -237,85 +209,5 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         final ReportingTaskEntity updatedReportingTask = getNifiClient().getReportingTasksClient().getReportingTask(reportingTask.getId());
         final Map<String, String> expectedReportingTaskProperties = Map.of("Initial Value", "15", "Invalid Property", "Invalid");
         assertEquals(expectedReportingTaskProperties, updatedReportingTask.getComponent().getProperties());
-    }
-
-    private void switchOutNars() throws IOException {
-        final File instanceDir = getNiFiInstance().getInstanceDirectory();
-        final File lib = new File(instanceDir, "lib");
-        final File alternateConfig = new File(lib, "alternate-config");
-
-        // Move the nifi-system-test-extensions-nar out of the lib directory
-        moveNars(lib, "nifi-system-test-extensions-nar-.*", alternateConfig);
-
-        // Move the nifi-system-test-extensions-services-nar out of the lib directory
-        moveNars(lib, "nifi-system-test-extensions-services-nar-.*", alternateConfig);
-
-        // Move the nifi-system-test-extensions-services-api-nar out of the lib directory
-        moveNars(lib, "nifi-system-test-extensions-services-api-nar-.*", alternateConfig);
-
-        moveNars(alternateConfig, "nifi-alternate-config.*", lib);
-
-        final File workDir = new File(instanceDir, "work/nar/extensions");
-        deleteRecursively(workDir);
-    }
-
-    private void deleteRecursively(final File file) throws IOException {
-        Files.walkFileTree(file.toPath(), new FileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFileFailed(final Path file, final IOException exc) {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-
-    }
-
-    private void switchNarsBack() {
-        final File instanceDir = getNiFiInstance().getInstanceDirectory();
-        final File lib = new File(instanceDir, "lib");
-        final File alternateConfig = new File(lib, "alternate-config");
-
-        // Move the nifi-system-test-extensions-nar back to the lib directory
-        moveNars(alternateConfig, "nifi-system-test-extensions-nar-.*", lib);
-
-        // Move the nifi-system-test-extensions-services-nar back to the lib directory
-        moveNars(alternateConfig, "nifi-system-test-extensions-services-nar-.*", lib);
-
-        // Move the nifi-system-test-extensions-services-api-nar back to the lib directory
-        moveNars(alternateConfig, "nifi-system-test-extensions-services-api-nar-.*", lib);
-
-        moveNars(lib, "nifi-alternate-config.*", alternateConfig);
-    }
-
-    private File findFile(final File dir, final String regex) {
-        final Pattern pattern = Pattern.compile(regex);
-        final File[] files = dir.listFiles(file -> pattern.matcher(file.getName()).find());
-        if (files == null || files.length != 1) {
-            return null;
-        }
-        return files[0];
-    }
-
-    private void moveNars(File source, String regex, File target) {
-        final File libNar = findFile(source, regex);
-        assertNotNull(libNar);
-        final File libNarTarget = new File(target, libNar.getName());
-        assertTrue(libNar.renameTo(libNarTarget));
     }
 }
