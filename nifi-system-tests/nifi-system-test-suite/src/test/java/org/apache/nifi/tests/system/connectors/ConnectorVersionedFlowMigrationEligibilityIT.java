@@ -80,7 +80,11 @@ public class ConnectorVersionedFlowMigrationEligibilityIT extends ConnectorVersi
         // conditions hold simultaneously: running processors and queued FlowFiles.
         final ProcessorEntity producer = findProcessorByTypeSuffix(sourceFixture.processGroup().getId(), "StatefulCountProcessor");
         getClientUtil().startProcessor(producer);
-        waitForQueueCount(sourceFixture.connection().getId(), 1);
+
+        // The producer keeps running while the consumer stays stopped, so the source-to-consumer connection
+        // accumulates an unbounded backlog. Wait for at least one queued FlowFile rather than an exact count, since
+        // the backlog can grow past a specific count before the queue is sampled.
+        waitForMinQueueCount(sourceFixture.connection().getId(), 1);
 
         try {
             final ConnectorEntity targetConnector = getClientUtil().createConnector("MigrationTargetConnector");
