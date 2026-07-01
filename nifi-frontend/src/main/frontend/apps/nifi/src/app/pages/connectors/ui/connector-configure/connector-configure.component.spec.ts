@@ -19,7 +19,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConnectorConfigure } from './connector-configure.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { DomSanitizer } from '@angular/platform-browser';
-import { ConnectorConfigurationService, ConnectorEntity, ConnectorWizard, SystemTokensService } from '@nifi/shared';
+import {
+    CONNECTOR_MESSAGE_NAMESPACE,
+    ConnectorConfigurationService,
+    ConnectorEntity,
+    ConnectorWizard,
+    SystemTokensService
+} from '@nifi/shared';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { of, throwError } from 'rxjs';
@@ -155,7 +161,8 @@ describe('ConnectorConfigure', () => {
 
         const mockConnectorMessageHost = {
             startListening: vi.fn(),
-            stopListening: vi.fn()
+            stopListening: vi.fn(),
+            trustedOrigin: window.location.origin
         };
 
         const mockClusterConnectionService = {
@@ -497,7 +504,6 @@ describe('ConnectorConfigure', () => {
             expect(connectorMessageHost.startListening).toHaveBeenCalledTimes(1);
             expect(connectorMessageHost.startListening).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    expectedOrigin: 'http://localhost:4200',
                     iframeElement: expect.any(Function)
                 })
             );
@@ -544,6 +550,35 @@ describe('ConnectorConfigure', () => {
             store.refreshState();
 
             expect(connectorMessageHost.stopListening).toHaveBeenCalled();
+        });
+
+        it('should post the disconnected-node-acknowledgment to the host trusted origin, not the entity configurationUrl origin', () => {
+            connectorConfigurationService.getConnector.mockReturnValue(of(mockConnectorWithCustomUrl));
+            fixture = TestBed.createComponent(ConnectorConfigure);
+            component = fixture.componentInstance;
+            component.ngOnInit();
+
+            // Stub the iframe so the outbound postMessage has a target window.
+            const postMessageSpy = vi.fn();
+            (component as unknown as { iframeRef: () => unknown }).iframeRef = () => ({
+                nativeElement: { contentWindow: { postMessage: postMessageSpy } }
+            });
+
+            (
+                component as unknown as { postDisconnectedNodeAcknowledgmentToChild(): void }
+            ).postDisconnectedNodeAcknowledgmentToChild();
+
+            expect(postMessageSpy).toHaveBeenCalledTimes(1);
+            const [message, targetOrigin] = postMessageSpy.mock.calls[0];
+            // targetOrigin must be the application's own origin, never an origin
+            // derived from the entity-controlled configurationUrl.
+            expect(targetOrigin).toBe(window.location.origin);
+            expect(message).toEqual(
+                expect.objectContaining({
+                    namespace: CONNECTOR_MESSAGE_NAMESPACE,
+                    type: 'disconnected-node-acknowledgment'
+                })
+            );
         });
     });
 });
