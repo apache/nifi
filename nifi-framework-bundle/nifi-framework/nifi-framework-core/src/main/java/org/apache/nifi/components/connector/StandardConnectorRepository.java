@@ -521,7 +521,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         Objects.requireNonNull(syncMode, "syncMode is required");
         final ConnectorNode connector = connectors.get(identifier);
         if (connector != null && syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
-            syncFromProvider(connector);
+            syncFromProviderForRead(connector);
         }
         return connector;
     }
@@ -532,10 +532,30 @@ public class StandardConnectorRepository implements ConnectorRepository {
         final List<ConnectorNode> connectorList = List.copyOf(connectors.values());
         if (syncMode == ConnectorSyncMode.SYNC_WITH_PROVIDER) {
             for (final ConnectorNode connector : connectorList) {
-                syncFromProvider(connector);
+                syncFromProviderForRead(connector);
             }
         }
         return connectorList;
+    }
+
+    /**
+     * Sync a connector from the provider for a read operation, tolerating a configuration-load failure.
+     * A configuration that cannot be loaded or parsed (e.g. a transient provider error, or a corrupt
+     * stored configuration left by a failed commit) must not make a connector unreadable — and therefore
+     * undeletable. On failure we log and return the in-memory node without updating its working
+     * configuration; the connector's own state is left untouched, so a subsequent successful read recovers
+     * normally. Write paths ({@code addConnector}, {@code applyUpdate}) call
+     * {@link #syncFromProvider(ConnectorNode)} directly and continue to propagate the exception so they do
+     * not proceed on a configuration that could not be loaded.
+     */
+    private void syncFromProviderForRead(final ConnectorNode connector) {
+        try {
+            syncFromProvider(connector);
+        } catch (final ConnectorConfigurationProviderException e) {
+            logger.error("Failed to load configuration from provider for connector [{}] during a read operation; "
+                    + "returning the connector with its existing configuration so it remains readable and deletable",
+                    connector.getIdentifier(), e);
+        }
     }
 
     @Override
