@@ -89,7 +89,7 @@ final class LegacyCheckpointMigrator {
                 CheckpointTableUtils.waitForTableActive(dynamoDbClient, logger, lingeringMigration);
                 CheckpointTableUtils.copyCheckpointItems(dynamoDbClient, logger, lingeringMigration, checkpointTableName);
                 CheckpointTableUtils.deleteTable(dynamoDbClient, logger, lingeringMigration);
-            } catch (final RuntimeException e) {
+            } catch (final Exception e) {
                 clearRenameLock(lingeringMigration);
                 throw e;
             }
@@ -126,7 +126,7 @@ final class LegacyCheckpointMigrator {
                 CheckpointTableUtils.waitForTableActive(dynamoDbClient, logger, checkpointTableName);
                 CheckpointTableUtils.copyCheckpointItems(dynamoDbClient, logger, migrationTableName, checkpointTableName);
                 CheckpointTableUtils.deleteTable(dynamoDbClient, logger, migrationTableName);
-            } catch (final RuntimeException e) {
+            } catch (final Exception e) {
                 clearRenameLock(migrationTableName);
                 throw e;
             }
@@ -207,17 +207,15 @@ final class LegacyCheckpointMigrator {
             logger.debug("Rename lock on migration table [{}] is no longer held by this node; leaving it in place", migrationTableName);
         } catch (final ResourceNotFoundException e) {
             logger.debug("Migration table [{}] no longer exists; rename lock already released", migrationTableName);
-        } catch (final RuntimeException e) {
+        } catch (final Exception e) {
             logger.warn("Failed to release rename lock on migration table [{}] after an error; it will expire via the stale-lock timeout",
                     migrationTableName, e);
         }
     }
 
     private boolean isRenameCompleted(final String migrationTableName) {
-        return CheckpointTableUtils.getTableSchema(dynamoDbClient, checkpointTableName)
-                    == CheckpointTableUtils.TableSchema.NEW
-                && CheckpointTableUtils.getTableSchema(dynamoDbClient, migrationTableName)
-                    == CheckpointTableUtils.TableSchema.NOT_FOUND;
+        return CheckpointTableUtils.getTableSchema(dynamoDbClient, checkpointTableName) == CheckpointTableUtils.TableSchema.NEW
+                && CheckpointTableUtils.getTableSchema(dynamoDbClient, migrationTableName) == CheckpointTableUtils.TableSchema.NOT_FOUND;
     }
 
     private void waitForTableRenamed(final String migrationTableName) {
@@ -245,7 +243,7 @@ final class LegacyCheckpointMigrator {
                 CheckpointTableUtils.waitForTableActive(dynamoDbClient, logger, checkpointTableName);
                 CheckpointTableUtils.copyCheckpointItems(dynamoDbClient, logger, migrationTableName, checkpointTableName);
                 CheckpointTableUtils.deleteTable(dynamoDbClient, logger, migrationTableName);
-            } catch (final RuntimeException e) {
+            } catch (final Exception e) {
                 clearRenameLock(migrationTableName);
                 throw e;
             }

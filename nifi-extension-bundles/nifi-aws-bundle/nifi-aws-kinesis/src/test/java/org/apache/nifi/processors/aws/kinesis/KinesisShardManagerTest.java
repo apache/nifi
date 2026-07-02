@@ -366,11 +366,10 @@ class KinesisShardManagerTest {
     }
 
     /**
-     * NIFI-16066: when an error occurs while a node holds the rename lock (for example the
-     * checkpoint copy fails after the new table has been recreated), the lock must be released
-     * so a subsequent attempt can re-acquire it and retry the rename. Previously the lingering
-     * renameOwner attribute on the migration table blocked all future rename attempts until the
-     * stale-lock timeout elapsed.
+     * When an error occurs while a node holds the rename lock (for example the checkpoint copy
+     * fails after the new checkpoint table has been recreated), the rename lock on the migration
+     * table is released so a later attempt can re-acquire it and retry, and the migration table
+     * is left in place so no checkpoints are lost.
      */
     @Test
     void testRenameMigrationTableReleasesRenameLockOnCopyError() {
@@ -424,11 +423,10 @@ class KinesisShardManagerTest {
     }
 
     /**
-     * NIFI-16066: a node that loses the race for the rename lock must wait for the migration
-     * table to be dropped (the real signal that the rename finished) rather than returning as
-     * soon as the checkpoint table simply has the new schema. The new checkpoint table is
-     * created empty before the checkpoint copy runs, so schema presence alone does not mean the
-     * migration completed.
+     * A node that does not hold the rename lock treats the rename as complete only once the
+     * migration table has been dropped. Because the new checkpoint table is created empty before
+     * the checkpoint copy runs, the presence of the new schema on the checkpoint table alone is
+     * not sufficient to conclude the migration finished.
      */
     @Test
     void testWaitForTableRenamedRequiresMigrationTableDropped() {
