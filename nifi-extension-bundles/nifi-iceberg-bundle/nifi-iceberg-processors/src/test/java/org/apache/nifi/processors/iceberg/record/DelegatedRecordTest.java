@@ -25,6 +25,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DelegatedRecordTest {
 
@@ -82,7 +84,9 @@ class DelegatedRecordTest {
 
         final Record record = new MapRecord(recordSchema, values);
 
-        final Types.StructType structType = Types.StructType.of();
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.optional(1, LABEL_FIELD, Types.StringType.get())
+        );
         final DelegatedRecord delegatedRecord = new DelegatedRecord(record, structType);
 
         final Types.StructType recordStruct = delegatedRecord.struct();
@@ -134,5 +138,89 @@ class DelegatedRecordTest {
 
         final Object stopped = delegatedRecord.getField(STOPPED_FIELD);
         assertEquals(STOPPED_CONVERTED, stopped);
+    }
+
+    /**
+     * Iceberg writers read values positionally against the table struct, so position 0 must always return the value of
+     * the table's first column ("id"), independent of the field ordering in the incoming Record schema.
+     */
+    @Test
+    void testGetByPositionMatchesTableColumnNameRegardlessOfInputOrder() {
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.required(1, "id", Types.IntegerType.get()),
+                Types.NestedField.optional(2, "amount", Types.DecimalType.of(10, 2)),
+                Types.NestedField.optional(3, "label", Types.StringType.get())
+        );
+
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField("amount", RecordFieldType.DECIMAL.getDataType()),
+                new RecordField("label", RecordFieldType.STRING.getDataType()),
+                new RecordField("id", RecordFieldType.INT.getDataType())
+        ));
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put("amount", new BigDecimal("12.34"));
+        values.put("label", "example");
+        values.put("id", 7);
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), structType);
+
+        assertEquals(7, delegatedRecord.get(0));
+        assertEquals(new BigDecimal("12.34"), delegatedRecord.get(1));
+        assertEquals("example", delegatedRecord.get(2));
+    }
+
+    /**
+     * When the incoming Record does not contain a column present in the table schema, positional access must return
+     * null for that column rather than shifting subsequent input values into it.
+     */
+    @Test
+    void testGetByPositionReturnsNullForColumnMissingFromInput() {
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.required(1, "id", Types.IntegerType.get()),
+                Types.NestedField.optional(2, "amount", Types.DecimalType.of(10, 2)),
+                Types.NestedField.optional(3, "label", Types.StringType.get())
+        );
+
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("label", RecordFieldType.STRING.getDataType())
+        ));
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put("id", 42);
+        values.put("label", "present");
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), structType);
+
+        assertEquals(42, delegatedRecord.get(0));
+        assertNull(delegatedRecord.get(1), "Missing 'amount' column must be null, not shifted input data");
+        assertEquals("present", delegatedRecord.get(2));
+    }
+
+    /**
+     * Positional set must resolve the target field by the Iceberg table column name for the given position, independent
+     * of the incoming Record field ordering, so that set(position) is symmetric with get(position).
+     */
+    @Test
+    void testSetByPositionMatchesTableColumnNameRegardlessOfInputOrder() {
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.required(1, "id", Types.IntegerType.get()),
+                Types.NestedField.optional(2, "amount", Types.DecimalType.of(10, 2)),
+                Types.NestedField.optional(3, "label", Types.StringType.get())
+        );
+
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField("amount", RecordFieldType.DECIMAL.getDataType()),
+                new RecordField("label", RecordFieldType.STRING.getDataType()),
+                new RecordField("id", RecordFieldType.INT.getDataType())
+        ));
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put("amount", new BigDecimal("12.34"));
+        values.put("label", "example");
+        values.put("id", 7);
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), structType);
+
+        delegatedRecord.set(0, 99);
+
+        assertEquals(99, delegatedRecord.getField("id"));
+        assertEquals(new BigDecimal("12.34"), delegatedRecord.getField("amount"));
+        assertEquals("example", delegatedRecord.getField("label"));
     }
 }
