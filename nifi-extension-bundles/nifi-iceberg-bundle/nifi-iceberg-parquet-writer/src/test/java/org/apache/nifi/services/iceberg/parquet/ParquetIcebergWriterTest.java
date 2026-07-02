@@ -47,6 +47,8 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -192,6 +194,43 @@ class ParquetIcebergWriterTest {
 
         final long microsecondsExpected = DateTimeUtil.microsFromTimestamp(CREATED_FIELD_VALUE);
         assertEquals(microsecondsExpected, partitionField);
+    }
+
+    @Test
+    void testWriteDataFilesComplexTypes() throws IOException {
+        runner.enableControllerService(parquetIcebergWriter);
+
+        final Types.StructType nestedStruct = Types.StructType.of(
+                Types.NestedField.optional(10, "city", Types.StringType.get())
+        );
+        final Schema schema = new Schema(
+                Types.NestedField.required(1, "id", Types.StringType.get()),
+                Types.NestedField.optional(2, "tags",
+                        Types.ListType.ofOptional(3, Types.StringType.get())),
+                Types.NestedField.optional(4, "address", nestedStruct),
+                Types.NestedField.optional(5, "attributes",
+                        Types.MapType.ofOptional(6, 7, Types.StringType.get(), Types.StringType.get()))
+        );
+        final InMemoryOutputFile outputFile = new InMemoryOutputFile();
+        final PartitionSpec partitionSpec = PartitionSpec.unpartitioned();
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(anyString())).thenReturn(LOCATION);
+
+        final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
+
+        final GenericRecord address = GenericRecord.create(nestedStruct);
+        address.setField("city", "Berlin");
+
+        final GenericRecord row = GenericRecord.create(schema);
+        row.setField("id", "row-1");
+        row.setField("tags", List.of("a", "b"));
+        row.setField("address", address);
+        row.setField("attributes", Map.of("k", "v"));
+        rowWriter.write(row);
+
+        final DataFile[] dataFiles = rowWriter.dataFiles();
+        final byte[] serialized = outputFile.toByteArray();
+        assertDataFilesFound(dataFiles, serialized);
     }
 
     private void writeRow(final Schema schema, final IcebergRowWriter rowWriter) throws IOException {
