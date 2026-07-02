@@ -51,6 +51,7 @@ import {
     throttleTime
 } from 'rxjs';
 import {
+    ComponentEntity,
     CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
@@ -61,6 +62,7 @@ import {
     PasteRequest,
     PasteRequestContext,
     PasteRequestEntity,
+    ProcessGroupFlowEntity,
     SaveVersionDialogRequest,
     SaveVersionRequest,
     SelectedComponent,
@@ -69,6 +71,7 @@ import {
     StopVersionControlResponse,
     VersionControlInformationEntity
 } from './index';
+import { Position } from '../shared';
 import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
@@ -136,6 +139,7 @@ import {
     LARGE_DIALOG,
     MEDIUM_DIALOG,
     NiFiCommon,
+    sanitizePosition,
     SMALL_DIALOG,
     Storage,
     XL_DIALOG,
@@ -213,6 +217,13 @@ export class FlowEffects {
     private destroyRef = inject(DestroyRef);
     private lastReload = 0;
 
+    /**
+     * Warn-once dedupe state for position sanitization shared across every
+     * server-flow ingestion in this effect's lifetime, so a poisoned component
+     * logs at most one warning per id rather than one per poll.
+     */
+    private readonly warnedPositionIds = new Set<string>();
+
     constructor() {
         this.store
             .select(selectDocumentVisibilityState)
@@ -271,7 +282,7 @@ export class FlowEffects {
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,
-                                flow: flow,
+                                flow: this.sanitizeFlowPositions(flow),
                                 flowStatus: flowStatus,
                                 controllerBulletins: controllerBulletins,
                                 connectedStateChanged,
@@ -4804,4 +4815,61 @@ export class FlowEffects {
             })
         )
     );
+
+    /**
+     * Sanitize all positioned entities in a server-provided flow before they
+     * enter NgRx state. Catastrophic-but-finite coordinates (e.g. the
+     * ~7.49e+307 values persisted when the backend lacked validation) are
+     * clamped to (0, 0) so the canvas pipeline never has to cope with values
+     * that overflow d3 transform arithmetic. A deduped console.warn names the
+     * affected component id so users know which entities to drag-and-save.
+     */
+    private sanitizeFlowPositions(flow: ProcessGroupFlowEntity): ProcessGroupFlowEntity {
+        const f = flow.processGroupFlow.flow;
+        const sanitize = (entity: ComponentEntity, kind: string): ComponentEntity => ({
+            ...entity,
+            position: sanitizePosition(entity.position, {
+                componentId: entity.id,
+                componentKind: kind,
+                warnedIds: this.warnedPositionIds
+            })
+        });
+        const sanitizeConnection = (entity: ComponentEntity): ComponentEntity => ({
+            ...entity,
+            position: sanitizePosition(entity.position, {
+                componentId: entity.id,
+                componentKind: 'Connection',
+                warnedIds: this.warnedPositionIds
+            }),
+            component: entity.component
+                ? {
+                      ...entity.component,
+                      bends: entity.component.bends?.map((bend: Position, index: number) =>
+                          sanitizePosition(bend, {
+                              componentId: `${entity.id}:bend:${index}`,
+                              componentKind: 'Connection bend',
+                              warnedIds: this.warnedPositionIds
+                          })
+                      )
+                  }
+                : entity.component
+        });
+
+        return {
+            ...flow,
+            processGroupFlow: {
+                ...flow.processGroupFlow,
+                flow: {
+                    processors: f.processors.map((e) => sanitize(e, 'Processor')),
+                    processGroups: f.processGroups.map((e) => sanitize(e, 'Process Group')),
+                    remoteProcessGroups: f.remoteProcessGroups.map((e) => sanitize(e, 'Remote Process Group')),
+                    inputPorts: f.inputPorts.map((e) => sanitize(e, 'Input Port')),
+                    outputPorts: f.outputPorts.map((e) => sanitize(e, 'Output Port')),
+                    labels: f.labels.map((e) => sanitize(e, 'Label')),
+                    funnels: f.funnels.map((e) => sanitize(e, 'Funnel')),
+                    connections: f.connections.map(sanitizeConnection)
+                }
+            }
+        };
+    }
 }

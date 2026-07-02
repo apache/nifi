@@ -217,7 +217,9 @@ describe('CanvasBirdseyeComponent', () => {
 
         it('should enforce minimum brush size of 10', async () => {
             const components = [createMockComponent({ x: 0, y: 0, width: 10000, height: 10000 })];
-            const transform = createMockTransform({ scale: 0.1 });
+            // MAX_SCALE (8x zoom) gives a tiny viewport relative to the 10000-unit component space,
+            // exercising the Math.max(brushWidth, 10) clamp path.
+            const transform = createMockTransform({ scale: 8 });
             const canvasDimensions = createMockDimensions({ width: 100, height: 80 });
             const { brushElement } = await setup({ components, transform, canvasDimensions });
 
@@ -414,6 +416,43 @@ describe('CanvasBirdseyeComponent', () => {
             const components = [createMockComponent()];
             const canvasDimensions = createMockDimensions({ width: 0, height: 0 });
             const { component } = await setup({ components, canvasDimensions });
+            expect(component).toBeTruthy();
+        });
+    });
+
+    describe('isTransformSafe() — overflow guard', () => {
+        it('does not throw when transform has a catastrophic-finite translateX (~9e307)', async () => {
+            const components = [createMockComponent()];
+            const transform = createMockTransform({ translateX: 7.490388061926315e307 });
+            const { component } = await setup({ components, transform });
+            expect(component).toBeTruthy();
+        });
+
+        it('does not throw when scale is near-zero (below MIN_SCALE)', async () => {
+            const components = [createMockComponent()];
+            const transform = createMockTransform({ scale: 0.0001 });
+            const { component } = await setup({ components, transform });
+            expect(component).toBeTruthy();
+        });
+
+        it('does not throw when scale is Infinity', async () => {
+            const components = [createMockComponent()];
+            const transform = createMockTransform({ scale: Infinity });
+            const { component } = await setup({ components, transform });
+            expect(component).toBeTruthy();
+        });
+
+        it('does not throw when scale is NaN', async () => {
+            const components = [createMockComponent()];
+            const transform = createMockTransform({ scale: NaN });
+            const { component } = await setup({ components, transform });
+            expect(component).toBeTruthy();
+        });
+
+        it('renders normally when transform is valid', async () => {
+            const components = [createMockComponent()];
+            const transform = createMockTransform({ scale: 1, translateX: 0, translateY: 0 });
+            const { component } = await setup({ components, transform });
             expect(component).toBeTruthy();
         });
     });

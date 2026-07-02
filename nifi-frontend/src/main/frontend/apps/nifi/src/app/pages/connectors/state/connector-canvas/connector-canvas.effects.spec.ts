@@ -197,7 +197,7 @@ describe('ConnectorCanvasEffects', () => {
                     parentGroupId: 'parent-456',
                     breadcrumb: null,
                     flow: {
-                        labels: [{ id: 'l1' }],
+                        labels: [{ id: 'l1', position: { x: 10, y: 20 } }],
                         funnels: [],
                         inputPorts: [],
                         outputPorts: [],
@@ -226,7 +226,7 @@ describe('ConnectorCanvasEffects', () => {
                     processGroupId: 'pg-123',
                     parentProcessGroupId: 'parent-456',
                     breadcrumb: null,
-                    labels: [{ id: 'l1' }],
+                    labels: [{ id: 'l1', position: { x: 10, y: 20 } }],
                     funnels: [],
                     inputPorts: [],
                     outputPorts: [],
@@ -1448,6 +1448,87 @@ describe('ConnectorCanvasEffects', () => {
             const result = await firstValueFrom(effects.loadConnectorParameterContextFailure$);
 
             expect(result).toEqual(ErrorActions.addBannerError({ errorContext }));
+        });
+    });
+
+    describe('loadConnectorFlow$ — position sanitization (NIFI-16025)', () => {
+        function makeEntity(id: string, x: number, y: number): any {
+            return {
+                id,
+                permissions: { canRead: true, canWrite: true },
+                revision: { version: 0 },
+                position: { x, y },
+                component: {}
+            };
+        }
+
+        function makeFlowResponse(overrides: { processors?: any[]; connections?: any[] } = {}): any {
+            return {
+                processGroupFlow: {
+                    id: 'pg-123',
+                    parentGroupId: null,
+                    breadcrumb: null,
+                    flow: {
+                        labels: [],
+                        funnels: [],
+                        inputPorts: [],
+                        outputPorts: [],
+                        remoteProcessGroups: [],
+                        processGroups: [],
+                        processors: overrides.processors ?? [],
+                        connections: overrides.connections ?? []
+                    }
+                }
+            };
+        }
+
+        it('passes in-bounds positions through unchanged', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const entity = makeEntity('p-1', 100, 200);
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ processors: [entity] }))
+            );
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            expect(action.processors[0].position).toEqual({ x: 100, y: 200 });
+        });
+
+        it('clamps catastrophic-finite processor positions to (0, 0)', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const entity = makeEntity('p-corrupt', 7.490388061926315e307, 0);
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ processors: [entity] }))
+            );
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            expect(action.processors[0].position).toEqual({ x: 0, y: 0 });
+            expect(warnSpy).toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+
+        it('clamps catastrophic-finite connection bends to (0, 0)', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const connection = {
+                id: 'conn-bad',
+                permissions: { canRead: true, canWrite: true },
+                revision: { version: 0 },
+                position: { x: 0, y: 0 },
+                component: { bends: [{ x: 9e307, y: 0 }] }
+            };
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ connections: [connection] }))
+            );
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            expect(action.connections[0].component.bends[0]).toEqual({ x: 0, y: 0 });
+            warnSpy.mockRestore();
         });
     });
 });
