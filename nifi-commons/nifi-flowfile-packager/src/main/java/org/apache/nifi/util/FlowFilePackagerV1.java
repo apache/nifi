@@ -49,7 +49,6 @@ public class FlowFilePackagerV1 implements FlowFilePackager {
             writeAttributesEntry(attributes, tout);
             writeContentEntry(tout, in, fileSize);
             tout.finish();
-            tout.flush();
         }
     }
 
