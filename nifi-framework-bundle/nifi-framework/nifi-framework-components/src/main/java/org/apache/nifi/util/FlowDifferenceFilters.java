@@ -48,7 +48,9 @@ import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,7 +106,8 @@ public class FlowDifferenceFilters {
             || isPropertyParameterizationRename(difference, evaluatedContext)
             || isPropertyRenameWithMatchingValue(difference, evaluatedContext)
             || isSelectedRelationshipChangeForNewRelationship(difference, flowManager)
-            || isPropertyAddedFromMigration(difference, flowManager);
+            || isPropertyAddedFromMigration(difference, flowManager)
+            || isExternalControllerServiceReferenceChange(difference, flowManager, evaluatedContext);
     }
 
     /**
@@ -705,9 +708,16 @@ public class FlowDifferenceFilters {
     }
 
     public static EnvironmentalChangeContext buildEnvironmentalChangeContext(final Collection<FlowDifference> differences, final FlowManager flowManager) {
+        return buildEnvironmentalChangeContext(differences, null, flowManager);
+    }
+
+    public static EnvironmentalChangeContext buildEnvironmentalChangeContext(final Collection<FlowDifference> differences, final VersionedProcessGroup localGroup,
+                                                                             final FlowManager flowManager) {
         if (differences == null || differences.isEmpty() || flowManager == null) {
             return EnvironmentalChangeContext.empty();
         }
+
+        final Set<String> ancestorControllerServiceIds = computeAncestorControllerServiceIds(localGroup, flowManager);
 
         final Map<String, List<PropertyDiffInfo>> parameterizedAddsByComponent = new HashMap<>();
         final Map<String, List<PropertyDiffInfo>> parameterizationRemovalsByComponent = new HashMap<>();
@@ -854,11 +864,83 @@ public class FlowDifferenceFilters {
             }
         }
 
-        if (serviceIdsWithMatchingAdditions.isEmpty() && parameterizedPropertyRenameDifferences.isEmpty() && propertyRenamesWithMatchingValues.isEmpty()) {
+        if (serviceIdsWithMatchingAdditions.isEmpty() && parameterizedPropertyRenameDifferences.isEmpty() && propertyRenamesWithMatchingValues.isEmpty()
+                && ancestorControllerServiceIds.isEmpty()) {
             return EnvironmentalChangeContext.empty();
         }
 
-        return new EnvironmentalChangeContext(serviceIdsWithMatchingAdditions, parameterizedPropertyRenameDifferences, propertyRenamesWithMatchingValues);
+        return new EnvironmentalChangeContext(serviceIdsWithMatchingAdditions, parameterizedPropertyRenameDifferences, propertyRenamesWithMatchingValues,
+                ancestorControllerServiceIds);
+    }
+
+    /**
+     * Determines whether a Flow Difference represents a change to a property that references an <em>external</em> controller service
+     * (one defined outside the versioned Process Group, e.g. in an ancestor group). Such a reference is environment-specific: the same
+     * logical service typically has a different identifier in each environment, so pointing the property at a different external service
+     * is not treated as a local modification. The change is environmental only when the versioned-snapshot value does not resolve to a
+     * locally-accessible ancestor service while the local value does.
+     */
+    private static boolean isExternalControllerServiceReferenceChange(final FlowDifference difference, final FlowManager flowManager,
+                                                                      final EnvironmentalChangeContext context) {
+        if (difference.getDifferenceType() != DifferenceType.PROPERTY_CHANGED) {
+            return false;
+        }
+
+        final Set<String> ancestorServiceIds = context.ancestorControllerServiceIds();
+        if (ancestorServiceIds.isEmpty()) {
+            return false;
+        }
+
+        if (!isControllerServiceProperty(difference, flowManager)) {
+            return false;
+        }
+
+        final Optional<String> snapshotValue = getPropertyValue(difference, true);
+        final Optional<String> localValue = getPropertyValue(difference, false);
+        if (snapshotValue.isEmpty() || localValue.isEmpty()) {
+            return false;
+        }
+
+        // Parameter-referenced controller services are environment-portable through Parameter Contexts and are not evaluated here.
+        if (isParameterReference(snapshotValue.get()) || isParameterReference(localValue.get())) {
+            return false;
+        }
+
+        // Environmental only when the snapshot reference is not a locally-accessible ancestor controller service but the local reference
+        // is. A switch between two locally-accessible ancestor services remains a reported change, and a reference to a service defined
+        // inside the versioned Process Group is never in the ancestor set, so it always remains a reported change.
+        final boolean snapshotAccessible = ancestorServiceIds.contains(snapshotValue.get());
+        final boolean localAccessible = ancestorServiceIds.contains(localValue.get());
+        return !snapshotAccessible && localAccessible;
+    }
+
+    /**
+     * Computes the set of versioned component identifiers for all controller services accessible from the ancestors of the given (local)
+     * versioned Process Group -- i.e. services defined in the parent group and above. These identify references to external controller
+     * services. Returns an empty set when the group is not an instantiated (live-backed) group, so callers that pass a plain snapshot
+     * group get no suppression.
+     */
+    private static Set<String> computeAncestorControllerServiceIds(final VersionedProcessGroup localGroup, final FlowManager flowManager) {
+        if (flowManager == null || !(localGroup instanceof InstantiatedVersionedProcessGroup instantiatedGroup)) {
+            return Collections.emptySet();
+        }
+
+        final ProcessGroup liveGroup = flowManager.getGroup(instantiatedGroup.getInstanceIdentifier());
+        if (liveGroup == null) {
+            return Collections.emptySet();
+        }
+
+        final ProcessGroup parentGroup = liveGroup.getParent();
+        if (parentGroup == null) {
+            return Collections.emptySet();
+        }
+
+        final Set<String> ancestorServiceIds = new HashSet<>();
+        for (final ControllerServiceNode serviceNode : parentGroup.getControllerServices(true)) {
+            ancestorServiceIds.add(serviceNode.getVersionedComponentId().orElseGet(
+                    () -> VersionedComponentFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier())));
+        }
+        return ancestorServiceIds;
     }
 
     public static boolean isControllerServiceCreatedForNewProperty(final FlowDifference difference, final EnvironmentalChangeContext context) {
@@ -1211,18 +1293,22 @@ public class FlowDifferenceFilters {
     }
 
     public static final class EnvironmentalChangeContext {
-        private static final EnvironmentalChangeContext EMPTY = new EnvironmentalChangeContext(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        private static final EnvironmentalChangeContext EMPTY =
+                new EnvironmentalChangeContext(Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
 
         private final Set<String> serviceIdsCreatedForNewProperties;
         private final Set<FlowDifference> parameterizedPropertyRenames;
         private final Set<FlowDifference> propertyRenamesWithMatchingValues;
+        private final Set<String> ancestorControllerServiceIds;
 
         private EnvironmentalChangeContext(final Set<String> serviceIdsCreatedForNewProperties,
                                            final Set<FlowDifference> parameterizedPropertyRenames,
-                                           final Set<FlowDifference> propertyRenamesWithMatchingValues) {
+                                           final Set<FlowDifference> propertyRenamesWithMatchingValues,
+                                           final Set<String> ancestorControllerServiceIds) {
             this.serviceIdsCreatedForNewProperties = Collections.unmodifiableSet(new HashSet<>(serviceIdsCreatedForNewProperties));
             this.parameterizedPropertyRenames = Collections.unmodifiableSet(new HashSet<>(parameterizedPropertyRenames));
             this.propertyRenamesWithMatchingValues = Collections.unmodifiableSet(new HashSet<>(propertyRenamesWithMatchingValues));
+            this.ancestorControllerServiceIds = Collections.unmodifiableSet(new HashSet<>(ancestorControllerServiceIds));
         }
 
         static EnvironmentalChangeContext empty() {
@@ -1239,6 +1325,10 @@ public class FlowDifferenceFilters {
 
         Set<FlowDifference> propertyRenamesWithMatchingValues() {
             return propertyRenamesWithMatchingValues;
+        }
+
+        Set<String> ancestorControllerServiceIds() {
+            return ancestorControllerServiceIds;
         }
     }
 }

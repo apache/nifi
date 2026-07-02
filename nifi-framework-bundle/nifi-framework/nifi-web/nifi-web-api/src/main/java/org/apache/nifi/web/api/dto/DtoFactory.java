@@ -2856,7 +2856,7 @@ public final class DtoFactory {
 
         final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
         final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
-                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, localGroup, flowManager);
 
         for (final FlowDifference difference : comparisonDifferences) {
             // capture bundle differences and dedupe those differences

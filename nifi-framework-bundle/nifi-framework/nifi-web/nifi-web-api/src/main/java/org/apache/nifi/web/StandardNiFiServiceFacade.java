@@ -6597,11 +6597,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final FlowSnapshotContainer flowSnapshotContainer = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()),
                     flowVersionLocation, true);
 
-            // Resolve external controller service references by name so that cross-instance
-            // ID differences do not appear as phantom local modifications.
-            final String parentGroupId = processGroup.getParent() == null ? processGroup.getIdentifier() : processGroup.getParent().getIdentifier();
-            controllerFacade.getControllerServiceResolver().resolveInheritedControllerServices(flowSnapshotContainer, parentGroupId, NiFiUserUtils.getNiFiUser());
-
             final RegisteredFlowSnapshot versionedFlowSnapshot = flowSnapshotContainer.getFlowSnapshot();
             registryGroup = versionedFlowSnapshot.getFlowContents();
         } catch (final IOException | FlowRegistryException e) {

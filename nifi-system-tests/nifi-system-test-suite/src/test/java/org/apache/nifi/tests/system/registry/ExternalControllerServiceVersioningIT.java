@@ -61,9 +61,9 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
      * then the original PG and service are removed and a new service with the same name (but
      * different ID) is created before re-importing from the registry.
      *
-     * After import, the flow should be UP_TO_DATE because the external service was resolved
-     * by name during import and the cached snapshot should also be resolved.
-     * Both the state badge and the "Show Local Changes" dialog should agree.
+     * After import, the flow should be UP_TO_DATE: the committed reference points at the (now-removed) dev service id, which
+     * is not a locally-accessible ancestor service, while the local reference points at the same-named prod service, so the
+     * external-service reference change is treated as environment-specific. Both the badge and the dialog should agree.
      */
     @Test
     public void testCrossInstanceImportWithExternalServiceShowsUpToDate() throws NiFiClientException, IOException, InterruptedException {
@@ -104,6 +104,57 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
         final FlowComparisonEntity localMods = getNifiClient().getProcessGroupClient().getLocalModifications(imported.getId());
         assertTrue(localMods.getComponentDifferences().isEmpty(),
                 "After cross-instance import, Show Local Changes should report no differences");
+    }
+
+    /**
+     * A flow committed against one external service is imported into an instance whose equivalent external service has a
+     * DIFFERENT name (and a different id). After pointing the processor at the local service, the flow is UP_TO_DATE with no
+     * local modifications, because an external controller service reference is environment-specific regardless of its name or id.
+     */
+    @Test
+    public void testCrossInstanceImportWithDifferentlyNamedExternalServiceShowsUpToDate() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity registryClient = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ControllerServiceEntity devService = util.createControllerService(COUNT_SERVICE_TYPE, "root");
+        util.enableControllerService(devService);
+
+        final ProcessGroupEntity child = util.createProcessGroup("Child", "root");
+        final ProcessorEntity counter = util.createProcessor("CountFlowFiles", child.getId());
+        util.updateProcessorProperties(counter, Collections.singletonMap("Count Service", devService.getComponent().getId()));
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", child.getId());
+        util.createConnection(counter, terminate, "success");
+
+        final VersionControlInformationEntity vci = util.startVersionControl(child, registryClient, TEST_FLOWS_BUCKET, "cross-instance-diff-name-flow");
+        util.assertFlowUpToDate(child.getId());
+        final VersionControlInformationDTO vciDto = vci.getVersionControlInformation();
+
+        getNifiClient().getVersionsClient().stopVersionControl(
+                getNifiClient().getProcessGroupClient().getProcessGroup(child.getId()));
+        deleteProcessGroupContents(child.getId());
+        getNifiClient().getProcessGroupClient().deleteProcessGroup(
+                getNifiClient().getProcessGroupClient().getProcessGroup(child.getId()));
+
+        deleteControllerService(devService);
+
+        ControllerServiceEntity prodService = util.createControllerService(COUNT_SERVICE_TYPE, "root");
+        prodService = renameControllerService(prodService, "DifferentlyNamedCountService");
+        assertNotEquals(devService.getComponent().getId(), prodService.getComponent().getId(),
+                "Prod service should have a different ID than dev service");
+        util.enableControllerService(prodService);
+
+        final ProcessGroupEntity imported = util.importFlowFromRegistry("root", vciDto.getRegistryId(),
+                vciDto.getBucketId(), vciDto.getFlowId(), vciDto.getVersion());
+
+        // Point the imported processor at the differently-named local external service.
+        final ProcessorEntity importedCounter = findProcessorByType(imported.getId(), "CountFlowFiles");
+        util.updateProcessorProperties(importedCounter, Collections.singletonMap("Count Service", prodService.getComponent().getId()));
+
+        waitForVersionedFlowState(imported.getId(), "root", "UP_TO_DATE");
+
+        final FlowComparisonEntity localMods = getNifiClient().getProcessGroupClient().getLocalModifications(imported.getId());
+        assertTrue(localMods.getComponentDifferences().isEmpty(),
+                "After pointing at a differently-named external service, Show Local Changes should report no differences");
     }
 
     /**
@@ -167,17 +218,16 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
     }
 
     /**
-     * Reproduces the NIFI-15697 scenario on a single instance:
+     * Switching a processor's reference from one external service to another and then deleting the originally-referenced service
+     * keeps the state badge and the "Show Local Changes" dialog consistent at every step.
      *
-     * 1. Create an external service "StandardCountService" and a child PG referencing it, commit.
-     * 2. Create a second external service "AlternateCountService", switch the processor to it.
-     * 3. Delete the original service.
-     * 4. Verify that both the state badge (LOCALLY_MODIFIED) and the dialog (shows the change) agree.
-     *
-     * The two services have different names so the name-based resolver cannot falsely reconcile them.
+     * While both services exist, the switch is a genuine, reported local change (both are locally-accessible ancestor services).
+     * Once the originally-referenced service is removed, the committed reference no longer resolves to a local service, so the
+     * change becomes environment-specific and the flow returns to UP_TO_DATE. The badge and the dialog agree throughout -- there
+     * is never a badge that reports LOCALLY_MODIFIED while the dialog reports no changes.
      */
     @Test
-    public void testSwitchExternalServiceAndDeleteOriginalShowsLocalModification() throws NiFiClientException, IOException, InterruptedException {
+    public void testSwitchExternalServiceAndDeleteOriginalKeepsBadgeAndDialogConsistent() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity registryClient = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
@@ -199,22 +249,19 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
 
         util.updateProcessorProperties(counter, Collections.singletonMap("Count Service", serviceB.getComponent().getId()));
 
-        String state = util.getVersionedFlowState(child.getId(), "root");
-        assertEquals("LOCALLY_MODIFIED", state, "After switching external service reference, PG should be LOCALLY_MODIFIED");
+        // While both external services exist, switching between them is a genuine local change; badge and dialog must agree.
+        final String stateAfterSwitch = util.getVersionedFlowState(child.getId(), "root");
+        assertEquals("LOCALLY_MODIFIED", stateAfterSwitch, "While both external services exist, switching the reference should be LOCALLY_MODIFIED");
+        assertFalse(getNifiClient().getProcessGroupClient().getLocalModifications(child.getId()).getComponentDifferences().isEmpty(),
+                "Badge is LOCALLY_MODIFIED, so the dialog must also report differences");
 
         deleteControllerService(serviceA);
 
-        state = util.getVersionedFlowState(child.getId(), "root");
-        assertEquals("LOCALLY_MODIFIED", state, "After deleting original service, PG should still be LOCALLY_MODIFIED");
-
-        final FlowComparisonEntity localMods = getNifiClient().getProcessGroupClient().getLocalModifications(child.getId());
-        assertFalse(localMods.getComponentDifferences().isEmpty(), "Show Local Changes should report differences");
-
-        final boolean hasPropertyValueChange = localMods.getComponentDifferences().stream()
-                .flatMap(dto -> dto.getDifferences().stream())
-                .map(DifferenceDTO::getDifferenceType)
-                .anyMatch(type -> type.contains("Property Value Changed"));
-        assertTrue(hasPropertyValueChange, "Differences should include a Property Value Changed difference");
+        // Once the originally-referenced external service is gone, the reference change is environment-specific: the flow
+        // returns to UP_TO_DATE and the dialog reports no differences. Badge and dialog agree (no stuck LOCALLY_MODIFIED).
+        waitForVersionedFlowState(child.getId(), "root", "UP_TO_DATE");
+        assertTrue(getNifiClient().getProcessGroupClient().getLocalModifications(child.getId()).getComponentDifferences().isEmpty(),
+                "After removing the original external service, the dialog must report no differences (consistent with the UP_TO_DATE badge)");
     }
 
     /**
@@ -260,6 +307,14 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
             processor.setDisconnectedNodeAcknowledged(true);
             getNifiClient().getProcessorClient().deleteProcessor(processor);
         }
+    }
+
+    private ProcessorEntity findProcessorByType(final String groupId, final String simpleType) throws NiFiClientException, IOException {
+        final ProcessGroupFlowEntity flowEntity = getNifiClient().getFlowClient().getProcessGroup(groupId);
+        return flowEntity.getProcessGroupFlow().getFlow().getProcessors().stream()
+                .filter(processor -> processor.getComponent().getType().endsWith(simpleType))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Could not find processor of type " + simpleType + " in group " + groupId));
     }
 
     private ControllerServiceEntity renameControllerService(final ControllerServiceEntity service, final String newName)
