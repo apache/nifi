@@ -3959,7 +3959,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             .ignoreLocalModifications(!verifyNotDirty)
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
             .updateGroupSettings(updateSettings)
-            .updateRpgUrls(false);
+            .updateRpgUrls(false)
+            // A user may rename a public port locally (e.g. to resolve a name collision when reusing a versioned group). That local name must
+            // survive a version-control update rather than being reverted to the name stored in the registry.
+            .preservePublicPortNames(true);
         // Connectors should not have encrypted values copied from versioned flow. However we do need to decrypt parameter references.
         if (getConnectorIdentifier().isPresent()) {
             flowSynchronizationBuilder.propertyDecryptor(value -> value);

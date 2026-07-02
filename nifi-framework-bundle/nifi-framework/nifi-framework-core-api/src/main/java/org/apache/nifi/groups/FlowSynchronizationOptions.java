@@ -31,6 +31,7 @@ public class FlowSynchronizationOptions {
     private final boolean updateSettings;
     private final boolean updateDescendantVersionedFlows;
     private final boolean updateRpgUrls;
+    private final boolean preservePublicPortNames;
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
     private final ScheduledStateChangeListener scheduledStateChangeListener;
@@ -45,6 +46,7 @@ public class FlowSynchronizationOptions {
         this.updateSettings = builder.updateSettings;
         this.updateDescendantVersionedFlows = builder.updateDescendantVersionedFlows;
         this.updateRpgUrls = builder.updateRpgUrls;
+        this.preservePublicPortNames = builder.preservePublicPortNames;
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
         this.scheduledStateChangeListener = builder.scheduledStateChangeListener;
@@ -79,6 +81,10 @@ public class FlowSynchronizationOptions {
         return updateRpgUrls;
     }
 
+    public boolean isPreservePublicPortNames() {
+        return preservePublicPortNames;
+    }
+
     public PropertyDecryptor getPropertyDecryptor() {
         return propertyDecryptor;
     }
@@ -107,6 +113,7 @@ public class FlowSynchronizationOptions {
         private boolean updateSettings = true;
         private boolean updateDescendantVersionedFlows = true;
         private boolean updateRpgUrls = false;
+        private boolean preservePublicPortNames = false;
         private ScheduledStateChangeListener scheduledStateChangeListener;
         private PropertyDecryptor propertyDecryptor = value -> value;
         private Duration componentStopTimeout = Duration.ofSeconds(30);
@@ -189,6 +196,20 @@ public class FlowSynchronizationOptions {
         }
 
         /**
+         * Specifies whether the local name of a public port (an input/output port that allows remote access) should be preserved when synchronizing,
+         * rather than being overwritten with the name from the proposed flow. This is used for registry version-control updates, where a user may have
+         * renamed a public port locally to avoid a name collision, and that local name must survive the update. It should remain false for cluster
+         * reconnection and startup flow inheritance, where the node must adopt the incoming flow's port names verbatim.
+         *
+         * @param preservePublicPortNames whether to preserve local public-port names
+         * @return the builder
+         */
+        public Builder preservePublicPortNames(final boolean preservePublicPortNames) {
+            this.preservePublicPortNames = preservePublicPortNames;
+            return this;
+        }
+
+        /**
          * Specifies the decryptor to use for sensitive properties
          *
          * @param decryptor the decryptor to use
@@ -265,6 +286,7 @@ public class FlowSynchronizationOptions {
             builder.updateSettings = options.isUpdateSettings();
             builder.updateDescendantVersionedFlows = options.isUpdateDescendantVersionedFlows();
             builder.updateRpgUrls = options.isUpdateRpgUrls();
+            builder.preservePublicPortNames = options.isPreservePublicPortNames();
             builder.propertyDecryptor = options.getPropertyDecryptor();
             builder.componentStopTimeout = options.getComponentStopTimeout();
             builder.timeoutAction = options.getComponentStopTimeoutAction();

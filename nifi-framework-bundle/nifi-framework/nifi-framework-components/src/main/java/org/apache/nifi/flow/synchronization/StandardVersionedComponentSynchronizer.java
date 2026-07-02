@@ -344,6 +344,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 continue;
             }
 
+            // When updating from version control, preserve a local rename of a public port (an input/output port that allows remote
+            // access) instead of reverting it to the registry-defined name. Without this, the name change is treated as an update and the user's
+            // local name is overwritten. Only the version-control update path opts in via preservePublicPortNames; cluster reconnection and startup
+            // leave it false so the node still adopts the incoming flow's port names.
+            if (syncOptions.isPreservePublicPortNames() && FlowDifferenceFilters.isPublicPortNameChange(diff)) {
+                continue;
+            }
+
             // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
             // and if so compare our VersionedControllerService to the existing service.
             if (diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
@@ -1042,7 +1050,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 LOG.info("Added {} to {}", added, group);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
-                proposedPortFinalNames.put(port, proposedPort.getName());
+                // When the port is updated for any reason, preserve the local name of a public port instead of overwriting it with the
+                // registry-defined name (the port may be in the update set because of another difference such as a comment change).
+                final String finalName = syncOptions.isPreservePublicPortNames() && port instanceof PublicPort ? port.getName() : proposedPort.getName();
+                proposedPortFinalNames.put(port, finalName);
                 updatePort(port, proposedPort, temporaryName);
                 LOG.info("Updated {}", port);
             } else {
@@ -1064,7 +1075,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 LOG.info("Added {} to {}", added, group);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
-                proposedPortFinalNames.put(port, proposedPort.getName());
+                // When the port is updated for any reason, preserve the local name of a public port instead of overwriting it with the
+                // registry-defined name (the port may be in the update set because of another difference such as a comment change).
+                final String finalName = syncOptions.isPreservePublicPortNames() && port instanceof PublicPort ? port.getName() : proposedPort.getName();
+                proposedPortFinalNames.put(port, finalName);
                 updatePort(port, proposedPort, temporaryName);
                 LOG.info("Updated {}", port);
             } else {
