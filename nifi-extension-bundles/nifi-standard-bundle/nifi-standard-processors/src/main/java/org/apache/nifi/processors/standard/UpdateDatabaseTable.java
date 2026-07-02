@@ -424,8 +424,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                 recordReader = recordReaderFactory.createRecordReader(inputFlowFile, in, getLogger());
                                 recordSetWriter = recordWriterFactory.createWriter(getLogger(), outputMetadataHolder.getOutputSchema(), out, attributes);
                             } catch (Exception e) {
-                                if (e instanceof IOException) {
-                                    throw (IOException) e;
+                                if (e instanceof final IOException ioException) {
+                                    throw ioException;
                                 }
                                 throw new IOException("Unable to create RecordReader", e);
                             }
@@ -467,7 +467,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
             session.transfer(flowFile, Relationship.SELF);
         } catch (Throwable t) {
-            throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
+            throw (t instanceof final ProcessException processException) ? processException : new ProcessException(t);
         }
     }
 

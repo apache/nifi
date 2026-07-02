@@ -91,10 +91,10 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
     @Override
     public void handle(final Callback[] callbacks) throws UnsupportedCallbackException {
         for (final Callback callback : callbacks) {
-            if (callback instanceof OAuthBearerTokenCallback) {
-                handleTokenCallback((OAuthBearerTokenCallback) callback);
-            } else if (callback instanceof SaslExtensionsCallback) {
-                handleExtensionsCallback((SaslExtensionsCallback) callback);
+            if (callback instanceof final OAuthBearerTokenCallback oAuthBearerTokenCallback) {
+                handleTokenCallback(oAuthBearerTokenCallback);
+            } else if (callback instanceof final SaslExtensionsCallback saslExtensionsCallback) {
+                handleExtensionsCallback(saslExtensionsCallback);
             } else {
                 throw new UnsupportedCallbackException(callback);
             }

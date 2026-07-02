@@ -71,8 +71,8 @@ public class AccessPolicyAuthorizable implements Authorizable, EnforcePolicyPerm
 
     private Authorizable getEffectiveAuthorizable() {
         // possibly consider the base resource if the authorizable uses it to enforce policy permissions
-        if (authorizable instanceof EnforcePolicyPermissionsThroughBaseResource) {
-            final Authorizable baseAuthorizable = ((EnforcePolicyPermissionsThroughBaseResource) authorizable).getBaseAuthorizable();
+        if (authorizable instanceof final EnforcePolicyPermissionsThroughBaseResource enforcePolicyPermissionsThroughBaseResource) {
+            final Authorizable baseAuthorizable = enforcePolicyPermissionsThroughBaseResource.getBaseAuthorizable();
 
             // if the base authorizable is for a policy, we don't want to use the base otherwise it would keep unwinding and would eventually
             // evaluate to the policy of the component and not the policy of the policies for the component

@@ -151,8 +151,8 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             if (transaction != null) {
                 transaction.error();
             }
-            if (e instanceof ProcessException) {
-                throw (ProcessException) e;
+            if (e instanceof final ProcessException processException) {
+                throw processException;
             } else {
                 throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
             }

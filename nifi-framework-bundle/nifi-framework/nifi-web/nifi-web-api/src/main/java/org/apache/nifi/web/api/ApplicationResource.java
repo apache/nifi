@@ -1397,8 +1397,8 @@ public abstract class ApplicationResource {
 
     private X509Certificate[] getAuthenticationCertificates() {
         final Object credentials = SecurityContextHolder.getContext().getAuthentication().getCredentials();
-        if (credentials instanceof X509Certificate[]) {
-            return (X509Certificate[]) credentials;
+        if (credentials instanceof final X509Certificate[] x509Certificates) {
+            return x509Certificates;
         }
         return null;
     }

@@ -86,8 +86,8 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
                 while (outerResultSet.hasNext()) {
                     Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
                     // this is for edge case handling where innerResultSet is also a Map
-                    if (innerResultSet.getValue() instanceof Map) {
-                        Iterator resultSet = ((Map) innerResultSet.getValue()).entrySet().iterator();
+                    if (innerResultSet.getValue() instanceof Map map) {
+                        Iterator resultSet = map.entrySet().iterator();
                         // looping over each result in the inner map
                         while (resultSet.hasNext()) {
                             Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();

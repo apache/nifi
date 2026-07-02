@@ -102,8 +102,8 @@ public class FieldValueLogicalPathBuilder {
         final List<CharSequence> paths = new ArrayList<>();
         FieldValueWalker.walk(fieldValue, (thisFieldValue) -> {
             int index = -1;
-            if (thisFieldValue instanceof ArrayIndexFieldValue) {
-                index = ((ArrayIndexFieldValue) thisFieldValue).getArrayIndex();
+            if (thisFieldValue instanceof final ArrayIndexFieldValue arrayIndexFieldValue) {
+                index = arrayIndexFieldValue.getArrayIndex();
                 paths.add(keyRight);
                 paths.add(String.valueOf(index));
                 paths.add(keyLeft);

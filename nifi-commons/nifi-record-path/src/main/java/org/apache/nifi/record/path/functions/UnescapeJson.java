@@ -100,17 +100,17 @@ public class UnescapeJson extends RecordPathSegment {
 
     @SuppressWarnings("unchecked")
     private Object convertFieldValue(final Object value, final String fieldName, final DataType dataType, final boolean convertMapToRecord, final boolean recursiveMapToRecord) throws IOException {
-        if (dataType instanceof RecordDataType) {
+        if (dataType instanceof final RecordDataType recordDataType) {
             // convert Maps to Records
             final Map<String, Object> map = objectMapper.readValue(value.toString(), Map.class);
-            return DataTypeUtils.toRecord(map, ((RecordDataType) dataType).getChildSchema(), fieldName);
-        } else if (dataType instanceof ArrayDataType) {
-            final DataType elementDataType = ((ArrayDataType) dataType).getElementType();
+            return DataTypeUtils.toRecord(map, recordDataType.getChildSchema(), fieldName);
+        } else if (dataType instanceof final ArrayDataType arrayDataType) {
+            final DataType elementDataType = arrayDataType.getElementType();
 
             // convert Arrays of Maps to Records
             Object[] arr = objectMapper.readValue(value.toString(), Object[].class);
-            if (elementDataType instanceof RecordDataType) {
-                arr = Arrays.stream(arr).map(e -> DataTypeUtils.toRecord(e, ((RecordDataType) elementDataType).getChildSchema(), fieldName)).toArray();
+            if (elementDataType instanceof final RecordDataType recordDataType) {
+                arr = Arrays.stream(arr).map(e -> DataTypeUtils.toRecord(e, recordDataType.getChildSchema(), fieldName)).toArray();
             }
             return arr;
         } else {

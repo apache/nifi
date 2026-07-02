@@ -191,8 +191,8 @@ final class CEFRecordReader implements RecordReader {
 
     private Object prepareValue(final Object value) {
         // InetAddress event fields are mapped as string values internally. Inet4Address and Inet6Address fields are handled by this too.
-        if (value instanceof InetAddress) {
-            return ((InetAddress) value).getHostAddress();
+        if (value instanceof final InetAddress inetAddress) {
+            return inetAddress.getHostAddress();
         }
 
         return value;

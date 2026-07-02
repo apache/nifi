@@ -43,8 +43,8 @@ public class SetCacheRecord extends CacheRecord {
             return true;
         }
 
-        if (obj instanceof SetCacheRecord) {
-            return value.equals(((SetCacheRecord) obj).value);
+        if (obj instanceof final SetCacheRecord setCacheRecord) {
+            return value.equals(setCacheRecord.value);
         }
         return false;
     }

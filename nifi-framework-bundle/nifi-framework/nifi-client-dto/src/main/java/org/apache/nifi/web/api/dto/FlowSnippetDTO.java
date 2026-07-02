@@ -251,8 +251,8 @@ public class FlowSnippetDTO {
 
                     id = new UUID(this.generateMsb(cdto.getGroupId()), LSB);
                     cdto.setGroupId(id.toString());
-                } else if (componentDto instanceof ProcessGroupDTO) {
-                    FlowSnippetDTO fsDTO = ((ProcessGroupDTO) componentDto).getContents();
+                } else if (componentDto instanceof final ProcessGroupDTO processGroupDTO) {
+                    FlowSnippetDTO fsDTO = processGroupDTO.getContents();
 
                     this.removeInstanceIdentifierIfNecessary(fsDTO.getConnections());
                     fsDTO.connections = this.orderedById(fsDTO.getConnections());
@@ -280,8 +280,8 @@ public class FlowSnippetDTO {
 
                     this.removeInstanceIdentifierIfNecessary(fsDTO.getRemoteProcessGroups());
                     fsDTO.remoteProcessGroups = this.orderedById(fsDTO.getRemoteProcessGroups());
-                } else if (componentDto instanceof RemoteProcessGroupDTO) {
-                    RemoteProcessGroupContentsDTO contentsDTO = ((RemoteProcessGroupDTO) componentDto).getContents();
+                } else if (componentDto instanceof final RemoteProcessGroupDTO remoteProcessGroupDTO) {
+                    RemoteProcessGroupContentsDTO contentsDTO = remoteProcessGroupDTO.getContents();
                     contentsDTO.setInputPorts(this.orderedRemotePortsById(contentsDTO.getInputPorts()));
                     contentsDTO.setOutputPorts(this.orderedRemotePortsById(contentsDTO.getOutputPorts()));
                 }

@@ -92,9 +92,9 @@ public class ConnectableTask {
             baseStateManager = flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier());
         }
         final StateManager stateManager = new TaskTerminationAwareStateManager(baseStateManager, lifecycleState::isTerminated);
-        if (connectable instanceof ProcessorNode) {
+        if (connectable instanceof final ProcessorNode processorNode) {
             processContext = new StandardProcessContext(
-                    (ProcessorNode) connectable, flowController.getControllerServiceProvider(), stateManager, lifecycleState::isTerminated, flowController);
+                    processorNode, flowController.getControllerServiceProvider(), stateManager, lifecycleState::isTerminated, flowController);
         } else {
             processContext = new ConnectableProcessContext(connectable, stateManager);
         }

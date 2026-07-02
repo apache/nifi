@@ -57,8 +57,8 @@ class StandardPrivateKeyReader implements PrivateKeyReader {
         final PrivateKey encodedPrivateKey = new PKCS1EncodedPrivateKey(decoded);
         final KeyFactory keyFactory = KeyFactory.getInstance(RSA_ALGORITHM);
         final Key translatedKey = keyFactory.translateKey(encodedPrivateKey);
-        if (translatedKey instanceof RSAPrivateKey) {
-            return (RSAPrivateKey) translatedKey;
+        if (translatedKey instanceof final RSAPrivateKey rsaPrivateKey) {
+            return rsaPrivateKey;
         } else {
             throw new InvalidKeyException("Failed to parse encoded RSA Private Key: unsupported class [%s]".formatted(translatedKey.getClass()));
         }

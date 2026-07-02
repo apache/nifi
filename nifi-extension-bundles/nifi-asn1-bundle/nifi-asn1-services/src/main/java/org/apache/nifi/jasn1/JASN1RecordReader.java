@@ -151,8 +151,8 @@ public class JASN1RecordReader implements RecordReader {
     private Object convertBerValue(final String name, final DataType dataType, final BerType instance, final Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof BerType) {
-            return new JASN1ConverterImpl(schemaProvider.getSchemaCache()).convertValue((BerType) value, dataType);
+        } else if (value instanceof final BerType berType) {
+            return new JASN1ConverterImpl(schemaProvider.getSchemaCache()).convertValue(berType, dataType);
         } else {
             return null;
         }

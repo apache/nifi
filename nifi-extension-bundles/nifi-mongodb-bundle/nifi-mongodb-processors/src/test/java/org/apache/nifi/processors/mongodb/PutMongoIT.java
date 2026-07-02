@@ -70,8 +70,8 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.removeProperty(PutMongo.COLLECTION_NAME);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
@@ -85,8 +85,8 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
     }

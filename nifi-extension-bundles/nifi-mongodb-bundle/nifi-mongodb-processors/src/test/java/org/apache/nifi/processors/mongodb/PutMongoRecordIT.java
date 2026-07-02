@@ -94,8 +94,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(3, results.size());
         Iterator<ValidationResult> it = results.iterator();

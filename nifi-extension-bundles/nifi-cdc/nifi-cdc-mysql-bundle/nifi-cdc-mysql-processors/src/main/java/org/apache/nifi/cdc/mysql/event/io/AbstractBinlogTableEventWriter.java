@@ -31,16 +31,16 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
             return null;
         }
         if (type == null) {
-            if (value instanceof byte[]) {
-                return new String((byte[]) value);
+            if (value instanceof final byte[] bytes) {
+                return new String(bytes);
             } else if (value instanceof Number) {
                 return value;
             } else {
                 return null;
             }
         } else {
-            if (value instanceof byte[]) {
-                return new String((byte[]) value);
+            if (value instanceof final byte[] bytes) {
+                return new String(bytes);
             } else if (value instanceof Number) {
                 return value;
             } else {

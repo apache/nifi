@@ -310,8 +310,8 @@ public class PutMongo extends AbstractMongoProcessor {
             Object idValue = doc.get("_id");
             if (idValue instanceof ObjectId) {
                 retVal = new Document("_id", idValue);
-            } else if (idValue instanceof String && ObjectId.isValid((String) idValue)) {
-                retVal = new Document("_id", new ObjectId((String) idValue));
+            } else if (idValue instanceof final String string && ObjectId.isValid(string)) {
+                retVal = new Document("_id", new ObjectId(string));
             } else {
                 retVal = new Document("_id", idValue);
             }

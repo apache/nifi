@@ -53,12 +53,12 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
             return false;
         }
 
-        if (lhsValue instanceof HL7Field) {
-            lhsValue = ((HL7Field) lhsValue).getValue();
+        if (lhsValue instanceof final HL7Field hl7Field) {
+            lhsValue = hl7Field.getValue();
         }
 
-        if (rhsValue instanceof HL7Field) {
-            rhsValue = ((HL7Field) rhsValue).getValue();
+        if (rhsValue instanceof final HL7Field hl7Field) {
+            rhsValue = hl7Field.getValue();
         }
 
         if (lhsValue == null || rhsValue == null) {

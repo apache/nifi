@@ -230,8 +230,8 @@ public abstract class SessionFile implements FlowFile {
     @SuppressWarnings("NullableProblems")
     @Override
     public int compareTo(FlowFile other) {
-        if (other instanceof SessionFile) {
-            other = ((SessionFile) other).flowFile;
+        if (other instanceof final SessionFile sessionFile) {
+            other = sessionFile.flowFile;
         }
         return flowFile.compareTo(other);
     }

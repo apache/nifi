@@ -1879,8 +1879,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // because if we timeout while waiting for a Controller Service to stop, then that Controller Service won't be in our list of Controller Services
                 // to re-enable. As a result, we don't have the appropriate Controller Service to pass to the scheduleReferencingComponents.
                 for (final ComponentNode stoppedComponent : componentsToRestart) {
-                    if (stoppedComponent instanceof Connectable) {
-                        context.getComponentScheduler().startComponent((Connectable) stoppedComponent);
+                    if (stoppedComponent instanceof final Connectable connectable) {
+                        context.getComponentScheduler().startComponent(connectable);
                         notifyScheduledStateChange(stoppedComponent, synchronizationOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
                     }
                 }
@@ -2933,10 +2933,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void notifyScheduledStateChange(final Connectable component, final FlowSynchronizationOptions synchronizationOptions, final org.apache.nifi.flow.ScheduledState intendedState) {
         try {
-            if (component instanceof ProcessorNode) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ProcessorNode) component, intendedState);
-            } else if (component instanceof Port) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component, intendedState);
+            if (component instanceof final ProcessorNode processorNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processorNode, intendedState);
+            } else if (component instanceof final Port port) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(port, intendedState);
             }
         } catch (final Exception e) {
             LOG.debug("Failed to notify listeners of ScheduledState changes", e);
@@ -2944,16 +2944,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void notifyScheduledStateChange(final ComponentNode component, final FlowSynchronizationOptions synchronizationOptions, final org.apache.nifi.flow.ScheduledState intendedState) {
-        if (component instanceof Triggerable && intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && ((Triggerable) component).getScheduledState() == ScheduledState.DISABLED) {
+        if (component instanceof final Triggerable triggerable && intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && triggerable.getScheduledState() == ScheduledState.DISABLED) {
             return;
         }
         try {
-            if (component instanceof ProcessorNode) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ProcessorNode) component, intendedState);
-            } else if (component instanceof Port) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component, intendedState);
-            } else if (component instanceof ControllerServiceNode) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ControllerServiceNode) component, intendedState);
+            if (component instanceof final ProcessorNode processorNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processorNode, intendedState);
+            } else if (component instanceof final Port port) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(port, intendedState);
+            } else if (component instanceof final ControllerServiceNode controllerServiceNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(controllerServiceNode, intendedState);
             } else if (component instanceof final ReportingTaskNode reportingTaskNode) {
                 if (intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && reportingTaskNode.getScheduledState() == ScheduledState.DISABLED) {
                     return;

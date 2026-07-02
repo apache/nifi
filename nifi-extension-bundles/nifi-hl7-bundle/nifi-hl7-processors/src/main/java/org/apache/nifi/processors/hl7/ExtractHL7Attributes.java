@@ -249,10 +249,10 @@ public class ExtractHL7Attributes extends AbstractProcessor {
         if (!isEmpty(group)) {
             for (final String name : group.getNames()) {
                 for (final Structure structure : group.getAll(name)) {
-                    if (group.isGroup(name) && structure instanceof Group) {
-                        addSegments((Group) structure, segments, segmentIndexes);
-                    } else if (structure instanceof Segment) {
-                        addSegments((Segment) structure, segments, segmentIndexes);
+                    if (group.isGroup(name) && structure instanceof final Group innerGroup) {
+                        addSegments(innerGroup, segments, segmentIndexes);
+                    } else if (structure instanceof final Segment segment) {
+                        addSegments(segment, segments, segmentIndexes);
                     }
                 }
                 segmentIndexes.put(name, segmentIndexes.getOrDefault(name, 1) + 1);

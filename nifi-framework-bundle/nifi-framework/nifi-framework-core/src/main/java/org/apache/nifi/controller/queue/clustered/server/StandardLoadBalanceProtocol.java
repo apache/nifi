@@ -114,10 +114,10 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
         String peerDescription = socket.getInetAddress().getHostName();
         String channelDescription = socket.getLocalSocketAddress() + "::" + socket.getRemoteSocketAddress();
-        if (socket instanceof SSLSocket) {
+        if (socket instanceof final SSLSocket sslSocket) {
             logger.debug("Connection received from peer {}", peerDescription);
 
-            peerDescription = authorizer.authorize((SSLSocket) socket);
+            peerDescription = authorizer.authorize(sslSocket);
             channelDescription = peerDescription + "::" + channelDescription;
             logger.debug("Client Identities are authorized to load balance data for peer {}", peerDescription);
         }

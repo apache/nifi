@@ -43,8 +43,8 @@ public class Base64Decode extends RecordPathSegment {
                     Object value = fv.getValue();
                     if (value instanceof String) {
                         return new StandardFieldValue(new String(Base64.getDecoder().decode(fv.getValue().toString()), StandardCharsets.UTF_8), fv.getField(), fv.getParent().orElse(null));
-                    } else if (value instanceof byte[]) {
-                        return new StandardFieldValue(Base64.getDecoder().decode((byte[]) value), fv.getField(), fv.getParent().orElse(null));
+                    } else if (value instanceof final byte[] bytes) {
+                        return new StandardFieldValue(Base64.getDecoder().decode(bytes), fv.getField(), fv.getParent().orElse(null));
                     } else {
                         throw new IllegalArgumentException("Argument supplied to base64Decode must be a String or byte[]");
                     }

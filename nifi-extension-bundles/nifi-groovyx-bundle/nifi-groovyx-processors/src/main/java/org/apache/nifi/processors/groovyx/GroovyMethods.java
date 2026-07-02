@@ -46,12 +46,12 @@ class GroovyMethods {
         GroovySystem.getMetaClassRegistry().setMetaClass(Relationship.class, new DelegatingMetaClass(Relationship.class) {
             @Override
             public Object invokeMethod(Object object, String methodName, Object[] args) {
-                if (object instanceof Relationship) {
+                if (object instanceof final Relationship relationship) {
                     if ("leftShift".equals(methodName) && args.length == 1) {
-                        if (args[0] instanceof SessionFile) {
-                            return this.leftShift((Relationship) object, (SessionFile) args[0]);
-                        } else if (args[0] instanceof Collection) {
-                            return this.leftShift((Relationship) object, (Collection) args[0]);
+                        if (args[0] instanceof final SessionFile sessionFile) {
+                            return this.leftShift(relationship, sessionFile);
+                        } else if (args[0] instanceof final Collection<?> collection) {
+                            return this.leftShift(relationship, collection);
                         }
                     }
                 }

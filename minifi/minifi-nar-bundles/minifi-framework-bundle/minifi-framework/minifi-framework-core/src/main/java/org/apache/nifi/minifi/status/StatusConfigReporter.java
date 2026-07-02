@@ -234,20 +234,20 @@ public final class StatusConfigReporter {
     private static <E> Map<String, E> transformStatusCollection(Collection<E> statusCollection) {
         Map<String, E> statusMap = new HashMap<>();
         for (E status : statusCollection) {
-            if (status instanceof ProcessorStatus) {
-                statusMap.put(((ProcessorStatus) status).getId(), status);
-                if (((ProcessorStatus) status).getName() != null) {
-                    statusMap.put(((ProcessorStatus) status).getName(), status);
+            if (status instanceof final ProcessorStatus processorStatus) {
+                statusMap.put(processorStatus.getId(), status);
+                if (processorStatus.getName() != null) {
+                    statusMap.put(processorStatus.getName(), status);
                 }
-            } else if (status instanceof ConnectionStatus) {
-                statusMap.put(((ConnectionStatus) status).getId(), status);
-                if (((ConnectionStatus) status).getName() != null) {
-                    statusMap.put(((ConnectionStatus) status).getName(), status);
+            } else if (status instanceof final ConnectionStatus connectionStatus) {
+                statusMap.put(connectionStatus.getId(), status);
+                if (connectionStatus.getName() != null) {
+                    statusMap.put(connectionStatus.getName(), status);
                 }
-            } else if (status instanceof RemoteProcessGroupStatus) {
-                statusMap.put(((RemoteProcessGroupStatus) status).getId(), status);
-                if (((RemoteProcessGroupStatus) status).getName() != null) {
-                    statusMap.put(((RemoteProcessGroupStatus) status).getName(), status);
+            } else if (status instanceof final RemoteProcessGroupStatus remoteProcessGroupStatus) {
+                statusMap.put(remoteProcessGroupStatus.getId(), status);
+                if (remoteProcessGroupStatus.getName() != null) {
+                    statusMap.put(remoteProcessGroupStatus.getName(), status);
                 }
             }
         }

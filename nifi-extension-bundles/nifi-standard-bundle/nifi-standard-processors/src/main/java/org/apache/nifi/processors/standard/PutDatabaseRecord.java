@@ -848,8 +848,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
             }
         } catch (ProcessException pe) {
             // Unwrap the SQLException if one occurred
-            if (pe.getCause() instanceof SQLException) {
-                throw (SQLException) pe.getCause();
+            if (pe.getCause() instanceof final SQLException sqlException) {
+                throw sqlException;
             } else {
                 throw pe;
             }
@@ -970,7 +970,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 }
                                 if (targetDataType != null) {
                                     if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
-                                        if (currentValue instanceof Object[] src) {
+                                        if (currentValue instanceof final Object[] src) {
                                             // Convert Object[Byte] arrays to byte[]
                                             if (src.length > 0) {
                                                 if (!(src[0] instanceof Byte)) {

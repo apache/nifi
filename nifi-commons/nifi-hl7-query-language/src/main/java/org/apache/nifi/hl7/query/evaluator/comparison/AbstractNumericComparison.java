@@ -48,16 +48,16 @@ public abstract class AbstractNumericComparison extends AbstractComparisonEvalua
             return null;
         }
 
-        if (value instanceof Double) {
-            return (Double) value;
+        if (value instanceof final Double doubleObj) {
+            return doubleObj;
         }
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
+        if (value instanceof final Number number) {
+            return number.doubleValue();
         }
 
-        if (value instanceof String) {
-            if (NUMERIC_PATTERN.matcher((String) value).matches()) {
-                return Double.parseDouble((String) value);
+        if (value instanceof final String string) {
+            if (NUMERIC_PATTERN.matcher(string).matches()) {
+                return Double.parseDouble(string);
             }
         }
 

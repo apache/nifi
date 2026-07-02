@@ -271,8 +271,8 @@ public class JoltTransformRecord extends AbstractJoltTransform {
         }
 
         // If the top-level object is an array, return a list of the records inside. Otherwise return a singleton list with the single transformed record
-        if (normalizedRecordValues instanceof Object[]) {
-            for (Object o : (Object[]) normalizedRecordValues) {
+        if (normalizedRecordValues instanceof final Object[] objects) {
+            for (Object o : objects) {
                 if (o != null) {
                     recordList.add(DataTypeUtils.toRecord(o, "r"));
                 }
@@ -299,8 +299,8 @@ public class JoltTransformRecord extends AbstractJoltTransform {
             Map<String, Object> m = ((Map<String, Object>) o);
             m.forEach((k, v) -> m.put(k, normalizeJoltObjects(v)));
             return m;
-        } else if (o instanceof Object[]) {
-            return Arrays.stream(((Object[]) o)).map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
+        } else if (o instanceof final Object[] objects) {
+            return Arrays.stream(objects).map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else if (o instanceof final Collection<?> c) {
             return c.stream().map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else {

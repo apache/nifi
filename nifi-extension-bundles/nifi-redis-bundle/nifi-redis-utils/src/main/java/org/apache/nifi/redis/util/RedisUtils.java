@@ -427,16 +427,16 @@ public class RedisUtils {
                                                  @Nullable final String password,
                                                  @Nullable final String sentinelUsername,
                                                  @Nullable final String sentinelPassword) {
-        if (redisConfiguration instanceof RedisConfiguration.WithDatabaseIndex) {
-            ((RedisConfiguration.WithDatabaseIndex) redisConfiguration).setDatabase(dbIndex);
+        if (redisConfiguration instanceof final RedisConfiguration.WithDatabaseIndex redisConfigurationWithDatabaseIndex) {
+            redisConfigurationWithDatabaseIndex.setDatabase(dbIndex);
         }
-        if (redisConfiguration instanceof RedisConfiguration.WithPassword) {
-            ((RedisConfiguration.WithPassword) redisConfiguration).setUsername(username);
-            ((RedisConfiguration.WithPassword) redisConfiguration).setPassword(RedisPassword.of(password));
+        if (redisConfiguration instanceof final RedisConfiguration.WithPassword redisConfigurationWithPassword) {
+            redisConfigurationWithPassword.setUsername(username);
+            redisConfigurationWithPassword.setPassword(RedisPassword.of(password));
         }
-        if (redisConfiguration instanceof RedisConfiguration.SentinelConfiguration) {
-            ((RedisConfiguration.SentinelConfiguration) redisConfiguration).setSentinelUsername(sentinelUsername);
-            ((RedisConfiguration.SentinelConfiguration) redisConfiguration).setSentinelPassword(RedisPassword.of(sentinelPassword));
+        if (redisConfiguration instanceof final RedisConfiguration.SentinelConfiguration redisConfigurationSentinelConfiguration) {
+            redisConfigurationSentinelConfiguration.setSentinelUsername(sentinelUsername);
+            redisConfigurationSentinelConfiguration.setSentinelPassword(RedisPassword.of(sentinelPassword));
         }
     }
 
