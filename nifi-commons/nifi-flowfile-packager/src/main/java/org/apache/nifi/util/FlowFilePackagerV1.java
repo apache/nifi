@@ -50,7 +50,6 @@ public class FlowFilePackagerV1 implements FlowFilePackager {
             writeContentEntry(tout, in, fileSize);
             tout.finish();
             tout.flush();
-            tout.close();
         }
     }
 

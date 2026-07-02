@@ -170,7 +170,6 @@ public class FlowStatusReport implements java.io.Serializable {
             generator.writeObjectField("reportingTaskStatusList", reportingTaskStatusList);
             generator.writeObjectField("errorsGeneratingReport", errorsGeneratingReport);
             generator.writeEndObject();
-            generator.close();
         } catch (IOException e) {
             //this should not occur since we are using a StringWriter, however, in the event it does. Generate
             //the old style report
