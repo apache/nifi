@@ -51,9 +51,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -360,6 +363,100 @@ class KinesisShardManagerTest {
         verify(dynamoDb).deleteTable(deleteCaptor.capture());
         assertEquals("test-table_migration", deleteCaptor.getValue().tableName(),
                 "Migration table must be deleted only after the recovery copy succeeds");
+    }
+
+    /**
+     * NIFI-16066: when an error occurs while a node holds the rename lock (for example the
+     * checkpoint copy fails after the new table has been recreated), the lock must be released
+     * so a subsequent attempt can re-acquire it and retry the rename. Previously the lingering
+     * renameOwner attribute on the migration table blocked all future rename attempts until the
+     * stale-lock timeout elapsed.
+     */
+    @Test
+    void testRenameMigrationTableReleasesRenameLockOnCopyError() {
+        final AtomicInteger mainTableDescribeCount = new AtomicInteger();
+        when(dynamoDb.describeTable(any(DescribeTableRequest.class))).thenAnswer(invocation -> {
+            final DescribeTableRequest req = invocation.getArgument(0);
+            if ("test-table".equals(req.tableName())) {
+                if (mainTableDescribeCount.incrementAndGet() <= 3) {
+                    throw ResourceNotFoundException.builder().build();
+                }
+                return newSchemaActiveResponse();
+            }
+            if ("test-table_migration".equals(req.tableName())) {
+                return newSchemaActiveResponse();
+            }
+            throw ResourceNotFoundException.builder().build();
+        });
+
+        when(dynamoDb.updateItem(any(UpdateItemRequest.class))).thenReturn(UpdateItemResponse.builder().build());
+        when(dynamoDb.createTable(any(CreateTableRequest.class))).thenReturn(CreateTableResponse.builder().build());
+        when(dynamoDb.deleteTable(any(DeleteTableRequest.class))).thenReturn(DeleteTableResponse.builder().build());
+
+        final Map<String, AttributeValue> checkpointItem = Map.of(
+                "streamName", AttributeValue.builder().s("test-stream").build(),
+                "shardId", AttributeValue.builder().s("shard-1").build(),
+                "sequenceNumber", AttributeValue.builder().s("12345").build());
+        when(dynamoDb.scan(any(ScanRequest.class))).thenReturn(ScanResponse.builder().items(checkpointItem).build());
+
+        final InternalServerErrorException copyFailure = InternalServerErrorException.builder()
+                .message("simulated transient DynamoDB failure during checkpoint copy")
+                .build();
+        when(dynamoDb.putItem(any(PutItemRequest.class))).thenThrow(copyFailure);
+
+        assertThrows(InternalServerErrorException.class, () -> manager.ensureCheckpointTableExists(),
+                "A failed checkpoint copy under the rename lock must propagate");
+
+        final ArgumentCaptor<UpdateItemRequest> updateCaptor = ArgumentCaptor.forClass(UpdateItemRequest.class);
+        verify(dynamoDb, atLeastOnce()).updateItem(updateCaptor.capture());
+        final boolean lockReleased = updateCaptor.getAllValues().stream()
+                .anyMatch(req -> "test-table_migration".equals(req.tableName())
+                        && req.updateExpression() != null
+                        && req.updateExpression().startsWith("REMOVE renameOwner"));
+        assertTrue(lockReleased, "Rename lock (renameOwner) must be released on the migration table when the rename fails");
+
+        final ArgumentCaptor<DeleteTableRequest> deleteCaptor = ArgumentCaptor.forClass(DeleteTableRequest.class);
+        verify(dynamoDb, times(1)).deleteTable(deleteCaptor.capture());
+        final boolean migrationDeleted = deleteCaptor.getAllValues().stream()
+                .map(DeleteTableRequest::tableName)
+                .anyMatch("test-table_migration"::equals);
+        assertFalse(migrationDeleted, "Migration table must not be deleted when the rename copy fails");
+    }
+
+    /**
+     * NIFI-16066: a node that loses the race for the rename lock must wait for the migration
+     * table to be dropped (the real signal that the rename finished) rather than returning as
+     * soon as the checkpoint table simply has the new schema. The new checkpoint table is
+     * created empty before the checkpoint copy runs, so schema presence alone does not mean the
+     * migration completed.
+     */
+    @Test
+    void testWaitForTableRenamedRequiresMigrationTableDropped() {
+        final AtomicInteger migrationDescribeCount = new AtomicInteger();
+        when(dynamoDb.describeTable(any(DescribeTableRequest.class))).thenAnswer(invocation -> {
+            final DescribeTableRequest req = invocation.getArgument(0);
+            if ("test-table".equals(req.tableName())) {
+                return newSchemaActiveResponse();
+            }
+            if ("test-table_migration".equals(req.tableName())) {
+                // Count 1: findMigrationTable() in completeLingeringMigration; count 2+: waitForTableRenamed poll loop.
+                if (migrationDescribeCount.incrementAndGet() == 1) {
+                    return newSchemaActiveResponse();
+                }
+                throw ResourceNotFoundException.builder().build();
+            }
+            throw ResourceNotFoundException.builder().build();
+        });
+
+        // Losing the rename-lock race: acquireRenameLock's conditional update fails.
+        when(dynamoDb.updateItem(any(UpdateItemRequest.class)))
+                .thenThrow(ConditionalCheckFailedException.builder().build());
+
+        manager.ensureCheckpointTableExists();
+
+        assertTrue(migrationDescribeCount.get() >= 2,
+                "waitForTableRenamed must confirm the migration table was dropped, not just that the checkpoint table has the new schema");
+        verify(dynamoDb, never()).deleteTable(any(DeleteTableRequest.class));
     }
 
     private static DescribeTableResponse newSchemaActiveResponse() {
