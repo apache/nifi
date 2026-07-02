@@ -551,6 +551,105 @@ public class RegistryClientIT extends NiFiSystemIT {
     }
 
     /**
+     * Tests that when upgrading an active versioned process group, a newly added Controller Service that is referenced only
+     * by an EXISTING processor (via a newly added optional property) is enabled by the upgrade.
+     *
+     * This is the scenario observed in production with the Openflow MySQL/PostgreSQL connectors: version N+1 introduced a
+     * new optional Controller Service plus a new optional property on an already-existing processor that references it.
+     * Controller Services are always persisted in a versioned flow as DISABLED (see
+     * {@code VersionedComponentStateLookup.ENABLED_OR_DISABLED}), so the upgrade itself must enable the newly added service
+     * for the referencing processor to remain valid and running.
+     *
+     * It differs from {@link #testNewComponentsStartedDuringVersionChange()} in one key way: there, the new service is
+     * referenced by a brand-new processor that the upgrade starts. Here, NO new component references the new service - only
+     * an existing processor does, through a new optional property.
+     *
+     * v1: GenerateFlowFile -> CountFlowFiles (references "Count Service") -> TerminateFlowFile, plus a standalone Heartbeat.
+     * v2: Adds a new StandardCountService and sets the existing CountFlowFiles processor's optional "Secondary Count Service"
+     *     property to reference it. A standalone Heartbeat GenerateFlowFile stays running so the group is active during the
+     *     upgrade.
+     */
+    @Test
+    public void testNewServiceReferencedByExistingProcessorEnabledDuringVersionChange() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity group = util.createProcessGroup("Parent", "root");
+        final ControllerServiceEntity countService = util.createControllerService("StandardCountService", group.getId());
+
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", group.getId());
+        final ProcessorEntity countProcessor = util.createProcessor("CountFlowFiles", group.getId());
+        util.updateProcessorProperties(countProcessor, Collections.singletonMap("Count Service", countService.getComponent().getId()));
+
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", group.getId());
+        final ConnectionEntity connectionToTerminate = util.createConnection(countProcessor, terminate, "success");
+        util.setFifoPrioritizer(connectionToTerminate);
+        util.createConnection(generate, countProcessor, "success");
+
+        // Standalone "Heartbeat" processor: present and unchanged in both v1 and v2, stays running during the upgrade so
+        // that the process group is active when the synchronizer inspects it.
+        final ProcessorEntity heartbeat = util.createProcessor("GenerateFlowFile", group.getId());
+        util.setAutoTerminatedRelationships(heartbeat, "success");
+
+        // Save as v1
+        final VersionControlInformationEntity vci = util.startVersionControl(group, clientEntity, TEST_FLOWS_BUCKET, "ExistingProcessorNewService");
+
+        // Build v2: add a new service and reference it from the EXISTING processor via a new optional property.
+        // No new component references the new service.
+        final ControllerServiceEntity newCountService = util.createControllerService("StandardCountService", group.getId());
+        util.updateProcessorProperties(countProcessor, Collections.singletonMap("Secondary Count Service", newCountService.getComponent().getId()));
+
+        // Save as v2
+        util.saveFlowVersion(group, clientEntity, vci);
+
+        // Switch back to v1 and start the flow
+        util.changeFlowVersion(group.getId(), "1");
+        util.assertFlowStaleAndUnmodified(group.getId());
+
+        util.enableControllerService(countService);
+        util.waitForValidProcessor(generate.getId());
+        util.startProcessor(generate);
+        util.waitForValidProcessor(countProcessor.getId());
+        util.startProcessor(countProcessor);
+        util.waitForValidProcessor(heartbeat.getId());
+        util.startProcessor(heartbeat);
+
+        // Verify v1 flow works
+        waitForQueueCount(connectionToTerminate.getId(), getNumberOfNodes());
+        final Map<String, String> v1Attributes = util.getQueueFlowFile(connectionToTerminate.getId(), 0).getFlowFile().getAttributes();
+        assertEquals("1", v1Attributes.get("count"));
+
+        // Upgrade to v2 while the flow is running. The Heartbeat processor stays running, so the process group is active.
+        util.changeFlowVersion(group.getId(), "2");
+        util.assertFlowUpToDate(group.getId());
+
+        // The newly added service is referenced only by the existing CountFlowFiles processor via the new optional property.
+        // Existing component ids are stable across a version change, so the newly added service is the one whose id is not
+        // the pre-existing countService.
+        final Set<ControllerServiceEntity> servicesAfterUpgrade = getNifiClient().getFlowClient()
+            .getControllerServices(group.getId()).getControllerServices();
+        assertEquals(2, servicesAfterUpgrade.size(), "Expected the pre-existing and the newly added Controller Service");
+        final ControllerServiceEntity newServiceAfterUpgrade = servicesAfterUpgrade.stream()
+            .filter(service -> !service.getId().equals(countService.getId()))
+            .findFirst()
+            .orElseThrow();
+
+        // Because the group was active during the upgrade, the newly added service must be enabled so that the existing
+        // processor that references it stays valid and running. Give enablement a chance to complete, then assert
+        // explicitly: waitForControllerServiceState returns without throwing on timeout, so an explicit assertion is
+        // needed to surface the failure clearly (rather than only as a downstream "processor never started" timeout).
+        util.waitForControllerServicesEnabled(group.getId(), newServiceAfterUpgrade.getId());
+        final ControllerServiceEntity newServiceState = getNifiClient().getControllerServicesClient()
+            .getControllerService(newServiceAfterUpgrade.getId());
+        assertEquals("ENABLED", newServiceState.getComponent().getState(),
+            "Controller Service '" + newServiceState.getComponent().getName() + "' (" + newServiceState.getId() + "), newly added and "
+                + "referenced only by an existing processor via a new optional property, should be ENABLED after an active-group upgrade");
+
+        // The existing processor that references the newly added service must be valid and running again.
+        util.waitForRunningProcessor(countProcessor.getId());
+    }
+
+    /**
      * Test that a parent Process Group can be committed to a Flow Registry even when a child Process Group
      * that is separately under Version Control has local modifications. The parent's snapshot only stores
      * version coordinate references for child versioned PGs, so uncommitted changes in the child are

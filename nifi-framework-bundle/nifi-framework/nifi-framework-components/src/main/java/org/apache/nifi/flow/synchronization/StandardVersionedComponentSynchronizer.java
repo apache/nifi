@@ -778,6 +778,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 context.getComponentScheduler().enableControllerServicesAsync(Collections.singleton(service));
             }
         });
+
+        // Controller Services are always persisted in a versioned flow as DISABLED, so newly added services never appear
+        // in the "proposed state is ENABLED" set above. Let the ComponentScheduler decide whether to enable them: on a
+        // versioned-flow upgrade of an active Process Group, RetainExistingStateComponentScheduler enables them (mirroring
+        // how newly added processors are started), while startup/restore schedulers treat this as a no-op so that a service
+        // that was not previously enabled remains disabled.
+        final Set<ControllerServiceNode> addedServices = new HashSet<>(servicesAdded.values());
+        addedServices.removeAll(toEnable);
+        addedServices.forEach(ComponentNode::performValidation);
+        context.getComponentScheduler().enableAddedControllerServicesAsync(addedServices);
     }
 
     private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) {

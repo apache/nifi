@@ -41,13 +41,22 @@ public class CountFlowFiles extends AbstractProcessor {
         .identifiesControllerService(CountService.class)
         .build();
 
+    static final PropertyDescriptor SECONDARY_COUNT_SERVICE = new Builder()
+        .name("Secondary Count Service")
+        .displayName("Secondary Count Service")
+        .description("An optional additional Controller Service to reference. This mirrors a new optional controller service "
+            + "reference being introduced on an existing processor in a later flow version.")
+        .required(false)
+        .identifiesControllerService(CountService.class)
+        .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(COUNT_SERVICE);
+        return List.of(COUNT_SERVICE, SECONDARY_COUNT_SERVICE);
     }
 
     @Override
