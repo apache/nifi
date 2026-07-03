@@ -159,6 +159,14 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     }
 
     @Override
+    public void enableAddedControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
+        // These services are newly added by the flow update (they were not present before). Apply the same policy used
+        // for other newly added components: enable them only if the Process Group is active. enableControllerServicesAsync
+        // already implements this gate for services with no previous state, so delegate to it.
+        enableControllerServicesAsync(controllerServices);
+    }
+
+    @Override
     public void disableControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
         delegate.disableControllerServicesAsync(controllerServices);
     }
