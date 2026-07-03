@@ -176,6 +176,30 @@ class RetainExistingStateComponentSchedulerTest {
     }
 
     @Test
+    void testAddedServiceEnabledWhenProcessGroupActive() {
+        final ProcessorNode runningProcessor = createMockProcessor("running-proc", ScheduledState.RUNNING);
+        final ProcessGroup group = createProcessGroup(Set.of(runningProcessor), Collections.emptySet(), Collections.emptySet());
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
+        assertTrue(scheduler.isProcessGroupActive());
+
+        // A service newly added by the update, referenced only by an existing processor, must be enabled when the group is active.
+        final ControllerServiceNode addedService = createMockService("added-svc", ControllerServiceState.DISABLED);
+        scheduler.enableAddedControllerServicesAsync(List.of(addedService));
+        verify(delegate).enableControllerServicesAsync(Set.of(addedService));
+    }
+
+    @Test
+    void testAddedServiceNotEnabledWhenProcessGroupInactive() {
+        final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        final RetainExistingStateComponentScheduler scheduler = new RetainExistingStateComponentScheduler(group, delegate);
+        assertFalse(scheduler.isProcessGroupActive());
+
+        final ControllerServiceNode addedService = createMockService("added-svc", ControllerServiceState.DISABLED);
+        scheduler.enableAddedControllerServicesAsync(List.of(addedService));
+        verify(delegate).enableControllerServicesAsync(Collections.emptySet());
+    }
+
+    @Test
     void testExistingEnabledServiceReEnabled() {
         final ControllerServiceNode enabledService = createMockService("enabled-svc", ControllerServiceState.ENABLED);
         final ProcessGroup group = createProcessGroup(Collections.emptySet(), Collections.emptySet(), Set.of(enabledService));
