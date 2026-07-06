@@ -20,6 +20,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.metrics.GaugeRecord;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
@@ -49,7 +50,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -110,7 +110,7 @@ class StandardProcessSessionTest {
     PerformanceTracker performanceTracker;
 
     @Captor
-    ArgumentCaptor<FlowFileEvent> flowFileEventCaptor;
+    ArgumentCaptor<ProcessSessionEvent> flowFileEventCaptor;
 
     @Captor
     ArgumentCaptor<GaugeRecord> gaugeRecordCaptor;
@@ -214,8 +214,8 @@ class StandardProcessSessionTest {
     }
 
     private void assertFlowFileEventMatched(final long bytesRead, final long bytesWritten) throws IOException {
-        verify(flowFileEventRepository).updateRepository(flowFileEventCaptor.capture(), anyString());
-        final FlowFileEvent flowFileEvent = flowFileEventCaptor.getValue();
+        verify(flowFileEventRepository).updateRepository(flowFileEventCaptor.capture());
+        final ProcessSessionEvent flowFileEvent = flowFileEventCaptor.getValue();
 
         assertEquals(bytesRead, flowFileEvent.getBytesRead(), "Bytes read not matched");
         assertEquals(bytesWritten, flowFileEvent.getBytesWritten(), "Bytes written not matched");

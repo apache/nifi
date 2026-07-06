@@ -51,4 +51,12 @@ public interface ComponentMetricReporter extends Closeable {
      * @param counterRecord Counter Record required
      */
     void recordCounter(CounterRecord counterRecord);
+
+    /**
+     * Record metrics captured for a component during a Process Session
+     *
+     * @param processSessionEvent Process Session Event containing the component context and captured metrics
+     */
+    default void recordProcessSessionEvent(ProcessSessionEvent processSessionEvent) {
+    }
 }

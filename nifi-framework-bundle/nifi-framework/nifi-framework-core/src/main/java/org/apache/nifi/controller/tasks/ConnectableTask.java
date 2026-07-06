@@ -24,6 +24,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
 import org.apache.nifi.controller.repository.BatchingSessionFactory;
@@ -31,7 +32,6 @@ import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.repository.metrics.tracking.StandardStatsTracker;
 import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.repository.metrics.tracking.TrackedStats;
@@ -298,9 +298,11 @@ public class ConnectableTask {
     }
 
     private void updateEventRepo(final TrackedStats stats, final int invocationCount) throws IOException {
-        final StandardFlowFileEvent flowFileEvent = stats.end();
-        flowFileEvent.setInvocations(invocationCount);
-        repositoryContext.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
+        final ProcessSessionEvent flowFileEvent = stats.end(repositoryContext.getComponentMetricContext())
+                .invocations(invocationCount)
+                .build();
+        repositoryContext.getFlowFileEventRepository().updateRepository(flowFileEvent);
+        repositoryContext.recordProcessSessionEvent(flowFileEvent);
     }
 
     private ComponentLog getComponentLog() {

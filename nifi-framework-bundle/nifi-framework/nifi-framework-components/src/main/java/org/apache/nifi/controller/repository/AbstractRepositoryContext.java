@@ -26,6 +26,7 @@ import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.metrics.CounterRecord;
 import org.apache.nifi.controller.metrics.GaugeRecord;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
@@ -40,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -80,8 +80,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
 
         this.connectionIndex = connectionIndex;
         this.stateManager = stateManager;
-        final Map<String, String> groupAttributes = connectable.getProcessGroup().getLoggingAttributes();
-        this.componentMetricContext = new ComponentMetricContext(connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
+        this.componentMetricContext = new ComponentMetricContext(
+                connectable.getIdentifier(),
+                connectable.getName(),
+                connectable.getComponentType(),
+                connectable.getProcessGroup().getLoggingAttributes());
 
         this.componentNameCounterContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
         this.componentTypeCounterContext = "All " + connectable.getComponentType() + "'s";
@@ -172,6 +175,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     @Override
     public void recordGauge(final GaugeRecord gaugeRecord) {
         componentMetricReporter.recordGauge(gaugeRecord);
+    }
+
+    @Override
+    public void recordProcessSessionEvent(final ProcessSessionEvent event) {
+        componentMetricReporter.recordProcessSessionEvent(event);
     }
 
     @Override

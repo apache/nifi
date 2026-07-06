@@ -154,6 +154,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             };
             assetManager.initialize(assetManagerInitializationContext);
 
+            final ComponentMetricReporter componentMetricReporter = new DefaultComponentMetricReporter();
             flowFileEventRepo = new RingBufferEventRepository(5);
 
             final StatelessStateManagerProvider stateManagerProvider = new StatelessStateManagerProvider();
@@ -208,7 +209,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             };
 
             final CounterRepository counterRepo = new StandardCounterRepository();
-            final ComponentMetricReporter componentMetricReporter = new DefaultComponentMetricReporter();
 
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);

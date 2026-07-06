@@ -20,8 +20,8 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
@@ -54,7 +54,7 @@ import static org.mockito.Mockito.when;
 public class TestConnectionStatusAnalytics {
 
     final Connection connection = Mockito.mock(Connection.class);
-    final FlowFileEvent flowFileEvent = Mockito.mock(FlowFileEvent.class);
+    final ProcessSessionEvent flowFileEvent = Mockito.mock(ProcessSessionEvent.class);
     final RepositoryStatusReport repositoryStatusReport = Mockito.mock(RepositoryStatusReport.class);
 
     protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap) {

@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
+
 import java.util.Map;
 
 public interface RepositoryStatusReport {
 
-    void addReportEntry(FlowFileEvent entry, String componentId);
+    void addReportEntry(ProcessSessionEvent entry);
 
-    Map<String, FlowFileEvent> getReportEntries();
+    Map<String, ProcessSessionEvent> getReportEntries();
 
-    FlowFileEvent getReportEntry(String componentId);
+    ProcessSessionEvent getReportEntry(String componentId);
 }

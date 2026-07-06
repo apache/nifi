@@ -91,6 +91,11 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     }
 
     @Override
+    public ComponentMetricReporter getComponentMetricReporter() {
+        return componentMetricReporter;
+    }
+
+    @Override
     public void shutdown() {
         contentRepository.shutdown();
 

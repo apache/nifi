@@ -29,12 +29,12 @@ import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
-import org.apache.nifi.controller.repository.metrics.EmptyFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.controller.status.ConnectorStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -138,9 +138,9 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
             return null;
         }
 
-        FlowFileEvent flowFileEvent = flowFileEventRepository.reportTransferEvents(processorId, System.currentTimeMillis());
+        ProcessSessionEvent flowFileEvent = flowFileEventRepository.reportTransferEvents(processorId, System.currentTimeMillis());
         if (flowFileEvent == null) {
-            flowFileEvent = EmptyFlowFileEvent.INSTANCE;
+            flowFileEvent = ProcessSessionEventBuilder.empty();
         }
 
         final Predicate<Authorizable> authorizer = authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user);

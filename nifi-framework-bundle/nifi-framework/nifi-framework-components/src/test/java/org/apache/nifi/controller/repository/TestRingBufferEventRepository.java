@@ -16,17 +16,19 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class TestRingBufferEventRepository {
 
@@ -42,39 +44,36 @@ class TestRingBufferEventRepository {
 
     @Test
     void testReportTransferEvents() {
-        final FlowFileEvent event = getFlowFileEvent();
-        repository.updateRepository(event, FIRST_COMPONENT_ID);
+        final ProcessSessionEvent event = getProcessSessionEvent(FIRST_COMPONENT_ID);
+        repository.updateRepository(event);
 
         final StandardRepositoryStatusReport report = repository.reportTransferEvents(System.currentTimeMillis());
         assertNotNull(report);
 
-        final FlowFileEvent reportEntry = report.getReportEntry(FIRST_COMPONENT_ID);
+        final ProcessSessionEvent reportEntry = report.getReportEntry(FIRST_COMPONENT_ID);
         assertNotNull(reportEntry);
         assertEquals(event.getFlowFilesIn(), reportEntry.getFlowFilesIn());
     }
 
     @Test
     void testReportTransferEventsForComponentId() {
-        final FlowFileEvent event = getFlowFileEvent();
-        repository.updateRepository(event, FIRST_COMPONENT_ID);
+        final ProcessSessionEvent event = getProcessSessionEvent(FIRST_COMPONENT_ID);
+        repository.updateRepository(event);
 
-        final FlowFileEvent reportEvent = repository.reportTransferEvents(FIRST_COMPONENT_ID, System.currentTimeMillis());
+        final ProcessSessionEvent reportEvent = repository.reportTransferEvents(FIRST_COMPONENT_ID, System.currentTimeMillis());
         assertNotNull(reportEvent);
         assertEquals(event.getFlowFilesIn(), reportEvent.getFlowFilesIn());
     }
 
     @Test
     void testPurgeTransferEvents() {
-        final FlowFileEvent firstEvent = getFlowFileEvent();
-        final FlowFileEvent secondEvent = getFlowFileEvent();
-
-        repository.updateRepository(firstEvent, FIRST_COMPONENT_ID);
-        repository.updateRepository(secondEvent, SECOND_COMPONENT_ID);
+        repository.updateRepository(getProcessSessionEvent(FIRST_COMPONENT_ID));
+        repository.updateRepository(getProcessSessionEvent(SECOND_COMPONENT_ID));
 
         final RepositoryStatusReport report = repository.reportTransferEvents(System.currentTimeMillis());
-        final FlowFileEvent firstReportEntry = report.getReportEntry(FIRST_COMPONENT_ID);
+        final ProcessSessionEvent firstReportEntry = report.getReportEntry(FIRST_COMPONENT_ID);
         assertNotNull(firstReportEntry);
-        final FlowFileEvent secondReportEntry = report.getReportEntry(SECOND_COMPONENT_ID);
+        final ProcessSessionEvent secondReportEntry = report.getReportEntry(SECOND_COMPONENT_ID);
         assertNotNull(secondReportEntry);
 
         repository.purgeTransferEvents(FIRST_COMPONENT_ID);
@@ -89,20 +88,21 @@ class TestRingBufferEventRepository {
 
     @Test
     void testReportAggregateEvent() {
-        final FlowFileEvent firstEvent = getFlowFileEvent();
-        final FlowFileEvent secondEvent = getFlowFileEvent();
+        final ProcessSessionEvent firstEvent = getProcessSessionEvent(FIRST_COMPONENT_ID);
+        final ProcessSessionEvent secondEvent = getProcessSessionEvent(SECOND_COMPONENT_ID);
 
-        repository.updateRepository(firstEvent, FIRST_COMPONENT_ID);
-        repository.updateRepository(secondEvent, SECOND_COMPONENT_ID);
+        repository.updateRepository(firstEvent);
+        repository.updateRepository(secondEvent);
 
         final int totalFlowFilesIn = firstEvent.getFlowFilesIn() + secondEvent.getFlowFilesIn();
-        final FlowFileEvent aggregateEvent = repository.reportAggregateEvent();
+        final ProcessSessionEvent aggregateEvent = repository.reportAggregateEvent();
         assertEquals(totalFlowFilesIn, aggregateEvent.getFlowFilesIn());
     }
 
-    private FlowFileEvent getFlowFileEvent() {
-        final FlowFileEvent flowFileEvent = mock(FlowFileEvent.class);
-        when(flowFileEvent.getFlowFilesIn()).thenReturn(1);
-        return flowFileEvent;
+    private ProcessSessionEvent getProcessSessionEvent(final String componentId) {
+        final ComponentMetricContext componentMetricContext = new ComponentMetricContext(componentId, componentId, "Processor", Map.of());
+        return ProcessSessionEventBuilder.forComponent(componentMetricContext)
+                .flowFilesIn(1)
+                .build();
     }
 }
