@@ -107,6 +107,8 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
         final VaultEndpoint vaultEndpoint = vaultConfiguration.vaultEndpoint();
         final RestTemplate restTemplate = VaultClients.createRestTemplate(vaultEndpoint, clientHttpRequestFactory);
 
+        vaultConfiguration.setClientHttpRequestFactory(clientHttpRequestFactory);
+
         final VaultClient.Builder vaultClientBuilder = VaultClient.builder(restTemplate).endpoint(vaultEndpoint);
         final String namespace = vaultConfiguration.getNamespace();
         if (namespace != null && !namespace.isEmpty()) {
