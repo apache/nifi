@@ -35,6 +35,7 @@ import org.apache.nifi.kafka.service.api.producer.PublishContext;
 import org.apache.nifi.kafka.service.api.producer.RecordSummary;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
+import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
@@ -210,6 +211,7 @@ public class Kafka3ConnectionServiceBaseIT {
     protected Map<String, String> getKafkaServiceConfigProperties() throws InitializationException {
         final Map<String, String> properties = new LinkedHashMap<>();
         properties.put(Kafka3ConnectionService.BOOTSTRAP_SERVERS.getName(), kafkaContainer.getBootstrapServers());
+        properties.put(Kafka3ConnectionService.SECURITY_PROTOCOL.getName(), SecurityProtocol.PLAINTEXT.name());
         properties.put(Kafka3ConnectionService.CLIENT_TIMEOUT.getName(), CLIENT_TIMEOUT);
         properties.put(DELIVERY_TIMEOUT_MS_KEY, DELIVERY_TIMEOUT_MS_VALUE);
         properties.put(FETCH_MAX_WAIT_MS_KEY, FETCH_MAX_WAIT_MS_VALUE);
@@ -324,6 +326,7 @@ public class Kafka3ConnectionServiceBaseIT {
         final String bootstrapServers = kafkaContainer.getBootstrapServers();
         final Map<PropertyDescriptor, String> properties = Map.of(
                 Kafka3ConnectionService.BOOTSTRAP_SERVERS, bootstrapServers,
+                Kafka3ConnectionService.SECURITY_PROTOCOL, SecurityProtocol.PLAINTEXT.name(),
                 Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT
         );
         final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
@@ -342,6 +345,7 @@ public class Kafka3ConnectionServiceBaseIT {
         final String bootstrapServers = "127.0.0.1:707070";
         final Map<PropertyDescriptor, String> properties = Map.of(
                 Kafka3ConnectionService.BOOTSTRAP_SERVERS, bootstrapServers,
+                Kafka3ConnectionService.SECURITY_PROTOCOL, SecurityProtocol.PLAINTEXT.name(),
                 Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT
         );
         final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
@@ -357,6 +361,7 @@ public class Kafka3ConnectionServiceBaseIT {
     void testVerifyConnectionFailed() {
         final Map<PropertyDescriptor, String> properties = Map.of(
                 Kafka3ConnectionService.BOOTSTRAP_SERVERS, UNREACHABLE_BOOTSTRAP_SERVERS,
+                Kafka3ConnectionService.SECURITY_PROTOCOL, SecurityProtocol.PLAINTEXT.name(),
                 Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT
         );
         final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);

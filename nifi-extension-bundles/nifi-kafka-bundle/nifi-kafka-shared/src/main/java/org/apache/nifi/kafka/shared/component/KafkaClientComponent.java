@@ -47,7 +47,7 @@ public interface KafkaClientComponent {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SecurityProtocol.values())
-            .defaultValue(SecurityProtocol.PLAINTEXT.name())
+            .defaultValue(SecurityProtocol.SSL.name())
             .build();
 
     PropertyDescriptor SASL_MECHANISM = new PropertyDescriptor.Builder()
