@@ -23,6 +23,7 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
+import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -78,6 +79,7 @@ public abstract class AbstractKafkaBaseIT {
         final KafkaConnectionService connectionService = new Kafka3ConnectionService();
         runner.addControllerService(CONNECTION_SERVICE_ID, connectionService);
         runner.setProperty(connectionService, Kafka3ConnectionService.BOOTSTRAP_SERVERS, kafkaContainer.getBootstrapServers());
+        runner.setProperty(connectionService, Kafka3ConnectionService.SECURITY_PROTOCOL, SecurityProtocol.PLAINTEXT.name());
         runner.setProperty(connectionService, Kafka3ConnectionService.MAX_POLL_RECORDS, "1000");
         runner.setProperty(connectionService, DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
         runner.setProperty(connectionService, DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
