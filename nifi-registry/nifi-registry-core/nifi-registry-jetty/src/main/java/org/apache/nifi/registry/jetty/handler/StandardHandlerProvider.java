@@ -99,21 +99,27 @@ public class StandardHandlerProvider implements HandlerProvider {
         final File libDirectory = properties.getWarLibDirectory();
         final File workDirectory = properties.getWebWorkingDirectory();
 
+        // Get the context path prefix (e.g., "/integration-hub") and normalize it
+        final String contextPathPrefix = properties.getWebContextPath();
+        final String uiContextPath = contextPathPrefix + UI_CONTEXT_PATH;
+        final String apiContextPath = contextPathPrefix + API_CONTEXT_PATH;
+        final String docsContextPath = contextPathPrefix + DOCS_CONTEXT_PATH;
+
         final Handler.Collection handlers = new ContextHandlerCollection();
         // Add Header Writer Handler before others
         handlers.addHandler(new HeaderWriterHandler());
 
-        final WebAppContext userInterfaceContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), UI_FILE_PATTERN, UI_CONTEXT_PATH);
+        final WebAppContext userInterfaceContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), UI_FILE_PATTERN, uiContextPath);
         userInterfaceContext.setInitParameter(OIDC_SUPPORTED_PARAMETER, Boolean.toString(properties.isOidcEnabled()));
         handlers.addHandler(userInterfaceContext);
 
         final ClassLoader apiClassLoader = getApiClassLoader(properties.getDatabaseDriverDirectory());
-        final WebAppContext apiContext = getWebAppContext(libDirectory, workDirectory, apiClassLoader, API_FILE_PATTERN, API_CONTEXT_PATH);
+        final WebAppContext apiContext = getWebAppContext(libDirectory, workDirectory, apiClassLoader, API_FILE_PATTERN, apiContextPath);
         apiContext.setAttribute(PROPERTIES_PARAMETER, properties);
         apiContext.setThrowUnavailableOnStartupException(true);
         handlers.addHandler(apiContext);
 
-        final WebAppContext docsContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), DOCS_FILE_PATTERN, DOCS_CONTEXT_PATH);
+        final WebAppContext docsContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), DOCS_FILE_PATTERN, docsContextPath);
         final Path docsDir = getDocsDirectory();
         final ServletHolder docsServletHolder = getDocsServletHolder(docsDir);
         docsContext.addServlet(docsServletHolder, HTML_DOCS_PATH);

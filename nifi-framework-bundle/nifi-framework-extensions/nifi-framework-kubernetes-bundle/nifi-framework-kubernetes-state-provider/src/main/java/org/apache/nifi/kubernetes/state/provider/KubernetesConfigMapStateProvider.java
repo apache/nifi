@@ -24,6 +24,8 @@ import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.Resource;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -54,6 +56,10 @@ import java.util.regex.Pattern;
 /**
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints
  */
+@Tags({"kubernetes", "state", "provider", "configmap", "cluster"})
+@CapabilityDescription("Provides a State Provider that stores state in a Kubernetes ConfigMap. "
+        + "This allows state to be shared across a Kubernetes cluster. "
+        + "The State Provider uses the Kubernetes Client to read and write ConfigMaps.")
 public class KubernetesConfigMapStateProvider extends AbstractConfigurableComponent implements StateProvider {
     static final PropertyDescriptor CONFIG_MAP_NAME_PREFIX = new PropertyDescriptor.Builder()
         .name("ConfigMap Name Prefix")
