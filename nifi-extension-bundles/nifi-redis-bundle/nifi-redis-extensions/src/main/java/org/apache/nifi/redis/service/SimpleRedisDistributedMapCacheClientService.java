@@ -31,7 +31,7 @@ import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.util.RedisAction;
 import org.apache.nifi.util.Tuple;
 import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.SetCondition;
+import org.springframework.data.redis.connection.RedisStringCommands;
 import org.springframework.data.redis.core.types.Expiration;
 
 import java.io.ByteArrayOutputStream;
@@ -149,7 +149,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            redisConnection.stringCommands().set(kv.getKey(), kv.getValue(), SetCondition.upsert(), Expiration.seconds(ttl));
+            redisConnection.stringCommands().set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), RedisStringCommands.SetOption.upsert());
             return null;
         });
     }
