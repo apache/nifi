@@ -537,14 +537,14 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         }
 
                         final int dataType = DataTypeUtils.getSQLTypeValue(recordField.getDataType());
-                        final String quotedColumnName = enquoteIdentifier(columnName, quoteString, quoteColumnNames);
+                        final String quotedColumnName = enquoteIdentifier(s, columnName, quoteColumnNames);
                         columns.add(new ColumnDescription(quotedColumnName, dataType, required, null, recordField.isNullable()));
                         getLogger().debug("Adding column {} to table {}", columnName, tableName);
                     }
 
-                    final String quotedCatalogName = enquoteIdentifier(catalogName, quoteString, quoteTableName);
-                    final String quotedSchemaName = enquoteIdentifier(schemaName, quoteString, quoteTableName);
-                    final String quotedTableName = enquoteIdentifier(tableName, quoteString, quoteTableName);
+                    final String quotedCatalogName = enquoteIdentifier(s, catalogName, quoteTableName);
+                    final String quotedSchemaName = enquoteIdentifier(s, schemaName, quoteTableName);
+                    final String quotedTableName = enquoteIdentifier(s, tableName, quoteTableName);
                     tableSchema = new TableSchema(quotedCatalogName, quotedSchemaName, quotedTableName, columns, translateFieldNames, normalizer, primaryKeyColumnNames, quoteString);
 
                     final TableDefinition tableDefinition = getTableDefinition(tableSchema);
@@ -590,7 +590,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 if (!columnsToAdd.isEmpty()) {
                     final List<ColumnDefinition> columnDefinitions = columnsToAdd.stream().map(columnDescription ->
                             new StandardColumnDefinition(
-                                    enquoteIdentifier(columnDescription.getColumnName(), quoteString, quoteColumnNames),
+                                    enquoteIdentifier(s, columnDescription.getColumnName(), quoteColumnNames),
                                     columnDescription.getDataType(),
                                     columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
                                     columnDescription.isRequired()
@@ -598,7 +598,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                             )
                             .map(ColumnDefinition.class::cast)
                             .toList();
-                    final String qualifiedTableName = enquoteIdentifier(tableName, quoteString, quoteTableName);
+                    final String qualifiedTableName = enquoteIdentifier(s, tableName, quoteTableName);
                     final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), qualifiedTableName, columnDefinitions);
                     final StatementRequest statementRequest = new StandardStatementRequest(StatementType.ALTER, tableDefinition);
                     final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
@@ -708,11 +708,22 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         );
     }
 
-    private String enquoteIdentifier(final String identifier, final String quotedIdentifierString, final boolean quoteIdentifier) {
-        if (identifier != null && quoteIdentifier) {
-            return quotedIdentifierString + identifier + quotedIdentifierString;
+    private String enquoteIdentifier(final Statement statement, final String identifier, final boolean quoteIdentifier) {
+        final String enquoted;
+
+        if (identifier == null) {
+            enquoted = identifier;
+        } else if (quoteIdentifier) {
+            try {
+                enquoted = statement.enquoteIdentifier(identifier, quoteIdentifier);
+            } catch (final SQLException e) {
+                throw new IllegalArgumentException("Enquote Identifier [%s] failed".formatted(identifier), e);
+            }
+        } else {
+            enquoted = identifier;
         }
-        return identifier;
+
+        return enquoted;
     }
 
     private static class OutputMetadataHolder {

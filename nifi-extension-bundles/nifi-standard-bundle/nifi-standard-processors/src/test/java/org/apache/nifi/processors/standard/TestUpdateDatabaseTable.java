@@ -90,7 +90,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
         readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
         readerFactory.addSchemaField(new RecordField("fractional", RecordFieldType.DOUBLE.getDataType(), true));
         readerFactory.addSchemaField(new RecordField("code", RecordFieldType.INT.getDataType(), 0, true));
-        readerFactory.addSchemaField(new RecordField("newField", RecordFieldType.DOUBLE.getDataType(), false));
+        readerFactory.addSchemaField(new RecordField("spaced Field", RecordFieldType.DOUBLE.getDataType(), false));
         readerFactory.addRecord(1, 1.2345, 10);
 
         runner.addControllerService("mock-reader-factory", readerFactory);
@@ -120,7 +120,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             assertColumnEquals(rs, "id", 1, "INTEGER");
             assertColumnEquals(rs, "fractional", 2, "DOUBLE PRECISION");
             assertColumnEquals(rs, "code", 3, "INTEGER");
-            assertColumnEquals(rs, "newField", 4, "DOUBLE PRECISION");
+            assertColumnEquals(rs, "spaced Field", 4, "DOUBLE PRECISION");
             assertFalse(rs.next());
         }
     }
