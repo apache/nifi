@@ -17,20 +17,22 @@
 
 package org.apache.nifi.controller.repository.metrics.tracking;
 
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.processor.ProcessSession;
 
 public interface TrackedStats {
 
     /**
-     * Ends the tracking of stats and returns a StandardFlowFileEvent that contains the stats.
-     * StandardFlowFileEvent is used here because it is often the case that we want to populate additional
-     * fields in the FlowFileEvent, and the StandardFlowFileEvent allows us to do this.
+     * Ends the tracking of stats and returns a {@link ProcessSessionEventBuilder} populated with the collected stats.
+     * A builder is returned, rather than a completed event, because callers frequently need to populate additional
+     * fields (such as the number of invocations) before building the event.
      *
-     * @return a StandardFlowFileEvent that contains the stats collected during tracking.
+     * @param componentMetricContext the context of the component that the stats belong to
+     * @return a builder populated with the stats collected during tracking
      */
-    StandardFlowFileEvent end();
+    ProcessSessionEventBuilder end(ComponentMetricContext componentMetricContext);
 
     /**
      * Returns the PerformanceTracker associated with the TrackedStats so that it may be provided to

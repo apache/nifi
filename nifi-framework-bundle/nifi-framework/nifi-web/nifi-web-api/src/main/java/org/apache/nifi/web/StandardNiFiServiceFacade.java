@@ -111,7 +111,7 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.serialization.VersionedReportingTaskImportResult;
@@ -7691,7 +7691,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
         final String rootPGId = StringUtils.isEmpty(rootPGStatus.getId()) ? "" : rootPGStatus.getId();
         final String rootPGName = StringUtils.isEmpty(rootPGStatus.getName()) ? "" : rootPGStatus.getName();
-        final FlowFileEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
+        final ProcessSessionEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesRead(), "TOTAL_BYTES_READ",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesWritten(), "TOTAL_BYTES_WRITTEN",

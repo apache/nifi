@@ -104,6 +104,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             new FlowParser();
             logger.info("Loading Flow...");
 
+            final ComponentMetricReporter componentMetricReporter = new DefaultComponentMetricReporter();
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
             AuditService auditService = new HeadlessAuditService();
             Authorizer authorizer = new Authorizer() {
@@ -137,7 +138,6 @@ public class HeadlessNiFiServer implements NiFiServer {
             final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
             final SSLContext sslContext = sslContextProvider.loadSslContext().orElse(null);
             final StateManagerProvider stateManagerProvider = StandardStateManagerProvider.create(props, sslContext, extensionManager, ParameterLookup.EMPTY);
-            final ComponentMetricReporter componentMetricReporter = new DefaultComponentMetricReporter();
 
             flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,

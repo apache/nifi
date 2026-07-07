@@ -24,9 +24,9 @@ import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.MockFlowFileRecord;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -38,7 +38,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.tasks.StatelessFlowTask.Invocation;
 import org.apache.nifi.controller.tasks.StatelessFlowTask.PolledFlowFile;
@@ -77,7 +76,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -92,7 +90,7 @@ public class TestStatelessFlowTask {
     private ResourceClaimManager resourceClaimManager;
     private List<ProvenanceEventRecord> registeredProvenanceEvents;
     private List<ProvenanceEventRecord> statelessProvenanceEvents;
-    private Map<String, StandardFlowFileEvent> flowFileEventsByComponentId;
+    private Map<String, ProcessSessionEvent> flowFileEventsByComponentId;
     private ProvenanceEventRepository statelessProvRepo;
     private FlowFileActivity groupNodeFlowFileActivity;
     private StatelessDataflow statelessFlow;
@@ -162,13 +160,10 @@ public class TestStatelessFlowTask {
         flowFileEventsByComponentId = new HashMap<>();
         final FlowFileEventRepository eventRepository = mock(FlowFileEventRepository.class);
         doAnswer(invocation -> {
-            final String componentId = invocation.getArgument(1, String.class);
-            final FlowFileEvent event = invocation.getArgument(0, FlowFileEvent.class);
-
-            final StandardFlowFileEvent existingEvent = flowFileEventsByComponentId.computeIfAbsent(componentId, key -> new StandardFlowFileEvent());
-            existingEvent.add(event);
+            final ProcessSessionEvent event = invocation.getArgument(0, ProcessSessionEvent.class);
+            flowFileEventsByComponentId.put(event.getComponentMetricContext().id(), event);
             return null;
-        }).when(eventRepository).updateRepository(any(FlowFileEvent.class), anyString());
+        }).when(eventRepository).updateRepository(any(ProcessSessionEvent.class));
         final ComponentLog logger = new MockComponentLogger();
 
         registeredProvenanceEvents = new ArrayList<>();
@@ -480,12 +475,12 @@ public class TestStatelessFlowTask {
 
         task.updateEventRepository(Collections.singletonList(noInputInvocation));
 
-        final FlowFileEvent port1Event = flowFileEventsByComponentId.get(successPort.getIdentifier());
+        final ProcessSessionEvent port1Event = flowFileEventsByComponentId.get(successPort.getIdentifier());
         assertNotNull(port1Event);
         assertEquals(1, port1Event.getFlowFilesOut());
         assertEquals(5, port1Event.getContentSizeOut());
 
-        final FlowFileEvent port2Event = flowFileEventsByComponentId.get(secondOutputPort.getIdentifier());
+        final ProcessSessionEvent port2Event = flowFileEventsByComponentId.get(secondOutputPort.getIdentifier());
         assertNotNull(port2Event);
         assertEquals(3, port2Event.getFlowFilesOut());
         assertEquals(15, port2Event.getContentSizeOut());
@@ -506,7 +501,7 @@ public class TestStatelessFlowTask {
 
         task.updateEventRepository(Collections.singletonList(noInputInvocation));
 
-        final FlowFileEvent port1Event = flowFileEventsByComponentId.get(successPort.getIdentifier());
+        final ProcessSessionEvent port1Event = flowFileEventsByComponentId.get(successPort.getIdentifier());
         assertNotNull(port1Event);
         assertEquals(3, port1Event.getFlowFilesOut());
         assertEquals(15, port1Event.getContentSizeOut());
@@ -531,7 +526,7 @@ public class TestStatelessFlowTask {
         invocationWithInput.addPolledFlowFile(new PolledFlowFile(inputFlowFile, queue, inputPort1));
 
         task.updateEventRepository(Collections.singletonList(invocationWithInput));
-        final FlowFileEvent inputPortEvent = flowFileEventsByComponentId.get(inputPort1.getIdentifier());
+        final ProcessSessionEvent inputPortEvent = flowFileEventsByComponentId.get(inputPort1.getIdentifier());
         assertNotNull(inputPortEvent);
         assertEquals(1, inputPortEvent.getFlowFilesIn());
         assertEquals(5, inputPortEvent.getContentSizeIn());

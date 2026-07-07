@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,7 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
      * @return a map of report entries
      */
     @Override
-    public Map<String, FlowFileEvent> getReportEntries() {
+    public Map<String, ProcessSessionEvent> getReportEntries() {
         return Collections.unmodifiableMap(entries);
     }
 
@@ -43,29 +45,28 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
      * @return a status entry
      */
     @Override
-    public FlowFileEvent getReportEntry(final String componentId) {
+    public ProcessSessionEvent getReportEntry(final String componentId) {
         return entries.get(componentId);
     }
 
     /**
-     * Adds an entry to the report.
+     * Adds an entry to the report. The component that the entry belongs to is obtained from the entry itself.
      *
      * @param entry an entry
-     * @param componentId the id of the component that the entry belongs to
      */
     @Override
-    public void addReportEntry(FlowFileEvent entry, final String componentId) {
+    public void addReportEntry(final ProcessSessionEvent entry) {
         if (entry == null) {
             throw new NullPointerException("report entry may not be null");
         }
-        this.entries.put(componentId, entry);
+        this.entries.put(entry.getComponentMetricContext().id(), entry);
     }
 
     @Override
     public String toString() {
         final StringBuilder strb = new StringBuilder();
         for (final String key : this.entries.keySet()) {
-            final FlowFileEvent entry = this.entries.get(key);
+            final ProcessSessionEvent entry = this.entries.get(key);
             strb.append("[")
                     .append(key).append(", ")
                     .append(entry.getFlowFilesIn()).append(", ")
@@ -78,5 +79,5 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
         return strb.toString();
     }
 
-    private final Map<String, FlowFileEvent> entries = new HashMap<>();
+    private final Map<String, ProcessSessionEvent> entries = new HashMap<>();
 }

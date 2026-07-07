@@ -17,10 +17,11 @@
 
 package org.apache.nifi.controller.repository.metrics.tracking;
 
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.repository.metrics.NanoTimePerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
@@ -67,24 +68,25 @@ public class StandardStatsTracker implements StatsTracker {
 
         return new TrackedStats() {
             @Override
-            public StandardFlowFileEvent end() {
+            public ProcessSessionEventBuilder end(final ComponentMetricContext componentMetricContext) {
                 final long endCpuTimeMillis = trackExpensiveMetrics ? cpuTimeMillisTracker.getAsLong() : 0;
 
-                final StandardFlowFileEvent event = new StandardFlowFileEvent();
-                event.setProcessingNanos(System.nanoTime() - startTimeNanos);
-                event.setGarbageCollectionMillis(gcMillisTracker.getAsLong() - startGcMillis);
-                event.setCpuNanoseconds(endCpuTimeMillis - startCpuTimeMillis);
-                event.setContentReadNanoseconds(performanceTracker.getContentReadNanos());
-                event.setContentWriteNanoseconds(performanceTracker.getContentWriteNanos());
-                event.setSessionCommitNanos(performanceTracker.getSessionCommitNanos());
+                final long processingNanos = System.nanoTime() - startTimeNanos;
+                long cpuNanos = endCpuTimeMillis - startCpuTimeMillis;
 
                 if (trackExpensiveMetrics) {
-                    addSampledCpuTime(event.getProcessingNanoseconds(), event.getCpuNanoseconds());
+                    addSampledCpuTime(processingNanos, cpuNanos);
                 } else {
-                    event.setCpuNanoseconds(estimateCpuTime(event.getProcessingNanoseconds()));
+                    cpuNanos = estimateCpuTime(processingNanos);
                 }
 
-                return event;
+                return ProcessSessionEventBuilder.forComponent(componentMetricContext)
+                        .processingNanoseconds(processingNanos)
+                        .cpuNanoseconds(cpuNanos)
+                        .contentReadNanoseconds(performanceTracker.getContentReadNanos())
+                        .contentWriteNanoseconds(performanceTracker.getContentWriteNanos())
+                        .sessionCommitNanoseconds(performanceTracker.getSessionCommitNanos())
+                        .garbageCollectionMillis(gcMillisTracker.getAsLong() - startGcMillis);
             }
 
             @Override

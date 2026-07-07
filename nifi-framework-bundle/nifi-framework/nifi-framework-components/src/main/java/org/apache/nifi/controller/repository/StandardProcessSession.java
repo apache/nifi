@@ -24,7 +24,9 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.GaugeRecord;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -41,7 +43,7 @@ import org.apache.nifi.controller.repository.io.TaskTerminationInputStream;
 import org.apache.nifi.controller.repository.io.TaskTerminationOutputStream;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTrackingInputStream;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -128,6 +130,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private static final long VERSION_INCREMENT = 1;
     private static final String INITIAL_VERSION = String.valueOf(VERSION_INCREMENT);
+    private static final String CONNECTION_COMPONENT_TYPE = "Connection";
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
     private static final StateMap EMPTY_STATE_MAP = new StandardStateMap(Collections.emptyMap(), Optional.empty());
@@ -141,7 +144,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private static final int MAX_ROLLBACK_FLOWFILES_TO_LOG = 5;
 
     private final Map<Long, StandardRepositoryRecord> records = new ConcurrentHashMap<>();
-    private final Map<String, StandardFlowFileEvent> connectionCounts = new ConcurrentHashMap<>();
+    private final Map<String, ProcessSessionEventBuilder> connectionCounts = new ConcurrentHashMap<>();
+    private final Map<String, ComponentMetricContext> connectionMetricContexts = new ConcurrentHashMap<>();
     private final Map<FlowFileQueue, Set<FlowFileRecord>> unacknowledgedFlowFiles = new ConcurrentHashMap<>();
     private final Map<ContentClaim, ByteCountingOutputStream> appendableStreams = new ConcurrentHashMap<>();
     private final RepositoryContext context;
@@ -768,21 +772,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private void updateEventRepository(final Checkpoint checkpoint) {
         try {
             // update event repository
-            final Connectable connectable = context.getConnectable();
-            final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
-            flowFileEvent.setBytesRead(checkpoint.bytesRead);
-            flowFileEvent.setBytesWritten(checkpoint.bytesWritten);
-            flowFileEvent.setContentSizeIn(checkpoint.contentSizeIn);
-            flowFileEvent.setContentSizeOut(checkpoint.contentSizeOut);
-            flowFileEvent.setContentSizeRemoved(checkpoint.removedBytes);
-            flowFileEvent.setFlowFilesIn(checkpoint.flowFilesIn);
-            flowFileEvent.setFlowFilesOut(checkpoint.flowFilesOut);
-            flowFileEvent.setFlowFilesRemoved(checkpoint.removedCount);
-            flowFileEvent.setFlowFilesReceived(checkpoint.flowFilesReceived);
-            flowFileEvent.setBytesReceived(checkpoint.bytesReceived);
-            flowFileEvent.setFlowFilesSent(checkpoint.flowFilesSent);
-            flowFileEvent.setBytesSent(checkpoint.bytesSent);
-
             final long now = System.currentTimeMillis();
             long lineageMillis = 0L;
             for (final StandardRepositoryRecord record : checkpoint.records.values()) {
@@ -790,15 +779,33 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 final long lineageDuration = now - flowFile.getLineageStartDate();
                 lineageMillis += lineageDuration;
             }
-            flowFileEvent.setAggregateLineageMillis(lineageMillis);
 
             final Map<String, Long> counters = combineCounters(checkpoint.countersOnCommit, checkpoint.immediateCounters);
-            flowFileEvent.setCounters(counters);
 
-            context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
+            final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
+                    .flowFilesIn(checkpoint.flowFilesIn)
+                    .flowFilesOut(checkpoint.flowFilesOut)
+                    .flowFilesRemoved(checkpoint.removedCount)
+                    .flowFilesSent(checkpoint.flowFilesSent)
+                    .flowFilesReceived(checkpoint.flowFilesReceived)
+                    .contentSizeIn(checkpoint.contentSizeIn)
+                    .contentSizeOut(checkpoint.contentSizeOut)
+                    .contentSizeRemoved(checkpoint.removedBytes)
+                    .bytesRead(checkpoint.bytesRead)
+                    .bytesWritten(checkpoint.bytesWritten)
+                    .bytesSent(checkpoint.bytesSent)
+                    .bytesReceived(checkpoint.bytesReceived)
+                    .aggregateLineageMillis(lineageMillis)
+                    .counters(counters)
+                    .build();
 
-            for (final Map.Entry<String, StandardFlowFileEvent> entry : checkpoint.connectionCounts.entrySet()) {
-                context.getFlowFileEventRepository().updateRepository(entry.getValue(), entry.getKey());
+            context.getFlowFileEventRepository().updateRepository(flowFileEvent);
+            context.recordProcessSessionEvent(flowFileEvent);
+
+            for (final ProcessSessionEventBuilder connectionEvent : checkpoint.connectionCounts.values()) {
+                final ProcessSessionEvent connectionSessionEvent = connectionEvent.build();
+                context.getFlowFileEventRepository().updateRepository(connectionSessionEvent);
+                context.recordProcessSessionEvent(connectionSessionEvent);
             }
         } catch (final IOException ioe) {
             LOG.error("FlowFile Event Repository failed to update", ioe);
@@ -1324,15 +1331,16 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
         }
 
-        final Connectable connectable = context.getConnectable();
-        final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
-        flowFileEvent.setBytesRead(bytesRead);
-        flowFileEvent.setBytesWritten(bytesWritten);
-        flowFileEvent.setCounters(immediateCounters);
+        final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
+                .bytesRead(bytesRead)
+                .bytesWritten(bytesWritten)
+                .counters(immediateCounters)
+                .build();
 
         // update event repository
         try {
-            context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
+            context.getFlowFileEventRepository().updateRepository(flowFileEvent);
+            context.recordProcessSessionEvent(flowFileEvent);
         } catch (final Exception e) {
             LOG.error("Failed to update FlowFileEvent Repository", e);
         }
@@ -1445,6 +1453,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         bytesRead = 0L;
         bytesWritten = 0L;
         connectionCounts.clear();
+        connectionMetricContexts.clear();
         createdFlowFiles.clear();
         createdFlowFilesWithoutLineage.clear();
         removedFlowFiles.clear();
@@ -1829,23 +1838,47 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     private void incrementConnectionInputCounts(final Connection connection, final RepositoryRecord record) {
-        incrementConnectionInputCounts(connection.getIdentifier(), 1, record.getCurrent().getSize());
+        incrementConnectionInputCounts(connection, 1, record.getCurrent().getSize());
     }
 
-    private void incrementConnectionInputCounts(final String connectionId, final int flowFileCount, final long bytes) {
-        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent());
-        connectionEvent.setContentSizeIn(connectionEvent.getContentSizeIn() + bytes);
-        connectionEvent.setFlowFilesIn(connectionEvent.getFlowFilesIn() + flowFileCount);
+    private void incrementConnectionInputCounts(final Connection connection, final int flowFileCount, final long bytes) {
+        final String connectionId = connection.getIdentifier();
+        cacheConnectionMetricContext(connection);
+        final ProcessSessionEventBuilder connectionEvent = connectionCounts.computeIfAbsent(
+                connectionId, id -> ProcessSessionEventBuilder.forComponent(getConnectionMetricContext(connectionId)));
+        connectionEvent.addFlowFilesIn(flowFileCount).addContentSizeIn(bytes);
     }
 
     private void incrementConnectionOutputCounts(final Connection connection, final FlowFileRecord record) {
-        incrementConnectionOutputCounts(connection.getIdentifier(), 1, record.getSize());
+        incrementConnectionOutputCounts(connection, 1, record.getSize());
+    }
+
+    private void incrementConnectionOutputCounts(final Connection connection, final int flowFileCount, final long bytes) {
+        final String connectionId = connection.getIdentifier();
+        cacheConnectionMetricContext(connection);
+        final ProcessSessionEventBuilder connectionEvent = connectionCounts.computeIfAbsent(
+                connectionId, id -> ProcessSessionEventBuilder.forComponent(getConnectionMetricContext(connectionId)));
+        connectionEvent.addFlowFilesOut(flowFileCount).addContentSizeOut(bytes);
     }
 
     private void incrementConnectionOutputCounts(final String connectionId, final int flowFileCount, final long bytes) {
-        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent());
-        connectionEvent.setContentSizeOut(connectionEvent.getContentSizeOut() + bytes);
-        connectionEvent.setFlowFilesOut(connectionEvent.getFlowFilesOut() + flowFileCount);
+        final ProcessSessionEventBuilder connectionEvent = connectionCounts.computeIfAbsent(
+                connectionId, id -> ProcessSessionEventBuilder.forComponent(getConnectionMetricContext(connectionId)));
+        connectionEvent.addFlowFilesOut(flowFileCount).addContentSizeOut(bytes);
+    }
+
+    private void cacheConnectionMetricContext(final Connection connection) {
+        final Map<String, String> groupAttributes = connection.getProcessGroup() == null
+                ? Map.of()
+                : connection.getProcessGroup().getLoggingAttributes();
+        final ComponentMetricContext metricContext = new ComponentMetricContext(
+                connection.getIdentifier(), connection.getName(), CONNECTION_COMPONENT_TYPE, groupAttributes);
+        connectionMetricContexts.putIfAbsent(connection.getIdentifier(), metricContext);
+    }
+
+    private ComponentMetricContext getConnectionMetricContext(final String connectionId) {
+        return connectionMetricContexts.computeIfAbsent(connectionId,
+                id -> new ComponentMetricContext(id, id, CONNECTION_COMPONENT_TYPE, Map.of()));
     }
 
     private void registerDequeuedRecord(final FlowFileRecord flowFile, final Connection connection) {
@@ -3960,7 +3993,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private Set<ProvenanceEventRecord> reportedEvents;
 
         private Map<Long, StandardRepositoryRecord> records;
-        private Map<String, StandardFlowFileEvent> connectionCounts;
+        private Map<String, ProcessSessionEventBuilder> connectionCounts;
+        private Map<String, ComponentMetricContext> connectionMetricContexts;
 
         private Map<String, Long> countersOnCommit;
         private Map<String, Long> immediateCounters;
@@ -4000,6 +4034,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             records = new ConcurrentHashMap<>();
             connectionCounts = new ConcurrentHashMap<>();
+            connectionMetricContexts = new ConcurrentHashMap<>();
 
             countersOnCommit = new HashMap<>();
             immediateCounters = new HashMap<>();
@@ -4035,6 +4070,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.records = session.records;
 
             this.connectionCounts = session.connectionCounts;
+            this.connectionMetricContexts = session.connectionMetricContexts;
             this.countersOnCommit = session.countersOnCommit == null ? Collections.emptyMap() : session.countersOnCommit;
             this.immediateCounters = session.immediateCounters == null ? Collections.emptyMap() : session.immediateCounters;
             this.gaugeRecordsSessionCommitted = session.gaugeRecordsSessionCommitted == null ? List.of() : session.gaugeRecordsSessionCommitted;
@@ -4082,7 +4118,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             this.records.putAll(session.records);
 
-            mergeMapsWithMutableValue(this.connectionCounts, session.connectionCounts, (destination, toMerge) -> destination.add(toMerge));
+            mergeMapsWithMutableValue(this.connectionCounts, session.connectionCounts, (destination, toMerge) -> destination.merge(toMerge.build()));
+            mergeMaps(this.connectionMetricContexts, session.connectionMetricContexts, (existing, incoming) -> existing);
             mergeMaps(this.countersOnCommit, session.countersOnCommit, Long::sum);
             mergeMaps(this.immediateCounters, session.immediateCounters, Long::sum);
 

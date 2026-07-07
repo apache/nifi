@@ -17,7 +17,8 @@
 
 package org.apache.nifi.controller.repository.metrics;
 
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ public class EventSumValue {
         this.millisecondTimestamp = timestamp;
     }
 
-    public synchronized void add(final FlowFileEvent flowFileEvent) {
+    public synchronized void add(final ProcessSessionEvent flowFileEvent) {
         empty = false;
 
         this.aggregateLineageMillis += flowFileEvent.getAggregateLineageMillis();
@@ -77,7 +78,7 @@ public class EventSumValue {
         this.cpuNanos += flowFileEvent.getCpuNanoseconds();
         this.contentReadNanos += flowFileEvent.getContentReadNanoseconds();
         this.contentWriteNanos += flowFileEvent.getContentWriteNanoseconds();
-        this.gcMillis += flowFileEvent.getGargeCollectionMillis();
+        this.gcMillis += flowFileEvent.getGarbageCollectionMillis();
         this.sessionCommitNanos += flowFileEvent.getSessionCommitNanoseconds();
 
         final Map<String, Long> eventCounters = flowFileEvent.getCounters();
@@ -94,34 +95,34 @@ public class EventSumValue {
         }
     }
 
-    public synchronized FlowFileEvent toFlowFileEvent() {
+    public synchronized ProcessSessionEvent toProcessSessionEvent(final ComponentMetricContext componentMetricContext) {
         if (empty) {
-            return EmptyFlowFileEvent.INSTANCE;
+            return ProcessSessionEventBuilder.empty();
         }
 
-        final StandardFlowFileEvent event = new StandardFlowFileEvent();
-        event.setAggregateLineageMillis(aggregateLineageMillis);
-        event.setBytesRead(bytesRead);
-        event.setBytesReceived(bytesReceived);
-        event.setBytesSent(bytesSent);
-        event.setBytesWritten(bytesWritten);
-        event.setContentSizeIn(contentSizeIn);
-        event.setContentSizeOut(contentSizeOut);
-        event.setContentSizeRemoved(contentSizeRemoved);
-        event.setFlowFilesIn(flowFilesIn);
-        event.setFlowFilesOut(flowFilesOut);
-        event.setFlowFilesReceived(flowFilesReceived);
-        event.setFlowFilesRemoved(flowFilesRemoved);
-        event.setFlowFilesSent(flowFilesSent);
-        event.setInvocations(invocations);
-        event.setProcessingNanos(processingNanos);
-        event.setCpuNanoseconds(cpuNanos);
-        event.setContentReadNanoseconds(contentReadNanos);
-        event.setContentWriteNanoseconds(contentWriteNanos);
-        event.setSessionCommitNanos(sessionCommitNanos);
-        event.setGarbageCollectionMillis(gcMillis);
-        event.setCounters(this.counters == null ? Collections.emptyMap() : Collections.unmodifiableMap(this.counters));
-        return event;
+        return ProcessSessionEventBuilder.forComponent(componentMetricContext)
+                .invocations(invocations)
+                .flowFilesIn(flowFilesIn)
+                .flowFilesOut(flowFilesOut)
+                .flowFilesRemoved(flowFilesRemoved)
+                .flowFilesSent(flowFilesSent)
+                .flowFilesReceived(flowFilesReceived)
+                .contentSizeIn(contentSizeIn)
+                .contentSizeOut(contentSizeOut)
+                .contentSizeRemoved(contentSizeRemoved)
+                .bytesRead(bytesRead)
+                .bytesWritten(bytesWritten)
+                .bytesSent(bytesSent)
+                .bytesReceived(bytesReceived)
+                .processingNanoseconds(processingNanos)
+                .cpuNanoseconds(cpuNanos)
+                .contentReadNanoseconds(contentReadNanos)
+                .contentWriteNanoseconds(contentWriteNanos)
+                .sessionCommitNanoseconds(sessionCommitNanos)
+                .garbageCollectionMillis(gcMillis)
+                .aggregateLineageMillis(aggregateLineageMillis)
+                .counters(this.counters == null ? Collections.emptyMap() : Collections.unmodifiableMap(this.counters))
+                .build();
     }
 
     public synchronized void add(final EventSumValue other) {

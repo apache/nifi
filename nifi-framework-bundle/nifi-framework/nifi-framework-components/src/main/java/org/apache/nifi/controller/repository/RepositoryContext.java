@@ -22,6 +22,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.GaugeRecord;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.flowfile.FlowFile;
@@ -66,6 +67,8 @@ public interface RepositoryContext {
     void adjustCounter(String name, long delta);
 
     void recordGauge(GaugeRecord gaugeRecord);
+
+    void recordProcessSessionEvent(ProcessSessionEvent event);
 
     ProvenanceEventBuilder createProvenanceEventBuilder();
 
