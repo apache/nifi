@@ -569,7 +569,7 @@ public class StandardProcessSessionIT {
         assertEquals(2, event.getFlowFilesIn());
     }
 
-        @Test
+    @Test
     public void testReadCountCorrectWhenSkippingWithReadCallback() throws IOException {
         final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
 
