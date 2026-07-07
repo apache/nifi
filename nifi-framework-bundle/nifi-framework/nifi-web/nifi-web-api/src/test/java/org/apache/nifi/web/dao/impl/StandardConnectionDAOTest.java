@@ -21,11 +21,18 @@ import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ConnectableDTO;
+import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,10 +44,14 @@ import org.mockito.quality.Strictness;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -198,5 +209,125 @@ class StandardConnectionDAOTest {
         final Connection result = connectorManagedComponentLookup.getConnection(secondConnectorConnectionId);
 
         assertEquals(connectionInSecondConnector, result);
+    }
+
+    private ConnectionDTO connectionDtoWithNameOnly() {
+        final ConnectionDTO dto = new ConnectionDTO();
+        dto.setId(ROOT_CONNECTION_ID);
+        dto.setName("renamed-connection");
+        return dto;
+    }
+
+    private ConnectionDTO connectionDtoChangingDestination(final String newDestinationId) {
+        final ConnectionDTO dto = new ConnectionDTO();
+        dto.setId(ROOT_CONNECTION_ID);
+        final ConnectableDTO newDestination = new ConnectableDTO();
+        newDestination.setId(newDestinationId);
+        newDestination.setType(ConnectableType.PROCESSOR.name());
+        dto.setDestination(newDestination);
+        return dto;
+    }
+
+    private void stubRootConnectionDestination(final String destinationId) {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.getIdentifier()).thenReturn("group-id");
+        when(rootConnection.getProcessGroup()).thenReturn(group);
+
+        final Connectable currentDestination = mock(Connectable.class);
+        when(currentDestination.getIdentifier()).thenReturn(destinationId);
+        when(currentDestination.isRunning()).thenReturn(true);
+        when(currentDestination.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
+        when(rootConnection.getDestination()).thenReturn(currentDestination);
+    }
+
+    @Test
+    void testVerifyUpdateDoesNotCheckDestinationForNonDestinationEdit() {
+        stubRootConnectionDestination("current-destination-id");
+
+        assertDoesNotThrow(() -> connectionDAO.verifyUpdate(connectionDtoWithNameOnly()));
+        verify(rootConnection, never()).verifyCanUpdateDestination();
+    }
+
+    @Test
+    void testVerifyUpdateWrapsIllegalStateFromDestinationGuardAsValidationException() {
+        stubRootConnectionDestination("current-destination-id");
+        final String guardMessage = "Cannot change destination of Connection because the current destination ([proc]) is running";
+        org.mockito.Mockito.doThrow(new IllegalStateException(guardMessage))
+                .when(rootConnection).verifyCanUpdateDestination();
+
+        final ValidationException thrown = assertThrows(ValidationException.class,
+                () -> connectionDAO.verifyUpdate(connectionDtoChangingDestination("new-destination-id")));
+        assertTrue(thrown.getValidationErrors().contains(guardMessage),
+                "ValidationException should carry the guard's message; was: " + thrown.getValidationErrors());
+    }
+
+    @Test
+    void testVerifyUpdateChecksDestinationGuardWhenDestinationChanges() {
+        stubRootConnectionDestination("current-destination-id");
+
+        assertDoesNotThrow(() -> connectionDAO.verifyUpdate(connectionDtoChangingDestination("new-destination-id")));
+        verify(rootConnection).verifyCanUpdateDestination();
+    }
+
+    @Test
+    void testIsDestinationChangingReturnsFalseForSameDestinationId() {
+        final Connectable currentDestination = mock(Connectable.class);
+        when(currentDestination.getIdentifier()).thenReturn("dest-1");
+        when(rootConnection.getDestination()).thenReturn(currentDestination);
+
+        final ConnectableDTO proposed = new ConnectableDTO();
+        proposed.setId("dest-1");
+        proposed.setType(ConnectableType.PROCESSOR.name());
+
+        assertFalse(connectionDAO.isDestinationChanging(rootConnection, proposed));
+    }
+
+    @Test
+    void testIsDestinationChangingReturnsTrueForDifferentDestinationId() {
+        final Connectable currentDestination = mock(Connectable.class);
+        when(currentDestination.getIdentifier()).thenReturn("dest-1");
+        when(rootConnection.getDestination()).thenReturn(currentDestination);
+
+        final ConnectableDTO proposed = new ConnectableDTO();
+        proposed.setId("dest-2");
+        proposed.setType(ConnectableType.PROCESSOR.name());
+
+        assertTrue(connectionDAO.isDestinationChanging(rootConnection, proposed));
+    }
+
+    @Test
+    void testIsDestinationChangingRemoteInputPortSameGroupIsNotChanging() {
+        final RemoteGroupPort currentRemotePort = mock(RemoteGroupPort.class);
+        final RemoteProcessGroup currentRpg = mock(RemoteProcessGroup.class);
+        when(currentRemotePort.getIdentifier()).thenReturn("port-1");
+        when(currentRemotePort.getConnectableType()).thenReturn(ConnectableType.REMOTE_INPUT_PORT);
+        when(currentRemotePort.getRemoteProcessGroup()).thenReturn(currentRpg);
+        when(currentRpg.getIdentifier()).thenReturn("rpg-A");
+        when(rootConnection.getDestination()).thenReturn(currentRemotePort);
+
+        final ConnectableDTO proposed = new ConnectableDTO();
+        proposed.setId("port-1");
+        proposed.setType(ConnectableType.REMOTE_INPUT_PORT.name());
+        proposed.setGroupId("rpg-A");
+
+        assertFalse(connectionDAO.isDestinationChanging(rootConnection, proposed));
+    }
+
+    @Test
+    void testIsDestinationChangingRemoteInputPortDifferentGroupIsChanging() {
+        final RemoteGroupPort currentRemotePort = mock(RemoteGroupPort.class);
+        final RemoteProcessGroup currentRpg = mock(RemoteProcessGroup.class);
+        when(currentRemotePort.getIdentifier()).thenReturn("port-1");
+        when(currentRemotePort.getConnectableType()).thenReturn(ConnectableType.REMOTE_INPUT_PORT);
+        when(currentRemotePort.getRemoteProcessGroup()).thenReturn(currentRpg);
+        when(currentRpg.getIdentifier()).thenReturn("rpg-A");
+        when(rootConnection.getDestination()).thenReturn(currentRemotePort);
+
+        final ConnectableDTO proposed = new ConnectableDTO();
+        proposed.setId("port-1");
+        proposed.setType(ConnectableType.REMOTE_INPUT_PORT.name());
+        proposed.setGroupId("rpg-B");
+
+        assertTrue(connectionDAO.isDestinationChanging(rootConnection, proposed));
     }
 }

@@ -519,17 +519,47 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 throw new ValidationException(validationErrors);
             }
 
-            // If destination is changing, ensure that current destination is not running. This check is done here, rather than
-            // in the Connection object itself because the Connection object itself does not know which updates are to occur and
-            // we don't want to prevent updating things like the connection name or backpressure just because the destination is running
-            final Connectable destination = connection.getDestination();
-            if (destination != null && destination.isRunning() && destination.getConnectableType() != ConnectableType.FUNNEL && destination.getConnectableType() != ConnectableType.INPUT_PORT) {
-                throw new ValidationException(Collections.singletonList("Cannot change the destination of connection because the current destination is running"));
+            // If the destination is changing, ensure the current destination is in a state that allows it to be changed.
+            // The check lives on the Connection (shared with setDestination) so the verify phase rejects exactly what the
+            // subsequent mutation would reject. It is applied only for an actual destination change so that other updates
+            // (name, backpressure, etc.) are not blocked merely because the current destination is running.
+            if (isDestinationChanging(connection, connectionDTO.getDestination())) {
+                try {
+                    connection.verifyCanUpdateDestination();
+                } catch (final IllegalStateException e) {
+                    throw new ValidationException(Collections.singletonList(e.getMessage()));
+                }
             }
 
             // verify that this connection supports modification
             connection.verifyCanUpdate();
         }
+    }
+
+    /**
+     * Determines whether the proposed destination represents an actual change from the Connection's current destination.
+     * Mirrors the change-detection used by {@link #updateConnection(ConnectionDTO)} so the verify and commit phases agree
+     * on what constitutes a destination change — including a remote input port re-pointed to a different remote process group.
+     */
+    boolean isDestinationChanging(final Connection connection, final ConnectableDTO proposedDestination) {
+        if (proposedDestination == null) {
+            return false;
+        }
+
+        final Connectable currentDestination = connection.getDestination();
+        if (!proposedDestination.getId().equals(currentDestination.getIdentifier())) {
+            return true;
+        }
+
+        // Same destination id: for a remote input port, a different remote process group id is also a change.
+        if (ConnectableType.REMOTE_INPUT_PORT.name().equals(proposedDestination.getType())
+                && currentDestination.getConnectableType() == ConnectableType.REMOTE_INPUT_PORT) {
+            final RemoteGroupPort remotePort = (RemoteGroupPort) currentDestination;
+            return proposedDestination.getGroupId() != null
+                    && !proposedDestination.getGroupId().equals(remotePort.getRemoteProcessGroup().getIdentifier());
+        }
+
+        return false;
     }
 
     @Override
@@ -571,8 +601,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         // determine if the destination changed
         final ConnectableDTO proposedDestination = connectionDTO.getDestination();
         if (proposedDestination != null) {
-            final Connectable currentDestination = connection.getDestination();
-
             // handle remote input port differently
             if (ConnectableType.REMOTE_INPUT_PORT.name().equals(proposedDestination.getType())) {
                 // the group id must be specified
@@ -580,17 +608,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                     throw new IllegalArgumentException("When the destination is a remote input port its group id is required.");
                 }
 
-                // if the current destination is a remote input port
-                boolean isDifferentRemoteProcessGroup = false;
-                if (currentDestination.getConnectableType() == ConnectableType.REMOTE_INPUT_PORT) {
-                    RemoteGroupPort remotePort = (RemoteGroupPort) currentDestination;
-                    if (!proposedDestination.getGroupId().equals(remotePort.getRemoteProcessGroup().getIdentifier())) {
-                        isDifferentRemoteProcessGroup = true;
-                    }
-                }
-
                 // if the destination is changing or the previous destination was a different remote process group
-                if (!proposedDestination.getId().equals(currentDestination.getIdentifier()) || isDifferentRemoteProcessGroup) {
+                if (isDestinationChanging(connection, proposedDestination)) {
                     final ProcessGroup destinationParentGroup = locateProcessGroup(flowController, group.getIdentifier());
                     final RemoteProcessGroup remoteProcessGroup = destinationParentGroup.getRemoteProcessGroup(proposedDestination.getGroupId());
 
@@ -615,7 +634,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 }
             } else {
                 // if there is a different destination id
-                if (!proposedDestination.getId().equals(currentDestination.getIdentifier())) {
+                if (isDestinationChanging(connection, proposedDestination)) {
                     // if the destination connectable's group id has not been set, its inferred to be the current group
                     if (proposedDestination.getGroupId() == null) {
                         proposedDestination.setGroupId(group.getIdentifier());
