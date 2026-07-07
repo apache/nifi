@@ -66,6 +66,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -550,6 +551,25 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testProcessSessionEventRecorded() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.checkpoint();
+
+        flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.commit();
+
+        final ArgumentCaptor<ProcessSessionEvent> eventCaptor = ArgumentCaptor.forClass(ProcessSessionEvent.class);
+        verify(componentMetricReporter, times(2)).recordProcessSessionEvent(eventCaptor.capture());
+
+        final ProcessSessionEvent event = eventCaptor.getValue();
+        assertEquals(2, event.getFlowFilesIn());
+    }
+
+        @Test
     public void testReadCountCorrectWhenSkippingWithReadCallback() throws IOException {
         final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
 

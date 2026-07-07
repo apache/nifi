@@ -113,6 +113,9 @@ class StandardProcessSessionTest {
     ArgumentCaptor<ProcessSessionEvent> flowFileEventCaptor;
 
     @Captor
+    ArgumentCaptor<ProcessSessionEvent> processSessionEventCaptor;
+
+    @Captor
     ArgumentCaptor<GaugeRecord> gaugeRecordCaptor;
 
     StandardProcessSession session;
@@ -219,6 +222,12 @@ class StandardProcessSessionTest {
 
         assertEquals(bytesRead, flowFileEvent.getBytesRead(), "Bytes read not matched");
         assertEquals(bytesWritten, flowFileEvent.getBytesWritten(), "Bytes written not matched");
+
+        verify(repositoryContext).recordProcessSessionEvent(processSessionEventCaptor.capture());
+        final ProcessSessionEvent processSessionEvent = processSessionEventCaptor.getValue();
+
+        assertEquals(bytesRead, processSessionEvent.getBytesRead(), "Process Session Bytes read not matched");
+        assertEquals(bytesWritten, processSessionEvent.getBytesWritten(), "Process Session Bytes written not matched");
     }
 
     private void setRepositoryContext() {
