@@ -49,6 +49,7 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,7 +178,14 @@ public class ConnectableTask {
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         if (!isRunOnCluster(flowController)) {
-            logger.debug("Will not trigger {} because this is not the primary node", connectable);
+            // Diagnostic: a cron-driven primary-node-only component triggers comparatively rarely, so log at INFO to
+            // make a skipped scheduled fire visible (e.g. a component that stops firing on its schedule after a
+            // primary-node change). Timer-driven components trigger frequently, so keep those at DEBUG to avoid noise.
+            if (connectable.getSchedulingStrategy() == SchedulingStrategy.CRON_DRIVEN) {
+                logger.info("Will not trigger {} because this is not the primary node; the cron-scheduled fire is being skipped", connectable);
+            } else {
+                logger.debug("Will not trigger {} because this is not the primary node", connectable);
+            }
             return InvocationResult.yield("This node is not the primary node");
         }
 
