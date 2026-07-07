@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -96,13 +97,20 @@ import java.util.regex.Pattern;
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "If the FlowFile is successfully unpacked, its MIME Type is no longer known, so the mime.type "
             + "attribute is set to application/octet-stream."),
-    @WritesAttribute(attribute = "fragment.identifier", description = "All unpacked FlowFiles produced from the same parent FlowFile will have the same randomly generated "
-            + "UUID added for this attribute"),
+    @WritesAttribute(attribute = "fragment.identifier", description = "All unpacked FlowFiles produced from the same parent FlowFile will have the same value for this "
+            + "attribute, determined by the Fragment Identifier Value property. For TAR and ZIP formats this attribute "
+            + "is always written. For FlowFile stream formats it is written when Add Fragment Attributes to FlowFile "
+            + "Streams is enabled."),
     @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the unpacked FlowFiles that were created from a single "
-            + "parent FlowFile"),
-    @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
+            + "parent FlowFile. For TAR and ZIP formats this attribute is always written. For FlowFile stream formats "
+            + "it is written when Add Fragment Attributes to FlowFile Streams is enabled."),
+    @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile. For TAR and ZIP formats this "
+            + "attribute is always written. For FlowFile stream formats it is written when Add Fragment Attributes to "
+            + "FlowFile Streams is enabled."),
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
-            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile"),
+            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile. "
+            + "For TAR and ZIP formats this attribute is always written. For FlowFile stream formats it is written when "
+            + "Add Fragment Attributes to FlowFile Streams is enabled."),
     @WritesAttribute(attribute = UnpackContent.FILE_LAST_MODIFIED_TIME_ATTRIBUTE, description = "The date and time that the unpacked file was last modified (tar and zip only)."),
     @WritesAttribute(attribute = UnpackContent.FILE_CREATION_TIME_ATTRIBUTE, description = "The date and time that the file was created. For encrypted zip files this attribute" +
             " always holds the same value as " + UnpackContent.FILE_LAST_MODIFIED_TIME_ATTRIBUTE + ". For tar and unencrypted zip files if available it will be returned otherwise" +
@@ -200,10 +208,35 @@ public class UnpackContent extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor ADD_FRAGMENT_ATTRIBUTES = new PropertyDescriptor.Builder()
+            .name("Add Fragment Attributes to FlowFile Streams")
+            .description("When enabled, assigns fragment.identifier, fragment.index, fragment.count, and "
+                    + "segment.original.filename to FlowFiles unpacked from FlowFile stream formats. TAR and ZIP "
+                    + "formats always write these attributes. Enabling this allows FlowFile stream output to be "
+                    + "regrouped by MergeContent in Defragment mode.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor FRAGMENT_IDENTIFIER_VALUE = new PropertyDescriptor.Builder()
+            .name("Fragment Identifier Value")
+            .description("Expression evaluated once against the incoming FlowFile to determine the value of "
+                    + "fragment.identifier on all unpacked children. The default ${UUID()} generates a unique "
+                    + "random identifier per parent FlowFile.")
+            .required(false)
+            .defaultValue("${UUID()}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             PACKAGING_FORMAT,
             ZIP_FILENAME_CHARSET,
             FILE_FILTER,
+            ADD_FRAGMENT_ATTRIBUTES,
+            FRAGMENT_IDENTIFIER_VALUE,
             PASSWORD,
             ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
     );
@@ -348,8 +381,10 @@ public class UnpackContent extends AbstractProcessor {
                 return;
             }
 
-            if (addFragmentAttrs) {
-                finishFragmentAttributes(session, flowFile, unpacked);
+            final boolean addFragmentAttrsEnabled = context.getProperty(ADD_FRAGMENT_ATTRIBUTES).asBoolean();
+            if (addFragmentAttrs || addFragmentAttrsEnabled) {
+                final String customFragmentId = getFragmentIdentifierValue(context, flowFile);
+                finishFragmentAttributesCustom(session, flowFile, unpacked, customFragmentId);
             }
             session.transfer(unpacked, REL_SUCCESS);
             final String fragmentId = !unpacked.isEmpty() ? unpacked.getFirst().getAttribute(FRAGMENT_ID) : null;
@@ -691,33 +726,40 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
-        // first pass verifies all FlowFiles have the FRAGMENT_INDEX attribute and gets the total number of fragments
-        int fragmentCount = 0;
-        for (FlowFile ff : unpacked) {
-            String fragmentIndex = ff.getAttribute(FRAGMENT_INDEX);
-            if (fragmentIndex != null) {
-                fragmentCount++;
-            } else {
-                return;
-            }
-        }
-
-        String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
-        if (originalFilename.endsWith(".tar") || originalFilename.endsWith(".zip") || originalFilename.endsWith(".pkg")) {
-            originalFilename = originalFilename.substring(0, originalFilename.length() - 4);
-        }
-
-        // second pass adds fragment attributes
-        List<FlowFile> newList = new ArrayList<>(unpacked);
+    private void finishFragmentAttributesCustom(final ProcessSession session, final FlowFile source,
+            final List<FlowFile> unpacked, final String fragmentId) {
+        final String originalFilename = stripArchiveExtension(source.getAttribute(CoreAttributes.FILENAME.key()));
+        final int fragmentCount = unpacked.size();
+        final List<FlowFile> newList = new ArrayList<>(unpacked);
         unpacked.clear();
-        for (FlowFile ff : newList) {
-            FlowFile newFF = session.putAllAttributes(ff, Map.of(
+        for (int i = 0; i < newList.size(); i++) {
+            final FlowFile newFF = session.putAllAttributes(newList.get(i), Map.of(
+                    FRAGMENT_ID, fragmentId,
+                    FRAGMENT_INDEX, String.valueOf(i + 1),
                     FRAGMENT_COUNT, String.valueOf(fragmentCount),
                     SEGMENT_ORIGINAL_FILENAME, originalFilename
             ));
             unpacked.add(newFF);
         }
+    }
+
+    private String getFragmentIdentifierValue(final ProcessContext context, final FlowFile source) {
+        final String fragmentId = context.getProperty(FRAGMENT_IDENTIFIER_VALUE)
+                .evaluateAttributeExpressions(source).getValue();
+        if (fragmentId == null || fragmentId.isBlank()) {
+            throw new ProcessException("Fragment Identifier Value must evaluate to a non-empty value");
+        }
+        return fragmentId;
+    }
+
+    private static String stripArchiveExtension(final String filename) {
+        if (filename == null) {
+            return "";
+        }
+        if (filename.endsWith(".tar") || filename.endsWith(".zip") || filename.endsWith(".pkg")) {
+            return filename.substring(0, filename.length() - 4);
+        }
+        return filename;
     }
 
     protected enum PackageFormat implements DescribedValue {

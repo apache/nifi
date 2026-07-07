@@ -208,6 +208,9 @@ public class MergeContent extends BinFiles {
     public static final String FRAGMENT_COUNT_ATTRIBUTE = FragmentAttributes.FRAGMENT_COUNT.key();
     public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
+    private static final Set<String> FRAGMENT_ATTRIBUTE_KEYS = Set.of(
+            FRAGMENT_ID_ATTRIBUTE, FRAGMENT_INDEX_ATTRIBUTE, FRAGMENT_COUNT_ATTRIBUTE, SEGMENT_ORIGINAL_FILENAME);
+
     public static final String TAR_PERMISSIONS_ATTRIBUTE = "tar.permissions";
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
@@ -469,15 +472,16 @@ public class MergeContent extends BinFiles {
     protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
         final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
 
+        final boolean isDefragment = context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class) == MergeStrategy.DEFRAGMENT;
         MergeBin merger = switch (context.getProperty(MERGE_FORMAT).asAllowableValue(MergeFormat.class)) {
             case TAR -> new TarMerge();
             case ZIP -> new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
             case FLOWFILE_STREAM_V3 ->
-                new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType());
+                new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType(), isDefragment);
             case FLOWFILE_STREAM_V2 ->
-                new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType());
+                new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType(), isDefragment);
             case FLOWFILE_TAR_V1 ->
-                new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType());
+                new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType(), isDefragment);
             case CONCAT -> new BinaryConcatenationMerge();
             case AVRO -> new AvroMerge();
         };
@@ -487,7 +491,7 @@ public class MergeContent extends BinFiles {
         final List<FlowFile> contents = bin.getContents();
         final ProcessSession binSession = bin.getSession();
 
-        if (context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class) == MergeStrategy.DEFRAGMENT) {
+        if (isDefragment) {
             final String error = getDefragmentValidationError(bin.getContents());
 
             // Fail the FlowFiles and commit them
@@ -519,6 +523,11 @@ public class MergeContent extends BinFiles {
         bundleAttributes.put(REASON_FOR_MERGING, bin.getEvictionReason().name());
 
         bundle = binSession.putAllAttributes(bundle, bundleAttributes);
+
+        if (isDefragment) {
+            bundle = binSession.removeAllAttributes(bundle, Set.of(
+                    FRAGMENT_ID_ATTRIBUTE, FRAGMENT_INDEX_ATTRIBUTE, FRAGMENT_COUNT_ATTRIBUTE, SEGMENT_ORIGINAL_FILENAME));
+        }
 
         final String inputDescription = contents.size() < 10 ? contents.toString() : contents.size() + " FlowFiles";
 
@@ -1006,10 +1015,12 @@ public class MergeContent extends BinFiles {
 
         private final FlowFilePackager packager;
         private final String mimeType;
+        private final boolean removeFragmentAttributes;
 
-        public FlowFileStreamMerger(final FlowFilePackager packager, final String mimeType) {
+        public FlowFileStreamMerger(final FlowFilePackager packager, final String mimeType, final boolean removeFragmentAttributes) {
             this.packager = packager;
             this.mimeType = mimeType;
+            this.removeFragmentAttributes = removeFragmentAttributes;
         }
 
         @Override
@@ -1030,6 +1041,9 @@ public class MergeContent extends BinFiles {
                             bin.getSession().read(flowFile, rawIn -> {
                                 try (final InputStream in = new BufferedInputStream(rawIn)) {
                                     final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
+                                    if (removeFragmentAttributes) {
+                                        FRAGMENT_ATTRIBUTE_KEYS.forEach(attributes::remove);
+                                    }
                                     packager.packageFlowFile(in, out, attributes, flowFile.getSize());
                                 }
                             });
