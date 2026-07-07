@@ -24,11 +24,13 @@ import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorSyncResult;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
@@ -37,11 +39,20 @@ import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.flow.VersionedConnectorState;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.parameter.StandardParameterContextManager;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.services.FlowService;
@@ -63,13 +74,16 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -274,6 +288,70 @@ class VersionedFlowSynchronizerTest {
         controllerService.setPropertyDescriptors(Map.of());
         controllerService.setScheduledState(ScheduledState.ENABLED);
         return controllerService;
+    }
+
+    @Test
+    void testSyncReconcilesProviderBackedContextWithNonProvidedParameter() {
+        setRootGroup();
+        setFlowController();
+
+        final String providerId = "provider-1";
+        final String contextName = "openflow-rds-ingest";
+        final String paramName = "db.host";
+
+        // Parameter Provider infrastructure
+        final ParameterProvider parameterProvider = mock(ParameterProvider.class);
+        when(parameterProvider.getIdentifier()).thenReturn(providerId);
+        final ParameterProviderNode parameterProviderNode = mock(ParameterProviderNode.class);
+        when(parameterProviderNode.getParameterProvider()).thenReturn(parameterProvider);
+        final ParameterProviderLookup parameterProviderLookup = mock(ParameterProviderLookup.class);
+        when(parameterProviderLookup.getParameterProvider(providerId)).thenReturn(parameterProviderNode);
+
+        // The node's existing, self-consistent flow: a provider-backed context whose parameter is provider-supplied.
+        final StandardParameterContext existingContext = new StandardParameterContext.Builder()
+                .id("provider-backed-context")
+                .name(contextName)
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .parameterProviderLookup(parameterProviderLookup)
+                .parameterProviderConfiguration(new StandardParameterProviderConfiguration(providerId, "Group", true))
+                .build();
+        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(paramName).build();
+        existingContext.setParameters(Collections.singletonMap(paramName,
+                new Parameter.Builder().descriptor(descriptor).value("localhost").provided(true).build()));
+
+        final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        contextManager.addParameterContext(existingContext);
+        when(flowManager.getParameterContextManager()).thenReturn(contextManager);
+        when(flowManager.getParameterProvider(providerId)).thenReturn(parameterProviderNode);
+        doAnswer(invocation -> {
+            invocation.getArgument(0, Runnable.class).run();
+            return null;
+        }).when(flowManager).withParameterContextResolution(any());
+
+        // The proposed (elected cluster) flow: same provider-backed context, but the parameter is flagged
+        // provided=false with a divergent value. This is the serialized-flow contradiction seen in production.
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setName(paramName);
+        versionedParameter.setValue("different-host");
+        versionedParameter.setSensitive(false);
+        versionedParameter.setProvided(false);
+
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setName(contextName);
+        versionedParameterContext.setParameterProvider(providerId);
+        versionedParameterContext.setParameterGroupName("Group");
+        versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
+        when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
+
+        // With the fix, the synchronizer recognizes the context is provider-backed and reconciles it as
+        // provider-managed (provided=true, value sourced from the provider) rather than attempting a manual
+        // update, so synchronization succeeds instead of throwing FlowSynchronizationException.
+        assertDoesNotThrow(() ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+
+        final Optional<Parameter> reconciled = existingContext.getParameter(paramName);
+        assertTrue(reconciled.isPresent(), "Parameter should still exist after reconciliation");
+        assertTrue(reconciled.get().isProvided(), "Parameter must be reconciled as provider-supplied (provided=true)");
     }
 
     private void setRootGroup() {
