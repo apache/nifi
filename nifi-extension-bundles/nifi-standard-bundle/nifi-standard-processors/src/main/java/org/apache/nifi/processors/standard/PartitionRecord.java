@@ -355,8 +355,8 @@ public class PartitionRecord extends AbstractProcessor {
                 return 31;
             }
 
-            if (value instanceof Object[]) {
-                return 31 + Arrays.deepHashCode((Object[]) value);
+            if (value instanceof final Object[] objects) {
+                return 31 + Arrays.deepHashCode(objects);
             }
 
             return 31 + value.hashCode();
@@ -379,8 +379,8 @@ public class PartitionRecord extends AbstractProcessor {
             if (value == null || other.value == null) {
                 return false;
             }
-            if (value instanceof Object[] && other.value instanceof Object[]) {
-                return Arrays.equals((Object[]) value, (Object[]) other.value);
+            if (value instanceof final Object[] objects && other.value instanceof final Object[] otherObjects) {
+                return Arrays.equals(objects, otherObjects);
             }
             return value.equals(other.value);
         }

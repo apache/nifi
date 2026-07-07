@@ -135,8 +135,8 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
             if (transaction != null) {
                 transaction.error();
             }
-            if (e instanceof IOException) {
-                throw (IOException) e;
+            if (e instanceof final IOException ioException) {
+                throw ioException;
             } else {
                 throw new IOException("Failed to write metrics using record writer: " + e.getMessage(), e);
             }

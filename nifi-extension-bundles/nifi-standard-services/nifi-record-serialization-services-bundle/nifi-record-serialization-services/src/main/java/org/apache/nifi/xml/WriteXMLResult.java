@@ -313,8 +313,8 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             }
             case ARRAY: {
                 final Object[] arrayValues;
-                if (coercedValue instanceof Object[]) {
-                    arrayValues = (Object[]) coercedValue;
+                if (coercedValue instanceof final Object[] objects) {
+                    arrayValues = objects;
                 } else {
                     arrayValues = new Object[]{coercedValue.toString()};
                 }

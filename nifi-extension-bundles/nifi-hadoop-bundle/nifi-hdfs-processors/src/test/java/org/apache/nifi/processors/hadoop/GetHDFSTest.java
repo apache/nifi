@@ -114,8 +114,8 @@ public class GetHDFSTest {
         results = new HashSet<>();
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
         for (ValidationResult vr : results) {
@@ -126,8 +126,8 @@ public class GetHDFSTest {
         runner.setProperty(PutHDFS.DIRECTORY, "target");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
 
@@ -137,8 +137,8 @@ public class GetHDFSTest {
         runner.setProperty(GetHDFS.MAX_AGE, "5 secs");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
         for (ValidationResult vr : results) {

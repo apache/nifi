@@ -69,8 +69,8 @@ public class UUID5 extends RecordPathSegment {
         FieldValue value = opt.get();
         Object rawValue = value.getValue();
 
-        if (rawValue instanceof String) {
-            return Optional.of((String) rawValue);
+        if (rawValue instanceof final String string) {
+            return Optional.of(string);
         } else {
             return Optional.empty();
         }

@@ -197,9 +197,9 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                         .explanation(message)
                         .build());
             } finally {
-                if (customClassLoaderCreated && customClassLoader instanceof URLClassLoader) {
+                if (customClassLoaderCreated && customClassLoader instanceof final URLClassLoader urlClassLoader) {
                     try {
-                        ((URLClassLoader) customClassLoader).close();
+                        urlClassLoader.close();
                     } catch (final IOException e) {
                         getLogger().warn("Failed to close custom ClassLoader", e);
                     }

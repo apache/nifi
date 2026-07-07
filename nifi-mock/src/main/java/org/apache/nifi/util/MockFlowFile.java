@@ -207,8 +207,8 @@ public class MockFlowFile implements FlowFile {
         if (obj == this) {
             return true;
         }
-        if (obj instanceof FlowFile) {
-            return ((FlowFile) obj).getId() == this.id;
+        if (obj instanceof final FlowFile flowFile) {
+            return flowFile.getId() == this.id;
         }
         return false;
     }

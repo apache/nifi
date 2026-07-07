@@ -339,8 +339,8 @@ public class ExpressionCompiler {
 
     private void verifyMappingEvaluatorReduced(final Evaluator<?> evaluator) {
         final Evaluator<?> rightMostEvaluator;
-        if (evaluator instanceof IteratingEvaluator) {
-            rightMostEvaluator = ((IteratingEvaluator<?>) evaluator).getLogicEvaluator();
+        if (evaluator instanceof final IteratingEvaluator<?> iteratingEvaluator) {
+            rightMostEvaluator = iteratingEvaluator.getLogicEvaluator();
         } else {
             rightMostEvaluator = evaluator;
         }
@@ -430,8 +430,8 @@ public class ExpressionCompiler {
                         final ResultType resultType = evaluator.getResultType();
                         if (resultType == ResultType.BOOLEAN) {
                             chosenEvaluator = new AllAttributesEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
-                        } else if (evaluator instanceof ReduceEvaluator) {
-                            chosenEvaluator = new MappingEvaluator((ReduceEvaluator) evaluator, multiAttrEval);
+                        } else if (evaluator instanceof final ReduceEvaluator reduceEvaluator) {
+                            chosenEvaluator = new MappingEvaluator(reduceEvaluator, multiAttrEval);
                         } else {
                             throw new AttributeExpressionLanguageException("Cannot evaluate Expression because it attempts to reference multiple attributes but does not use a reducing function");
                         }

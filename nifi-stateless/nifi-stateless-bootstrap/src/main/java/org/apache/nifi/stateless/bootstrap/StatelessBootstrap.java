@@ -176,8 +176,8 @@ public class StatelessBootstrap {
         logger.debug("The following class/JAR files will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesAllowed);
         logger.debug("The following JAR/JMOD files from ${JAVA_HOME} will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, javaHomeFilenames);
         logger.debug("The final list of classes allowed to be loaded by Stateless Extension ClassLoaders from parent {}: {}", parent, classesAllowed);
-        if (parent instanceof URLClassLoader) {
-            final URL[] parentUrls = ((URLClassLoader) parent).getURLs();
+        if (parent instanceof final URLClassLoader urlClassLoader) {
+            final URL[] parentUrls = urlClassLoader.getURLs();
             logger.debug("Parent ClassLoader has the following URLs loaded: {}", Arrays.asList(parentUrls));
         } else {
             logger.debug("Parent ClassLoader is not a URLClassLoader: {} / {}", parent, parent.getClass());

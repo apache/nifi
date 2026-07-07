@@ -41,8 +41,8 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
         if (f == null) {
             return null;
         }
-        if (f instanceof SessionFile) {
-            return ((SessionFile) f);
+        if (f instanceof final SessionFile sessionFile) {
+            return sessionFile;
         }
         return new GroovySessionFile(this, f);
     }
@@ -57,11 +57,11 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
             if (res == null) {
                 return FlowFileFilter.FlowFileFilterResult.REJECT_AND_TERMINATE;
             }
-            if (res instanceof Boolean) {
-                return ((Boolean) res ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE);
+            if (res instanceof final Boolean bool) {
+                return (bool ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE);
             }
-            if (res instanceof FlowFileFilter.FlowFileFilterResult) {
-                return (FlowFileFilter.FlowFileFilterResult) res;
+            if (res instanceof final FlowFileFilter.FlowFileFilterResult flowFileFilterResult) {
+                return flowFileFilterResult;
             }
             return (org.codehaus.groovy.runtime.DefaultGroovyMethods.asBoolean(res)
                     ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE);

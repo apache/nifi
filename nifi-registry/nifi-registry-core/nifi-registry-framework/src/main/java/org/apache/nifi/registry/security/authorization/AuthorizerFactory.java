@@ -856,8 +856,8 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     }
 
     private static Authorizer installIntegrityChecks(final Authorizer baseAuthorizer) {
-        if (baseAuthorizer instanceof ManagedAuthorizer) {
-            return new ManagedAuthorizerWrapper((ManagedAuthorizer) baseAuthorizer);
+        if (baseAuthorizer instanceof final ManagedAuthorizer managedAuthorizer) {
+            return new ManagedAuthorizerWrapper(managedAuthorizer);
         } else {
             return new AuthorizerWrapper(baseAuthorizer);
         }
@@ -868,8 +868,8 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         // 1 - the authorizer supports auditing
         // 2 - the request is an access attempt
         // 3 - the result is either approved/denied, when resource is not found a subsequent request may be following with the parent resource
-        if (authorizer instanceof AuthorizationAuditor && request.isAccessAttempt() && !AuthorizationResult.Result.ResourceNotFound.equals(result.getResult())) {
-            ((AuthorizationAuditor) authorizer).auditAccessAttempt(request, result);
+        if (authorizer instanceof final AuthorizationAuditor authorizationAuditor && request.isAccessAttempt() && !AuthorizationResult.Result.ResourceNotFound.equals(result.getResult())) {
+            authorizationAuditor.auditAccessAttempt(request, result);
         }
     }
 

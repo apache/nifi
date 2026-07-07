@@ -246,11 +246,11 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
         }
 
         final Object requestEntity = preparedRequest.entity();
-        if (requestEntity instanceof MultivaluedMap<?, ?> parameterEntity) {
+        if (requestEntity instanceof final MultivaluedMap<?, ?> parameterEntity) {
             for (final Object key : parameterEntity.keySet()) {
                 final String parameterName = key.toString();
                 final Object parameterValues = parameterEntity.get(parameterName);
-                if (parameterValues instanceof List<?> values) {
+                if (parameterValues instanceof final List<?> values) {
                     for (final Object value : values) {
                         httpUriBuilder.addQueryParameter(parameterName, value.toString());
                     }

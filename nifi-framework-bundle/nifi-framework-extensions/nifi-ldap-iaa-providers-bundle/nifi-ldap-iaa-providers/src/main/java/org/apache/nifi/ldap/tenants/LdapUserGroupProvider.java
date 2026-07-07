@@ -692,7 +692,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     }
 
     private boolean hasMorePages(final DirContextProcessor processor) {
-        return processor instanceof PagedResultsControlExchangeDirContextProcessor && ((PagedResultsControlExchangeDirContextProcessor) processor).hasMore();
+        return processor instanceof final PagedResultsControlExchangeDirContextProcessor prcedcp && prcedcp.hasMore();
     }
 
     private User buildUser(final DirContextOperations dirContextOperations) {

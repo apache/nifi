@@ -89,8 +89,8 @@ class NettyEventServer implements EventServer {
     @Override
     public int getListeningPort() {
         final SocketAddress socketAddress = channel.localAddress();
-        if (socketAddress instanceof InetSocketAddress) {
-            return ((InetSocketAddress) socketAddress).getPort();
+        if (socketAddress instanceof final InetSocketAddress inetSocketAddress) {
+            return inetSocketAddress.getPort();
         }
 
         return 0;

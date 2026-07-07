@@ -249,12 +249,12 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             // More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
             context.yield();
             session.transfer(outgoingFlowFile, REL_UNPROCESSED);
-        } else if (cause instanceof AwsServiceException) {
+        } else if (cause instanceof final AwsServiceException awsServiceException) {
             getLogger().error("Could not process FlowFile due to server exception", error);
-            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AwsServiceException) cause), REL_FAILURE);
-        } else if (cause instanceof SdkException) {
+            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), awsServiceException), REL_FAILURE);
+        } else if (cause instanceof final SdkException sdkException) {
             getLogger().error("Could not process FlowFile due to client exception", error);
-            session.transfer(processSdkException(session, Collections.singletonList(outgoingFlowFile), (SdkException) cause), REL_FAILURE);
+            session.transfer(processSdkException(session, Collections.singletonList(outgoingFlowFile), sdkException), REL_FAILURE);
         } else {
             getLogger().error("Could not process FlowFile", error);
             session.transfer(outgoingFlowFile, REL_FAILURE);

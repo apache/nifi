@@ -238,7 +238,7 @@ public class StatelessProcessSession extends StandardProcessSession {
             return false;
         }
 
-        if (connectable instanceof Port && ((Port) connectable).getPortFunction() == PortFunction.FAILURE) {
+        if (connectable instanceof final Port port && port.getPortFunction() == PortFunction.FAILURE) {
             return true;
         }
 

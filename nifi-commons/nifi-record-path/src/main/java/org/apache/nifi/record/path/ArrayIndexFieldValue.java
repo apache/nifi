@@ -63,8 +63,8 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
     @Override
     public void remove() {
         getParent().ifPresent(parent -> {
-            if (parent.getValue() instanceof Object[]) {
-                parent.updateValue(ArrayUtils.remove((Object[]) parent.getValue(), index));
+            if (parent.getValue() instanceof final Object[] objects) {
+                parent.updateValue(ArrayUtils.remove(objects, index));
             }
         });
     }

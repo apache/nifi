@@ -94,10 +94,10 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     }
 
     private RecordSchema getChildSchemaFromField(final RecordField recordField) {
-        if (recordField.getDataType() instanceof ArrayDataType) {
-            return ((RecordDataType) ((ArrayDataType) recordField.getDataType()).getElementType()).getChildSchema();
-        } else if (recordField.getDataType() instanceof RecordDataType) {
-            return ((RecordDataType) recordField.getDataType()).getChildSchema();
+        if (recordField.getDataType() instanceof final ArrayDataType arrayDataType) {
+            return ((RecordDataType) (arrayDataType).getElementType()).getChildSchema();
+        } else if (recordField.getDataType() instanceof final RecordDataType recordDataType) {
+            return recordDataType.getChildSchema();
         } else {
             throw new RuntimeException(String.format("Selected schema field [%s] is not record or array type.", recordField.getFieldName()));
         }
@@ -248,8 +248,8 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case RECORD: {
                 if (fieldNode.isObject()) {
                     RecordSchema childSchema;
-                    if (desiredType instanceof RecordDataType) {
-                        childSchema = ((RecordDataType) desiredType).getChildSchema();
+                    if (desiredType instanceof final RecordDataType recordDataType) {
+                        childSchema = recordDataType.getChildSchema();
                     } else {
                         return null;
                     }

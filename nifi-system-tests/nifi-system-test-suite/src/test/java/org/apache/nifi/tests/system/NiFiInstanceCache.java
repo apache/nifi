@@ -67,8 +67,8 @@ public class NiFiInstanceCache {
     }
 
     public void stopOrRecycle(final NiFiInstance nifiInstance) {
-        if (nifiInstance instanceof CachedNiFiInstance) {
-            ((CachedNiFiInstance) nifiInstance).ensureProperState();
+        if (nifiInstance instanceof final CachedNiFiInstance cachedNiFiInstance) {
+            cachedNiFiInstance.ensureProperState();
             return;
         }
 

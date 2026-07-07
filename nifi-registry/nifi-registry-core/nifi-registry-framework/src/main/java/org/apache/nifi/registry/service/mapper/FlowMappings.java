@@ -115,8 +115,8 @@ public class FlowMappings {
     }
 
     private static String getValueDescription(Object valueA) {
-        if (valueA instanceof VersionedComponent) {
-            return ((VersionedComponent) valueA).getIdentifier();
+        if (valueA instanceof final VersionedComponent versionedComponent) {
+            return versionedComponent.getIdentifier();
         }
         if (valueA != null) {
             return valueA.toString();

@@ -97,8 +97,8 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.REMOTE_PATH, "static-remote-target");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
 
@@ -106,8 +106,8 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.REMOTE_PATH, "${el-remote-target}");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
 
@@ -115,8 +115,8 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.USERNAME, "static-username");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
 
@@ -125,8 +125,8 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.USERNAME, "");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
 

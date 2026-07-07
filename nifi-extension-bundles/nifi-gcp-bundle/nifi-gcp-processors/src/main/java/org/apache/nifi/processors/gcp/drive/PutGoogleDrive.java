@@ -303,8 +303,8 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             getLogger().error("Exception occurred while uploading File [{}] to [{}] Google Drive Folder", filename,
                     folderId, e);
 
-            if (e.getCause() != null && e.getCause() instanceof GoogleJsonResponseException) {
-                handleExpectedError(session, flowFile, (GoogleJsonResponseException) e.getCause());
+            if (e.getCause() != null && e.getCause() instanceof final GoogleJsonResponseException googleJsonResponseException) {
+                handleExpectedError(session, flowFile, googleJsonResponseException);
             } else {
                 handleUnexpectedError(session, flowFile, e);
             }

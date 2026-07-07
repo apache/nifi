@@ -32,8 +32,8 @@ public class RecordTestUtil {
         Object converted;
         if (value != null && value.getClass().isArray()) {
             converted = convertArray(value);
-        } else if (value != null && value instanceof Record) {
-            converted = convertRecord((Record) value);
+        } else if (value != null && value instanceof final Record recordObj) {
+            converted = convertRecord(recordObj);
         } else {
             converted = value;
         }
@@ -81,11 +81,11 @@ public class RecordTestUtil {
     }
 
     public static void assertValuesEqual(String prefix, Object value1, Object value2) {
-        if (value1 instanceof Map && value2 instanceof Map) {
-            assertMapsEqual(prefix, (Map) value1, (Map) value2);
-        } else if (value1 instanceof List && value2 instanceof List) {
-            assertListsEqual(prefix, (List) value1, (List) value2);
-            assertListsEqual(prefix, (List) value2, (List) value1);
+        if (value1 instanceof final Map map1 && value2 instanceof final Map map2) {
+            assertMapsEqual(prefix, map1, map2);
+        } else if (value1 instanceof final List<?> list1 && value2 instanceof final List<?> list2) {
+            assertListsEqual(prefix, list1, list2);
+            assertListsEqual(prefix, list2, list1);
         } else {
             assertEquals(value1, value2, prefix);
         }

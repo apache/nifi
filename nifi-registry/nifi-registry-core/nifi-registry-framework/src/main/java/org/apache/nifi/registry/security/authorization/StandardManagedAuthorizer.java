@@ -166,14 +166,14 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             writer.writeStartElement("managedAuthorizations");
 
             writer.writeStartElement(ACCESS_POLICY_PROVIDER_ELEMENT);
-            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-                writer.writeCharacters(((ConfigurableAccessPolicyProvider) accessPolicyProvider).getFingerprint());
+            if (accessPolicyProvider instanceof final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
+                writer.writeCharacters(configurableAccessPolicyProvider.getFingerprint());
             }
             writer.writeEndElement();
 
             writer.writeStartElement(USER_GROUP_PROVIDER_ELEMENT);
-            if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-                writer.writeCharacters(((ConfigurableUserGroupProvider) userGroupProvider).getFingerprint());
+            if (userGroupProvider instanceof final ConfigurableUserGroupProvider configurableUserGroupProvider) {
+                writer.writeCharacters(configurableUserGroupProvider.getFingerprint());
             }
             writer.writeEndElement();
 

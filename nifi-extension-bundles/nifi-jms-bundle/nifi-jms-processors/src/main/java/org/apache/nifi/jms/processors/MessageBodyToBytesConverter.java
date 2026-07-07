@@ -97,26 +97,26 @@ abstract class MessageBodyToBytesConverter {
             while (true) {
                 try {
                     Object element = message.readObject();
-                    if (element instanceof Boolean) {
-                        dataOutputStream.writeBoolean((Boolean) element);
-                    } else if (element instanceof byte[]) {
-                        dataOutputStream.write((byte[]) element);
-                    } else if (element instanceof Byte) {
-                        dataOutputStream.writeByte((Byte) element);
-                    } else if (element instanceof Short) {
-                        dataOutputStream.writeShort((Short) element);
-                    } else if (element instanceof Integer) {
-                        dataOutputStream.writeInt((Integer) element);
-                    } else if (element instanceof Long) {
-                        dataOutputStream.writeLong((Long) element);
-                    } else if (element instanceof Float) {
-                        dataOutputStream.writeFloat((Float) element);
-                    } else if (element instanceof Double) {
-                        dataOutputStream.writeDouble((Double) element);
-                    } else if (element instanceof Character) {
-                        dataOutputStream.writeChar((Character) element);
-                    } else if (element instanceof String) {
-                        dataOutputStream.writeUTF((String) element);
+                    if (element instanceof final Boolean bool) {
+                        dataOutputStream.writeBoolean(bool);
+                    } else if (element instanceof final byte[] bytes) {
+                        dataOutputStream.write(bytes);
+                    } else if (element instanceof final Byte aByte) {
+                        dataOutputStream.writeByte(aByte);
+                    } else if (element instanceof final Short shortObj) {
+                        dataOutputStream.writeShort(shortObj);
+                    } else if (element instanceof final Integer integerObj) {
+                        dataOutputStream.writeInt(integerObj);
+                    } else if (element instanceof final Long longObj) {
+                        dataOutputStream.writeLong(longObj);
+                    } else if (element instanceof final Float floatObj) {
+                        dataOutputStream.writeFloat(floatObj);
+                    } else if (element instanceof final Double doubleObj) {
+                        dataOutputStream.writeDouble(doubleObj);
+                    } else if (element instanceof final Character character) {
+                        dataOutputStream.writeChar(character);
+                    } else if (element instanceof final String string) {
+                        dataOutputStream.writeUTF(string);
                     } else {
                         throw new MessageConversionException("Unsupported type in " + StreamMessage.class.getSimpleName() + ": '" + element.getClass() + "'");
                     }

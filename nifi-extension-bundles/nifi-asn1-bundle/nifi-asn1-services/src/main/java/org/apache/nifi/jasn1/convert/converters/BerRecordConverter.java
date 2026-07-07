@@ -66,8 +66,8 @@ public class BerRecordConverter implements JASN1TypeAndValueConverter {
             String fieldName = field.getFieldName();
 
             final Object value = invokeGetter(berRecord, toGetterMethod(fieldName));
-            if (value instanceof BerType) {
-                record.setValue(field, converter.convertValue((BerType) value, field.getDataType()));
+            if (value instanceof final BerType berType) {
+                record.setValue(field, converter.convertValue(berType, field.getDataType()));
             }
         }
 

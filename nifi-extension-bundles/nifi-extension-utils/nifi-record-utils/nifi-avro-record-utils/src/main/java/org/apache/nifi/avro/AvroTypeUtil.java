@@ -540,8 +540,8 @@ public class AvroTypeUtil {
     public static ByteBuffer convertByteArray(final Object[] bytes) {
         final ByteBuffer bb = ByteBuffer.allocate(bytes.length);
         for (final Object o : bytes) {
-            if (o instanceof Byte) {
-                bb.put(((Byte) o).byteValue());
+            if (o instanceof final Byte byteObj) {
+                bb.put(byteObj);
             } else {
                 throw new IllegalTypeConversionException("Cannot convert value " + bytes + " of type " + bytes.getClass() + " to ByteBuffer");
             }
@@ -689,7 +689,7 @@ public class AvroTypeUtil {
         } else {
             Object defaultValue = field.defaultVal();
             if (defaultValue != null && fieldSchema.getType() == Schema.Type.ARRAY && !DataTypeUtils.isArrayTypeCompatible(defaultValue, ((ArrayDataType) dataType).getElementType())) {
-                defaultValue = defaultValue instanceof List ? ((List<?>) defaultValue).toArray() : new Object[0];
+                defaultValue = defaultValue instanceof final List<?> list ? list.toArray() : new Object[0];
             }
             recordFields.add(new RecordField(fieldName, dataType, defaultValue, field.aliases(), nullable));
         }
@@ -753,20 +753,20 @@ public class AvroTypeUtil {
                 if (logicalType != null && LOGICAL_TYPE_DECIMAL.equals(logicalType.getName())) {
                     final LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
                     final BigDecimal rawDecimal;
-                    if (rawValue instanceof BigDecimal) {
-                        rawDecimal = (BigDecimal) rawValue;
+                    if (rawValue instanceof final BigDecimal bigDecimal) {
+                        rawDecimal = bigDecimal;
 
-                    } else if (rawValue instanceof Double) {
-                        rawDecimal = BigDecimal.valueOf((Double) rawValue);
+                    } else if (rawValue instanceof final Double doubleObj) {
+                        rawDecimal = BigDecimal.valueOf(doubleObj);
 
-                    } else if (rawValue instanceof String) {
-                        rawDecimal = new BigDecimal((String) rawValue);
+                    } else if (rawValue instanceof final String string) {
+                        rawDecimal = new BigDecimal(string);
 
-                    } else if (rawValue instanceof Integer) {
-                        rawDecimal = new BigDecimal((Integer) rawValue);
+                    } else if (rawValue instanceof final Integer integer) {
+                        rawDecimal = new BigDecimal(integer);
 
-                    } else if (rawValue instanceof Long) {
-                        rawDecimal = new BigDecimal((Long) rawValue);
+                    } else if (rawValue instanceof final Long longObj) {
+                        rawDecimal = new BigDecimal(longObj);
 
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a logical decimal");
@@ -790,8 +790,8 @@ public class AvroTypeUtil {
                     }
                     return ByteBuffer.wrap(bytes);
                 }
-                if (rawValue instanceof String) {
-                    final byte[] bytes = ((String) rawValue).getBytes(charset);
+                if (rawValue instanceof final String string) {
+                    final byte[] bytes = string.getBytes(charset);
                     if (fieldSchema.getType() == Type.FIXED) {
                         final int expectedSize = fieldSchema.getFixedSize();
                         if (bytes.length != expectedSize) {
@@ -895,10 +895,10 @@ public class AvroTypeUtil {
                 return convertUnionFieldValue(rawValue, fieldSchema, schema -> convertToAvroObject(rawValue, schema, fieldName, charset), fieldName);
             case ARRAY:
                 final Object[] objectArray;
-                if (rawValue instanceof List) {
-                    objectArray = ((List) rawValue).toArray();
-                } else if (rawValue instanceof Object[]) {
-                    objectArray = (Object[]) rawValue;
+                if (rawValue instanceof final List list) {
+                    objectArray = list.toArray();
+                } else if (rawValue instanceof final Object[] objects) {
+                    objectArray = objects;
                 } else {
                     throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to an Array");
                 }
@@ -1083,8 +1083,8 @@ public class AvroTypeUtil {
     }
 
     private static Integer getBinarySize(final Object value) {
-        if (value instanceof byte[]) {
-            return ((byte[]) value).length;
+        if (value instanceof final byte[] bytes) {
+            return bytes.length;
         }
         if (value instanceof final ByteBuffer byteBuffer) {
             return byteBuffer.remaining();

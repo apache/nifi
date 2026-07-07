@@ -581,8 +581,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         // the server has been started, and at that point it is too late to set it in the configuration for the context handler so we set it afterwards.
         for (final ServletHolder holder : contextHandler.getServletHandler().getServlets()) {
             final Servlet servlet = holder.getServlet();
-            if (servlet instanceof ListenHTTPServlet) {
-                ((ListenHTTPServlet) servlet).setPort(connector.getLocalPort());
+            if (servlet instanceof final ListenHTTPServlet listenHTTPServlet) {
+                listenHTTPServlet.setPort(connector.getLocalPort());
             }
         }
 

@@ -83,8 +83,8 @@ public class MoveHDFSTest {
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "/source");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
         for (ValidationResult vr : results) {
@@ -104,8 +104,8 @@ public class MoveHDFSTest {
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
     }

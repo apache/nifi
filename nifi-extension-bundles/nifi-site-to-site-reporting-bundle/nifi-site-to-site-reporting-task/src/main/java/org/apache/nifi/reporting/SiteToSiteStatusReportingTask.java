@@ -196,8 +196,8 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 if (transaction != null) {
                     transaction.error();
                 }
-                if (e instanceof ProcessException) {
-                    throw (ProcessException) e;
+                if (e instanceof final ProcessException processException) {
+                    throw processException;
                 } else {
                     throw new ProcessException("Failed to send Status Records to destination due to IOException:" + e.getMessage(), e);
                 }

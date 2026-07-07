@@ -96,20 +96,20 @@ public class StandardPreparedQuery implements PreparedQuery {
                 } else if (evaluator instanceof final AllAttributesEvaluator allAttrsEval) {
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
 
-                    if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        attributes.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                    if (iteratingEval instanceof final MultiNamedAttributeEvaluator multiNamedAttributeEvaluator) {
+                        attributes.addAll(multiNamedAttributeEvaluator.getAttributeNames());
                     }
                 } else if (evaluator instanceof final AnyAttributeEvaluator allAttrsEval) {
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
 
-                    if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        attributes.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                    if (iteratingEval instanceof final MultiNamedAttributeEvaluator multiNamedAttributeEvaluator) {
+                        attributes.addAll(multiNamedAttributeEvaluator.getAttributeNames());
                     }
                 } else if (evaluator instanceof final MappingEvaluator<?> allAttrsEval) {
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
 
-                    if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        attributes.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                    if (iteratingEval instanceof final MultiNamedAttributeEvaluator multiNamedAttributeEvaluator) {
+                        attributes.addAll(multiNamedAttributeEvaluator.getAttributeNames());
                     }
                 }
             }
@@ -142,22 +142,22 @@ public class StandardPreparedQuery implements PreparedQuery {
                     }
                 } else if (evaluator instanceof final AllAttributesEvaluator allAttrsEval) {
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
-                    if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        variables.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                    if (iteratingEval instanceof final MultiNamedAttributeEvaluator multiNamedAttributeEvaluator) {
+                        variables.addAll(multiNamedAttributeEvaluator.getAttributeNames());
                     } else if (iteratingEval instanceof MultiMatchAttributeEvaluator) {
                         return VariableImpact.ALWAYS_IMPACTED;
                     }
                 } else if (evaluator instanceof final AnyAttributeEvaluator allAttrsEval) {
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
-                    if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        variables.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                    if (iteratingEval instanceof final MultiNamedAttributeEvaluator multiNamedAttributeEvaluator) {
+                        variables.addAll(multiNamedAttributeEvaluator.getAttributeNames());
                     } else if (iteratingEval instanceof MultiMatchAttributeEvaluator) {
                         return VariableImpact.ALWAYS_IMPACTED;
                     }
                 } else if (evaluator instanceof final MappingEvaluator<?> allAttrsEval) {
                     final MultiAttributeEvaluator iteratingEval = allAttrsEval.getVariableIteratingEvaluator();
-                    if (iteratingEval instanceof MultiNamedAttributeEvaluator) {
-                        variables.addAll(((MultiNamedAttributeEvaluator) iteratingEval).getAttributeNames());
+                    if (iteratingEval instanceof final MultiNamedAttributeEvaluator multiNamedAttributeEvaluator) {
+                        variables.addAll(multiNamedAttributeEvaluator.getAttributeNames());
                     }
                 }
             }

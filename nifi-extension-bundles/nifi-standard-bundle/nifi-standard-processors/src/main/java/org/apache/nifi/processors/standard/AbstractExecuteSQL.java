@@ -361,7 +361,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                         try {
                                             nrOfRows.set(sqlWriter.writeResultSet(resultSet, out, getLogger(), null));
                                         } catch (Exception e) {
-                                            throw (e instanceof ProcessException) ? (ProcessException) e : new ProcessException(e);
+                                            throw (e instanceof final ProcessException processException) ? processException : new ProcessException(e);
                                         }
                                     });
 
@@ -426,8 +426,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     // Remove any result set FlowFile(s) and propagate the exception
                                     session.remove(resultSetFF);
                                     session.remove(resultSetFlowFiles);
-                                    if (e instanceof ProcessException) {
-                                        throw (ProcessException) e;
+                                    if (e instanceof final ProcessException processException) {
+                                        throw processException;
                                     } else {
                                         throw new ProcessException(e);
                                     }

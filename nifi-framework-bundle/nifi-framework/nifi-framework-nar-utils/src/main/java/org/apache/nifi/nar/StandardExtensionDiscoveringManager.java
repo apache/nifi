@@ -749,9 +749,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final ClassLoader removedBundleClassLoader = removedBundle.getClassLoader();
         classLoaderBundleLookup.remove(removedBundleClassLoader);
 
-        if (removedBundleClassLoader instanceof URLClassLoader) {
+        if (removedBundleClassLoader instanceof final URLClassLoader urlClassLoader) {
             try {
-                ((URLClassLoader) removedBundleClassLoader).close();
+                urlClassLoader.close();
             } catch (final IOException e) {
                 logger.warn("Failed to close ClassLoader for {}", bundleCoordinate, e);
             }
@@ -952,8 +952,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         sb.append(prefix).append("Files loaded: ").append(bundle.getBundleDetails().getCoordinate().getCoordinate());
 
         final ClassLoader classLoader = bundle.getClassLoader();
-        if (classLoader instanceof URLClassLoader) {
-            final URL[] urls = ((URLClassLoader) bundle.getClassLoader()).getURLs();
+        if (classLoader instanceof final URLClassLoader urlClassLoader) {
+            final URL[] urls = urlClassLoader.getURLs();
             for (final URL url : urls) {
                 sb.append(prefix).append("    ").append(url.getFile());
             }

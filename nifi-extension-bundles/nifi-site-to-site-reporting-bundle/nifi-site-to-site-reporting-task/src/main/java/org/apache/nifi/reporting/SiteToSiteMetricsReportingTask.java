@@ -216,8 +216,8 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                 if (transaction != null) {
                     transaction.error();
                 }
-                if (e instanceof ProcessException) {
-                    throw (ProcessException) e;
+                if (e instanceof final ProcessException processException) {
+                    throw processException;
                 } else {
                     throw new ProcessException("Failed to send metrics to destination due to:" + e.getMessage(), e);
                 }

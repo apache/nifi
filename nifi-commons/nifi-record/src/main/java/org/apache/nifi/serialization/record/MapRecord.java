@@ -340,8 +340,8 @@ public class MapRecord implements Record {
                 continue;
             }
 
-            if (thisValue instanceof Object[] && otherValue instanceof Object[]) {
-                if (!Arrays.equals((Object[]) thisValue, (Object[]) otherValue)) {
+            if (thisValue instanceof final Object[] thisObjects && otherValue instanceof final Object[] otherObjects) {
+                if (!Arrays.equals(thisObjects, otherObjects)) {
                     return false;
                 }
             } else {
@@ -427,8 +427,8 @@ public class MapRecord implements Record {
             values.forEach((key, value) -> {
                 Object valueToAdd;
 
-                if (value instanceof MapRecord) {
-                    valueToAdd = ((MapRecord) value).toMap(true);
+                if (value instanceof final MapRecord mapRecord) {
+                    valueToAdd = mapRecord.toMap(true);
                 } else if (value != null
                         && value.getClass().isArray()
                         && ((Object[]) value).length > 0

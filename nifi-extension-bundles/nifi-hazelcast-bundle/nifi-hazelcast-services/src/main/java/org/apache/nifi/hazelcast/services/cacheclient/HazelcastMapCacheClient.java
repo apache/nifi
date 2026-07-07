@@ -203,8 +203,8 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     private <S> String serializeCacheEntryKey(final S key, final Serializer<S> serializer) throws IOException {
         final String result;
 
-        if (key instanceof String) {
-            result = (String) key;
+        if (key instanceof final String string) {
+            result = string;
         } else {
             final ByteArrayOutputStream stream = new ByteArrayOutputStream();
             serializer.serialize(key, stream);

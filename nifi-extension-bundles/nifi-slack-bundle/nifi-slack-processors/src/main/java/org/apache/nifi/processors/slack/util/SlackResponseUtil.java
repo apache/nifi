@@ -45,7 +45,7 @@ public class SlackResponseUtil {
 
     public static boolean isRateLimited(final Throwable throwable) {
         final Throwable cause = getCauseOfPartialThreadException(throwable);
-        return cause instanceof SlackApiException && 429 == ((SlackApiException) cause).getResponse().code();
+        return cause instanceof final SlackApiException slackApiException && 429 == slackApiException.getResponse().code();
     }
 
     public static int getRetryAfterSeconds(final Throwable throwable) {

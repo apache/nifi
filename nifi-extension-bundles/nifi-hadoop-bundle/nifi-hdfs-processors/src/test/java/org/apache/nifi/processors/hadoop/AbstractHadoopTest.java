@@ -73,8 +73,8 @@ public class AbstractHadoopTest {
         runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "target/classes");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
 
@@ -82,8 +82,8 @@ public class AbstractHadoopTest {
         runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "target/doesnotexist");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
     }

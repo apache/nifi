@@ -457,8 +457,8 @@ public class SimpleProcessLogger implements ComponentLog {
     private Throwable findLastThrowable(final Object[] arguments) {
         final Object lastArgument = (arguments == null || arguments.length == 0) ? null : arguments[arguments.length - 1];
         Throwable lastThrowable = null;
-        if (lastArgument instanceof Throwable) {
-            lastThrowable = (Throwable) lastArgument;
+        if (lastArgument instanceof final Throwable throwable) {
+            lastThrowable = throwable;
         }
         return lastThrowable;
     }

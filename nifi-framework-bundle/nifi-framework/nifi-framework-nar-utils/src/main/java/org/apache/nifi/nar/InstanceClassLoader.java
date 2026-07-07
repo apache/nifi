@@ -77,8 +77,8 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
         super.close();
 
         final ClassLoader parent = getParent();
-        if (parent instanceof SharedInstanceClassLoader) {
-            ((SharedInstanceClassLoader) parent).close();
+        if (parent instanceof final SharedInstanceClassLoader sharedInstanceClassLoader) {
+            sharedInstanceClassLoader.close();
         }
         ReflectionUtils.invalidateCacheForClassLoader(this);
     }

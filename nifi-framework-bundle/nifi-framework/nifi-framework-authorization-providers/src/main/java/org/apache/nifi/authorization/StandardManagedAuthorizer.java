@@ -166,14 +166,14 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             writer.writeStartElement("managedAuthorizations");
 
             writer.writeStartElement(ACCESS_POLICY_PROVIDER_ELEMENT);
-            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-                writer.writeCharacters(((ConfigurableAccessPolicyProvider) accessPolicyProvider).getFingerprint());
+            if (accessPolicyProvider instanceof final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
+                writer.writeCharacters(configurableAccessPolicyProvider.getFingerprint());
             }
             writer.writeEndElement();
 
             writer.writeStartElement(USER_GROUP_PROVIDER_ELEMENT);
-            if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-                writer.writeCharacters(((ConfigurableUserGroupProvider) userGroupProvider).getFingerprint());
+            if (userGroupProvider instanceof final ConfigurableUserGroupProvider configurableUserGroupProvider) {
+                writer.writeCharacters(configurableUserGroupProvider.getFingerprint());
             }
             writer.writeEndElement();
 
@@ -203,12 +203,12 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
 
         final FingerprintHolder fingerprintHolder = parseFingerprint(fingerprint);
 
-        if (StringUtils.isNotBlank(fingerprintHolder.getPolicyFingerprint()) && accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-            ((ConfigurableAccessPolicyProvider) accessPolicyProvider).inheritFingerprint(fingerprintHolder.getPolicyFingerprint());
+        if (StringUtils.isNotBlank(fingerprintHolder.getPolicyFingerprint()) && accessPolicyProvider instanceof final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
+            configurableAccessPolicyProvider.inheritFingerprint(fingerprintHolder.getPolicyFingerprint());
         }
 
-        if (StringUtils.isNotBlank(fingerprintHolder.getUserGroupFingerprint()) && userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            ((ConfigurableUserGroupProvider) userGroupProvider).inheritFingerprint(fingerprintHolder.getUserGroupFingerprint());
+        if (StringUtils.isNotBlank(fingerprintHolder.getUserGroupFingerprint()) && userGroupProvider instanceof final ConfigurableUserGroupProvider configurableUserGroupProvider) {
+            configurableUserGroupProvider.inheritFingerprint(fingerprintHolder.getUserGroupFingerprint());
         }
     }
 
@@ -216,12 +216,12 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         final FingerprintHolder fingerprintHolder = parseFingerprint(fingerprint);
 
-        if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-            ((ConfigurableAccessPolicyProvider) accessPolicyProvider).forciblyInheritFingerprint(fingerprintHolder.getPolicyFingerprint());
+        if (accessPolicyProvider instanceof final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
+            configurableAccessPolicyProvider.forciblyInheritFingerprint(fingerprintHolder.getPolicyFingerprint());
         }
 
-        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-            ((ConfigurableUserGroupProvider) userGroupProvider).forciblyInheritFingerprint(fingerprintHolder.getUserGroupFingerprint());
+        if (userGroupProvider instanceof final ConfigurableUserGroupProvider configurableUserGroupProvider) {
+            configurableUserGroupProvider.forciblyInheritFingerprint(fingerprintHolder.getUserGroupFingerprint());
         }
     }
 
@@ -230,16 +230,16 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         final FingerprintHolder fingerprintHolder = parseFingerprint(proposedFingerprint);
 
         if (StringUtils.isNotBlank(fingerprintHolder.getPolicyFingerprint())) {
-            if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-                ((ConfigurableAccessPolicyProvider) accessPolicyProvider).checkInheritability(fingerprintHolder.getPolicyFingerprint());
+            if (accessPolicyProvider instanceof final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider) {
+                configurableAccessPolicyProvider.checkInheritability(fingerprintHolder.getPolicyFingerprint());
             } else {
                 throw new UninheritableAuthorizationsException("Policy fingerprint is not blank and the configured AccessPolicyProvider does not support fingerprinting.");
             }
         }
 
         if (StringUtils.isNotBlank(fingerprintHolder.getUserGroupFingerprint())) {
-            if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
-                ((ConfigurableUserGroupProvider) userGroupProvider).checkInheritability(fingerprintHolder.getUserGroupFingerprint());
+            if (userGroupProvider instanceof final ConfigurableUserGroupProvider configurableUserGroupProvider) {
+                configurableUserGroupProvider.checkInheritability(fingerprintHolder.getUserGroupFingerprint());
             } else {
                 throw new UninheritableAuthorizationsException("User/Group fingerprint is not blank and the configured UserGroupProvider does not support fingerprinting.");
             }

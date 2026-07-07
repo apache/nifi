@@ -130,8 +130,8 @@ public class LookupTableEventRecord implements Record {
         }
 
         // EXPLICIT_VALUE type
-        if (recordValue instanceof String) {
-            return (String) recordValue;
+        if (recordValue instanceof final String string) {
+            return string;
         }
 
         return null;

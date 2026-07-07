@@ -103,13 +103,13 @@ public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCrede
         final Map<String, Object> additionalParameters = subjectToken.getAdditionalParameters();
         if (additionalParameters != null) {
             final Object idToken = additionalParameters.get(SUBJECT_TOKEN_PARAMETER_ID_TOKEN);
-            if (idToken instanceof String && StringUtils.isNotBlank((String) idToken)) {
-                return (String) idToken;
+            if (idToken instanceof final String idTokenString  && StringUtils.isNotBlank(idTokenString)) {
+                return idTokenString;
             }
 
             final Object accessToken = additionalParameters.get(SUBJECT_TOKEN_PARAMETER_ACCESS_TOKEN);
-            if (accessToken instanceof String && StringUtils.isNotBlank((String) accessToken)) {
-                return (String) accessToken;
+            if (accessToken instanceof final String accessTokenString && StringUtils.isNotBlank(accessTokenString)) {
+                return accessTokenString;
             }
         }
 

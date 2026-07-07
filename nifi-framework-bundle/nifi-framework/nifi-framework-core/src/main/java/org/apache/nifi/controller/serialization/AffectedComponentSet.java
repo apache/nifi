@@ -202,18 +202,18 @@ public class AffectedComponentSet {
 
         final List<ComponentNode> referencingComponents = controllerService.getReferences().findRecursiveReferences(ComponentNode.class);
         for (final ComponentNode reference : referencingComponents) {
-            if (reference instanceof ControllerServiceNode) {
-                addControllerService((ControllerServiceNode) reference);
-            } else if (reference instanceof ProcessorNode) {
-                addProcessor((ProcessorNode) reference);
-            } else if (reference instanceof ReportingTaskNode) {
-                addReportingTask((ReportingTaskNode) reference);
-            } else if (reference instanceof FlowAnalysisRuleNode) {
-                addFlowAnalysisRule((FlowAnalysisRuleNode) reference);
-            } else if (reference instanceof ParameterProviderNode) {
-                addParameterProvider((ParameterProviderNode) reference);
-            } else if (reference instanceof FlowRegistryClientNode) {
-                addFlowRegistryClient((FlowRegistryClientNode) reference);
+            if (reference instanceof final ControllerServiceNode controllerServiceNode) {
+                addControllerService(controllerServiceNode);
+            } else if (reference instanceof final ProcessorNode processorNode) {
+                addProcessor(processorNode);
+            } else if (reference instanceof final ReportingTaskNode reportingTaskNode) {
+                addReportingTask(reportingTaskNode);
+            } else if (reference instanceof final FlowAnalysisRuleNode flowAnalysisRuleNode) {
+                addFlowAnalysisRule(flowAnalysisRuleNode);
+            } else if (reference instanceof final ParameterProviderNode parameterProviderNode) {
+                addParameterProvider(parameterProviderNode);
+            } else if (reference instanceof final FlowRegistryClientNode flowRegistryClientNode) {
+                addFlowRegistryClient(flowRegistryClientNode);
             }
         }
     }
