@@ -30,18 +30,33 @@
         @if (rulesList.length > 0 || !newRule) {
             <div class="flex flex-col gap-y-1">
                 <div class="flex gap-x-2 items-center">
-                    <div class="flex gap-x-1 items-center">
-                        <div>Use original FlowFile for matching rules</div>
-                        <i
-                            class="fa fa-info-circle primary-color"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            tooltipInputData="If disabled rules will be executed using a clone of the original FlowFile"></i>
-                    </div>
+                    <div>FlowFile policy</div>
                     <form [formGroup]="flowFilePolicyForm">
-                        <mat-slide-toggle
-                            formControlName="useOriginalFlowFilePolicy"
-                            (change)="flowFilePolicyToggled($event)"></mat-slide-toggle>
+                        <mat-button-toggle-group
+                            formControlName="flowFilePolicy"
+                            (change)="flowFilePolicyChanged($event.value)">
+                            <mat-button-toggle
+                                value="USE_CLONE"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="Each matching rule is applied to a clone of the original FlowFile">
+                                Clone
+                            </mat-button-toggle>
+                            <mat-button-toggle
+                                value="USE_ORIGINAL"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="All matching rules are applied to the original FlowFile; if multiple rules update the same attribute, the last matching rule wins">
+                                Original
+                            </mat-button-toggle>
+                            <mat-button-toggle
+                                value="SEQUENTIAL"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="Rules are evaluated in order and applied to the original FlowFile; each matching rule's attribute updates are immediately visible to subsequent rules">
+                                Sequential
+                            </mat-button-toggle>
+                        </mat-button-toggle-group>
                     </form>
                 </div>
             </div>
@@ -56,7 +71,7 @@
                 }
             </form>
             <div class="flex gap-x-1">
-                @if (flowFilePolicy === 'USE_ORIGINAL' && !reorderDisabled()) {
+                @if ((flowFilePolicy === 'USE_ORIGINAL' || flowFilePolicy === 'SEQUENTIAL') && !reorderDisabled()) {
                     <div class="flex gap-x-2 items-center">
                         <div>Reorder rules</div>
                         <mat-slide-toggle
