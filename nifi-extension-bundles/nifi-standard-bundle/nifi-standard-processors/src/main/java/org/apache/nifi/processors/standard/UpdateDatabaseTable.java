@@ -588,16 +588,17 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 }
 
                 if (!columnsToAdd.isEmpty()) {
-                    final List<ColumnDefinition> columnDefinitions = columnsToAdd.stream().map(columnDescription ->
-                            new StandardColumnDefinition(
-                                    enquoteIdentifier(s, columnDescription.getColumnName(), quoteColumnNames),
-                                    columnDescription.getDataType(),
-                                    columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
-                                    columnDescription.isRequired()
-                            )
-                            )
-                            .map(ColumnDefinition.class::cast)
-                            .toList();
+                    final List<ColumnDefinition> columnDefinitions = new ArrayList<>(columnsToAdd.size());
+                    for (final ColumnDescription columnDescription : columnsToAdd) {
+                        final ColumnDefinition columnDefinition = new StandardColumnDefinition(
+                                enquoteIdentifier(s, columnDescription.getColumnName(), quoteColumnNames),
+                                columnDescription.getDataType(),
+                                columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
+                                columnDescription.isRequired()
+                        );
+                        columnDefinitions.add(columnDefinition);
+                    }
+
                     final String qualifiedTableName = enquoteIdentifier(s, tableName, quoteTableName);
                     final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), qualifiedTableName, columnDefinitions);
                     final StatementRequest statementRequest = new StandardStatementRequest(StatementType.ALTER, tableDefinition);
@@ -708,17 +709,13 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         );
     }
 
-    private String enquoteIdentifier(final Statement statement, final String identifier, final boolean quoteIdentifier) {
+    private String enquoteIdentifier(final Statement statement, final String identifier, final boolean quoteIdentifier) throws SQLException {
         final String enquoted;
 
         if (identifier == null) {
             enquoted = identifier;
         } else if (quoteIdentifier) {
-            try {
-                enquoted = statement.enquoteIdentifier(identifier, quoteIdentifier);
-            } catch (final SQLException e) {
-                throw new IllegalArgumentException("Enquote Identifier [%s] failed".formatted(identifier), e);
-            }
+            enquoted = statement.enquoteIdentifier(identifier, quoteIdentifier);
         } else {
             enquoted = identifier;
         }
