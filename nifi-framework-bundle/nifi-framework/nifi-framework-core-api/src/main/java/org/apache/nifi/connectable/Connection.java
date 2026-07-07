@@ -68,6 +68,16 @@ public interface Connection extends Authorizable, VersionedComponent {
 
     void setDestination(final Connectable newDestination);
 
+    /**
+     * Verifies that this Connection's destination may be changed, based solely on the current (existing) destination
+     * and the FlowFiles the Connection is holding. This applies the same guards as {@link #setDestination(Connectable)}
+     * so that a pre-check (e.g. the two-phase cluster verify) rejects exactly what the subsequent mutation would reject.
+     *
+     * @throws IllegalStateException if the current destination is running and is not exempt, or FlowFiles from this
+     * Connection are currently held by the destination
+     */
+    void verifyCanUpdateDestination() throws IllegalStateException;
+
     void setProcessGroup(ProcessGroup processGroup);
 
     ProcessGroup getProcessGroup();
