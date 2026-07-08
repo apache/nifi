@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -517,7 +518,8 @@ public class TestNodeClusterCoordinator {
         requestConnection(nodeId2, coordinator);
 
         assertNull(coordinator.getPendingDisconnectionThread(nodeId2));
-        assertTrue(disconnectThread.isInterrupted());
+        disconnectThread.join(5000);
+        assertFalse(disconnectThread.isAlive());
     }
 
     private NodeIdentifier createNodeId(final int index) {
