@@ -68,7 +68,9 @@ public class TestEnrichGraphRecord {
 
     @Test
     void testSuccessfulNodeProcessingProducesSingleResponseFlowFile() throws Exception {
-        final String inputContent = "[{\"id\":\"1\",\"price\":100},{\"id\":\"2\",\"age\":\"10\"}]";
+        final String inputContent = """
+                [{"id":"1","price":100},{"id":"2","age":"10"}]
+                """;
         runner.enqueue(inputContent.getBytes());
 
         runner.run();
@@ -93,7 +95,9 @@ public class TestEnrichGraphRecord {
 
     @Test
     void testPartialFailureWritesFailedRecords() throws Exception {
-        final String inputContent = "[{\"id\":\"1\",\"price\":100},{\"id\":\"2\",\"forceFailure\":true}]";
+        final String inputContent = """
+                [{"id":"1","price":100},{"id":"2","forceFailure":true}]
+                """;
         runner.enqueue(inputContent.getBytes());
 
         runner.run();
@@ -109,7 +113,9 @@ public class TestEnrichGraphRecord {
     @Test
     void testDynamicPropertiesAreUsedInsteadOfDefaultFields() throws Exception {
         runner.setProperty("cost", "/price");
-        final String inputContent = "[{\"id\":\"1\",\"price\":100,\"name\":\"Widget\"}]";
+        final String inputContent = """
+                [{"id":"1","price":100,"name":"Widget"}]
+                """;
         runner.enqueue(inputContent.getBytes());
 
         runner.run();
@@ -127,10 +133,46 @@ public class TestEnrichGraphRecord {
     }
 
     @Test
+    void testNestedArraysAndRecordsAreNormalizedRecursively() throws Exception {
+        final String inputContent = """
+                [{"id":"1","attributes":[[{"name":"alpha","score":1}],[{"name":"beta","score":2,"metadata":{"source":"test"}}]]}]
+                """;
+        runner.enqueue(inputContent.getBytes());
+
+        runner.run();
+
+        runner.assertTransferCount(EnrichGraphRecord.ORIGINAL, 1);
+        runner.assertTransferCount(EnrichGraphRecord.FAILURE, 0);
+        runner.assertTransferCount(EnrichGraphRecord.RESPONSE, 1);
+
+        final MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(EnrichGraphRecord.RESPONSE).getFirst();
+        final List<Map<String, Object>> responses = objectMapper.readValue(runner.getContentAsByteArray(responseFlowFile), new TypeReference<>() {
+        });
+        final Map<String, Object> properties = (Map<String, Object>) responses.getFirst().get("properties");
+
+        final List<?> attributes = (List<?>) properties.get("attributes");
+        assertEquals(2, attributes.size());
+
+        final List<?> firstNestedArray = (List<?>) attributes.getFirst();
+        final Map<String, Object> firstNestedRecord = (Map<String, Object>) firstNestedArray.getFirst();
+        assertEquals("alpha", firstNestedRecord.get("name"));
+        assertEquals(1, firstNestedRecord.get("score"));
+
+        final List<?> secondNestedArray = (List<?>) attributes.get(1);
+        final Map<String, Object> secondNestedRecord = (Map<String, Object>) secondNestedArray.getFirst();
+        assertEquals("beta", secondNestedRecord.get("name"));
+        assertEquals(2, secondNestedRecord.get("score"));
+        final Map<String, Object> metadata = (Map<String, Object>) secondNestedRecord.get("metadata");
+        assertEquals("test", metadata.get("source"));
+    }
+
+    @Test
     void testEdgeSelectionIsPassedToQueryGenerator() throws Exception {
         runner.setProperty(EnrichGraphRecord.ELEMENT_TYPE, GraphElementType.EDGE.name());
         runner.setProperty(EnrichGraphRecord.ELEMENT_LABEL, "ASSOCIATED_WITH");
-        final String inputContent = "[{\"id\":\"1\",\"weight\":7}]";
+        final String inputContent = """
+                [{"id":"1","weight":7}]
+                """;
         runner.enqueue(inputContent.getBytes());
 
         runner.run();
@@ -147,7 +189,9 @@ public class TestEnrichGraphRecord {
 
     @Test
     void testTransientGraphFailureRollsBackForRetry() {
-        final String inputContent = "[{\"id\":\"1\",\"forceTransientFailure\":true}]";
+        final String inputContent = """
+                [{"id":"1","forceTransientFailure":true}]
+                """;
         runner.enqueue(inputContent.getBytes());
 
         assertThrows(AssertionError.class, () -> runner.run(1, true, true));

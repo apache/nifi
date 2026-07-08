@@ -31,8 +31,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.graph.GraphClientService;
-import org.apache.nifi.graph.GraphElementType;
 import org.apache.nifi.graph.GraphClientTransientException;
+import org.apache.nifi.graph.GraphElementType;
 import org.apache.nifi.graph.GraphMutation;
 import org.apache.nifi.graph.GraphQueryGeneratorService;
 import org.apache.nifi.processor.ProcessContext;
@@ -50,7 +50,6 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
@@ -60,6 +59,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -281,7 +281,7 @@ public class EnrichGraphRecord extends AbstractGraphExecutor {
                         throw new IOException("Identifier field(s) not found in record, check the RecordPath expression");
                     }
 
-                    final LinkedHashMap<String, Object> identifierFieldNameToValue = new LinkedHashMap<>(identifierFieldValues.size());
+                    final Map<String, Object> identifierFieldNameToValue = new LinkedHashMap<>(identifierFieldValues.size());
                     final Set<String> identifierFieldNames = new HashSet<>();
                     for (final FieldValue identifierFieldValue : identifierFieldValues) {
                         final Object identifierValue = identifierFieldValue.getValue();
@@ -418,27 +418,78 @@ public class EnrichGraphRecord extends AbstractGraphExecutor {
     }
 
     private Object normalizeValue(final Object rawValue, final DataType rawDataType) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawDataType == null) {
+            return normalizeUntypedValue(rawValue);
+        }
+
         final RecordFieldType rawFieldType = rawDataType.getFieldType();
         if (RecordFieldType.ARRAY.equals(rawFieldType)) {
             final DataType arrayElementDataType = ((ArrayDataType) rawDataType).getElementType();
-            if (RecordFieldType.RECORD.getDataType().equals(arrayElementDataType)) {
-                final Object[] rawValueArray = (Object[]) rawValue;
+            if (rawValue instanceof final Object[] rawValueArray) {
                 final Object[] mappedValueArray = new Object[rawValueArray.length];
                 for (int index = 0; index < rawValueArray.length; index++) {
-                    final MapRecord mapRecord = (MapRecord) rawValueArray[index];
-                    mappedValueArray[index] = mapRecord.toMap(true);
+                    mappedValueArray[index] = normalizeValue(rawValueArray[index], arrayElementDataType);
                 }
                 return mappedValueArray;
             }
+            if (rawValue instanceof final List<?> rawValueList) {
+                final List<Object> mappedValueList = new ArrayList<>(rawValueList.size());
+                for (final Object rawArrayElement : rawValueList) {
+                    mappedValueList.add(normalizeValue(rawArrayElement, arrayElementDataType));
+                }
+                return mappedValueList;
+            }
 
-            return rawValue;
+            return normalizeUntypedValue(rawValue);
         }
 
-        if (RecordFieldType.RECORD.equals(rawFieldType)) {
-            final MapRecord mapRecord = (MapRecord) rawValue;
-            return mapRecord.toMap(true);
+        if (RecordFieldType.RECORD.equals(rawFieldType) && rawValue instanceof final Record rawRecord) {
+            return normalizeRecord(rawRecord);
         }
 
+        return normalizeUntypedValue(rawValue);
+    }
+
+    private Map<String, Object> normalizeRecord(final Record rawRecord) {
+        final Map<String, Object> normalizedRecord = new LinkedHashMap<>();
+        final Map<String, Object> rawRecordMap = rawRecord.toMap();
+        for (final Map.Entry<String, Object> rawRecordEntry : rawRecordMap.entrySet()) {
+            normalizedRecord.put(rawRecordEntry.getKey(), normalizeUntypedValue(rawRecordEntry.getValue()));
+        }
+        return normalizedRecord;
+    }
+
+    private Object normalizeUntypedValue(final Object rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawValue instanceof final Record rawRecord) {
+            return normalizeRecord(rawRecord);
+        }
+        if (rawValue instanceof final Object[] rawValueArray) {
+            final Object[] mappedValueArray = new Object[rawValueArray.length];
+            for (int index = 0; index < rawValueArray.length; index++) {
+                mappedValueArray[index] = normalizeUntypedValue(rawValueArray[index]);
+            }
+            return mappedValueArray;
+        }
+        if (rawValue instanceof final List<?> rawValueList) {
+            final List<Object> mappedValueList = new ArrayList<>(rawValueList.size());
+            for (final Object rawListElement : rawValueList) {
+                mappedValueList.add(normalizeUntypedValue(rawListElement));
+            }
+            return mappedValueList;
+        }
+        if (rawValue instanceof final Map<?, ?> rawValueMap) {
+            final Map<Object, Object> mappedValueMap = new LinkedHashMap<>(rawValueMap.size());
+            for (final Map.Entry<?, ?> rawValueEntry : rawValueMap.entrySet()) {
+                mappedValueMap.put(rawValueEntry.getKey(), normalizeUntypedValue(rawValueEntry.getValue()));
+            }
+            return mappedValueMap;
+        }
         return rawValue;
     }
 }
