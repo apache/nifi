@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -138,6 +139,19 @@ public class ClusteredProviderParamFlowSyncIT extends NiFiSystemIT {
         final List<NiFiInstance> nodes = List.of(node1, node2);
         assertNoNodeLogContains(nodes, GUARD_MESSAGE);
         assertNoNodeLogContains(nodes, "did not Match Cluster Flow");
+
+        // 5. The reconciled parameter resolves to the provider-supplied value (re-sourced from the Parameter
+        //    Provider), not the corrupted user-entered value or null. This makes the "reconciled as
+        //    provider-managed" guarantee explicit rather than only inferring it from the absent guard message.
+        final ParameterContextEntity reconciledContext =
+                getNifiClient().getParamContextClient().getParamContext(createdContext.getId(), false);
+        final String reconciledValue = reconciledContext.getComponent().getParameters().stream()
+                .filter(entity -> PARAM_NAME.equals(entity.getParameter().getName()))
+                .map(entity -> entity.getParameter().getValue())
+                .findFirst()
+                .orElse(null);
+        assertEquals("localhost", reconciledValue,
+                "Parameter [" + PARAM_NAME + "] must resolve to the provider-supplied value after reconciliation");
     }
 
     private void corruptProviderBackedParameter(final NiFiInstance node) throws IOException {

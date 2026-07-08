@@ -23,6 +23,7 @@ import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorSyncResult;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -48,6 +49,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
@@ -319,6 +321,15 @@ class VersionedFlowSynchronizerTest {
         existingContext.setParameters(Collections.singletonMap(paramName,
                 new Parameter.Builder().descriptor(descriptor).value("localhost").provided(true).build()));
 
+        // Stub the Parameter Provider as VALID and supplying the parameter, so reconciliation sources the value
+        // from the Provider (exercising createParameterMap's provider value-sourcing branch) rather than the
+        // "provided parameter not found" fallback that yields a null value.
+        when(parameterProviderNode.getIdentifier()).thenReturn(providerId);
+        when(parameterProviderNode.getValidationStatus()).thenReturn(ValidationStatus.VALID);
+        final ParameterGroup fetchedGroup = new ParameterGroup("Group", List.of(
+                new Parameter.Builder().descriptor(descriptor).value("provider-host").provided(true).build()));
+        when(parameterProviderNode.findFetchedParameterGroup("Group")).thenReturn(Optional.of(fetchedGroup));
+
         final StandardParameterContextManager contextManager = new StandardParameterContextManager();
         contextManager.addParameterContext(existingContext);
         when(flowManager.getParameterContextManager()).thenReturn(contextManager);
@@ -352,6 +363,8 @@ class VersionedFlowSynchronizerTest {
         final Optional<Parameter> reconciled = existingContext.getParameter(paramName);
         assertTrue(reconciled.isPresent(), "Parameter should still exist after reconciliation");
         assertTrue(reconciled.get().isProvided(), "Parameter must be reconciled as provider-supplied (provided=true)");
+        assertEquals("provider-host", reconciled.get().getValue(),
+                "Parameter value must be re-sourced from the Parameter Provider, not the corrupted serialized value or null");
     }
 
     private void setRootGroup() {
