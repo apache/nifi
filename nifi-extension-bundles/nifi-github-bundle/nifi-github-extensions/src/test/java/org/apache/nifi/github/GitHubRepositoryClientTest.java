@@ -29,10 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class GitHubRepositoryClientTest {
+class GitHubRepositoryClientTest {
 
     @Test
-    public void testResolveCommitAuthorReturnsLoginWhenAccountResolvable() throws IOException {
+    void testResolveCommitAuthorReturnsLoginWhenAccountResolvable() throws IOException {
         final GHUser ghUser = mock(GHUser.class);
         when(ghUser.getLogin()).thenReturn("octocat");
 
@@ -46,7 +46,7 @@ public class GitHubRepositoryClientTest {
     }
 
     @Test
-    public void testResolveCommitAuthorFallsBackToGitAuthorWhenAccountNotFound() throws IOException {
+    void testResolveCommitAuthorFallsBackToGitAuthorWhenAccountNotFound() throws IOException {
         final GHCommit ghCommit = mock(GHCommit.class);
         when(ghCommit.getAuthor()).thenThrow(new GHFileNotFoundException("/users/Copilot 404 Not Found"));
 
@@ -60,7 +60,7 @@ public class GitHubRepositoryClientTest {
     }
 
     @Test
-    public void testResolveCommitAuthorFallsBackToGitAuthorWhenNoAssociatedAccount() throws IOException {
+    void testResolveCommitAuthorFallsBackToGitAuthorWhenNoAssociatedAccount() throws IOException {
         final GHCommit ghCommit = mock(GHCommit.class);
         when(ghCommit.getAuthor()).thenReturn(null);
 
@@ -74,7 +74,7 @@ public class GitHubRepositoryClientTest {
     }
 
     @Test
-    public void testResolveCommitAuthorReturnsPlaceholderWhenNoAuthorAvailable() throws IOException {
+    void testResolveCommitAuthorReturnsPlaceholderWhenNoAuthorAvailable() throws IOException {
         final GHCommit ghCommit = mock(GHCommit.class);
         when(ghCommit.getAuthor()).thenThrow(new GHFileNotFoundException("/users/Copilot 404 Not Found"));
 
