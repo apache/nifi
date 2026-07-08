@@ -34,8 +34,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -164,17 +164,23 @@ public class TestAvroSchemaRegistry {
 
     @ParameterizedTest
     @MethodSource("migrationConfigurations")
-    void testMigrateProperties(MockPropertyConfiguration configuration) {
-        final Set<String> expectedRemoved = new HashSet<>(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES);
-        final Set<String> expectedUpdated = Set.of(AvroSchemaRegistry.VALIDATION_STRATEGY.getName());
-
+    void testMigrateProperties(MockPropertyConfiguration configuration, String expectedRemoved, ValidationStrategy expectedChangedTo) {
         final AvroSchemaRegistry service = new AvroSchemaRegistry();
         service.migrateProperties(configuration);
 
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
         final Set<String> propertiesRemoved = result.getPropertiesRemoved();
-        assertEquals(expectedRemoved, propertiesRemoved);
-        assertEquals(expectedUpdated, result.getPropertiesUpdated());
+        assertTrue(propertiesRemoved.contains(expectedRemoved));
+
+        final String expectedUpdated = AvroSchemaRegistry.VALIDATION_STRATEGY.getName();
+        final Set<String> actualUpdated = result.getPropertiesUpdated();
+        assertEquals(1, actualUpdated.size());
+        assertTrue(actualUpdated.contains(expectedUpdated));
+
+        final Optional<String> optional = configuration.getPropertyValue(AvroSchemaRegistry.VALIDATION_STRATEGY);
+        assertTrue(optional.isPresent());
+        final ValidationStrategy actualChangedToValue = ValidationStrategy.valueOf(optional.get());
+        assertEquals(expectedChangedTo, actualChangedToValue);
     }
 
     private static Stream<Arguments> invalidSchemas() {
@@ -190,13 +196,17 @@ public class TestAvroSchemaRegistry {
     private static Stream<Arguments> migrationConfigurations() {
         return Stream.of(
                 Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst() + " Validate",
-                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), Boolean.TRUE.toString()))),
+                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), Boolean.TRUE.toString())),
+                        AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), ValidationStrategy.VALIDATE),
                 Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst() + " Do Not Validate",
-                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), Boolean.FALSE.toString()))),
+                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), Boolean.FALSE.toString())),
+                        AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.getFirst(), ValidationStrategy.NONE),
                 Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1) + " Validate",
-                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), Boolean.TRUE.toString()))),
+                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), Boolean.TRUE.toString())),
+                        AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), ValidationStrategy.VALIDATE),
                 Arguments.argumentSet(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1) + " Do Not Validate",
-                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), Boolean.FALSE.toString())))
+                        new MockPropertyConfiguration(Map.of(AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), Boolean.FALSE.toString())),
+                        AvroSchemaRegistry.OBSOLETE_VALIDATE_FIELD_NAMES.get(1), ValidationStrategy.NONE)
         );
     }
 }
