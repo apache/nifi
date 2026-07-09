@@ -734,6 +734,20 @@ public class StandardConnectorRepository implements ConnectorRepository {
         connectorsBeingMigrated.remove(connectorId);
     }
 
+    @Override
+    public void verifyMigration(final String connectorId) {
+        if (configurationProvider != null) {
+            configurationProvider.verifyMigration(connectorId);
+        }
+    }
+
+    @Override
+    public void notifyMigrationComplete(final String connectorId, final String sourceProcessGroupId) {
+        if (configurationProvider != null) {
+            configurationProvider.migrationComplete(connectorId, sourceProcessGroupId);
+        }
+    }
+
     private void cleanUpAssets(final ConnectorNode connector) {
         if (assetManager == null) {
             return;

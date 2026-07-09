@@ -1878,6 +1878,42 @@ public class TestStandardConnectorRepository {
         verify(connector).setCustomLoggingAttributes(expected);
     }
 
+    @Test
+    public void testVerifyMigrationDelegatesToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        repository.verifyMigration("connector-1");
+        verify(provider).verifyMigration("connector-1");
+
+        doThrow(new ConnectorConfigurationProviderException("provider rejected")).when(provider).verifyMigration("connector-1");
+        assertThrows(ConnectorConfigurationProviderException.class, () -> repository.verifyMigration("connector-1"));
+    }
+
+    @Test
+    public void testVerifyMigrationWithNullProviderIsNoOp() {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        repository.verifyMigration("connector-1");
+    }
+
+    @Test
+    public void testNotifyMigrationCompleteDelegatesToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        repository.notifyMigrationComplete("connector-1", "source-group");
+        verify(provider).migrationComplete("connector-1", "source-group");
+
+        repository.notifyMigrationComplete("connector-1", null);
+        verify(provider).migrationComplete("connector-1", null);
+    }
+
+    @Test
+    public void testNotifyMigrationCompleteWithNullProviderIsNoOp() {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        repository.notifyMigrationComplete("connector-1", "source-group");
+    }
+
     // --- Helper Methods ---
 
     private StandardConnectorRepository createRepositoryWithProviderAndAssetManager(

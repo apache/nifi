@@ -303,4 +303,27 @@ public interface ConnectorRepository {
      */
     default void endMigration(final String connectorId) {
     }
+
+    /**
+     * Gives the {@link ConnectorConfigurationProvider}, if one is configured, the opportunity to reject a migration
+     * into the connector with the given identifier before the framework begins the migration. Implementations that
+     * have no provider treat this as a no-op.
+     *
+     * @param connectorId the identifier of the connector that is being migrated
+     * @throws RuntimeException if the provider rejects the migration; the exception is propagated to the caller
+     */
+    default void verifyMigration(final String connectorId) {
+    }
+
+    /**
+     * Notifies the {@link ConnectorConfigurationProvider}, if one is configured, that a migration into the connector
+     * with the given identifier has completed and is durable. Implementations that have no provider treat this as a
+     * no-op.
+     *
+     * @param connectorId the identifier of the connector that inherited the migration
+     * @param sourceProcessGroupId the identifier of the local Process Group that was migrated from, or {@code null}
+     *                             when the migration source was an uploaded payload rather than a local Process Group
+     */
+    default void notifyMigrationComplete(final String connectorId, final String sourceProcessGroupId) {
+    }
 }

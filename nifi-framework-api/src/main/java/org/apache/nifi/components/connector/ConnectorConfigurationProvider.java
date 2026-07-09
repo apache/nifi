@@ -141,6 +141,36 @@ public interface ConnectorConfigurationProvider {
     }
 
     /**
+     * Verifies that the provider allows the connector with the given identifier to be migrated. This is called before
+     * the framework migrates a Connector by inheriting the configuration, parameters, and component state of a source
+     * flow, giving the provider an opportunity to reject the operation (for example, because the external system has
+     * the connector in a state that is not compatible with accepting a migration).
+     *
+     * <p>If the provider cannot support the operation, it should throw a runtime exception
+     * (for example, {@link IllegalStateException} or
+     * {@link ConnectorConfigurationProviderException}) describing why the migration is not
+     * allowed. The exception message will be surfaced to the caller.</p>
+     *
+     * <p>The default implementation is a no-op, allowing the migration to proceed.</p>
+     *
+     * @param connectorId the identifier of the connector that is being migrated
+     */
+    default void verifyMigration(final String connectorId) {
+    }
+
+    /**
+     * Notifies the provider that a migration into the connector with the given identifier has completed and is durable.
+     * This is called after the framework has committed the migrated configuration onto the connector's active
+     * configuration, so the provider can perform any bookkeeping it needs on migration completion.
+     *
+     * @param connectorId the identifier of the connector that inherited the migration
+     * @param sourceProcessGroupId the identifier of the local Process Group that was migrated from, or {@code null}
+     *                             when the migration source was an uploaded payload rather than a local Process Group
+     */
+    default void migrationComplete(final String connectorId, final String sourceProcessGroupId) {
+    }
+
+    /**
      * Determines how the connector repository should handle synchronization for the given
      * connector during flow inheritance (cluster join). The provider examines the external
      * state of the connector and returns a {@link ConnectorSyncDirective} indicating whether

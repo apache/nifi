@@ -746,6 +746,85 @@ public class TestStandardConnectorMigrationManager {
         verify(connectorRepository, never()).storeAsset(anyString(), anyString(), anyString(), any(InputStream.class));
     }
 
+    @Test
+    public void testProviderVerifyMigrationRejectionAbortsBeforeFlowManipulation() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        final ConnectorNode connectorNode = wireFreshConnector(flowController, CONNECTOR_ID);
+        doThrow(new IllegalStateException("provider says no")).when(connectorRepository).verifyMigration(CONNECTOR_ID);
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        final IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, null, sourceFlow));
+        assertTrue(exception.getMessage().contains("provider says no"), exception.getMessage());
+
+        // The provider rejected the migration before any flow manipulation, so neither the commit nor the rollback
+        // machinery is exercised.
+        verify(connectorNode, never()).commitMigratedConfiguration(any(ConnectorConfiguration.class));
+        verify(connectorNode, never()).loadInitialFlow();
+    }
+
+    @Test
+    public void testVerifyConnectorReadyForMigrationConsultsProvider() {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        wireFreshConnector(flowController, CONNECTOR_ID);
+        doThrow(new IllegalStateException("provider says no")).when(connectorRepository).verifyMigration(CONNECTOR_ID);
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+
+        final IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> migrationManager.verifyConnectorReadyForMigration(CONNECTOR_ID));
+        assertTrue(exception.getMessage().contains("provider says no"), exception.getMessage());
+    }
+
+    @Test
+    public void testProviderNotifiedOfCompletionForLocalSource() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        wireSourceProcessGroup(flowController, SOURCE_GROUP_ID, SOURCE_GROUP_NAME);
+        wireFreshConnector(flowController, CONNECTOR_ID);
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, SOURCE_GROUP_ID, sourceFlow);
+
+        verify(connectorRepository).notifyMigrationComplete(CONNECTOR_ID, SOURCE_GROUP_ID);
+    }
+
+    @Test
+    public void testProviderNotifiedOfCompletionForUploadedPayloadWithNullSource() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        wireFreshConnector(flowController, CONNECTOR_ID);
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, null, sourceFlow);
+
+        verify(connectorRepository).notifyMigrationComplete(CONNECTOR_ID, null);
+    }
+
+    @Test
+    public void testProviderNotNotifiedOfCompletionWhenMigrationFails() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        final ConnectorNode connectorNode = wireFreshConnector(flowController, CONNECTOR_ID);
+        final MigratableConnector connector = (MigratableConnector) connectorNode.getConnector();
+        doThrow(new FlowUpdateException("boom")).when(connector).migrateConfiguration(any(ConnectorMigrationContext.class));
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        assertThrows(FlowUpdateException.class, () -> migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, null, sourceFlow));
+
+        verify(connectorRepository, never()).notifyMigrationComplete(anyString(), any());
+    }
+
     private static void assertIneligibilityReasonContains(final ConnectorMigrationSource source, final String expectedSubstring) {
         assertFalse(source.isReadyForMigration(), "Expected source " + source.getProcessGroupId() + " to be marked not ready for migration");
         final List<String> reasons = source.getIneligibilityReasons();

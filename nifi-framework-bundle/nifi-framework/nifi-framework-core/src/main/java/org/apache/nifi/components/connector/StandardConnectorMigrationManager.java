@@ -125,6 +125,7 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
         final ConnectorNode connector = getRequiredConnector(connectorId);
         verifyConnectorCanReceiveMigration(connector);
         verifyTargetIsAtInitialFlow(connector);
+        flowController.getConnectorRepository().verifyMigration(connectorId);
     }
 
     @Override
@@ -147,6 +148,9 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
         final ConnectorNode connector = getRequiredConnector(connectorId);
         verifyConnectorCanReceiveMigration(connector);
         verifyTargetIsAtInitialFlow(connector);
+        // Give the ConnectorConfigurationProvider the chance to reject the migration before any flow manipulation
+        // begins, so a rejection aborts the migration without exercising the rollback machinery.
+        flowController.getConnectorRepository().verifyMigration(connectorId);
         validateMigrationSource(sourceFlow);
 
         final boolean localMigration = processGroupId != null;
@@ -251,6 +255,16 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
         }
 
         migrationContext.setPhase(StandardFrameworkConnectorMigrationContext.Phase.COMPLETED);
+
+        // The migration is durable now that the merged configuration is committed, so notify the
+        // ConnectorConfigurationProvider that the migration completed. The source Process Group identifier is null for
+        // an uploaded-payload migration. A failure here is logged rather than rolled back, because rolling back a
+        // committed migration would silently resurrect it on the next restart.
+        try {
+            flowController.getConnectorRepository().notifyMigrationComplete(connectorId, processGroupId);
+        } catch (final Exception e) {
+            logger.warn("Connector {} migration completed and is durable, but notifying the configuration provider of completion failed", connectorId, e);
+        }
 
         // Finalize: the migration is already durable at this point because the merged configuration has been committed
         // onto the active configuration. The remaining work is cosmetic - disabling and renaming the source Process
