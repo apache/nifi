@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -150,57 +151,41 @@ public class TestHashiCorpVaultConfiguration {
     }
 
     @Test
-    public void testKubernetesClientAuthentication() throws IOException {
-        File k8sAuthProps = null;
-        Path tokenFile = null;
-        try {
-            tokenFile = Files.createTempFile("vault-k8s-token", ".jwt");
-            Files.writeString(tokenFile, "test-jwt-token");
+    public void testKubernetesClientAuthentication(@TempDir Path tempDir) throws IOException {
+        final Path tokenFile = Files.createTempFile(tempDir, "vault-k8s-token", ".jwt");
+        Files.writeString(tokenFile, "test-jwt-token");
 
-            final Map<String, String> props = new HashMap<>();
-            props.put(VAULT_AUTHENTICATION, "KUBERNETES");
-            props.put("vault.kubernetes.role", "test-role");
-            props.put("vault.kubernetes.service-account-token-file", tokenFile.toFile().getAbsolutePath());
-            k8sAuthProps = writeVaultAuthProperties(props);
-            propertiesBuilder.setAuthPropertiesFilename(k8sAuthProps.getAbsolutePath());
+        final Map<String, String> props = new HashMap<>();
+        props.put(VAULT_AUTHENTICATION, "KUBERNETES");
+        props.put("vault.kubernetes.role", "test-role");
+        props.put("vault.kubernetes.service-account-token-file", tokenFile.toFile().getAbsolutePath());
+        final File k8sAuthProps = Files.createTempFile(tempDir, "vault-", ".properties").toFile();
+        writeProperties(props, k8sAuthProps);
+        propertiesBuilder.setAuthPropertiesFilename(k8sAuthProps.getAbsolutePath());
 
-            config = new HashiCorpVaultConfiguration(
-                    createIsolatedEnvironment(), new HashiCorpVaultPropertySource(propertiesBuilder.build()));
-            config.setClientHttpRequestFactory(new SimpleClientHttpRequestFactory());
+        config = new HashiCorpVaultConfiguration(
+                createIsolatedEnvironment(), new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+        config.setClientHttpRequestFactory(new SimpleClientHttpRequestFactory());
 
-            final ClientAuthentication clientAuthentication = config.clientAuthentication();
-            assertNotNull(clientAuthentication);
-        } finally {
-            if (k8sAuthProps != null) {
-                Files.deleteIfExists(k8sAuthProps.toPath());
-            }
-            if (tokenFile != null) {
-                Files.deleteIfExists(tokenFile);
-            }
-        }
+        final ClientAuthentication clientAuthentication = config.clientAuthentication();
+        assertNotNull(clientAuthentication);
     }
 
     @Test
-    public void testAwsEc2ClientAuthentication() throws IOException {
-        File awsAuthProps = null;
-        try {
-            final Map<String, String> props = new HashMap<>();
-            props.put(VAULT_AUTHENTICATION, "AWS_EC2");
-            props.put("vault.aws-ec2.role", "test-role");
-            awsAuthProps = writeVaultAuthProperties(props);
-            propertiesBuilder.setAuthPropertiesFilename(awsAuthProps.getAbsolutePath());
+    public void testAwsEc2ClientAuthentication(@TempDir Path tempDir) throws IOException {
+        final Map<String, String> props = new HashMap<>();
+        props.put(VAULT_AUTHENTICATION, "AWS_EC2");
+        props.put("vault.aws-ec2.role", "test-role");
+        final File awsAuthProps = Files.createTempFile(tempDir, "vault-", ".properties").toFile();
+        writeProperties(props, awsAuthProps);
+        propertiesBuilder.setAuthPropertiesFilename(awsAuthProps.getAbsolutePath());
 
-            config = new HashiCorpVaultConfiguration(
-                    createIsolatedEnvironment(), new HashiCorpVaultPropertySource(propertiesBuilder.build()));
-            config.setClientHttpRequestFactory(new SimpleClientHttpRequestFactory());
+        config = new HashiCorpVaultConfiguration(
+                createIsolatedEnvironment(), new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+        config.setClientHttpRequestFactory(new SimpleClientHttpRequestFactory());
 
-            final ClientAuthentication clientAuthentication = config.clientAuthentication();
-            assertNotNull(clientAuthentication);
-        } finally {
-            if (awsAuthProps != null) {
-                Files.deleteIfExists(awsAuthProps.toPath());
-            }
-        }
+        final ClientAuthentication clientAuthentication = config.clientAuthentication();
+        assertNotNull(clientAuthentication);
     }
 
     @Test
