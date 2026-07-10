@@ -55,6 +55,18 @@ class DelegatedRecordTest {
     private static final Time STOPPED = Time.valueOf("23:30:45");
     private static final LocalTime STOPPED_CONVERTED = STOPPED.toLocalTime();
 
+    private static final String ID_FIELD = "id";
+    private static final String AMOUNT_FIELD = "amount";
+    private static final int ID = 7;
+    private static final int ID_MODIFIED = 99;
+    private static final BigDecimal AMOUNT = new BigDecimal("12.34");
+
+    private static final Types.StructType TABLE_STRUCT = Types.StructType.of(
+            Types.NestedField.required(1, ID_FIELD, Types.IntegerType.get()),
+            Types.NestedField.optional(2, AMOUNT_FIELD, Types.DecimalType.of(10, 2)),
+            Types.NestedField.optional(3, LABEL_FIELD, Types.StringType.get())
+    );
+
     @Test
     void testCopyEmptyRecord() {
         final List<RecordField> recordFields = List.of();
@@ -146,26 +158,11 @@ class DelegatedRecordTest {
      */
     @Test
     void testGetByPositionMatchesTableColumnNameRegardlessOfInputOrder() {
-        final Types.StructType structType = Types.StructType.of(
-                Types.NestedField.required(1, "id", Types.IntegerType.get()),
-                Types.NestedField.optional(2, "amount", Types.DecimalType.of(10, 2)),
-                Types.NestedField.optional(3, "label", Types.StringType.get())
-        );
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(shuffledInputRecord(), TABLE_STRUCT);
 
-        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
-                new RecordField("amount", RecordFieldType.DECIMAL.getDataType()),
-                new RecordField("label", RecordFieldType.STRING.getDataType()),
-                new RecordField("id", RecordFieldType.INT.getDataType())
-        ));
-        final Map<String, Object> values = new LinkedHashMap<>();
-        values.put("amount", new BigDecimal("12.34"));
-        values.put("label", "example");
-        values.put("id", 7);
-        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), structType);
-
-        assertEquals(7, delegatedRecord.get(0));
-        assertEquals(new BigDecimal("12.34"), delegatedRecord.get(1));
-        assertEquals("example", delegatedRecord.get(2));
+        assertEquals(ID, delegatedRecord.get(0));
+        assertEquals(AMOUNT, delegatedRecord.get(1));
+        assertEquals(LABEL, delegatedRecord.get(2));
     }
 
     /**
@@ -174,24 +171,18 @@ class DelegatedRecordTest {
      */
     @Test
     void testGetByPositionReturnsNullForColumnMissingFromInput() {
-        final Types.StructType structType = Types.StructType.of(
-                Types.NestedField.required(1, "id", Types.IntegerType.get()),
-                Types.NestedField.optional(2, "amount", Types.DecimalType.of(10, 2)),
-                Types.NestedField.optional(3, "label", Types.StringType.get())
-        );
-
         final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
-                new RecordField("id", RecordFieldType.INT.getDataType()),
-                new RecordField("label", RecordFieldType.STRING.getDataType())
+                new RecordField(ID_FIELD, RecordFieldType.INT.getDataType()),
+                new RecordField(LABEL_FIELD, RecordFieldType.STRING.getDataType())
         ));
         final Map<String, Object> values = new LinkedHashMap<>();
-        values.put("id", 42);
-        values.put("label", "present");
-        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), structType);
+        values.put(ID_FIELD, ID);
+        values.put(LABEL_FIELD, LABEL);
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), TABLE_STRUCT);
 
-        assertEquals(42, delegatedRecord.get(0));
-        assertNull(delegatedRecord.get(1), "Missing 'amount' column must be null, not shifted input data");
-        assertEquals("present", delegatedRecord.get(2));
+        assertEquals(ID, delegatedRecord.get(0));
+        assertNull(delegatedRecord.get(1), "Missing '" + AMOUNT_FIELD + "' column must be null, not shifted input data");
+        assertEquals(LABEL, delegatedRecord.get(2));
     }
 
     /**
@@ -200,27 +191,29 @@ class DelegatedRecordTest {
      */
     @Test
     void testSetByPositionMatchesTableColumnNameRegardlessOfInputOrder() {
-        final Types.StructType structType = Types.StructType.of(
-                Types.NestedField.required(1, "id", Types.IntegerType.get()),
-                Types.NestedField.optional(2, "amount", Types.DecimalType.of(10, 2)),
-                Types.NestedField.optional(3, "label", Types.StringType.get())
-        );
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(shuffledInputRecord(), TABLE_STRUCT);
 
+        delegatedRecord.set(0, ID_MODIFIED);
+
+        assertEquals(ID_MODIFIED, delegatedRecord.getField(ID_FIELD));
+        assertEquals(AMOUNT, delegatedRecord.getField(AMOUNT_FIELD));
+        assertEquals(LABEL, delegatedRecord.getField(LABEL_FIELD));
+    }
+
+    /**
+     * Build an incoming Record whose field ordering (amount, label, id) intentionally differs from the
+     * {@link #TABLE_STRUCT} ordering (id, amount, label) so positional access must resolve by column name.
+     */
+    private static Record shuffledInputRecord() {
         final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
-                new RecordField("amount", RecordFieldType.DECIMAL.getDataType()),
-                new RecordField("label", RecordFieldType.STRING.getDataType()),
-                new RecordField("id", RecordFieldType.INT.getDataType())
+                new RecordField(AMOUNT_FIELD, RecordFieldType.DECIMAL.getDataType()),
+                new RecordField(LABEL_FIELD, RecordFieldType.STRING.getDataType()),
+                new RecordField(ID_FIELD, RecordFieldType.INT.getDataType())
         ));
         final Map<String, Object> values = new LinkedHashMap<>();
-        values.put("amount", new BigDecimal("12.34"));
-        values.put("label", "example");
-        values.put("id", 7);
-        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), structType);
-
-        delegatedRecord.set(0, 99);
-
-        assertEquals(99, delegatedRecord.getField("id"));
-        assertEquals(new BigDecimal("12.34"), delegatedRecord.getField("amount"));
-        assertEquals("example", delegatedRecord.getField("label"));
+        values.put(AMOUNT_FIELD, AMOUNT);
+        values.put(LABEL_FIELD, LABEL);
+        values.put(ID_FIELD, ID);
+        return new MapRecord(recordSchema, values);
     }
 }
