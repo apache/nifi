@@ -95,14 +95,10 @@ export class EditPort extends CloseOnEscapeDialog {
             component: {
                 id: this.request.entity.id,
                 name: this.editPortForm.get('name')?.value,
-                comments: this.editPortForm.get('comments')?.value
+                comments: this.editPortForm.get('comments')?.value,
+                concurrentlySchedulableTaskCount: this.editPortForm.get('concurrentTasks')?.value
             }
         };
-
-        // if this port allows remote access update the concurrent tasks
-        if (this.request.entity.component.allowRemoteAccess) {
-            payload.component.concurrentlySchedulableTaskCount = this.editPortForm.get('concurrentTasks')?.value;
-        }
 
         // if this port is an output port update the port function
         if (ComponentType.OutputPort == this.request.type) {
