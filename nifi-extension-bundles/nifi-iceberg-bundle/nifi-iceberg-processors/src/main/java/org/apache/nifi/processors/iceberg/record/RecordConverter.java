@@ -79,16 +79,36 @@ class RecordConverter {
             case Timestamp timestamp -> timestamp.toLocalDateTime();
             case Date date -> date.toLocalDate();
             case Time time -> time.toLocalTime();
-            case Object[] array when icebergType != null && icebergType.isListType() ->
-                convertList(Arrays.asList(array), icebergType.asListType().elementType());
-            case Collection<?> collection when icebergType != null && icebergType.isListType() ->
-                convertList(collection, icebergType.asListType().elementType());
-            case Record nestedRecord when icebergType != null && icebergType.isStructType() ->
-                new DelegatedRecord(nestedRecord, icebergType.asStructType());
-            case Map<?, ?> map when icebergType != null && icebergType.isMapType() ->
-                convertMap(map, icebergType.asMapType());
-            case null, default -> value;
+            // Recursively convert complex types against the matching Iceberg type
+            case null, default -> convertComplexValue(value, icebergType);
         };
+    }
+
+    /**
+     * Recursively convert array, collection, nested record, and map values against the matching Iceberg type.
+     * The value is returned unchanged when the target Iceberg type is unknown or does not describe a complex type
+     * matching the value.
+     */
+    private static Object convertComplexValue(final Object value, final Type icebergType) {
+        if (icebergType == null) {
+            return value;
+        }
+
+        if (icebergType.isListType()) {
+            final Type elementType = icebergType.asListType().elementType();
+            if (value instanceof Object[] array) {
+                return convertList(Arrays.asList(array), elementType);
+            }
+            if (value instanceof Collection<?> collection) {
+                return convertList(collection, elementType);
+            }
+        } else if (icebergType.isStructType() && value instanceof Record nestedRecord) {
+            return new DelegatedRecord(nestedRecord, icebergType.asStructType());
+        } else if (icebergType.isMapType() && value instanceof Map<?, ?> map) {
+            return convertMap(map, icebergType.asMapType());
+        }
+
+        return value;
     }
 
     private static List<Object> convertList(final Collection<?> collection, final Type elementType) {
