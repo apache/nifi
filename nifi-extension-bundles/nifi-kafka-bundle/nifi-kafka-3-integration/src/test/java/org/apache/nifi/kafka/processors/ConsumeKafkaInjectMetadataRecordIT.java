@@ -55,7 +55,6 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
@@ -179,7 +178,7 @@ class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
 
             assertEquals(topic, metadata.get(InjectMetadataRecord.TOPIC).asText());
             assertEquals(FIRST_PARTITION, metadata.get(InjectMetadataRecord.PARTITION).asInt());
-            assertNotNull(metadata.get(InjectMetadataRecord.OFFSET));
+            assertTrue(metadata.get(InjectMetadataRecord.OFFSET).isIntegralNumber());
             assertTrue(metadata.get(InjectMetadataRecord.TIMESTAMP).isIntegralNumber());
         }
 
