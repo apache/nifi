@@ -37,6 +37,18 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class RecordConverterTest {
 
+    private static final String CITY_FIELD_NAME = "city";
+
+    private static final String CREATED_FIELD_NAME = "created";
+
+    private static final String NAME_FIELD_NAME = "name";
+
+    private static final String ITEMS_FIELD_NAME = "items";
+
+    private static final String CITY_FIELD_VALUE = "Berlin";
+
+    private static final String NAME_FIELD_VALUE = "widget";
+
     @Test
     void testConvertPrimitiveArrayToList() {
         final Types.ListType listType = Types.ListType.ofOptional(1, Types.StringType.get());
@@ -62,33 +74,33 @@ class RecordConverterTest {
     @Test
     void testConvertNestedRecordToStructLike() {
         final Types.StructType structType = Types.StructType.of(
-                Types.NestedField.optional(1, "city", Types.StringType.get())
+                Types.NestedField.optional(1, CITY_FIELD_NAME, Types.StringType.get())
         );
 
         final RecordSchema nestedSchema = new SimpleRecordSchema(List.of(
-                new RecordField("city", RecordFieldType.STRING.getDataType())
+                new RecordField(CITY_FIELD_NAME, RecordFieldType.STRING.getDataType())
         ));
         final Map<String, Object> nestedValues = new LinkedHashMap<>();
-        nestedValues.put("city", "Berlin");
+        nestedValues.put(CITY_FIELD_NAME, CITY_FIELD_VALUE);
         final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
 
         final Object converted = RecordConverter.convertValue(nestedRecord, structType);
 
         final StructLike struct = assertInstanceOf(StructLike.class, converted);
-        assertEquals("Berlin", struct.get(0, String.class));
+        assertEquals(CITY_FIELD_VALUE, struct.get(0, String.class));
     }
 
     @Test
     void testConvertNestedRecordDateTimeField() {
         final Types.StructType structType = Types.StructType.of(
-                Types.NestedField.optional(1, "created", Types.TimestampType.withoutZone())
+                Types.NestedField.optional(1, CREATED_FIELD_NAME, Types.TimestampType.withoutZone())
         );
 
         final RecordSchema nestedSchema = new SimpleRecordSchema(List.of(
-                new RecordField("created", RecordFieldType.TIMESTAMP.getDataType())
+                new RecordField(CREATED_FIELD_NAME, RecordFieldType.TIMESTAMP.getDataType())
         ));
         final Map<String, Object> nestedValues = new LinkedHashMap<>();
-        nestedValues.put("created", java.sql.Timestamp.valueOf("2026-01-01 12:30:45"));
+        nestedValues.put(CREATED_FIELD_NAME, java.sql.Timestamp.valueOf("2026-01-01 12:30:45"));
         final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
 
         final Object converted = RecordConverter.convertValue(nestedRecord, structType);
@@ -103,14 +115,14 @@ class RecordConverterTest {
                 1, 2, Types.StringType.get(), Types.StringType.get()
         );
         final Map<String, Object> map = new LinkedHashMap<>();
-        map.put("k1", "v1");
-        map.put("k2", "v2");
+        map.put(CITY_FIELD_NAME, CITY_FIELD_VALUE);
+        map.put(NAME_FIELD_NAME, NAME_FIELD_VALUE);
 
         final Object converted = RecordConverter.convertValue(map, mapType);
 
         final Map<?, ?> resultMap = assertInstanceOf(Map.class, converted);
-        assertEquals("v1", resultMap.get("k1"));
-        assertEquals("v2", resultMap.get("k2"));
+        assertEquals(CITY_FIELD_VALUE, resultMap.get(CITY_FIELD_NAME));
+        assertEquals(NAME_FIELD_VALUE, resultMap.get(NAME_FIELD_NAME));
     }
 
     @Test
@@ -119,44 +131,44 @@ class RecordConverterTest {
                 1, 2, Types.StringType.get(), Types.DateType.get()
         );
         final Map<String, Object> map = new LinkedHashMap<>();
-        map.put("day", java.sql.Date.valueOf("2026-02-03"));
+        map.put(CREATED_FIELD_NAME, java.sql.Date.valueOf("2026-02-03"));
 
         final Object converted = RecordConverter.convertValue(map, mapType);
 
         final Map<?, ?> resultMap = assertInstanceOf(Map.class, converted);
-        assertEquals(LocalDate.of(2026, 2, 3), resultMap.get("day"));
+        assertEquals(LocalDate.of(2026, 2, 3), resultMap.get(CREATED_FIELD_NAME));
     }
 
     @Test
     void testGetConvertedRecordArrayOfStructs() {
         final Types.StructType elementStruct = Types.StructType.of(
-                Types.NestedField.optional(2, "name", Types.StringType.get())
+                Types.NestedField.optional(2, NAME_FIELD_NAME, Types.StringType.get())
         );
         final Types.StructType struct = Types.StructType.of(
-                Types.NestedField.optional(1, "items",
+                Types.NestedField.optional(1, ITEMS_FIELD_NAME,
                         Types.ListType.ofOptional(3, elementStruct))
         );
 
         final RecordSchema elementSchema = new SimpleRecordSchema(List.of(
-                new RecordField("name", RecordFieldType.STRING.getDataType())
+                new RecordField(NAME_FIELD_NAME, RecordFieldType.STRING.getDataType())
         ));
         final Map<String, Object> elementValues = new LinkedHashMap<>();
-        elementValues.put("name", "widget");
+        elementValues.put(NAME_FIELD_NAME, NAME_FIELD_VALUE);
         final Record element = new MapRecord(elementSchema, elementValues);
 
         final RecordSchema schema = new SimpleRecordSchema(List.of(
-                new RecordField("items",
+                new RecordField(ITEMS_FIELD_NAME,
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(elementSchema)))
         ));
         final Map<String, Object> values = new LinkedHashMap<>();
-        values.put("items", new Object[] {element});
+        values.put(ITEMS_FIELD_NAME, new Object[] {element});
         final Record record = new MapRecord(schema, values);
 
         final org.apache.iceberg.data.Record converted = new DelegatedRecord(record, struct);
-        final Object items = converted.getField("items");
+        final Object items = converted.getField(ITEMS_FIELD_NAME);
 
         final List<?> list = assertInstanceOf(List.class, items);
         final StructLike first = assertInstanceOf(StructLike.class, list.get(0));
-        assertEquals("widget", first.get(0, String.class));
+        assertEquals(NAME_FIELD_VALUE, first.get(0, String.class));
     }
 }
