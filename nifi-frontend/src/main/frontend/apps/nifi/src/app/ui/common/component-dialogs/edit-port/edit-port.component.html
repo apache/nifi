@@ -26,19 +26,17 @@
             </mat-form-field>
         </div>
         <div>
-            @if (request.entity.component.allowRemoteAccess) {
-                <mat-form-field>
-                    <mat-label>
-                        Concurrent Tasks
-                        <i
-                            class="fa fa-info-circle"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            tooltipInputData="The number of tasks that should be concurrently scheduled for this port."></i>
-                    </mat-label>
-                    <input matInput formControlName="concurrentTasks" type="text" [readonly]="readonly" />
-                </mat-form-field>
-            }
+            <mat-form-field>
+                <mat-label>
+                    Concurrent Tasks
+                    <i
+                        class="fa fa-info-circle"_
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The number of tasks that should be concurrently scheduled for this port."></i>
+                </mat-label>
+                <input matInput formControlName="concurrentTasks" type="text" [readonly]="readonly" />
+            </mat-form-field>
         </div>
         @if (portTypeLabel === 'Output Port') {
             <div class="mb-3.5">
