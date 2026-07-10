@@ -20,6 +20,7 @@ public class ProducerConfiguration {
     private final boolean transactionsEnabled;
     private final String transactionIdPrefix;
     private final String deliveryGuarantee;
+    private final boolean enableIdempotence;
     private final String compressionCodec;
     private final String partitionClass;
     private final int maxRequestSize;
@@ -27,12 +28,14 @@ public class ProducerConfiguration {
     public ProducerConfiguration(final boolean transactionsEnabled,
                                  final String transactionIdPrefix,
                                  final String deliveryGuarantee,
+                                 final boolean enableIdempotence,
                                  final String compressionCodec,
                                  final String partitionClass,
                                  final int maxRequestSize) {
         this.transactionsEnabled = transactionsEnabled;
         this.transactionIdPrefix = transactionIdPrefix;
         this.deliveryGuarantee = deliveryGuarantee;
+        this.enableIdempotence = enableIdempotence;
         this.compressionCodec = compressionCodec;
         this.partitionClass = partitionClass;
         this.maxRequestSize = maxRequestSize;
@@ -48,6 +51,10 @@ public class ProducerConfiguration {
 
     public String getDeliveryGuarantee() {
         return deliveryGuarantee;
+    }
+
+    public boolean getEnableIdempotence() {
+        return enableIdempotence;
     }
 
     public String getCompressionCodec() {

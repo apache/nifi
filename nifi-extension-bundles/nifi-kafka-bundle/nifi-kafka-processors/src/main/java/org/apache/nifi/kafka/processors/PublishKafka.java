@@ -140,6 +140,20 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             .defaultValue(DeliveryGuarantee.DELIVERY_REPLICATED)
             .build();
 
+    static final PropertyDescriptor ENABLE_IDEMPOTENCE = new PropertyDescriptor.Builder()
+            .name("enable.idempotence")
+            .displayName("Enable Idempotence")
+            .description("""
+                    Specifies whether the producer will ensure that exactly one copy of each message is written in the
+                    stream. If set to ‘false’, producer retries due to broker failures, etc., may write duplicates of the
+                    retried message in the stream. Corresponds to Kafka Client enable.idempotence property.""")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(DELIVERY_GUARANTEE, DeliveryGuarantee.DELIVERY_REPLICATED)
+            .required(false)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
     static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
             .name("compression.type")
             .displayName("Compression Type")
@@ -312,6 +326,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             TOPIC_NAME,
             FAILURE_STRATEGY,
             DELIVERY_GUARANTEE,
+            ENABLE_IDEMPOTENCE,
             COMPRESSION_CODEC,
             MAX_REQUEST_SIZE,
             TRANSACTIONS_ENABLED,
@@ -361,11 +376,12 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
         final String transactionalIdPrefix = transactionsEnabled ? context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue() : null;
         final Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
         final String deliveryGuarantee = context.getProperty(DELIVERY_GUARANTEE).getValue();
+        final boolean enableIdempotence = context.getProperty(ENABLE_IDEMPOTENCE).asBoolean();
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final int maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
-                transactionsEnabled, transactionalIdSupplier.get(), deliveryGuarantee, compressionCodec, partitionClass, maxRequestSize);
+                transactionsEnabled, transactionalIdSupplier.get(), deliveryGuarantee, enableIdempotence, compressionCodec, partitionClass, maxRequestSize);
 
         try (final KafkaProducerService producerService = connectionService.getProducerService(producerConfiguration)) {
             final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
@@ -454,12 +470,13 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
         final boolean transactionsEnabled = context.getProperty(TRANSACTIONS_ENABLED).asBoolean();
         final String transactionalIdPrefix = transactionsEnabled ? context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue() : null;
         final String deliveryGuarantee = context.getProperty(DELIVERY_GUARANTEE).getValue();
+        final boolean enableIdempotence = context.getProperty(ENABLE_IDEMPOTENCE).asBoolean();
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final int maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
 
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
-                transactionsEnabled, transactionalIdPrefix, deliveryGuarantee, compressionCodec, partitionClass, maxRequestSize);
+                transactionsEnabled, transactionalIdPrefix, deliveryGuarantee, enableIdempotence, compressionCodec, partitionClass, maxRequestSize);
 
         return connectionService.getProducerService(producerConfiguration);
     }

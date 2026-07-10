@@ -281,6 +281,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         if (producerConfiguration.getDeliveryGuarantee() != null) {
             properties.put(ProducerConfig.ACKS_CONFIG, producerConfiguration.getDeliveryGuarantee());
         }
+        properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, producerConfiguration.getEnableIdempotence());
         if (producerConfiguration.getCompressionCodec() != null) {
             properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, producerConfiguration.getCompressionCodec());
         }

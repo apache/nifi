@@ -241,7 +241,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testProduceOneNoTransaction() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, false, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
@@ -252,7 +252,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testProduceOneWithTransaction() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(true, "transaction-", null, null, null, 1_000_000);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(true, "transaction-", null, false, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
@@ -263,7 +263,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testProduceConsumeRecord() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, false, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
 
         final long timestamp = System.currentTimeMillis();
@@ -300,7 +300,7 @@ public class Kafka3ConnectionServiceBaseIT {
         final String groupId = "Group_" + timestamp;
         final String topic = "Topic_" + timestamp;
         final int partition = 0;
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, false, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
 
         final KafkaRecord kafkaRecord = new KafkaRecord(null, partition, timestamp, RECORD_KEY, RECORD_VALUE, emptyList());
@@ -404,7 +404,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testGetProducerService() {
-        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, false, null, null, 1_000_000);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final List<PartitionState> partitionStates = producerService.getPartitionStates(TOPIC);
         assertPartitionStatesFound(partitionStates);
