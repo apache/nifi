@@ -212,7 +212,7 @@ public interface FlowFileQueue {
     /**
      * Cancels the request to drop FlowFiles that has the given identifier. After this method is called, the request
      * will no longer be known by this queue, so subsequent calls to {@link #getDropFlowFileStatus(String)} or
-     * {@link #cancelDropFlowFileRequest(String)} will return <code>null</code>
+     * cancelDropFlowFileRequest(String) will return <code>null</code>
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
      * @return the status for the request with the given identifier after it has been canceled, or <code>null</code> if no
@@ -269,7 +269,7 @@ public interface FlowFileQueue {
     /**
      * Cancels the request to list FlowFiles that has the given identifier. After this method is called, the request
      * will no longer be known by this queue, so subsequent calls to {@link #getListFlowFileStatus(String)} or
-     * {@link #cancelListFlowFileRequest(String)} will return <code>null</code>
+     * cancelListFlowFileRequest(String) will return <code>null</code>
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
      * @return the current status of the List FlowFile Request with the given identifier or <code>null</code> if no
