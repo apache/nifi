@@ -2732,7 +2732,12 @@ X-ProxyPort - the port the proxy is listening on
 X-ProxyContextPath - the path configured to map to the NiFi instance
 ....
 
-* If NiFi is running securely, any proxy needs to be authorized to proxy user requests. These can be configured in the NiFi UI through the Global Menu. Once these permissions are in place, proxies
+* NiFi expects a single host or host and port combination in `X-ProxyHost` or `X-Forwarded-Host` header values. When routing requests through multiple servers, some proxy servers append to existing
+values, producing a comma-separated string composed of multiple hosts. NiFi rejects comma-separated values with an `HTTP 421` status. Reverse proxy servers must be configured to disable appending to
+existing values, or unset input values before forwarding requests. Servers as such Apache HTTP link:https://httpd.apache.org/docs/2.4/mod/mod_proxy.html[mod_proxy] should set `ProxyAddHeaders` to
+`Off` to avoid producing invalid comma-separated values.
+
+* When running with HTTPS enabled, all proxy servers must be authorized to proxy user requests. These can be configured in the NiFi UI through the Global Menu. Once these permissions are in place, proxies
 can begin proxying user requests. The end user identity must be relayed in a HTTP header. For example, if the end user sent a request to the proxy, the proxy must authenticate the user. Following
 this the proxy can send the request to NiFi. In this request an HTTP header should be added as follows.
 
