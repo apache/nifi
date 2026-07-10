@@ -142,7 +142,7 @@ public class TestNarBundleExtractor {
             assertEquals("HEAD", buildDetails.getBuildTag());
             assertEquals("1a937b6", buildDetails.getBuildRevision());
             assertEquals("jsmith", buildDetails.getBuiltBy());
-            assertNotNull(buildDetails.getBuilt());
+            assertEquals(1544541725000L, buildDetails.getBuilt());
 
             assertEquals("1.10.0-SNAPSHOT", bundleDetails.getSystemApiVersion());
             assertNotNull(bundleDetails.getExtensions());

@@ -109,7 +109,7 @@ public class TestRegistryService {
         final Bucket createdBucket = registryService.createBucket(bucket);
         assertNotNull(createdBucket);
         assertNotNull(createdBucket.getIdentifier());
-        assertNotNull(createdBucket.getCreatedTimestamp());
+        assertTrue(createdBucket.getCreatedTimestamp() > 0);
 
         assertEquals(bucket.getIdentifier(), createdBucket.getIdentifier());
         assertEquals(bucket.getName(), createdBucket.getName());
@@ -1261,7 +1261,6 @@ public class TestRegistryService {
 
         final VersionedFlow versionedFlow = returnedSnapshot.getFlow();
         assertNotNull(versionedFlow);
-        assertNotNull(versionedFlow.getVersionCount());
         assertTrue(versionedFlow.getVersionCount() > 0);
 
         final Bucket bucket = returnedSnapshot.getBucket();
