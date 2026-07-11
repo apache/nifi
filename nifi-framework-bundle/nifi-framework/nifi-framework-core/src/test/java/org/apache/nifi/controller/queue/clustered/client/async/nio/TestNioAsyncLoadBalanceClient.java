@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestNioAsyncLoadBalanceClient {
+class TestNioAsyncLoadBalanceClient {
 
     private static final TransactionFailureCallback NOP_FAILURE_CALLBACK = new TransactionFailureCallback() {
         @Override
@@ -57,7 +57,7 @@ public class TestNioAsyncLoadBalanceClient {
 
     @Test
     @Timeout(30)
-    public void testUnregisterOfInFlightTransactionClosesChannel() throws Exception {
+    void testUnregisterOfInFlightTransactionClosesChannel() throws Exception {
         final ServerSocket serverSocket = new ServerSocket(0);
         final int port = serverSocket.getLocalPort();
 
@@ -72,8 +72,9 @@ public class TestNioAsyncLoadBalanceClient {
         server.setDaemon(true);
         server.start();
 
-        final NodeIdentifier nodeId = new NodeIdentifier("node-1", "localhost", port, "localhost", port,
-            "localhost", port, "localhost", port, port, false);
+        final String localhost = "localhost";
+        final NodeIdentifier nodeId = new NodeIdentifier("node-1", localhost, port, localhost, port,
+            localhost, port, localhost, port, port, false);
 
         final ClusterCoordinator clusterCoordinator = mock(ClusterCoordinator.class);
         when(clusterCoordinator.getConnectionStatus(nodeId)).thenReturn(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
@@ -83,9 +84,10 @@ public class TestNioAsyncLoadBalanceClient {
         final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(nodeId, null, 30000, contentAccess,
             new StandardLoadBalanceFlowFileCodec(), EventReporter.NO_OP, clusterCoordinator);
 
+        final String connectionId = "unit-test-connection";
         try {
             client.start();
-            client.register("unit-test-connection", () -> false, () -> new MockFlowFileRecord(5), NOP_FAILURE_CALLBACK,
+            client.register(connectionId, () -> false, () -> new MockFlowFileRecord(5), NOP_FAILURE_CALLBACK,
                 (flowFiles, node) -> { }, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
             final long deadline = System.currentTimeMillis() + 20_000L;
@@ -97,7 +99,7 @@ public class TestNioAsyncLoadBalanceClient {
 
             // Unregistering while a transaction is in flight must tear down the (now desynchronized) socket so the
             // next transaction reconnects on a clean stream rather than reusing it.
-            client.unregister("unit-test-connection");
+            client.unregister(connectionId);
 
             assertFalse(client.isConnectionEstablished(), "Channel must be closed after an in-flight transaction is unregistered");
         } finally {
