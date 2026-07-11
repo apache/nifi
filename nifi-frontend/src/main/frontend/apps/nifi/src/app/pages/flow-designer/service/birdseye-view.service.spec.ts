@@ -80,4 +80,33 @@ describe('BirdseyeView', () => {
     it('should be created', () => {
         expect(service).toBeTruthy();
     });
+
+    describe('refresh() — magnitude guard', () => {
+        it('returns early without throwing when translateX is catastrophic-finite', () => {
+            service['x'] = 7.490388061926315e307;
+            service['y'] = 0;
+            service['k'] = 1;
+            service['initialized'] = true;
+            service['navigationCollapsed'] = false;
+            expect(() => service.refresh()).not.toThrow();
+        });
+
+        it('returns early without throwing when k is near-zero', () => {
+            service['x'] = 0;
+            service['y'] = 0;
+            service['k'] = 0.0001;
+            service['initialized'] = true;
+            service['navigationCollapsed'] = false;
+            expect(() => service.refresh()).not.toThrow();
+        });
+
+        it('returns early when k is Infinity', () => {
+            service['x'] = 0;
+            service['y'] = 0;
+            service['k'] = Infinity;
+            service['initialized'] = true;
+            service['navigationCollapsed'] = false;
+            expect(() => service.refresh()).not.toThrow();
+        });
+    });
 });

@@ -1289,6 +1289,112 @@ describe('FlowEffects', () => {
         });
     });
 
+    describe('loadProcessGroup$ — position sanitization (NIFI-16025)', () => {
+        function makeEntity(id: string, x: number, y: number): any {
+            return {
+                id,
+                permissions: { canRead: true, canWrite: true },
+                revision: { version: 0 },
+                position: { x, y },
+                component: {}
+            };
+        }
+
+        function makeConnection(id: string, bendX: number, bendY: number): any {
+            return {
+                id,
+                permissions: { canRead: true, canWrite: true },
+                revision: { version: 0 },
+                position: { x: 0, y: 0 },
+                component: { bends: [{ x: bendX, y: bendY }] }
+            };
+        }
+
+        function buildFlowResponse(overrides: Partial<any> = {}): any {
+            return {
+                processGroupFlow: {
+                    id: 'pg-1',
+                    parentGroupId: null,
+                    breadcrumb: {},
+                    flow: {
+                        processors: overrides.processors ?? [],
+                        processGroups: [],
+                        remoteProcessGroups: [],
+                        inputPorts: [],
+                        outputPorts: [],
+                        labels: [],
+                        funnels: [],
+                        connections: overrides.connections ?? []
+                    }
+                }
+            };
+        }
+
+        beforeEach(() => {
+            store.overrideSelector(flowSelectors.selectHasFlowData, false);
+            store.overrideSelector(selectConnectedStateChanged, false);
+            (flowService as any).getFlowStatus = vi.fn(() => of({}));
+            (flowService as any).getControllerBulletins = vi.fn(() => of({}));
+            vi.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValue(
+                of({ registries: [] }) as any
+            );
+        });
+
+        it('passes in-bounds positions through unchanged', async () => {
+            const entity = makeEntity('p-1', 100, 200);
+            (flowService as any).getFlow = vi.fn(() => of(buildFlowResponse({ processors: [entity] })));
+
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+
+            const result: any = await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
+            const processor = result.response.flow.processGroupFlow.flow.processors[0];
+            expect(processor.position).toEqual({ x: 100, y: 200 });
+        });
+
+        it('clamps catastrophic-finite coordinates to (0, 0)', async () => {
+            const entity = makeEntity('p-2', 7.490388061926315e307, 0);
+            (flowService as any).getFlow = vi.fn(() => of(buildFlowResponse({ processors: [entity] })));
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+
+            const result: any = await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
+            const processor = result.response.flow.processGroupFlow.flow.processors[0];
+            expect(processor.position).toEqual({ x: 0, y: 0 });
+            expect(warnSpy).toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+
+        it('clamps catastrophic-finite connection bends to (0, 0)', async () => {
+            const connection = makeConnection('conn-1', 9e307, 0);
+            (flowService as any).getFlow = vi.fn(() => of(buildFlowResponse({ connections: [connection] })));
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+
+            const result: any = await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
+            const bend = result.response.flow.processGroupFlow.flow.connections[0].component.bends[0];
+            expect(bend).toEqual({ x: 0, y: 0 });
+            warnSpy.mockRestore();
+        });
+
+        it('warns at most once per component id across repeated loadProcessGroup calls', async () => {
+            const entity = makeEntity('p-dup', 7.490388061926315e307, 0);
+            (flowService as any).getFlow = vi.fn(() => of(buildFlowResponse({ processors: [entity] })));
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+            await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
+
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+            await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
+
+            expect(warnSpy).toHaveBeenCalledTimes(1);
+            warnSpy.mockRestore();
+        });
+    });
+
     describe('navigateToProvenanceForComponent$', () => {
         let router: Router;
 
