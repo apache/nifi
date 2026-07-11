@@ -137,7 +137,7 @@ public interface Record {
     /**
      * Updates the value of the given field to the given value. If the field specified is not present in this Record's schema,
      * this method will track of the field as an 'inactive field', which can then be added into the Record's schema via the
-     * {@link #incorporateInactiveFields} method. This method should not be called after each invocation of {@link #setValue(RecordField, Object)}
+     * {@link #incorporateInactiveFields} method. This method should not be called after each invocation of setValue(RecordField, Object),
      * but rather should be called only once all updates to the Record have completed, in order to optimize performance.
      *
      * If this method changes any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any

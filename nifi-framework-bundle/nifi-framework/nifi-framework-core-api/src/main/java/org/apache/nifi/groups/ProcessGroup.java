@@ -630,7 +630,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     ControllerServiceNode findControllerService(String id, boolean includeDescendantGroups, boolean includeAncestorGroups);
 
     /**
-     * @return a List of all Controller Services contained within this ProcessGroup and any child Process Groups
+     * @return a Set of all Controller Services contained within this ProcessGroup and any child Process Groups
      */
     Set<ControllerServiceNode> findAllControllerServices();
 

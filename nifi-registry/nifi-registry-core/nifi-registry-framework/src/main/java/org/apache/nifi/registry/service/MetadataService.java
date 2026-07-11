@@ -83,14 +83,14 @@ public interface MetadataService {
      * Retrieves all buckets with the given ids.
      *
      * @param bucketIds the ids of the buckets to retrieve
-     * @return the set of all buckets
+     * @return the list of all buckets
      */
     List<BucketEntity> getBuckets(Set<String> bucketIds);
 
     /**
      * Retrieves all buckets.
      *
-     * @return the set of all buckets
+     * @return the list of all buckets
      */
     List<BucketEntity> getAllBuckets();
 
@@ -100,7 +100,7 @@ public interface MetadataService {
      * Retrieves items for the given bucket.
      *
      * @param bucketId the id of bucket to retrieve items for
-     * @return the set of items for the bucket
+     * @return the list of items for the bucket
      */
     List<BucketItemEntity> getBucketItems(String bucketId);
 
@@ -108,7 +108,7 @@ public interface MetadataService {
      * Retrieves items for the given buckets.
      *
      * @param bucketIds the ids of buckets to retrieve items for
-     * @return the set of items for the bucket
+     * @return the list of items for the bucket
      */
     List<BucketItemEntity> getBucketItems(Set<String> bucketIds);
 
@@ -451,7 +451,7 @@ public interface MetadataService {
     /**
      * Retrieves the set of all extension tags.
      *
-     * @return the set of all extension tags
+     * @return the list of all extension tags
      */
     List<TagCountEntity> getAllExtensionTags();
 

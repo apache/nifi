@@ -45,7 +45,6 @@ public interface WriteAheadJournal<T> extends Closeable {
      * Returns information about what was written to the journal
      *
      * @return A JournalSummary indicating what was written to the journal
-     * @throws IOException if unable to write to the underlying storage mechanism.
      */
     JournalSummary getSummary();
 

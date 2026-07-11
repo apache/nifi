@@ -25,7 +25,7 @@ import java.util.Date;
  * Events describe the occurrence of something noteworthy. They record the event's source, a timestamp, a description, and a category.
  *
  *
- * @Immutable
+ * Immutable
  */
 public class Event implements NodeEvent {
 
