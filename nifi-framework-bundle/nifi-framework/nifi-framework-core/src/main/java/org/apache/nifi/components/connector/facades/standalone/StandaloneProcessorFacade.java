@@ -22,6 +22,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -49,6 +51,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class StandaloneProcessorFacade implements ProcessorFacade {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -207,6 +210,16 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
         } catch (final JsonProcessingException e) {
             throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
         }
+    }
+
+    @Override
+    public boolean reportsBacklog() {
+        return false;
+    }
+
+    @Override
+    public Optional<Backlog> getBacklog() throws BacklogReportingException {
+        return Optional.empty();
     }
 
     @Override
