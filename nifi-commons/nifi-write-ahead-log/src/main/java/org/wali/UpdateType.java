@@ -53,5 +53,5 @@ public enum UpdateType {
     /**
      * Used to indicate that a Swap File has been renamed
      */
-    SWAP_FILE_RENAMED;
+    SWAP_FILE_RENAMED
 }

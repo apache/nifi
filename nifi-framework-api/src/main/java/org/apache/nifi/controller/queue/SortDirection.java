@@ -33,5 +33,5 @@ public enum SortDirection {
      * FlowFiles should be sorted such that the FlowFile with the largest value for the Sort Column
      * should occur first in the listing.
      */
-    DESCENDING;
+    DESCENDING
 }

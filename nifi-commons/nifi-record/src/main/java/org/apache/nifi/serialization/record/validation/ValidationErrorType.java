@@ -37,5 +37,5 @@ public enum ValidationErrorType {
     /**
      * Some other sort of validation error occurred.
      */
-    OTHER;
+    OTHER
 }

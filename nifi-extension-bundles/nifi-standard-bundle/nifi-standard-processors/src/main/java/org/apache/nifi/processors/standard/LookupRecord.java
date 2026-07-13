@@ -827,7 +827,7 @@ public class LookupRecord extends AbstractProcessor {
     enum MatchResult {
         ALL_MATCH,
         NONE_MATCH,
-        SOME_MATCH;
+        SOME_MATCH
     }
 
     private interface ReplacementStrategy {

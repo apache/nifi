@@ -23,5 +23,5 @@ public enum RemoteAuthorizationState {
 
     UNKNOWN,
     UNAUTHORIZED,
-    AUTHORIZED;
+    AUTHORIZED
 }
