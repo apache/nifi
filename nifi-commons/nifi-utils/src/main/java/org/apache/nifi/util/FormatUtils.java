@@ -20,6 +20,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.time.DurationFormat;
 
 import java.text.NumberFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -28,8 +29,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
+import java.time.temporal.TemporalUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -297,5 +302,45 @@ public class FormatUtils {
 
         final OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, zoneOffset);
         return offsetDateTime.toInstant();
+    }
+
+    public static String formatDurationToWords(long value, ChronoUnit unit) {
+        return formatDurationToWords(Duration.ZERO.plus(value, unit));
+    }
+
+    /**
+     * Format a Duration using words (days, hours, minutes, seconds, ns) where all lower units are
+     *   included once a non-zero unit is found. Unit plurality is preserved.
+     * Maximum resolution is in terms of days.
+     *
+     * @param source duration to convert to words
+     * @return String representation of the given duration
+     */
+    public static String formatDurationToWords(Duration source) {
+        long days = source.toDaysPart();
+        long hours = source.toHoursPart();
+        long minutes = source.toMinutesPart();
+        int seconds = source.toSecondsPart();
+        int nanos = source.toNanosPart();
+
+        List<String> parts = new ArrayList<>();
+
+        if (days > 0) {
+            parts.add(days + (days == 1 ? " day" : " days"));
+        }
+        if (hours > 0 || !parts.isEmpty()) {
+            parts.add(hours + (hours == 1 ? " hour" : " hours"));
+        }
+        if (minutes > 0 || !parts.isEmpty()) {
+            parts.add(minutes + (minutes == 1 ? " minute" : " minutes"));
+        }
+        if (seconds > 0 || !parts.isEmpty()) {
+            parts.add(seconds + (seconds == 1 ? " second" : " seconds"));
+        }
+        if(nanos > 0 || !parts.isEmpty()) {
+            parts.add(nanos + " ns");
+        }
+
+        return String.join(" ", parts);
     }
 }
