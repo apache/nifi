@@ -18,6 +18,7 @@ package org.apache.nifi.web.connector.authorization;
 
 import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
+import org.apache.nifi.components.connector.components.QueueSnapshot;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flowfile.FlowFile;
@@ -62,6 +63,12 @@ public class AuthorizingConnectionFacade implements ConnectionFacade {
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         authContext.authorizeWrite();
         return delegate.dropFlowFiles(predicate);
+    }
+
+    @Override
+    public QueueSnapshot getQueueSnapshot() {
+        authContext.authorizeRead();
+        return delegate.getQueueSnapshot();
     }
 
     @Override
