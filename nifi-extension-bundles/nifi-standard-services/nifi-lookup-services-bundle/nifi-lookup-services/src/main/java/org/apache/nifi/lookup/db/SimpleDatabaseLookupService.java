@@ -159,9 +159,8 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                 }
 
             } catch (SQLException se) {
-                final String message = String.format("Error executing SQL statement: %s for value %s : %s",
-                        selectQuery, key, (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()));
-                throw new LookupFailureException(message, se);
+                throw new LookupFailureException(String.format("Error executing SQL statement: %s for value %s : %s",
+                        selectQuery, key, (se.getCause() == null ? se.getMessage() : se.getCause().getMessage())), se);
             }
         }
 
