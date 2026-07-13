@@ -38,7 +38,7 @@ public class DelegatedRecord implements Record {
             final org.apache.nifi.serialization.record.Record record,
             final Types.StructType struct
     ) {
-        this.record = RecordConverter.getConvertedRecord(Objects.requireNonNull(record));
+        this.record = RecordConverter.getConvertedRecord(Objects.requireNonNull(record), struct);
         this.struct = Objects.requireNonNull(struct);
     }
 

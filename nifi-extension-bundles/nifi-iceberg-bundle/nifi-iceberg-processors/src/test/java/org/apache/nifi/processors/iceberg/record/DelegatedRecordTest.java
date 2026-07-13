@@ -123,7 +123,11 @@ class DelegatedRecordTest {
 
         final Record record = new MapRecord(recordSchema, values);
 
-        final Types.StructType structType = Types.StructType.of();
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.required(1, CREATED_FIELD, Types.TimestampType.withoutZone()),
+                Types.NestedField.required(2, UPDATED_FIELD, Types.DateType.get()),
+                Types.NestedField.required(3, STOPPED_FIELD, Types.TimeType.get())
+        );
         final DelegatedRecord delegatedRecord = new DelegatedRecord(record, structType);
 
         final Object created = delegatedRecord.getField(CREATED_FIELD);
@@ -134,5 +138,46 @@ class DelegatedRecordTest {
 
         final Object stopped = delegatedRecord.getField(STOPPED_FIELD);
         assertEquals(STOPPED_CONVERTED, stopped);
+    }
+
+    @Test
+    void testCopyRecordWithNestedStruct() {
+        final String nestedField = "nested";
+        final String innerTimestampField = "innerTimestamp";
+        final Timestamp innerTimestamp = Timestamp.valueOf("2026-03-04 08:15:30");
+
+        final RecordSchema nestedSchema = new SimpleRecordSchema(
+                List.of(new RecordField(innerTimestampField, RecordFieldType.TIMESTAMP.getDataType()))
+        );
+        final Map<String, Object> nestedValues = new LinkedHashMap<>();
+        nestedValues.put(innerTimestampField, innerTimestamp);
+        final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
+
+        final RecordSchema outerSchema = new SimpleRecordSchema(
+                List.of(
+                        new RecordField(LABEL_FIELD, RecordFieldType.STRING.getDataType()),
+                        new RecordField(nestedField, RecordFieldType.RECORD.getDataType())
+                )
+        );
+        final Map<String, Object> outerValues = new LinkedHashMap<>();
+        outerValues.put(LABEL_FIELD, LABEL);
+        outerValues.put(nestedField, nestedRecord);
+        final Record outerRecord = new MapRecord(outerSchema, outerValues);
+
+        final Types.StructType nestedStructType = Types.StructType.of(
+                Types.NestedField.required(2, innerTimestampField, Types.TimestampType.withoutZone())
+        );
+        final Types.StructType outerStructType = Types.StructType.of(
+                Types.NestedField.required(1, LABEL_FIELD, Types.StringType.get()),
+                Types.NestedField.required(3, nestedField, nestedStructType)
+        );
+
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(outerRecord, outerStructType);
+
+        final org.apache.iceberg.data.Record firstCopy = delegatedRecord.copy();
+        assertEquals(delegatedRecord, firstCopy);
+
+        final org.apache.iceberg.data.Record secondCopy = ((DelegatedRecord) firstCopy).copy();
+        assertEquals(delegatedRecord, secondCopy);
     }
 }
