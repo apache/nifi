@@ -1397,8 +1397,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             // reasonably closely while avoiding needlessly frequent iterations for the typical (minutes) interval.
             final long registrySyncTickSeconds = Math.max(1, Math.min(defaultRegistrySyncIntervalSeconds, 30));
 
-            LOG.info("Scheduled Flow Registry synchronization with a default interval of {} and a check interval of {} seconds; "
-                    + "individual Flow Registry Clients may override the interval via the Synchronization Interval property", registrySyncInterval, registrySyncTickSeconds);
+            LOG.info("Scheduled Flow Registry with Sync Interval [{} s] Check Interval [{} s]", registrySyncInterval, registrySyncTickSeconds);
 
             final RegistryFlowSynchronizationTask registrySynchronizationTask = new RegistryFlowSynchronizationTask(flowManager, defaultRegistrySyncIntervalSeconds);
             timerDrivenEngineRef.get().scheduleWithFixedDelay(registrySynchronizationTask, 300, registrySyncTickSeconds, TimeUnit.SECONDS);

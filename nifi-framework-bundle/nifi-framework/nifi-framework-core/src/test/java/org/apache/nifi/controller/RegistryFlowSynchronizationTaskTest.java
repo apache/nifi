@@ -20,9 +20,10 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RegistryFlowSynchronizationTaskTest {
 
@@ -49,20 +50,20 @@ class RegistryFlowSynchronizationTaskTest {
 
     @Test
     void testGetEffectiveIntervalSeconds() {
-        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final FlowManager flowManager = mock(FlowManager.class);
         final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
 
-        final FlowRegistryClientNode configuredClient = Mockito.mock(FlowRegistryClientNode.class);
-        Mockito.when(configuredClient.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn("10 min");
-        Mockito.when(flowManager.getFlowRegistryClient("configured")).thenReturn(configuredClient);
+        final FlowRegistryClientNode configuredClient = mock(FlowRegistryClientNode.class);
+        when(configuredClient.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn("10 min");
+        when(flowManager.getFlowRegistryClient("configured")).thenReturn(configuredClient);
         assertEquals(600L, task.getEffectiveIntervalSeconds("configured"));
 
-        final FlowRegistryClientNode unconfiguredClient = Mockito.mock(FlowRegistryClientNode.class);
-        Mockito.when(unconfiguredClient.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn(null);
-        Mockito.when(flowManager.getFlowRegistryClient("unconfigured")).thenReturn(unconfiguredClient);
+        final FlowRegistryClientNode unconfiguredClient = mock(FlowRegistryClientNode.class);
+        when(unconfiguredClient.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn(null);
+        when(flowManager.getFlowRegistryClient("unconfigured")).thenReturn(unconfiguredClient);
         assertEquals(DEFAULT_INTERVAL_SECONDS, task.getEffectiveIntervalSeconds("unconfigured"));
 
-        Mockito.when(flowManager.getFlowRegistryClient("missing")).thenReturn(null);
+        when(flowManager.getFlowRegistryClient("missing")).thenReturn(null);
         assertEquals(DEFAULT_INTERVAL_SECONDS, task.getEffectiveIntervalSeconds("missing"));
     }
 }
