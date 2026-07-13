@@ -67,8 +67,8 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
     public void setProperty(String key, Object value) {
         if (value == null) {
             this.removeAttribute(key);
-        } else if (value instanceof String) {
-            this.putAttribute(key, (String) value);
+        } else if (value instanceof final String string) {
+            this.putAttribute(key, string);
         } else {
             this.putAttribute(key, value.toString());
         }

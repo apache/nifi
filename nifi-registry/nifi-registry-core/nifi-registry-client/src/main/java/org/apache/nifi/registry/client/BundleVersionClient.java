@@ -120,7 +120,7 @@ public interface BundleVersionClient {
      *
      * The entity contains all of the information about the version, such as the bucket, bundle, and version metadata.
      *
-     * The binary content of the bundle can be obtained by calling {@method getBundleVersionContent}.
+     * The binary content of the bundle can be obtained by calling {@link #getBundleVersionContent(String, String) getBundleVersionContent}.
      *
      * @param bundleId the bundle id
      * @param version the bundle version

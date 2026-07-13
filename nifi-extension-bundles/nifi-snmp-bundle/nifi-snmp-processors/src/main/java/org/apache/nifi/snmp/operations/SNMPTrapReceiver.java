@@ -87,8 +87,8 @@ public class SNMPTrapReceiver implements CommandResponder {
         final Map<String, String> attributes;
         final PDU pdu = event.getPDU();
         final Address peerAddress = event.getPeerAddress();
-        if (pdu instanceof PDUv1) {
-            attributes = SNMPUtils.getV1TrapPduAttributeMap((PDUv1) pdu);
+        if (pdu instanceof final PDUv1 pdUv1) {
+            attributes = SNMPUtils.getV1TrapPduAttributeMap(pdUv1);
         } else {
             attributes = SNMPUtils.getPduAttributeMap(pdu);
         }

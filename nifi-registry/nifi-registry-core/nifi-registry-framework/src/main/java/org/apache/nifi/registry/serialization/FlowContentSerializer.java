@@ -86,8 +86,8 @@ public class FlowContentSerializer {
      * If no version could be read from any serializer, then a SerializationException is thrown.
      *
      * When deserializing, clients are expected to call this method to obtain the version, then call
-     * {@method isProcessGroupVersion}, which then determines if {@method deserializeProcessGroup}
-     * should be used, or if {@method deserializeFlowContent} should be used.
+     * {@link #isProcessGroupVersion(int) isProcessGroupVersion}, which then determines if {@link #deserializeProcessGroup(int, InputStream) deserializeProcessGroup}
+     * should be used, or if {@link #deserializeFlowContent(int, InputStream) deserializeFlowContent} should be used.
      *
      * @param input the input stream containing serialized flow content
      * @return the data model version from the input stream

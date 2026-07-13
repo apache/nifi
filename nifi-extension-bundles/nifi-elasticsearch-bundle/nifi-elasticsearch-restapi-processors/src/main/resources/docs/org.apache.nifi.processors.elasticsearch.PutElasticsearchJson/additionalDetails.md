@@ -30,6 +30,62 @@ failed to an errors queue so that only failed FlowFiles can be processed downstr
 The index, operation and (optional) type fields are configured with default values. The ID (optional unless the
 operation is "index") can be set as an attribute on the FlowFile(s).
 
+### Field Path Mode
+
+The **Identifier Field**, **Index Field** and **Timestamp Field** properties each name a field within the document
+whose value is extracted (and used as the document ID, index name, or `@timestamp` respectively). The **Field Path
+Mode** property controls how those values are interpreted:
+
+* **Literal Field Name** (the default) &mdash; each value is the exact name of a top-level field. A `/` or `\` is just
+  a character in the field name, so a value like `@metadata/id` matches a top-level field literally named
+  `@metadata/id`.
+* **Nested Field Path** &mdash; each value is a `/`-delimited path into nested objects, as described below.
+
+#### Literal Field Name (default)
+
+For the document:
+
+```json
+{
+  "@metadata/id": "abc",
+  "message": "Hello, world"
+}
+```
+
+an Identifier Field of `@metadata/id` selects `abc` &mdash; the top-level field whose name is literally
+`@metadata/id`. The same value against `{"@metadata": {"id": "abc"}}` selects nothing, because there is no
+top-level field with that exact name.
+
+#### Nested Field Path
+
+The remainder of this section applies when **Field Path Mode** is set to **Nested Field Path**. For the document:
+
+```json
+{
+  "@metadata": {
+    "id": "abc",
+    "index": "my-index"
+  },
+  "message": "Hello, world"
+}
+```
+
+* the Identifier Field path `@metadata/id` selects `abc`
+* the Index Field path `@metadata/index` selects `my-index`
+
+#### Field names that contain a slash
+
+Because `/` separates path segments, a field whose name literally contains a `/` must have that slash escaped as `\/`,
+and a literal backslash must be escaped as `\\`. For example, for the document `{"a/b": "abc"}` the path `a\/b` selects
+the top-level field named `a/b`.
+
+#### Removal and pruning
+
+When the corresponding **Retain** property is set to `false`, the field is removed from the document body after its
+value is extracted. For a nested path, any parent object that is left empty by the removal is also pruned. For example,
+extracting and removing `@metadata/id` from `{"@metadata": {"id": "abc"}, "message": "Hello, world"}` leaves
+`{"message": "Hello, world"}`, with the now-empty `@metadata` object removed.
+
 ### Dynamic Templates
 
 Index and Create operations can use Dynamic Templates. The Dynamic Templates property must be parsable as a JSON object.

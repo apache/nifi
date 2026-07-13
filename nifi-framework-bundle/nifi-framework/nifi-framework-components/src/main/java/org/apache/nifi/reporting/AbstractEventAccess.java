@@ -406,8 +406,8 @@ public abstract class AbstractEventAccess implements EventAccess {
             }
 
             // special handling for public ports
-            if (port instanceof PublicPort) {
-                portStatus.setTransmitting(((PublicPort) port).isTransmitting());
+            if (port instanceof final PublicPort publicPort) {
+                portStatus.setTransmitting(publicPort.isTransmitting());
             }
 
             final ProcessSessionEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
@@ -469,8 +469,8 @@ public abstract class AbstractEventAccess implements EventAccess {
             }
 
             // special handling for public ports
-            if (port instanceof PublicPort) {
-                portStatus.setTransmitting(((PublicPort) port).isTransmitting());
+            if (port instanceof final PublicPort publicPort) {
+                portStatus.setTransmitting(publicPort.isTransmitting());
             }
 
             final ProcessSessionEvent entry = statusReport.getReportEntries().get(port.getIdentifier());

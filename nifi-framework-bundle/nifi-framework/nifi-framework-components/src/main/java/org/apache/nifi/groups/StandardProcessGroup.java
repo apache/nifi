@@ -4040,7 +4040,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private ConfigurationContext createConfigurationContext(final ComponentNode component) {
-        final String schedulingPeriod = (component instanceof ReportingTaskNode) ? ((ReportingTaskNode) component).getSchedulingPeriod() : null;
+        final String schedulingPeriod = (component instanceof final ReportingTaskNode reportingTaskNode) ? reportingTaskNode.getSchedulingPeriod() : null;
         return new StandardConfigurationContext(component, controllerServiceProvider, schedulingPeriod, component.getEffectivePropertyValues(), component.getAnnotationData());
     }
 
@@ -4851,7 +4851,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         if (recursive) {
             for (final ProcessGroup childGroup : getProcessGroups()) {
-                if (childGroup instanceof StandardProcessGroup standardChildGroup) {
+                if (childGroup instanceof final StandardProcessGroup standardChildGroup) {
                     standardChildGroup.setLoggingAttributes(true);
                 }
             }

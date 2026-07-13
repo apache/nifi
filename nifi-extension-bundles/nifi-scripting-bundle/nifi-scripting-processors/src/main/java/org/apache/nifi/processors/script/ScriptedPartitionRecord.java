@@ -167,7 +167,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                         getLogger().debug("Evaluated scripted against {} (index {}), producing result of {}", record, counts.getRecordCount(), evaluatedValue);
                         counts.incrementRecordCount();
 
-                        final Object partition = (evaluatedValue instanceof Object[]) ? Arrays.asList((Object[]) evaluatedValue) : evaluatedValue;
+                        final Object partition = (evaluatedValue instanceof final Object[] objects) ? Arrays.asList(objects) : evaluatedValue;
                         RecordSetWriter writer = recordSetWriters.get(partition);
 
                         if (writer == null) {

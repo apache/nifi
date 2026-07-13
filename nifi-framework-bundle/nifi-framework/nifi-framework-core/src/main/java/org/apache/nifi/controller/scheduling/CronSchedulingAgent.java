@@ -129,8 +129,17 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
                     try {
                         continuallyRunTask.invoke();
                     } catch (final RuntimeException re) {
+                        // Diagnostic: an exception here skips the rescheduling below. Because each cron trigger is a
+                        // one-shot scheduled task that reschedules only after a successful run, a throwable silently
+                        // terminates the scheduling chain: the component stays RUNNING but never fires again on its
+                        // schedule until it is stopped and started. Log it before propagating, since the executor
+                        // otherwise discards it with no record.
+                        logger.warn("Cron-scheduled trigger for {} threw an exception; its scheduling chain will terminate "
+                            + "and it will not run again on its schedule until it is stopped and started", connectable, re);
                         throw re;
                     } catch (final Exception e) {
+                        logger.warn("Cron-scheduled trigger for {} threw an exception; its scheduling chain will terminate "
+                            + "and it will not run again on its schedule until it is stopped and started", connectable, e);
                         throw new ProcessException(e);
                     }
 
@@ -138,9 +147,17 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
                     final long delay = getDelay(nextSchedule);
 
                     logger.debug("Finished task for {}; next scheduled time is at {} after a delay of {} milliseconds", connectable, nextSchedule, delay);
-                    final ScheduledFuture<?> newFuture = flowEngine.schedule(this, delay, TimeUnit.MILLISECONDS);
-                    final ScheduledFuture<?> oldFuture = componentFuturesMap.put(taskNumber.get(), newFuture);
-                    scheduleState.replaceFuture(oldFuture, newFuture);
+                    try {
+                        final ScheduledFuture<?> newFuture = flowEngine.schedule(this, delay, TimeUnit.MILLISECONDS);
+                        final ScheduledFuture<?> oldFuture = componentFuturesMap.put(taskNumber.get(), newFuture);
+                        scheduleState.replaceFuture(oldFuture, newFuture);
+                    } catch (final RuntimeException re) {
+                        // Diagnostic: failing to schedule the next trigger (e.g. the engine is shutting down) also
+                        // silently terminates the scheduling chain, leaving the component RUNNING but unscheduled.
+                        logger.warn("Failed to reschedule the next cron trigger for {}; its scheduling chain will terminate "
+                            + "and it will not run again on its schedule until it is stopped and started", connectable, re);
+                        throw re;
+                    }
                 }
             };
 

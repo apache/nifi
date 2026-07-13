@@ -152,8 +152,8 @@ public class SiteToSiteUtils {
         }
 
         // If no state manager was provided and this context supports retrieving it, do so
-        if (stateManager == null && reportContext instanceof ReportingContext) {
-            stateManager = ((ReportingContext) reportContext).getStateManager();
+        if (stateManager == null && reportContext instanceof final ReportingContext reportingContext) {
+            stateManager = reportingContext.getStateManager();
         }
         return new SiteToSiteClient.Builder()
                 .urls(ClusterUrlParser.parseClusterUrls(destinationUrl))

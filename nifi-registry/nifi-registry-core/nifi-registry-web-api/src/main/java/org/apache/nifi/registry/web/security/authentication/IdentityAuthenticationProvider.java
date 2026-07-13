@@ -101,8 +101,8 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
     }
 
     protected boolean checkTokenOriginatedFromThisIdentityProvider(Authentication authentication) {
-        return (authentication instanceof AuthenticationRequestToken
-                && identityProvider.getClass().equals(((AuthenticationRequestToken) authentication).getAuthenticationRequestOrigin()));
+        return (authentication instanceof final AuthenticationRequestToken authenticationRequestToken
+                && identityProvider.getClass().equals(authenticationRequestToken.getAuthenticationRequestOrigin()));
     }
 
     protected String mapIdentity(final String identity) {

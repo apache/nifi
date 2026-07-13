@@ -54,8 +54,8 @@ public class Anchored extends RecordPathSegment {
             return Stream.of();
         }
 
-        if (value instanceof Record) {
-            return evaluateAtRoot((Record) value);
+        if (value instanceof final Record recordObj) {
+            return evaluateAtRoot(recordObj);
         }
 
         if (value instanceof final Record[] array) {
@@ -64,11 +64,11 @@ public class Anchored extends RecordPathSegment {
 
         if (value instanceof final Iterable<?> iterable) {
             return StreamSupport.stream(iterable.spliterator(), false).flatMap(element -> {
-                if (!(element instanceof Record)) {
+                if (!(element instanceof final Record recordObj)) {
                     return Stream.of();
                 }
 
-                return evaluateAtRoot((Record) element);
+                return evaluateAtRoot(recordObj);
             });
         }
 

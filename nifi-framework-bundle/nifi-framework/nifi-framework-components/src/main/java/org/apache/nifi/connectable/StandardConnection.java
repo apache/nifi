@@ -152,8 +152,8 @@ public final class StandardConnection implements Connection {
         final Authorizable sourceAuthorizable;
 
         // if the source is a remote group port, authorize according to the RPG
-        if (sourceConnectable instanceof RemoteGroupPort) {
-            sourceAuthorizable = ((RemoteGroupPort) sourceConnectable).getRemoteProcessGroup();
+        if (sourceConnectable instanceof final RemoteGroupPort remoteGroupPort) {
+            sourceAuthorizable = remoteGroupPort.getRemoteProcessGroup();
         } else {
             sourceAuthorizable = sourceConnectable;
         }
@@ -167,8 +167,8 @@ public final class StandardConnection implements Connection {
         final Authorizable destinationAuthorizable;
 
         // if the destination is a remote group port, authorize according to the RPG
-        if (destinationConnectable instanceof RemoteGroupPort) {
-            destinationAuthorizable = ((RemoteGroupPort) destinationConnectable).getRemoteProcessGroup();
+        if (destinationConnectable instanceof final RemoteGroupPort remoteGroupPort) {
+            destinationAuthorizable = remoteGroupPort.getRemoteProcessGroup();
         } else {
             destinationAuthorizable = destinationConnectable;
         }

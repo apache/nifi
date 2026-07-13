@@ -166,7 +166,7 @@ class ListenOTLPTest {
         final KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
         final Optional<KeyManager> firstKeyManager = Arrays.stream(keyManagers).findFirst();
         final KeyManager configuredKeyManager = firstKeyManager.orElse(null);
-        keyManager = configuredKeyManager instanceof X509KeyManager ? (X509KeyManager) configuredKeyManager : null;
+        keyManager = configuredKeyManager instanceof final X509KeyManager x509KeyManager ? x509KeyManager : null;
 
         sslContext = new StandardSslContextBuilder()
                 .keyStore(keyStore)

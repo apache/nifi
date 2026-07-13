@@ -64,7 +64,7 @@ public interface ProcessorDAO {
      *
      * @param groupId group id
      * @param includeDescendants if processors from descendant groups should be included
-     * @return List of all the Processors
+     * @return Set of all the Processors
      */
     Set<ProcessorNode> getProcessors(String groupId, boolean includeDescendants);
 

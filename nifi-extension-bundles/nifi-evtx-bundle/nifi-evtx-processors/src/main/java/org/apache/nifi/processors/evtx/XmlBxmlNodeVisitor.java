@@ -143,8 +143,8 @@ public class XmlBxmlNodeVisitor implements BxmlNodeVisitor {
     @Override
     public void visit(VariantTypeNode variantTypeNode) throws IOException {
         try {
-            if (variantTypeNode instanceof BXmlTypeNode) {
-                ((BXmlTypeNode) variantTypeNode).getRootNode().accept(this);
+            if (variantTypeNode instanceof final BXmlTypeNode bXmlTypeNode) {
+                bXmlTypeNode.getRootNode().accept(this);
             } else {
                 xmlStreamWriter.writeCharacters(variantTypeNode.getValue());
             }

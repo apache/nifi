@@ -147,8 +147,8 @@ public class ProtoSchemaParser {
         if (fieldType instanceof MessageType) {
             final RecordSchema recordSchema = createSchema(protoType.toString());
             return new RecordDataType(recordSchema);
-        } else if (fieldType instanceof EnumType) {
-            return new EnumDataType(((EnumType) fieldType).getConstants().stream().map(EnumConstant::getName).toList());
+        } else if (fieldType instanceof final EnumType enumType) {
+            return new EnumDataType(enumType.getConstants().stream().map(EnumConstant::getName).toList());
         } else {
             throw new IllegalStateException("Unknown proto type: " + fieldType);
         }

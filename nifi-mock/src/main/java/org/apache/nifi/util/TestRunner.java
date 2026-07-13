@@ -767,7 +767,7 @@ public interface TestRunner {
      *             {@link #addControllerService(String, ControllerService)} or
      *             {@link #addControllerService(String, ControllerService, Map)} method or
      *             if the Controller Service has been removed via the
-     *             {@link #removeControllerService(ControllerService)} method.
+     *             removeControllerService(ControllerService) method.
      *
      */
     void removeControllerService(ControllerService service);

@@ -424,8 +424,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             for (final FlowFile flowFile : enclosure.getFlowFiles()) {
 
                 final StatementFlowFileEnclosure targetEnclosure
-                        = enclosure instanceof FragmentedEnclosure
-                        ? ((FragmentedEnclosure) enclosure).getTargetEnclosure(flowFile)
+                        = enclosure instanceof final FragmentedEnclosure fragmentedEnclosure
+                        ? fragmentedEnclosure.getTargetEnclosure(flowFile)
                         : enclosure;
 
                 // Execute update one by one.
@@ -903,9 +903,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ERROR_MESSAGE_ATTR, exception.getMessage());
 
-        if (exception instanceof SQLException) {
-            int errorCode = ((SQLException) exception).getErrorCode();
-            String sqlState = ((SQLException) exception).getSQLState();
+        if (exception instanceof final SQLException sqlException) {
+            int errorCode = sqlException.getErrorCode();
+            String sqlState = sqlException.getSQLState();
 
             // Handle positive and negative error codes
             if (errorCode != 0) {

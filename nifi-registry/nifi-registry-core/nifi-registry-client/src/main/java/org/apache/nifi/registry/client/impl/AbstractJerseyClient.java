@@ -108,8 +108,8 @@ public class AbstractJerseyClient {
                 final StringBuilder errorMessageBuilder = new StringBuilder(errorMessage);
 
                 // see if we have a WebApplicationException, and if so add the response body to the error message
-                if (e instanceof WebApplicationException) {
-                    final Response response = ((WebApplicationException) e).getResponse();
+                if (e instanceof final WebApplicationException webApplicationException) {
+                    final Response response = webApplicationException.getResponse();
                     final String responseBody = response.readEntity(String.class);
                     errorMessageBuilder.append(": ").append(responseBody);
                 }

@@ -108,8 +108,8 @@ public class MockSwapManager implements FlowFileSwapManager {
             if (failSwapInFailure instanceof RuntimeException) {
                 throw (RuntimeException) failSwapInFailure;
             }
-            if (failSwapInFailure instanceof Error) {
-                throw (Error) failSwapInFailure;
+            if (failSwapInFailure instanceof final Error error) {
+                throw error;
             }
 
             throw new RuntimeException(failSwapInFailure);

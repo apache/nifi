@@ -50,10 +50,10 @@ public class OutputStreamWritable implements Writable {
     @Override
     public void readFields(DataInput in) throws IOException {
 
-        if (in instanceof DataInputBuffer) {
-            byte[] bytes = ((DataInputBuffer) in).getData();
-            int pos = ((DataInputBuffer) in).getPosition();
-            int length = ((DataInputBuffer) in).getLength();
+        if (in instanceof final DataInputBuffer dataInputBuffer) {
+            byte[] bytes = dataInputBuffer.getData();
+            int pos = dataInputBuffer.getPosition();
+            int length = dataInputBuffer.getLength();
             int bytesRemaining = length - pos;
             if (writeLength) {
                 dos.write(bytes, pos, bytesRemaining);

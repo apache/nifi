@@ -66,8 +66,8 @@ public class HashServiceTest {
         // Act
         for (final Object result : scenarios.values()) {
             // Assert
-            if (result instanceof byte[]) {
-                assertArrayEquals(expectedHashBytes, (byte[]) result);
+            if (result instanceof final byte[] bytes) {
+                assertArrayEquals(expectedHashBytes, bytes);
             } else {
                 assertEquals(expectedHash, result);
             }

@@ -571,21 +571,21 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             TableFieldSchema fieldSchema = findFieldSchema(tableFields, key);
             if (fieldSchema != null && fieldSchema.getType() == TableFieldSchema.Type.STRUCT) {
                 // Nested RECORD type
-                if (obj instanceof MapRecord) {
-                    result.put(key, convertMapRecord(((MapRecord) obj).toMap(), fieldSchema.getFieldsList()));
+                if (obj instanceof final MapRecord mapRecord) {
+                    result.put(key, convertMapRecord(mapRecord.toMap(), fieldSchema.getFieldsList()));
                     continue;
-                } else if (obj instanceof Object[] && ((Object[]) obj).length > 0 && ((Object[]) obj)[0] instanceof MapRecord) {
+                } else if (obj instanceof final Object[] objects && objects.length > 0 && objects[0] instanceof MapRecord) {
                     List<Map<String, Object>> list = new ArrayList<>();
-                    for (Object item : (Object[]) obj) {
+                    for (Object item : objects) {
                         list.add(convertMapRecord(((MapRecord) item).toMap(), fieldSchema.getFieldsList()));
                     }
                     result.put(key, list);
                     continue;
                 }
-            } else if (obj instanceof Object[] && ((Object[]) obj).length > 0 && ((Object[]) obj)[0] instanceof MapRecord) {
+            } else if (obj instanceof final Object[] objects && objects.length > 0 && objects[0] instanceof MapRecord) {
                 // Repeated RECORDs without proper schema match; best effort
                 List<Map<String, Object>> list = new ArrayList<>();
-                for (Object item : (Object[]) obj) {
+                for (Object item : objects) {
                     list.add(convertMapRecord(((MapRecord) item).toMap(), fieldSchema != null ? fieldSchema.getFieldsList() : List.of()));
                 }
                 result.put(key, list);
@@ -596,14 +596,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             if (fieldSchema != null) {
                 switch (fieldSchema.getType()) {
                     case TIMESTAMP:
-                        if (obj instanceof Timestamp) {
-                            result.put(key, ((Timestamp) obj).getTime() * 1000);
+                        if (obj instanceof final Timestamp timestamp) {
+                            result.put(key, timestamp.getTime() * 1000);
                             break;
                         }
                         // fall through to default if not Timestamp
                     case TIME:
-                        if (obj instanceof Time) {
-                            LocalTime time = ((Time) obj).toLocalTime();
+                        if (obj instanceof final Time timeObj) {
+                            LocalTime time = timeObj.toLocalTime();
                             org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
                                 time.getHour(),
                                 time.getMinute(),
@@ -613,14 +613,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                         }
                         // fall through
                     case DATE:
-                        if (obj instanceof Date) {
-                            result.put(key, (int) ((Date) obj).toLocalDate().toEpochDay());
+                        if (obj instanceof final Date date) {
+                            result.put(key, (int) date.toLocalDate().toEpochDay());
                             break;
                         }
                         // fall through
                     case DATETIME:
-                        if (obj instanceof Timestamp) {
-                            LocalDateTime ldt = ((Timestamp) obj).toLocalDateTime();
+                        if (obj instanceof final Timestamp timestamp) {
+                            LocalDateTime ldt = timestamp.toLocalDateTime();
                             org.threeten.bp.LocalDateTime civil = org.threeten.bp.LocalDateTime.of(
                                     ldt.getYear(),
                                     ldt.getMonthValue(),
@@ -639,17 +639,17 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 }
             } else {
                 // No schema available for field; apply basic conversions for JDBC temporal types
-                if (obj instanceof Timestamp) {
-                    result.put(key, ((Timestamp) obj).getTime() * 1000);
-                } else if (obj instanceof Time) {
-                    LocalTime time = ((Time) obj).toLocalTime();
+                if (obj instanceof final Timestamp timestamp) {
+                    result.put(key, timestamp.getTime() * 1000);
+                } else if (obj instanceof final Time timeObj) {
+                    LocalTime time = timeObj.toLocalTime();
                     org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
                             time.getHour(),
                             time.getMinute(),
                             time.getSecond());
                     result.put(key, CivilTimeEncoder.encodePacked64TimeMicros(localTime));
-                } else if (obj instanceof Date) {
-                    result.put(key, (int) ((Date) obj).toLocalDate().toEpochDay());
+                } else if (obj instanceof final Date date) {
+                    result.put(key, (int) date.toLocalDate().toEpochDay());
                 } else {
                     result.put(key, obj);
                 }

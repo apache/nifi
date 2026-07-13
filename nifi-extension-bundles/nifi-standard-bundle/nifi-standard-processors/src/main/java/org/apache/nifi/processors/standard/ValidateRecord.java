@@ -451,8 +451,8 @@ public class ValidateRecord extends AbstractProcessor {
 
     private void writeRecord(final RecordSetWriter writer, final Record record) throws IOException {
         if (writer != null) {
-            if (writer instanceof RawRecordWriter) {
-                ((RawRecordWriter) writer).writeRawRecord(record);
+            if (writer instanceof final RawRecordWriter rawRecordWriter) {
+                rawRecordWriter.writeRawRecord(record);
             } else {
                 writer.write(record);
             }

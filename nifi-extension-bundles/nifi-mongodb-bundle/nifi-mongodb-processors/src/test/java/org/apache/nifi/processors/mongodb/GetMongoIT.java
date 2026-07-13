@@ -113,8 +113,8 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
@@ -127,8 +127,8 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(0, results.size());
 
@@ -150,8 +150,8 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
         assertTrue(results.iterator().next().toString().contains("is invalid"));
@@ -162,8 +162,8 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
+        if (pc instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertEquals(1, results.size());
         assertTrue(results.iterator().next().toString().contains("is invalid"));

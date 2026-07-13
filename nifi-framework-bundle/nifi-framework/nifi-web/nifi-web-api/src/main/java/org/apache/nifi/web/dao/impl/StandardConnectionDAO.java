@@ -451,8 +451,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             if (sourceConnectable == null) {
                 throw new IllegalArgumentException("The specified source for the connection does not exist");
             }
-            if (sourceConnectable instanceof PublicPort
-                && TransferDirection.SEND.equals(((PublicPort) sourceConnectable).getDirection())) {
+            if (sourceConnectable instanceof final PublicPort publicPort
+                && TransferDirection.SEND.equals(publicPort.getDirection())) {
                 throw new IllegalArgumentException("The specified source for the connection cannot be connected to local components.");
             }
         }
@@ -477,8 +477,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             if (destinationConnectable == null) {
                 throw new IllegalArgumentException("The specified destination for the connection does not exist");
             }
-            if (destinationConnectable instanceof PublicPort
-                && TransferDirection.RECEIVE.equals(((PublicPort) destinationConnectable).getDirection())) {
+            if (destinationConnectable instanceof final PublicPort publicPort
+                && TransferDirection.RECEIVE.equals(publicPort.getDirection())) {
                 throw new IllegalArgumentException("The specified destination for the connection cannot be connected from local components.");
             }
         }

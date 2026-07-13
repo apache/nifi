@@ -131,8 +131,8 @@ public class StandardRevisableEntityService implements RevisableEntityService {
         final Map<String, Revision> revisionMap = revisionManager.getRevisionMap();
 
         for (final Object obj : entities) {
-            if (obj instanceof RevisableEntity) {
-                populateRevision(revisionMap, (RevisableEntity) obj);
+            if (obj instanceof final RevisableEntity revisableEntity) {
+                populateRevision(revisionMap, revisableEntity);
             }
         }
     }

@@ -228,8 +228,8 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             protocol = RemoteResourceFactory.receiveServerProtocolNegotiation(dis, dos);
                             protocol.setRootProcessGroup(rootGroup.get());
                             protocol.setNodeInformant(nodeInformant);
-                            if (protocol instanceof PeerDescriptionModifiable) {
-                                ((PeerDescriptionModifiable) protocol).setPeerDescriptionModifier(peerDescriptionModifier);
+                            if (protocol instanceof final PeerDescriptionModifiable peerDescriptionModifiable) {
+                                peerDescriptionModifiable.setPeerDescriptionModifier(peerDescriptionModifier);
                             }
 
                             final PeerDescription description = new PeerDescription(clientHostName, clientPort, sslContext != null);

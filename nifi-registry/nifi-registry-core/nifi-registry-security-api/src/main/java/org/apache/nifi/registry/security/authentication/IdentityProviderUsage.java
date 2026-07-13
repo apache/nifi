@@ -45,8 +45,8 @@ public interface IdentityProviderUsage {
     AuthType getAuthType();
 
     /**
-     * Standard auth types as maintained by IANA:
-     * https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml
+     * Standard auth types as maintained by
+     * <a href="https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml">IANA</a>
      *
      * Note, draft and experimental standards are not included, nor are app-specific custom schemes.
      * To create an enum for such a scheme, use OTHER with a custom httpAuthScheme string, e.g.:

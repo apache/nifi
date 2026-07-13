@@ -963,17 +963,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
             final Acl.Entity owner = blob.getOwner();
             if (owner != null) {
-                if (owner instanceof Acl.User) {
-                    values.put(OWNER, ((Acl.User) owner).getEmail());
+                if (owner instanceof final Acl.User aclUser) {
+                    values.put(OWNER, aclUser.getEmail());
                     values.put(OWNER_TYPE, "user");
-                } else if (owner instanceof Acl.Group) {
-                    values.put(OWNER, ((Acl.Group) owner).getEmail());
+                } else if (owner instanceof final Acl.Group aclGroup) {
+                    values.put(OWNER, aclGroup.getEmail());
                     values.put(OWNER_TYPE, "group");
-                } else if (owner instanceof Acl.Domain) {
-                    values.put(OWNER, ((Acl.Domain) owner).getDomain());
+                } else if (owner instanceof final Acl.Domain aclDomain) {
+                    values.put(OWNER, aclDomain.getDomain());
                     values.put(OWNER_TYPE, "domain");
-                } else if (owner instanceof Acl.Project) {
-                    values.put(OWNER, ((Acl.Project) owner).getProjectId());
+                } else if (owner instanceof final Acl.Project aclProject) {
+                    values.put(OWNER, aclProject.getProjectId());
                     values.put(OWNER_TYPE, "project");
                 }
             }

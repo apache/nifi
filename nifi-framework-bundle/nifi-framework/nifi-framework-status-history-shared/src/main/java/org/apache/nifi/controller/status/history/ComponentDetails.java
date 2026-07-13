@@ -105,7 +105,7 @@ public class ComponentDetails {
     }
 
     /**
-     * Returns a {@Link Map} whose keys are those values defined by {@link StatusHistoryRepository#COMPONENT_DETAIL_GROUP_ID ComponentStatusRepository.COMPONENT_DETAIL_*}
+     * Returns a {@link Map} whose keys are those values defined by {@link StatusHistoryRepository#COMPONENT_DETAIL_GROUP_ID ComponentStatusRepository.COMPONENT_DETAIL_*}
      * and values are the values that are populated for this ComponentDetails object.
      */
     public Map<String, String> toMap() {

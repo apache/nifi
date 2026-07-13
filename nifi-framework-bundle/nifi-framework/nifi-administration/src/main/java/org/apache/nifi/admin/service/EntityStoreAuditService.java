@@ -616,8 +616,7 @@ public class EntityStoreAuditService implements AuditService, Closeable {
 
         final Date dateProperty;
 
-        if (property instanceof Long) {
-            final long milliseconds = (Long) property;
+        if (property instanceof final Long milliseconds) {
             dateProperty = new Date(milliseconds);
         } else {
             dateProperty = null;

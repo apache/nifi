@@ -799,21 +799,21 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         if (value instanceof final Record recordValue) {
             return cloneRecord(recordValue);
         }
-        if (value instanceof Map<?, ?> mapValue) {
+        if (value instanceof final Map<?, ?> mapValue) {
             final Map<Object, Object> clonedMap = new LinkedHashMap<>(mapValue.size());
             for (final Map.Entry<?, ?> entry : mapValue.entrySet()) {
                 clonedMap.put(entry.getKey(), cloneValue(entry.getValue()));
             }
             return clonedMap;
         }
-        if (value instanceof Collection<?> collectionValue) {
+        if (value instanceof final Collection<?> collectionValue) {
             final List<Object> clonedList = new ArrayList<>(collectionValue.size());
             for (final Object element : collectionValue) {
                 clonedList.add(cloneValue(element));
             }
             return clonedList;
         }
-        if (value instanceof Object[] arrayValue) {
+        if (value instanceof final Object[] arrayValue) {
             final Object[] clonedArray = new Object[arrayValue.length];
             for (int i = 0; i < arrayValue.length; i++) {
                 clonedArray[i] = cloneValue(arrayValue[i]);

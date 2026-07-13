@@ -327,7 +327,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
-        if (value instanceof Object[] values) {
+        if (value instanceof final Object[] values) {
             generator.writeStartArray();
             for (final Object element : values) {
                 writeRawValue(generator, element, fieldName);
@@ -482,7 +482,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             }
             case ARRAY:
             default:
-                if (coercedValue instanceof Object[] values) {
+                if (coercedValue instanceof final Object[] values) {
                     final ArrayDataType arrayDataType = (ArrayDataType) chosenDataType;
                     final DataType elementType = arrayDataType.getElementType();
                     writeArray(values, fieldName, generator, elementType);

@@ -944,13 +944,20 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     ) {
         final Map<String, Parameter> providedParameters = getProvidedParameters(flowManager, versionedParameterContext);
 
+        // A Parameter Context bound to a Parameter Provider owns all of its Parameters through that Provider; the
+        // context-level binding is authoritative, not the per-Parameter provided flag in the serialized flow. Treat
+        // every Parameter of such a context as provided so reconciliation does not attempt a manual (user-entered)
+        // update, which the Parameter Context rejects.
+        final boolean providerBacked = versionedParameterContext.getParameterProvider() != null;
+
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versioned : versionedParameterContext.getParameters()) {
+            final boolean provided = providerBacked || versioned.isProvided();
             final String parameterValue;
             final String rawValue = versioned.getValue();
             if (rawValue == null) {
                 parameterValue = null;
-            } else if (versioned.isProvided()) {
+            } else if (provided) {
                 final String name = versioned.getName();
                 final Parameter providedParameter = providedParameters.get(name);
                 if (providedParameter == null) {
@@ -973,7 +980,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 .sensitive(versioned.isSensitive())
                 .value(referencedAssets.isEmpty() ? parameterValue : null)
                 .referencedAssets(referencedAssets)
-                .provided(versioned.isProvided())
+                .provided(provided)
                 .build();
 
             parameters.put(versioned.getName(), parameter);

@@ -22,8 +22,8 @@ import java.io.Serializable;
  * A model object representing a revision. Equality is defined as matching
  * component ID and either a matching version number or matching non-empty client IDs.
  *
- * @Immutable
- * @Threadsafe
+ * Immutable
+ * Threadsafe
  */
 public class Revision implements Serializable {
     private static final long serialVersionUID = 988658790374170022L;

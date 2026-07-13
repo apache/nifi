@@ -33,9 +33,9 @@ import java.util.Set;
 public interface AccessPolicyProvider {
 
     /**
-     * Retrieves all access policies. Must be non null
+     * Retrieves all access policies. Must be non-null
      *
-     * @return a list of policies
+     * @return a set of policies
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException;

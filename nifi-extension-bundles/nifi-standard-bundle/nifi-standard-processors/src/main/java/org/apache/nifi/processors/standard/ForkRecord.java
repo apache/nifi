@@ -314,8 +314,8 @@ public class ForkRecord extends AbstractProcessor {
                         while (iterator.hasNext()) {
                             final FieldValue fieldValue = iterator.next();
                             Object fieldObject = fieldValue.getValue();
-                            if (fieldObject instanceof List<?>) {
-                                fieldObject = ((List<?>) fieldObject).toArray();
+                            if (fieldObject instanceof final List<?> list) {
+                                fieldObject = list.toArray();
                             }
 
                             DataType dataType = fieldValue.getField().getDataType();
@@ -389,8 +389,8 @@ public class ForkRecord extends AbstractProcessor {
                         while (it.hasNext()) {
                             final FieldValue fieldValue = it.next();
                             Object fieldObject = fieldValue.getValue();
-                            if (fieldObject instanceof List<?>) {
-                                fieldObject = ((List<?>) fieldObject).toArray();
+                            if (fieldObject instanceof final List<?> list) {
+                                fieldObject = list.toArray();
                             }
 
                             DataType dataType = fieldValue.getField().getDataType();

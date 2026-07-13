@@ -469,7 +469,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             }
 
             if (response != null) {
-                final RuntimeException failure = (t instanceof RuntimeException) ? (RuntimeException) t : new RuntimeException("Failed to submit Replication Request to background thread", t);
+                final RuntimeException failure =
+                        (t instanceof final RuntimeException runtimeException) ? runtimeException : new RuntimeException("Failed to submit Replication Request to background thread", t);
                 response.setFailure(failure, new NodeIdentifier());
             }
 

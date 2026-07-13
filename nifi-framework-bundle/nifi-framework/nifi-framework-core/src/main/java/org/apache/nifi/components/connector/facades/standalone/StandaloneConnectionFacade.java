@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector.facades.standalone;
 
 import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
+import org.apache.nifi.components.connector.components.QueueSnapshot;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.VersionedConnection;
@@ -56,6 +57,11 @@ public class StandaloneConnectionFacade implements ConnectionFacade {
     @Override
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         return connection.getFlowFileQueue().dropFlowFiles(predicate);
+    }
+
+    @Override
+    public QueueSnapshot getQueueSnapshot() {
+        throw new UnsupportedOperationException("Queue snapshots not yet implemented");
     }
 
     @Override

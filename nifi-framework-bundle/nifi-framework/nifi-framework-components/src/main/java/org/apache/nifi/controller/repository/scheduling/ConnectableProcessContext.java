@@ -244,8 +244,8 @@ public class ConnectableProcessContext implements ProcessContext {
         }
 
         final Collection<Relationship> relationships = connectable.getRelationships();
-        if (relationships instanceof Set) {
-            return (Set<Relationship>) relationships;
+        if (relationships instanceof final Set<Relationship> set) {
+            return set;
         }
         return new HashSet<>(connectable.getRelationships());
     }

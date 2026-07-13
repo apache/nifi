@@ -267,13 +267,13 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
                 "content_modified_at",
                 "path_collection"
         )) {
-            if (itemInfo instanceof BoxFile.Info fileInfo) {
+            if (itemInfo instanceof final BoxFile.Info fileInfo) {
                 long createdAt = itemInfo.getCreatedAt().getTime();
 
                 if (createdAt <= createdAtMax) {
                     fileInfos.add(fileInfo);
                 }
-            } else if (recursive && itemInfo instanceof BoxFolder.Info subFolderInfo) {
+            } else if (recursive && itemInfo instanceof final BoxFolder.Info subFolderInfo) {
                 listFolder(fileInfos, subFolderInfo.getID(), recursive, createdAtMax);
             }
         }

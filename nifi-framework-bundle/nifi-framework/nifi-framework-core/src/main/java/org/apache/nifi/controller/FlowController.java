@@ -562,8 +562,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         gcLog = new RingBufferGarbageCollectionLog(1000, 20L);
         for (final GarbageCollectorMXBean mxBean : ManagementFactory.getGarbageCollectorMXBeans()) {
-            if (mxBean instanceof NotificationEmitter) {
-                ((NotificationEmitter) mxBean).addNotificationListener(gcLog, null, null);
+            if (mxBean instanceof final NotificationEmitter notificationEmitter) {
+                notificationEmitter.addNotificationListener(gcLog, null, null);
             }
         }
 
@@ -1547,8 +1547,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                             continue;
                         }
 
-                        if (connectable instanceof ProcessorNode) {
-                            connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
+                        if (connectable instanceof final ProcessorNode processorNode) {
+                            connectable.getProcessGroup().startProcessor(processorNode, true);
                         } else {
                             startConnectable(connectable);
                         }
