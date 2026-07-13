@@ -190,8 +190,15 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-                String message = String.format("Specification not valid for the selected transformation: %s",
-                        (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+                final String reason;
+                final Throwable cause = e.getCause();
+                if (cause == null) {
+                    reason = e.getMessage();
+                } else {
+                    reason = "%s [%s]".formatted(cause.getMessage(), e.getMessage());
+                }
+
+                final String message = "Specification not valid... %s".formatted(reason);
                 results.add(new ValidationResult.Builder()
                         .valid(false)
                         .subject(JOLT_SPEC.getDisplayName())
