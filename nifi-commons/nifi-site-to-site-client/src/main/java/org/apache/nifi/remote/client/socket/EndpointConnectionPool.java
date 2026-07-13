@@ -253,11 +253,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                         } else if (protocol.isPortInvalid()) {
                             peerSelector.penalize(peer, penalizationMillis);
                             cleanup(protocol, peer);
-                            throw new PortNotRunningException(peer + " indicates that port " + portId + " is not running");
+                            throw new PortNotRunningException(String.format("%s indicates that port %s is not running", peer, portId));
                         } else if (protocol.isPortUnknown()) {
                             peerSelector.penalize(peer, penalizationMillis);
                             cleanup(protocol, peer);
-                            throw new UnknownPortException(peer + " indicates that port " + portId + " is not known");
+                            throw new UnknownPortException(String.format("%s indicates that port %s is not known", peer, portId));
                         }
 
                         // negotiate the FlowFileCodec to use
