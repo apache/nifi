@@ -64,7 +64,7 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
                 sb.append(subPatterns.get(i));
             }
 
-            final String regex = "^" + sb.toString();
+            final String regex = sb.insert(0, "^").toString();
             final Pattern pattern = Pattern.compile(regex);
             final Matcher matcher = pattern.matcher(text);
             final boolean found = matcher.find();

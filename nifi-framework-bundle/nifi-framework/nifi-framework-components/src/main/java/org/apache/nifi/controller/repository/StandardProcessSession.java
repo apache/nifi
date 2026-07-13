@@ -1091,7 +1091,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         final StandardRepositoryRecord repoRecord = getRecord(flowFile);
         if (repoRecord == null) {
-            throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
+            throw new FlowFileHandlingException(String.format("%s is not known in this session (%s)", flowFile, this));
         }
 
         final ProvenanceEventBuilder recordBuilder = context.createProvenanceEventBuilder().fromEvent(rawEvent);
@@ -1564,7 +1564,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
                 final StandardRepositoryRecord record = getRecord(flowFile);
                 if (record == null) {
-                    throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
+                    throw new FlowFileHandlingException(String.format("%s is not known in this session (%s)", flowFile, this));
                 }
             }
 
@@ -2750,7 +2750,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             ensureNotAppending(record.getCurrentClaim());
             claimCache.flush(record.getCurrentClaim());
         } catch (final IOException e) {
-            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source, e);
         }
 
         try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
@@ -2785,7 +2785,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final IOException ex) {
-            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
+            throw new ProcessException(String.format("IOException thrown from %s : %s", connectableDescription, ex), ex);
         }
     }
 
@@ -2801,7 +2801,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             ensureNotAppending(currentClaim);
             claimCache.flush(currentClaim);
         } catch (final IOException e) {
-            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source, e);
         }
 
         final InputStream rawIn;
@@ -2959,7 +2959,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 ensureNotAppending(record.getCurrentClaim());
                 claimCache.flush(record.getCurrentClaim());
             } catch (final IOException e) {
-                throw new FlowFileAccessException("Unable to read from source " + source + " due to " + e.toString(), e);
+                throw new FlowFileAccessException(String.format("Unable to read from source %s due to %s", source, e), e);
             }
         }
 
@@ -2970,7 +2970,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             newClaim = contentRepo.create(context.getConnectable().isLossTolerant());
             claimLog.debug("Creating ContentClaim {} for 'merge' for {}", newClaim, destinationRecord.getCurrent());
         } catch (final IOException e) {
-            throw new FlowFileAccessException("Unable to create ContentClaim due to " + e.toString(), e);
+            throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
         }
 
         long readCount = 0L;
@@ -3016,7 +3016,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             handleContentNotFound(nfe, sourceRecords);
         } catch (final IOException ioe) {
             destroyContent(newClaim, destinationRecord);
-            throw new FlowFileAccessException("Failed to merge " + sources.size() + " into " + destination + " due to " + ioe.toString(), ioe);
+            throw new FlowFileAccessException(String.format("Failed to merge %s into %s due to %s", sources.size(), destination, ioe), ioe);
         } catch (final Throwable t) {
             destroyContent(newClaim, destinationRecord);
             throw t;
@@ -3180,7 +3180,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
-            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
+            throw new ProcessException(String.format("IOException thrown from %s: %s", connectableDescription, ioe), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
@@ -3229,7 +3229,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
-            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
+            throw new ProcessException(String.format("IOException thrown from %s: %s", connectableDescription, ioe), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
@@ -3352,7 +3352,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 destroyContent(newClaim, record);
             }
 
-            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
+            throw new ProcessException(String.format("IOException thrown from %s: %s", connectableDescription, ioe), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
 
@@ -3541,7 +3541,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             handleContentNotFound(nfe, record);
         } catch (final IOException ioe) {
             destroyContent(newClaim, record);
-            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
+            throw new ProcessException(String.format("IOException thrown from %s: %s", connectableDescription, ioe), ioe);
         } catch (final Throwable t) {
             destroyContent(newClaim, record);
             throw t;
@@ -3594,7 +3594,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
             claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
         } catch (final IOException e) {
-            throw new FlowFileAccessException("Unable to create ContentClaim due to " + e.toString(), e);
+            throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
         }
 
         claimOffset = 0L;
@@ -3605,7 +3605,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             bytesRead += newSize;
         } catch (final Throwable t) {
             destroyContent(newClaim, record);
-            throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
+            throw new FlowFileAccessException(String.format("Failed to import data from %s for %s due to %s", source, destination, t), t);
         }
 
         removeTemporaryClaim(record);
@@ -3659,14 +3659,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 newSize = context.getContentRepository().importFrom(createTaskTerminationStream(source), newClaim);
                 bytesWritten += newSize;
             } catch (final IOException e) {
-                throw new FlowFileAccessException("Unable to create ContentClaim due to " + e.toString(), e);
+                throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
             }
         } catch (final Throwable t) {
             if (newClaim != null) {
                 destroyContent(newClaim, record);
             }
 
-            throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
+            throw new FlowFileAccessException(String.format("Failed to import data from %s for %s due to %s", source, destination, t), t);
         }
 
         removeTemporaryClaim(record);
@@ -3708,7 +3708,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final Throwable t) {
-            throw new FlowFileAccessException("Failed to export " + source + " to " + destination + " due to " + t.toString(), t);
+            throw new FlowFileAccessException(String.format("Failed to export %s to %s due to %s", source, destination, t), t);
         }
     }
 
@@ -3726,7 +3726,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             ensureNotAppending(record.getCurrentClaim());
             claimCache.flush(record.getCurrentClaim());
         } catch (final IOException e) {
-            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source, e);
         }
 
         try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
@@ -3762,7 +3762,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final IOException ex) {
-            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
+            throw new ProcessException(String.format("IOException thrown from %s: %s", connectableDescription, ex), ex);
         }
     }
 
@@ -3810,7 +3810,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final StandardRepositoryRecord record = getRecord(flowFile);
         if (record == null) {
             rollback();
-            throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
+            throw new FlowFileHandlingException(String.format("%s is not known in this session (%s)", flowFile, this));
         }
         if (record.getTransferRelationship() != null) {
             rollback();

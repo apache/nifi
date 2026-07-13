@@ -354,9 +354,9 @@ public class FetchFile extends AbstractProcessor {
                         final String simpleFilename = targetFile.getName();
                         final String newName;
                         if (simpleFilename.contains(".")) {
-                            newName = StringUtils.substringBeforeLast(simpleFilename, ".") + "-" + UUID.randomUUID().toString() + "." + StringUtils.substringAfterLast(simpleFilename, ".");
+                            newName = StringUtils.substringBeforeLast(simpleFilename, ".") + "-" + UUID.randomUUID() + "." + StringUtils.substringAfterLast(simpleFilename, ".");
                         } else {
-                            newName = simpleFilename + "-" + UUID.randomUUID().toString();
+                            newName = simpleFilename + "-" + UUID.randomUUID();
                         }
 
                         move(file, new File(targetDirectory, newName), false);

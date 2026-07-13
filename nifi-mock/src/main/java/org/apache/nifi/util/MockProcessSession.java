@@ -273,7 +273,7 @@ public class MockProcessSession implements ProcessSession {
     public MockFlowFile clone(FlowFile flowFile, final long offset, final long size) {
         flowFile = validateState(flowFile);
         if (offset + size > flowFile.getSize()) {
-            throw new FlowFileHandlingException("Specified offset of " + offset + " and size " + size + " exceeds size of " + flowFile.toString());
+            throw new FlowFileHandlingException("Specified offset of " + offset + " and size " + size + " exceeds size of " + flowFile);
         }
 
         final MockFlowFile newFlowFile = new MockFlowFile(sharedState.nextFlowFileId(), flowFile);

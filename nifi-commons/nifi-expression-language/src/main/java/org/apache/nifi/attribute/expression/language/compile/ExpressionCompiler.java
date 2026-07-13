@@ -1165,7 +1165,7 @@ public class ExpressionCompiler {
                         toStringEvaluator(argEvaluators.get(0), "first argument to trimDelimitedList")), "trimDelimitedList");
             }
             default:
-                throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());
+                throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree);
         }
     }
 
@@ -1251,7 +1251,7 @@ public class ExpressionCompiler {
                     case ANY_MATCHING_ATTRIBUTE ->
                         addToken(new MultiMatchAttributeEvaluator(attributeNames, ANY_MATCHING_ATTRIBUTE), "anyMatchingAttribute");
                     default ->
-                        throw new AssertionError("Illegal Multi-Attribute Reference: " + functionTypeTree.toString());
+                        throw new AssertionError("Illegal Multi-Attribute Reference: " + functionTypeTree);
                 };
             }
             case ATTR_NAME: {
@@ -1342,7 +1342,7 @@ public class ExpressionCompiler {
                 return addToken(new GetUriEvaluator(uriArgs), "getUri");
             }
             default:
-                throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());
+                throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree);
         }
     }
 
@@ -1467,7 +1467,7 @@ public class ExpressionCompiler {
             case TRUE -> addToken(new BooleanLiteralEvaluator(true), "true");
             case FALSE -> addToken(new BooleanLiteralEvaluator(false), "true");
             default ->
-                    throw new AttributeExpressionLanguageParsingException("Cannot build Boolean evaluator from tree " + tree.toString());
+                    throw new AttributeExpressionLanguageParsingException("Cannot build Boolean evaluator from tree " + tree);
         };
     }
 

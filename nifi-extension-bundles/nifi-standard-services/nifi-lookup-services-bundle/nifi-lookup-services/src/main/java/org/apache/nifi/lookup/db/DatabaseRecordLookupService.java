@@ -176,10 +176,10 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                 }
 
             } catch (SQLException se) {
-                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString()
+                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key
                         + " : " + (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()), se);
             } catch (IOException ioe) {
-                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "for value " + key.toString()
+                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "for value " + key
                         + " : " + (ioe.getCause() == null ? ioe.getMessage() : ioe.getCause().getMessage()), ioe);
             }
         }

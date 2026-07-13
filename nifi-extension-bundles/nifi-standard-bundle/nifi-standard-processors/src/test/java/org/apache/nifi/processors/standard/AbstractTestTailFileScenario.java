@@ -144,7 +144,7 @@ public class AbstractTestTailFileScenario {
         assertEquals(
             expected.stream().collect(Collectors.joining()),
             actual.stream().collect(Collectors.joining()),
-            stopAfterEachTrigger + " " + actions.toString()
+            stopAfterEachTrigger + " " + actions
         );
     }
 

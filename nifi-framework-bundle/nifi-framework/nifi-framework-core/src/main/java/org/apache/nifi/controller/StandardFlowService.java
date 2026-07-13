@@ -649,7 +649,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         } catch (final Exception ex) {
             // disconnect controller
             if (controller.isClustered()) {
-                disconnect("Failed to properly handle Reconnection request due to " + ex.toString());
+                disconnect("Failed to properly handle Reconnection request due to " + ex);
             }
 
             logger.error("Handling reconnection request failed", ex);

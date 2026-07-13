@@ -327,7 +327,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
                             + "ReportingTask and will attempt to schedule it again after {}",
-                            reportingTask, e.toString(), administrativeYieldDuration, e);
+                            reportingTask, e, administrativeYieldDuration, e);
 
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), reportingTask.getIdentifier())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());

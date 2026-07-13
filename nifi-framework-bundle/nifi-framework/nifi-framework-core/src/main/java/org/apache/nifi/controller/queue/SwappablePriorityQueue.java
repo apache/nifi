@@ -826,7 +826,7 @@ public class SwappablePriorityQueue {
                 } catch (final IOException ioe) {
                     logger.error("Failed to drop the FlowFiles from queue {}", getQueueIdentifier(), ioe);
 
-                    dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
+                    dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe);
                     return;
                 }
 
@@ -848,7 +848,7 @@ public class SwappablePriorityQueue {
                 } catch (final IOException ioe) {
                     logger.error("Failed to drop the FlowFiles from queue {}", getQueueIdentifier(), ioe);
 
-                    dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
+                    dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe);
                     return;
                 }
 
@@ -891,7 +891,7 @@ public class SwappablePriorityQueue {
                                 + ". The FlowFiles contained in this Swap File will not be dropped from the queue");
                         }
 
-                        dropRequest.setState(DropFlowFileState.FAILURE, "Failed to swap in FlowFiles from Swap File " + swapLocation + " due to " + ioe.toString());
+                        dropRequest.setState(DropFlowFileState.FAILURE, String.format("Failed to swap in FlowFiles from Swap File %s due to %s", swapLocation, ioe));
                         if (swapContents != null) {
                             activeQueue.addAll(swapContents.getFlowFiles()); // ensure that we don't lose the FlowFiles from our queue.
                         }
@@ -915,7 +915,7 @@ public class SwappablePriorityQueue {
                 dropRequest.setState(DropFlowFileState.COMPLETE);
             } catch (final Exception e) {
                 logger.error("Failed to drop FlowFiles from Connection with ID {}", getQueueIdentifier(), e);
-                dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + e.toString());
+                dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + e);
             }
         } finally {
             writeLock.unlock("Drop FlowFiles");
