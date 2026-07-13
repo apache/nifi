@@ -18,6 +18,7 @@ package org.apache.nifi.processors.jolt;
 
 import io.joltcommunity.jolt.Diffy;
 import io.joltcommunity.jolt.JsonUtils;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.processor.Processor;
@@ -40,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -107,6 +109,19 @@ class TestJoltTransformJSON {
 
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.assertValid();
+    }
+
+    @Test
+    void testNonExistingJOLTSpec() throws IOException {
+        final Path testResourcesDir = Paths.get("src/test/resources");
+        final Path nonexistingSpec = testResourcesDir.resolve("nonExistingSpec.json");
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, nonexistingSpec.toAbsolutePath().toString());
+        runner.enqueue(JSON_INPUT);
+        runner.assertNotValid();
+
+        final Collection<ValidationResult> validationResults = runner.validate();
+        final String explanation = validationResults.iterator().next().getExplanation();
+        assertTrue(explanation.contains("file"));
     }
 
     @Test

@@ -190,7 +190,8 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-                String message = String.format("Specification not valid for the selected transformation: %s", e.getMessage());
+                String message = String.format("Specification not valid for the selected transformation: %s",
+                        (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
                 results.add(new ValidationResult.Builder()
                         .valid(false)
                         .subject(JOLT_SPEC.getDisplayName())
@@ -256,7 +257,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read(), StandardCharsets.UTF_8))) {
             return reader.lines().collect(Collectors.joining(System.lineSeparator()));
         } catch (final IOException e) {
-            throw new UncheckedIOException("Read JOLT Transform failed, reason: " + e.getMessage(), e);
+            throw new UncheckedIOException("Read JOLT Transform failed", e);
         }
     }
 
