@@ -409,7 +409,7 @@ public final class DtoFactory {
             purgeDetails.setEndDate(((PurgeDetails) actionDetails).getEndDate());
             return purgeDetails;
         } else {
-            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of action details encountered %s during serialization.", actionDetails.toString())));
+            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of action details encountered %s during serialization.", actionDetails)));
         }
     }
 
@@ -433,7 +433,7 @@ public final class DtoFactory {
             remoteProcessGroupDetails.setUri(((RemoteProcessGroupDetails) componentDetails).getUri());
             return remoteProcessGroupDetails;
         } else {
-            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of component details encountered %s during serialization. ", componentDetails.toString())));
+            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of component details encountered %s during serialization. ", componentDetails)));
         }
     }
 

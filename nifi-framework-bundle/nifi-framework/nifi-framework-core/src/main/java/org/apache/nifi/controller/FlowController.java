@@ -3482,7 +3482,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     return "Content is no longer available in Content Repository";
                 }
             } catch (final IOException ioe) {
-                return "Failed to determine whether or not content was available in Content Repository due to " + ioe.toString();
+                return "Failed to determine whether or not content was available in Content Repository due to " + ioe;
             }
         }
 

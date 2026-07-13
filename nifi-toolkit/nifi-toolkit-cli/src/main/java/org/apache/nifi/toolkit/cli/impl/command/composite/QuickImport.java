@@ -161,7 +161,7 @@ public class QuickImport extends AbstractCompositeCommand<StringResult> {
     private String createQuickImportFlow(final NiFiRegistryClient registryClient, final String quickImportBucketId, final boolean isInteractive)
             throws ParseException, IOException, NiFiRegistryException {
         final String flowName = FLOW_NAME + System.currentTimeMillis();
-        final String flowDescription = FLOW_DESC + (new Date()).toString();
+        final String flowDescription = FLOW_DESC + (new Date());
 
         final Properties createFlowProps = new Properties();
         createFlowProps.setProperty(CommandOption.FLOW_NAME.getLongName(), flowName);
@@ -233,7 +233,7 @@ public class QuickImport extends AbstractCompositeCommand<StringResult> {
         if (registryClientId == null) {
             final Properties createRegClientProps = new Properties();
             createRegClientProps.setProperty(CommandOption.REGISTRY_CLIENT_NAME.getLongName(), REG_CLIENT_NAME);
-            createRegClientProps.setProperty(CommandOption.REGISTRY_CLIENT_DESC.getLongName(), REG_CLIENT_DESC + new Date().toString());
+            createRegClientProps.setProperty(CommandOption.REGISTRY_CLIENT_DESC.getLongName(), REG_CLIENT_DESC + new Date());
             createRegClientProps.setProperty(CommandOption.REGISTRY_CLIENT_URL.getLongName(), registryClientBaseUrl);
 
             final StringResult createdRegClient = createRegistryClient.doExecute(nifiClient, createRegClientProps);

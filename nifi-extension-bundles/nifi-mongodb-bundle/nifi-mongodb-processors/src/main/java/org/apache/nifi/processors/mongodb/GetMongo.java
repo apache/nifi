@@ -149,7 +149,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                     .append((documents.size() > 1 && index + 1 < documents.size()) ? ", " : "");
         }
 
-        return "[" + builder.toString() + "]";
+        return "[" + builder + "]";
     }
 
     private ObjectWriter getObjectWriter(ObjectMapper mapper, String ppSetting) {
