@@ -1390,24 +1390,17 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             }, 0L, 30L, TimeUnit.SECONDS);
 
             final String registrySyncInterval = nifiProperties.getProperty("nifi.flowcontroller.registry.sync.interval", "30 min");
-            final long registrySyncIntervalSeconds = FormatUtils.getTimeDuration(registrySyncInterval, TimeUnit.SECONDS);
+            final long defaultRegistrySyncIntervalSeconds = FormatUtils.getTimeDuration(registrySyncInterval, TimeUnit.SECONDS);
 
-            LOG.info("Scheduled Flow Registry synchronization every {}", registrySyncInterval);
+            // The synchronization task runs on a fixed tick but synchronizes each Flow Registry Client's Process Groups only when
+            // that client's configured interval has elapsed. The tick is bounded so that short per-client intervals are honored
+            // reasonably closely while avoiding needlessly frequent iterations for the typical (minutes) interval.
+            final long registrySyncTickSeconds = Math.max(1, Math.min(defaultRegistrySyncIntervalSeconds, 30));
 
-            // Schedule the flow registry synchronization task
-            timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
-                final ProcessGroup rootGroup = flowManager.getRootGroup();
-                final List<ProcessGroup> allGroups = rootGroup.findAllProcessGroups();
-                allGroups.add(rootGroup);
+            LOG.info("Scheduled Flow Registry with Sync Interval [{} s] Check Interval [{} s]", registrySyncInterval, registrySyncTickSeconds);
 
-                for (final ProcessGroup group : allGroups) {
-                    try {
-                        group.synchronizeWithFlowRegistry(flowManager);
-                    } catch (final Exception e) {
-                        LOG.error("Failed to synchronize {} with Flow Registry", group, e);
-                    }
-                }
-            }, 300, registrySyncIntervalSeconds, TimeUnit.SECONDS);
+            final RegistryFlowSynchronizationTask registrySynchronizationTask = new RegistryFlowSynchronizationTask(flowManager, defaultRegistrySyncIntervalSeconds);
+            timerDrivenEngineRef.get().scheduleWithFixedDelay(registrySynchronizationTask, 300, registrySyncTickSeconds, TimeUnit.SECONDS);
 
             initialized.set(true);
         } finally {
