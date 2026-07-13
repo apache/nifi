@@ -152,6 +152,7 @@ public class NiFiProperties extends ApplicationProperties {
     // Secrets Manager properties
     public static final String SECRETS_MANAGER_IMPLEMENTATION = "nifi.secrets.manager.implementation";
     public static final String SECRETS_MANAGER_CACHE_DURATION = "nifi.secrets.manager.cache.duration";
+    public static final String SECRETS_MANAGER_UNRESTRICTED_TAG_NAME = "nifi.secrets.manager.unrestricted.tag.name";
 
     // security properties
     public static final String SECURITY_KEYSTORE = "nifi.security.keystore";

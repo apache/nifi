@@ -1235,9 +1235,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             final ConfigurationStep configurationStep = optionalStep.get();
             final List<SecretReference> invalidSecretRefs = new ArrayList<>();
             final List<AssetReference> invalidAssetRefs = new ArrayList<>();
+            final List<SecretReference> unauthorizedSecretRefs = new ArrayList<>();
             // Bypass the Secret value cache during verification so the user sees results based on the current
             // Secret values rather than potentially stale cached values awaiting TTL expiration.
-            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides, invalidSecretRefs, invalidAssetRefs, false);
+            final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationStep, configurationOverrides,
+                    invalidSecretRefs, invalidAssetRefs, unauthorizedSecretRefs, false);
 
             final DescribedValueProvider allowableValueProvider = (step, propertyName) -> fetchAllowableValues(step, propertyName, workingFlowContext);
 
@@ -1250,7 +1252,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             validatePropertyReferences(configurationStep, configurationOverrides, validationResults);
 
             // If there are any invalid secrets or assets referenced, add Validation Results for them.
-            addInvalidReferenceResults(validationResults, invalidSecretRefs, invalidAssetRefs);
+            addInvalidReferenceResults(validationResults, invalidSecretRefs, invalidAssetRefs, unauthorizedSecretRefs);
 
             // If there are any framework-level validation failures, we do not run the Connector-specific validation because
             // doing so would mean that we must provide weak guarantees about the state of the configuration when the Connector's
@@ -1292,7 +1294,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     }
 
     private Map<String, String> resolvePropertyReferences(final ConfigurationStep configurationStep, final StepConfiguration configurationOverrides,
-                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs, final boolean useCache) {
+                                                          final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs,
+                                                          final List<SecretReference> unauthorizedSecretRefs, final boolean useCache) {
 
         final Map<String, String> resolvedProperties = new HashMap<>();
         final Map<String, ConnectorPropertyDescriptor> descriptorLookup = buildPropertyDescriptorLookup(configurationStep);
@@ -1348,8 +1351,22 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                         continue;
                     }
                     final Secret secret = secretsByReference.get(secretReference);
-                    final String resolvedValue = (secret == null) ? null : secret.getValue();
-                    resolvedProperties.put(propertyName, resolvedValue);
+
+                    // A Secret referenced by a non-sensitive property is only permitted when its owner has
+                    // authorized it (UNRESTRICTED). A found-but-RESTRICTED Secret on a non-SECRET property (including
+                    // a property with no descriptor in this step, which is treated as non-sensitive) is not permitted:
+                    // its value is withheld from the resolved configuration and it is recorded separately so it surfaces
+                    // a distinct "not authorized" message rather than the "could not be found" message used for
+                    // unresolved references.
+                    final boolean secretProperty = descriptor != null && descriptor.getType() == PropertyType.SECRET;
+                    final boolean unauthorized = secret != null && !secretProperty
+                            && secret.getPropertyProtectionType() != PropertyProtectionType.UNRESTRICTED;
+                    if (unauthorized) {
+                        resolvedProperties.put(propertyName, null);
+                        unauthorizedSecretRefs.add(secretReference);
+                    } else {
+                        resolvedProperties.put(propertyName, (secret == null) ? null : secret.getValue());
+                    }
                     continue;
                 }
 
@@ -2002,20 +2019,31 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             // Check for invalid Secret and Asset references
             final List<SecretReference> invalidSecrets = new ArrayList<>();
             final List<AssetReference> invalidAssets = new ArrayList<>();
+            final List<SecretReference> unauthorizedSecrets = new ArrayList<>();
             // Regular validation may run frequently, so cached Secret values are used here to avoid
             // repeatedly fetching from the underlying Secret Providers on every validation cycle.
-            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets, true);
-            addInvalidReferenceResults(allResults, invalidSecrets, invalidAssets);
+            resolvePropertyReferences(step, stepConfiguration, invalidSecrets, invalidAssets, unauthorizedSecrets, true);
+            addInvalidReferenceResults(allResults, invalidSecrets, invalidAssets, unauthorizedSecrets);
         }
     }
 
-    private void addInvalidReferenceResults(final List<ValidationResult> results, final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs) {
+    private void addInvalidReferenceResults(final List<ValidationResult> results, final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs,
+                                            final List<SecretReference> unauthorizedSecretRefs) {
         for (final SecretReference invalidSecretRef : invalidSecretRefs) {
             final String secretName = invalidSecretRef.getFullyQualifiedName() != null ? invalidSecretRef.getFullyQualifiedName() : invalidSecretRef.getSecretName();
             results.add(new ValidationResult.Builder()
                 .subject("Secret Reference")
                 .valid(false)
                 .explanation("The referenced secret [" + secretName + "] could not be found")
+                .build());
+        }
+
+        for (final SecretReference unauthorizedSecretRef : unauthorizedSecretRefs) {
+            final String secretName = unauthorizedSecretRef.getFullyQualifiedName() != null ? unauthorizedSecretRef.getFullyQualifiedName() : unauthorizedSecretRef.getSecretName();
+            results.add(new ValidationResult.Builder()
+                .subject("Secret Reference")
+                .valid(false)
+                .explanation("The referenced secret [" + secretName + "] is not authorized for use by non-sensitive properties")
                 .build());
         }
 
@@ -2092,7 +2120,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             return reference.getValueType() == ConnectorValueType.ASSET_REFERENCE;
         }
 
-        return reference.getValueType() != ConnectorValueType.SECRET_REFERENCE && reference.getValueType() != ConnectorValueType.ASSET_REFERENCE;
+        // A non-sensitive property may structurally carry a Secret reference; whether that Secret is actually
+        // permitted (UNRESTRICTED) is decided during resolution in resolvePropertyReferences. Asset references
+        // remain disallowed on non-asset properties.
+        return reference.getValueType() != ConnectorValueType.ASSET_REFERENCE;
     }
 
     private ConnectorValidationContext createValidationContext(final FrameworkFlowContext context) {

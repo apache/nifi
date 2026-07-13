@@ -682,6 +682,106 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testUnrestrictedSecretAllowedOnNonSecretProperty() throws FlowUpdateException {
+        final Secret secret = mockSecretWithProtection(PropertyProtectionType.UNRESTRICTED);
+        final StandardConnectorNode connectorNode = createConnectorNode(new StringAndSecretPropertyConnector(), secretsManagerReturning(secret));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("StringProp", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+        connectorNode.setConfiguration("propStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        final ValidationState state = connectorNode.performValidation();
+        assertEquals(ValidationStatus.VALID, state.getStatus(), () -> "Expected VALID validation state, got: " + state.getValidationErrors());
+        final Collection<ValidationResult> errors = state.getValidationErrors();
+        assertTrue(errors.stream().noneMatch(result -> result.getExplanation() != null && result.getExplanation().contains("not authorized")),
+            () -> "UNRESTRICTED secret should be allowed on a non-sensitive property, got: " + errors);
+        assertTrue(errors.stream().noneMatch(result -> result.getExplanation() != null && result.getExplanation().contains("must be configured with")),
+            () -> "UNRESTRICTED secret should not trigger a structural reference error, got: " + errors);
+    }
+
+    @Test
+    public void testRestrictedSecretRejectedOnNonSecretProperty() throws FlowUpdateException {
+        final Secret secret = mockSecretWithProtection(PropertyProtectionType.RESTRICTED);
+        final StandardConnectorNode connectorNode = createConnectorNode(new StringAndSecretPropertyConnector(), secretsManagerReturning(secret));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("StringProp", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+        connectorNode.setConfiguration("propStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        final ValidationState state = connectorNode.performValidation();
+        assertEquals(ValidationStatus.INVALID, state.getStatus(), () -> "Expected INVALID validation state, got: " + state);
+        final Collection<ValidationResult> errors = state.getValidationErrors();
+        assertTrue(errors.stream().anyMatch(result -> result.getExplanation() != null
+                && result.getExplanation().contains("is not authorized for use by non-sensitive properties")),
+            () -> "RESTRICTED secret on a non-sensitive property should be rejected with the distinct message, got: " + errors);
+    }
+
+    @Test
+    public void testRestrictedSecretAllowedOnSecretProperty() throws FlowUpdateException {
+        final Secret secret = mockSecretWithProtection(PropertyProtectionType.RESTRICTED);
+        final StandardConnectorNode connectorNode = createConnectorNode(new StringAndSecretPropertyConnector(), secretsManagerReturning(secret));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("SecretProp", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+        connectorNode.setConfiguration("propStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        final ValidationState state = connectorNode.performValidation();
+        assertEquals(ValidationStatus.VALID, state.getStatus(), () -> "Expected VALID validation state, got: " + state.getValidationErrors());
+        final Collection<ValidationResult> errors = state.getValidationErrors();
+        assertTrue(errors.stream().noneMatch(result -> result.getExplanation() != null && result.getExplanation().contains("not authorized")),
+            () -> "A RESTRICTED Secret reference on a SECRET property must always be allowed, got: " + errors);
+    }
+
+    @Test
+    public void testUnrestrictedSecretAllowedOnSecretProperty() throws FlowUpdateException {
+        final Secret secret = mockSecretWithProtection(PropertyProtectionType.UNRESTRICTED);
+        final StandardConnectorNode connectorNode = createConnectorNode(new StringAndSecretPropertyConnector(), secretsManagerReturning(secret));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        propertyValues.put("SecretProp", new SecretReference("pid", "My Provider", "my-secret", "My Provider.my-secret"));
+        connectorNode.setConfiguration("propStep", new StepConfiguration(propertyValues));
+        connectorNode.applyUpdate();
+
+        final ValidationState state = connectorNode.performValidation();
+        assertEquals(ValidationStatus.VALID, state.getStatus(), () -> "Expected VALID validation state, got: " + state.getValidationErrors());
+        final Collection<ValidationResult> errors = state.getValidationErrors();
+        assertTrue(errors.stream().noneMatch(result -> result.getExplanation() != null && result.getExplanation().contains("not authorized")),
+            () -> "An UNRESTRICTED Secret reference on a SECRET property must be allowed, got: " + errors);
+    }
+
+    private Secret mockSecretWithProtection(final PropertyProtectionType protectionType) {
+        final Secret secret = mock(Secret.class);
+        when(secret.getPropertyProtectionType()).thenReturn(protectionType);
+        when(secret.getValue()).thenReturn("resolved-value");
+        return secret;
+    }
+
+    private SecretsManager secretsManagerReturning(final Secret secret) {
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getAllSecrets()).thenReturn(List.of());
+        when(secretsManager.getSecrets(anySet(), anyBoolean())).thenAnswer(invocation -> {
+            final Set<SecretReference> references = invocation.getArgument(0);
+            final Map<SecretReference, Secret> resolved = new HashMap<>();
+            for (final SecretReference reference : references) {
+                resolved.put(reference, secret);
+            }
+            return resolved;
+        });
+        return secretsManager;
+    }
+
+    @Test
     public void testVerifyConfigurationStepResolvesSecretsBypassingCache() throws FlowUpdateException {
         final SecretsManager recordingSecretsManager = mock(SecretsManager.class);
         when(recordingSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
@@ -1242,6 +1342,73 @@ public class TestStandardConnectorNode {
                 .build();
 
             return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Connector exposing one non-sensitive (STRING) property and one SECRET property, used to exercise the
+     * protection-type gate: an UNRESTRICTED secret may be referenced by the non-sensitive property, a RESTRICTED
+     * secret may not, and both are always allowed on the SECRET property.
+     */
+    private static class StringAndSecretPropertyConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor stringProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("StringProp")
+                .description("A non-sensitive string property")
+                .build();
+
+            final ConnectorPropertyDescriptor secretProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("SecretProp")
+                .description("A sensitive property")
+                .type(PropertyType.SECRET)
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("g")
+                .description("g")
+                .properties(List.of(stringProperty, secretProperty))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("propStep")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext,
+                final ConnectorValidationContext connectorValidationContext) {
+            return List.of();
         }
 
         @Override

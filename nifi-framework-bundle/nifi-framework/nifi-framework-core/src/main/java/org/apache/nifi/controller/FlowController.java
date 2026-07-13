@@ -982,6 +982,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             if (cacheDuration != null) {
                 secretsManagerProperties.put(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION, cacheDuration);
             }
+            final String unrestrictedTagName = properties.getProperty(NiFiProperties.SECRETS_MANAGER_UNRESTRICTED_TAG_NAME);
+            if (unrestrictedTagName != null) {
+                secretsManagerProperties.put(NiFiProperties.SECRETS_MANAGER_UNRESTRICTED_TAG_NAME, unrestrictedTagName);
+            }
             final SecretsManagerInitializationContext initializationContext = new StandardSecretsManagerInitializationContext(flowManager, secretsManagerProperties);
 
             synchronized (created) {

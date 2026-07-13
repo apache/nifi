@@ -77,6 +77,7 @@ import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.NamedStepConfiguration;
+import org.apache.nifi.components.connector.PropertyProtectionType;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
@@ -5592,6 +5593,10 @@ public final class DtoFactory {
         dto.setName(secret.getName());
         dto.setFullyQualifiedName(secret.getFullyQualifiedName());
         dto.setDescription(secret.getDescription());
+        final PropertyProtectionType propertyProtectionType = secret.getPropertyProtectionType();
+        if (propertyProtectionType != null) {
+            dto.setPropertyProtectionType(propertyProtectionType.name());
+        }
         return dto;
     }
 
