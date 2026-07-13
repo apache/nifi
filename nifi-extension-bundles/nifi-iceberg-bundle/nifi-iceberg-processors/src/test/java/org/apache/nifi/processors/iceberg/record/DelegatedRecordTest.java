@@ -82,7 +82,9 @@ class DelegatedRecordTest {
 
         final Record record = new MapRecord(recordSchema, values);
 
-        final Types.StructType structType = Types.StructType.of();
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.required(1, LABEL_FIELD, Types.StringType.get())
+        );
         final DelegatedRecord delegatedRecord = new DelegatedRecord(record, structType);
 
         final Types.StructType recordStruct = delegatedRecord.struct();
