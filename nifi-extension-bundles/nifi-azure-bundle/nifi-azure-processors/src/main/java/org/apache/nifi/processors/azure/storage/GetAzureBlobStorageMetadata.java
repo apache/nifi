@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class,
@@ -44,6 +45,6 @@ public class GetAzureBlobStorageMetadata extends AbstractGetAzureBlobStorageProp
 
     @Override
     protected Map<String, String> fetchProperties(final BlobClient blobClient) {
-        return blobClient.getProperties().getMetadata();
+        return Optional.ofNullable(blobClient.getProperties().getMetadata()).orElse(Map.of());
     }
 }

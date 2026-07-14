@@ -58,12 +58,12 @@ public abstract class AbstractGetAzureBlobStoragePropertiesProcessor extends Abs
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     );
 
-    static final Relationship REL_FOUND = new Relationship.Builder()
+    public static final Relationship REL_FOUND = new Relationship.Builder()
             .name("found")
             .description("A blob with the supplied name was found in the container")
             .build();
 
-    static final Relationship REL_NOT_FOUND = new Relationship.Builder()
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("not found")
             .description("No blob was found with the supplied name in the container")
             .build();
