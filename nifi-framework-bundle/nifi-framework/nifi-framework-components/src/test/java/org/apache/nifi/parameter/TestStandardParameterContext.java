@@ -17,8 +17,10 @@
 package org.apache.nifi.parameter;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
@@ -647,6 +649,43 @@ public class TestStandardParameterContext {
             fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");
         } catch (final IllegalStateException expected) {
         }
+    }
+
+    @Test
+    public void testSetParametersRejectedWhenProviderBackedAndParameterNotProvided() {
+        final String providerId = "provider-1";
+
+        final ParameterProvider parameterProvider = mock(ParameterProvider.class);
+        when(parameterProvider.getIdentifier()).thenReturn(providerId);
+
+        final ParameterProviderNode parameterProviderNode = mock(ParameterProviderNode.class);
+        when(parameterProviderNode.getParameterProvider()).thenReturn(parameterProvider);
+
+        final ParameterProviderLookup parameterProviderLookup = mock(ParameterProviderLookup.class);
+        when(parameterProviderLookup.getParameterProvider(providerId)).thenReturn(parameterProviderNode);
+
+        // A Parameter Context whose parameters are supplied by a Parameter Provider.
+        final ParameterContext context = new StandardParameterContext.Builder()
+                .id("provider-backed-context")
+                .name("Provider Backed Context")
+                .parameterReferenceManager(new HashMapParameterReferenceManager())
+                .parameterProviderLookup(parameterProviderLookup)
+                .parameterProviderConfiguration(new StandardParameterProviderConfiguration(providerId, "Group", true))
+                .build();
+
+        // Setting a user-entered (provided=false) parameter on a provider-backed context must be rejected.
+        // This is the guard that, during cluster flow synchronization, surfaces as a FlowSynchronizationException
+        // when the proposed (cluster) flow carries a non-provided parameter for a provider-backed context.
+        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name("db.host").build();
+        final Parameter userEnteredParameter = new Parameter.Builder()
+                .descriptor(descriptor)
+                .value("localhost")
+                .provided(false)
+                .build();
+
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> context.setParameters(Collections.singletonMap("db.host", userEnteredParameter)));
+        assertTrue(e.getMessage().contains("cannot be manually updated because they are provided by Parameter Provider"));
     }
 
     private ParameterContext createStandardParameterContext(final ParameterReferenceManager referenceManager) {

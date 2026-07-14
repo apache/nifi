@@ -1008,9 +1008,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
 
             final Processor processor = getProcessor();
-            if (processor instanceof VerifiableProcessor) {
+            if (processor instanceof final VerifiableProcessor verifiable) {
                 LOG.debug("{} is a VerifiableProcessor. Will perform full verification of configuration.", this);
-                final VerifiableProcessor verifiable = (VerifiableProcessor) getProcessor();
 
                 // Check if the given configuration requires a different classloader than the current configuration
                 final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
@@ -1124,7 +1123,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
         } catch (final Throwable t) {
             LOG.error("Failed to perform validation", t);
-            results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString())
+            results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t)
                     .valid(false).build());
         }
 

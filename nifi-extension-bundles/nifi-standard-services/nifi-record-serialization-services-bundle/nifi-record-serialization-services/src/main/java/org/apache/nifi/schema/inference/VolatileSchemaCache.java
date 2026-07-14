@@ -99,7 +99,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
 
         // Schemas hashed to same value but do not equal one another. Append a randomly generated UUID
         // and add that to the cache.
-        final String updatedIdentifier = identifier + "-" + UUID.randomUUID().toString();
+        final String updatedIdentifier = identifier + "-" + UUID.randomUUID();
         cache.put(updatedIdentifier, schema);
 
         getLogger().debug("Schema with ID {} conflicted with new Schema. Resolved by using generated identifier {}", identifier, updatedIdentifier);

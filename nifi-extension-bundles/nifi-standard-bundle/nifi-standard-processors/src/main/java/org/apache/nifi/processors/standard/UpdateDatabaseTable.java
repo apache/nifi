@@ -424,8 +424,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                 recordReader = recordReaderFactory.createRecordReader(inputFlowFile, in, getLogger());
                                 recordSetWriter = recordWriterFactory.createWriter(getLogger(), outputMetadataHolder.getOutputSchema(), out, attributes);
                             } catch (Exception e) {
-                                if (e instanceof IOException) {
-                                    throw (IOException) e;
+                                if (e instanceof final IOException ioException) {
+                                    throw ioException;
                                 }
                                 throw new IOException("Unable to create RecordReader", e);
                             }
@@ -467,7 +467,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
             session.transfer(flowFile, Relationship.SELF);
         } catch (Throwable t) {
-            throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
+            throw (t instanceof final ProcessException processException) ? processException : new ProcessException(t);
         }
     }
 
@@ -537,14 +537,14 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         }
 
                         final int dataType = DataTypeUtils.getSQLTypeValue(recordField.getDataType());
-                        final String quotedColumnName = enquoteIdentifier(columnName, quoteString, quoteColumnNames);
+                        final String quotedColumnName = enquoteIdentifier(s, columnName, quoteColumnNames);
                         columns.add(new ColumnDescription(quotedColumnName, dataType, required, null, recordField.isNullable()));
                         getLogger().debug("Adding column {} to table {}", columnName, tableName);
                     }
 
-                    final String quotedCatalogName = enquoteIdentifier(catalogName, quoteString, quoteTableName);
-                    final String quotedSchemaName = enquoteIdentifier(schemaName, quoteString, quoteTableName);
-                    final String quotedTableName = enquoteIdentifier(tableName, quoteString, quoteTableName);
+                    final String quotedCatalogName = enquoteIdentifier(s, catalogName, quoteTableName);
+                    final String quotedSchemaName = enquoteIdentifier(s, schemaName, quoteTableName);
+                    final String quotedTableName = enquoteIdentifier(s, tableName, quoteTableName);
                     tableSchema = new TableSchema(quotedCatalogName, quotedSchemaName, quotedTableName, columns, translateFieldNames, normalizer, primaryKeyColumnNames, quoteString);
 
                     final TableDefinition tableDefinition = getTableDefinition(tableSchema);
@@ -588,17 +588,18 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 }
 
                 if (!columnsToAdd.isEmpty()) {
-                    final List<ColumnDefinition> columnDefinitions = columnsToAdd.stream().map(columnDescription ->
-                            new StandardColumnDefinition(
-                                    enquoteIdentifier(columnDescription.getColumnName(), quoteString, quoteColumnNames),
-                                    columnDescription.getDataType(),
-                                    columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
-                                    columnDescription.isRequired()
-                            )
-                            )
-                            .map(ColumnDefinition.class::cast)
-                            .toList();
-                    final String qualifiedTableName = enquoteIdentifier(tableName, quoteString, quoteTableName);
+                    final List<ColumnDefinition> columnDefinitions = new ArrayList<>(columnsToAdd.size());
+                    for (final ColumnDescription columnDescription : columnsToAdd) {
+                        final ColumnDefinition columnDefinition = new StandardColumnDefinition(
+                                enquoteIdentifier(s, columnDescription.getColumnName(), quoteColumnNames),
+                                columnDescription.getDataType(),
+                                columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
+                                columnDescription.isRequired()
+                        );
+                        columnDefinitions.add(columnDefinition);
+                    }
+
+                    final String qualifiedTableName = enquoteIdentifier(s, tableName, quoteTableName);
                     final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), qualifiedTableName, columnDefinitions);
                     final StatementRequest statementRequest = new StandardStatementRequest(StatementType.ALTER, tableDefinition);
                     final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
@@ -708,11 +709,18 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         );
     }
 
-    private String enquoteIdentifier(final String identifier, final String quotedIdentifierString, final boolean quoteIdentifier) {
-        if (identifier != null && quoteIdentifier) {
-            return quotedIdentifierString + identifier + quotedIdentifierString;
+    private String enquoteIdentifier(final Statement statement, final String identifier, final boolean quoteIdentifier) throws SQLException {
+        final String enquoted;
+
+        if (identifier == null) {
+            enquoted = identifier;
+        } else if (quoteIdentifier) {
+            enquoted = statement.enquoteIdentifier(identifier, quoteIdentifier);
+        } else {
+            enquoted = identifier;
         }
-        return identifier;
+
+        return enquoted;
     }
 
     private static class OutputMetadataHolder {

@@ -55,8 +55,8 @@ public class ChildFieldPath extends RecordPathSegment {
         final Record record = (Record) fieldValue.getValue();
         if (record == null) {
             final RecordField parent = fieldValue.getField();
-            if (parent != null && parent.getDataType() instanceof RecordDataType) {
-                final Optional<RecordField> childFieldOptional = ((RecordDataType) parent.getDataType()).getChildSchema().getField(childName);
+            if (parent != null && parent.getDataType() instanceof final RecordDataType recordDataType) {
+                final Optional<RecordField> childFieldOptional = recordDataType.getChildSchema().getField(childName);
                 return childFieldOptional.map(recordField -> missingChild(fieldValue, recordField)).orElseGet(() -> missingChild(fieldValue));
             } else {
                 return missingChild(fieldValue);

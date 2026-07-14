@@ -63,7 +63,7 @@ public class RecordSchema {
 
     public void writeTo(final OutputStream out) throws IOException {
         try {
-            final DataOutputStream dos = (out instanceof DataOutputStream) ? (DataOutputStream) out : new DataOutputStream(out);
+            final DataOutputStream dos = (out instanceof final DataOutputStream dataOutputStream) ? dataOutputStream : new DataOutputStream(out);
 
             dos.writeInt(fields.size());
             for (final RecordField field : fields) {
@@ -102,7 +102,7 @@ public class RecordSchema {
 
     public static RecordSchema readFrom(final InputStream in) throws IOException {
         try {
-            final DataInputStream dis = (in instanceof DataInputStream) ? (DataInputStream) in : new DataInputStream(in);
+            final DataInputStream dis = (in instanceof final DataInputStream dataInputStream) ? dataInputStream : new DataInputStream(in);
 
             final int numFields = dis.readInt();
             final List<RecordField> fields = new ArrayList<>(numFields);

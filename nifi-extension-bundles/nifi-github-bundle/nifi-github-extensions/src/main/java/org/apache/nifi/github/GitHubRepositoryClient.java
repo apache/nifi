@@ -40,6 +40,7 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.GitUser;
 import org.kohsuke.github.PagedIterable;
 import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
@@ -76,6 +77,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
     private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
     private static final int COMMIT_PAGE_SIZE = 10;
+    private static final String UNKNOWN_AUTHOR = "unknown";
 
     private final String repoOwner;
     private final String repoName;
@@ -310,6 +312,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         logger.debug("Getting commits for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repository.getName());
 
         return execute(() -> {
+            final List<GHCommit> ghCommits;
             try {
                 final GHRef branchGhRef = repository.getRef(branchRef);
                 final PagedIterable<GHCommit> ghCommitsIterable = repository.queryCommits()
@@ -320,17 +323,17 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
                 // Get the first page of commits
                 final PagedIterator<GHCommit> ghCommitsIterator = ghCommitsIterable.iterator();
-                final List<GHCommit> ghCommits = ghCommitsIterator.nextPage();
-
-                final List<GitCommit> commits = new ArrayList<>();
-                for (final GHCommit ghCommit : ghCommits) {
-                    commits.add(toGitCommit(ghCommit));
-                }
-                return commits;
+                ghCommits = ghCommitsIterator.nextPage();
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branchRef);
                 return null;
             }
+
+            final List<GitCommit> commits = new ArrayList<>();
+            for (final GHCommit ghCommit : ghCommits) {
+                commits.add(toGitCommit(ghCommit));
+            }
+            return commits;
         });
     }
 
@@ -538,8 +541,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         if (commit == null) {
             final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
-            final GHUser ghUser = ghCommit.getAuthor();
-            final String author = ghUser != null ? ghUser.getLogin() : shortInfo.getAuthor().getName();
+            final String author = resolveCommitAuthor(ghCommit, shortInfo);
             commit = new GitCommit(
                     ghCommit.getSHA1(),
                     author,
@@ -549,6 +551,46 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         }
 
         return commit;
+    }
+
+    /**
+     * Resolves the author of the given commit. The GitHub account login is preferred, but resolving it
+     * requires an additional lookup that fails when the account cannot be found, for example bot accounts
+     * or deleted users whose user lookup returns Not Found. In that case, and when the commit has no
+     * associated GitHub account, the raw Git author name from the commit is used, falling back to a
+     * placeholder when the commit does not provide an author name.
+     *
+     * @param ghCommit the commit whose author is resolved
+     * @param shortInfo the commit short info providing the raw Git author
+     * @return the resolved author, never null
+     * @throws IOException if a non-recoverable error happens calling GitHub
+     */
+    static String resolveCommitAuthor(final GHCommit ghCommit, final GHCommit.ShortInfo shortInfo) throws IOException {
+        final GHUser ghUser = getCommitAuthor(ghCommit);
+        if (ghUser != null) {
+            return ghUser.getLogin();
+        }
+
+        final GitUser gitAuthor = shortInfo.getAuthor();
+        final String authorName = gitAuthor == null ? null : gitAuthor.getName();
+        return authorName == null ? UNKNOWN_AUTHOR : authorName;
+    }
+
+    /**
+     * Returns the GitHub account associated with the commit author, or null when the account cannot be
+     * resolved. Resolving the account requires an additional lookup that returns Not Found for accounts
+     * that do not exist, such as bot accounts or deleted users, which are treated as an unresolved author.
+     *
+     * @param ghCommit the commit whose author account is resolved
+     * @return the GitHub account for the commit author, or null when it cannot be resolved
+     * @throws IOException if a non-recoverable error happens calling GitHub
+     */
+    private static GHUser getCommitAuthor(final GHCommit ghCommit) throws IOException {
+        try {
+            return ghCommit.getAuthor();
+        } catch (final FileNotFoundException e) {
+            return null;
+        }
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {

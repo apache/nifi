@@ -59,7 +59,7 @@ public class SchemaRecordWriter {
     }
 
     private void writeRecordFields(final Record record, final RecordSchema schema, final OutputStream out, final byte[] buffer) throws IOException {
-        final DataOutputStream dos = out instanceof DataOutputStream ? (DataOutputStream) out : new DataOutputStream(out);
+        final DataOutputStream dos = out instanceof final DataOutputStream  dataOutputStream ? dataOutputStream : new DataOutputStream(out);
         for (final RecordField field : schema.getFields()) {
             final Object value = record.getFieldValue(field);
 

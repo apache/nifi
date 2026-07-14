@@ -117,7 +117,7 @@ public class UpdateAttributeModelFactory {
         try {
             Query.validateExpression(dto.getValue(), true);
         } catch (final AttributeExpressionLanguageParsingException e) {
-            throw new IllegalArgumentException("Invalid Expression: " + e.toString(), e);
+            throw new IllegalArgumentException("Invalid Expression: " + e, e);
         }
 
         final Action action = new Action();

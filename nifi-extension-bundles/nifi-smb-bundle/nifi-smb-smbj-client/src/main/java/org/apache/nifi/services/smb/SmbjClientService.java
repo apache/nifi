@@ -216,10 +216,10 @@ class SmbjClientService implements SmbClientService {
     }
 
     private SmbException wrapException(final Exception e) {
-        if (e instanceof SmbException) {
-            return (SmbException) e;
+        if (e instanceof final SmbException smbException) {
+            return smbException;
         } else {
-            final long errorCode = e instanceof SMBApiException ? ((SMBApiException) e).getStatusCode() : UNCATEGORIZED_ERROR;
+            final long errorCode = e instanceof final SMBApiException smbApiException ? smbApiException.getStatusCode() : UNCATEGORIZED_ERROR;
             return new SmbException(e.getMessage(), errorCode, e);
         }
     }

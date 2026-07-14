@@ -61,9 +61,9 @@ public class Throwables {
         int traceIndex = -1;
 
         if (priority != null) {
-            if (priority instanceof String) {
+            if (priority instanceof final String priorityString) {
                 for (int i = 0; i < trace.length; i++) {
-                    if (trace[i].getClassName().startsWith((String) priority)) {
+                    if (trace[i].getClassName().startsWith(priorityString)) {
                         traceIndex = i;
                         break;
                     }
@@ -151,8 +151,8 @@ public class Throwables {
     private static Throwable getRootException(Throwable e) {
         Throwable t;
 
-        if (e instanceof InvocationTargetException) {
-            t = ((InvocationTargetException) e).getTargetException();
+        if (e instanceof final InvocationTargetException invocationTargetException) {
+            t = invocationTargetException.getTargetException();
         } else if (e instanceof RuntimeException) {
             t = e.getCause();
         } else if (e.getCause() != null && e.getClass().getName().equals(e.getCause().getClass().getName())) {

@@ -143,8 +143,8 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
 
     private OAuth2AccessToken getAccessToken(final OAuth2AuthenticationToken authenticationToken) {
         final Object credentials = authenticationToken.getCredentials();
-        if (credentials instanceof OAuth2AccessToken) {
-            return (OAuth2AccessToken) credentials;
+        if (credentials instanceof final OAuth2AccessToken oAuth2AccessToken) {
+            return oAuth2AccessToken;
         } else {
             final String message = String.format("OAuth2AccessToken not found in credentials [%s]", credentials.getClass());
             throw new IllegalArgumentException(message);
@@ -153,8 +153,8 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
 
     private OidcUser getOidcUser(final OAuth2AuthenticationToken authenticationToken) {
         final OAuth2User principalUser = authenticationToken.getPrincipal();
-        if (principalUser instanceof OidcUser) {
-            return (OidcUser) principalUser;
+        if (principalUser instanceof final OidcUser oidcUser) {
+            return oidcUser;
         } else {
             final String message = String.format("OpenID Connect User not found [%s]", principalUser.getClass());
             throw new IllegalArgumentException(message);

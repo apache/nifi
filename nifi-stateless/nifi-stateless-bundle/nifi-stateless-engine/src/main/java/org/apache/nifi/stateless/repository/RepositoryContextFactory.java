@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.repository;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -35,6 +36,8 @@ public interface RepositoryContextFactory {
     FlowFileEventRepository getFlowFileEventRepository();
 
     CounterRepository getCounterRepository();
+
+    ComponentMetricReporter getComponentMetricReporter();
 
     void shutdown();
 }

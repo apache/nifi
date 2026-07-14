@@ -100,7 +100,7 @@ public interface ReloadComponent {
      * @param newType the fully qualified class name of the new type
      * @param bundleCoordinate the bundle coordinate of the new type
      * @param additionalUrls additional URLs to be added to the instance class loader of the new component
-     * @throws ReportingTaskInstantiationException if unable to create an instance of the new type
+     * @throws FlowRepositoryClientInstantiationException if unable to create an instance of the new type
      */
     void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls)
             throws FlowRepositoryClientInstantiationException;

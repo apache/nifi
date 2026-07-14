@@ -128,7 +128,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
         for (MockFlowFile mff : flowFiles) {
             String val = mff.getAttribute(AGG_ATTR);
-            assertNotNull("Missing query attribute", val);
+            assertNotNull(val, "Missing query attribute");
             assertEquals(queryInput, val, "Value was wrong");
         }
     }
@@ -217,7 +217,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
             assertTrue(mappings.containsKey(read.get("_id")), "Value was not found");
 
             String queryAttr = mockFlowFile.getAttribute(AGG_ATTR);
-            assertNotNull("Query attribute was null.", queryAttr);
+            assertNotNull(queryAttr, "Query attribute was null.");
             assertTrue(queryAttr.contains("$project"), "Missing $project");
             assertTrue(queryAttr.contains("$group"), "Missing $group");
         }

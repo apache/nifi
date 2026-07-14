@@ -23,6 +23,9 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.ResourcePropertySource;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.vault.client.RestTemplateFactory;
+import org.springframework.vault.config.AbstractVaultConfiguration;
 import org.springframework.vault.config.EnvironmentVaultConfiguration;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.support.ClientOptions;
@@ -65,9 +68,14 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
     private static final String HTTPS = "https";
 
+    private static final String CLIENT_HTTP_REQUEST_FACTORY_WRAPPER_BEAN = "clientHttpRequestFactoryWrapper";
+
     private final SslConfiguration sslConfiguration;
     private final ClientOptions clientOptions;
     private final KeyValueBackend keyValueBackend;
+    private final HashiCorpVaultApplicationContext applicationContext;
+
+    private AbstractVaultConfiguration.ClientFactoryWrapper clientFactoryWrapper;
 
     /**
      * Creates a HashiCorpVaultConfiguration from property sources, in increasing precedence.
@@ -118,7 +126,8 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
         }
         this.keyValueBackend = keyValueBackend;
 
-        this.setApplicationContext(new HashiCorpVaultApplicationContext(env));
+        this.applicationContext = new HashiCorpVaultApplicationContext(env);
+        this.setApplicationContext(applicationContext);
 
         sslConfiguration = env.getProperty(VaultConfigurationKey.URI.key).contains(HTTPS)
                 ? super.sslConfiguration() : SslConfiguration.unconfigured();
@@ -128,6 +137,23 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
     public KeyValueBackend getKeyValueBackend() {
         return keyValueBackend;
+    }
+
+    /**
+     * Registers the given request factory as the {@code clientHttpRequestFactoryWrapper} bean and uses it
+     * to build the {@link RestTemplateFactory}. Spring Vault authentication methods other than token
+     * authentication build their own Vault client from these, so this must be called before
+     * {@link #clientAuthentication()} to supply NiFi's configured request factory.
+     * @param clientHttpRequestFactory The request factory used for Vault communication
+     */
+    public void setClientHttpRequestFactory(final ClientHttpRequestFactory clientHttpRequestFactory) {
+        this.clientFactoryWrapper = new AbstractVaultConfiguration.ClientFactoryWrapper(clientHttpRequestFactory);
+        applicationContext.getBeanFactory().registerSingleton(CLIENT_HTTP_REQUEST_FACTORY_WRAPPER_BEAN, clientFactoryWrapper);
+    }
+
+    @Override
+    protected RestTemplateFactory getRestTemplateFactory() {
+        return clientFactoryWrapper == null ? super.getRestTemplateFactory() : restTemplateFactory(clientFactoryWrapper);
     }
 
     /**

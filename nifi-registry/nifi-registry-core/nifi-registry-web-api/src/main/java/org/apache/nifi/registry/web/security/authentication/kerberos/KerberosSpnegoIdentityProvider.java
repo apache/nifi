@@ -120,7 +120,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
         }
 
         final Object credentials = authenticationRequest.getCredentials();
-        byte[] kerberosTicket = credentials instanceof byte[] ? (byte[]) authenticationRequest.getCredentials() : null;
+        byte[] kerberosTicket = credentials instanceof final byte[] bytes ? bytes : null;
 
         if (credentials == null) {
             logger.info("Kerberos Ticket not found in authenticationRequest credentials, returning null.");

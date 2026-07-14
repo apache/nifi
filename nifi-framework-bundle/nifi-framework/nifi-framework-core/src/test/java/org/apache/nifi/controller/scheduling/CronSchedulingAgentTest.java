@@ -27,14 +27,20 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -91,6 +97,36 @@ class CronSchedulingAgentTest {
         when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
 
         schedulingAgent.doSchedule(connectable, lifecycleState);
+    }
+
+    @Test
+    void testCronTaskExceptionPropagatesRatherThanSilentlyStoppingChain() {
+        // A cron trigger is a one-shot task that reschedules only after a successful run. If the triggered task
+        // throws, the exception must still propagate (it is also logged as a diagnostic) rather than being silently
+        // swallowed in a way that could leave the component RUNNING but unscheduled. This guards that propagation.
+        final String componentId = UUID.randomUUID().toString();
+        final LifecycleState lifecycleState = new LifecycleState(componentId);
+
+        when(connectable.evaluateParameters(eq(DEFAULT_CRON_EXPRESSION))).thenReturn(DEFAULT_CRON_EXPRESSION);
+        when(connectable.getSchedulingPeriod()).thenReturn(DEFAULT_CRON_EXPRESSION);
+        when(connectable.getMaxConcurrentTasks()).thenReturn(CONCURRENT_TASKS);
+        when(connectable.getIdentifier()).thenReturn(componentId);
+        when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
+        when(stateManagerProvider.getStateManager(eq(componentId))).thenReturn(stateManager);
+        when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
+
+        schedulingAgent.doSchedule(connectable, lifecycleState);
+
+        // Capture the self-rescheduling command submitted to the engine and run it with a triggered task that throws.
+        final ArgumentCaptor<Runnable> commandCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(flowEngine).schedule(commandCaptor.capture(), anyLong(), any(TimeUnit.class));
+        final Runnable command = commandCaptor.getValue();
+
+        final RuntimeException failure = new RuntimeException("trigger failure");
+        when(connectable.getYieldExpiration()).thenThrow(failure);
+
+        final RuntimeException thrown = assertThrows(RuntimeException.class, command::run);
+        assertEquals(failure, thrown);
     }
 
     @Test

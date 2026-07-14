@@ -414,9 +414,9 @@ public class GetFile extends AbstractProcessor {
                 final File file = itr.next();
                 final Path filePath = file.toPath();
                 final Path relativePath = directoryPath.relativize(filePath.getParent());
-                String relativePathString = relativePath.toString() + "/";
+                String relativePathString = relativePath + "/";
                 final Path absPath = filePath.toAbsolutePath();
-                final String absPathString = absPath.getParent().toString() + "/";
+                final String absPathString = absPath.getParent() + "/";
 
                 flowFile = session.create();
                 final long importStart = System.nanoTime();

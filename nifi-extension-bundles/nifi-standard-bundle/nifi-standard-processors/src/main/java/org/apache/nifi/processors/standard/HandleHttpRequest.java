@@ -546,8 +546,8 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
 
     protected int getPort() {
         for (final Connector connector : server.getConnectors()) {
-            if (connector instanceof ServerConnector) {
-                return ((ServerConnector) connector).getLocalPort();
+            if (connector instanceof final ServerConnector serverConnector) {
+                return serverConnector.getLocalPort();
             }
         }
 

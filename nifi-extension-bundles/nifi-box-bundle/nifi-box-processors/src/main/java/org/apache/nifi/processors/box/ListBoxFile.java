@@ -242,7 +242,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
             "content_modified_at",
             "path_collection"
         )) {
-            if (itemInfo instanceof BoxFile.Info info) {
+            if (itemInfo instanceof final BoxFile.Info info) {
 
                 long createdAt = itemInfo.getCreatedAt().getTime();
 

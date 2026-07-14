@@ -93,8 +93,8 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
                     logger.debug("Node {} successfully processed upload for {}", nodeId, filename);
                 } catch (final ExecutionException ee) {
                     final Throwable cause = ee.getCause();
-                    if (cause instanceof UploadRequestReplicationException) {
-                        throw ((UploadRequestReplicationException) cause);
+                    if (cause instanceof final UploadRequestReplicationException uploadRequestReplicationException) {
+                        throw uploadRequestReplicationException;
                     } else {
                         throw new IOException("Failed to replicate upload request to " + nodeId, ee.getCause());
                     }

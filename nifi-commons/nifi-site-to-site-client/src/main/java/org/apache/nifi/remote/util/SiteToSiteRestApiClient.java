@@ -338,8 +338,8 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     private IOException toIOException(ExecutionException e) {
         final Throwable cause = e.getCause();
-        if (cause instanceof IOException) {
-            return (IOException) cause;
+        if (cause instanceof final IOException ioException) {
+            return ioException;
         } else {
             return new IOException(cause);
         }

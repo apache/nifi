@@ -189,12 +189,12 @@ public final class SNMPUtils {
     private static Optional<Variable> stringToVariable(final String value, final int smiSyntax) {
         Variable variable = AbstractVariable.createFromSyntax(smiSyntax);
         try {
-            if (variable instanceof AssignableFromString) {
-                ((AssignableFromString) variable).setValue(value);
-            } else if (variable instanceof AssignableFromInteger) {
-                ((AssignableFromInteger) variable).setValue(Integer.parseInt(value));
-            } else if (variable instanceof AssignableFromLong) {
-                ((AssignableFromLong) variable).setValue(Long.parseLong(value));
+            if (variable instanceof final AssignableFromString assignableFromString) {
+                assignableFromString.setValue(value);
+            } else if (variable instanceof final AssignableFromInteger assignableFromInteger) {
+                assignableFromInteger.setValue(Integer.parseInt(value));
+            } else if (variable instanceof final AssignableFromLong assignableFromLong) {
+                assignableFromLong.setValue(Long.parseLong(value));
             } else {
                 logger.error("Unsupported conversion of [ {} ] to ", variable.getSyntaxString());
                 variable = null;

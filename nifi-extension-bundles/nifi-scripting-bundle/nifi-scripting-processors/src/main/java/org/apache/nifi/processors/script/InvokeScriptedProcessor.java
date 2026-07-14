@@ -634,8 +634,8 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                     } catch (final Exception e) {
                         // An error occurred during onScheduled, propagate it up
                         logger.error("Error while executing the scripted processor's method {}", methodName, e);
-                        if (e instanceof ProcessException) {
-                            throw (ProcessException) e;
+                        if (e instanceof final ProcessException processException) {
+                            throw processException;
                         }
                         throw new ProcessException(e);
                     }

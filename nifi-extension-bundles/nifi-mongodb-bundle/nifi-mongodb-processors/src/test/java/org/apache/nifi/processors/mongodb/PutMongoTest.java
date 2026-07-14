@@ -49,8 +49,8 @@ public class PutMongoTest {
         runner.assertNotValid();
 
         Collection<ValidationResult> results = null;
-        if (runner.getProcessContext() instanceof MockProcessContext) {
-            results = ((MockProcessContext) runner.getProcessContext()).validate();
+        if (runner.getProcessContext() instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -63,8 +63,8 @@ public class PutMongoTest {
         runner.assertNotValid();
 
         results = null;
-        if (runner.getProcessContext() instanceof MockProcessContext) {
-            results = ((MockProcessContext) runner.getProcessContext()).validate();
+        if (runner.getProcessContext() instanceof final MockProcessContext mockProcessContext) {
+            results = mockProcessContext.validate();
         }
 
         assertNotNull(results);

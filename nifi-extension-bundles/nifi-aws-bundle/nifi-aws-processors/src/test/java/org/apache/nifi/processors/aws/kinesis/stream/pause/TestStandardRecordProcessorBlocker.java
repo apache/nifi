@@ -43,6 +43,7 @@ public class TestStandardRecordProcessorBlocker {
             blockerInspector.awaitBlockAwaited();
             assertTrue(thread.isAlive());
 
+            blockerInspector.awaitThreadParked(thread);
             recordProcessorBlocker.unblock();
             blockerInspector.awaitBlockExited();
         }
@@ -96,6 +97,7 @@ public class TestStandardRecordProcessorBlocker {
             blockerInspector.awaitBlockAwaited();
             assertTrue(thread.isAlive());
 
+            blockerInspector.awaitThreadParked(thread);
             recordProcessorBlocker.unblock();
             blockerInspector.awaitBlockExited();
         }
@@ -163,8 +165,8 @@ public class TestStandardRecordProcessorBlocker {
 
     private static class TestThreadInspector {
         private static final Duration BUSY_WAIT_MAX_DURATION = Duration.ofSeconds(5);
-        private boolean blockAwaited = false;
-        private boolean blockExited = false;
+        private volatile boolean blockAwaited = false;
+        private volatile boolean blockExited = false;
 
         public void onBlockAwaited() {
             blockAwaited = true;
@@ -180,6 +182,10 @@ public class TestStandardRecordProcessorBlocker {
 
         public void awaitBlockExited() {
             busyWait(() -> !blockExited);
+        }
+
+        public void awaitThreadParked(final Thread thread) {
+            busyWait(() -> thread.getState() != Thread.State.WAITING);
         }
 
         private void busyWait(final Supplier<Boolean> condition) {

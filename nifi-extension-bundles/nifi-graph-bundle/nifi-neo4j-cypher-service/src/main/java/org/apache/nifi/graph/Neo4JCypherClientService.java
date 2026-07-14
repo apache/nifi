@@ -254,8 +254,8 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         if (recordMap.size() == 1) {
             String key = recordMap.keySet().iterator().next();
             Object value = recordMap.get(key);
-            if (value instanceof InternalNode) {
-                return ((InternalNode) value).asMap();
+            if (value instanceof final InternalNode internalNode) {
+                return internalNode.asMap();
             }
         }
 

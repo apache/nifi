@@ -129,7 +129,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
         MockFlowFile mff = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS).get(0);
         String attr = mff.getAttribute(queryAttr);
-        assertNotNull("Query attribute was null.", attr);
+        assertNotNull(attr, "Query attribute was null.");
         assertTrue(attr.contains("filename"), "Wrong content.");
 
         runner.clearTransferState();
@@ -148,7 +148,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
         mff = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS).get(0);
         attr = mff.getAttribute(queryAttr);
-        assertNotNull("Query attribute was null.", attr);
+        assertNotNull(attr, "Query attribute was null.");
         assertTrue(attr.contains("metadata"), "Wrong content.");
     }
 

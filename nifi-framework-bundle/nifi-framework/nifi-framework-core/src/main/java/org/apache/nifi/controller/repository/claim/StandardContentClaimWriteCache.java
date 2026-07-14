@@ -64,8 +64,8 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             final MappedOutputStream mappedOutputStream = streamMap.get(contentClaim.getResourceClaim());
             if (mappedOutputStream != null) {
                 final OutputStream contentRepoStream = mappedOutputStream.getContentRepoStream();
-                if (contentRepoStream instanceof ContentClaimOutputStream) {
-                    return ((ContentClaimOutputStream) contentRepoStream).newContentClaim();
+                if (contentRepoStream instanceof final ContentClaimOutputStream contentClaimOutputStream) {
+                    return contentClaimOutputStream.newContentClaim();
                 }
             }
         }

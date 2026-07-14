@@ -300,13 +300,13 @@ public class UpdateRecord extends AbstractRecordProcessor {
                 return record;
             }
 
-            if (replacement instanceof Record) {
-                return (Record) replacement;
+            if (replacement instanceof final Record recordObj) {
+                return recordObj;
             }
 
             final FieldValue replacementFieldValue = (FieldValue) replacement;
-            if (replacementFieldValue.getValue() instanceof Record) {
-                return (Record) replacementFieldValue.getValue();
+            if (replacementFieldValue.getValue() instanceof final Record recordObj) {
+                return recordObj;
             }
 
             final List<RecordField> fields = selectedFields.stream().map(FieldValue::getField).collect(Collectors.toList());

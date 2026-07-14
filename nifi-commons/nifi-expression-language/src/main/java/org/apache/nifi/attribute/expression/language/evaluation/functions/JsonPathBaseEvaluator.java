@@ -103,8 +103,8 @@ public abstract class JsonPathBaseEvaluator extends StringEvaluator {
     static String getResultRepresentation(final Object jsonPathResult, final String defaultValue) {
         if (isJsonScalar(jsonPathResult)) {
             return Objects.toString(jsonPathResult, defaultValue);
-        } else if (jsonPathResult instanceof List && ((List<?>) jsonPathResult).size() == 1) {
-            return getResultRepresentation(((List<?>) jsonPathResult).get(0), defaultValue);
+        } else if (jsonPathResult instanceof final List<?> list && list.size() == 1) {
+            return getResultRepresentation(list.get(0), defaultValue);
         } else {
             return JSON_PROVIDER.toJson(jsonPathResult);
         }

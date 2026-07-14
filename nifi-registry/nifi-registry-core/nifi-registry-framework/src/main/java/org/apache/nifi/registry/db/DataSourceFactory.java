@@ -88,9 +88,9 @@ public class DataSourceFactory {
                 .password(databasePassword)
                 .build();
 
-        if (dataSource instanceof HikariDataSource) {
+        if (dataSource instanceof final HikariDataSource hikariDataSource) {
             LOGGER.info("Setting maximum pool size on HikariDataSource to {}", properties.getDatabaseMaxConnections());
-            ((HikariDataSource) dataSource).setMaximumPoolSize(properties.getDatabaseMaxConnections());
+            hikariDataSource.setMaximumPoolSize(properties.getDatabaseMaxConnections());
         }
 
         return dataSource;

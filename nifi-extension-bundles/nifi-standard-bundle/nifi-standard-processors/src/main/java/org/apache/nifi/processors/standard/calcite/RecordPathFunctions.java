@@ -57,17 +57,17 @@ public class RecordPathFunctions {
             if (record == null) {
                 return null;
             }
-            if (record instanceof Record) {
-                return eval((Record) record, recordPath);
+            if (record instanceof final Record recordObj) {
+                return eval(recordObj, recordPath);
             }
-            if (record instanceof Record[]) {
-                return eval((Record[]) record, recordPath);
+            if (record instanceof final Record[] records) {
+                return eval(records, recordPath);
             }
             if (record instanceof Iterable) {
                 return eval((Iterable<Record>) record, recordPath);
             }
-            if (record instanceof Map) {
-                return eval((Map<?, ?>) record, recordPath);
+            if (record instanceof final Map<?, ?> map) {
+                return eval(map, recordPath);
             }
 
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
@@ -142,14 +142,14 @@ public class RecordPathFunctions {
     public static class IntegerRecordPath extends RecordPathFunction {
         public Integer eval(Object record, String recordPath) {
             return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).intValue();
+                if (val instanceof final Number number) {
+                    return number.intValue();
                 }
-                if (val instanceof String) {
-                    return Integer.parseInt((String) val);
+                if (val instanceof final String string) {
+                    return Integer.parseInt(string);
                 }
-                if (val instanceof Date) {
-                    return (int) ((Date) val).getTime();
+                if (val instanceof final Date date) {
+                    return (int) date.getTime();
                 }
 
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Integer against " + record
@@ -161,14 +161,14 @@ public class RecordPathFunctions {
     public static class LongRecordPath extends RecordPathFunction {
         public Long eval(Object record, String recordPath) {
             return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).longValue();
+                if (val instanceof final Number number) {
+                    return number.longValue();
                 }
-                if (val instanceof String) {
-                    return Long.parseLong((String) val);
+                if (val instanceof final String string) {
+                    return Long.parseLong(string);
                 }
-                if (val instanceof Date) {
-                    return ((Date) val).getTime();
+                if (val instanceof final Date date) {
+                    return date.getTime();
                 }
 
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Long against " + record
@@ -180,11 +180,11 @@ public class RecordPathFunctions {
     public static class FloatRecordPath extends RecordPathFunction {
         public Float eval(Object record, String recordPath) {
             return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).floatValue();
+                if (val instanceof final Number number) {
+                    return number.floatValue();
                 }
-                if (val instanceof String) {
-                    return Float.parseFloat((String) val);
+                if (val instanceof final String string) {
+                    return Float.parseFloat(string);
                 }
 
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Float against " + record
@@ -196,11 +196,11 @@ public class RecordPathFunctions {
     public static class DoubleRecordPath extends RecordPathFunction {
         public Double eval(Object record, String recordPath) {
             return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).doubleValue();
+                if (val instanceof final Number number) {
+                    return number.doubleValue();
                 }
-                if (val instanceof String) {
-                    return Double.parseDouble((String) val);
+                if (val instanceof final String string) {
+                    return Double.parseDouble(string);
                 }
 
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Double against " + record
@@ -213,16 +213,16 @@ public class RecordPathFunctions {
         // Interestingly, Calcite throws an Exception if the schema indicates a DATE type and we return a java.util.Date. Calcite requires that a Long be returned instead.
         public Long eval(Object record, String recordPath) {
             return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).longValue();
+                if (val instanceof final Number number) {
+                    return number.longValue();
                 }
                 if (val instanceof String) {
                     throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Date against " + record
                         + " because the value returned is of type String. To parse a String value as a Date, please use the toDate function. For example, " +
                         "SELECT RPATH_DATE( record, 'toDate( /event/timestamp, \"yyyy-MM-dd\" )' ) AS eventDate FROM FLOWFILE");
                 }
-                if (val instanceof Date) {
-                    return ((Date) val).getTime();
+                if (val instanceof final Date date) {
+                    return date.getTime();
                 }
 
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Date against " + record

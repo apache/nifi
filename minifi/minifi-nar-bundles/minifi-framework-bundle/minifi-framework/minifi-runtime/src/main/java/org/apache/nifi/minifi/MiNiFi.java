@@ -122,11 +122,11 @@ public class MiNiFi {
         if (nifiServer == null) {
             throw new IllegalStateException("Unable to find a NiFiServer implementation.");
         }
-        if (!(nifiServer instanceof MiNiFiServer)) {
+        if (!(nifiServer instanceof final MiNiFiServer miNiFiServer)) {
             throw new IllegalStateException("Found NiFiServer implementation with class name " + nifiServer.getClass().getName()
                     + ", it does not implement the required MiNiFiServer interface.");
         }
-        minifiServer = (MiNiFiServer) nifiServer;
+        minifiServer = miNiFiServer;
         Thread.currentThread().setContextClassLoader(minifiServer.getClass().getClassLoader());
 
         // Filter out the framework NAR from being loaded by the NiFiServer

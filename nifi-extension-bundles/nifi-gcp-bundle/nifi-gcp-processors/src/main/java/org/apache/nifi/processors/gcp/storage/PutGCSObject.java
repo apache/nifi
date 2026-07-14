@@ -492,17 +492,17 @@ public class PutGCSObject extends AbstractGCSProcessor {
                     if (blob.getOwner() != null) {
                         final Acl.Entity entity = blob.getOwner();
 
-                        if (entity instanceof Acl.User) {
-                            attributes.put(OWNER_ATTR, ((Acl.User) entity).getEmail());
+                        if (entity instanceof final Acl.User aclUser) {
+                            attributes.put(OWNER_ATTR, aclUser.getEmail());
                             attributes.put(OWNER_TYPE_ATTR, "user");
-                        } else if (entity instanceof Acl.Group) {
-                            attributes.put(OWNER_ATTR, ((Acl.Group) entity).getEmail());
+                        } else if (entity instanceof final Acl.Group aclGroup) {
+                            attributes.put(OWNER_ATTR, aclGroup.getEmail());
                             attributes.put(OWNER_TYPE_ATTR, "group");
-                        } else if (entity instanceof Acl.Domain) {
-                            attributes.put(OWNER_ATTR, ((Acl.Domain) entity).getDomain());
+                        } else if (entity instanceof final Acl.Domain aclDomain) {
+                            attributes.put(OWNER_ATTR, aclDomain.getDomain());
                             attributes.put(OWNER_TYPE_ATTR, "domain");
-                        } else if (entity instanceof Acl.Project) {
-                            attributes.put(OWNER_ATTR, ((Acl.Project) entity).getProjectId());
+                        } else if (entity instanceof final Acl.Project aclProject) {
+                            attributes.put(OWNER_ATTR, aclProject.getProjectId());
                             attributes.put(OWNER_TYPE_ATTR, "project");
                         }
                     }

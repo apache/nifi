@@ -171,7 +171,7 @@ public class FetchSmb extends AbstractProcessor {
     }
 
     private String getErrorCode(final Exception exception) {
-        return Optional.ofNullable(exception instanceof SmbException ? (SmbException) exception : null)
+        return Optional.ofNullable(exception instanceof final SmbException smbException ? smbException : null)
                 .map(SmbException::getErrorCode)
                 .map(String::valueOf)
                 .orElse(UNCATEGORIZED_ERROR);

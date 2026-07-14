@@ -483,14 +483,14 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     void testQueryBuilder(final String queryClause, final Integer size, final String aggs, final String sort,
                           final String fields, final String scriptFields, final String expectedQuery) throws Exception {
         final TestRunner runner = createRunner(false);
-        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
+        if (runner.getProcessor() instanceof final ConsumeElasticsearch consumeElasticsearch) {
             // test Range Field and initial value defined
             runner.setProperty(ConsumeElasticsearch.RANGE_FIELD, RANGE_FIELD_NAME);
             runner.setProperty(ConsumeElasticsearch.RANGE_INITIAL_VALUE, RANGE_FIELD_VALUE);
 
             // as onScheduled won't run (the processor will not actually br triggered), set these fields directly
-            ((ConsumeElasticsearch) runner.getProcessor()).trackingRangeField = RANGE_FIELD_NAME;
-            ((ConsumeElasticsearch) runner.getProcessor()).trackingSortOrder = RANGE_SORT_ORDER;
+            consumeElasticsearch.trackingRangeField = RANGE_FIELD_NAME;
+            consumeElasticsearch.trackingSortOrder = RANGE_SORT_ORDER;
         } else {
             runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         }

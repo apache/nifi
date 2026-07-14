@@ -190,6 +190,49 @@ public class TestLoadBalanceSession {
     }
 
     @Test
+    @Timeout(30)
+    public void testSessionCancelLeavesChannelOpenSoReusedStreamRepeatsVersionByte() throws InterruptedException, IOException {
+        final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
+        socketChannel.configureBlocking(false);
+        final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
+
+        final RegisteredPartition partition1 = new RegisteredPartition("unit-test-connection", () -> false,
+            () -> new MockFlowFileRecord(5), NOP_FAILURE_CALLBACK, (ff, nodeId) -> { }, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+        final FlowFileContentAccess contentAccess = ff -> new ByteArrayInputStream("hello".getBytes());
+
+        final LoadBalanceSession session1 = new LoadBalanceSession(partition1, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
+            new SimpleLimitThreshold(100, 10_000_000));
+
+        // Advance session1 until it has written its opening protocol-version byte.
+        while (received.size() < 1) {
+            session1.communicate();
+            Thread.sleep(10L);
+        }
+
+        // A LoadBalanceSession cancel neither closes the channel nor sends ABORT_TRANSACTION; closing a channel whose
+        // transaction was abandoned is the caller's responsibility (NioAsyncLoadBalanceClient#unregister).
+        assertTrue(session1.cancel());
+        assertTrue(socketChannel.isOpen());
+
+        // If the same channel is reused for the next transaction, it again writes protocol-version byte 1.
+        final LoadBalanceSession session2 = new LoadBalanceSession(partition1, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
+            new SimpleLimitThreshold(100, 10_000_000));
+        while (session2.communicate()) {
+        }
+
+        // Two protocol-version bytes then sit back-to-back on the stream: the abandoned transaction's, then the reused
+        // channel's. The second lands where the peer expects a continuation of the first transaction (the desync).
+        while (received.size() < 2) {
+            Thread.sleep(10L);
+        }
+        final byte[] sent = received.toByteArray();
+        assertEquals(1, sent[0]);
+        assertEquals(1, sent[1]);
+
+        socketChannel.close();
+    }
+
+    @Test
     @Timeout(10)
     public void testLargeContent() throws InterruptedException, IOException {
         final byte[] content = new byte[66000];

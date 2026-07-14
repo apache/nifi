@@ -358,7 +358,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     try {
                         final FileStatus fileStatus = hdfs.getFileStatus(dirPath);
                         if (!fileStatus.isDirectory()) {
-                            throw new IOException(dirPath.toString() + " already exists and is not a directory");
+                            throw new IOException(dirPath + " already exists and is not a directory");
                         }
                         if (fileStatus.hasAcl()) {
                             checkAclStatus(getAclStatus(dirPath));
@@ -366,7 +366,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     } catch (FileNotFoundException fe) {
                         targetDirCreated = hdfs.mkdirs(dirPath);
                         if (!targetDirCreated) {
-                            throw new IOException(dirPath.toString() + " could not be created");
+                            throw new IOException(dirPath + " could not be created");
                         }
                         final FileStatus fileStatus = hdfs.getFileStatus(dirPath);
                         if (fileStatus.hasAcl()) {

@@ -47,14 +47,14 @@ public class RecordFieldConverter {
             final Object field = record.getValue(fieldName);
             if (field == null) {
                 bytes = null;
-            } else if (field instanceof Record) {
-                bytes = toBytes((Record) field, writerFactory);
-            } else if (field instanceof Byte[]) {
-                bytes = toBytes((Byte[]) field);
-            } else if (field instanceof Object[]) {
-                bytes = toBytes((Object[]) field);
-            } else if (field instanceof String) {
-                bytes = toBytes((String) field);
+            } else if (field instanceof final Record recordObj) {
+                bytes = toBytes(recordObj, writerFactory);
+            } else if (field instanceof final Byte[] bytesArray) {
+                bytes = toBytes(bytesArray);
+            } else if (field instanceof final Object[] objects) {
+                bytes = toBytes(objects);
+            } else if (field instanceof final String string) {
+                bytes = toBytes(string);
             } else {
                 throw new MalformedRecordException(String.format("Failed to convert [%s] record data to byte array", fieldName));
             }

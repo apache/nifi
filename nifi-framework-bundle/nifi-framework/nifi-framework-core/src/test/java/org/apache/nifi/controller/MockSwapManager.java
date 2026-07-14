@@ -83,7 +83,7 @@ public class MockSwapManager implements FlowFileSwapManager {
             throw ioe;
         }
 
-        final String location = UUID.randomUUID().toString() + "." + partitionName;
+        final String location = UUID.randomUUID() + "." + partitionName;
         swappedOut.put(location, new ArrayList<>(flowFiles));
         return location;
     }
@@ -108,8 +108,8 @@ public class MockSwapManager implements FlowFileSwapManager {
             if (failSwapInFailure instanceof RuntimeException) {
                 throw (RuntimeException) failSwapInFailure;
             }
-            if (failSwapInFailure instanceof Error) {
-                throw (Error) failSwapInFailure;
+            if (failSwapInFailure instanceof final Error error) {
+                throw error;
             }
 
             throw new RuntimeException(failSwapInFailure);

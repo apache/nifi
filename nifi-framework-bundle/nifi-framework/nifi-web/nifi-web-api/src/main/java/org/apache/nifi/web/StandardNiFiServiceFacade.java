@@ -111,7 +111,7 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.serialization.VersionedReportingTaskImportResult;
@@ -1126,12 +1126,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private boolean isVerificationSupported(final ComponentNode componentNode) {
-        if (componentNode instanceof ProcessorNode) {
-            return ((ProcessorNode) componentNode).getProcessor() instanceof VerifiableProcessor;
-        } else if (componentNode instanceof ControllerServiceNode) {
-            return ((ControllerServiceNode) componentNode).getControllerServiceImplementation() instanceof VerifiableControllerService;
-        } else if (componentNode instanceof ReportingTaskNode) {
-            return ((ReportingTaskNode) componentNode).getReportingTask() instanceof VerifiableReportingTask;
+        if (componentNode instanceof final ProcessorNode processorNode) {
+            return processorNode.getProcessor() instanceof VerifiableProcessor;
+        } else if (componentNode instanceof final ControllerServiceNode controllerServiceNode) {
+            return controllerServiceNode.getControllerServiceImplementation() instanceof VerifiableControllerService;
+        } else if (componentNode instanceof final ReportingTaskNode reportingTaskNode) {
+            return reportingTaskNode.getReportingTask() instanceof VerifiableReportingTask;
         } else if (componentNode instanceof FlowRegistryClientNode) {
             return componentNode.getComponent() instanceof VerifiableFlowRegistryClient;
         } else {
@@ -1823,20 +1823,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final AffectedComponentEntity referencingComponentEntity = dtoFactory.createAffectedComponentEntity(referencingComponent, revisionManager);
                 affectedParameterDtos.forEach(dto -> dto.getReferencingComponents().add(referencingComponentEntity));
 
-                if (referencingComponent instanceof ControllerServiceNode) {
-                    addReferencingComponents((ControllerServiceNode) referencingComponent, affectedComponents, affectedParameterDtos, includeInactive);
+                if (referencingComponent instanceof final ControllerServiceNode controllerServiceNode) {
+                    addReferencingComponents(controllerServiceNode, affectedComponents, affectedParameterDtos, includeInactive);
                 }
             }
         }
     }
 
     private boolean isActive(final ComponentNode componentNode) {
-        if (componentNode instanceof ControllerServiceNode) {
-            return ((ControllerServiceNode) componentNode).isActive();
+        if (componentNode instanceof final ControllerServiceNode controllerServiceNode) {
+            return controllerServiceNode.isActive();
         }
 
-        if (componentNode instanceof ProcessorNode) {
-            return ((ProcessorNode) componentNode).isRunning();
+        if (componentNode instanceof final ProcessorNode processorNode) {
+            return processorNode.isRunning();
         }
 
         return false;
@@ -2793,8 +2793,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // if this represents an authorizable whose policy permissions are enforced through the base resource,
             // get the underlying base authorizable for the component reference
-            if (componentAuthorizable instanceof EnforcePolicyPermissionsThroughBaseResource) {
-                componentAuthorizable = ((EnforcePolicyPermissionsThroughBaseResource) componentAuthorizable).getBaseAuthorizable();
+            if (componentAuthorizable instanceof final EnforcePolicyPermissionsThroughBaseResource enforcePolicyPermissionsThroughBaseResource) {
+                componentAuthorizable = enforcePolicyPermissionsThroughBaseResource.getBaseAuthorizable();
             }
 
             final ComponentReferenceDTO componentReference = dtoFactory.createComponentReferenceDto(componentAuthorizable);
@@ -7094,7 +7094,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         dto.setState(connectable.getScheduledState().name());
         dto.setName(connectable.getName());
 
-        final String groupId = connectable instanceof RemoteGroupPort ? ((RemoteGroupPort) connectable).getRemoteProcessGroup().getIdentifier() : connectable.getProcessGroupIdentifier();
+        final String groupId = connectable instanceof final RemoteGroupPort remoteGroupPort ? remoteGroupPort.getRemoteProcessGroup().getIdentifier() : connectable.getProcessGroupIdentifier();
         dto.setProcessGroupId(groupId);
 
         entity.setComponent(dto);
@@ -7691,7 +7691,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
         final String rootPGId = StringUtils.isEmpty(rootPGStatus.getId()) ? "" : rootPGStatus.getId();
         final String rootPGName = StringUtils.isEmpty(rootPGStatus.getName()) ? "" : rootPGStatus.getName();
-        final FlowFileEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
+        final ProcessSessionEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesRead(), "TOTAL_BYTES_READ",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesWritten(), "TOTAL_BYTES_WRITTEN",

@@ -50,8 +50,8 @@ final class CounterStatisticsResultProcessor implements QueryResultProcessor<Lis
         final StatusSnapshot processorStatusSnapshot = processorSnapshotsByTime.get(counterCreatedAt);
         final MetricDescriptor<ProcessorStatus> metricDescriptor = getMetricDescriptor(counterName);
 
-        if (processorStatusSnapshot instanceof StandardStatusSnapshot) {
-            ((StandardStatusSnapshot) processorStatusSnapshot).addStatusMetric(metricDescriptor, counterValue);
+        if (processorStatusSnapshot instanceof final StandardStatusSnapshot standardStatusSnapshot) {
+            standardStatusSnapshot.addStatusMetric(metricDescriptor, counterValue);
         } else {
             LOGGER.warn("The snapshot is not an instance of StandardStatusSnapshot");
         }

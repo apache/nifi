@@ -38,7 +38,7 @@ public class TestCompoundUpdateMonitor {
         final DigestUpdateMonitor updateMonitor = new DigestUpdateMonitor();
         final CompoundUpdateMonitor compound = new CompoundUpdateMonitor(lastModified, updateMonitor);
 
-        final File file = new File("target/" + UUID.randomUUID().toString());
+        final File file = new File("target/" + UUID.randomUUID());
         if (file.exists()) {
             assertTrue(file.delete());
         }

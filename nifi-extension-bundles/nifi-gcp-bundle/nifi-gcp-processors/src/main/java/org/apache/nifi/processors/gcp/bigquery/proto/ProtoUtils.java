@@ -47,10 +47,10 @@ public class ProtoUtils {
                 case MESSAGE:
                     if (field.isRepeated()) {
                         final Collection<Map<String, Object>> valueMaps;
-                        if (value instanceof Object[] arrayValue) {
+                        if (value instanceof final Object[] arrayValue) {
                             valueMaps = Arrays.stream(arrayValue)
                                     .map(item -> (Map<String, Object>) item).toList();
-                        } else if (value instanceof Map<?, ?> mapValue) {
+                        } else if (value instanceof final Map<?, ?> mapValue) {
                             valueMaps = mapValue.entrySet().stream()
                                     .map(entry -> Map.of(
                                             "key", entry.getKey(),
@@ -69,8 +69,8 @@ public class ProtoUtils {
                 case INT64:
                     // Integer in the bigquery table schema maps back to INT64 which is considered to be Long on Java side:
                     // https://developers.google.com/protocol-buffers/docs/proto3
-                    if (value instanceof Integer) {
-                        value = Long.valueOf((Integer) value);
+                    if (value instanceof final Integer intObj) {
+                        value = Long.valueOf(intObj);
                     }
 
                     setField(value, field, builder);
@@ -87,10 +87,10 @@ public class ProtoUtils {
                 // matches NUMERIC and BIGNUMERIC types in BigQuery
                 // BQTableSchemaToProtoDescriptor.class
                 case BYTES:
-                    if (value instanceof Integer) {
-                        value = new BigDecimal((int) value);
-                    } else if (value instanceof Long) {
-                        value = new BigDecimal((long) value);
+                    if (value instanceof final Integer intObj) {
+                        value = new BigDecimal(intObj);
+                    } else if (value instanceof final Long longObj) {
+                        value = new BigDecimal(longObj);
                     } else if (value instanceof Float || value instanceof Double) {
                         value = new BigDecimal(value.toString());
                     }

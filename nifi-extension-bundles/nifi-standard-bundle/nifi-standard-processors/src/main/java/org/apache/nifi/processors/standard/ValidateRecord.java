@@ -393,7 +393,7 @@ public class ValidateRecord extends AbstractProcessor {
                     final StringBuilder errorBuilder = new StringBuilder();
                     errorBuilder.append("Records in this FlowFile were invalid for the following reasons: ");
                     if (!missingFields.isEmpty()) {
-                        errorBuilder.append("The following ").append(missingFields.size()).append(" fields were missing: ").append(missingFields.toString());
+                        errorBuilder.append("The following ").append(missingFields.size()).append(" fields were missing: ").append(missingFields);
                     }
 
                     if (!extraFields.isEmpty()) {
@@ -402,7 +402,7 @@ public class ValidateRecord extends AbstractProcessor {
                         }
 
                         errorBuilder.append("The following ").append(extraFields.size())
-                            .append(" fields were present in the Record but not in the schema: ").append(extraFields.toString());
+                            .append(" fields were present in the Record but not in the schema: ").append(extraFields);
                     }
 
                     if (!invalidFields.isEmpty()) {
@@ -411,7 +411,7 @@ public class ValidateRecord extends AbstractProcessor {
                         }
 
                         errorBuilder.append("The following ").append(invalidFields.size())
-                            .append(" fields had values whose type did not match the schema: ").append(invalidFields.toString());
+                            .append(" fields had values whose type did not match the schema: ").append(invalidFields);
                     }
 
                     if (!otherProblems.isEmpty()) {
@@ -420,7 +420,7 @@ public class ValidateRecord extends AbstractProcessor {
                         }
 
                         errorBuilder.append("The following ").append(otherProblems.size())
-                            .append(" additional problems were encountered: ").append(otherProblems.toString());
+                            .append(" additional problems were encountered: ").append(otherProblems);
                     }
 
                     final String validationErrorString = errorBuilder.toString();
@@ -451,8 +451,8 @@ public class ValidateRecord extends AbstractProcessor {
 
     private void writeRecord(final RecordSetWriter writer, final Record record) throws IOException {
         if (writer != null) {
-            if (writer instanceof RawRecordWriter) {
-                ((RawRecordWriter) writer).writeRawRecord(record);
+            if (writer instanceof final RawRecordWriter rawRecordWriter) {
+                rawRecordWriter.writeRawRecord(record);
             } else {
                 writer.write(record);
             }

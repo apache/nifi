@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.tasks;
 
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.ConnectionUtils;
 import org.apache.nifi.connectable.ConnectionUtils.FlowFileCloneResult;
@@ -24,9 +25,9 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Triggerable;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -34,7 +35,7 @@ import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNode;
@@ -566,7 +567,7 @@ public class StatelessFlowTask {
     }
 
     void updateEventRepository(final List<Invocation> invocations) {
-        final Map<String, StandardFlowFileEvent> eventsByComponentId = new HashMap<>();
+        final Map<String, ProcessSessionEventBuilder> eventsByComponentId = new HashMap<>();
 
         for (final Invocation invocation : invocations) {
             final List<PolledFlowFile> polledFlowFiles = invocation.getPolledFlowFiles();
@@ -574,14 +575,14 @@ public class StatelessFlowTask {
                 final long bytes = polledFlowFile.getInputFlowFile().getSize();
 
                 final int numOutputConnections = polledFlowFile.getInputPort().getConnections().size();
-                final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
-                flowFileEvent.setFlowFilesIn(1);
-                flowFileEvent.setFlowFilesOut(numOutputConnections);
-                flowFileEvent.setContentSizeIn(bytes);
-                flowFileEvent.setContentSizeOut(numOutputConnections * bytes);
 
-                final StandardFlowFileEvent cumulativeEvent = eventsByComponentId.computeIfAbsent(polledFlowFile.getInputPort().getIdentifier(), key -> new StandardFlowFileEvent());
-                cumulativeEvent.add(flowFileEvent);
+                final Port inputPort = polledFlowFile.getInputPort();
+                final ProcessSessionEventBuilder cumulativeEvent = eventsByComponentId.computeIfAbsent(
+                        inputPort.getIdentifier(), id -> ProcessSessionEventBuilder.forComponent(createMetricContext(inputPort)));
+                cumulativeEvent.addFlowFilesIn(1)
+                        .addFlowFilesOut(numOutputConnections)
+                        .addContentSizeIn(bytes)
+                        .addContentSizeOut(numOutputConnections * bytes);
             }
 
             final Map<String, List<FlowFile>> outputFlowFiles = invocation.getTriggerResult().getOutputFlowFiles();
@@ -598,27 +599,29 @@ public class StatelessFlowTask {
                 final Port port = outputPorts.get(portName);
                 final int outputConnectionCount = port.getConnections().size();
 
-                final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
-                flowFileEvent.setFlowFilesIn(flowFileCount);
-                flowFileEvent.setFlowFilesOut(flowFileCount * outputConnectionCount);
-                flowFileEvent.setContentSizeIn(byteCount);
-                flowFileEvent.setContentSizeOut(byteCount * outputConnectionCount);
-
-                final StandardFlowFileEvent cumulativeEvent = eventsByComponentId.computeIfAbsent(port.getIdentifier(), key -> new StandardFlowFileEvent());
-                cumulativeEvent.add(flowFileEvent);
+                final ProcessSessionEventBuilder cumulativeEvent = eventsByComponentId.computeIfAbsent(
+                        port.getIdentifier(), id -> ProcessSessionEventBuilder.forComponent(createMetricContext(port)));
+                cumulativeEvent.addFlowFilesIn(flowFileCount)
+                        .addFlowFilesOut(flowFileCount * outputConnectionCount)
+                        .addContentSizeIn(byteCount)
+                        .addContentSizeOut(byteCount * outputConnectionCount);
             }
         }
 
-        for (final Map.Entry<String, StandardFlowFileEvent> entry : eventsByComponentId.entrySet()) {
-            final String componentId = entry.getKey();
-            final FlowFileEvent event = entry.getValue();
-
+        for (final ProcessSessionEventBuilder eventBuilder : eventsByComponentId.values()) {
             try {
-                flowFileEventRepository.updateRepository(event, componentId);
+                flowFileEventRepository.updateRepository(eventBuilder.build());
             } catch (final Exception e) {
                 logger.warn("Failed to update FlowFile Event Repository", e);
             }
         }
+    }
+
+    private static ComponentMetricContext createMetricContext(final Connectable connectable) {
+        final ProcessGroup processGroup = connectable.getProcessGroup();
+        final Map<String, String> groupAttributes = processGroup == null ? Map.of() : processGroup.getLoggingAttributes();
+        return new ComponentMetricContext(
+                connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
     }
 
 

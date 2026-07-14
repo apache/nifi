@@ -239,8 +239,8 @@ public interface Authorizable {
                 final AuthorizationResult failure = AuthorizationResult.denied("No applicable policies could be found.");
 
                 // audit authorization request
-                if (authorizer instanceof AuthorizationAuditor) {
-                    ((AuthorizationAuditor) authorizer).auditAccessAttempt(request, failure);
+                if (authorizer instanceof final AuthorizationAuditor authorizationAuditor) {
+                    authorizationAuditor.auditAccessAttempt(request, failure);
                 }
 
                 // denied

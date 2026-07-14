@@ -45,10 +45,8 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
         for (final Map.Entry<NodeIdentifier, EntityType> entry : entityMap.entrySet()) {
             final EntityType entity = entry.getValue();
             PermissionsDtoMerger.mergePermissions(clientEntity.getPermissions(), entity.getPermissions());
-            if (clientEntity instanceof OperationPermissible && entity instanceof  OperationPermissible) {
-                PermissionsDtoMerger.mergePermissions(
-                        ((OperationPermissible) clientEntity).getOperatePermissions(),
-                        ((OperationPermissible) entity).getOperatePermissions());
+            if (clientEntity instanceof final OperationPermissible clientOperationPermissible && entity instanceof final OperationPermissible entityOperationPermissible) {
+                PermissionsDtoMerger.mergePermissions(clientOperationPermissible.getOperatePermissions(), entityOperationPermissible.getOperatePermissions());
             }
         }
 

@@ -133,8 +133,8 @@ public class C2HeartbeatFactory {
     private Set<SupportedOperation> getSupportedOperations(RuntimeManifest manifest) {
         Set<SupportedOperation> supportedOperations;
         // supported operations has value only in case of minifi, therefore we return empty collection if
-        if (manifest instanceof AgentManifest) {
-            supportedOperations = ((AgentManifest) manifest).getSupportedOperations();
+        if (manifest instanceof final AgentManifest agentManifest) {
+            supportedOperations = agentManifest.getSupportedOperations();
         } else {
             supportedOperations = Collections.emptySet();
         }

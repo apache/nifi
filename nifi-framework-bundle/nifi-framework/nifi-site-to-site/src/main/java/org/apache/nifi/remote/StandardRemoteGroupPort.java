@@ -238,14 +238,14 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             throw new ProcessException(e);
         } catch (final UnreachableClusterException e) {
             context.yield();
-            final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
+            final String message = String.format("%s failed to communicate with %s due to %s", this, url, e);
             logger.error(message);
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             throw new ProcessException(e);
         } catch (final IOException e) {
             // we do not yield here because the 'peer' will be penalized, and we won't communicate with that particular nifi instance
             // for a while due to penalization, but we can continue to talk to other nifi instances
-            final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
+            final String message = String.format("%s failed to communicate with %s due to %s", this, url, e);
             logger.error(message);
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
@@ -273,7 +273,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
             session.commitAsync();
         } catch (final Throwable t) {
-            final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, t.toString());
+            final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, t);
 
             // If Exception is a TransmissionDisabledException, it's because the user explicitly terminated the connection in the middle.
             // No need to log errors for this, just debug log and move on. Otherwise, log the error.
@@ -505,7 +505,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             .findFirst();
 
         if (resultOption.isPresent()) {
-            throw new IllegalStateException("Remote Process Group is not valid: " + resultOption.get().toString());
+            throw new IllegalStateException("Remote Process Group is not valid: " + resultOption.get());
         }
     }
 

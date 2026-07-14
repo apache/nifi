@@ -338,8 +338,8 @@ public class DataTypeUtils {
 
         DataType subType;
         while ((subType = possibleSubTypes.poll()) != null) {
-            if (subType instanceof ChoiceDataType) {
-                possibleSubTypes.addAll(((ChoiceDataType) subType).getPossibleSubTypes());
+            if (subType instanceof final ChoiceDataType choiceDataType) {
+                possibleSubTypes.addAll(choiceDataType.getPossibleSubTypes());
             } else {
                 if (isCompatibleDataType(value, subType)) {
                     compatibleSimpleSubTypes.add(subType);
@@ -363,8 +363,8 @@ public class DataTypeUtils {
     }
 
     public static <T> Optional<T> findMostSuitableType(Object value, List<T> types, Function<T, DataType> dataTypeMapper) {
-        if (value instanceof String) {
-            return findMostSuitableTypeByStringValue((String) value, types, dataTypeMapper);
+        if (value instanceof final String string) {
+            return findMostSuitableTypeByStringValue(string, types, dataTypeMapper);
         } else {
             DataType inferredDataType = inferDataType(value, null);
 
@@ -528,7 +528,7 @@ public class DataTypeUtils {
         }
 
         final List<RecordField> inferredFieldTypes = new ArrayList<>();
-        if (value instanceof Map<?, ?> map) {
+        if (value instanceof final Map<?, ?> map) {
             final Map<String, Object> coercedValues = new LinkedHashMap<>();
 
             for (final Map.Entry<?, ?> entry : map.entrySet()) {
@@ -655,7 +655,7 @@ public class DataTypeUtils {
             return RecordFieldType.ARRAY.getArrayDataType(mergedDataType);
         }
 
-        if (value instanceof Iterable<?> iterable) {
+        if (value instanceof final Iterable<?> iterable) {
 
             DataType mergedDataType = null;
             for (final Object arrayValue : iterable) {
@@ -710,8 +710,8 @@ public class DataTypeUtils {
         }
 
         if (strict) {
-            if (value instanceof Record) {
-                if (!schema.getFieldNames().containsAll(((Record) value).getRawFieldNames())) {
+            if (value instanceof final Record recordObj) {
+                if (!schema.getFieldNames().containsAll(recordObj.getRawFieldNames())) {
                     return false;
                 }
             }
@@ -1161,9 +1161,9 @@ public class DataTypeUtils {
             return true;
         }
 
-        if (value instanceof String) {
+        if (value instanceof final String string) {
             if (format == null) {
-                return isInteger((String) value);
+                return isInteger(string);
             }
 
             try {
@@ -1588,7 +1588,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isCharacterTypeCompatible(final Object value) {
-        return (value instanceof Character || (value instanceof CharSequence && !((CharSequence) value).isEmpty()));
+        return (value instanceof Character || (value instanceof final CharSequence charSequence && !charSequence.isEmpty()));
     }
 
     public static RecordSchema merge(final RecordSchema thisSchema, final RecordSchema otherSchema) {

@@ -22,10 +22,11 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -237,7 +238,7 @@ public class StatelessProcessSession extends StandardProcessSession {
             return false;
         }
 
-        if (connectable instanceof Port && ((Port) connectable).getPortFunction() == PortFunction.FAILURE) {
+        if (connectable instanceof final Port port && port.getPortFunction() == PortFunction.FAILURE) {
             return true;
         }
 
@@ -346,10 +347,12 @@ public class StatelessProcessSession extends StandardProcessSession {
 
     private void registerProcessEvent(final Connectable connectable, final long processingNanos) {
         try {
-            final StandardFlowFileEvent procEvent = new StandardFlowFileEvent();
-            procEvent.setProcessingNanos(processingNanos);
-            procEvent.setInvocations(1);
-            getRepositoryContext().getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
+            final ProcessSessionEvent procEvent = ProcessSessionEventBuilder.forComponent(getRepositoryContext().getComponentMetricContext())
+                    .invocations(1)
+                    .processingNanoseconds(processingNanos)
+                    .build();
+            getRepositoryContext().getFlowFileEventRepository().updateRepository(procEvent);
+            getRepositoryContext().recordProcessSessionEvent(procEvent);
         } catch (final IOException e) {
             logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate.", connectable.getRunnableComponent(), e);
         }

@@ -327,7 +327,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
                             + "ReportingTask and will attempt to schedule it again after {}",
-                            reportingTask, e.toString(), administrativeYieldDuration, e);
+                            reportingTask, e, administrativeYieldDuration, e);
 
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), reportingTask.getIdentifier())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
@@ -778,7 +778,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
-            final StateManager stateManager = (connectable instanceof ProcessorNode) ? getStateManager((ProcessorNode) connectable) : getStateManager(connectable.getIdentifier());
+            final StateManager stateManager = (connectable instanceof final ProcessorNode processorNode) ? getStateManager(processorNode) : getStateManager(connectable.getIdentifier());
             final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, stateManager);
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
@@ -863,8 +863,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     private String getComponentId(final Object scheduled) {
-        if (scheduled instanceof ComponentAuthorizable) {
-            return ((ComponentAuthorizable) scheduled).getIdentifier();
+        if (scheduled instanceof final ComponentAuthorizable componentAuthorizable) {
+            return componentAuthorizable.getIdentifier();
         }
 
         return null;

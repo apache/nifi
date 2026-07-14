@@ -269,7 +269,7 @@ public class GrokRecordReader implements RecordReader {
 
         // If string is empty then return an empty string if field type is STRING. If field type is
         // anything else, we can't really convert it so return null
-        final boolean fieldEmpty = rawValue instanceof String && ((String) rawValue).isEmpty();
+        final boolean fieldEmpty = rawValue instanceof final String string && string.isEmpty();
         if (fieldEmpty && fieldType.getFieldType() != RecordFieldType.STRING) {
             return null;
         }

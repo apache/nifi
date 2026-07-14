@@ -34,6 +34,9 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
 
     public static final int REDIS_PORT = 6379;
 
+    // Single source of the Redis image used across the bundle's integration tests.
+    public static final String DEFAULT_IMAGE_NAME = "redis:8.8-alpine";
+
     public RedisContainer(@NonNull DockerImageName dockerImageName) {
         super(dockerImageName);
     }

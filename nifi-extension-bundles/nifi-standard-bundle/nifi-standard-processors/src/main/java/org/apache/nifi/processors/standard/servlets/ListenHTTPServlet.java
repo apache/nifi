@@ -276,8 +276,8 @@ public class ListenHTTPServlet extends HttpServlet {
                                  final ProcessSession session, final String foundSubject, final String foundIssuer, final Throwable t) throws IOException {
         session.rollback();
         logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] IssuerDN [{}] due to {}", request.getRemoteHost(), foundSubject, foundIssuer, t);
-        if (t instanceof ListenHttpException) {
-            final int returnCode = ((ListenHttpException) t).getReturnCode();
+        if (t instanceof final ListenHttpException listenHttpException) {
+            final int returnCode = listenHttpException.getReturnCode();
             response.sendError(returnCode, t.toString());
         } else {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());

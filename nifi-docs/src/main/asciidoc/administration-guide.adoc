@@ -2732,7 +2732,12 @@ X-ProxyPort - the port the proxy is listening on
 X-ProxyContextPath - the path configured to map to the NiFi instance
 ....
 
-* If NiFi is running securely, any proxy needs to be authorized to proxy user requests. These can be configured in the NiFi UI through the Global Menu. Once these permissions are in place, proxies
+* NiFi expects a single host or host and port combination in `X-ProxyHost` or `X-Forwarded-Host` header values. When routing requests through multiple servers, some proxy servers append to existing
+values, producing a comma-separated string composed of multiple hosts. NiFi rejects comma-separated values with an `HTTP 421` status. Reverse proxy servers must be configured to disable appending to
+existing values, or unset input values before forwarding requests. Servers such as Apache HTTP link:https://httpd.apache.org/docs/2.4/mod/mod_proxy.html[mod_proxy] should set `ProxyAddHeaders` to
+`Off` to avoid producing invalid comma-separated values.
+
+* When running with HTTPS enabled, all proxy servers must be authorized to proxy user requests. These can be configured in the NiFi UI through the Global Menu. Once these permissions are in place, proxies
 can begin proxying user requests. The end user identity must be relayed in a HTTP header. For example, if the end user sent a request to the proxy, the proxy must authenticate the user. Following
 this the proxy can send the request to NiFi. In this request an HTTP header should be added as follows.
 
@@ -2886,7 +2891,7 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.flow.configuration.archive.max.count`*|The number of archive files allowed. NiFi will delete the oldest archive files so that only N latest archives can be kept, if this property is specified.
 |`nifi.flowcontroller.autoResumeState`|Indicates whether -upon restart- the components on the NiFi graph should return to their last state. When running in cluster, all nodes should have the same value. The default value is `true`.
 |`nifi.flowcontroller.graceful.shutdown.period`|Indicates the shutdown period. The default value is `10 secs`.
-|`nifi.flowcontroller.registry.sync.interval`|Specifies the recurring interval at which NiFi synchronizes the flow configuration with Flow Registry Clients. The default value is `30 min`.
+|`nifi.flowcontroller.registry.sync.interval`|Specifies the default recurring interval at which NiFi synchronizes the flow configuration with Flow Registry Clients. The default value is `30 min`. This value is used for any Flow Registry Client that does not configure its own `Synchronization Interval` property; a Flow Registry Client that sets that property is synchronized at its own interval instead.
 |`nifi.flowservice.writedelay.interval`|When many changes are made to the _flow.json_, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
 |`nifi.administrative.yield.duration`|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is `30 secs`.
 |`nifi.bored.yield.duration`|When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is `10 ms`.

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.couchbase.integration;
 
+import com.couchbase.client.java.Cluster;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService;
 import org.apache.nifi.util.TestRunner;
@@ -23,6 +24,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
+
+import java.time.Duration;
 
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.CONNECTION_STRING;
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.PASSWORD;
@@ -59,6 +62,9 @@ public class AbstractCouchbaseIT {
     @BeforeAll
     public static void start() {
         container.start();
+        try (Cluster cluster = Cluster.connect(container.getConnectionString(), container.getUsername(), container.getPassword())) {
+            cluster.bucket(TEST_BUCKET_NAME).waitUntilReady(Duration.ofSeconds(60));
+        }
     }
 
     @AfterAll
