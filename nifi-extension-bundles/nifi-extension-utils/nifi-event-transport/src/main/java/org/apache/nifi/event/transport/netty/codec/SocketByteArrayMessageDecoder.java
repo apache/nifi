@@ -62,8 +62,8 @@ public class SocketByteArrayMessageDecoder extends MessageToMessageDecoder<byte[
         SslHandler sslHandler = null;
         for (final Map.Entry<String, ChannelHandler> entry : channelHandlerContext.channel().pipeline()) {
             final ChannelHandler channelHandler = entry.getValue();
-            if (channelHandler instanceof SslHandler) {
-                sslHandler = (SslHandler) channelHandler;
+            if (channelHandler instanceof final SslHandler sslHandlerInstance) {
+                sslHandler = sslHandlerInstance;
                 break;
             }
         }

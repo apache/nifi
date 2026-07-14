@@ -253,11 +253,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                         } else if (protocol.isPortInvalid()) {
                             peerSelector.penalize(peer, penalizationMillis);
                             cleanup(protocol, peer);
-                            throw new PortNotRunningException(peer.toString() + " indicates that port " + portId + " is not running");
+                            throw new PortNotRunningException(String.format("%s indicates that port %s is not running", peer, portId));
                         } else if (protocol.isPortUnknown()) {
                             peerSelector.penalize(peer, penalizationMillis);
                             cleanup(protocol, peer);
-                            throw new UnknownPortException(peer.toString() + " indicates that port " + portId + " is not known");
+                            throw new UnknownPortException(String.format("%s indicates that port %s is not known", peer, portId));
                         }
 
                         // negotiate the FlowFileCodec to use
@@ -270,7 +270,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                         peerSelector.penalize(peer, penalizationMillis);
                         cleanup(protocol, peer);
 
-                        final String message = String.format("%s failed to communicate with %s due to %s", this, peer == null ? clusterUrl : peer, e.toString());
+                        final String message = String.format("%s failed to communicate with %s due to %s", this, peer == null ? clusterUrl : peer, e);
                         error(logger, eventReporter, message);
                         if (logger.isDebugEnabled()) {
                             logger.error("", e);
@@ -406,7 +406,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         try {
             clientProtocol.shutdown(peer);
         } catch (final IOException e) {
-            final String message = String.format("%s Failed to shutdown protocol when updating list of peers due to %s", this, e.toString());
+            final String message = String.format("%s Failed to shutdown protocol when updating list of peers due to %s", this, e);
             warn(logger, eventReporter, message);
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
@@ -416,7 +416,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         try {
             peer.close();
         } catch (final IOException e) {
-            final String message = String.format("%s Failed to close resources when updating list of peers due to %s", this, e.toString());
+            final String message = String.format("%s Failed to close resources when updating list of peers due to %s", this, e);
             warn(logger, eventReporter, message);
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);

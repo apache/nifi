@@ -183,11 +183,11 @@ public abstract class BaseSchema implements Schema {
                     }
                 }
             }
-        } else if (obj instanceof Map) {
+        } else if (obj instanceof final Map map) {
             Constructor<?> constructor;
             try {
                 constructor = targetClass.getConstructor(Map.class);
-                return (T) constructor.newInstance((Map) obj);
+                return (T) constructor.newInstance(map);
             } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 addValidationIssue(key, wrapperName, "it is found as a map and when attempting to interpret it the following exception was thrown:" + e.getMessage());
             }

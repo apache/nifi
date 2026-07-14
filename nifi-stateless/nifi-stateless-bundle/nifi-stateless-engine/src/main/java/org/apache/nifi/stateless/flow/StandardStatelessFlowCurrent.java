@@ -23,8 +23,9 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.ConnectionUtils;
 import org.apache.nifi.connectable.ConnectionUtils.FlowFileCloneResult;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.repository.metrics.tracking.TrackedStats;
 import org.apache.nifi.controller.scheduling.LifecycleState;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -234,7 +236,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             trigger(connectable, statelessSessionFactory, trackedStats);
         } finally {
             lifecycleState.decrementActiveThreadCount();
-            registerProcessEvent(connectable, 1, trackedStats);
+            registerProcessEvent(connectable, trackedStats);
         }
 
         // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
@@ -297,7 +299,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             return NextConnectable.NEXT_READY;
         } finally {
             lifecycleState.decrementActiveThreadCount();
-            registerProcessEvent(connectable, 1, trackedStats);
+            registerProcessEvent(connectable, trackedStats);
         }
     }
 
@@ -309,11 +311,18 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         connectable.onTrigger(processContext, sessionFactory);
     }
 
-    private void registerProcessEvent(final Connectable connectable, final int invocations, final TrackedStats trackedStats) {
+    private void registerProcessEvent(final Connectable connectable, final TrackedStats trackedStats) {
         try {
-            final StandardFlowFileEvent procEvent = trackedStats.end();
-            procEvent.setInvocations(invocations);
-            repositoryContextFactory.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
+            final Map<String, String> groupAttributes = connectable.getProcessGroup() == null
+                    ? Map.of()
+                    : connectable.getProcessGroup().getLoggingAttributes();
+            final ComponentMetricContext metricContext = new ComponentMetricContext(
+                    connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
+            final ProcessSessionEvent procEvent = trackedStats.end(metricContext)
+                    .invocations(1)
+                    .build();
+            repositoryContextFactory.getFlowFileEventRepository().updateRepository(procEvent);
+            repositoryContextFactory.getComponentMetricReporter().recordProcessSessionEvent(procEvent);
         } catch (final IOException e) {
             logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e, e);
         }

@@ -497,6 +497,7 @@ public class ExtensionBuilder {
         requireNonNull(identifier, "Connector ID");
         requireNonNull(type, "Connector Type");
         requireNonNull(bundleCoordinate, "Bundle Coordinate");
+        requireNonNull(serviceProvider, "Controller Service Provider");
         requireNonNull(extensionManager, "Extension Manager");
         requireNonNull(managedProcessGroup, "Managed Process Group");
 

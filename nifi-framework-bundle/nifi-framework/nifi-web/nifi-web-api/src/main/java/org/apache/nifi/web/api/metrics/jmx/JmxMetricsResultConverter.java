@@ -36,13 +36,13 @@ public class JmxMetricsResultConverter {
                 values.put(String.format(COMPOSITE_DATA_KEY, i), subValues);
             }
             return values;
-        } else if (attributeValue instanceof CompositeData) {
+        } else if (attributeValue instanceof final CompositeData compositeData) {
             final Map<String, Object> values = new LinkedHashMap<>();
-            convertCompositeData(((CompositeData) attributeValue), values);
+            convertCompositeData(compositeData, values);
             return values;
-        } else if (attributeValue instanceof TabularData) {
+        } else if (attributeValue instanceof final TabularData tabularData) {
             final Map<String, Object> values = new LinkedHashMap<>();
-            convertTabularData((TabularData) attributeValue, values);
+            convertTabularData(tabularData, values);
             return values;
         } else {
             return attributeValue;

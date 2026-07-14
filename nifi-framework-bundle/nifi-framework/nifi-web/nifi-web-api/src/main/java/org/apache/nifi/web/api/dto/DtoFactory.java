@@ -409,7 +409,7 @@ public final class DtoFactory {
             purgeDetails.setEndDate(((PurgeDetails) actionDetails).getEndDate());
             return purgeDetails;
         } else {
-            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of action details encountered %s during serialization.", actionDetails.toString())));
+            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of action details encountered %s during serialization.", actionDetails)));
         }
     }
 
@@ -433,7 +433,7 @@ public final class DtoFactory {
             remoteProcessGroupDetails.setUri(((RemoteProcessGroupDetails) componentDetails).getUri());
             return remoteProcessGroupDetails;
         } else {
-            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of component details encountered %s during serialization. ", componentDetails.toString())));
+            throw new WebApplicationException(new IllegalArgumentException(String.format("Unrecognized type of component details encountered %s during serialization. ", componentDetails)));
         }
     }
 
@@ -2916,7 +2916,7 @@ public final class DtoFactory {
         final DifferenceDTO dto = createDifferenceDto(difference);
 
         final Object valueA = difference.getValueA();
-        if (valueA instanceof org.apache.nifi.flow.Bundle registryBundle) {
+        if (valueA instanceof final org.apache.nifi.flow.Bundle registryBundle) {
             final BundleCoordinate registryCoordinate = new BundleCoordinate(
                     registryBundle.getGroup(),
                     registryBundle.getArtifact(),
@@ -3142,10 +3142,10 @@ public final class DtoFactory {
         groupNameDto.setName(componentNode.getProcessGroupIdentifier());
 
         ProcessGroup processGroup = null;
-        if (componentNode instanceof ProcessorNode) {
-            processGroup = ((ProcessorNode) componentNode).getProcessGroup();
-        } else if (componentNode instanceof ControllerServiceNode) {
-            processGroup = ((ControllerServiceNode) componentNode).getProcessGroup();
+        if (componentNode instanceof final ProcessorNode processorNode) {
+            processGroup = processorNode.getProcessGroup();
+        } else if (componentNode instanceof final ControllerServiceNode controllerServiceNode) {
+            processGroup = controllerServiceNode.getProcessGroup();
         }
 
         if (processGroup != null) {

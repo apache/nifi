@@ -405,8 +405,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     private ObjectNode parseSecret(final String secretString) {
         try {
             final JsonNode root = objectMapper.readTree(secretString);
-            if (root instanceof ObjectNode) {
-                return (ObjectNode) root;
+            if (root instanceof final ObjectNode objectNode) {
+                return objectNode;
             }
             return null;
         } catch (final JsonProcessingException e) {

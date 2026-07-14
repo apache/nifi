@@ -68,8 +68,8 @@ public class CommandBuilder {
 
         if (arg instanceof String || arg instanceof Character) {
             return Protocol.STRING_TYPE + StringUtil.escape(arg.toString());
-        } else if (arg instanceof byte[]) {
-            return Protocol.BYTES_TYPE + Protocol.encodeBytes((byte[]) arg);
+        } else if (arg instanceof final byte[] bytes) {
+            return Protocol.BYTES_TYPE + Protocol.encodeBytes(bytes);
         } else if (arg instanceof Long) {
             return Protocol.LONG_TYPE + arg.toString();
         } else if (arg instanceof Double || arg instanceof Float) {
@@ -80,8 +80,8 @@ public class CommandBuilder {
             return Protocol.INTEGER_TYPE + arg.toString();
         } else if (arg == ReflectionEngine.RETURN_VOID) {
             return VOID_ARGUMENT_LINE;
-        } else if (arg instanceof BigDecimal) {
-            return Protocol.DECIMAL_TYPE + ((BigDecimal) arg).toPlainString();
+        } else if (arg instanceof final BigDecimal bigDecimal) {
+            return Protocol.DECIMAL_TYPE + bigDecimal.toPlainString();
         } else if (arg instanceof List) {
             final String listId = bind(arg);
             return Protocol.LIST_TYPE + listId;

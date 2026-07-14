@@ -30,6 +30,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.metrics.ComponentMetricReporter;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
@@ -65,6 +66,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -177,10 +179,10 @@ public class StandardProcessSessionIT {
         resourceClaimManager = new StandardResourceClaimManager();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardProcessSessionIT.class.getResource("/conf/nifi.properties").getFile());
+        componentMetricReporter = mock(ComponentMetricReporter.class);
         flowFileEventRepository = new RingBufferEventRepository(1);
         counterRepository = new StandardCounterRepository();
         provenanceRepo = new MockProvenanceRepository();
-        componentMetricReporter = mock(ComponentMetricReporter.class);
 
         final Connection connection = createConnection();
 
@@ -549,6 +551,25 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testProcessSessionEventRecorded() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.checkpoint();
+
+        flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.commit();
+
+        final ArgumentCaptor<ProcessSessionEvent> eventCaptor = ArgumentCaptor.forClass(ProcessSessionEvent.class);
+        verify(componentMetricReporter, times(2)).recordProcessSessionEvent(eventCaptor.capture());
+
+        final ProcessSessionEvent event = eventCaptor.getValue();
+        assertEquals(2, event.getFlowFilesIn());
+    }
+
+    @Test
     public void testReadCountCorrectWhenSkippingWithReadCallback() throws IOException {
         final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
 
@@ -668,12 +689,12 @@ public class StandardProcessSessionIT {
         session.commit();
 
         final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
-        final FlowFileEvent queueFlowFileEvent = report.getReportEntry("conn-uuid");
+        final ProcessSessionEvent queueFlowFileEvent = report.getReportEntry("conn-uuid");
         assertNotNull(queueFlowFileEvent);
         assertEquals(2, queueFlowFileEvent.getFlowFilesOut());
         assertEquals(0L, queueFlowFileEvent.getContentSizeOut());
 
-        final FlowFileEvent componentFlowFileEvent = report.getReportEntry("connectable-1");
+        final ProcessSessionEvent componentFlowFileEvent = report.getReportEntry("connectable-1");
         final Map<String, Long> counters = componentFlowFileEvent.getCounters();
         assertNotNull(counters);
         assertEquals(1, counters.size());
@@ -2252,7 +2273,7 @@ public class StandardProcessSessionIT {
         session.commit();
 
         RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(start - 1);
-        FlowFileEvent event = report.getReportEntries().values().iterator().next();
+        ProcessSessionEvent event = report.getReportEntries().values().iterator().next();
         assertEquals(0, event.getFlowFilesRemoved());
         assertEquals(0, event.getContentSizeRemoved());
         assertEquals(0, event.getFlowFilesOut());

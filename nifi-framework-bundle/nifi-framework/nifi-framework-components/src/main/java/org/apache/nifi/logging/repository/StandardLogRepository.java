@@ -111,8 +111,8 @@ public class StandardLogRepository implements LogRepository {
     }
 
     private Object simplifyArg(final Object param) {
-        if (param instanceof Throwable) {
-            return ((Throwable) param).getLocalizedMessage();
+        if (param instanceof final Throwable throwable) {
+            return throwable.getLocalizedMessage();
         } else if (param instanceof final FlowFile flowFile) {
             return "FlowFile[filename=" + flowFile.getAttribute(CoreAttributes.FILENAME.key()) + "]";
         }

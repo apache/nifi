@@ -348,8 +348,8 @@ public class EncryptContentPGPTest {
     private PGPLiteralData getLiteralData(final PGPObjectFactory objectFactory) throws PGPException {
         PGPLiteralData literalData = null;
         for (final Object object : objectFactory) {
-            if (object instanceof PGPLiteralData) {
-                literalData = (PGPLiteralData) object;
+            if (object instanceof final PGPLiteralData pgpLiteralData) {
+                literalData = pgpLiteralData;
                 break;
             } else if (object instanceof final PGPCompressedData compressedData) {
                 final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());

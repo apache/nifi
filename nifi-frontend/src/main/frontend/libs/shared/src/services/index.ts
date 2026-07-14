@@ -27,3 +27,4 @@ export * from './connector-configuration.service';
 export * from './active-step.service';
 export * from './connector-message-client.service';
 export * from './upload.service';
+export * from './canvas-bounds.util';

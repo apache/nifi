@@ -54,8 +54,8 @@ public class StandardCertificateAttributeReader implements CertificateAttributeR
             final Object name = subjectAlternativeTypeName.get(NAME_INDEX);
 
             final SubjectAlternativeName subjectAlternativeName;
-            if (name instanceof byte[]) {
-                subjectAlternativeName = new StandardSubjectAlternativeName(generalNameType, (byte[]) name);
+            if (name instanceof final byte[] bytes) {
+                subjectAlternativeName = new StandardSubjectAlternativeName(generalNameType, bytes);
             } else {
                 subjectAlternativeName = new StandardSubjectAlternativeName(generalNameType, name.toString());
             }
@@ -92,8 +92,8 @@ public class StandardCertificateAttributeReader implements CertificateAttributeR
     private int getResolvedNameType(final Object nameType) {
         final int resolvedNameType;
 
-        if (nameType instanceof Integer) {
-            resolvedNameType = (Integer) nameType;
+        if (nameType instanceof final Integer integerObj) {
+            resolvedNameType = integerObj;
         } else {
             resolvedNameType = NAME_TYPE_UNKNOWN;
         }

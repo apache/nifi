@@ -162,6 +162,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
         combinedPropertyDescriptors.add(COMMIT_AUTHOR_SOURCE);
         combinedPropertyDescriptors.add(SSL_CONTEXT_SERVICE);
+        combinedPropertyDescriptors.add(SYNCHRONIZATION_INTERVAL);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();

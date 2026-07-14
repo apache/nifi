@@ -84,13 +84,39 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
     }
 
     @Test
+    void testCreateTableIdentifierLengthExceeded() throws InitializationException {
+        final MockRecordParser recordReader = new MockRecordParser();
+        final String recordReaderId = MockRecordParser.class.getSimpleName();
+
+        // Column Name longer than 128 produces SQLException in default implementation of Statement.enquoteIdentifier()
+        final String columnName = "A".repeat(129);
+
+        recordReader.addSchemaField(new RecordField(columnName, RecordFieldType.INT.getDataType(), false));
+        recordReader.addRecord(1);
+
+        runner.addControllerService(recordReaderId, recordReader);
+        runner.enableControllerService(recordReader);
+
+        runner.setProperty(UpdateDatabaseTable.RECORD_READER, recordReaderId);
+        runner.setProperty(UpdateDatabaseTable.TABLE_NAME, "NEW_TABLE");
+        runner.setProperty(UpdateDatabaseTable.CREATE_TABLE, UpdateDatabaseTable.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, Boolean.TRUE.toString());
+        runner.setProperty(UpdateDatabaseTable.DB_TYPE, TEST_DB_TYPE);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateDatabaseTable.REL_FAILURE);
+    }
+
+    @Test
     public void testCreateTable() throws Exception {
         MockRecordParser readerFactory = new MockRecordParser();
 
         readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
         readerFactory.addSchemaField(new RecordField("fractional", RecordFieldType.DOUBLE.getDataType(), true));
         readerFactory.addSchemaField(new RecordField("code", RecordFieldType.INT.getDataType(), 0, true));
-        readerFactory.addSchemaField(new RecordField("newField", RecordFieldType.DOUBLE.getDataType(), false));
+        readerFactory.addSchemaField(new RecordField("spaced Field", RecordFieldType.DOUBLE.getDataType(), false));
         readerFactory.addRecord(1, 1.2345, 10);
 
         runner.addControllerService("mock-reader-factory", readerFactory);
@@ -120,7 +146,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             assertColumnEquals(rs, "id", 1, "INTEGER");
             assertColumnEquals(rs, "fractional", 2, "DOUBLE PRECISION");
             assertColumnEquals(rs, "code", 3, "INTEGER");
-            assertColumnEquals(rs, "newField", 4, "DOUBLE PRECISION");
+            assertColumnEquals(rs, "spaced Field", 4, "DOUBLE PRECISION");
             assertFalse(rs.next());
         }
     }

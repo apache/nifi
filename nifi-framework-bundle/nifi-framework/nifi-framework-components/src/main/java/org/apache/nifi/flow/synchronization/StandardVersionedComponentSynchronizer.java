@@ -778,6 +778,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 context.getComponentScheduler().enableControllerServicesAsync(Collections.singleton(service));
             }
         });
+
+        // Controller Services are always persisted in a versioned flow as DISABLED, so newly added services never appear
+        // in the "proposed state is ENABLED" set above. Let the ComponentScheduler decide whether to enable them: on a
+        // versioned-flow upgrade of an active Process Group, RetainExistingStateComponentScheduler enables them (mirroring
+        // how newly added processors are started), while startup/restore schedulers treat this as a no-op so that a service
+        // that was not previously enabled remains disabled.
+        final Set<ControllerServiceNode> addedServices = new HashSet<>(servicesAdded.values());
+        addedServices.removeAll(toEnable);
+        addedServices.forEach(ComponentNode::performValidation);
+        context.getComponentScheduler().enableAddedControllerServicesAsync(addedServices);
     }
 
     private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) {
@@ -1832,7 +1842,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     contextManager.removeParameterContext(parameterContext.getIdentifier());
                     LOG.info("Successfully synchronized {} by removing it from the flow", parameterContext);
                 } else {
-                    final Map<String, Parameter> updatedParameters = createParameterMap(proposed.getParameters());
+                    final Map<String, Parameter> updatedParameters = createParameterMap(proposed.getParameters(), proposed.getParameterProvider() != null);
 
                     // If any parameters are removed, need to add a null value to the map in order to make sure that the parameter is removed.
                     for (final ParameterDescriptor existingParameterDescriptor : parameterContext.getParameters().keySet()) {
@@ -1869,8 +1879,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // because if we timeout while waiting for a Controller Service to stop, then that Controller Service won't be in our list of Controller Services
                 // to re-enable. As a result, we don't have the appropriate Controller Service to pass to the scheduleReferencingComponents.
                 for (final ComponentNode stoppedComponent : componentsToRestart) {
-                    if (stoppedComponent instanceof Connectable) {
-                        context.getComponentScheduler().startComponent((Connectable) stoppedComponent);
+                    if (stoppedComponent instanceof final Connectable connectable) {
+                        context.getComponentScheduler().startComponent(connectable);
                         notifyScheduledStateChange(stoppedComponent, synchronizationOptions, org.apache.nifi.flow.ScheduledState.RUNNING);
                     }
                 }
@@ -2314,7 +2324,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 continue;
             }
 
-            final Parameter parameter = createParameter(null, versionedParameter);
+            // Created without a Parameter Provider configuration, so parameters keep their serialized provided flag.
+            final Parameter parameter = createParameter(null, versionedParameter, false);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2331,7 +2342,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                                                     final Map<String, VersionedParameterContext> versionedParameterContexts,
                                                     final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
 
-        final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext.getParameters());
+        final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext.getParameters(), versionedParameterContext.getParameterProvider() != null);
 
         final List<String> parameterContextRefs = new ArrayList<>();
         if (versionedParameterContext.getInheritedParameterContexts() != null) {
@@ -2351,10 +2362,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return contextReference.get();
     }
 
-    private Map<String, Parameter> createParameterMap(final Collection<VersionedParameter> versionedParameters) {
+    private Map<String, Parameter> createParameterMap(final Collection<VersionedParameter> versionedParameters, final boolean providerBacked) {
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameters) {
-            final Parameter parameter = createParameter(null, versionedParameter);
+            final Parameter parameter = createParameter(null, versionedParameter, providerBacked);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2416,7 +2427,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 continue;
             }
 
-            final Parameter parameter = createParameter(currentParameterContext.getIdentifier(), versionedParameter);
+            final Parameter parameter = createParameter(currentParameterContext.getIdentifier(), versionedParameter, versionedParameterContext.getParameterProvider() != null);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2466,7 +2477,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
     }
 
-    private Parameter createParameter(final String contextId, final VersionedParameter versionedParameter) {
+    private Parameter createParameter(final String contextId, final VersionedParameter versionedParameter, final boolean providerBacked) {
         final List<VersionedAsset> referencedAssets = versionedParameter.getReferencedAssets();
 
         final List<Asset> assets;
@@ -2488,7 +2499,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             .sensitive(versionedParameter.isSensitive())
             .value(versionedParameter.getValue())
             .referencedAssets(assets)
-            .provided(versionedParameter.isProvided())
+            .provided(providerBacked || versionedParameter.isProvided())
             .parameterContextId(contextId)
             .build();
     }
@@ -2923,10 +2934,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void notifyScheduledStateChange(final Connectable component, final FlowSynchronizationOptions synchronizationOptions, final org.apache.nifi.flow.ScheduledState intendedState) {
         try {
-            if (component instanceof ProcessorNode) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ProcessorNode) component, intendedState);
-            } else if (component instanceof Port) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component, intendedState);
+            if (component instanceof final ProcessorNode processorNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processorNode, intendedState);
+            } else if (component instanceof final Port port) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(port, intendedState);
             }
         } catch (final Exception e) {
             LOG.debug("Failed to notify listeners of ScheduledState changes", e);
@@ -2934,16 +2945,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void notifyScheduledStateChange(final ComponentNode component, final FlowSynchronizationOptions synchronizationOptions, final org.apache.nifi.flow.ScheduledState intendedState) {
-        if (component instanceof Triggerable && intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && ((Triggerable) component).getScheduledState() == ScheduledState.DISABLED) {
+        if (component instanceof final Triggerable triggerable && intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && triggerable.getScheduledState() == ScheduledState.DISABLED) {
             return;
         }
         try {
-            if (component instanceof ProcessorNode) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ProcessorNode) component, intendedState);
-            } else if (component instanceof Port) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((Port) component, intendedState);
-            } else if (component instanceof ControllerServiceNode) {
-                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange((ControllerServiceNode) component, intendedState);
+            if (component instanceof final ProcessorNode processorNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(processorNode, intendedState);
+            } else if (component instanceof final Port port) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(port, intendedState);
+            } else if (component instanceof final ControllerServiceNode controllerServiceNode) {
+                synchronizationOptions.getScheduledStateChangeListener().onScheduledStateChange(controllerServiceNode, intendedState);
             } else if (component instanceof final ReportingTaskNode reportingTaskNode) {
                 if (intendedState == org.apache.nifi.flow.ScheduledState.RUNNING && reportingTaskNode.getScheduledState() == ScheduledState.DISABLED) {
                     return;

@@ -20,7 +20,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
@@ -132,7 +132,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
      */
-    Long getTimeToBytesBackpressureMillis(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getTimeToBytesBackpressureMillis(final Connection connection, ProcessSessionEvent flowFileEvent) {
 
         final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
@@ -154,7 +154,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return milliseconds until backpressure is predicted to occur, based on the number of objects in the queue.
      */
-    Long getTimeToCountBackpressureMillis(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getTimeToCountBackpressureMillis(final Connection connection, ProcessSessionEvent flowFileEvent) {
 
         final StatusAnalyticsModel countModel = getModel("queuedCount");
 
@@ -177,7 +177,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
      */
 
-    Long getNextIntervalBytes(FlowFileEvent flowFileEvent) {
+    Long getNextIntervalBytes(ProcessSessionEvent flowFileEvent) {
         final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
 
         if (validModel(bytesModel) && flowFileEvent != null) {
@@ -199,7 +199,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return milliseconds until backpressure is predicted to occur, based on the number of bytes in the queue.
      */
 
-    Long getNextIntervalCount(FlowFileEvent flowFileEvent) {
+    Long getNextIntervalCount(ProcessSessionEvent flowFileEvent) {
         final StatusAnalyticsModel countModel = getModel("queuedCount");
 
         if (validModel(countModel) && flowFileEvent != null) {
@@ -221,7 +221,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return percentage of bytes used at next interval
      */
-    Long getNextIntervalPercentageUseCount(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getNextIntervalPercentageUseCount(final Connection connection, ProcessSessionEvent flowFileEvent) {
 
         final double backPressureCountThreshold = connection.getFlowFileQueue().getBackPressureObjectThreshold();
         final long nextIntervalCount = getNextIntervalCount(flowFileEvent);
@@ -240,7 +240,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return percentage of bytes used at next interval
      */
 
-    Long getNextIntervalPercentageUseBytes(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getNextIntervalPercentageUseBytes(final Connection connection, ProcessSessionEvent flowFileEvent) {
 
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
         final double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
@@ -304,7 +304,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         if (connection == null) {
             throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
         }
-        FlowFileEvent flowFileEvent = statusReport.getReportEntry(connectionIdentifier);
+        ProcessSessionEvent flowFileEvent = statusReport.getReportEntry(connectionIdentifier);
         predictions.put(TIME_TO_BYTE_BACKPRESSURE_MILLIS, getTimeToBytesBackpressureMillis(connection, flowFileEvent));
         predictions.put(TIME_TO_COUNT_BACKPRESSURE_MILLIS, getTimeToCountBackpressureMillis(connection, flowFileEvent));
         predictions.put(NEXT_INTERVAL_BYTES, getNextIntervalBytes(flowFileEvent));

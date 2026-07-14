@@ -770,8 +770,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 final String removedNodeMapKey = mapKeyTransform.apply(removedNodeId);
 
                 final QueuePartition removedPartition = partitionMap.get(removedNodeMapKey);
-                if (removedPartition instanceof RemoteQueuePartition) {
-                    ((RemoteQueuePartition) removedPartition).onRemoved();
+                if (removedPartition instanceof final RemoteQueuePartition remoteQueuePartition) {
+                    remoteQueuePartition.onRemoved();
                 }
             }
 

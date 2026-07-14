@@ -106,9 +106,8 @@ public class FtpCommandSTOR extends AbstractCommand {
 
     private void checkDataConnection(final FtpIoSession ftpSession) throws FtpCommandException {
         DataConnectionFactory dataConnectionFactory = ftpSession.getDataConnection();
-        if (dataConnectionFactory instanceof IODataConnectionFactory) {
-            InetAddress address = ((IODataConnectionFactory) dataConnectionFactory)
-                    .getInetAddress();
+        if (dataConnectionFactory instanceof final IODataConnectionFactory ioDataConnectionFactory) {
+            InetAddress address = ioDataConnectionFactory.getInetAddress();
             if (address == null) {
                 throw new FtpCommandException(FtpReply.REPLY_503_BAD_SEQUENCE_OF_COMMANDS, "PORT or PASV must be issued first");
             }

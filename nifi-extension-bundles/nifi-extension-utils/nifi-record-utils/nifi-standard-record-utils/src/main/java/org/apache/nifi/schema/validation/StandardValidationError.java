@@ -92,7 +92,11 @@ public class StandardValidationError implements ValidationError {
                     }
                     sb.append("]");
 
-                    return sb.toString() + " is not a valid value for " + fieldName.get() + ": " + explanation;
+                    return sb.append(" is not a valid value for ")
+                            .append(fieldName.get())
+                            .append(": ")
+                            .append(explanation)
+                            .toString();
                 } else {
                     return inputValue.get() + " is not a valid value for " + fieldName.get() + ": " + explanation;
                 }

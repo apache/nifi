@@ -16,15 +16,24 @@
  */
 package org.apache.nifi.controller.repository.metrics;
 
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.StandardRepositoryStatusReport;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class RingBufferEventRepository implements FlowFileEventRepository {
+    private static final ComponentMetricContext AGGREGATE_CONTEXT = new ComponentMetricContext(
+            RingBufferEventRepository.class.getSimpleName(),
+            RingBufferEventRepository.class.getSimpleName(),
+            FlowFileEventRepository.class.getSimpleName(),
+            Map.of()
+    );
+
     private final int numMinutes;
     private final EventSumValue aggregateValues = new EventSumValue(0L);
     private final ConcurrentMap<String, EventContainer> componentEventMap = new ConcurrentHashMap<>();
@@ -38,7 +47,8 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     }
 
     @Override
-    public void updateRepository(final FlowFileEvent event, final String componentId) {
+    public void updateRepository(final ProcessSessionEvent event) {
+        final String componentId = event.getComponentMetricContext().id();
         final EventContainer eventContainer = componentEventMap.computeIfAbsent(componentId, id -> new SecondPrecisionEventContainer(numMinutes));
         eventContainer.addEvent(event);
         aggregateValues.add(event);
@@ -48,12 +58,17 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     public StandardRepositoryStatusReport reportTransferEvents(final long sinceEpochMillis) {
         final StandardRepositoryStatusReport report = new StandardRepositoryStatusReport();
 
-        componentEventMap.forEach((componentId, container) -> report.addReportEntry(container.generateReport(sinceEpochMillis), componentId));
+        componentEventMap.forEach((componentId, container) -> {
+            final ProcessSessionEvent event = container.generateReport(sinceEpochMillis);
+            if (event != ProcessSessionEventBuilder.empty()) {
+                report.addReportEntry(event);
+            }
+        });
         return report;
     }
 
     @Override
-    public FlowFileEvent reportTransferEvents(final String componentId, final long now) {
+    public ProcessSessionEvent reportTransferEvents(final String componentId, final long now) {
         final EventContainer container = componentEventMap.get(componentId);
         return container == null ? null : container.generateReport(now);
     }
@@ -64,7 +79,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     }
 
     @Override
-    public FlowFileEvent reportAggregateEvent() {
-        return aggregateValues.toFlowFileEvent();
+    public ProcessSessionEvent reportAggregateEvent() {
+        return aggregateValues.toProcessSessionEvent(AGGREGATE_CONTEXT);
     }
 }

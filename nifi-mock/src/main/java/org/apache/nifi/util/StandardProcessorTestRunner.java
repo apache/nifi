@@ -1162,8 +1162,8 @@ public class StandardProcessorTestRunner implements TestRunner {
                 enableControllerService(serviceImpl);
             } catch (final Exception e) {
                 if (serviceCreationException == null) {
-                    if (e instanceof RuntimeException) {
-                        serviceCreationException = (RuntimeException) e;
+                    if (e instanceof final RuntimeException runtimeException) {
+                        serviceCreationException = runtimeException;
                     } else {
                         serviceCreationException = new RuntimeException(e);
                     }

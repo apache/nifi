@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.repository.metrics;
 
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 
 public interface EventContainer {
-    void addEvent(FlowFileEvent event);
+    void addEvent(ProcessSessionEvent event);
 
     void purgeEvents(long cutoffEpochMillis);
 
-    FlowFileEvent generateReport(long sinceEpochMillis);
+    ProcessSessionEvent generateReport(long sinceEpochMillis);
 }

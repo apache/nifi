@@ -337,8 +337,8 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 future.get();
             } catch (final ExecutionException | InterruptedException e) {
-                if (e.getCause() instanceof IOException) {
-                    throw (IOException) e.getCause();
+                if (e.getCause() instanceof final IOException ioException) {
+                    throw ioException;
                 } else {
                     throw new RuntimeException(e);
                 }

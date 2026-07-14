@@ -64,7 +64,7 @@ public class VirtualFileSystemView implements FileSystemView {
         VirtualPath filePath = currentDirectory.resolve(fileName);
         VirtualPath parent = filePath.getParent();
         if ((parent != null) && !fileSystem.exists(filePath.getParent())) {
-            throw new FtpException(String.format("Parent directory does not exist for %s", filePath.toString()));
+            throw new FtpException(String.format("Parent directory does not exist for %s", filePath));
         }
         return new VirtualFtpFile(filePath, fileSystem);
     }

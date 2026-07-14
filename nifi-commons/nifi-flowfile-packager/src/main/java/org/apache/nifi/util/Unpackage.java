@@ -66,7 +66,7 @@ public class Unpackage {
                 continue;
             }
 
-            final File tempFile = new File(outputDir, ".temp." + UUID.randomUUID().toString() + ".unpackage");
+            final File tempFile = new File(outputDir, ".temp." + UUID.randomUUID() + ".unpackage");
             inputFileCount++;
             try (final FileInputStream fis = new FileInputStream(inFile);
                     final BufferedInputStream bufferedIn = new BufferedInputStream(fis)) {

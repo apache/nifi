@@ -62,8 +62,8 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
 
     @Override
     public RepositoryContext createRepositoryContext(final Connectable connectable, final ProvenanceEventRepository provenanceEventRepository) {
-        final Class<?> componentClass = (connectable instanceof ProcessorNode && ((ProcessorNode) connectable).getProcessor() != null)
-                ? ((ProcessorNode) connectable).getProcessor().getClass()
+        final Class<?> componentClass = (connectable instanceof final ProcessorNode processorNode && processorNode.getProcessor() != null)
+                ? processorNode.getProcessor().getClass()
                 : null;
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier(), componentClass);
         return new StatelessRepositoryContext(connectable, new AtomicLong(0L), contentRepository, flowFileRepository,
@@ -88,6 +88,11 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     @Override
     public CounterRepository getCounterRepository() {
         return counterRepository;
+    }
+
+    @Override
+    public ComponentMetricReporter getComponentMetricReporter() {
+        return componentMetricReporter;
     }
 
     @Override

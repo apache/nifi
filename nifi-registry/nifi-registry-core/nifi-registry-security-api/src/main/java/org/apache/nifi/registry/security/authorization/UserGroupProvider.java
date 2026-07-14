@@ -35,7 +35,7 @@ public interface UserGroupProvider {
     /**
      * Retrieves all users. Must be non null
      *
-     * @return a list of users
+     * @return a set of users
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     Set<User> getUsers() throws AuthorizationAccessException;
@@ -61,7 +61,7 @@ public interface UserGroupProvider {
     /**
      * Retrieves all groups. Must be non null
      *
-     * @return a list of groups
+     * @return a set of groups
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     Set<Group> getGroups() throws AuthorizationAccessException;

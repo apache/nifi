@@ -198,8 +198,8 @@ public class ResizeImage extends AbstractProcessor {
         try (final OutputStream out = session.write(flowFile)) {
             final Image scaledImage = image.getScaledInstance(width, height, hints);
             final BufferedImage scaledBufferedImg;
-            if (scaledImage instanceof BufferedImage) {
-                scaledBufferedImg = (BufferedImage) scaledImage;
+            if (scaledImage instanceof final BufferedImage bufferedImage) {
+                scaledBufferedImg = bufferedImage;
             } else {
                 // Determine image type, since calling image.getType may return 0
                 int imageType = BufferedImage.TYPE_INT_ARGB;

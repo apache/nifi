@@ -91,7 +91,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
     @Override
     public boolean isFailurePort(final Connectable connectable) {
-        if (connectable instanceof Port && ((Port) connectable).getPortFunction() == PortFunction.FAILURE) {
+        if (connectable instanceof final Port port && port.getPortFunction() == PortFunction.FAILURE) {
             return true;
         }
 

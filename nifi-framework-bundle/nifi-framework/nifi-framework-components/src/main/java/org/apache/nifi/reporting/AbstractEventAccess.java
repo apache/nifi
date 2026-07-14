@@ -29,13 +29,13 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
-import org.apache.nifi.controller.repository.metrics.EmptyFlowFileEvent;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.controller.status.PortStatus;
@@ -299,7 +299,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             }
             connStatus.setFlowFileAvailability(conn.getFlowFileQueue().getFlowFileAvailability());
 
-            final FlowFileEvent connectionStatusReport = statusReport.getReportEntry(conn.getIdentifier());
+            final ProcessSessionEvent connectionStatusReport = statusReport.getReportEntry(conn.getIdentifier());
             if (connectionStatusReport != null) {
                 connStatus.setInputBytes(connectionStatusReport.getContentSizeIn());
                 connStatus.setInputCount(connectionStatusReport.getFlowFilesIn());
@@ -406,11 +406,11 @@ public abstract class AbstractEventAccess implements EventAccess {
             }
 
             // special handling for public ports
-            if (port instanceof PublicPort) {
-                portStatus.setTransmitting(((PublicPort) port).isTransmitting());
+            if (port instanceof final PublicPort publicPort) {
+                portStatus.setTransmitting(publicPort.isTransmitting());
             }
 
-            final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
+            final ProcessSessionEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
             if (entry == null) {
                 portStatus.setInputBytes(0L);
                 portStatus.setInputCount(0);
@@ -469,11 +469,11 @@ public abstract class AbstractEventAccess implements EventAccess {
             }
 
             // special handling for public ports
-            if (port instanceof PublicPort) {
-                portStatus.setTransmitting(((PublicPort) port).isTransmitting());
+            if (port instanceof final PublicPort publicPort) {
+                portStatus.setTransmitting(publicPort.isTransmitting());
             }
 
-            final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
+            final ProcessSessionEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
             if (entry == null) {
                 portStatus.setInputBytes(0L);
                 portStatus.setInputCount(0);
@@ -599,7 +599,7 @@ public abstract class AbstractEventAccess implements EventAccess {
 
                 activeThreadCount += processScheduler.getActiveThreadCount(port);
 
-                final FlowFileEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
+                final ProcessSessionEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
                 if (portEvent != null) {
                     lineageMillis += portEvent.getAggregateLineageMillis();
                     flowFilesRemoved += portEvent.getFlowFilesRemoved();
@@ -624,7 +624,7 @@ public abstract class AbstractEventAccess implements EventAccess {
 
                 activeThreadCount += processScheduler.getActiveThreadCount(port);
 
-                final FlowFileEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
+                final ProcessSessionEvent portEvent = statusReport.getReportEntry(port.getIdentifier());
                 if (portEvent != null) {
                     receivedCount += portEvent.getFlowFilesReceived();
                     receivedContentSize += portEvent.getBytesReceived();
@@ -649,11 +649,11 @@ public abstract class AbstractEventAccess implements EventAccess {
     }
 
     private ProcessorStatus getProcessorStatus(final RepositoryStatusReport report, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
-        final FlowFileEvent entry = report.getReportEntries().get(procNode.getIdentifier());
+        final ProcessSessionEvent entry = report.getReportEntries().get(procNode.getIdentifier());
         return getProcessorStatus(entry, procNode, isAuthorized);
     }
 
-    protected ProcessorStatus getProcessorStatus(final FlowFileEvent flowFileEvent, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
+    protected ProcessorStatus getProcessorStatus(final ProcessSessionEvent flowFileEvent, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
         final boolean isProcessorAuthorized = isAuthorized.test(procNode);
 
         final ProcessorStatus status = new ProcessorStatus();
@@ -662,7 +662,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         status.setName(isProcessorAuthorized ? procNode.getName() : procNode.getIdentifier());
         status.setType(isProcessorAuthorized ? procNode.getComponentType() : "Processor");
 
-        if (flowFileEvent != null && flowFileEvent != EmptyFlowFileEvent.INSTANCE) {
+        if (flowFileEvent != null && flowFileEvent != ProcessSessionEventBuilder.empty()) {
             final int processedCount = flowFileEvent.getFlowFilesOut();
             final long numProcessedBytes = flowFileEvent.getContentSizeOut();
             status.setOutputBytes(numProcessedBytes);
@@ -682,7 +682,10 @@ public abstract class AbstractEventAccess implements EventAccess {
             status.setProcessingNanos(flowFileEvent.getProcessingNanoseconds());
             status.setInvocations(flowFileEvent.getInvocations());
 
-            status.setAverageLineageDuration(flowFileEvent.getAverageLineageMillis());
+            // Calculate Average Lineage milliseconds from FlowFiles out and removed
+            final int flowFilesOutOrRemoved = flowFileEvent.getFlowFilesOut() + flowFileEvent.getFlowFilesRemoved();
+            final long averageLineageMillis = flowFilesOutOrRemoved == 0 ? 0L : flowFileEvent.getAggregateLineageMillis() / flowFilesOutOrRemoved;
+            status.setAverageLineageDuration(averageLineageMillis);
 
             status.setFlowFilesReceived(flowFileEvent.getFlowFilesReceived());
             status.setBytesReceived(flowFileEvent.getBytesReceived());
@@ -711,14 +714,14 @@ public abstract class AbstractEventAccess implements EventAccess {
         return status;
     }
 
-    private ProcessingPerformanceStatus createProcessingPerformanceStatus(final FlowFileEvent flowFileEvent, final ProcessorNode procNode) {
+    private ProcessingPerformanceStatus createProcessingPerformanceStatus(final ProcessSessionEvent flowFileEvent, final ProcessorNode procNode) {
         final ProcessingPerformanceStatus perfStatus = new ProcessingPerformanceStatus();
         perfStatus.setIdentifier(procNode.getIdentifier());
         perfStatus.setCpuDuration(flowFileEvent.getCpuNanoseconds());
         perfStatus.setContentReadDuration(flowFileEvent.getContentReadNanoseconds());
         perfStatus.setContentWriteDuration(flowFileEvent.getContentWriteNanoseconds());
         perfStatus.setSessionCommitDuration(flowFileEvent.getSessionCommitNanoseconds());
-        perfStatus.setGarbageCollectionDuration(flowFileEvent.getGargeCollectionMillis());
+        perfStatus.setGarbageCollectionDuration(flowFileEvent.getGarbageCollectionMillis());
         return perfStatus;
     }
 

@@ -44,8 +44,8 @@ public class EqualsIgnoreCaseEvaluator extends BooleanEvaluator {
             return new BooleanQueryResult(false);
         }
 
-        if (a instanceof String && b instanceof String) {
-            return new BooleanQueryResult(((String) a).equalsIgnoreCase((String) b));
+        if (a instanceof final String aString && b instanceof final String bString) {
+            return new BooleanQueryResult(aString.equalsIgnoreCase(bString));
         }
 
         return new BooleanQueryResult(a.equals(b));

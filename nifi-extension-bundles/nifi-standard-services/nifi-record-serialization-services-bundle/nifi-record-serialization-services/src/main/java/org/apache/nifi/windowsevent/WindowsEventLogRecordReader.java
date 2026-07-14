@@ -474,8 +474,8 @@ public class WindowsEventLogRecordReader implements RecordReader {
         }
 
         for (final Map.Entry<String, Object> entry : recordValues.entrySet()) {
-            if (entry.getValue() instanceof List) {
-                recordValues.put(entry.getKey(), ((List) entry.getValue()).toArray());
+            if (entry.getValue() instanceof final List list) {
+                recordValues.put(entry.getKey(), list.toArray());
             }
         }
 
@@ -540,8 +540,8 @@ public class WindowsEventLogRecordReader implements RecordReader {
 
             case RECORD: {
                 final RecordSchema childSchema;
-                if (dataType instanceof RecordDataType) {
-                    childSchema = ((RecordDataType) dataType).getChildSchema();
+                if (dataType instanceof final RecordDataType recordDataType) {
+                    childSchema = recordDataType.getChildSchema();
                 } else {
                     return null;
                 }

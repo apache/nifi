@@ -34,8 +34,8 @@ public class MathTypeUtils {
     public static Number coerceNumber(FieldValue fieldValue) {
         final Object value = fieldValue.getValue();
 
-        if (value instanceof Number) {
-            return (Number) value;
+        if (value instanceof final Number number) {
+            return number;
         }
 
         final RecordField field = fieldValue.getField();

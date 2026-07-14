@@ -76,8 +76,8 @@ public class StandardFieldValue implements FieldValue {
 
     @Override
     public String toString() {
-        if (value instanceof Object[]) {
-            return Arrays.toString((Object[]) value);
+        if (value instanceof final Object[] objects) {
+            return Arrays.toString(objects);
         }
 
         return String.valueOf(value);
@@ -153,8 +153,8 @@ public class StandardFieldValue implements FieldValue {
     private void updateValue(final Object newValue, final RecordField field) {
         final Optional<Record> parentRecord = getParentRecord();
         if (!parentRecord.isPresent()) {
-            if (value instanceof Record) {
-                ((Record) value).setValue(field, newValue);
+            if (value instanceof final Record recordObj) {
+                recordObj.setValue(field, newValue);
                 return;
             } else if (value == null) {
                 return; // value is null, nothing to update

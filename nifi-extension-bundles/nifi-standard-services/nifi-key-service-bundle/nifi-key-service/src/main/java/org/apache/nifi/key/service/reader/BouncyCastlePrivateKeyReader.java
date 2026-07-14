@@ -59,8 +59,8 @@ public class BouncyCastlePrivateKeyReader implements PrivateKeyReader {
 
             final PrivateKeyInfo privateKeyInfo;
 
-            if (object instanceof PrivateKeyInfo) {
-                privateKeyInfo = (PrivateKeyInfo) object;
+            if (object instanceof final PrivateKeyInfo privateKeyInfoObj) {
+                privateKeyInfo = privateKeyInfoObj;
             } else if (object instanceof final PKCS8EncryptedPrivateKeyInfo encryptedPrivateKeyInfo) {
                 privateKeyInfo = readEncryptedPrivateKey(encryptedPrivateKeyInfo, keyPassword);
             } else if (object instanceof final PEMKeyPair pemKeyPair) {

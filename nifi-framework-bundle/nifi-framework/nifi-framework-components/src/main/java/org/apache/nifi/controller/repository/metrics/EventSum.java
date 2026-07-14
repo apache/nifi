@@ -17,7 +17,7 @@
 
 package org.apache.nifi.controller.repository.metrics;
 
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -29,7 +29,7 @@ public class EventSum {
         return value == null ? new EventSumValue(System.currentTimeMillis()) : value;
     }
 
-    public EventSumValue addOrReset(final FlowFileEvent event, final long timestamp) {
+    public EventSumValue addOrReset(final ProcessSessionEvent event, final long timestamp) {
         final long expectedSecond = timestamp / 1000;
 
         EventSumValue curValue;

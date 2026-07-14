@@ -181,11 +181,11 @@ public class RemoteQueuePartition implements QueuePartition {
                 // has not changed. They FlowFiles were just re-queued or moved between partitions.
                 priorityQueue.acknowledge(flowFiles);
 
-                if (cause instanceof ContentNotFoundException) {
+                if (cause instanceof final ContentNotFoundException contentNotFoundException) {
                     // Handle ContentNotFound by creating a RepositoryRecord for the FlowFile and marking as aborted, then updating the
                     // FlowFiles and Provenance Repositories accordingly. This follows the same pattern as StandardProcessSession so that
                     // we have a consistent way of handling this case.
-                    final Optional<FlowFileRecord> optionalFlowFile = ((ContentNotFoundException) cause).getFlowFile();
+                    final Optional<FlowFileRecord> optionalFlowFile = contentNotFoundException.getFlowFile();
                     if (optionalFlowFile.isPresent()) {
                         final List<FlowFileRecord> successfulFlowFiles = new ArrayList<>(flowFiles);
 

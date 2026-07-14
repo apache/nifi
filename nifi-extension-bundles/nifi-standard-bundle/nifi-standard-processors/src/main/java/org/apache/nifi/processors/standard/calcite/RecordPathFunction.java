@@ -51,14 +51,14 @@ public class RecordPathFunction {
         }
 
         try {
-            if (record instanceof Record) {
-                return eval((Record) record, recordPath, transform);
-            } else if (record instanceof Record[]) {
-                return eval((Record[]) record, recordPath, transform);
+            if (record instanceof final Record recordObj) {
+                return eval(recordObj, recordPath, transform);
+            } else if (record instanceof final Record[] records) {
+                return eval(records, recordPath, transform);
             } else if (record instanceof Iterable) {
                 return eval((Iterable<Record>) record, recordPath, transform);
-            } else if (record instanceof Map) {
-                return eval((Map<?, ?>) record, recordPath, transform);
+            } else if (record instanceof final Map<?, ?> map) {
+                return eval(map, recordPath, transform);
             }
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against " + record, e);

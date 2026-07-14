@@ -187,8 +187,8 @@ public class XMLRecordReader implements RecordReader {
 
                 if (newValue != null) {
                     if (oldValues != null) {
-                        if (oldValues instanceof List) {
-                            ((List) oldValues).add(newValue);
+                        if (oldValues instanceof final List list) {
+                            list.add(newValue);
                         } else {
                             List<Object> arrayValues = new ArrayList<>();
                             arrayValues.add(oldValues);
@@ -206,8 +206,8 @@ public class XMLRecordReader implements RecordReader {
 
             case RECORD: {
                 final RecordSchema childSchema;
-                if (dataType instanceof RecordDataType) {
-                    childSchema = ((RecordDataType) dataType).getChildSchema();
+                if (dataType instanceof final RecordDataType recordDataType) {
+                    childSchema = recordDataType.getChildSchema();
                 } else {
                     return null;
                 }
@@ -278,12 +278,12 @@ public class XMLRecordReader implements RecordReader {
                             final DataType dataType = field.get().getDataType();
                             RecordSchema childSchema = null;
 
-                            if (dataType instanceof RecordDataType) {
-                                childSchema = ((RecordDataType) dataType).getChildSchema();
-                            } else if (dataType instanceof ArrayDataType) {
-                                DataType typeOfArray = ((ArrayDataType) dataType).getElementType();
-                                if (typeOfArray instanceof RecordDataType) {
-                                    childSchema = ((RecordDataType) typeOfArray).getChildSchema();
+                            if (dataType instanceof final RecordDataType recordDataType) {
+                                childSchema = recordDataType.getChildSchema();
+                            } else if (dataType instanceof final ArrayDataType arrayDataType) {
+                                DataType typeOfArray = arrayDataType.getElementType();
+                                if (typeOfArray instanceof final RecordDataType recordDataType) {
+                                    childSchema = recordDataType.getChildSchema();
                                 }
                             }
 
@@ -309,8 +309,8 @@ public class XMLRecordReader implements RecordReader {
         }
 
         for (final Map.Entry<String, Object> entry : recordValues.entrySet()) {
-            if (entry.getValue() instanceof List) {
-                recordValues.put(entry.getKey(), ((List) entry.getValue()).toArray());
+            if (entry.getValue() instanceof final List list) {
+                recordValues.put(entry.getKey(), list.toArray());
             }
         }
 

@@ -184,7 +184,7 @@ public class FlowDifferenceFilters {
     }
 
     private static ComponentNode getComponent(final FlowManager flowManager, final VersionedComponent component) {
-        if (component instanceof InstantiatedVersionedComponent instantiatedComponent) {
+        if (component instanceof final InstantiatedVersionedComponent instantiatedComponent) {
             return getComponent(flowManager, component.getComponentType(), instantiatedComponent.getInstanceIdentifier());
         } else {
             return null;
@@ -482,11 +482,11 @@ public class FlowDifferenceFilters {
             return false;
         }
 
-        if (!(difference.getComponentA() instanceof VersionedConnection connectionA)) {
+        if (!(difference.getComponentA() instanceof final VersionedConnection connectionA)) {
             return false;
         }
 
-        if (!(difference.getComponentB() instanceof InstantiatedVersionedConnection connectionB)) {
+        if (!(difference.getComponentB() instanceof final InstantiatedVersionedConnection connectionB)) {
             return false;
         }
 
@@ -904,7 +904,7 @@ public class FlowDifferenceFilters {
             return;
         }
 
-        if (component instanceof InstantiatedVersionedControllerService instantiatedControllerService) {
+        if (component instanceof final InstantiatedVersionedControllerService instantiatedControllerService) {
             final String instanceIdentifier = instantiatedControllerService.getInstanceIdentifier();
             if (instanceIdentifier != null) {
                 identifiers.add(instanceIdentifier);
@@ -1019,8 +1019,8 @@ public class FlowDifferenceFilters {
             return Optional.empty();
         }
 
-        if (component instanceof InstantiatedVersionedComponent) {
-            final String instanceId = ((InstantiatedVersionedComponent) component).getInstanceIdentifier();
+        if (component instanceof final InstantiatedVersionedComponent instantiatedVersionedComponent) {
+            final String instanceId = instantiatedVersionedComponent.getInstanceIdentifier();
             if (instanceId != null) {
                 return Optional.of(instanceId);
             }
@@ -1085,7 +1085,7 @@ public class FlowDifferenceFilters {
         }
 
         final Object differenceValue = fromComponentA ? difference.getValueA() : difference.getValueB();
-        if (differenceValue instanceof String stringValue) {
+        if (differenceValue instanceof final String stringValue) {
             return Optional.of(stringValue);
         }
 
@@ -1132,11 +1132,11 @@ public class FlowDifferenceFilters {
 
         if (component == null) {
             descriptors = Collections.emptyMap();
-        } else if (component instanceof VersionedConfigurableComponent configurableComponent) {
+        } else if (component instanceof final VersionedConfigurableComponent configurableComponent) {
             descriptors = configurableComponent.getPropertyDescriptors();
-        } else if (component instanceof VersionedProcessor processor) {
+        } else if (component instanceof final VersionedProcessor processor) {
             descriptors = processor.getPropertyDescriptors();
-        } else if (component instanceof VersionedControllerService controllerService) {
+        } else if (component instanceof final VersionedControllerService controllerService) {
             descriptors = controllerService.getPropertyDescriptors();
         } else {
             descriptors = Collections.emptyMap();
@@ -1150,11 +1150,11 @@ public class FlowDifferenceFilters {
 
         if (component == null) {
             properties = Collections.emptyMap();
-        } else if (component instanceof VersionedConfigurableComponent configurableComponent) {
+        } else if (component instanceof final VersionedConfigurableComponent configurableComponent) {
             properties = configurableComponent.getProperties();
-        } else if (component instanceof VersionedProcessor processor) {
+        } else if (component instanceof final VersionedProcessor processor) {
             properties = processor.getProperties();
-        } else if (component instanceof VersionedControllerService controllerService) {
+        } else if (component instanceof final VersionedControllerService controllerService) {
             properties = controllerService.getProperties();
         } else {
             properties = Collections.emptyMap();

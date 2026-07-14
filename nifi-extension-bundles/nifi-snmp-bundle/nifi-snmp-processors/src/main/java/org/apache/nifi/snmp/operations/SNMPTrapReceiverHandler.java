@@ -61,8 +61,8 @@ public class SNMPTrapReceiverHandler {
             return 0;
         }
         final Address address = transportMappings.iterator().next().getListenAddress();
-        if (address instanceof TransportIpAddress) {
-            return ((org.snmp4j.smi.TransportIpAddress) address).getPort();
+        if (address instanceof final TransportIpAddress transportIpAddress) {
+            return transportIpAddress.getPort();
         }
 
         return 0;

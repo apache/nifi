@@ -27,7 +27,7 @@ import {
     viewChild
 } from '@angular/core';
 import * as d3 from 'd3';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, isFiniteInBound, isScaleInBound, MAX_ABS_TRANSLATE } from '@nifi/shared';
 import { Dimension, Position } from '../canvas/canvas.types';
 import { BirdseyeBounds, BirdseyeComponentData, BirdseyeTransform } from './birdseye.types';
 
@@ -327,6 +327,9 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
 
         // Calculate viewport bounds in canvas coordinates.
         const transform = this.transform();
+        if (!this.isTransformSafe(transform)) {
+            return;
+        }
         const canvasDims = this.canvasDimensions();
         const viewportLeft = -transform.translate.x / transform.scale;
         const viewportTop = -transform.translate.y / transform.scale;
@@ -414,10 +417,25 @@ export class CanvasBirdseyeComponent implements AfterViewInit, OnDestroy {
     }
 
     /**
+     * Returns true when the transform is safe to use in division-by-scale arithmetic.
+     * A near-zero or out-of-range scale causes the viewport brush math to overflow into
+     * Infinity and corrupts the birdseye display; bail early so the next valid transform
+     * dispatch can redraw cleanly.
+     */
+    private isTransformSafe(transform: BirdseyeTransform): boolean {
+        return (
+            isFiniteInBound(transform.translate.x, MAX_ABS_TRANSLATE) &&
+            isFiniteInBound(transform.translate.y, MAX_ABS_TRANSLATE) &&
+            isScaleInBound(transform.scale)
+        );
+    }
+
+    /**
      * Update the viewport brush position and size.
      */
     private updateBrush(transform: BirdseyeTransform, canvasDimensions: Dimension): void {
         if (!this.brush) return;
+        if (!this.isTransformSafe(transform)) return;
 
         const components = this.components();
         if (!components || components.length === 0) return;

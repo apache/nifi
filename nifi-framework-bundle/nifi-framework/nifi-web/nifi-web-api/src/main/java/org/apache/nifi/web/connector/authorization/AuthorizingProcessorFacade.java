@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.connector.authorization;
 
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.InvocationFailedException;
@@ -28,6 +30,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A wrapper around {@link ProcessorFacade} that enforces authorization before delegating
@@ -95,6 +98,18 @@ public class AuthorizingProcessorFacade implements ProcessorFacade {
     public <T> T invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final Class<T> returnType) throws InvocationFailedException {
         authContext.authorizeWrite();
         return delegate.invokeConnectorMethod(methodName, arguments, returnType);
+    }
+
+    @Override
+    public boolean reportsBacklog() {
+        authContext.authorizeRead();
+        return delegate.reportsBacklog();
+    }
+
+    @Override
+    public Optional<Backlog> getBacklog() throws BacklogReportingException {
+        authContext.authorizeRead();
+        return delegate.getBacklog();
     }
 
     @Override

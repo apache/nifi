@@ -62,12 +62,12 @@ public class DotEvaluator implements Evaluator<Object> {
 
     private Object getValue(final Object lhsValue, final int rhsValue) {
         final List<?> list;
-        if (lhsValue instanceof HL7Message) {
-            list = ((HL7Message) lhsValue).getSegments();
-        } else if (lhsValue instanceof HL7Segment) {
-            list = ((HL7Segment) lhsValue).getFields();
-        } else if (lhsValue instanceof HL7Component) {
-            list = ((HL7Component) lhsValue).getComponents();
+        if (lhsValue instanceof final HL7Message hl7Message) {
+            list = hl7Message.getSegments();
+        } else if (lhsValue instanceof final HL7Segment hl7Segment) {
+            list = hl7Segment.getFields();
+        } else if (lhsValue instanceof final HL7Component hl7Component) {
+            list = hl7Component.getComponents();
         } else {
             return null;
         }

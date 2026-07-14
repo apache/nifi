@@ -93,14 +93,14 @@ public class TestParquetProcessor extends AbstractProcessor {
 
     private String serializeField(Object value) {
         final StringBuilder result = new StringBuilder();
-        if (value instanceof Object[]) {
+        if (value instanceof final Object[] objects) {
             final List<String> array = new ArrayList<>();
-            for (Object arrayValue : (Object[]) value) {
+            for (Object arrayValue : objects) {
                 array.add(serializeField(arrayValue));
             }
             result.append("[").append(String.join(", ", array)).append("]");
-        } else if (value instanceof Record) {
-            result.append(serializeRecord((Record) value));
+        } else if (value instanceof final Record recordObj) {
+            result.append(serializeRecord(recordObj));
         } else {
             result.append(value);
         }

@@ -101,13 +101,13 @@
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
             <artifactId>mortbay-apache-jsp</artifactId>
-            <version>11.0.22</version>
+            <version>11.0.23</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
             <artifactId>mortbay-apache-el</artifactId>
-            <version>11.0.22</version>
+            <version>11.0.23</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>

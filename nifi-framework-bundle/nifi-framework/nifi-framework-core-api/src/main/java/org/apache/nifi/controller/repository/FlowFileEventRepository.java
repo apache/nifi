@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
+
 import java.io.Closeable;
 import java.io.IOException;
 
 public interface FlowFileEventRepository extends Closeable {
 
     /**
-     * Updates the repository to include a new FlowFile processing event
+     * Updates the repository to include a new process session event
      *
-     * @param event new event
-     * @param  componentIdentifier the ID of the component that the event belongs to
+     * @param event new event, including the identifier of the component that the event belongs to
      * @throws java.io.IOException ioe
      */
-    void updateRepository(FlowFileEvent event, String componentIdentifier) throws IOException;
+    void updateRepository(ProcessSessionEvent event) throws IOException;
 
     /**
      * @param now the current time
@@ -42,7 +43,7 @@ public interface FlowFileEventRepository extends Closeable {
      * @param now the current time
      * @return a report of processing activity
      */
-    FlowFileEvent reportTransferEvents(String componentId, long now);
+    ProcessSessionEvent reportTransferEvents(String componentId, long now);
 
     /**
      * Causes any flow file events of the given component to be purged from the
@@ -56,5 +57,5 @@ public interface FlowFileEventRepository extends Closeable {
      * Reports aggregate metrics for all flowfile events
      * @return a report of processing activity
      */
-    FlowFileEvent reportAggregateEvent();
+    ProcessSessionEvent reportAggregateEvent();
 }

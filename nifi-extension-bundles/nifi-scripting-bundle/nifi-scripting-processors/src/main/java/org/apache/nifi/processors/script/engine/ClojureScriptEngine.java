@@ -42,7 +42,7 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
     public static final String ENGINE_VERSION = "1.8.0";
 
     private volatile ScriptEngineFactory scriptEngineFactory;
-    private final String uuid = "ns-" + UUID.randomUUID().toString();
+    private final String uuid = "ns-" + UUID.randomUUID();
     private final Symbol namespaceSymbol = Symbol.create(uuid);
 
     protected ClojureScriptEngine(ScriptEngineFactory scriptEngineFactory) {

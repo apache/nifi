@@ -114,7 +114,8 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Arrays.asList(
                 PROPERTY_URL,
-                SSL_CONTEXT_SERVICE
+                SSL_CONTEXT_SERVICE,
+                SYNCHRONIZATION_INTERVAL
         );
     }
 

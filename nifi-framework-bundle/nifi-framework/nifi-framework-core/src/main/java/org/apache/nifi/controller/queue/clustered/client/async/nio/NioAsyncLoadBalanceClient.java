@@ -138,6 +138,10 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
                 logger.debug("{} Triggering failure callback for {} FlowFiles for Registered Partition {} because partition was unregistered", this, flowFilesSent.size(), removedPartition);
                 removedPartition.getFailureCallback().onTransactionFailed(flowFilesSent, TransactionFailureCallback.TransactionPhase.SENDING);
+
+                // The transaction was abandoned mid-stream. Close the connection so the socket is not reused for the next
+                // transaction; a reused socket would leave the peer reading a stray protocol byte and aborting the transfer.
+                close();
             }
         }
     }
@@ -427,7 +431,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         return new SimpleLimitThreshold(1000, 10_000_000L);
     }
 
-    private synchronized boolean isConnectionEstablished() {
+    synchronized boolean isConnectionEstablished() {
         return selector != null && channel != null && channel.isConnected();
     }
 

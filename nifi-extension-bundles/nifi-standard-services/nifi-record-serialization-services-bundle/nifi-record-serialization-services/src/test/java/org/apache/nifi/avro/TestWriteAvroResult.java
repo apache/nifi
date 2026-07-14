@@ -464,8 +464,8 @@ public abstract class TestWriteAvroResult {
                     assertEquals(recordArray[i], avroArray.get(i),
                             fieldName + "[" + i + "] not equal");
                 }
-            } else if (recordValue instanceof byte[]) {
-                final ByteBuffer bb = ByteBuffer.wrap((byte[]) recordValue);
+            } else if (recordValue instanceof final byte[] bytes) {
+                final ByteBuffer bb = ByteBuffer.wrap(bytes);
                 assertEquals(bb, avroValue,
                         fieldName + " not equal");
             } else if (recordValue instanceof final Map<?, ?> recordMap) {
@@ -476,8 +476,8 @@ public abstract class TestWriteAvroResult {
                 for (Object s : avroMap.keySet()) {
                     assertMatch((Record) recordMap.get(s.toString()), (GenericRecord) avroMap.get(s));
                 }
-            } else if (recordValue instanceof Record) {
-                assertMatch((Record) recordValue, (GenericRecord) avroValue);
+            } else if (recordValue instanceof final Record recordObj) {
+                assertMatch(recordObj, (GenericRecord) avroValue);
             } else {
                 assertEquals(recordValue, avroValue,
                         fieldName + " not equal");

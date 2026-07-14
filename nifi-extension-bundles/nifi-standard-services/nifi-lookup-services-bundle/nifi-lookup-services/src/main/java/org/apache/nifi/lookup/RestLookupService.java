@@ -455,8 +455,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
                     Record temp;
                     Object value = fieldValue.getValue();
-                    if (value instanceof Record) {
-                        temp = (Record) value;
+                    if (value instanceof final Record recordObj) {
+                        temp = recordObj;
                     } else if (value instanceof Map) {
                         temp = new MapRecord(schema, (Map<String, Object>) value);
                     } else {

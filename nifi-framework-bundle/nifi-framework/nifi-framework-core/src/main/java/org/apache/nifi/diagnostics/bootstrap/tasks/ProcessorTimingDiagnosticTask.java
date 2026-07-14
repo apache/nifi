@@ -19,7 +19,7 @@ package org.apache.nifi.diagnostics.bootstrap.tasks;
 
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.diagnostics.DiagnosticTask;
@@ -55,7 +55,7 @@ public class ProcessorTimingDiagnosticTask implements DiagnosticTask {
         final List<String> details = new ArrayList<>();
 
         final RepositoryStatusReport statusReport = eventRepo.reportTransferEvents(System.currentTimeMillis());
-        final Map<String, FlowFileEvent> eventsByComponentId = statusReport.getReportEntries();
+        final Map<String, ProcessSessionEvent> eventsByComponentId = statusReport.getReportEntries();
 
         final List<ProcessorTiming> timings = new ArrayList<>();
         eventsByComponentId.entrySet().stream()
@@ -150,7 +150,7 @@ public class ProcessorTimingDiagnosticTask implements DiagnosticTask {
         return secondsFormat.format(TimeUnit.NANOSECONDS.toSeconds(nanos)) + " (" + Math.min(100, ((int) (nanos * 100 / processingNanos))) + "%)";
     }
 
-    private ProcessorTiming getTiming(final String processorId, final FlowFileEvent flowFileEvent) {
+    private ProcessorTiming getTiming(final String processorId, final ProcessSessionEvent flowFileEvent) {
         final ProcessorNode processorNode = flowManager.getProcessorNode(processorId);
 
         // Processor may be null because the event may not be for a processor, or the processor may already have been removed.
@@ -167,9 +167,9 @@ public class ProcessorTimingDiagnosticTask implements DiagnosticTask {
         private final String name;
         private final String type;
         private final String groupName;
-        private final FlowFileEvent flowFileEvent;
+        private final ProcessSessionEvent flowFileEvent;
 
-        public ProcessorTiming(final ProcessorNode processor, final FlowFileEvent flowFileEvent) {
+        public ProcessorTiming(final ProcessorNode processor, final ProcessSessionEvent flowFileEvent) {
             this.id = processor.getIdentifier();
             this.name = processor.getName();
             this.type = processor.getComponentType();
@@ -222,7 +222,7 @@ public class ProcessorTimingDiagnosticTask implements DiagnosticTask {
         }
 
         public long getGarbageCollectionNanos() {
-            return TimeUnit.MILLISECONDS.toNanos(flowFileEvent.getGargeCollectionMillis());
+            return TimeUnit.MILLISECONDS.toNanos(flowFileEvent.getGarbageCollectionMillis());
         }
     }
 }

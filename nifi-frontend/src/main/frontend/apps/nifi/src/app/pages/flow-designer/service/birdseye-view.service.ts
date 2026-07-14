@@ -32,7 +32,7 @@ import { LabelManager } from './manager/label-manager.service';
 import { selectNavigationCollapsed } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
 import { CanvasUtils } from './canvas-utils.service';
-import { NiFiCommon } from '@nifi/shared';
+import { isFiniteInBound, isScaleInBound, MAX_ABS_TRANSLATE, NiFiCommon } from '@nifi/shared';
 import { ComponentEntityWithDimensions } from '../state/flow';
 
 @Injectable({
@@ -154,6 +154,17 @@ export class BirdseyeView {
     public refresh(): void {
         // do not refresh if the component is not initialized or navigation is collapsed
         if (!this.initialized || this.navigationCollapsed) {
+            return;
+        }
+
+        // Bail early when the current transform is degenerate: dividing by an out-of-range or
+        // near-zero k would produce Infinity in the downstream arithmetic and corrupt every
+        // birdseye coordinate. The next valid transformComplete dispatch will redraw.
+        if (
+            !isFiniteInBound(this.x, MAX_ABS_TRANSLATE) ||
+            !isFiniteInBound(this.y, MAX_ABS_TRANSLATE) ||
+            !isScaleInBound(this.k)
+        ) {
             return;
         }
 

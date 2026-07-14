@@ -214,6 +214,48 @@ public class TestStandardLoadBalanceProtocol {
     }
 
     @Test
+    public void testStrayVersionByteFromReusedSocketReadAsCompletionIndicator() throws IOException, IllegalClusterStateException {
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+
+        final PipedInputStream serverInput = new PipedInputStream();
+        final PipedOutputStream serverContentSource = new PipedOutputStream();
+        serverInput.connect(serverContentSource);
+
+        final ByteArrayOutputStream serverOutput = new ByteArrayOutputStream();
+
+        final Checksum checksum = new CRC32();
+        final OutputStream checkedOutput = new CheckedOutputStream(serverContentSource, checksum);
+        final DataOutputStream dos = new DataOutputStream(checkedOutput);
+        dos.writeUTF("unit-test-connection-id");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("uuid", "unit-test-id");
+
+        dos.write(CHECK_SPACE);
+        dos.write(MORE_FLOWFILES);
+        writeAttributes(attributes, dos);
+        writeContent("hello".getBytes(), dos);
+        dos.write(NO_MORE_FLOWFILES);
+        dos.writeLong(checksum.getValue());
+
+        // A transaction abandoned on a reused socket leaves the next transaction's leading protocol-version
+        // byte (1) where the server expects COMPLETE_TRANSACTION (0x23) or ABORT_TRANSACTION (0x24).
+        dos.write(1);
+        dos.flush();
+
+        final IOException thrown = assertThrows(IOException.class,
+                () -> protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1));
+        assertTrue(thrown.getMessage().contains("received a value of 1"), "Unexpected message: " + thrown.getMessage());
+
+        final byte[] serverResponse = serverOutput.toByteArray();
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
+        assertEquals(ABORT_TRANSACTION, serverResponse[serverResponse.length - 1]);
+
+        Mockito.verify(flowFileQueue, times(0)).receiveFromPeer(anyCollection());
+    }
+
+    @Test
     public void testMultipleFlowFiles() throws IOException {
         final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 

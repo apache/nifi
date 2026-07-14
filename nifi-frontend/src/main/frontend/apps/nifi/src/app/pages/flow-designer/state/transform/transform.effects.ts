@@ -20,7 +20,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as TransformActions from './transform.actions';
 import { map, of, switchMap, tap } from 'rxjs';
-import { Storage } from '@nifi/shared';
+import { isFiniteInBound, isScaleInBound, MAX_ABS_TRANSLATE, Storage } from '@nifi/shared';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
@@ -89,10 +89,19 @@ export class TransformEffects {
 
                         // ensure the item is valid
                         if (item) {
-                            if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
+                            if (
+                                isFiniteInBound(item.translateX, MAX_ABS_TRANSLATE) &&
+                                isFiniteInBound(item.translateY, MAX_ABS_TRANSLATE) &&
+                                isScaleInBound(item.scale)
+                            ) {
                                 // restore previous view
                                 this.canvasView.transform([item.translateX, item.translateY], item.scale);
                             } else {
+                                // The persisted entry contains an out-of-range value (e.g. a
+                                // catastrophic-finite ~9e307 that was written before this guard
+                                // existed). Evict it now so the page-refresh loop cannot replay
+                                // the corrupted transform on the next load.
+                                this.storage.removeItem(name);
                                 this.store.dispatch(TransformActions.zoomFit({ transition: false }));
                             }
                         } else {

@@ -17,19 +17,30 @@ e * Licensed to the Apache Software Foundation (ASF) under one or more
 
 package org.apache.nifi.controller.repository.metrics;
 
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class SecondPrecisionEventContainer implements EventContainer {
     private static final Logger logger = LoggerFactory.getLogger(SecondPrecisionEventContainer.class);
 
+    private static final ComponentMetricContext CONTAINER_CONTEXT = new ComponentMetricContext(
+            SecondPrecisionEventContainer.class.getSimpleName(),
+            SecondPrecisionEventContainer.class.getSimpleName(),
+            EventContainer.class.getSimpleName(),
+            Map.of()
+    );
+
     private final int numBins;
     private final EventSum[] sums;
     private final EventSumValue aggregateValue = new EventSumValue(0L);
     private final AtomicLong lastUpdateSecond = new AtomicLong(System.currentTimeMillis() / 1000L);
+
+    private volatile ComponentMetricContext componentMetricContext;
 
     public SecondPrecisionEventContainer(final int numMinutes) {
         // number of bins is number of seconds in 'numMinutes' plus 1. We add one because
@@ -44,11 +55,14 @@ public class SecondPrecisionEventContainer implements EventContainer {
     }
 
     @Override
-    public void addEvent(final FlowFileEvent event) {
+    public void addEvent(final ProcessSessionEvent event) {
         addEvent(event, System.currentTimeMillis());
     }
 
-    protected void addEvent(final FlowFileEvent event, final long timestamp) {
+    protected void addEvent(final ProcessSessionEvent event, final long timestamp) {
+        if (componentMetricContext == null) {
+            componentMetricContext = event.getComponentMetricContext();
+        }
         final long second = timestamp / 1000;
         final int binIdx = (int) (second % numBins);
         final EventSum sum = sums[binIdx];
@@ -109,17 +123,18 @@ public class SecondPrecisionEventContainer implements EventContainer {
     }
 
     @Override
-    public FlowFileEvent generateReport(final long now) {
+    public ProcessSessionEvent generateReport(final long now) {
         final long second = now / 1000 + 1;
         final long lastUpdate = lastUpdateSecond.get();
         final long secondsSinceUpdate = second - lastUpdate;
         if (secondsSinceUpdate > numBins) {
-            logger.debug("EventContainer hasn't been updated in {} seconds so will generate report as Empty FlowFile Event", secondsSinceUpdate);
-            return EmptyFlowFileEvent.INSTANCE;
+            logger.debug("EventContainer hasn't been updated in {} seconds so will generate report as empty Process Session Event", secondsSinceUpdate);
+            return ProcessSessionEventBuilder.empty();
         }
 
         logger.debug("Will expire up to {} bins", secondsSinceUpdate);
         processExpiredBuckets(second);
-        return aggregateValue.toFlowFileEvent();
+        final ComponentMetricContext context = componentMetricContext == null ? CONTAINER_CONTEXT : componentMetricContext;
+        return aggregateValue.toProcessSessionEvent(context);
     }
 }

@@ -204,8 +204,8 @@ public class TestPeerChannel {
 
     private int getLocalPort(final Channel serverChannel) {
         final SocketAddress address = serverChannel.localAddress();
-        if (address instanceof InetSocketAddress) {
-            return ((InetSocketAddress) address).getPort();
+        if (address instanceof final InetSocketAddress inetSocketAddress) {
+            return inetSocketAddress.getPort();
         }
         return 0;
     }

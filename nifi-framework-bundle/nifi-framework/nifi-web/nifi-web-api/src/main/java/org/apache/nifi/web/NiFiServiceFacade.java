@@ -891,7 +891,7 @@ public interface NiFiServiceFacade {
      *
      * @param groupId group
      * @param includeDescendants if processors from descendent groups should be included
-     * @return List of all the Processor transfer object
+     * @return Set of all the Processor transfer object
      */
     Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
 
@@ -3388,7 +3388,7 @@ public interface NiFiServiceFacade {
      * Get all dynamically defined data ingress ports provided by Listen Components (e.g., Processors and Controller Services)
      *
      * @param user the user performing the lookup
-     * @return the list of listen Ports accessible to the current user
+     * @return the Set of listen Ports accessible to the current user
      */
     Set<ListenPortDTO> getListenPorts(NiFiUser user);
 

@@ -33,9 +33,9 @@ public class EqualsFilter extends BinaryOperatorFilter {
             return rhsValue == null;
         }
 
-        if (lhsValue instanceof Number) {
-            if (rhsValue instanceof Number) {
-                return compareNumbers((Number) lhsValue, (Number) rhsValue);
+        if (lhsValue instanceof final Number lhsNumber) {
+            if (rhsValue instanceof final Number rhsNumber) {
+                return compareNumbers(lhsNumber, rhsNumber);
             } else {
                 return lhsValue.toString().equals(rhsValue.toString());
             }

@@ -36,7 +36,15 @@ import { Store } from '@ngrx/store';
 import { Observable, Subject, fromEvent } from 'rxjs';
 import { map, takeUntil, take, debounceTime } from 'rxjs/operators';
 import * as d3 from 'd3';
-import { ComponentType, NiFiCommon } from '@nifi/shared';
+import {
+    clampScale,
+    ComponentType,
+    isFiniteInBound,
+    isScaleInBound,
+    MAX_ABS_COORD,
+    MAX_ABS_TRANSLATE,
+    NiFiCommon
+} from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../state/shared';
 import { NiFiState } from '../../../state';
 import {
@@ -160,7 +168,12 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                         'translateY' in parsed
                       ? (parsed as StorageTransform)
                       : null;
-            if (!item || !isFinite(item.scale) || !isFinite(item.translateX) || !isFinite(item.translateY)) {
+            if (
+                !item ||
+                !isFiniteInBound(item.translateX, MAX_ABS_TRANSLATE) ||
+                !isFiniteInBound(item.translateY, MAX_ABS_TRANSLATE) ||
+                !isScaleInBound(item.scale)
+            ) {
                 return null;
             }
             return item;
@@ -931,10 +944,17 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         const transform = this.getTransform();
-        return {
-            x: (screenPosition.x - rect.left - transform.translate.x) / transform.scale,
-            y: (screenPosition.y - rect.top - transform.translate.y) / transform.scale
-        };
+        const x = (screenPosition.x - rect.left - transform.translate.x) / transform.scale;
+        const y = (screenPosition.y - rect.top - transform.translate.y) / transform.scale;
+
+        // Reject coordinates produced by a corrupted transform (e.g. near-zero scale that
+        // causes division overflow) before they can be used to create a POST request that
+        // re-poisons the backend with an out-of-range position.
+        if (!isFiniteInBound(x, MAX_ABS_COORD) || !isFiniteInBound(y, MAX_ABS_COORD)) {
+            return null;
+        }
+
+        return { x, y };
     }
 
     /**
@@ -1202,6 +1222,19 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             .on('zoom', (event) => {
                 // Guard against events firing after component destruction
                 if (this.destroyed) {
+                    return;
+                }
+
+                // All-or-nothing magnitude+scale guard: reject the entire event when any
+                // component is degenerate. Using all-or-nothing here (unlike the per-axis
+                // partial-commit in flow-designer's CanvasView) because the reusable canvas
+                // emits a single {translate, scale} event and partial-commit semantics would
+                // silently desync the emitted state from the rendered SVG transform.
+                if (
+                    !isFiniteInBound(event.transform.x, MAX_ABS_TRANSLATE) ||
+                    !isFiniteInBound(event.transform.y, MAX_ABS_TRANSLATE) ||
+                    !isScaleInBound(event.transform.k)
+                ) {
                     return;
                 }
 
@@ -2437,11 +2470,14 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             const name: string = CanvasComponent.VIEW_PREFIX + processGroupId;
             const item: StorageTransform | null = CanvasComponent.readViewportTransform(name);
 
-            if (item && isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
+            if (item) {
                 // Restore previous viewport position
                 this.applyTransform(item.translateX, item.translateY, item.scale, false);
             } else {
-                // No valid stored viewport - zoom to fit
+                // Either no entry exists, or it failed magnitude/range/expiry validation (e.g. a
+                // catastrophic-finite ~9e307 written before this guard existed). Evict it so the
+                // page-refresh loop cannot replay corrupted data (removeItem is a no-op if absent).
+                localStorage.removeItem(name);
                 this.fitContent(false);
             }
         } catch (_e) {
@@ -2536,8 +2572,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             // Content is larger than viewport - scale down to fit
             newScale = Math.min(canvasWidth / graphWidth, canvasHeight / graphHeight);
 
-            // Clamp scale within D3 zoom scaleExtent [0.2, 8]
-            newScale = Math.min(Math.max(newScale, 0.2), 8);
+            // clampScale handles NaN (from 0/0 when graph is zero-size) and out-of-range values
+            newScale = clampScale(newScale);
         } else {
             // Content fits within viewport at 1:1 - use scale 1
             newScale = 1;
@@ -2559,6 +2595,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         if (!this.zoom || !this.svg) {
             return;
         }
+
+        // Last-line-of-defense magnitude guard: reject degenerate inputs from any of the
+        // many internal callers (fitContent, restoreViewportFromStorage, centerOnComponent,
+        // etc.) before they can write a corrupted value into d3's internal zoom state.
+        if (
+            !isFiniteInBound(x, MAX_ABS_TRANSLATE) ||
+            !isFiniteInBound(y, MAX_ABS_TRANSLATE) ||
+            !isScaleInBound(scale)
+        ) {
+            return;
+        }
+
         // Set flag to allow zoom.end to process and persist viewport
         // (We want to persist programmatic transforms like centerOnComponent)
         this.isSettingInitialTransform = false;
