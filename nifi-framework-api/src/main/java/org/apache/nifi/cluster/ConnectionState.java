@@ -62,5 +62,5 @@ public enum ConnectionState {
     /**
      * The state is not currently known
      */
-    UNKNOWN;
+    UNKNOWN
 }

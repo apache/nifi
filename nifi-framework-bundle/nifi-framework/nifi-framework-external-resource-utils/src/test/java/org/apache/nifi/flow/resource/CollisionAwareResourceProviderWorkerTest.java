@@ -269,7 +269,7 @@ public class CollisionAwareResourceProviderWorkerTest {
 
         try (
             final FileOutputStream fileOutputStream = new FileOutputStream(file);
-            final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+            final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)
         ) {
             bufferedOutputStream.write(content.getBytes(StandardCharsets.UTF_8));
         }

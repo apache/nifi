@@ -22,5 +22,5 @@ package org.apache.nifi.ldap;
 public enum IdentityStrategy {
 
     USE_DN,
-    USE_USERNAME;
+    USE_USERNAME
 }

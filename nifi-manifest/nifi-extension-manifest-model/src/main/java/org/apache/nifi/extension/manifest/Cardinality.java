@@ -26,6 +26,6 @@ public enum Cardinality {
     /**
      * One or more resources may be supplied, as a comma-separated list
      */
-    MULTIPLE;
+    MULTIPLE
 
 }

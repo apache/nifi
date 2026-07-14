@@ -30,7 +30,7 @@ public interface ViewableContent {
 
         Original,
         Formatted,
-        Hex;
+        Hex
     }
 
     /**

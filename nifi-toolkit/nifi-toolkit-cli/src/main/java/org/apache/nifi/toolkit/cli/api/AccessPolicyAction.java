@@ -19,6 +19,6 @@ package org.apache.nifi.toolkit.cli.api;
 public enum AccessPolicyAction {
 
     READ,
-    WRITE;
+    WRITE
 
 }

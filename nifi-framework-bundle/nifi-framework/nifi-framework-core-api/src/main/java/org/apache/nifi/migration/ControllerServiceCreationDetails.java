@@ -27,6 +27,6 @@ public record ControllerServiceCreationDetails(String serviceIdentifier, String 
     enum CreationState {
         SERVICE_ALREADY_EXISTS,
 
-        SERVICE_TO_BE_CREATED;
+        SERVICE_TO_BE_CREATED
     }
 }

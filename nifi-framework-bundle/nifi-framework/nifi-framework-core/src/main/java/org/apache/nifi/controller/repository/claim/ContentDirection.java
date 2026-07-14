@@ -28,5 +28,5 @@ public enum ContentDirection {
     /**
      * Indicates the Content Claim that is the Output of the process that generated the Provenance Event.
      */
-    OUTPUT;
+    OUTPUT
 }

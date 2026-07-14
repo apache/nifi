@@ -47,6 +47,6 @@ public interface ProvenanceClient {
 
     enum ReplayEventNodes {
         PRIMARY,
-        ALL;
+        ALL
     }
 }

@@ -28,5 +28,5 @@ public enum BundleUpdateStrategy {
 
     USE_SPECIFIED_OR_GHOST,
 
-    USE_SPECIFIED_OR_FAIL;
+    USE_SPECIFIED_OR_FAIL
 }

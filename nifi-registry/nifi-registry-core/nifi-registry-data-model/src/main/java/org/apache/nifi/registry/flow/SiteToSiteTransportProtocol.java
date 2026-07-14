@@ -19,5 +19,5 @@ package org.apache.nifi.registry.flow;
 
 public enum SiteToSiteTransportProtocol {
     RAW,
-    HTTP;
+    HTTP
 }

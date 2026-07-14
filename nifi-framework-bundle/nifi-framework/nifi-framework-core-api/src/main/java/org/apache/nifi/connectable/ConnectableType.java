@@ -43,5 +43,5 @@ public enum ConnectableType {
 
     FUNNEL,
 
-    STATELESS_GROUP;
+    STATELESS_GROUP
 }
