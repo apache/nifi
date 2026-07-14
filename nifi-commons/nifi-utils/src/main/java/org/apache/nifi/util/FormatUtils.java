@@ -32,7 +32,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
-import java.time.temporal.TemporalUnit;
+import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -304,7 +304,17 @@ public class FormatUtils {
         return offsetDateTime.toInstant();
     }
 
-    public static String formatDurationToWords(long value, ChronoUnit unit) {
+    /**
+     * Format a value of ChronoUnit into a word representation.
+     * Does not handle estimated ChronoUnit values.
+     * For anything greater than {@link ChronoUnit#DAYS}, use {@link #formatDurationToWords(Duration)}.
+     *
+     * @param value the number of the given {@link ChronoUnit} to measure
+     * @param unit {@link ChronoUnit} that the value represents
+     * @return String representation of the given value and unit
+     * @throws UnsupportedTemporalTypeException if the unit is not supported ({@link ChronoUnit#isDurationEstimated()} == true)
+     */
+    public static String formatDurationToWords(long value, ChronoUnit unit) throws UnsupportedTemporalTypeException {
         return formatDurationToWords(Duration.ZERO.plus(value, unit));
     }
 
@@ -337,7 +347,7 @@ public class FormatUtils {
         if (seconds > 0 || !parts.isEmpty()) {
             parts.add(seconds + (seconds == 1 ? " second" : " seconds"));
         }
-        if(nanos > 0 || !parts.isEmpty()) {
+        if (nanos > 0 || !parts.isEmpty()) {
             parts.add(nanos + " ns");
         }
 
