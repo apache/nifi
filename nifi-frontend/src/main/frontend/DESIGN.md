@@ -1,3 +1,6 @@
+# Regenerate when the NiFi color palette or component theming changes.
+# Color values sourced from libs/shared/src/assets/themes/material.scss.
+# Structural values (component radii) from libs/shared/src/assets/themes/components/_*.scss.
 ---
 name: Apache NiFi
 description: >
