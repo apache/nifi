@@ -2831,7 +2831,7 @@ public class TestRecordPath {
             @Test
             public void supportsNull() {
                 final FieldValue fieldValue = evaluateSingleFieldValue("toNumber(/notAField)", record);
-                assertEquals(null, fieldValue.getValue());
+                assertNull(fieldValue.getValue());
             }
             @Test
             public void throwsExceptionOnUnsupportedType() {

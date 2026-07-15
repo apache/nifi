@@ -56,6 +56,7 @@ import static org.apache.nifi.processors.snowflake.GetSnowflakeIngestStatus.REL_
 import static org.apache.nifi.processors.snowflake.GetSnowflakeIngestStatus.REL_RETRY;
 import static org.apache.nifi.processors.snowflake.GetSnowflakeIngestStatus.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -206,7 +207,7 @@ class SnowflakeIngestIT {
             assertTrue(resultSet.next(), "Expected row in test table");
             assertEquals(1, resultSet.getInt("ID"));
             assertEquals("foo", resultSet.getString("VALUE"));
-            assertTrue(!resultSet.next(), "Unexpected additional rows in test table");
+            assertFalse(resultSet.next(), "Unexpected additional rows in test table");
         }
     }
 
