@@ -37,8 +37,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AmazonMSKConnectionServiceTest {
 
@@ -114,7 +114,7 @@ class AmazonMSKConnectionServiceTest {
         final Object provider = properties.get(AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty());
 
         assertNotNull(provider);
-        assertTrue(provider instanceof AwsCredentialsProvider);
+        assertInstanceOf(AwsCredentialsProvider.class, provider);
     }
 
     private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
