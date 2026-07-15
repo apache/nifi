@@ -22,6 +22,8 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.PropertyProtectionType;
+import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -1000,5 +1002,43 @@ public class DtoFactoryTest {
         when(context.getIdentifier()).thenReturn(id);
         when(context.getName()).thenReturn(name);
         when(context.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
+    }
+
+    @Test
+    public void testCreateSecretDtoReturnsNullForNullSecret() {
+        final DtoFactory dtoFactory = new DtoFactory();
+        assertNull(dtoFactory.createSecretDto(null));
+    }
+
+    @Test
+    public void testCreateSecretDtoMapsRestrictedProtectionType() {
+        final DtoFactory dtoFactory = new DtoFactory();
+        final Secret secret = mock(Secret.class);
+        when(secret.getPropertyProtectionType()).thenReturn(PropertyProtectionType.RESTRICTED);
+
+        final SecretDTO dto = dtoFactory.createSecretDto(secret);
+        assertNotNull(dto);
+        assertEquals("RESTRICTED", dto.getPropertyProtectionType());
+    }
+
+    @Test
+    public void testCreateSecretDtoMapsUnrestrictedProtectionType() {
+        final DtoFactory dtoFactory = new DtoFactory();
+        final Secret secret = mock(Secret.class);
+        when(secret.getPropertyProtectionType()).thenReturn(PropertyProtectionType.UNRESTRICTED);
+
+        final SecretDTO dto = dtoFactory.createSecretDto(secret);
+        assertEquals("UNRESTRICTED", dto.getPropertyProtectionType());
+    }
+
+    @Test
+    public void testCreateSecretDtoLeavesProtectionTypeNullWhenSecretReturnsNull() {
+        final DtoFactory dtoFactory = new DtoFactory();
+        final Secret secret = mock(Secret.class);
+        when(secret.getPropertyProtectionType()).thenReturn(null);
+
+        final SecretDTO dto = dtoFactory.createSecretDto(secret);
+        assertNotNull(dto);
+        assertNull(dto.getPropertyProtectionType());
     }
 }

@@ -31,6 +31,7 @@ public class SecretDTO {
     private String name;
     private String fullyQualifiedName;
     private String description;
+    private String propertyProtectionType;
 
     @Schema(description = "The identifier of the secret provider that manages this secret.")
     public String getProviderId() {
@@ -84,6 +85,15 @@ public class SecretDTO {
 
     public void setDescription(final String description) {
         this.description = description;
+    }
+
+    @Schema(description = "Whether the secret may be referenced only by sensitive properties (RESTRICTED) or by any property (UNRESTRICTED).")
+    public String getPropertyProtectionType() {
+        return propertyProtectionType;
+    }
+
+    public void setPropertyProtectionType(final String propertyProtectionType) {
+        this.propertyProtectionType = propertyProtectionType;
     }
 }
 
