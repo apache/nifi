@@ -101,7 +101,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class,
-        CopyAzureBlobStorage_v12.class, GetAzureBlobStorageMetadata.class, GetAzureBlobStorageTags.class})
+        CopyAzureBlobStorage_v12.class, FetchAzureBlobStorageMetadata.class, FetchAzureBlobStorageTags.class})
 @CapabilityDescription("Puts content into a blob on Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the blob",
         value = "The value of a User-Defined Metadata field to add to the blob",
@@ -124,9 +124,11 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
 
     public static final PropertyDescriptor BLOB_TAG_PREFIX = new PropertyDescriptor.Builder()
             .name("Blob Tag Prefix")
-            .description("Specifies the prefix which would be scanned against the incoming FlowFile's attributes and the matching attribute's " +
-                    "name and value would be considered as the outgoing Azure blob's Tag name and Tag value respectively. For Ex: If the " +
-                    "incoming FlowFile carries the attributes tagAzurecountry, tagAzurePII, the tag prefix to be specified would be 'tagAzure'")
+            .description("""
+                    Specifies the prefix which would be scanned against the incoming FlowFile's attributes and the matching attribute's
+                    name and value would be considered as the outgoing Azure blob's Tag name and Tag value respectively. For Ex: If the
+                    incoming FlowFile carries the attributes tagAzurecountry, tagAzurePII, the tag prefix to be specified would be 'tagAzure'.
+                    """)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -134,9 +136,11 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
 
     public static final PropertyDescriptor REMOVE_TAG_PREFIX = new PropertyDescriptor.Builder()
             .name("Remove Tag Prefix")
-            .description("If set to 'True', the value provided for '" + BLOB_TAG_PREFIX.getDisplayName() + "' will be removed from " +
-                    "the attribute(s) and then considered as the Tag name. For ex: If the incoming FlowFile carries the attributes tagAzurecountry, " +
-                    "tagAzurePII and the prefix is set to 'tagAzure' then the corresponding tag values would be 'country' and 'PII'")
+            .description("""
+                    If set to 'True', the value provided for '%s' will be removed from
+                    the attribute(s) and then considered as the Tag name. For ex: If the incoming FlowFile carries the attributes tagAzurecountry,
+                    tagAzurePII and the prefix is set to 'tagAzure' then the corresponding tag names would be 'country' and 'PII'.
+                    """.formatted(BLOB_TAG_PREFIX.getDisplayName()))
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
             .defaultValue("false")
             .build();

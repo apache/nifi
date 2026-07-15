@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestGetAzureBlobStorageTags {
+public class TestFetchAzureBlobStorageTags {
 
     private static final String CONTAINER_NAME = "test-container";
     private static final String BLOB_NAME = "test-blob";
@@ -61,7 +61,7 @@ public class TestGetAzureBlobStorageTags {
         when(storageClient.getBlobContainerClient(CONTAINER_NAME)).thenReturn(containerClient);
         when(containerClient.getBlobClient(BLOB_NAME)).thenReturn(blobClient);
 
-        final GetAzureBlobStorageTags processor = new GetAzureBlobStorageTags() {
+        final FetchAzureBlobStorageTags processor = new FetchAzureBlobStorageTags() {
             @Override
             protected BlobServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
                 return storageClient;
@@ -76,8 +76,8 @@ public class TestGetAzureBlobStorageTags {
         };
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.CONTAINER, CONTAINER_NAME);
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.BLOB_NAME, BLOB_NAME);
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.CONTAINER, CONTAINER_NAME);
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.BLOB_NAME, BLOB_NAME);
     }
 
     @Test
@@ -93,10 +93,10 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
 
         assertEquals("production", flowFile.getAttribute("azure.tag.environment"));
         assertEquals("engineering", flowFile.getAttribute("azure.tag.department"));
@@ -111,10 +111,10 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
 
         flowFile.getAttributes().forEach((key, value) ->
             assertFalse(key.startsWith("azure.tag."),
@@ -131,7 +131,7 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_NOT_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_NOT_FOUND, 1);
     }
 
     @Test
@@ -143,18 +143,18 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FAILURE, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FAILURE, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FAILURE).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FAILURE).getFirst();
         assertTrue(flowFile.isPenalized(), "FlowFile should be penalized on failure");
     }
 
     @Test
     void testContainerAndBlobNameFromFlowFileAttributes() {
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.CONTAINER,
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.CONTAINER,
                 "${azure.container}");
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.BLOB_NAME,
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.BLOB_NAME,
                 "${azure.blobname}");
 
         final String dynamicContainer = "dynamic-container";
@@ -175,10 +175,10 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
         assertEquals("us-east", flowFile.getAttribute("azure.tag.region"));
     }
 
@@ -190,7 +190,7 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final ProvenanceEventRecord modifyEvent = runner.getProvenanceEvents().stream()
                 .filter(e -> e.getEventType() == ProvenanceEventType.ATTRIBUTES_MODIFIED)
@@ -207,10 +207,10 @@ public class TestGetAzureBlobStorageTags {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
         assertEquals("myValue", flowFile.getAttribute("azure.tag.myKey"));
     }
 
@@ -225,7 +225,7 @@ public class TestGetAzureBlobStorageTags {
         runner.run(2);
 
         assertEquals(2, runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).size());
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).size());
     }
 
     private static BlobStorageException mockBlobStorageException(BlobErrorCode errorCode) {

@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestGetAzureBlobStorageMetadata {
+public class TestFetchAzureBlobStorageMetadata {
 
     private static final String CONTAINER_NAME = "test-container";
     private static final String BLOB_NAME = "test-blob";
@@ -67,7 +67,7 @@ public class TestGetAzureBlobStorageMetadata {
         when(containerClient.getBlobClient(BLOB_NAME)).thenReturn(blobClient);
         when(blobClient.getProperties()).thenReturn(blobProperties);
 
-        final GetAzureBlobStorageMetadata processor = new GetAzureBlobStorageMetadata() {
+        final FetchAzureBlobStorageMetadata processor = new FetchAzureBlobStorageMetadata() {
             @Override
             protected BlobServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
                 return storageClient;
@@ -82,8 +82,8 @@ public class TestGetAzureBlobStorageMetadata {
         };
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.CONTAINER, CONTAINER_NAME);
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.BLOB_NAME, BLOB_NAME);
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.CONTAINER, CONTAINER_NAME);
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.BLOB_NAME, BLOB_NAME);
     }
 
     @Test
@@ -99,10 +99,10 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
 
         assertEquals("jane-doe", flowFile.getAttribute("azure.user.metadata.author"));
         assertEquals("erp", flowFile.getAttribute("azure.user.metadata.source-system"));
@@ -117,10 +117,10 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
 
         flowFile.getAttributes().forEach((key, value) ->
             assertFalse(key.startsWith("azure.user.metadata."),
@@ -137,7 +137,7 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_NOT_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_NOT_FOUND, 1);
     }
 
     @Test
@@ -149,18 +149,18 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FAILURE, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FAILURE, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FAILURE).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FAILURE).getFirst();
         assertTrue(flowFile.isPenalized(), "FlowFile should be penalized on failure");
     }
 
     @Test
     void testContainerAndBlobNameFromFlowFileAttributes() {
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.CONTAINER,
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.CONTAINER,
                 "${azure.container}");
-        runner.setProperty(AbstractGetAzureBlobStoragePropertiesProcessor.BLOB_NAME,
+        runner.setProperty(AbstractFetchAzureBlobStoragePropertiesProcessor.BLOB_NAME,
                 "${azure.blobname}");
 
         final String dynamicContainer = "other-container";
@@ -184,10 +184,10 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
         assertEquals("external", flowFile.getAttribute("azure.user.metadata.origin"));
     }
 
@@ -199,7 +199,7 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final ProvenanceEventRecord modifyEvent = runner.getProvenanceEvents().stream()
                 .filter(e -> e.getEventType() == ProvenanceEventType.ATTRIBUTES_MODIFIED)
@@ -216,10 +216,10 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
         assertEquals("customValue", flowFile.getAttribute("azure.user.metadata.customKey"));
         assertNull(flowFile.getAttribute("customKey"),
                 "Raw key should not appear without prefix");
@@ -236,7 +236,7 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run(2);
 
         assertEquals(2, runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).size());
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).size());
     }
 
     @Test
@@ -251,10 +251,10 @@ public class TestGetAzureBlobStorageMetadata {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(
-                AbstractGetAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
+                AbstractFetchAzureBlobStoragePropertiesProcessor.REL_FOUND).getFirst();
 
         for (int i = 0; i < 20; i++) {
             assertEquals("value" + i,

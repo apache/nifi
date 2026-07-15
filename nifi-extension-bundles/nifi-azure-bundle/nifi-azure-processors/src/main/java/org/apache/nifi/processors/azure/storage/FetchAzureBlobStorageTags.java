@@ -30,11 +30,11 @@ import java.util.Optional;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class,
-        CopyAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class, GetAzureBlobStorageMetadata.class})
+        CopyAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class, FetchAzureBlobStorageMetadata.class})
 @CapabilityDescription("Retrieves tags from the specified blob from Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({@WritesAttribute(attribute = "azure.tag.<tag-key>", description = "The value of the retrieved tag")})
-public class GetAzureBlobStorageTags extends AbstractGetAzureBlobStoragePropertiesProcessor {
+public class FetchAzureBlobStorageTags extends AbstractFetchAzureBlobStoragePropertiesProcessor {
 
     private static final String ATTRIBUTE_PREFIX = "azure.tag.%s";
 
