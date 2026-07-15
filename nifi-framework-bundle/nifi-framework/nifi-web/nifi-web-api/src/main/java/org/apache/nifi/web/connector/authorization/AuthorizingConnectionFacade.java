@@ -65,14 +65,6 @@ public class AuthorizingConnectionFacade implements ConnectionFacade {
         return delegate.dropFlowFiles(predicate);
     }
 
-    // Placeholder for the queue-snapshot API added in nifi-api 2.10.0. Real backlog/queue reporting is delivered by
-    // separate, parallel work; remove this override when rebasing onto that change.
-    @Override
-    public QueueSnapshot getQueueSnapshot() {
-        authContext.authorizeRead();
-        return delegate.getQueueSnapshot();
-    }
-
     @Override
     public QueueSnapshot getQueueSnapshot() {
         authContext.authorizeRead();
