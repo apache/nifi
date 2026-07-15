@@ -176,10 +176,42 @@ public class StandardFrameworkConnectorMigrationContext implements FrameworkConn
         }
     }
 
+    @Override
+    public void setValueReference(final String stepName, final String propertyName, final ConnectorValueReference valueReference) {
+        requireConfigurationPhase("setValueReference");
+        Objects.requireNonNull(stepName, "Configuration step name is required");
+        Objects.requireNonNull(propertyName, "Property name is required");
+
+        // A HashMap is used rather than Map.of(...) because the value reference may be null, signalling that the
+        // property should be removed, and Map.of(...) rejects null values.
+        final Map<String, ConnectorValueReference> singlePropertyValue = new HashMap<>();
+        singlePropertyValue.put(propertyName, valueReference);
+        synchronized (stagingLock) {
+            workingConfiguration.setProperties(stepName, new StepConfiguration(singlePropertyValue));
+        }
+    }
+
+    @Override
+    public void setValueReferences(final String stepName, final Map<String, ConnectorValueReference> valueReferences) {
+        requireConfigurationPhase("setValueReferences");
+        Objects.requireNonNull(stepName, "Configuration step name is required");
+        Objects.requireNonNull(valueReferences, "Value references are required");
+
+        // Merge the requested value references onto the step just as setProperties(...) merges string literal values,
+        // so references the connector does not mention are preserved. A null reference removes that property.
+        synchronized (stagingLock) {
+            workingConfiguration.setProperties(stepName, new StepConfiguration(new HashMap<>(valueReferences)));
+        }
+    }
+
     private static StepConfiguration toStepConfiguration(final Map<String, String> propertyValues) {
         final Map<String, ConnectorValueReference> converted = new HashMap<>();
         for (final Map.Entry<String, String> entry : propertyValues.entrySet()) {
-            converted.put(entry.getKey(), new StringLiteralValue(entry.getValue()));
+            // A null property value is carried through as a null value reference so the working configuration removes
+            // the property, honoring the "null value removes the property" contract of setProperties(...) and
+            // replaceProperties(...).
+            final String propertyValue = entry.getValue();
+            converted.put(entry.getKey(), propertyValue == null ? null : new StringLiteralValue(propertyValue));
         }
         return new StepConfiguration(converted);
     }

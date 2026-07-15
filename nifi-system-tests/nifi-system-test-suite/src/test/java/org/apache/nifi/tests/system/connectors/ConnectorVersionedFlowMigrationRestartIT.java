@@ -27,6 +27,7 @@ import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -56,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       migration attempt must be rejected by the framework with the same diagnostic.</li>
  * </ul>
  */
-public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersionedFlowMigrationLocalIT {
+public class ConnectorVersionedFlowMigrationRestartIT extends AbstractConnectorVersionedFlowMigrationIT {
 
     private static final String MIGRATE_ACTION_NAME = "MIGRATE";
 
@@ -95,10 +96,10 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
     @Test
     public void testMigrateActionDisallowedAfterConnectorFlowIsModified() throws Exception {
         final File outputFile = new File("target/migration/modified-after-migration.txt");
-        outputFile.delete();
+        deleteFile(outputFile);
 
         final FlowRegistryClientEntity registryClient = registerClient();
-        final SourceFixture sourceFixture = createSourceFixture("ModifiedAfterMigrationSource", registryClient, true, outputFile, true);
+        final SourceFixture sourceFixture = createSourceFixture(MIGRATABLE_FLOW_NAME, registryClient, true, outputFile, true);
         prepareSourceForMigration(sourceFixture, outputFile);
 
         final ConnectorEntity connector = getClientUtil().createConnector("MigrationTargetConnector");
@@ -134,10 +135,10 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
     @Test
     public void testMigrateActionStaysDisallowedAfterMigrationAndAcrossRestart() throws Exception {
         final File outputFile = new File("target/migration/modified-after-restart.txt");
-        outputFile.delete();
+        deleteFile(outputFile);
 
         final FlowRegistryClientEntity registryClient = registerClient();
-        final SourceFixture sourceFixture = createSourceFixture("ModifiedAfterRestartSource", registryClient, true, outputFile, true);
+        final SourceFixture sourceFixture = createSourceFixture(MIGRATABLE_FLOW_NAME, registryClient, true, outputFile, true);
         prepareSourceForMigration(sourceFixture, outputFile);
 
         final ConnectorEntity connector = getClientUtil().createConnector("MigrationTargetConnector");
@@ -151,9 +152,9 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
         setupClient();
 
         // After restart the framework rebuilds the Connector from its persisted configuration. MigrationTargetConnector
-        // stores the migrated source flow in its configuration and rebuilds the managed Process Group from that
-        // configuration inside applyUpdate(...); the initial-flow check must therefore still report the Connector as
-        // modified and MIGRATE must remain disallowed.
+        // records the migrated flow's configuration as its own configuration properties and rebuilds the managed
+        // Process Group from those properties inside applyUpdate(...); the initial-flow check must therefore still
+        // report the Connector as modified and MIGRATE must remain disallowed.
         final ConnectorActionDTO migrateAfterRestart = findMigrateAction(getNifiClient().getConnectorClient().getConnector(connectorId));
         assertNotNull(migrateAfterRestart, "MIGRATE action must remain present after a restart");
         assertEquals(Boolean.FALSE, migrateAfterRestart.getAllowed(),
@@ -178,10 +179,10 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
     @Test
     public void testComponentStateAppliedByMigrateStateSurvivesRestart() throws Exception {
         final File outputFile = new File("target/migration/component-state-after-restart.txt");
-        outputFile.delete();
+        deleteFile(outputFile);
 
         final FlowRegistryClientEntity registryClient = registerClient();
-        final SourceFixture sourceFixture = createSourceFixture("ComponentStateRestartSource", registryClient, true, outputFile, true);
+        final SourceFixture sourceFixture = createSourceFixture(MIGRATABLE_FLOW_NAME, registryClient, true, outputFile, true);
         prepareSourceForMigration(sourceFixture, outputFile);
 
         final ConnectorEntity connector = getClientUtil().createConnector("MigrationTargetConnector");
@@ -217,7 +218,7 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
     @Test
     public void testStateMigrationFailureLeavesConfigurationUnchangedAcrossRestart() throws Exception {
         final File outputFile = new File("target/migration/state-failure-restart-output.txt");
-        outputFile.delete();
+        deleteFile(outputFile);
 
         final FlowRegistryClientEntity registryClient = registerClient();
         final SourceFixture sourceFixture = createSourceFixture("StateFailureSource", registryClient, true, outputFile, true);
@@ -246,6 +247,62 @@ public class ConnectorVersionedFlowMigrationRestartIT extends ConnectorVersioned
         // because the framework rolled the migration back before persisting the staged configuration change.
         assertNull(readMarkerPropertyValue(connectorId),
                 "Marker property must remain unset after a restart following a failed state migration");
+    }
+
+    @Test
+    public void testMigrationInterruptedByRestartLeavesConnectorFresh() throws Exception {
+        final File outputFile = new File("target/migration/failure-restart-output.txt");
+        deleteFile(outputFile);
+
+        final FlowRegistryClientEntity registryClient = registerClient();
+        final SourceFixture sourceFixture = createSourceFixture("FailureRestartSource", registryClient, false, outputFile, true);
+        prepareSourceForMigration(sourceFixture, outputFile);
+
+        final String sourceGroupId = sourceFixture.processGroup().getId();
+        final String originalName = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroupId).getComponent().getName();
+
+        final ConnectorEntity connector = getClientUtil().createConnector("FailingConfigurationMigrationConnector");
+        final String connectorId = connector.getId();
+        final MigrationRequestEntity requestEntity = getClientUtil().startMigrationFromLocalSource(connectorId, sourceGroupId);
+
+        Thread.sleep(1000L);
+        getNiFiInstance().stop();
+        getNiFiInstance().start(true);
+        setupClient();
+
+        waitFor(() -> {
+            try {
+                getNifiClient().getConnectorClient().getConnector(connectorId);
+                return true;
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+
+        assertThrows(NiFiClientException.class, () -> getNifiClient().getConnectorClient().getMigrationStatus(connectorId, requestEntity.getRequest().getRequestId()));
+
+        waitFor(() -> isConnectorFresh(connectorId));
+        assertConnectorFresh(connectorId);
+        assertSourceUntouched(sourceFixture, originalName);
+    }
+
+    private boolean isConnectorFresh(final String connectorId) {
+        try {
+            final ConnectorEntity connectorEntity = getNifiClient().getConnectorClient().getConnector(connectorId);
+            final String managedGroupId = connectorEntity.getComponent().getManagedProcessGroupId();
+            final ProcessGroupFlowEntity flowEntity = getNifiClient().getConnectorClient().getFlow(connectorId, managedGroupId);
+            if (flowEntity.getProcessGroupFlow().getFlow().getProcessors() != null && !flowEntity.getProcessGroupFlow().getFlow().getProcessors().isEmpty()) {
+                return false;
+            }
+            if (flowEntity.getProcessGroupFlow().getFlow().getConnections() != null && !flowEntity.getProcessGroupFlow().getFlow().getConnections().isEmpty()) {
+                return false;
+            }
+
+            return getNifiClient().getConnectorClient().getAssets(connectorId).getAssets() == null
+                    || getNifiClient().getConnectorClient().getAssets(connectorId).getAssets().isEmpty();
+        } catch (final Exception e) {
+            return false;
+        }
     }
 
     private String readMarkerPropertyValue(final String connectorId) throws Exception {

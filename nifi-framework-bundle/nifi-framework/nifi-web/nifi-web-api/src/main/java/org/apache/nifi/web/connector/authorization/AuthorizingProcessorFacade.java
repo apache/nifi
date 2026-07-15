@@ -100,6 +100,22 @@ public class AuthorizingProcessorFacade implements ProcessorFacade {
         return delegate.invokeConnectorMethod(methodName, arguments, returnType);
     }
 
+    // Placeholder for the backlog-reporting API added in nifi-api 2.10.0. Real backlog reporting is delivered by
+    // separate, parallel work; remove this override when rebasing onto that change.
+    @Override
+    public boolean reportsBacklog() {
+        authContext.authorizeRead();
+        return delegate.reportsBacklog();
+    }
+
+    // Placeholder for the backlog-reporting API added in nifi-api 2.10.0. Real backlog reporting is delivered by
+    // separate, parallel work; remove this override when rebasing onto that change.
+    @Override
+    public Optional<Backlog> getBacklog() throws BacklogReportingException {
+        authContext.authorizeRead();
+        return delegate.getBacklog();
+    }
+
     @Override
     public boolean reportsBacklog() {
         authContext.authorizeRead();

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,6 +173,72 @@ public class TestStandardFrameworkConnectorMigrationContext {
     }
 
     @Test
+    public void testSetValueReferenceMergesOntoWorkingConfiguration(@TempDir final Path tempDir) throws IOException {
+        final File assetFile = createAssetFile(tempDir, "asset-value");
+        final Asset asset = mockAsset("asset-1", "driver.jar", assetFile);
+        when(sourceAssetManager.getAsset("asset-1")).thenReturn(Optional.of(asset));
+
+        final StandardFrameworkConnectorMigrationContext context = createContext(true);
+        context.setProperties("Step One", Map.of("p1", "v1"));
+        context.setValueReference("Step One", "asset-prop", new AssetReference(Set.of("asset-1")));
+
+        final MutableConnectorConfigurationContext merged = context.getMergedConfiguration();
+        assertEquals("v1", merged.getProperty("Step One", "p1").getValue());
+        assertEquals(assetFile.getAbsolutePath(), merged.getProperty("Step One", "asset-prop").getValue());
+        assertEquals(Set.of("p1", "asset-prop"), merged.getPropertyNames("Step One"));
+
+        // A null value reference removes the property from the step while leaving the other properties intact.
+        context.setValueReference("Step One", "asset-prop", null);
+        assertNull(merged.getProperty("Step One", "asset-prop").getValue());
+        assertEquals("v1", merged.getProperty("Step One", "p1").getValue());
+        assertEquals(Set.of("p1"), merged.getPropertyNames("Step One"));
+    }
+
+    @Test
+    public void testNullValueRemovesPropertyFromStep() {
+        final StandardFrameworkConnectorMigrationContext context = createContext(true);
+
+        context.setProperties("Step", Map.of("keep", "keep-value", "drop", "drop-value"));
+
+        final MutableConnectorConfigurationContext merged = context.getMergedConfiguration();
+        assertEquals(Set.of("keep", "drop"), merged.getPropertyNames("Step"));
+
+        // A null value in the String-based setProperties removes the property rather than storing a null value.
+        final Map<String, String> stringUpdate = new HashMap<>();
+        stringUpdate.put("drop", null);
+        context.setProperties("Step", stringUpdate);
+        assertEquals(Set.of("keep"), merged.getPropertyNames("Step"));
+        assertNull(merged.getProperty("Step", "drop").getValue());
+
+        context.setValueReferences("Step", Map.of("keep2", new StringLiteralValue("v2")));
+        assertEquals(Set.of("keep", "keep2"), merged.getPropertyNames("Step"));
+
+        // A null value reference in setValueReferences likewise removes the property.
+        final Map<String, ConnectorValueReference> referenceUpdate = new HashMap<>();
+        referenceUpdate.put("keep2", null);
+        context.setValueReferences("Step", referenceUpdate);
+        assertEquals(Set.of("keep"), merged.getPropertyNames("Step"));
+    }
+
+    @Test
+    public void testSetValueReferencesMergesMultipleReferences(@TempDir final Path tempDir) throws IOException {
+        final File assetFile = createAssetFile(tempDir, "multi-asset");
+        final Asset asset = mockAsset("asset-2", "lib.jar", assetFile);
+        when(sourceAssetManager.getAsset("asset-2")).thenReturn(Optional.of(asset));
+
+        final StandardFrameworkConnectorMigrationContext context = createContext(true);
+        final Map<String, ConnectorValueReference> references = new HashMap<>();
+        references.put("literal-prop", new StringLiteralValue("literal-value"));
+        references.put("asset-prop", new AssetReference(Set.of("asset-2")));
+        context.setValueReferences("Step Two", references);
+
+        final MutableConnectorConfigurationContext merged = context.getMergedConfiguration();
+        assertEquals("literal-value", merged.getProperty("Step Two", "literal-prop").getValue());
+        assertEquals(assetFile.getAbsolutePath(), merged.getProperty("Step Two", "asset-prop").getValue());
+        assertEquals(Set.of("literal-prop", "asset-prop"), merged.getPropertyNames("Step Two"));
+    }
+
+    @Test
     public void testSetComponentStateBlockedInConfigurationPhase() {
         final StandardFrameworkConnectorMigrationContext context = createContext(true);
         final VersionedComponentState desiredState = new VersionedComponentState();
@@ -195,6 +262,14 @@ public class TestStandardFrameworkConnectorMigrationContext {
         final IllegalStateException replaceProps = assertThrows(IllegalStateException.class,
                 () -> context.replaceProperties("Step", Map.of("p", "v")));
         assertTrue(replaceProps.getMessage().contains("migrateConfiguration"), replaceProps.getMessage());
+
+        final IllegalStateException setValueRef = assertThrows(IllegalStateException.class,
+                () -> context.setValueReference("Step", "p", new StringLiteralValue("v")));
+        assertTrue(setValueRef.getMessage().contains("migrateConfiguration"), setValueRef.getMessage());
+
+        final IllegalStateException setValueRefs = assertThrows(IllegalStateException.class,
+                () -> context.setValueReferences("Step", Map.of("p", new StringLiteralValue("v"))));
+        assertTrue(setValueRefs.getMessage().contains("migrateConfiguration"), setValueRefs.getMessage());
     }
 
     @Test

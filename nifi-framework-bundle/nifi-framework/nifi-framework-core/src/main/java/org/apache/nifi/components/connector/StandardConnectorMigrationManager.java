@@ -22,6 +22,7 @@ import org.apache.nifi.components.connector.migration.MigratableConnector;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -657,6 +658,7 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
     private void disableAndRenameSourceProcessGroup(final ProcessGroup processGroup) {
         disableSourceProcessors(processGroup);
         disableSourceControllerServices(processGroup);
+        disableSourcePorts(processGroup);
 
         final String currentName = processGroup.getName();
         if (currentName != null && currentName.startsWith(MIGRATED_SOURCE_PREFIX)) {
@@ -701,6 +703,42 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
             flowController.getControllerServiceProvider().disableControllerServicesAsync(enabledServices);
         } catch (final Exception e) {
             logger.warn("Failed to disable controller services while finalizing migrated source Process Group {}", processGroup.getIdentifier(), e);
+        }
+    }
+
+    private void disableSourcePorts(final ProcessGroup processGroup) {
+        for (final Port inputPort : processGroup.findAllInputPorts()) {
+            if (inputPort.getScheduledState() == ScheduledState.DISABLED) {
+                continue;
+            }
+
+            final ProcessGroup parent = inputPort.getProcessGroup();
+            if (parent == null) {
+                continue;
+            }
+
+            try {
+                parent.disableInputPort(inputPort);
+            } catch (final Exception e) {
+                logger.warn("Failed to disable input port {} while finalizing migrated source Process Group {}", inputPort.getIdentifier(), processGroup.getIdentifier(), e);
+            }
+        }
+
+        for (final Port outputPort : processGroup.findAllOutputPorts()) {
+            if (outputPort.getScheduledState() == ScheduledState.DISABLED) {
+                continue;
+            }
+
+            final ProcessGroup parent = outputPort.getProcessGroup();
+            if (parent == null) {
+                continue;
+            }
+
+            try {
+                parent.disableOutputPort(outputPort);
+            } catch (final Exception e) {
+                logger.warn("Failed to disable output port {} while finalizing migrated source Process Group {}", outputPort.getIdentifier(), processGroup.getIdentifier(), e);
+            }
         }
     }
 

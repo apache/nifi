@@ -16,135 +16,179 @@
  */
 package org.apache.nifi.connectors.tests.system;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.connector.AbstractConnector;
 import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.ConfigurationStep;
+import org.apache.nifi.components.connector.ConnectorConfigurationContext;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorPropertyValue;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.PropertyType;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.components.ProcessGroupFacade;
+import org.apache.nifi.components.connector.components.ProcessorFacade;
 import org.apache.nifi.components.connector.migration.ConnectorMigrationContext;
 import org.apache.nifi.components.connector.migration.MigratableConnector;
+import org.apache.nifi.components.connector.util.VersionedFlowUtils;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponentState;
-import org.apache.nifi.flow.VersionedConfigurableExtension;
-import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
- * Test connector used to verify version-controlled flow migration into a Connector.
+ * Test connector used to verify migration of a version-controlled Process Group into a Connector.
+ *
+ * <p>
+ * The connector models one specific flow: a {@code GenerateFlowFile} source feeds a
+ * {@code StatefulCountProcessor}, which in turn feeds an {@code AssetReadingProcessor} that copies the bytes of a
+ * file-backed asset to an output file. The connector understands this exact flow, so migration is not a generic
+ * copy of arbitrary components: each configuration value, asset, and piece of component state is mapped from the
+ * source flow onto the specific component the connector rebuilds.
+ * </p>
  *
  * <h2>Persistence model</h2>
  *
  * <p>
- * The framework persists a Connector's <em>configuration</em> (the properties of its
- * {@link ConfigurationStep ConfigurationSteps}) to {@code flow.json.gz}. It does <strong>not</strong> persist the
- * managed Process Group that the Connector exposes through its {@link FlowContext}. On restart the framework
- * rehydrates the persisted configuration and calls {@link #applyUpdate(FlowContext, FlowContext)}; the Connector is
- * then responsible for rebuilding its managed Process Group from that configuration.
- *
- * <h2>Two-phase migration</h2>
- *
- * <p>
- * Migration runs in two phases driven by the framework:
+ * The framework persists a Connector's configuration (the properties of its {@link ConfigurationStep
+ * ConfigurationSteps}) to {@code flow.json.gz}. It does not persist the managed Process Group. On restart the
+ * framework rehydrates the configuration and calls {@link #applyUpdate(FlowContext, FlowContext)}, which rebuilds the
+ * managed Process Group from that configuration. The connector therefore stores everything it needs to rebuild the
+ * flow as ordinary configuration properties.
  * </p>
+ *
+ * <h2>Migration</h2>
+ *
  * <ol>
- *     <li>{@link #migrateConfiguration(ConnectorMigrationContext)} serializes the source flow to JSON and records it
- *         on this connector's configuration via
- *         {@link ConnectorMigrationContext#setProperties(String, java.util.Map) setProperties(...)}. The framework
- *         applies that recorded configuration to the working configuration and drives
- *         {@code applyUpdate(workingContext, activeContext)} so the managed Process Group is rebuilt from the
- *         merged configuration before phase 2 runs.</li>
- *     <li>{@link #migrateState(ConnectorMigrationContext)} walks the source flow's
- *         {@link VersionedConfigurableExtension} components and, for each one that carries a non-null
- *         {@link VersionedComponentState}, records it via
- *         {@link ConnectorMigrationContext#setComponentState(String, VersionedComponentState) setComponentState(...)}
- *         so the framework writes the state into the live {@code StateManager} of the corresponding managed
- *         component.</li>
+ *     <li>{@link #migrateConfiguration(ConnectorMigrationContext)} reads the source flow's {@code AssetReadingProcessor}
+ *         and {@code GenerateFlowFile} to determine the output file, the source file (or referenced asset), and the
+ *         generate schedule, and records them as this connector's configuration. When the source references an asset
+ *         and the migration is from a local Versioned Process Group, the asset is copied via
+ *         {@link ConnectorMigrationContext#copyAssetFromSource(String)} and the returned {@link AssetReference} is
+ *         recorded on the {@code Asset File} property.</li>
+ *     <li>{@link #migrateState(ConnectorMigrationContext)} copies the {@link VersionedComponentState} of the source
+ *         {@code GenerateFlowFile} and {@code StatefulCountProcessor} onto the matching managed components, located by
+ *         component name rather than by identifier.</li>
  * </ol>
- *
- * <p>
- * {@link #applyUpdate(FlowContext, FlowContext)} reads the persisted source-flow JSON back from the active
- * configuration and calls {@code getInitializationContext().updateFlow(activeFlowContext, migratedFlow)} to install
- * the managed Process Group. The same call path runs on every restart because the framework drives
- * {@code applyUpdate(...)} via {@code inheritConfiguration(...)} during flow load, so the migrated flow survives
- * restarts without the connector having to mirror anything outside its own configuration.
- * </p>
  */
 public class MigrationTargetConnector extends AbstractConnector implements MigratableConnector {
-    private static final String REQUIRED_PARAMETER_NAME = "Source Topic";
-    private static final String REQUIRED_PROCESSOR_TYPE = "org.apache.nifi.processors.tests.system.StatefulCountProcessor";
+    static final String EXPECTED_FLOW_NAME = "Asset Ingest Flow";
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    static final String STEP_NAME = "Flow Configuration";
 
-    /**
-     * Name of the configuration step that holds the persisted migration state. The step is intentionally present
-     * even before any migration occurs so the framework persists an entry for it and the connector can later add or
-     * replace its single property.
-     */
-    static final String MIGRATION_STATE_STEP_NAME = "Migration State";
-
-    /**
-     * Property used to persist the most recently migrated source flow as JSON. The property is set during
-     * {@link #migrateConfiguration(ConnectorMigrationContext)} via
-     * {@link ConnectorMigrationContext#setProperties(String, java.util.Map) setProperties(...)} and read by
-     * {@link #applyUpdate(FlowContext, FlowContext)} to rebuild the managed Process Group on every restart and right
-     * after migration.
-     */
-    static final ConnectorPropertyDescriptor MIGRATED_SOURCE_FLOW_PROPERTY = new ConnectorPropertyDescriptor.Builder()
-            .name("Migrated Source Flow JSON")
-            .description("Holds the JSON-serialized source flow that was applied during the most recent migration. "
-                    + "Used to rebuild the managed Process Group on restart, since the framework only persists configuration.")
+    static final ConnectorPropertyDescriptor ASSET_FILE = new ConnectorPropertyDescriptor.Builder()
+            .name("Asset File")
+            .description("The file-backed asset whose contents the flow reads. Set during migration when the source flow references an asset.")
+            .type(PropertyType.ASSET)
+            .required(false)
             .build();
 
-    private static final ConnectorPropertyGroup MIGRATION_STATE_PROPERTY_GROUP = new ConnectorPropertyGroup.Builder()
-            .name("Migration State")
-            .description("Internal state captured during migration so the migrated flow survives a restart.")
-            .addProperty(MIGRATED_SOURCE_FLOW_PROPERTY)
+    static final ConnectorPropertyDescriptor SOURCE_FILE = new ConnectorPropertyDescriptor.Builder()
+            .name("Source File")
+            .description("A literal path to the file whose contents the flow reads. Used when the source flow references a file by path rather than by asset.")
+            .type(PropertyType.STRING)
+            .required(false)
             .build();
 
-    private static final ConfigurationStep MIGRATION_STATE_STEP = new ConfigurationStep.Builder()
-            .name(MIGRATION_STATE_STEP_NAME)
-            .description("Holds state captured during migration. This step is updated by the Connector itself, not by the user.")
-            .propertyGroups(List.of(MIGRATION_STATE_PROPERTY_GROUP))
+    static final ConnectorPropertyDescriptor OUTPUT_FILE = new ConnectorPropertyDescriptor.Builder()
+            .name("Output File")
+            .description("The path where the flow writes the contents that were read.")
+            .type(PropertyType.STRING)
+            .required(true)
             .build();
+
+    static final ConnectorPropertyDescriptor GENERATE_SCHEDULE = new ConnectorPropertyDescriptor.Builder()
+            .name("Generate Schedule")
+            .description("The scheduling period of the GenerateFlowFile source processor.")
+            .type(PropertyType.STRING)
+            .required(true)
+            .defaultValue("10 sec")
+            .build();
+
+    private static final ConnectorPropertyGroup PROPERTY_GROUP = new ConnectorPropertyGroup.Builder()
+            .name(STEP_NAME)
+            .description("Configuration for the modeled asset-ingest flow.")
+            .properties(List.of(ASSET_FILE, SOURCE_FILE, OUTPUT_FILE, GENERATE_SCHEDULE))
+            .build();
+
+    private static final ConfigurationStep CONFIGURATION_STEP = new ConfigurationStep.Builder()
+            .name(STEP_NAME)
+            .description("Configuration for the modeled asset-ingest flow.")
+            .propertyGroups(List.of(PROPERTY_GROUP))
+            .build();
+
+    private static final Bundle SYSTEM_TEST_EXTENSIONS_BUNDLE = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "2.11.0-SNAPSHOT");
+
+    private static final String ROOT_GROUP_ID = "migration-target-root";
+    private static final String GENERATE_NAME = "GenerateFlowFile";
+    private static final String COUNT_NAME = "StatefulCountProcessor";
+    private static final String ASSET_READER_NAME = "AssetReadingProcessor";
+    private static final String PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
+    private static final String GENERATE_TYPE = PROCESSORS_PACKAGE + ".GenerateFlowFile";
+    private static final String COUNT_TYPE = PROCESSORS_PACKAGE + ".StatefulCountProcessor";
+    private static final String ASSET_READER_TYPE = PROCESSORS_PACKAGE + ".AssetReadingProcessor";
+    private static final String SOURCE_FILE_PROPERTY = "Source File";
+    private static final String OUTPUT_FILE_PROPERTY = "Output File";
+
+    // The modeled source flow references its asset through a Parameter Context parameter with this exact name. The
+    // connector understands the flow it is migrating, so it looks this parameter up by name rather than discovering
+    // parameter references generically.
+    private static final String SOURCE_ASSET_PARAMETER_NAME = "Asset File";
+
+    @Override
+    public List<ConfigurationStep> getConfigurationSteps() {
+        return List.of(CONFIGURATION_STEP);
+    }
 
     @Override
     public VersionedExternalFlow getInitialFlow() {
-        return emptyVersionedExternalFlow("Migration Target Flow");
+        return createEmptyFlow();
     }
 
     @Override
     public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
-        final VersionedExternalFlow migratedFlow = readPersistedMigratedFlow(activeFlowContext);
-        return migratedFlow == null ? getInitialFlow() : migratedFlow;
+        return buildFlow(activeFlowContext.getConfigurationContext());
+    }
+
+    @Override
+    public void applyUpdate(final FlowContext workingFlowContext, final FlowContext activeFlowContext) throws FlowUpdateException {
+        final VersionedExternalFlow flow = buildFlow(workingFlowContext.getConfigurationContext());
+        getInitializationContext().updateFlow(activeFlowContext, flow, BundleCompatibility.RESOLVE_BUNDLE);
+    }
+
+    @Override
+    protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+        final VersionedExternalFlow flow = buildFlow(workingContext.getConfigurationContext());
+        getInitializationContext().updateFlow(workingContext, flow, BundleCompatibility.RESOLVE_BUNDLE);
     }
 
     @Override
     public boolean isMigrationSupported(final ConnectorMigrationContext context) {
         final VersionedExternalFlow sourceFlow = context.getSourceFlow();
-        if (sourceFlow == null || sourceFlow.getFlowContents() == null) {
+        if (sourceFlow == null) {
             return false;
         }
 
-        return containsRequiredParameter(sourceFlow.getParameterContexts()) && containsRequiredProcessor(sourceFlow.getFlowContents());
+        final VersionedExternalFlowMetadata metadata = sourceFlow.getMetadata();
+        return metadata != null && EXPECTED_FLOW_NAME.equals(metadata.getFlowName());
     }
 
     @Override
@@ -154,216 +198,204 @@ public class MigrationTargetConnector extends AbstractConnector implements Migra
             throw new FlowUpdateException("A source flow is required for migration");
         }
 
-        rewriteReferencedAssets(sourceFlow, context);
+        final VersionedProcessor assetReader = VersionedFlowUtils.findProcessor(sourceFlow.getFlowContents(), processor -> ASSET_READER_TYPE.equals(processor.getType()))
+                .orElseThrow(() -> new FlowUpdateException("Source flow does not contain the expected " + ASSET_READER_NAME));
+        final VersionedProcessor generate = VersionedFlowUtils.findProcessor(sourceFlow.getFlowContents(), processor -> GENERATE_TYPE.equals(processor.getType()))
+                .orElseThrow(() -> new FlowUpdateException("Source flow does not contain the expected " + GENERATE_NAME));
 
-        // Serialize the source flow and record it as a property on this connector's configuration. The framework
-        // applies this change to the working configuration and then drives applyUpdate(workingContext,
-        // activeContext); applyUpdate(...) reads the persisted JSON and calls
-        // getInitializationContext().updateFlow(...) to install the managed Process Group. The same applyUpdate(...)
-        // path runs on every restart, so the migrated flow survives restarts without storing anything outside the
-        // connector's own configuration.
-        final String sourceFlowJson;
-        try {
-            sourceFlowJson = OBJECT_MAPPER.writeValueAsString(sourceFlow);
-        } catch (final JsonProcessingException e) {
-            throw new FlowUpdateException("Failed to serialize migrated source flow for persistence", e);
+        final Map<String, String> stringProperties = new HashMap<>();
+        final String outputFile = assetReader.getProperties().get(OUTPUT_FILE_PROPERTY);
+        if (outputFile != null) {
+            stringProperties.put(OUTPUT_FILE.getName(), outputFile);
         }
 
-        context.setProperties(MIGRATION_STATE_STEP_NAME, Map.of(MIGRATED_SOURCE_FLOW_PROPERTY.getName(), sourceFlowJson));
+        if (generate.getSchedulingPeriod() != null) {
+            stringProperties.put(GENERATE_SCHEDULE.getName(), generate.getSchedulingPeriod());
+        }
+
+        final AssetReference assetReference = copyReferencedAsset(sourceFlow, context);
+        if (assetReference == null) {
+            final String sourceFileValue = assetReader.getProperties().get(SOURCE_FILE_PROPERTY);
+            if (sourceFileValue != null) {
+                stringProperties.put(SOURCE_FILE.getName(), sourceFileValue);
+            }
+        } else {
+            context.setValueReferences(STEP_NAME, Map.of(ASSET_FILE.getName(), assetReference));
+        }
+
+        if (!stringProperties.isEmpty()) {
+            context.setProperties(STEP_NAME, stringProperties);
+        }
     }
 
     @Override
-    public void migrateState(final ConnectorMigrationContext context) throws FlowUpdateException {
-        // Walk the source flow's processors and controller services and record the StateManager state the framework
-        // should seed onto the corresponding managed component. The managed components were created when the
-        // framework drove applyUpdate(...) at the end of phase 1, so each source versioned identifier maps to a
-        // real component in the connector's managed Process Group at this point.
+    public void migrateState(final ConnectorMigrationContext context) {
         final VersionedExternalFlow sourceFlow = context.getSourceFlow();
         if (sourceFlow == null || sourceFlow.getFlowContents() == null) {
             return;
         }
-        recordComponentStates(sourceFlow.getFlowContents(), context);
-    }
 
-    @Override
-    protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        final ProcessGroupFacade managedGroup = context.getActiveFlowContext().getRootGroup();
+        copyComponentState(sourceFlow, managedGroup, GENERATE_NAME, context);
+        copyComponentState(sourceFlow, managedGroup, COUNT_NAME, context);
     }
 
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> propertyValueOverrides, final FlowContext flowContext) {
-        return List.of();
+        final ConnectorConfigurationContext configurationContext = flowContext.getConfigurationContext().createWithOverrides(stepName, propertyValueOverrides);
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        final String sourceFile = resolveSourceFile(configurationContext);
+        if (sourceFile == null || sourceFile.isBlank()) {
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Source File Readable")
+                    .outcome(Outcome.FAILED)
+                    .explanation("No Asset File or Source File is configured")
+                    .build());
+        } else {
+            final File file = new File(sourceFile);
+            final boolean readable = file.isFile() && file.canRead();
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Source File Readable")
+                    .outcome(readable ? Outcome.SUCCESSFUL : Outcome.FAILED)
+                    .explanation(readable ? "Source file exists and is readable: " + sourceFile : "Source file does not exist or is not readable: " + sourceFile)
+                    .build());
+        }
+
+        final String outputFile = configurationContext.getProperty(STEP_NAME, OUTPUT_FILE.getName()).getValue();
+        if (outputFile == null || outputFile.isBlank()) {
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Output File Writable")
+                    .outcome(Outcome.FAILED)
+                    .explanation("No Output File is configured")
+                    .build());
+        } else {
+            final File parent = new File(outputFile).getAbsoluteFile().getParentFile();
+            final boolean writable = parent != null && (parent.isDirectory() || parent.mkdirs());
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Output File Writable")
+                    .outcome(writable ? Outcome.SUCCESSFUL : Outcome.FAILED)
+                    .explanation(writable ? "Output directory is writable: " + parent : "Output directory could not be created: " + parent)
+                    .build());
+        }
+
+        return results;
     }
 
-    @Override
-    public List<ConfigurationStep> getConfigurationSteps() {
-        return List.of(MIGRATION_STATE_STEP);
+    private VersionedExternalFlow buildFlow(final ConnectorConfigurationContext configurationContext) {
+        final String sourceFile = resolveSourceFile(configurationContext);
+        final String outputFile = configurationContext.getProperty(STEP_NAME, OUTPUT_FILE.getName()).getValue();
+        if (sourceFile == null || sourceFile.isBlank() || outputFile == null || outputFile.isBlank()) {
+            return createEmptyFlow();
+        }
+
+        final String generateSchedule = configurationContext.getProperty(STEP_NAME, GENERATE_SCHEDULE.getName()).getValue();
+
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, EXPECTED_FLOW_NAME);
+
+        final VersionedProcessor generate = VersionedFlowUtils.addProcessor(rootGroup, GENERATE_TYPE, SYSTEM_TEST_EXTENSIONS_BUNDLE, GENERATE_NAME, new Position(0, 0));
+        generate.getProperties().put("Max FlowFiles", "1");
+        generate.getProperties().put("File Size", "0 B");
+        generate.setSchedulingPeriod(generateSchedule);
+
+        final VersionedProcessor count = VersionedFlowUtils.addProcessor(rootGroup, COUNT_TYPE, SYSTEM_TEST_EXTENSIONS_BUNDLE, COUNT_NAME, new Position(0, 200));
+
+        final VersionedProcessor assetReader = VersionedFlowUtils.addProcessor(rootGroup, ASSET_READER_TYPE, SYSTEM_TEST_EXTENSIONS_BUNDLE, ASSET_READER_NAME, new Position(0, 400));
+        assetReader.getProperties().put(SOURCE_FILE_PROPERTY, sourceFile);
+        assetReader.getProperties().put(OUTPUT_FILE_PROPERTY, outputFile);
+        assetReader.setAutoTerminatedRelationships(Set.of("success", "failure"));
+
+        VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generate),
+                VersionedFlowUtils.createConnectableComponent(count), Set.of("success"));
+        VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(count),
+                VersionedFlowUtils.createConnectableComponent(assetReader), Set.of("success"));
+
+        final VersionedExternalFlow flow = new VersionedExternalFlow();
+        flow.setFlowContents(rootGroup);
+        flow.setParameterContexts(Collections.emptyMap());
+        return flow;
     }
 
-    @Override
-    public void applyUpdate(final FlowContext workingFlowContext, final FlowContext activeFlowContext) throws FlowUpdateException {
-        // applyUpdate(...) is called by the framework both during normal property updates and during restart (via
-        // inheritConfiguration), as well as right after migrateConfiguration(...) returns. This is the single point
-        // at which the managed Process Group is rebuilt from the connector's persisted configuration. When no
-        // migration has been performed there is nothing to apply; the empty initial flow installed by
-        // loadInitialFlow() remains in place.
-        final VersionedExternalFlow migratedFlow = readPersistedMigratedFlow(workingFlowContext);
-        if (migratedFlow == null) {
-            return;
+    private String resolveSourceFile(final ConnectorConfigurationContext configurationContext) {
+        final ConnectorPropertyValue assetValue = configurationContext.getProperty(STEP_NAME, ASSET_FILE.getName());
+        final String assetPath = assetValue == null ? null : assetValue.getValue();
+        if (assetPath != null && !assetPath.isBlank()) {
+            return assetPath;
         }
 
-        getInitializationContext().updateFlow(activeFlowContext, migratedFlow);
+        final ConnectorPropertyValue sourceValue = configurationContext.getProperty(STEP_NAME, SOURCE_FILE.getName());
+        return sourceValue == null ? null : sourceValue.getValue();
     }
 
-    private boolean containsRequiredParameter(final Map<String, VersionedParameterContext> parameterContexts) {
-        if (parameterContexts == null || parameterContexts.isEmpty()) {
-            return false;
+    private AssetReference copyReferencedAsset(final VersionedExternalFlow sourceFlow, final ConnectorMigrationContext context) {
+        // Assets can only be copied from a local source; uploaded payloads do not carry the asset binaries.
+        if (!context.isLocalMigration()) {
+            return null;
         }
 
-        for (final VersionedParameterContext parameterContext : parameterContexts.values()) {
-            final Set<VersionedParameter> parameters = parameterContext.getParameters();
-            if (parameters == null) {
-                continue;
-            }
-
-            for (final VersionedParameter parameter : parameters) {
-                if (REQUIRED_PARAMETER_NAME.equals(parameter.getName())) {
-                    return true;
-                }
-            }
+        final VersionedParameter assetParameter = findParameter(sourceFlow, SOURCE_ASSET_PARAMETER_NAME);
+        if (assetParameter == null || assetParameter.getReferencedAssets() == null || assetParameter.getReferencedAssets().isEmpty()) {
+            return null;
         }
 
-        return false;
+        final VersionedAsset referencedAsset = assetParameter.getReferencedAssets().getFirst();
+        return context.copyAssetFromSource(referencedAsset.getIdentifier());
     }
 
-    private boolean containsRequiredProcessor(final VersionedProcessGroup processGroup) {
-        final Set<VersionedProcessor> processors = processGroup.getProcessors();
-        if (processors != null) {
-            for (final VersionedProcessor processor : processors) {
-                if (REQUIRED_PROCESSOR_TYPE.equals(processor.getType())) {
-                    return true;
-                }
-            }
-        }
-
-        final Set<VersionedProcessGroup> childGroups = processGroup.getProcessGroups();
-        if (childGroups == null) {
-            return false;
-        }
-
-        for (final VersionedProcessGroup childGroup : childGroups) {
-            if (containsRequiredProcessor(childGroup)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void rewriteReferencedAssets(final VersionedExternalFlow sourceFlow, final ConnectorMigrationContext context) {
+    private VersionedParameter findParameter(final VersionedExternalFlow sourceFlow, final String parameterName) {
         final Map<String, VersionedParameterContext> parameterContexts = sourceFlow.getParameterContexts();
-        if (parameterContexts == null || parameterContexts.isEmpty()) {
-            return;
+        if (parameterContexts == null) {
+            return null;
         }
 
         for (final VersionedParameterContext parameterContext : parameterContexts.values()) {
-            final Set<VersionedParameter> parameters = parameterContext.getParameters();
-            if (parameters == null) {
+            if (parameterContext.getParameters() == null) {
                 continue;
             }
 
-            for (final VersionedParameter parameter : parameters) {
-                final List<VersionedAsset> referencedAssets = parameter.getReferencedAssets();
-                if (referencedAssets == null || referencedAssets.isEmpty()) {
-                    continue;
+            for (final VersionedParameter parameter : parameterContext.getParameters()) {
+                if (parameterName.equals(parameter.getName())) {
+                    return parameter;
                 }
-
-                final List<VersionedAsset> migratedAssets = new ArrayList<>();
-                for (final VersionedAsset referencedAsset : referencedAssets) {
-                    final AssetReference migratedReference = context.copyAssetFromSource(referencedAsset.getIdentifier());
-                    for (final String migratedAssetId : migratedReference.getAssetIdentifiers()) {
-                        final VersionedAsset migratedAsset = new VersionedAsset();
-                        migratedAsset.setIdentifier(migratedAssetId);
-                        migratedAsset.setName(referencedAsset.getName());
-                        migratedAssets.add(migratedAsset);
-                    }
-                }
-
-                parameter.setReferencedAssets(migratedAssets);
             }
         }
+
+        return null;
     }
 
-    private void recordComponentStates(final VersionedProcessGroup group, final ConnectorMigrationContext context) {
-        if (group == null) {
+    private void copyComponentState(final VersionedExternalFlow sourceFlow, final ProcessGroupFacade managedGroup, final String componentName, final ConnectorMigrationContext context) {
+        final Optional<VersionedProcessor> sourceProcessor = VersionedFlowUtils.findProcessor(sourceFlow.getFlowContents(), processor -> componentName.equals(processor.getName()));
+        if (sourceProcessor.isEmpty()) {
             return;
         }
-        if (group.getProcessors() != null) {
-            for (final VersionedProcessor processor : group.getProcessors()) {
-                recordComponentState(processor, context);
-            }
-        }
-        if (group.getControllerServices() != null) {
-            for (final VersionedControllerService controllerService : group.getControllerServices()) {
-                recordComponentState(controllerService, context);
-            }
-        }
-        if (group.getProcessGroups() != null) {
-            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
-                recordComponentStates(childGroup, context);
-            }
-        }
-    }
 
-    private void recordComponentState(final VersionedConfigurableExtension extension, final ConnectorMigrationContext context) {
-        final VersionedComponentState componentState = extension.getComponentState();
+        final VersionedComponentState componentState = sourceProcessor.get().getComponentState();
         if (componentState == null) {
             return;
         }
-        final boolean hasClusterState = componentState.getClusterState() != null && !componentState.getClusterState().isEmpty();
-        final boolean hasLocalState = componentState.getLocalNodeStates() != null && !componentState.getLocalNodeStates().isEmpty();
-        if (!hasClusterState && !hasLocalState) {
+
+        final ProcessorFacade managedProcessor = findManagedProcessor(managedGroup, componentName);
+        if (managedProcessor == null) {
             return;
         }
 
-        final String versionedId = extension.getIdentifier();
-        if (versionedId == null || versionedId.isBlank()) {
-            return;
-        }
-        context.setComponentState(versionedId, componentState);
+        context.setComponentState(managedProcessor.getDefinition().getIdentifier(), componentState);
     }
 
-    /**
-     * Reads the most recently migrated source flow back from the supplied flow context's configuration. Returns
-     * {@code null} when no migration has been performed yet; callers should fall back to the empty initial flow in
-     * that case.
-     */
-    private VersionedExternalFlow readPersistedMigratedFlow(final FlowContext flowContext) {
-        final ConnectorPropertyValue propertyValue = flowContext.getConfigurationContext()
-                .getProperty(MIGRATION_STATE_STEP_NAME, MIGRATED_SOURCE_FLOW_PROPERTY.getName());
-        final String sourceFlowJson = propertyValue == null ? null : propertyValue.getValue();
-        if (sourceFlowJson == null || sourceFlowJson.isBlank()) {
-            return null;
+    private ProcessorFacade findManagedProcessor(final ProcessGroupFacade group, final String componentName) {
+        for (final ProcessorFacade processor : group.getProcessors()) {
+            if (componentName.equals(processor.getDefinition().getName())) {
+                return processor;
+            }
         }
 
-        try {
-            return OBJECT_MAPPER.readValue(sourceFlowJson, VersionedExternalFlow.class);
-        } catch (final JsonProcessingException e) {
-            getLogger().error("Failed to deserialize persisted migrated source flow for {}; the managed Process Group will be rebuilt as empty",
-                    getInitializationContext().getIdentifier(), e);
-            return null;
-        }
+        return null;
     }
 
-    private static VersionedExternalFlow emptyVersionedExternalFlow(final String name) {
-        final VersionedProcessGroup processGroup = new VersionedProcessGroup();
-        processGroup.setName(name);
-        processGroup.setProcessors(new HashSet<>());
-        processGroup.setConnections(new HashSet<>());
-        processGroup.setProcessGroups(new HashSet<>());
-        processGroup.setControllerServices(new HashSet<>());
-
+    private VersionedExternalFlow createEmptyFlow() {
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, EXPECTED_FLOW_NAME);
         final VersionedExternalFlow flow = new VersionedExternalFlow();
-        flow.setFlowContents(processGroup);
+        flow.setFlowContents(rootGroup);
         flow.setParameterContexts(Collections.emptyMap());
         return flow;
     }

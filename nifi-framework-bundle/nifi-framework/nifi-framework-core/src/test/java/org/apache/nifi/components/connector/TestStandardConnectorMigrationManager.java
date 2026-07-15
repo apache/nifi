@@ -23,6 +23,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -104,6 +105,35 @@ public class TestStandardConnectorMigrationManager {
 
         verify(connectorNode).commitMigratedConfiguration(any(ConnectorConfiguration.class));
         verify(sourceProcessGroup).setName("(Migrated) " + SOURCE_GROUP_NAME);
+    }
+
+    @Test
+    public void testMigrateFromLocalSourceDisablesSourceInputAndOutputPorts() throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ProcessGroup sourceProcessGroup = wireSourceProcessGroup(flowController, SOURCE_GROUP_ID, SOURCE_GROUP_NAME);
+
+        // Ports may live in the source group or one of its descendants, so each port reports its own parent group and
+        // the manager must disable it through that parent.
+        final ProcessGroup portParent = mock(ProcessGroup.class);
+        final Port runningInputPort = mockSourcePort(portParent, "input-port-1", ScheduledState.RUNNING);
+        final Port disabledInputPort = mockSourcePort(portParent, "input-port-2", ScheduledState.DISABLED);
+        when(sourceProcessGroup.findAllInputPorts()).thenReturn(List.of(runningInputPort, disabledInputPort));
+
+        final Port runningOutputPort = mockSourcePort(portParent, "output-port-1", ScheduledState.RUNNING);
+        when(sourceProcessGroup.findAllOutputPorts()).thenReturn(List.of(runningOutputPort));
+
+        wireFreshConnector(flowController, CONNECTOR_ID);
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, SOURCE_GROUP_ID, sourceFlow);
+
+        verify(portParent).disableInputPort(runningInputPort);
+        verify(portParent).disableOutputPort(runningOutputPort);
+
+        // A port that is already disabled must be left untouched.
+        verify(portParent, never()).disableInputPort(disabledInputPort);
     }
 
     @Test
@@ -930,6 +960,14 @@ public class TestStandardConnectorMigrationManager {
                 return false;
             }
         });
+    }
+
+    private Port mockSourcePort(final ProcessGroup parentGroup, final String portId, final ScheduledState scheduledState) {
+        final Port port = mock(Port.class);
+        when(port.getIdentifier()).thenReturn(portId);
+        when(port.getScheduledState()).thenReturn(scheduledState);
+        when(port.getProcessGroup()).thenReturn(parentGroup);
+        return port;
     }
 
     private ProcessGroup wireSourceProcessGroup(final FlowController flowController, final String groupId, final String groupName) {

@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -57,6 +58,29 @@ public class StandaloneConnectionFacade implements ConnectionFacade {
     @Override
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         return connection.getFlowFileQueue().dropFlowFiles(predicate);
+    }
+
+    // Placeholder for the queue-snapshot API added in nifi-api 2.10.0. Real backlog/queue reporting is delivered by
+    // separate, parallel work; remove this override when rebasing onto that change.
+    @Override
+    public QueueSnapshot getQueueSnapshot() {
+        final QueueSize queueSize = connection.getFlowFileQueue().size();
+        return new QueueSnapshot() {
+            @Override
+            public QueueSize getQueueSize() {
+                return queueSize;
+            }
+
+            @Override
+            public List<FlowFile> getActiveFlowFiles() {
+                return List.of();
+            }
+
+            @Override
+            public boolean isActiveListExhaustive() {
+                return false;
+            }
+        };
     }
 
     @Override

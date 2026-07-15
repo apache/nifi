@@ -28,7 +28,9 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
 
     /**
      * Sets the properties for the given step to the provided properties. Any existing properties
-     * for the step that are not included in the provided configuration will remain unchanged.
+     * for the step that are not included in the provided configuration will remain unchanged. A property whose value
+     * reference in the provided configuration is {@code null} is removed from the step rather than stored with a null
+     * value.
      *
      * @param stepName the name of the configuration step
      * @param configuration the configuration to set
@@ -38,7 +40,8 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
 
     /**
      * Replaces all of the properties for the given step with the provided properties. Any existing properties
-     * for the step that are not included in the provided configuration will be removed.
+     * for the step that are not included in the provided configuration will be removed. A property whose value
+     * reference in the provided configuration is {@code null} is likewise omitted from the replaced step.
      *
      * @param stepName the name of the configuration step
      * @param configuration the configuration to set
