@@ -24,16 +24,20 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.controller.MockStateManagerProvider;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -45,6 +49,7 @@ import org.junit.jupiter.api.Timeout;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -60,12 +66,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
@@ -88,14 +94,18 @@ public class TestStandardConnectorNode {
     private SecretsManager secretsManager;
 
     private FlowContextFactory flowContextFactory;
+    private StateManagerProvider stateManagerProvider;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         scheduler = new FlowEngine(1, "flow-engine");
+        stateManagerProvider = new MockStateManagerProvider();
 
         when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
         when(managedProcessGroup.getQueueSize()).thenReturn(new QueueSize(0, 0L));
+        when(managedProcessGroup.findAllProcessors()).thenReturn(List.of());
+        when(managedProcessGroup.findAllControllerServices()).thenReturn(Set.of());
 
         flowContextFactory = new FlowContextFactory() {
             @Override
@@ -985,156 +995,129 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testMatchesInitialFlowReportsTrueWhenManagedProcessGroupIsNull() {
-        final Connector connector = mock(Connector.class);
+    public void testIsModifiedReportsFalseForFreshlyCreatedConnector() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
 
-        // A Connector whose active flow context exposes no managed Process Group has not been modified from its
-        // initial flow by construction, so matchesInitialFlow() returns true without consulting the initial flow.
-        final FrameworkFlowContext contextWithoutManagedGroup = mock(FrameworkFlowContext.class);
-        flowContextFactory = new FlowContextFactory() {
+        // A freshly created Connector has not been configured away from its defaults and has no component state, so it
+        // is not modified.
+        assertFalse(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsFalseWhenConfigurationEqualsDefaults() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // Explicitly setting properties to the same values the connector declares as defaults leaves the Connector
+        // unmodified.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new StringLiteralValue("Hello"),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertFalse(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenAStringPropertyDiffersFromDefault() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // Changing a single property value away from its default is enough to make the Connector modified, even though
+        // the managed flow structure is unchanged. This is the scenario that a flow-structure comparison misses.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new StringLiteralValue("Goodbye"),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenPropertyConfiguredWithSecretReference() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A Secret reference can never be a default value, so its presence means the Connector has been configured.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new SecretReference("pid", "My Provider", "greeting-secret", "My Provider.greeting-secret"),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenWorkingConfigurationDiffersFromDefault() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A pending (working) configuration change that has not yet been applied to the active configuration is still a
+        // modification that must block migration.
+        node.getWorkingFlowContext().getConfigurationContext().setProperties("settings",
+            new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Goodbye"))));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenAManagedComponentHasStoredState() throws FlowUpdateException {
+        stateManagerProvider = stateManagerProviderWithStoredState();
+
+        final ProcessorNode statefulProcessor = mock(ProcessorNode.class);
+        when(statefulProcessor.getIdentifier()).thenReturn("stateful-processor");
+        when(managedProcessGroup.findAllProcessors()).thenReturn(List.of(statefulProcessor));
+
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // Even with the configuration entirely at its defaults, a managed component that has accumulated state means the
+        // flow has been run and migration must not overwrite that state.
+        assertTrue(node.isModified());
+    }
+
+    private static void seedActiveConfiguration(final StandardConnectorNode node, final String stepName, final Map<String, ConnectorValueReference> properties) {
+        node.getActiveFlowContext().getConfigurationContext().setProperties(stepName, new StepConfiguration(properties));
+    }
+
+    private StateManagerProvider stateManagerProviderWithStoredState() {
+        return new StateManagerProvider() {
             @Override
-            public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
-                return contextWithoutManagedGroup;
+            public StateManager getStateManager(final String componentId) {
+                final StateManager stateManager = mock(StateManager.class);
+                final StateMap storedState = new StandardStateMap(Map.of("key", "value"), Optional.of("1"));
+                try {
+                    when(stateManager.getState(any(Scope.class))).thenReturn(storedState);
+                } catch (final IOException e) {
+                    throw new AssertionError(e);
+                }
+                return stateManager;
             }
 
             @Override
-            public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
-                    final MutableConnectorConfigurationContext currentConfiguration, final Bundle bundle) {
-                return contextWithoutManagedGroup;
+            public StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
+                return getStateManager(componentId);
+            }
+
+            @Override
+            public void shutdown() {
+            }
+
+            @Override
+            public void enableClusterProvider() {
+            }
+
+            @Override
+            public void disableClusterProvider() {
+            }
+
+            @Override
+            public boolean isClusterProviderEnabled() {
+                return false;
+            }
+
+            @Override
+            public void onComponentRemoved(final String componentId) {
             }
         };
-
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> emptyVersionedGroup());
-
-        assertTrue(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsTrueWhenInitialFlowIsNullAndManagedFlowIsEmpty() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenReturn(null);
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> emptyVersionedGroup());
-
-        assertTrue(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsModifiedWhenInitialFlowIsNullAndManagedFlowHasComponents() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenReturn(null);
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
-            group -> versionedGroupWithProcessors("user-added"));
-
-        assertFalse(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsTrueWhenInitialAndCurrentAreStructurallyEqual() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1")));
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
-            group -> versionedGroupWithProcessors("processor-1"));
-
-        assertTrue(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsModifiedWhenCurrentAddsAComponent() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1")));
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
-            group -> versionedGroupWithProcessors("processor-1", "processor-2-user-added"));
-
-        assertFalse(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsModifiedWhenCurrentRemovesAComponent() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1", "processor-2")));
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector,
-            group -> versionedGroupWithProcessors("processor-1"));
-
-        assertFalse(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsModifiedWhenMappingThrows() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenReturn(externalFlow(versionedGroupWithProcessors("processor-1")));
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> {
-            throw new RuntimeException("simulated mapping failure");
-        });
-
-        assertFalse(node.matchesInitialFlow());
-    }
-
-    @Test
-    public void testMatchesInitialFlowReportsModifiedWhenInitialFlowLookupThrows() {
-        final Connector connector = mock(Connector.class);
-        when(connector.getInitialFlow()).thenThrow(new RuntimeException("getInitialFlow blew up"));
-        final StandardConnectorNode node = createConnectorNodeForInitialFlowComparison(connector, group -> emptyVersionedGroup());
-
-        assertFalse(node.matchesInitialFlow());
-    }
-
-    private StandardConnectorNode createConnectorNodeForInitialFlowComparison(final Connector connector,
-            final Function<ProcessGroup, VersionedProcessGroup> currentFlowMapperOverride) {
-        final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
-        final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
-        return new StandardConnectorNode(
-            "test-connector-id",
-            mock(FlowManager.class),
-            extensionManager,
-            mock(ControllerServiceProvider.class),
-            null,
-            createConnectorDetails(connector),
-            "TestConnector",
-            connector.getClass().getCanonicalName(),
-            new StandardConnectorConfigurationContext(assetManager, secretsManager),
-            stateTransition,
-            flowContextFactory,
-            validationTrigger,
-            false,
-            currentFlowMapperOverride);
-    }
-
-    private static VersionedExternalFlow externalFlow(final VersionedProcessGroup contents) {
-        final VersionedExternalFlow flow = new VersionedExternalFlow();
-        flow.setFlowContents(contents);
-        return flow;
-    }
-
-    private static VersionedProcessGroup emptyVersionedGroup() {
-        final VersionedProcessGroup group = new VersionedProcessGroup();
-        group.setIdentifier("managed-group");
-        group.setName("Managed");
-        group.setProcessors(new HashSet<>());
-        group.setControllerServices(new HashSet<>());
-        group.setConnections(new HashSet<>());
-        group.setProcessGroups(new HashSet<>());
-        group.setInputPorts(new HashSet<>());
-        group.setOutputPorts(new HashSet<>());
-        group.setLabels(new HashSet<>());
-        group.setFunnels(new HashSet<>());
-        group.setRemoteProcessGroups(new HashSet<>());
-        return group;
-    }
-
-    private static VersionedProcessGroup versionedGroupWithProcessors(final String... processorIds) {
-        final VersionedProcessGroup group = emptyVersionedGroup();
-        final Set<VersionedProcessor> processors = new HashSet<>();
-        for (final String id : processorIds) {
-            final VersionedProcessor processor = new VersionedProcessor();
-            processor.setIdentifier(id);
-            processor.setInstanceIdentifier(id + "-instance");
-            processor.setName(id);
-            processor.setType("org.apache.nifi.processors.test.TestProcessor");
-            processor.setBundle(new Bundle("org.apache.nifi", "nifi-test-nar", "2.10.0-SNAPSHOT"));
-            processors.add(processor);
-        }
-        group.setProcessors(processors);
-        return group;
     }
 
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
@@ -1157,7 +1140,7 @@ public class TestStandardConnectorNode {
             "test-connector-id",
             mock(FlowManager.class),
             extensionManager,
-            mock(ControllerServiceProvider.class),
+            stateManagerProvider,
             null,
             createConnectorDetails(connector),
             "TestConnector",
@@ -1465,6 +1448,69 @@ public class TestStandardConnectorNode {
 
             final ConfigurationStep step = new ConfigurationStep.Builder()
                 .name("requiredStep")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Test connector declaring a single configuration step with two properties that have default values. Used to
+     * exercise the configuration-versus-default comparison performed by {@code isModified()}.
+     */
+    private static class DefaultValueConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor greeting = new ConnectorPropertyDescriptor.Builder()
+                .name("Greeting")
+                .description("Greeting text")
+                .required(true)
+                .defaultValue("Hello")
+                .build();
+
+            final ConnectorPropertyDescriptor repeatCount = new ConnectorPropertyDescriptor.Builder()
+                .name("Repeat Count")
+                .description("Number of times to repeat the greeting")
+                .required(true)
+                .defaultValue("1")
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General settings")
+                .properties(List.of(greeting, repeatCount))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("settings")
                 .propertyGroups(List.of(propertyGroup))
                 .build();
 

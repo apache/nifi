@@ -110,21 +110,21 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     boolean isMigrationSupported(ConnectorMigrationContext context);
 
     /**
-     * Reports whether the Connector's currently managed flow still matches the flow that was loaded when the
-     * Connector was first created. The result is used to gate the {@code MIGRATE} allowable action and to
-     * verify migration eligibility at migrate time so that an incoming Versioned flow cannot silently overwrite
-     * user modifications.
+     * Reports whether the Connector has been modified since it was created. The result is used to gate the
+     * {@code MIGRATE} allowable action and to verify migration eligibility at migrate time so that an incoming
+     * Versioned flow cannot silently overwrite user modifications.
      *
-     * <p>Implementations must produce the same answer before and after a NiFi restart by computing the result
-     * from durable state: the Connector's own {@link Connector#getInitialFlow()} (which is rebuilt from
-     * persisted configuration on every restart) compared structurally against the currently managed Process
-     * Group. Differences classified as environmental (such as component scheduled state changes) must be
-     * ignored so that simply starting and stopping the Connector does not cause it to be considered modified.
+     * <p>A Connector derives its managed flow entirely from its configuration, so this is determined from durable
+     * state that is reproduced on every NiFi restart: the Connector's Active and Working configurations and the
+     * component state accumulated by its managed flow. A Connector is considered modified when any configured
+     * property differs from the property's declared default value, or when any Processor or Controller Service in
+     * the managed flow has stored component state. Simply starting and stopping the Connector without configuring
+     * it or accumulating state does not make it modified.
      *
-     * @return {@code true} when the Connector's currently managed flow is structurally equivalent to the flow
-     *         returned by its {@link Connector#getInitialFlow()}, ignoring environmental differences
+     * @return {@code true} when the Connector's configuration has diverged from its defaults or its managed flow has
+     *         accumulated component state; {@code false} when the Connector is still in the state it was created in
      */
-    boolean matchesInitialFlow();
+    boolean isModified();
 
     /**
      * Discards the working flow context, if any, and rebuilds it from the active flow context's configuration.

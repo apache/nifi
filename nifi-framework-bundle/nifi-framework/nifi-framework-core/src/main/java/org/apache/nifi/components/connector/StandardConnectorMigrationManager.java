@@ -638,7 +638,7 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
     }
 
     private void verifyTargetIsAtInitialFlow(final ConnectorNode connector) {
-        if (!connector.matchesInitialFlow()) {
+        if (connector.isModified()) {
             throw new IllegalStateException("Connector " + connector.getIdentifier()
                     + " has been modified since it was created; migration would overwrite those modifications.");
         }

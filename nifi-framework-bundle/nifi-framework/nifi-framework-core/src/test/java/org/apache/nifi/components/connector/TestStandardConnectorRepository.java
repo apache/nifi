@@ -24,10 +24,10 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.controller.MockStateManagerProvider;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnector;
@@ -2068,7 +2068,7 @@ public class TestStandardConnectorRepository {
         final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
 
         final StandardConnectorNode node = new StandardConnectorNode(
-                identifier, mock(FlowManager.class), extensionManager, mock(ControllerServiceProvider.class), null, connectorDetails,
+                identifier, mock(FlowManager.class), extensionManager, new MockStateManagerProvider(), null, connectorDetails,
                 "TestConnector", connector.getClass().getCanonicalName(),
                 new StandardConnectorConfigurationContext(assetManager, secretsManager),
                 stateTransition, flowContextFactory, validationTrigger, false);

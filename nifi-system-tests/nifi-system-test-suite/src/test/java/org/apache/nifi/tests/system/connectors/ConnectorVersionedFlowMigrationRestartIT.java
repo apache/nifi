@@ -59,8 +59,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ConnectorVersionedFlowMigrationRestartIT extends AbstractConnectorVersionedFlowMigrationIT {
 
-    private static final String MIGRATE_ACTION_NAME = "MIGRATE";
-
     @Override
     protected boolean isDestroyEnvironmentAfterEachTest() {
         return true;
@@ -347,16 +345,4 @@ public class ConnectorVersionedFlowMigrationRestartIT extends AbstractConnectorV
         return Map.copyOf(stateMap);
     }
 
-    private static ConnectorActionDTO findMigrateAction(final ConnectorEntity connector) {
-        final List<ConnectorActionDTO> actions = connector.getComponent() == null ? null : connector.getComponent().getAvailableActions();
-        if (actions == null) {
-            return null;
-        }
-        for (final ConnectorActionDTO action : actions) {
-            if (MIGRATE_ACTION_NAME.equals(action.getName())) {
-                return action;
-            }
-        }
-        return null;
-    }
 }

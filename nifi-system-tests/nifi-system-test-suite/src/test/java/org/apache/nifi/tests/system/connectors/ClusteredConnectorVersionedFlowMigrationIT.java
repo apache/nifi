@@ -91,5 +91,10 @@ public class ClusteredConnectorVersionedFlowMigrationIT extends AbstractConnecto
         final String failureReason = completedRequest.getRequest().getFailureReason();
         assertNotNull(failureReason);
         assertTrue(failureReason.contains("node 2"), failureReason);
+
+        // Node 1 committed the migration while node 2 failed, so their revision-update counts diverge and the
+        // coordinator will force the divergent node to reconnect on a subsequent heartbeat. Wait for that reconnect
+        // to occur and complete so it does not race this test's teardown or the next test's flow-mutating requests.
+        waitForClusterToStabilizeAfterMigration();
     }
 }

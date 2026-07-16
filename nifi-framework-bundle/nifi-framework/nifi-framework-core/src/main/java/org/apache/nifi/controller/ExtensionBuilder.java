@@ -498,6 +498,7 @@ public class ExtensionBuilder {
         requireNonNull(type, "Connector Type");
         requireNonNull(bundleCoordinate, "Bundle Coordinate");
         requireNonNull(serviceProvider, "Controller Service Provider");
+        requireNonNull(stateManagerProvider, "State Manager Provider");
         requireNonNull(extensionManager, "Extension Manager");
         requireNonNull(managedProcessGroup, "Managed Process Group");
 
@@ -530,7 +531,7 @@ public class ExtensionBuilder {
             identifier,
             flowController.getFlowManager(),
             extensionManager,
-            serviceProvider,
+            stateManagerProvider,
             connectorsAuthorizable,
             connectorDetails,
             componentType,
@@ -584,7 +585,7 @@ public class ExtensionBuilder {
             identifier,
             flowController.getFlowManager(),
             extensionManager,
-            serviceProvider,
+            stateManagerProvider,
             connectorsAuthorizable,
             connectorDetails,
             componentType,

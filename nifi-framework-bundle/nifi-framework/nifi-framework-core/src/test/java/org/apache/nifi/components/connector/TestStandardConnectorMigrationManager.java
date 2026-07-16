@@ -563,9 +563,8 @@ public class TestStandardConnectorMigrationManager {
         final FlowController flowController = createFlowController(1);
         final ConnectorNode connectorNode = wireFreshConnector(flowController, CONNECTOR_ID);
 
-        // The Connector's managed flow no longer matches the flow that was loaded when the Connector was
-        // created, so a migration would overwrite user modifications.
-        when(connectorNode.matchesInitialFlow()).thenReturn(false);
+        // The Connector has been modified since it was created, so a migration would overwrite user modifications.
+        when(connectorNode.isModified()).thenReturn(true);
 
         final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
         final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
@@ -711,7 +710,7 @@ public class TestStandardConnectorMigrationManager {
 
         when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
         when(connectorNode.getDesiredState()).thenReturn(ConnectorState.STOPPED);
-        when(connectorNode.matchesInitialFlow()).thenReturn(false);
+        when(connectorNode.isModified()).thenReturn(true);
         final IllegalStateException modified = assertThrows(IllegalStateException.class,
                 () -> migrationManager.verifyConnectorReadyForMigration(CONNECTOR_ID));
         assertTrue(modified.getMessage().contains("modified since it was created"), modified.getMessage());
@@ -914,7 +913,7 @@ public class TestStandardConnectorMigrationManager {
         when(connectorNode.getIdentifier()).thenReturn(connectorId);
         when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
         when(connectorNode.getDesiredState()).thenReturn(ConnectorState.STOPPED);
-        when(connectorNode.matchesInitialFlow()).thenReturn(true);
+        when(connectorNode.isModified()).thenReturn(false);
         final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
         when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
         // The manager seeds the migration context with a working clone of the connector's active configuration, so the

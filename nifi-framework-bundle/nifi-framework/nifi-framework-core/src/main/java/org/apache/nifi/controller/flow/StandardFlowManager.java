@@ -777,6 +777,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .bundleCoordinate(coordinate)
             .extensionManager(extensionManager)
             .controllerServiceProvider(flowController.getControllerServiceProvider())
+            .stateManagerProvider(flowController.getStateManagerProvider())
             .managedProcessGroup(managedRootGroup)
             .activeConfigurationContext(activeConfigurationContext)
             .flowContextFactory(flowContextFactory)

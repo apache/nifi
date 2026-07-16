@@ -21,6 +21,7 @@ import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
@@ -45,6 +46,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -71,6 +73,8 @@ public abstract class AbstractConnectorVersionedFlowMigrationIT extends NiFiSyst
     protected static final String COUNT_TYPE = "StatefulCountProcessor";
     protected static final String ASSET_READER_TYPE = "AssetReadingProcessor";
 
+    protected static final String MIGRATE_ACTION_NAME = "MIGRATE";
+
     /**
      * Runs the full end-to-end migration of the modeled versioned flow into a Connector and asserts that configuration,
      * assets, and component state were copied, that the source Process Group was renamed and disabled, that the
@@ -90,12 +94,20 @@ public abstract class AbstractConnectorVersionedFlowMigrationIT extends NiFiSyst
         final VersionedFlowMigrationSourcesEntity sourcesEntity = getClientUtil().listMigrationSources(connectorId);
         assertTrue(isSourceListed(sourcesEntity, sourceFixture.processGroup().getId()));
 
+        // Before migrating, the fresh Connector is still at its initial flow, so MIGRATE must be an available action.
+        assertMigrateActionAllowed(connectorId);
+
         // Remove the file the source produced so that, once the migrated connector runs, its recreation proves the
         // migrated flow reads the same asset and writes it to the same output file.
         deleteFile(outputFile);
         migrateFromLocalSource(connectorId, sourceFixture.processGroup().getId());
+        waitForClusterToStabilizeAfterMigration();
 
         assertSourceRenamedAndDisabled(sourceFixture, MIGRATABLE_FLOW_NAME);
+
+        // Migration modifies the Connector's configuration away from its initial flow, so MIGRATE must no longer be
+        // offered as an available action.
+        assertMigrateActionDisallowed(connectorId);
 
         final ConnectorClient connectorClient = getNifiClient().getConnectorClient();
         final AssetsEntity connectorAssets = connectorClient.getAssets(connectorId);
@@ -170,6 +182,58 @@ public abstract class AbstractConnectorVersionedFlowMigrationIT extends NiFiSyst
     protected void migrateFromLocalSource(final String connectorId, final String processGroupId) throws Exception {
         final MigrationRequestEntity requestEntity = getClientUtil().startMigrationFromLocalSource(connectorId, processGroupId);
         getClientUtil().waitForMigrationSuccess(connectorId, requestEntity.getRequest().getRequestId());
+    }
+
+    /**
+     * Waits for the cluster to hold full connectivity continuously for several seconds. A connector migration is
+     * applied independently on each node; when it succeeds on some nodes but fails on others, the nodes end up with
+     * divergent revision-update counts and the coordinator forces the divergent node to reconnect on a subsequent
+     * heartbeat. That reconnect can be requested after the migration request has already reported completion, so a
+     * later flow-mutating request (configuration verification, starting the connector, or the next test's setup) can
+     * race the reconnect and be rejected while a node is connecting. Requiring sustained full connectivity here
+     * ensures any such reconnect has been observed and completed before the test proceeds. This is a no-op on a
+     * single-node instance.
+     */
+    protected void waitForClusterToStabilizeAfterMigration() {
+        if (!getNiFiInstance().isClustered()) {
+            return;
+        }
+
+        final int expectedNodeCount = getNumberOfNodes(true);
+        final long stabilityWindowMillis = TimeUnit.SECONDS.toMillis(5);
+        final long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(120);
+
+        while (System.currentTimeMillis() < deadline) {
+            waitForAllNodesConnected(expectedNodeCount);
+
+            final long windowEnd = System.currentTimeMillis() + stabilityWindowMillis;
+            boolean stable = true;
+            while (System.currentTimeMillis() < windowEnd) {
+                try {
+                    Thread.sleep(500L);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                int connectedNodeCount = -1;
+                try {
+                    connectedNodeCount = getNifiClient().getFlowClient().getClusterSummary().getClusterSummary().getConnectedNodeCount();
+                } catch (final Exception ignored) {
+                }
+
+                if (connectedNodeCount != expectedNodeCount) {
+                    stable = false;
+                    break;
+                }
+            }
+
+            if (stable) {
+                return;
+            }
+        }
+
+        throw new IllegalStateException("Cluster did not remain fully connected for " + stabilityWindowMillis + " ms within the allotted time after migration");
     }
 
     protected void drainAllQueues(final String processGroupId) throws NiFiClientException, IOException {
@@ -316,6 +380,38 @@ public abstract class AbstractConnectorVersionedFlowMigrationIT extends NiFiSyst
 
         final AssetsEntity assetsEntity = connectorClient.getAssets(connectorId);
         assertTrue(assetsEntity.getAssets() == null || assetsEntity.getAssets().isEmpty());
+    }
+
+    protected void assertMigrateActionAllowed(final String connectorId) throws NiFiClientException, IOException {
+        final ConnectorActionDTO migrateAction = findMigrateAction(getNifiClient().getConnectorClient().getConnector(connectorId));
+        assertNotNull(migrateAction, "MIGRATE must be an available action on a Connector that has not yet been migrated");
+        assertEquals(Boolean.TRUE, migrateAction.getAllowed(),
+                "MIGRATE must be allowed before migration while the Connector's flow still matches its initial flow; reason: " + migrateAction.getReasonNotAllowed());
+    }
+
+    protected void assertMigrateActionDisallowed(final String connectorId) throws NiFiClientException, IOException {
+        final ConnectorActionDTO migrateAction = findMigrateAction(getNifiClient().getConnectorClient().getConnector(connectorId));
+        assertNotNull(migrateAction, "MIGRATE must remain present after migration so its reasonNotAllowed can explain why it is unavailable");
+        assertEquals(Boolean.FALSE, migrateAction.getAllowed(),
+                "MIGRATE must be disallowed after migration because the Connector's configuration has been modified from its initial flow");
+        assertNotNull(migrateAction.getReasonNotAllowed(), "MIGRATE must report a reasonNotAllowed once it is disallowed");
+        assertTrue(migrateAction.getReasonNotAllowed().toLowerCase().contains("modified"),
+                "reasonNotAllowed must explain that the Connector has been modified; got: " + migrateAction.getReasonNotAllowed());
+    }
+
+    protected static ConnectorActionDTO findMigrateAction(final ConnectorEntity connector) {
+        final List<ConnectorActionDTO> actions = connector.getComponent() == null ? null : connector.getComponent().getAvailableActions();
+        if (actions == null) {
+            return null;
+        }
+
+        for (final ConnectorActionDTO action : actions) {
+            if (MIGRATE_ACTION_NAME.equals(action.getName())) {
+                return action;
+            }
+        }
+
+        return null;
     }
 
     /**

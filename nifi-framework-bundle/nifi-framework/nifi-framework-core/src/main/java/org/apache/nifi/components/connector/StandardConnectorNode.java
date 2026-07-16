@@ -31,6 +31,10 @@ import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.ParameterContextFacade;
 import org.apache.nifi.components.connector.migration.ConnectorMigrationContext;
 import org.apache.nifi.components.connector.migration.MigratableConnector;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -43,11 +47,9 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
-import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -60,19 +62,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
-import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
-import org.apache.nifi.registry.flow.diff.FlowComparator;
-import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
-import org.apache.nifi.registry.flow.diff.FlowComparison;
-import org.apache.nifi.registry.flow.diff.FlowDifference;
-import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
-import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
-import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
-import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
-import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
-import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
-import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +100,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private final String identifier;
     private final FlowManager flowManager;
     private final ExtensionManager extensionManager;
-    private final Function<ProcessGroup, VersionedProcessGroup> currentFlowMapper;
+    private final StateManagerProvider stateManagerProvider;
     private final Authorizable parentAuthorizable;
     private final ConnectorDetails connectorDetails;
     private final String componentType;
@@ -139,30 +128,15 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private volatile Map<String, String> mergedLoggingAttributes = Map.of();
 
     public StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
-        final ControllerServiceProvider controllerServiceProvider, final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails,
+        final StateManagerProvider stateManagerProvider, final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails,
         final String componentType, final String componentCanonicalClass, final MutableConnectorConfigurationContext configurationContext,
         final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory,
         final ConnectorValidationTrigger validationTrigger, final boolean extensionMissing) {
-        this(identifier, flowManager, extensionManager, controllerServiceProvider, parentAuthorizable, connectorDetails, componentType,
-            componentCanonicalClass, configurationContext, stateTransition, flowContextFactory, validationTrigger, extensionMissing, null);
-    }
-
-    /**
-     * Test-friendly constructor that allows the caller to substitute the strategy used to convert the live managed
-     * Process Group into a {@link VersionedProcessGroup} for the {@link #matchesInitialFlow()} comparison. Production
-     * code should use the public constructor; this one is package-private so unit tests can avoid wiring a full
-     * {@link VersionedComponentFlowMapper} pipeline.
-     */
-    StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
-        final ControllerServiceProvider controllerServiceProvider, final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails,
-        final String componentType, final String componentCanonicalClass, final MutableConnectorConfigurationContext configurationContext,
-        final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory,
-        final ConnectorValidationTrigger validationTrigger, final boolean extensionMissing,
-        final Function<ProcessGroup, VersionedProcessGroup> currentFlowMapperOverride) {
 
         this.identifier = identifier;
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
+        this.stateManagerProvider = stateManagerProvider;
         this.parentAuthorizable = parentAuthorizable;
         this.connectorDetails = connectorDetails;
         this.componentType = componentType;
@@ -172,9 +146,6 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         this.flowContextFactory = flowContextFactory;
         this.validationTrigger = validationTrigger;
         this.extensionMissing = extensionMissing;
-        this.currentFlowMapper = currentFlowMapperOverride == null
-            ? managedProcessGroup -> mapWithFrameworkMapper(extensionManager, controllerServiceProvider, flowManager, managedProcessGroup)
-            : currentFlowMapperOverride;
 
         this.name = connectorDetails.getConnector().getClass().getSimpleName();
 
@@ -1165,105 +1136,152 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
     }
 
+    /**
+     * Determines whether the Connector has been modified since it was created. Rather than comparing the managed flow
+     * structure (which a Connector derives entirely from its configuration), this considers the Connector modified when
+     * either of the following holds for the Active or Working configuration:
+     * <ul>
+     *   <li>any configured property differs from the property's declared default value; or</li>
+     *   <li>any Processor or Controller Service in the managed flow has stored component state.</li>
+     * </ul>
+     * A configuration whose properties are all at their defaults produces the initial flow, so an unmodified Connector
+     * can be safely migrated without discarding user changes. Any deviation in configuration, or any component state
+     * accumulated by running the flow, means migration would overwrite those changes and is therefore disallowed.
+     *
+     * @return {@code true} if the Connector's Active or Working configuration deviates from its defaults or any managed
+     *         component has stored state; {@code false} otherwise
+     */
     @Override
-    public boolean matchesInitialFlow() {
-        final ProcessGroup managedProcessGroup = activeFlowContext == null ? null : activeFlowContext.getManagedProcessGroup();
+    public boolean isModified() {
+        final Map<String, Map<String, String>> defaultValuesByStep = buildDefaultValuesByStep();
+
+        if (configurationDiffersFromDefaults(activeFlowContext, defaultValuesByStep)
+            || configurationDiffersFromDefaults(workingFlowContext, defaultValuesByStep)) {
+            return true;
+        }
+
+        return hasComponentState(activeFlowContext) || hasComponentState(workingFlowContext);
+    }
+
+    /**
+     * Builds a mapping of configuration step name to the declared default value of each property within that step, as
+     * defined by the Connector's {@link ConfigurationStep configuration steps}. A property with no default is
+     * represented by a {@code null} value so that an unset (or explicitly null) configured value compares equal to it.
+     */
+    private Map<String, Map<String, String>> buildDefaultValuesByStep() {
+        final Map<String, Map<String, String>> defaultValuesByStep = new HashMap<>();
+
+        final List<ConfigurationStep> configurationSteps = getConfigurationSteps();
+        if (configurationSteps == null) {
+            return defaultValuesByStep;
+        }
+
+        for (final ConfigurationStep configurationStep : configurationSteps) {
+            final Map<String, String> propertyDefaults = new HashMap<>();
+            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                    propertyDefaults.put(descriptor.getName(), descriptor.getDefaultValue());
+                }
+            }
+            defaultValuesByStep.put(configurationStep.getName(), propertyDefaults);
+        }
+
+        return defaultValuesByStep;
+    }
+
+    /**
+     * Determines whether the configuration held by the given flow context deviates from the Connector's default
+     * configuration. A property is treated as modified when it is configured with a Secret or Asset reference (neither
+     * of which can represent a default) or with a String literal whose value differs from the property's declared
+     * default.
+     */
+    private boolean configurationDiffersFromDefaults(final FrameworkFlowContext flowContext, final Map<String, Map<String, String>> defaultValuesByStep) {
+        if (flowContext == null) {
+            return false;
+        }
+
+        final MutableConnectorConfigurationContext configurationContext = flowContext.getConfigurationContext();
+        if (configurationContext == null) {
+            return false;
+        }
+
+        final ConnectorConfiguration configuration = configurationContext.toConnectorConfiguration();
+        for (final NamedStepConfiguration namedStepConfiguration : configuration.getNamedStepConfigurations()) {
+            final Map<String, String> propertyDefaults = defaultValuesByStep.getOrDefault(namedStepConfiguration.stepName(), Map.of());
+
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : namedStepConfiguration.configuration().getPropertyValues().entrySet()) {
+                final String propertyName = propertyEntry.getKey();
+                final ConnectorValueReference valueReference = propertyEntry.getValue();
+                if (valueReference == null) {
+                    continue;
+                }
+
+                if (valueReference instanceof final StringLiteralValue stringLiteralValue) {
+                    if (!Objects.equals(stringLiteralValue.getValue(), propertyDefaults.get(propertyName))) {
+                        logger.debug("{} differs from its initial flow because property [{}] of configuration step [{}] is not set to its default value",
+                            this, propertyName, namedStepConfiguration.stepName());
+                        return true;
+                    }
+                } else {
+                    logger.debug("{} differs from its initial flow because property [{}] of configuration step [{}] is configured with a {} reference",
+                        this, propertyName, namedStepConfiguration.stepName(), valueReference.getValueType());
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines whether any Processor or Controller Service within the given flow context's managed Process Group has
+     * stored component state in either the local or cluster scope. A component with stored state has been run since the
+     * Connector was created, so the managed flow no longer reflects the Connector's initial flow.
+     */
+    private boolean hasComponentState(final FrameworkFlowContext flowContext) {
+        if (flowContext == null) {
+            return false;
+        }
+
+        final ProcessGroup managedProcessGroup = flowContext.getManagedProcessGroup();
         if (managedProcessGroup == null) {
-            // No managed Process Group has been created yet, so by construction the Connector has not been modified.
-            return true;
-        }
-
-        final VersionedExternalFlow initialFlow;
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            initialFlow = getConnector().getInitialFlow();
-        } catch (final RuntimeException e) {
-            logger.warn("Failed to obtain the initial flow for {}; treating it as modified so that migration is not allowed", this, e);
             return false;
         }
 
-        final VersionedProcessGroup currentFlow;
+        for (final ProcessorNode processor : managedProcessGroup.findAllProcessors()) {
+            if (componentHasStoredState(processor.getIdentifier())) {
+                logger.debug("{} differs from its initial flow because Processor [{}] has stored component state", this, processor.getIdentifier());
+                return true;
+            }
+        }
+
+        for (final ControllerServiceNode controllerService : managedProcessGroup.findAllControllerServices()) {
+            if (componentHasStoredState(controllerService.getIdentifier())) {
+                logger.debug("{} differs from its initial flow because Controller Service [{}] has stored component state", this, controllerService.getIdentifier());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean componentHasStoredState(final String componentIdentifier) {
+        final StateManager stateManager = stateManagerProvider.getStateManager(componentIdentifier);
+        if (stateManager == null) {
+            return false;
+        }
+
+        return hasStoredState(stateManager, Scope.LOCAL) || hasStoredState(stateManager, Scope.CLUSTER);
+    }
+
+    private boolean hasStoredState(final StateManager stateManager, final Scope scope) {
         try {
-            currentFlow = currentFlowMapper.apply(managedProcessGroup);
-        } catch (final RuntimeException e) {
-            logger.warn("Failed to map the current managed flow for {}; treating it as modified so that migration is not allowed", this, e);
+            final StateMap stateMap = stateManager.getState(scope);
+            return stateMap != null && !stateMap.toMap().isEmpty();
+        } catch (final IOException e) {
+            logger.warn("Failed to read {} state for a component of {} while checking whether it matches its initial flow; treating the component as having no state in this scope", scope, this, e);
             return false;
         }
-
-        if (initialFlow == null) {
-            return isStructurallyEmpty(currentFlow);
-        }
-
-        return hasNoFunctionalDifferences(initialFlow.getFlowContents(), currentFlow);
-    }
-
-    private static VersionedProcessGroup mapWithFrameworkMapper(final ExtensionManager extensionManager,
-                                                                final ControllerServiceProvider controllerServiceProvider,
-                                                                final FlowManager flowManager,
-                                                                final ProcessGroup managedProcessGroup) {
-        final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
-            .mapSensitiveConfiguration(true)
-            .mapPropertyDescriptors(true)
-            .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
-            .sensitiveValueEncryptor(value -> value)
-            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
-            .mapInstanceIdentifiers(true)
-            .mapControllerServiceReferencesToVersionedId(true)
-            .mapFlowRegistryClientId(true)
-            .mapAssetReferences(true)
-            .build();
-
-        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
-        return mapper.mapProcessGroup(managedProcessGroup, controllerServiceProvider, flowManager, true);
-    }
-
-    private boolean hasNoFunctionalDifferences(final VersionedProcessGroup initialGroup, final VersionedProcessGroup currentGroup) {
-        final ComparableDataFlow initial = new StandardComparableDataFlow("Initial Flow", initialGroup);
-        final ComparableDataFlow current = new StandardComparableDataFlow("Current Flow", currentGroup);
-
-        final FlowComparator comparator = new StandardFlowComparator(initial, current,
-            new EvolvingDifferenceDescriptor(), value -> value, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
-        final FlowComparison comparison = comparator.compare();
-        final Collection<FlowDifference> rawDifferences = comparison.getDifferences();
-
-        final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
-            FlowDifferenceFilters.buildEnvironmentalChangeContext(rawDifferences, flowManager);
-
-        for (final FlowDifference difference : rawDifferences) {
-            if (!FlowDifferenceFilters.isEnvironmentalChange(difference, currentGroup, flowManager, environmentalContext)) {
-                logger.debug("Connector flow differs from initial flow: {}", difference);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static boolean isStructurallyEmpty(final VersionedProcessGroup group) {
-        if (group == null) {
-            return true;
-        }
-
-        if (isNonEmpty(group.getProcessors()) || isNonEmpty(group.getControllerServices())
-            || isNonEmpty(group.getConnections()) || isNonEmpty(group.getInputPorts())
-            || isNonEmpty(group.getOutputPorts()) || isNonEmpty(group.getFunnels())
-            || isNonEmpty(group.getLabels()) || isNonEmpty(group.getRemoteProcessGroups())) {
-            return false;
-        }
-
-        final Set<VersionedProcessGroup> childGroups = group.getProcessGroups();
-        if (childGroups == null) {
-            return true;
-        }
-        for (final VersionedProcessGroup child : childGroups) {
-            if (!isStructurallyEmpty(child)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean isNonEmpty(final Set<?> set) {
-        return set != null && !set.isEmpty();
     }
 
     private void stopComponents(final VersionedProcessGroup group) {
@@ -1830,7 +1848,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         } else if (!(getConnector() instanceof MigratableConnector)) {
             allowed = false;
             reason = "Connector does not support migration from a Versioned flow";
-        } else if (!matchesInitialFlow()) {
+        } else if (isModified()) {
             allowed = false;
             reason = "Connector has been modified since it was created; migration would overwrite those modifications";
         } else {
