@@ -161,4 +161,34 @@ class PythonProcessTest {
         pythonProcess.shutdown();
         assertTrue(pythonProcess.isShutdown());
     }
+
+    @Test
+    void testIsReadyInitialState() {
+        assertFalse(pythonProcess.isReady());
+    }
+
+    @Test
+    void testWaitUntilReadyThrowsWhenShutdownBeforeReady() {
+        pythonProcess.shutdown();
+        final IOException thrown = assertThrows(IOException.class, () -> pythonProcess.waitUntilReady());
+        assertTrue(thrown.getMessage().contains("shut down before becoming ready"));
+    }
+
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testWaitUntilReadyWakesUpWhenShutdown() throws InterruptedException {
+        final Thread waiter = new Thread(() -> {
+            try {
+                pythonProcess.waitUntilReady();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (IOException ignored) {
+            }
+        });
+        waiter.start();
+        Thread.sleep(100L);
+        pythonProcess.shutdown();
+        waiter.join(2000);
+        assertFalse(waiter.isAlive());
+    }
 }
