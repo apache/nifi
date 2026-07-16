@@ -28,6 +28,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -241,6 +242,58 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
         final FlowComparisonEntity localMods = getNifiClient().getProcessGroupClient().getLocalModifications(child.getId());
         assertTrue(localMods.getComponentDifferences().isEmpty(),
                 "Show Local Changes should report no differences for an unmodified flow");
+    }
+
+    /**
+     * Reproduces NIFI-16114: a processor property that identifies a Controller Service is set via
+     * a Parameter reference (#{svc}) pointing at a service defined outside the versioned PG. Both
+     * v1 and v2 of the flow reference the service through the same Parameter.
+     *
+     * When the PG is downgraded to v1 and then upgraded back to v2, the synchronizer used to resolve
+     * "#{svc}" to the external service's concrete instance ID and pin the property to that literal
+     * value, silently dropping the Parameter reference. This showed up as a false "local
+     * modification" (Property Value Changed) even though the flow and the versioned snapshot were
+     * otherwise identical.
+     */
+    @Test
+    public void testExternalControllerServiceParameterReferencePreservedOnUpgrade() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity registryClient = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ControllerServiceEntity service = util.createControllerService(COUNT_SERVICE_TYPE, "root");
+        util.enableControllerService(service);
+
+        final ParameterContextEntity paramContext = util.createParameterContext(
+                "svc-context", Collections.singletonMap("svc", service.getComponent().getId()));
+
+        final ProcessGroupEntity child = util.createProcessGroup("Child", "root");
+        util.setParameterContext(child.getId(), paramContext);
+
+        ProcessorEntity counter = util.createProcessor("CountFlowFiles", child.getId());
+        util.updateProcessorProperties(counter, Collections.singletonMap("Count Service", "#{svc}"));
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", child.getId());
+        util.createConnection(counter, terminate, "success");
+
+        final VersionControlInformationEntity vci = util.startVersionControl(child, registryClient, TEST_FLOWS_BUCKET, "param-ref-external-cs");
+        util.assertFlowUpToDate(child.getId());
+
+        // v2 differs only in scheduling period. "Count Service" remains #{svc} in both versions.
+        counter = util.updateProcessorSchedulingPeriod(counter, "10 sec");
+        util.saveFlowVersion(child, registryClient, vci);
+        util.assertFlowUpToDate(child.getId());
+
+        // Downgrade then upgrade to force the synchronizer to re-resolve the property, which is
+        // the code path affected by NIFI-16114.
+        util.changeFlowVersion(child.getId(), "1");
+        util.changeFlowVersion(child.getId(), "2");
+
+        final ProcessorEntity refreshed = getNifiClient().getProcessorClient().getProcessor(counter.getId());
+        assertEquals("#{svc}", refreshed.getComponent().getConfig().getProperties().get("Count Service"),
+                "Parameter reference to external Controller Service should survive version upgrade, not be flattened to the service's instance ID");
+
+        final FlowComparisonEntity localMods = getNifiClient().getProcessGroupClient().getLocalModifications(child.getId());
+        assertTrue(localMods.getComponentDifferences().isEmpty(),
+                "Show Local Changes should report no differences after upgrading between versions that both reference the service via the same Parameter");
     }
 
     /**

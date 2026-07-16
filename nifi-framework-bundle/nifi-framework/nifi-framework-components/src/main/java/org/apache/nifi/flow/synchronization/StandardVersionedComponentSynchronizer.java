@@ -97,11 +97,13 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.migration.StandardControllerServiceFactory;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterContextNameUtils;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
@@ -1653,11 +1655,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     || (versionedDescriptor != null && versionedDescriptor.getIdentifiesControllerService());
                 final boolean sensitive = (descriptor != null && descriptor.isSensitive())
                     || (versionedDescriptor != null && versionedDescriptor.isSensitive());
-
+                final String proposedValue = proposedProperties.get(propertyName);
+                final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+                final boolean proposedReferencingParameter = parameterParser.parseTokens(proposedValue).iterator().hasNext();
                 final String value;
-                if (descriptor != null && referencesService && (proposedProperties.get(propertyName) != null)) {
+                if (descriptor != null && referencesService && !proposedReferencingParameter && (proposedValue != null)) {
                     // Need to determine if the component's property descriptor for this service is already set to an id
-                    // of an existing service that is outside the current processor group, and if it is we want to leave
+                    // of an existing service that is outside the current processor group, and if it is, we want to leave
                     // the property set to that value
                     String existingExternalServiceId = null;
                     final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
@@ -1674,9 +1678,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // If the component's property descriptor is not already set to an id of an existing external service,
                     // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
                     if (existingExternalServiceId == null) {
-                        final String serviceVersionedComponentId = proposedProperties.get(propertyName);
-                        String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                        value = (instanceId == null) ? serviceVersionedComponentId : instanceId;
+                        String instanceId = getServiceInstanceId(proposedValue, group);
+                        value = (instanceId == null) ? proposedValue : instanceId;
 
                         // Find the same property descriptor in the component's CreatedExtension and replace it with the
                         // instance ID of the service
@@ -1687,7 +1690,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         value = existingExternalServiceId;
                     }
                 } else {
-                    value = proposedProperties.get(propertyName);
+                    value = proposedValue;
                 }
 
                 // skip any sensitive properties that are not populated so we can retain whatever is currently set. We do this because sensitive properties are not stored in the registry
