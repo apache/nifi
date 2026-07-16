@@ -22,10 +22,9 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
 
@@ -70,29 +69,12 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
     }
 
     protected Map<String, String> getAttributes(final TarArchiveInputStream stream) throws IOException {
-
         final Properties props = new Properties();
         props.loadFromXML(new NonCloseableInputStream(stream));
+        final Map<String, String> attributes = props.stringPropertyNames().stream()
+                .collect(Collectors.toMap(key -> key, props::getProperty));
 
-        final Map<String, String> result = new HashMap<>();
-        for (final Entry<Object, Object> entry : props.entrySet()) {
-            final Object keyObject = entry.getKey();
-            final Object valueObject = entry.getValue();
-            if (!(keyObject instanceof final String key)) {
-                throw new IOException("Flow file attributes object contains key of type "
-                        + keyObject.getClass().getCanonicalName()
-                        + " but expected java.lang.String");
-            } else if (!(keyObject instanceof String)) {
-                throw new IOException("Flow file attributes object contains value of type "
-                        + keyObject.getClass().getCanonicalName()
-                        + " but expected java.lang.String");
-            }
-
-            final String value = (String) valueObject;
-            result.put(key, value);
-        }
-
-        return result;
+        return attributes;
     }
 
     @Override
