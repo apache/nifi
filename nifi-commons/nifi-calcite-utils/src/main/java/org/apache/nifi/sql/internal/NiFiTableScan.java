@@ -86,8 +86,8 @@ class NiFiTableScan extends TableScan implements EnumerableRel {
         // For example, if table has 3 fields, project has 1 field,
         // then factor = (1 + 2) / (3 + 2) = 0.6
         return super.computeSelfCost(planner, mq)
-            .multiplyBy(((double) fields.length + 2D)
-                / ((double) table.getRowType().getFieldCount() + 2D));
+            .multiplyBy((fields.length + 2D)
+                / (table.getRowType().getFieldCount() + 2D));
     }
 
     @Override

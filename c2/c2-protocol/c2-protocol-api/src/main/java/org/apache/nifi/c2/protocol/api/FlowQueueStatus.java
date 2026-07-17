@@ -75,7 +75,7 @@ public class FlowQueueStatus implements Serializable {
      */
     @Schema(hidden = true)
     public Double getSizeUtilization() {
-        return size != null && sizeMax != null && sizeMax > 0 ? (double) size / (double) sizeMax : null;
+        return size != null && sizeMax != null && sizeMax > 0 ? (double) size / sizeMax : null;
     }
 
     /**
@@ -86,6 +86,6 @@ public class FlowQueueStatus implements Serializable {
      */
     @Schema(hidden = true)
     public Double getDataSizeUtilization() {
-        return dataSize != null && dataSizeMax != null && dataSizeMax > 0 ? (double) dataSize / (double) dataSizeMax : null;
+        return dataSize != null && dataSizeMax != null && dataSizeMax > 0 ? (double) dataSize / dataSizeMax : null;
     }
 }

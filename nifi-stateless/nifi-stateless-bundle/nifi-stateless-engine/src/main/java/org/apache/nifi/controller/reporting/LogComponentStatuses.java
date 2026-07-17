@@ -130,10 +130,10 @@ public class LogComponentStatuses implements Runnable {
 
         final long bytesReadPerSecond = flowFileEvent.getBytesRead() / secondsInEvent;
         final long bytesWrittenPerSecond = flowFileEvent.getBytesWritten() / secondsInEvent;
-        final double invocations = (double) flowFileEvent.getInvocations() / (double) secondsInEvent;
+        final double invocations = (double) flowFileEvent.getInvocations() / secondsInEvent;
         final long nanos = flowFileEvent.getProcessingNanoseconds();
-        final double nanosPer = (double) nanos / invocations;
-        final double nanosRatio = (double) nanos / (double) totalNanos;
+        final double nanosPer = nanos / invocations;
+        final double nanosRatio = (double) nanos / totalNanos;
         final double processingPercent = nanosRatio * 100D;
         final String processingPercentTwoDecimals = String.format("%.2f %%", processingPercent);
 
@@ -164,7 +164,7 @@ public class LogComponentStatuses implements Runnable {
 
         final long now = System.currentTimeMillis();
         final long millisSinceLastTrigger = now - lastTriggerTime;
-        final double secondsSinceLastTrigger = (double) millisSinceLastTrigger / 1000D;
+        final double secondsSinceLastTrigger = millisSinceLastTrigger / 1000D;
         lastTriggerTime = now;
 
         final List<Counter> counters = counterRepository.getCounters();
@@ -175,7 +175,7 @@ public class LogComponentStatuses implements Runnable {
             final long lastValue = previousCounterValues.getOrDefault(counterId, 0L);
             previousCounterValues.put(counterId, counter.getValue());
             final long increaseSinceLast = counter.getValue() - lastValue;
-            final double increasePerSecond = (double) increaseSinceLast / secondsSinceLastTrigger;
+            final double increasePerSecond = increaseSinceLast / secondsSinceLastTrigger;
             final String increase = String.format("%.2f", increasePerSecond);
 
             builder.append(String.format(COUNTER_LINE_FORMAT, counter.getContext(), counter.getName(), counter.getValue(), increase));

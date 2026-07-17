@@ -449,8 +449,7 @@ public class FlowDifferenceFilters {
             return false;
         }
 
-        final InstantiatedVersionedProcessor instantiatedVersionedProcessor = (InstantiatedVersionedProcessor) processorB;
-        final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedVersionedProcessor.getInstanceIdentifier());
+        final ProcessorNode processorNode = flowManager.getProcessorNode(processorB.getInstanceIdentifier());
         if (processorNode == null) {
             return false;
         }

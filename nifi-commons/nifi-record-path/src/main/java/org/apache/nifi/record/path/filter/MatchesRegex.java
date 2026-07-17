@@ -37,9 +37,9 @@ public class MatchesRegex extends FunctionFilter {
         this.regexPath = regexPath;
 
         if (regexPath instanceof LiteralValuePath) {
-            final FieldValue fieldValue = ((LiteralValuePath) regexPath).evaluate((RecordPathEvaluationContext) null).findFirst().get();
+            final FieldValue fieldValue = regexPath.evaluate((RecordPathEvaluationContext) null).findFirst().get();
             final Object value = fieldValue.getValue();
-            final String regex = DataTypeUtils.toString(value, (String) null);
+            final String regex = DataTypeUtils.toString(value, null);
             compiledPattern = Pattern.compile(regex);
         } else {
             compiledPattern = null;
@@ -60,13 +60,13 @@ public class MatchesRegex extends FunctionFilter {
                 return false;
             }
 
-            final String regex = DataTypeUtils.toString(value, (String) null);
+            final String regex = DataTypeUtils.toString(value, null);
             pattern = Pattern.compile(regex);
         } else {
             pattern = compiledPattern;
         }
 
-        final String searchString = DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+        final String searchString = DataTypeUtils.toString(fieldValue.getValue(), null);
         if (searchString == null) {
             return false;
         }

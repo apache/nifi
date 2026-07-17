@@ -643,7 +643,7 @@ public class LookupRecord extends AbstractProcessor {
             final Optional<?> lookupValueCacheOption;
 
             try {
-                lookupValueCacheOption = (Optional<?>) cache.get(lookupCoordinates, k -> null);
+                lookupValueCacheOption = cache.get(lookupCoordinates, k -> null);
                 if (lookupValueCacheOption == null) {
                     lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
                 } else {

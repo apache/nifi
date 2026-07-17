@@ -49,8 +49,7 @@ abstract class AbstractInstantArithmeticEvaluator extends InstantEvaluator {
         this.subject = subject;
         this.amountEvaluator = amountEvaluator;
         if (amountEvaluator instanceof StringLiteralEvaluator) {
-            DateAmountParser.validate(
-                    ((StringLiteralEvaluator) amountEvaluator).evaluate(null).getValue());
+            DateAmountParser.validate(amountEvaluator.evaluate(null).getValue());
         }
     }
 

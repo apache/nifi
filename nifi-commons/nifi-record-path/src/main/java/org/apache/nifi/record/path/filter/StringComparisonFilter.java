@@ -35,7 +35,7 @@ public abstract class StringComparisonFilter extends FunctionFilter {
 
     @Override
     protected boolean test(final FieldValue fieldValue, final RecordPathEvaluationContext context) {
-        final String fieldVal = DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+        final String fieldVal = DataTypeUtils.toString(fieldValue.getValue(), null);
         if (fieldVal == null) {
             return false;
         }
@@ -45,7 +45,7 @@ public abstract class StringComparisonFilter extends FunctionFilter {
             return false;
         }
 
-        final String searchValue = DataTypeUtils.toString(firstValue.get().getValue(), (String) null);
+        final String searchValue = DataTypeUtils.toString(firstValue.get().getValue(), null);
         if (searchValue == null) {
             return false;
         }

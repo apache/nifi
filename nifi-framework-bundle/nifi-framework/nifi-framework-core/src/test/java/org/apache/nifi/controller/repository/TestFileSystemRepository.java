@@ -135,7 +135,7 @@ public class TestFileSystemRepository {
 
         final long mb = bytesToWrite / (1024 * 1024);
         final long seconds = millis / 1000L;
-        final double mbps = (double) mb / (double) seconds;
+        final double mbps = (double) mb / seconds;
         logger.info("Took {} millis to write {} bytes {} times (total of {} bytes) for a write rate of {} MB/s",
                 millis, contentSize, iterations, NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite), mbps);
     }

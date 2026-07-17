@@ -6940,7 +6940,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // If any Process Group is removed, consider all components below that Process Group as an affected component
             if (difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED && localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.PROCESS_GROUP) {
-                final String localGroupId = ((InstantiatedVersionedProcessGroup) localComponent).getInstanceIdentifier();
+                final String localGroupId = localComponent.getInstanceIdentifier();
                 final ProcessGroup localGroup = processGroupDAO.getProcessGroup(localGroupId);
 
                 localGroup.findAllProcessors().stream()

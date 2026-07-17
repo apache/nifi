@@ -39,7 +39,7 @@ public abstract class NoArgStringFunction extends RecordPathSegment {
     @Override
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
         return valuePath.evaluate(context).map(fv -> {
-            final String original = fv.getValue() == null ? "" : DataTypeUtils.toString(fv.getValue(), (String) null);
+            final String original = fv.getValue() == null ? "" : DataTypeUtils.toString(fv.getValue(), null);
             final String processed = apply(original);
             return new StandardFieldValue(processed, fv.getField(), fv.getParent().orElse(null));
         });

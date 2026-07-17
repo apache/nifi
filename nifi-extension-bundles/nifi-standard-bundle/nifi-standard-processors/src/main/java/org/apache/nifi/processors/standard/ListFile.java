@@ -991,7 +991,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 return OperationStatistics.EMPTY;
             }
 
-            double average = (double) sum / (double) count;
+            double average = (double) sum / count;
 
             // Calculate Standard Deviation
             final double stdDeviation = calculateStdDev(average, count, operation);

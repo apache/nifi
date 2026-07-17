@@ -96,6 +96,7 @@ public class StandardTocReader implements TocReader {
         }
     }
 
+    @SuppressWarnings("PMD.UnnecessaryCast")
     private long readLong(final byte[] buffer, final int offset) {
         return ((long) buffer[offset] << 56) +
             ((long) (buffer[offset + 1] & 0xFF) << 48) +
