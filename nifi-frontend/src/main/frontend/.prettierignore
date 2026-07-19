@@ -29,6 +29,11 @@ npm-debug.log
 **/nfel.ts
 **/nfel.terms.ts
 
+# Markdown files with YAML front matter — prettier corrupts indentation in
+# the YAML block (--- delimiters are not recognized as code fences).
+DESIGN.md
+.cursor/**/*.md
+
 # Theme
 src/assets/themes/*
 src/styles.scss

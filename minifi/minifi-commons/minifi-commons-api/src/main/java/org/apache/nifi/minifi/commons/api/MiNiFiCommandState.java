@@ -21,5 +21,5 @@ package org.apache.nifi.minifi.commons.api;
  * Response State for Commands coming from MiNiFi.
  */
 public enum MiNiFiCommandState {
-    FULLY_APPLIED, NO_OPERATION, NOT_APPLIED_WITHOUT_RESTART, NOT_APPLIED_WITH_RESTART;
+    FULLY_APPLIED, NO_OPERATION, NOT_APPLIED_WITHOUT_RESTART, NOT_APPLIED_WITH_RESTART
 }

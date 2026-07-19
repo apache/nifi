@@ -33,6 +33,6 @@ public enum ExtensionType {
 
     FLOW_REGISTRY_CLIENT,
 
-    CONNECTOR;
+    CONNECTOR
 
 }

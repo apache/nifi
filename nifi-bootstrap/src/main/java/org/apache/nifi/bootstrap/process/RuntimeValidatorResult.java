@@ -72,6 +72,6 @@ public class RuntimeValidatorResult  {
 
         FAILED,
 
-        SKIPPED;
+        SKIPPED
     }
 }

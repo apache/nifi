@@ -31,5 +31,5 @@ public enum LoadBalanceCompression {
     /**
      * FlowFiles' attributes and content will be compressed
      */
-    COMPRESS_ATTRIBUTES_AND_CONTENT;
+    COMPRESS_ATTRIBUTES_AND_CONTENT
 }

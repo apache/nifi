@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutGridFSIT extends GridFSITTestBase {
@@ -108,7 +109,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         Document query = Document.parse(String.format("{\"filename\": \"%s\"}", fileName));
 
         long count = files.countDocuments(query);
-        assertTrue(count == 10, "Wrong count");
+        assertEquals(10, count, "Wrong count");
     }
 
     @Test

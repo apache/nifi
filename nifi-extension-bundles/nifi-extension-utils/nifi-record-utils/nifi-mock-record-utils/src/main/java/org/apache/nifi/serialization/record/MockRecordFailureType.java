@@ -20,5 +20,5 @@ package org.apache.nifi.serialization.record;
 public enum MockRecordFailureType {
     IO_EXCEPTION,
 
-    MALFORMED_RECORD_EXCEPTION;
+    MALFORMED_RECORD_EXCEPTION
 }

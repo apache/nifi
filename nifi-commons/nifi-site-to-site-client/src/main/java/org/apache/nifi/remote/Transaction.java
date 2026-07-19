@@ -220,6 +220,6 @@ public interface Transaction {
         /**
          * The Transaction ended in an error.
          */
-        ERROR;
+        ERROR
     }
 }

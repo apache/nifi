@@ -18,5 +18,5 @@
 package org.apache.nifi.repository.schema;
 
 public enum Repetition {
-    ZERO_OR_ONE, EXACTLY_ONE, ZERO_OR_MORE;
+    ZERO_OR_ONE, EXACTLY_ONE, ZERO_OR_MORE
 }

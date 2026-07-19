@@ -20,31 +20,43 @@ package org.apache.nifi.minifi.c2.command;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.FieldSource;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.nio.charset.Charset.defaultCharset;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.exists;
 import static java.nio.file.Files.isDirectory;
 import static java.nio.file.Files.readAllLines;
-import static java.nio.file.Files.write;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UpdateAssetCommandHelperTest {
+class UpdateAssetCommandHelperTest {
+
+    private static final String[] INVALID_ASSET_FILE_NAMES = new String[]{
+            "~",
+            "./",
+            "../",
+            "./../",
+            "../sibling-directory",
+            "/tmp"
+    };
 
     private static final String ASSET_DIRECTORY = "asset_directory";
-    private static final String ASSET_FILE = "asset.file";
+    private static final String ASSET_FILE = "asset-file";
+    private static final byte[] CONTENT = String.class.getSimpleName().getBytes(StandardCharsets.UTF_8);
 
     @TempDir
     private File tempDir;
@@ -53,89 +65,88 @@ public class UpdateAssetCommandHelperTest {
     private UpdateAssetCommandHelper updateAssetCommandHelper;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         assetDirectory = Paths.get(tempDir.getAbsolutePath(), ASSET_DIRECTORY);
         updateAssetCommandHelper = new UpdateAssetCommandHelper(assetDirectory.toString());
     }
 
     @Test
-    public void testAssetDirectoryShouldBeCreated() {
-        // given + when
+    void testAssetDirectoryShouldBeCreated() {
         updateAssetCommandHelper.createAssetDirectory();
 
-        // then
         assertTrue(exists(assetDirectory));
         assertTrue(isDirectory(assetDirectory));
     }
 
     @Test
-    public void testAssetFileDoesNotExist() {
-        // given
+    void testAssetFileDoesNotExist() {
         updateAssetCommandHelper.createAssetDirectory();
 
-        // when
         boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, FALSE);
 
-        // then
         assertTrue(result);
     }
 
     @Test
-    public void testAssetFileExistsAndForceDownloadOff() {
-        // given
+    void testAssetFileExistsAndForceDownloadOff() {
         updateAssetCommandHelper.createAssetDirectory();
         touchAssetFile();
 
-        // when
         boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, FALSE);
 
-        // then
         assertFalse(result);
     }
 
     @Test
-    public void testAssetFileExistsAndForceDownloadOn() {
-        // given
+    void testAssetFileExistsAndForceDownloadOn() {
         updateAssetCommandHelper.createAssetDirectory();
         touchAssetFile();
 
-        // when
         boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, TRUE);
 
-        // then
         assertTrue(result);
     }
 
     @Test
-    public void testAssetPersistedCorrectly() throws IOException {
-        // given
+    void testAssetPersistedCorrectly() throws IOException {
         updateAssetCommandHelper.createAssetDirectory();
         String testAssetContent = "test file content";
 
-        // when
         boolean result = updateAssetCommandHelper.assetPersistFunction(ASSET_FILE, testAssetContent.getBytes(defaultCharset()));
 
-        // then
         assertTrue(result);
         assertIterableEquals(singletonList(testAssetContent), readAllLines(assetDirectory.resolve(ASSET_FILE), defaultCharset()));
     }
 
     @Test
-    public void testAssetDirectoryDoesNotExistWhenPersistingAsset() {
-        // given
+    void testAssetDirectoryDoesNotExistWhenPersistingAsset() {
         String testAssetContent = "test file content";
 
-        // when
         boolean result = updateAssetCommandHelper.assetPersistFunction(ASSET_FILE, testAssetContent.getBytes(defaultCharset()));
 
-        // then
         assertFalse(result);
         assertFalse(exists(assetDirectory.resolve(ASSET_FILE)));
     }
 
+    @ParameterizedTest
+    @FieldSource("INVALID_ASSET_FILE_NAMES")
+    void testAssetUpdatePreconditionDirectoriesDisallowed(final String assetName) {
+        final boolean completed = updateAssetCommandHelper.assetUpdatePrecondition(assetName, true);
+
+        assertFalse(completed);
+    }
+
+    @ParameterizedTest
+    @FieldSource("INVALID_ASSET_FILE_NAMES")
+    void testAssetPersistFunctionDirectoriesDisallowed(final String assetName) {
+        final boolean completed = updateAssetCommandHelper.assetPersistFunction(assetName, CONTENT);
+
+        assertFalse(completed);
+    }
+
     private void touchAssetFile() {
         try {
-            write(Paths.get(assetDirectory.toString(), ASSET_FILE), EMPTY.getBytes(UTF_8));
+            Files.writeString(Paths.get(assetDirectory.toString(), ASSET_FILE), EMPTY);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to touch file", e);
         }

@@ -23,6 +23,6 @@ public enum BundleVersionType {
 
     NIFI_NAR,
 
-    MINIFI_CPP;
+    MINIFI_CPP
 
 }

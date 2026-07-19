@@ -43,6 +43,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -104,8 +105,7 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
         final ParameterProviderDTO providerDto = createdProvider.getComponent();
         assertNotNull(providerDto);
         assertNotNull(providerDto.getBundle(), "Bundle should not be null");
-        assertFalse(INCOMPATIBLE_VERSION.equals(providerDto.getBundle().getVersion()),
-                "Bundle version should NOT be the incompatible version - should have fallen back to available version");
+        assertNotEquals(INCOMPATIBLE_VERSION, providerDto.getBundle().getVersion(), "Bundle version should NOT be the incompatible version - should have fallen back to available version");
         assertEquals(getNiFiVersion(), providerDto.getBundle().getVersion(),
                 "Bundle version should be the NiFi framework version (fallback)");
         assertFalse(providerDto.getType().startsWith("(Missing)"),

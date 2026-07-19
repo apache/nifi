@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -448,7 +449,7 @@ public class PutSmbFileTest {
         );
 
         assertTrue(initialFilename.getValue().endsWith(suffix), "Suffix is not present and it should be");
-        assertTrue(!finalFilename.getValue().endsWith(suffix), "Suffix is present and it shouldn't be");
+        assertFalse(finalFilename.getValue().endsWith(suffix), "Suffix is present and it shouldn't be");
         assertTrue(replace.getValue(), "Replace flag should be true");
     }
 

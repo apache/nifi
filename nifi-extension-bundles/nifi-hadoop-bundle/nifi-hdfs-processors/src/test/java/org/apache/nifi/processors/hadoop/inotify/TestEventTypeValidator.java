@@ -24,6 +24,7 @@ import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEventTypeValidator {
@@ -43,7 +44,7 @@ public class TestEventTypeValidator {
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
-        assertEquals(null, result.getInput());
+        assertNull(result.getInput());
         assertEquals("Empty event types are not allowed.", result.getExplanation());
         assertFalse(result.isValid());
     }

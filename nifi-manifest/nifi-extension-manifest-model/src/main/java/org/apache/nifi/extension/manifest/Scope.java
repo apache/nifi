@@ -23,5 +23,5 @@ public enum Scope {
 
     CLUSTER,
 
-    LOCAL;
+    LOCAL
 }

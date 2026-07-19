@@ -285,6 +285,6 @@ public class FlowSynchronizationOptions {
          * If a timeout occurs when stopping a processor, the Processor should be terminated and no Exception should be thrown.
          * If a Controller Service or Reporting Task fails to stop/disable in time, a {@link java.util.concurrent.TimeoutException} will still be thrown.
          */
-        TERMINATE;
+        TERMINATE
     }
 }
