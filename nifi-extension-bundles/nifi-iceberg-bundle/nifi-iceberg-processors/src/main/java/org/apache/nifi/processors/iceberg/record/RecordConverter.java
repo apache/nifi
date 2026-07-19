@@ -17,7 +17,11 @@
 package org.apache.nifi.processors.iceberg.record;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.variants.Variant;
+import org.apache.iceberg.variants.VariantPrimitive;
+import org.apache.iceberg.variants.Variants;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -25,6 +29,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -37,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Record Converter handles translating field values to types compatible with Apache Iceberg Records
@@ -62,7 +68,7 @@ class RecordConverter {
     static Record getConvertedRecord(final Record inputRecord, final Types.StructType struct) {
         final Record convertedRecord;
 
-        if (isConversionRequired(inputRecord.getSchema())) {
+        if (isConversionRequired(inputRecord.getSchema(), struct)) {
             convertedRecord = convertRecord(inputRecord, struct);
         } else {
             convertedRecord = inputRecord;
@@ -132,8 +138,31 @@ class RecordConverter {
             }
             case DATE -> ((Date) value).toLocalDate();
             case TIME -> ((Time) value).toLocalTime();
+            case VARIANT -> convertVariant(value);
             default -> value;
         };
+    }
+
+    private static Variant convertVariant(final Object value) {
+        if (value instanceof Variant variant) {
+            return variant;
+        }
+
+        final VariantPrimitive<?> primitive = switch (value) {
+            case Boolean booleanValue -> Variants.of(booleanValue);
+            case Integer integerValue -> Variants.of(integerValue);
+            case Long longValue -> Variants.of(longValue);
+            case Float floatValue -> Variants.of(floatValue);
+            case Double doubleValue -> Variants.of(doubleValue);
+            case BigDecimal decimalValue -> Variants.of(decimalValue);
+            case ByteBuffer byteBufferValue -> Variants.of(byteBufferValue);
+            case byte[] bytesValue -> Variants.of(ByteBuffer.wrap(bytesValue));
+            case UUID uuidValue -> Variants.ofUUID(uuidValue);
+            case String stringValue -> Variants.of(stringValue);
+            default -> Variants.of(value.toString());
+        };
+
+        return Variant.of(Variants.emptyMetadata(), primitive);
     }
 
     private static byte[] toByteArray(final Object value) {
@@ -145,13 +174,18 @@ class RecordConverter {
         return ArrayUtils.toPrimitive(boxedBytes);
     }
 
-    private static boolean isConversionRequired(final RecordSchema recordSchema) {
+    private static boolean isConversionRequired(final RecordSchema recordSchema, final Types.StructType struct) {
         final List<RecordField> fields = recordSchema.getFields();
 
         for (final RecordField field : fields) {
             final DataType dataType = field.getDataType();
             final RecordFieldType recordFieldType = dataType.getFieldType();
             if (CONVERSION_REQUIRED_FIELD_TYPES.contains(recordFieldType)) {
+                return true;
+            }
+
+            final Types.NestedField icebergField = struct.field(field.getFieldName());
+            if (icebergField != null && icebergField.type().typeId() == Type.TypeID.VARIANT) {
                 return true;
             }
         }

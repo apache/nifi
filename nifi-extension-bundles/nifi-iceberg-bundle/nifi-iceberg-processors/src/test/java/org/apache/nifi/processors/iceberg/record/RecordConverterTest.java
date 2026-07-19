@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.iceberg.record;
 
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.variants.Variant;
+import org.apache.iceberg.variants.PhysicalType;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -31,7 +33,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
@@ -201,6 +202,34 @@ class RecordConverterTest {
         final Object structValue = converted.getValue(FIELD_NAME);
         final org.apache.iceberg.data.Record delegatedRecord = assertInstanceOf(org.apache.iceberg.data.Record.class, structValue);
         assertEquals(innerTimestamp.toLocalDateTime(), delegatedRecord.getField(innerField));
+    }
+
+    @Test
+    void testConvertVariantWrapsPlainStringEvenWhenSourceTypeNeedsNoOtherConversion() {
+        final Types.StructType struct = Types.StructType.of(
+                Types.NestedField.required(1, FIELD_NAME, Types.VariantType.get())
+        );
+
+        // RecordFieldType.STRING is not in CONVERSION_REQUIRED_FIELD_TYPES; the VARIANT
+        // destination type alone must trigger conversion so the writer never sees a raw String.
+        final Record converted = convertSingleField(RecordFieldType.STRING, "plain-value", struct);
+
+        final Variant variant = assertInstanceOf(Variant.class, converted.getValue(FIELD_NAME));
+        assertEquals(PhysicalType.STRING, variant.value().type());
+    }
+
+    @Test
+    void testConvertVariantPassesThroughExistingVariant() {
+        final Types.StructType struct = Types.StructType.of(
+                Types.NestedField.required(1, FIELD_NAME, Types.VariantType.get())
+        );
+        final Variant existing = Variant.of(
+                org.apache.iceberg.variants.Variants.emptyMetadata(),
+                org.apache.iceberg.variants.Variants.of(42));
+
+        final Record converted = convertSingleField(RecordFieldType.STRING, existing, struct);
+
+        assertSame(existing, converted.getValue(FIELD_NAME));
     }
 
     @Test
