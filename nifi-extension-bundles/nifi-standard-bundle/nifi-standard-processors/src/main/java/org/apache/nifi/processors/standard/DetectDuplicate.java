@@ -44,6 +44,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -260,15 +261,11 @@ public class DetectDuplicate extends AbstractProcessor {
             if (input.length == 0) {
                 return null;
             }
-            long time = ((long) input[0] << 56)
-                    + ((long) (input[1] & 255) << 48)
-                    + ((long) (input[2] & 255) << 40)
-                    + ((long) (input[3] & 255) << 32)
-                    + ((long) (input[4] & 255) << 24)
-                    + ((input[5] & 255) << 16)
-                    + ((input[6] & 255) << 8)
-                    + ((input[7] & 255));
-            String description = new String(input, 8, input.length - 8, StandardCharsets.UTF_8);
+
+            final ByteBuffer byteBuffer = ByteBuffer.wrap(input);
+            final long time = byteBuffer.getLong();
+            final String description = new String(input, 8, input.length - 8, StandardCharsets.UTF_8);
+
             return new CacheValue(description, time);
         }
     }
