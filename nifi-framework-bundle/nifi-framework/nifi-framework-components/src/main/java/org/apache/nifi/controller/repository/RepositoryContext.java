@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ConnectionStatusEvent;
 import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
@@ -69,6 +70,10 @@ public interface RepositoryContext {
     void recordGauge(GaugeRecord gaugeRecord);
 
     void recordProcessSessionEvent(ProcessSessionEvent event);
+
+    void recordConnectionStatusEvent(ConnectionStatusEvent event);
+
+    boolean isRecordConnectionStatusEventEnabled();
 
     ProvenanceEventBuilder createProvenanceEventBuilder();
 

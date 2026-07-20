@@ -59,4 +59,22 @@ public interface ComponentMetricReporter extends Closeable {
      */
     default void recordProcessSessionEvent(ProcessSessionEvent processSessionEvent) {
     }
+
+    /**
+     * Record current Connection Status for operations completed during a Process Session
+     *
+     * @param connectionStatusEvent Connection Status Event containing component context and captured status
+     */
+    default void recordConnectionStatusEvent(ConnectionStatusEvent connectionStatusEvent) {
+    }
+
+    /**
+     * Status indicator for recording Connection Status Event defaults to disabled and requires overriding along with
+     * recordConnectionStatusEvent() to handle Connection Status Events
+     *
+     * @return Enabled or disabled status for recording Connection Status Events
+     */
+    default boolean isRecordConnectionStatusEventEnabled() {
+        return false;
+    }
 }
