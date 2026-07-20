@@ -176,7 +176,7 @@ public class ITRedisStateProvider {
         assertEquals(1, map.size());
         assertEquals("value", map.get(key));
 
-        provider.setState(Collections.<String, String>emptyMap(), componentId);
+        provider.setState(Collections.emptyMap(), componentId);
 
         final StateMap stateMap = provider.getState(componentId);
         map = stateMap.toMap();

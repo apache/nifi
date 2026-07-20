@@ -268,7 +268,7 @@ public class IndexConfiguration {
             final Long firstEntryTime = getFirstEntryTime(provenanceLogFile);
             if (firstEntryTime == null) {
                 logger.debug("Found no records in {} so returning no Indices for it", provenanceLogFile);
-                return Collections.<File>emptyList();
+                return Collections.emptyList();
             }
 
             boolean foundIndexCreatedLater = false;

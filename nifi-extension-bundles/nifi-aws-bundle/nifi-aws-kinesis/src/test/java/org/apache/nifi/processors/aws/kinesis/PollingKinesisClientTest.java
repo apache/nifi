@@ -227,7 +227,7 @@ class PollingKinesisClientTest {
                         .millisBehindLatest(0L)
                         .build();
                 default -> GetRecordsResponse.builder()
-                        .records(List.<Record>of())
+                        .records(List.of())
                         .nextShardIterator(request.shardIterator())
                         .millisBehindLatest(0L)
                         .build();
@@ -381,7 +381,7 @@ class PollingKinesisClientTest {
             }
             if (request.shardIterator().startsWith("iter-1")) {
                 return GetRecordsResponse.builder()
-                        .records(List.<Record>of())
+                        .records(List.of())
                         .nextShardIterator(request.shardIterator()).millisBehindLatest(0L).build();
             }
             return GetRecordsResponse.builder()
@@ -447,11 +447,11 @@ class PollingKinesisClientTest {
                 fetchLoopBlocked.countDown();
                 unblockFetchLoop.await(10, TimeUnit.SECONDS);
                 return GetRecordsResponse.builder()
-                        .records(List.<Record>of())
+                        .records(List.of())
                         .nextShardIterator("iter-1c").millisBehindLatest(0L).build();
             }
             return GetRecordsResponse.builder()
-                    .records(List.<Record>of())
+                    .records(List.of())
                     .nextShardIterator(request.shardIterator()).millisBehindLatest(0L).build();
         });
 
@@ -530,7 +530,7 @@ class PollingKinesisClientTest {
                         .nextShardIterator("iter-2a").millisBehindLatest(0L).build();
             }
             return GetRecordsResponse.builder()
-                    .records(List.<Record>of())
+                    .records(List.of())
                     .nextShardIterator(request.shardIterator()).millisBehindLatest(0L).build();
         });
 

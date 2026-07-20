@@ -2710,7 +2710,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
                         }
 
-                        enriched.setAttributes(record.getAttributes(), Collections.<String, String>emptyMap());
+                        enriched.setAttributes(record.getAttributes(), Collections.emptyMap());
                         return enriched.build();
                     }
 

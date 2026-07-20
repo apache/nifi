@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class StandardSwapContents implements SwapContents {
-    public static final SwapContents EMPTY_SWAP_CONTENTS = new StandardSwapContents(StandardSwapSummary.EMPTY_SUMMARY, Collections.<FlowFileRecord>emptyList());
+    public static final SwapContents EMPTY_SWAP_CONTENTS = new StandardSwapContents(StandardSwapSummary.EMPTY_SUMMARY, Collections.emptyList());
 
     private final SwapSummary summary;
     private final List<FlowFileRecord> flowFiles;
