@@ -122,7 +122,7 @@
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.47.5</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.48.3</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.7</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
@@ -165,7 +165,7 @@
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
         <groovy.version>5.0.7</groovy.version>
-        <kotlin.version>2.4.0</kotlin.version>
+        <kotlin.version>2.4.10</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.26.1</log4j2.version>
@@ -209,7 +209,7 @@
         <junit.version>6.1.2</junit.version>
         <mockito.version>5.23.0</mockito.version>
         <pmd.version>7.25.0</pmd.version>
-        <checkstyle.version>13.7.0</checkstyle.version>
+        <checkstyle.version>13.8.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
     </properties>
