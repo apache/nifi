@@ -744,6 +744,15 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void notifyMigrationComplete(final String connectorId, final String sourceProcessGroupId) {
         if (configurationProvider != null) {
+            // By the time this is called, commitMigratedConfiguration(...) has already written the merged configuration
+            // onto the active configuration and rebuilt the working flow context from it, so buildWorkingConfiguration(...)
+            // reflects the migrated configuration. Saving it here keeps an external configurationProvider in sync with the
+            // migration outcome, the same way configureConnector(...) and updateConnector(...) save every other change.
+            final ConnectorNode connector = connectors.get(connectorId);
+            if (connector != null) {
+                configurationProvider.save(connectorId, buildWorkingConfiguration(connector));
+            }
+
             configurationProvider.migrationComplete(connectorId, sourceProcessGroupId);
         }
     }

@@ -1914,6 +1914,25 @@ public class TestStandardConnectorRepository {
         repository.notifyMigrationComplete("connector-1", "source-group");
     }
 
+    @Test
+    public void testNotifyMigrationCompleteSavesWorkingConfigurationToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        repository.addConnector(connector);
+
+        // notifyMigrationComplete runs after commitMigratedConfiguration has already written the merged configuration
+        // onto the active configuration and rebuilt the working flow context from it, so the working flow context
+        // reflects the migrated configuration by the time this call is made.
+        repository.notifyMigrationComplete("connector-1", "source-group");
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configCaptor.capture());
+        assertEquals("Test Connector", configCaptor.getValue().getName());
+        verify(provider).migrationComplete("connector-1", "source-group");
+    }
+
     // --- Helper Methods ---
 
     private StandardConnectorRepository createRepositoryWithProviderAndAssetManager(
