@@ -283,7 +283,7 @@ public class GetSmbFile extends AbstractProcessor {
 
         switch (context.getProperty(SHARE_ACCESS).getValue()) {
             case SHARE_ACCESS_NONE:
-                sharedAccess = Collections.<SMB2ShareAccess>emptySet();
+                sharedAccess = Collections.emptySet();
                 break;
             case SHARE_ACCESS_READ:
                 sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ);
