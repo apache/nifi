@@ -134,8 +134,8 @@ public class ConnectorVersionedFlowMigrationIT extends AbstractConnectorVersione
 
             final List<String> ineligibilityReasons = listedSource.getIneligibilityReasons();
             assertNotNull(ineligibilityReasons);
-            assertTrue(containsSubstring(ineligibilityReasons, "running or enabled"), "Ineligibility reasons must surface running processors: " + ineligibilityReasons);
-            assertTrue(containsSubstring(ineligibilityReasons, "queued FlowFile"), "Ineligibility reasons must surface queued FlowFiles: " + ineligibilityReasons);
+            assertTrue(containsSubstring(ineligibilityReasons, "Running or enabled processor"), "Ineligibility reasons must surface running processors: " + ineligibilityReasons);
+            assertTrue(containsSubstring(ineligibilityReasons, "Queued FlowFile"), "Ineligibility reasons must surface queued FlowFiles: " + ineligibilityReasons);
             assertTrue(ineligibilityReasons.size() >= 2, "All applicable ineligibility reasons must be reported together, not just the first one. Found: " + ineligibilityReasons);
         } finally {
             getClientUtil().stopProcessor(producer);

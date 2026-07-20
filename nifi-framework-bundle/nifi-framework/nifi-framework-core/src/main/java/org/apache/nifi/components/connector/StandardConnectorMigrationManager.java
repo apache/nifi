@@ -530,7 +530,7 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
         final List<String> stateIneligibilityReasons = getStateIneligibilityReasons(processGroup, versionControlInformation, sourceFlow);
         if (!stateIneligibilityReasons.isEmpty()) {
             // Each entry describes a distinct condition the user can address. Joining with newlines keeps the
-            // individual reasons identifiable (e.g. "There are 8 running Processors.\nThere are 3 queued FlowFiles.")
+            // individual reasons identifiable (e.g. "Running or enabled processor count: 8.\nQueued FlowFile count: 3.")
             // rather than collapsing them into a single run-on sentence when they are surfaced to the operator.
             return String.join(System.lineSeparator(), stateIneligibilityReasons);
         }
