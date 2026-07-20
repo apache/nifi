@@ -3857,7 +3857,7 @@ The Secrets Manager delegates to Parameter Providers to retrieve secret values.
 NiFi supports a one-time path that migrates a newly created Connector from a source Versioned Process Group.
 The source Versioned Process Group is used as a reference: the Connector reads it and updates its own managed flow to mirror the source's configuration, parameters, and component state.
 The source flow itself is not installed onto the Connector.
-Only Connectors that explicitly opt in to migration support can use this capability.
+Only Connectors that implement migration support can use this capability.
 
 === Prerequisites for a local migration
 
@@ -3869,7 +3869,7 @@ When the source is a local Process Group on the same NiFi instance, the Process 
 - All controller services in the source Process Group must be disabled.
 - All queues in the source Process Group must be empty.
 - The source Process Group must not reference controller services outside of the Process Group.
-- The target Connector must be newly created, stopped, and not previously migrated.
+- The target Connector must be not yet configured, stopped, and not previously migrated.
 - The target Connector's active flow must be empty when migration begins. Connectors that ship a non-empty initial flow are not compatible with the migration path.
 
 If the source Process Group is not under version control, export it and use the uploaded payload path instead.
@@ -3882,7 +3882,7 @@ There are two ways to run the migration:
   Select an eligible Process Group that already exists on the current NiFi canvas.
   NiFi validates the prerequisites listed above before starting the migration.
 - Uploaded payload migration:
-  Export a Process Group definition and upload the resulting flow snapshot payload to the Connector migration endpoint.
+  Export a Process Group definition, including component state if the source flow has any, and upload the resulting flow snapshot payload to the Connector migration endpoint.
   This path is intended for non-version-controlled sources, sources exported from another NiFi instance, or any other source that cannot satisfy the local version-control requirements.
 
 For uploaded payloads, NiFi does not require the source flow to be under version control.
@@ -3895,7 +3895,7 @@ The Connector's own migration support check determines whether the uploaded flow
 . If the source Process Group is not eligible for the local path, export it with component state included and upload the payload to the Connector migration payload endpoint.
 . Start the Connector migration request.
 . Poll the request until it completes.
-. Open the Connector configuration and supply any missing sensitive values or secrets.
+. Open the Connector configuration and supply any missing secrets.
 . Verify the configuration and start the Connector.
 
 === What NiFi migrates

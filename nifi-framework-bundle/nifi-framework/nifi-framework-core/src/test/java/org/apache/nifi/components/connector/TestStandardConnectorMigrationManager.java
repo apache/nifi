@@ -325,8 +325,8 @@ public class TestStandardConnectorMigrationManager {
         // Each ineligibility reason must appear on its own line so the operator can identify and address every
         // condition independently instead of seeing them joined into a single run-on sentence.
         final String message = exception.getMessage();
-        assertTrue(message.contains("There is 1 running or enabled processor."), message);
-        assertTrue(message.contains("There are 7 queued FlowFiles."), message);
+        assertTrue(message.contains("Running or enabled processor count: 1."), message);
+        assertTrue(message.contains("Queued FlowFile count: 7."), message);
         assertTrue(message.contains(System.lineSeparator()), "verifyEligibility must separate reasons with the system line separator: " + message);
     }
 
@@ -372,13 +372,13 @@ public class TestStandardConnectorMigrationManager {
         assertFalse(source.isReadyForMigration());
         final List<String> reasons = source.getIneligibilityReasons();
         assertEquals(3, reasons.size(), "All three concurrent ineligibility conditions must be surfaced: " + reasons);
-        assertTrue(reasons.contains("There is 1 running or enabled processor."), reasons.toString());
-        assertTrue(reasons.contains("There is 1 enabled controller service."), reasons.toString());
-        assertTrue(reasons.contains("There are 7 queued FlowFiles."), reasons.toString());
+        assertTrue(reasons.contains("Running or enabled processor count: 1."), reasons.toString());
+        assertTrue(reasons.contains("Enabled controller service count: 1."), reasons.toString());
+        assertTrue(reasons.contains("Queued FlowFile count: 7."), reasons.toString());
     }
 
     @Test
-    public void testListingMessageFormatsHandleSingularAndPluralCounts() {
+    public void testListingMessageFormatIsIndependentOfCount() {
         final FlowController flowController = createFlowController(1);
         final ConnectorNode connectorNode = wireFreshConnector(flowController, CONNECTOR_ID);
         stubFrameworkMigrationGating(connectorNode);
@@ -401,7 +401,7 @@ public class TestStandardConnectorMigrationManager {
         final List<ConnectorMigrationSource> sources = migrationManager.listMigrationSources(CONNECTOR_ID);
 
         assertEquals(1, sources.size());
-        assertEquals(List.of("There are 3 running or enabled processors."), sources.get(0).getIneligibilityReasons());
+        assertEquals(List.of("Running or enabled processor count: 3."), sources.get(0).getIneligibilityReasons());
     }
 
     @Test
@@ -436,9 +436,9 @@ public class TestStandardConnectorMigrationManager {
         final List<ConnectorMigrationSource> sources = migrationManager.listMigrationSources(CONNECTOR_ID);
 
         assertEquals(3, sources.size());
-        assertIneligibilityReasonContains(findSource(sources, "running-group"), "running or enabled");
-        assertIneligibilityReasonContains(findSource(sources, "enabled-services-group"), "enabled controller service");
-        assertIneligibilityReasonContains(findSource(sources, "queued-group"), "queued FlowFile");
+        assertIneligibilityReasonContains(findSource(sources, "running-group"), "Running or enabled processor");
+        assertIneligibilityReasonContains(findSource(sources, "enabled-services-group"), "Enabled controller service");
+        assertIneligibilityReasonContains(findSource(sources, "queued-group"), "Queued FlowFile");
     }
 
     @Test

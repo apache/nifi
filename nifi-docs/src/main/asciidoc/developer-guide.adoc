@@ -2699,7 +2699,7 @@ The following command is used to generate a standard binary distribution of Apac
 
 == Supporting migration from a Versioned Process Group
 
-Connectors can opt in to a one-time migration flow that uses a source Versioned Process Group as a reference for populating a freshly created Connector.
+Connectors can implement a one-time migration flow that uses a source Versioned Process Group as a reference for populating a freshly created Connector.
 This is intended for Connectors that can translate an exported flow definition, its parameter contexts, referenced assets, and any attached component state into their own managed flow.
 The source Versioned Process Group is not installed onto the Connector; instead, the Connector reads the source as input and updates its own flow to mirror the source's configuration and state.
 
@@ -2743,7 +2743,7 @@ The source includes:
 
 The same context also indicates whether the request came from a local Process Group on the same NiFi instance or from an uploaded payload using `isLocalMigration()`.
 
-The active `FlowContext` is available via `context.getActiveFlowContext()` and is read-only during migration: it forwards reads (configuration, managed Process Group) to the live active flow context but rejects `updateFlow(...)` with `IllegalStateException`. The Connector should treat this object as a window onto the current state of the Connector, not as a write target.
+The active `FlowContext` is available via `context.getActiveFlowContext()` and is read-only during migration: it forwards reads (configuration, managed Process Group) to the live active flow context but rejects `updateFlow(...)` with `IllegalStateException`. The Connector should treat this object as a window onto the current state of the Connector, not as a write target. After `migrateConfiguration` returns, the framework rebuilds the managed Process Group by calling `Connector.applyUpdate(workingContext, activeContext)` with this same active `FlowContext` as the target, so any component references the Connector resolves against `getActiveFlowContext()` remain valid once the migrated flow is applied.
 
 === Recording configuration changes
 
@@ -2801,6 +2801,18 @@ This method is available only for local migrations.
 It throws `IllegalArgumentException` when the supplied source asset identifier is null or blank, and `IllegalStateException` when invoked for an uploaded-payload migration.
 Uploaded payloads do not have access to a live source asset namespace, so asset references from uploaded payloads must be handled outside of the migration request.
 
+The following example locates a source parameter's referenced asset, copies it into the Connector's own asset namespace, and records the returned `AssetReference` on the target property:
+
+[source,java]
+----
+final VersionedParameter sourceParameter = findSourceParameter(context.getSourceFlow(), sourceParameterName);
+if (sourceParameter != null && sourceParameter.getReferencedAssets() != null && !sourceParameter.getReferencedAssets().isEmpty() && context.isLocalMigration()) {
+    final VersionedAsset referencedAsset = sourceParameter.getReferencedAssets().getFirst();
+    final AssetReference assetReference = context.copyAssetFromSource(referencedAsset.getIdentifier());
+    context.setValueReference(targetStepName, targetPropertyName, assetReference);
+}
+----
+
 === Sensitive values
 
 Sensitive parameter values and other secret material are not present in the exported source flow.
@@ -2811,11 +2823,12 @@ After the migration completes, the user supplies the missing values through the 
 
 - `isMigrationSupported(...)` must not mutate flow state, parameter values, or assets.
 - `migrateConfiguration` and `migrateState` should either complete successfully or throw an exception. Any thrown exception aborts the migration and rolls back every side effect: copied assets are deleted, the managed Process Group is restored from `getInitialFlow()`, every component's `StateManager` state is cleared, and the persisted active configuration is left unchanged.
-- Migration is rejected when the Connector's currently managed flow no longer matches the flow returned by its `getInitialFlow()`.
-  The framework compares the two structurally (ignoring environmental differences such as component scheduled state) at the time `migrateConfiguration` is invoked, and again whenever the `MIGRATE` allowable action is evaluated, so the user is shown why migration is unavailable.
-  This check is restart-safe because both inputs are recomputed each time from durable sources: the Connector's persisted configuration drives `getInitialFlow()`, and the current managed flow is read from the live flow tree restored from `flow.json.gz`.
+- Migration is rejected once the Connector has been modified from the state it was created in.
+  The framework considers a Connector modified when any configured property on its active or working configuration differs from that property's declared default value, or when any Processor or Controller Service in the managed flow has stored component state.
+  This check is evaluated at the time `migrateConfiguration` is invoked, and again whenever the `MIGRATE` allowable action is evaluated, so the user is shown why migration is unavailable.
+  This check is restart-safe because the persisted configuration and any stored component state are recomputed each time from durable sources.
 - Migration is one-shot from the framework's point of view.
-  Once the Connector's flow has been updated by a migration, its currently managed flow no longer matches `getInitialFlow()`, and a subsequent migration request will be rejected until the Connector is discarded and a fresh one is created.
+  Because a successful migration writes configuration and, typically, component state onto the Connector, the Connector is considered modified immediately afterward, and a subsequent migration request will be rejected until the Connector is discarded and a fresh one is created.
 
 == How to contribute to Apache NiFi
 

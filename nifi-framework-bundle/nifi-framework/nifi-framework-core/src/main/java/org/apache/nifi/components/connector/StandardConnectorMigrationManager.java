@@ -174,7 +174,7 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
 
         final Connector rawConnector = connector.getConnector();
         if (!(rawConnector instanceof final MigratableConnector migratableConnector)) {
-            throw new FlowUpdateException("Connector " + connectorId + " does not support migration from the provided source flow.");
+            throw new FlowUpdateException("Connector " + connectorId + " does not support migration.");
         }
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), rawConnector.getClass(), connectorId)) {
@@ -564,37 +564,25 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
 
         final int runningProcessorCount = countRunningProcessors(processGroup);
         if (runningProcessorCount > 0) {
-            reasons.add("There " + pluralizeIsAre(runningProcessorCount) + " " + runningProcessorCount + " running or enabled "
-                    + pluralizeNoun(runningProcessorCount, "processor", "processors") + ".");
+            reasons.add("Running or enabled processor count: " + runningProcessorCount + ".");
         }
 
         final int enabledServiceCount = countEnabledControllerServices(processGroup);
         if (enabledServiceCount > 0) {
-            reasons.add("There " + pluralizeIsAre(enabledServiceCount) + " " + enabledServiceCount + " enabled controller "
-                    + pluralizeNoun(enabledServiceCount, "service", "services") + ".");
+            reasons.add("Enabled controller service count: " + enabledServiceCount + ".");
         }
 
         final long queuedFlowFileCount = countQueuedFlowFiles(processGroup);
         if (queuedFlowFileCount > 0) {
-            reasons.add("There " + pluralizeIsAre(queuedFlowFileCount) + " " + queuedFlowFileCount + " queued "
-                    + pluralizeNoun(queuedFlowFileCount, "FlowFile", "FlowFiles") + ".");
+            reasons.add("Queued FlowFile count: " + queuedFlowFileCount + ".");
         }
 
         final int externalControllerServiceCount = countExternalControllerServices(sourceFlow);
         if (externalControllerServiceCount > 0) {
-            reasons.add("The Process Group references " + externalControllerServiceCount + " controller "
-                    + pluralizeNoun(externalControllerServiceCount, "service", "services") + " from outside the Process Group.");
+            reasons.add("Controller service count referenced from outside the Process Group: " + externalControllerServiceCount + ".");
         }
 
         return reasons;
-    }
-
-    private static String pluralizeIsAre(final long count) {
-        return count == 1L ? "is" : "are";
-    }
-
-    private static String pluralizeNoun(final long count, final String singular, final String plural) {
-        return count == 1L ? singular : plural;
     }
 
     private boolean isConnectorMigrationSupported(final ConnectorNode connector, final VersionedExternalFlow sourceFlow) {
