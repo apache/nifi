@@ -116,7 +116,7 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
     public int getPercentComplete() {
         readLock.lock();
         try {
-            return (numSteps < 1) ? 100 : (int) (((float) numCompletedSteps / (float) numSteps) * 100.0F);
+            return (numSteps < 1) ? 100 : (int) (((float) numCompletedSteps / numSteps) * 100.0F);
         } finally {
             readLock.unlock();
         }

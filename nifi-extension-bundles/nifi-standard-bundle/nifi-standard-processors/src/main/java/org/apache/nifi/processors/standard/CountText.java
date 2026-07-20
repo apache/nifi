@@ -256,10 +256,12 @@ public class CountText extends AbstractProcessor {
                 }
 
                 // Update session counters
-                processSession.adjustCounter("Lines Counted", (long) lineCount.get(), adjustImmediately);
-                processSession.adjustCounter("Lines (non-empty) Counted", (long) lineNonEmptyCount.get(), adjustImmediately);
-                processSession.adjustCounter("Words Counted", (long) wordCount.get(), adjustImmediately);
-                processSession.adjustCounter("Characters Counted", (long) characterCount.get(), adjustImmediately);
+                // NOTE: Casting is not necessary as the integer returned from an AtomicInteger gets
+                // promoted to a long based on the adjustCounter signature.
+                processSession.adjustCounter("Lines Counted", lineCount.get(), adjustImmediately);
+                processSession.adjustCounter("Lines (non-empty) Counted", lineNonEmptyCount.get(), adjustImmediately);
+                processSession.adjustCounter("Words Counted", wordCount.get(), adjustImmediately);
+                processSession.adjustCounter("Characters Counted", characterCount.get(), adjustImmediately);
             } catch (IOException e) {
                 error.set(true);
                 getLogger().error("Routing to failure.", e);

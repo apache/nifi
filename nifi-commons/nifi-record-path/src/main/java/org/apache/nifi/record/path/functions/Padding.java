@@ -63,7 +63,7 @@ abstract class Padding extends RecordPathSegment {
             }
 
             int desiredLength = desiredLengthOpt.getAsInt();
-            final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
+            final String value = DataTypeUtils.toString(fv.getValue(), null);
             return new StandardFieldValue(doPad(value, desiredLength, pad), fv.getField(), fv.getParent().orElse(null));
         });
     }

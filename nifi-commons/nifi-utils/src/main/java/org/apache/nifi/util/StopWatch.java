@@ -78,7 +78,7 @@ public final class StopWatch {
     }
 
     public String calculateDataRate(final long bytes) {
-        final double seconds = (double) duration / 1000000000.0D;
+        final double seconds = duration / 1000000000.0D;
         final long dataSize = (long) (bytes / seconds);
         return FormatUtils.formatDataSize(dataSize) + "/sec";
     }

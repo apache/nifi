@@ -31,6 +31,7 @@ public class ByteBufferReader {
         return (buffer.getShort() & 0xffff);
     }
 
+    @SuppressWarnings("PMD.UnnecessaryCast")
     public long readU4() {
         return ((long) buffer.getInt() & 0xffffffffL);
     }

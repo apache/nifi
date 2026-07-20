@@ -109,13 +109,13 @@ public class StatusAnalyticsModelMapFactory {
 
                     Long inputCount = snap.getStatusMetrics().get(INPUT_COUNT_METRIC);
                     Long outputCount = snap.getStatusMetrics().get(OUTPUT_COUNT_METRIC);
-                    Double inOutRatio = ((double) outputCount / (double) inputCount) + randomError;
+                    Double inOutRatio = ((double) outputCount / inputCount) + randomError;
                     featureArray.add(Double.isNaN(inOutRatio) ? randomError : inOutRatio);
 
                 } else {
                     Long inputBytes = snap.getStatusMetrics().get(INPUT_BYTES_METRIC);
                     Long outputBytes = snap.getStatusMetrics().get(OUTPUT_BYTES_METRIC);
-                    Double inOutRatio = ((double) outputBytes / (double) inputBytes) + randomError;
+                    Double inOutRatio = ((double) outputBytes / inputBytes) + randomError;
                     featureArray.add(Double.isNaN(inOutRatio) ? randomError : inOutRatio);
                 }
 

@@ -648,8 +648,8 @@ public class TestRecordPath {
                     List.of(
                             1234567890L,
                             0L,
-                            ((long) Integer.MAX_VALUE) + 1L,
-                            ((long) Integer.MIN_VALUE) - 1L,
+                            Integer.MAX_VALUE + 1L,
+                            Integer.MIN_VALUE - 1L,
                             Long.MIN_VALUE,
                             Long.MAX_VALUE
 

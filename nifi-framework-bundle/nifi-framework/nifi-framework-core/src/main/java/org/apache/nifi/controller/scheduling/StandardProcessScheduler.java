@@ -812,7 +812,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             throw new IllegalArgumentException();
         }
 
-        ((AbstractPort) port).disable();
+        port.disable();
     }
 
     @Override

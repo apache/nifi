@@ -182,7 +182,7 @@ public class RenameRecordField extends AbstractRecordProcessor {
                 result.getSelectedFields().forEach(fieldVal -> {
                     fieldVariables.clear();
                     fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
-                    fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
+                    fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), null));
                     fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
                     fieldVariables.put(RECORD_INDEX, String.valueOf(count));
 

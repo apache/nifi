@@ -2474,7 +2474,7 @@ public class StandardNiFiServiceFacadeTest {
 
         verify(registryClient).getFlowContents(any(), any(FlowVersionLocation.class), eq(false));
         verify(processGroup).setVersionControlInformation(argThat(vci -> vci instanceof StandardVersionControlInformation
-                && ((StandardVersionControlInformation) vci).getFlowSnapshot() == registrySnapshot), eq(Collections.emptyMap()));
+                && vci.getFlowSnapshot() == registrySnapshot), eq(Collections.emptyMap()));
         verify(processGroup).synchronizeWithFlowRegistry(branchFlowManager);
     }
 

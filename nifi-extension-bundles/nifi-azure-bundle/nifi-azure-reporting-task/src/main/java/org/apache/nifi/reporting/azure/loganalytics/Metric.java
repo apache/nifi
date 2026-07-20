@@ -41,7 +41,7 @@ public class Metric {
     }
 
     public void setCount(long value) {
-        this.count = (long) value;
+        this.count = value;
     }
     public void setCount(double value) {
         this.count = (long) value;

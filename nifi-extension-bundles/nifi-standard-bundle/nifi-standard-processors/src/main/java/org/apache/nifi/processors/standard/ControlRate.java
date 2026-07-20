@@ -604,7 +604,7 @@ public class ControlRate extends AbstractProcessor {
             if (transferred > maxRateValue) {
                 final long amountOver = transferred - maxRateValue;
                 // determine how long it should take to transfer 'amountOver' and 'penalize' the Throttle for that long
-                final double pct = (double) amountOver / (double) maxRateValue;
+                final double pct = (double) amountOver / maxRateValue;
                 this.penalizationPeriod = (long) (timePeriodMillis * pct);
 
                 if (logger.isDebugEnabled()) {

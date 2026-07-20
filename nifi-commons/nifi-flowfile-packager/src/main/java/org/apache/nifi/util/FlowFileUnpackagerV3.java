@@ -124,6 +124,7 @@ public class FlowFileUnpackagerV3 implements FlowFileUnpackager {
         return totalBytesRead;
     }
 
+    @SuppressWarnings("PMD.UnnecessaryCast")
     protected long readLong(final InputStream in) throws IOException {
         fillBuffer(in, readBuffer, 8);
         return (((long) readBuffer[0] << 56)

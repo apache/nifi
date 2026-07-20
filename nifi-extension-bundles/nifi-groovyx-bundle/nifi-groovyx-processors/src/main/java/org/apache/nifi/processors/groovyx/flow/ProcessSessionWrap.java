@@ -105,7 +105,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
             return null;
         }
         for (int i = 0; i < ff.size(); i++) {
-            ff.set(i, wrap((FlowFile) ff.get(i)));
+            ff.set(i, wrap(ff.get(i)));
         }
         return ff;
     }

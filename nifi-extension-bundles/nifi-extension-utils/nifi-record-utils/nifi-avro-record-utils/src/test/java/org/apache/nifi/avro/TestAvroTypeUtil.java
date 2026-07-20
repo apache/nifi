@@ -612,7 +612,7 @@ public class TestAvroTypeUtil {
         decimalType.addToSchema(fieldSchema);
 
         // Create a field named "amount" using the field schema above
-        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object) null);
+        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, null);
 
         // Create an overall record schema with the amount field
         final Schema avroSchema = Schema.createRecord(null, null, null, false, Collections.singletonList(field));
@@ -634,7 +634,7 @@ public class TestAvroTypeUtil {
         decimalType.addToSchema(fieldSchema);
 
         // Create a field named "amount" using the field schema above
-        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object) null);
+        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, null);
 
         // Create an overall record schema with the amount field
         final Schema avroSchema = Schema.createRecord(null, null, null, false, Collections.singletonList(field));
@@ -955,7 +955,7 @@ public class TestAvroTypeUtil {
         Schema avroRecordSchema = Schema.createRecord(
                 "record", "doc", "namespace", false,
                 Arrays.asList(
-                        new Field("nullableMapField", nullableMapFieldAvroSchema, "nullable map field", (Object) null)
+                        new Field("nullableMapField", nullableMapFieldAvroSchema, "nullable map field", null)
                 )
         );
 

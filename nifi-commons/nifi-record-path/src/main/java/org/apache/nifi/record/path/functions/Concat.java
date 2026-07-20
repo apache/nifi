@@ -45,7 +45,7 @@ public class Concat extends RecordPathSegment {
         }
 
         final StringBuilder sb = new StringBuilder();
-        concatenated.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null)));
+        concatenated.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), null)));
 
         final RecordField field = new RecordField("concat", RecordFieldType.STRING.getDataType());
         final FieldValue responseValue = new StandardFieldValue(sb.toString(), field, null);

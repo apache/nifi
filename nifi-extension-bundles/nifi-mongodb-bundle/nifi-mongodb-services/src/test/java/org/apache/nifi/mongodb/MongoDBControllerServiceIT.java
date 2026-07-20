@@ -19,7 +19,6 @@ package org.apache.nifi.mongodb;
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.NoOpProcessor;
@@ -68,7 +67,7 @@ public class MongoDBControllerServiceIT extends AbstractMongoIT {
 
     @Test
     public void testVerifyWithCorrectConnectionString() {
-        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+        final List<ConfigVerificationResult> results = service.verify(
                 new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
@@ -82,7 +81,7 @@ public class MongoDBControllerServiceIT extends AbstractMongoIT {
     public void testVerifyWithIncorrectConnectionString() {
         runner.disableControllerService(service);
         runner.setProperty(service, MongoDBControllerService.URI, "mongodb://localhost:2701");
-        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
+        final List<ConfigVerificationResult> results = service.verify(
                 new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
                 runner.getLogger(),
                 Collections.emptyMap()
