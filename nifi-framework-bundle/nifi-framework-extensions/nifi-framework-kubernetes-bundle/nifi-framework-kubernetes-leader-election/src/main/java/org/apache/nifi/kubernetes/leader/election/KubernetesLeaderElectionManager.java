@@ -23,6 +23,7 @@ import org.apache.nifi.kubernetes.client.KubernetesClientProvider;
 import org.apache.nifi.kubernetes.client.NamespaceProvider;
 import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
 import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
+import org.apache.nifi.kubernetes.leader.election.command.CachingLeaderElectionCommandProvider;
 import org.apache.nifi.kubernetes.leader.election.command.LeaderElectionCommandProvider;
 import org.apache.nifi.kubernetes.leader.election.command.StandardLeaderElectionCommandProvider;
 import org.apache.nifi.util.NiFiProperties;
@@ -243,7 +244,8 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
         final NamespaceProvider namespaceProvider = new ServiceAccountNamespaceProvider();
         final String namespace = namespaceProvider.getNamespace();
         final KubernetesClientProvider kubernetesClientProvider = new StandardKubernetesClientProvider();
-        return new StandardLeaderElectionCommandProvider(kubernetesClientProvider, namespace);
+        final LeaderElectionCommandProvider standardProvider = new StandardLeaderElectionCommandProvider(kubernetesClientProvider, namespace);
+        return new CachingLeaderElectionCommandProvider(standardProvider);
     }
 
     private synchronized void registerLeaderElectionCommand(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
