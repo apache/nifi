@@ -244,8 +244,10 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             context.yield();
             closeResource(resource);
         } catch (Exception e) {
-            getLogger().error("Processor failure", e);
+            getLogger().error("Processor failure, dropping the client", e);
+            session.rollback();
             context.yield();
+            closeResource(resource);
         }
     }
 
@@ -283,9 +285,10 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
     private AMQPResource<T> createResource(final ProcessContext context) {
         Connection connection = null;
+        ExecutorService executor = null;
         try {
-            ExecutorService executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
-                    .namingPattern("AMQP Consumer: " + getIdentifier())
+            executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
+                    .namingPattern("AMQP Client: " + getIdentifier() + "-%d")
                     .build());
             connection = createConnection(context, executor);
             T worker = createAMQPWorker(context, connection);
@@ -296,6 +299,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                     connection.close();
                 } catch (Exception closingEx) {
                     getLogger().error("Failed to close AMQP Connection", closingEx);
+                }
+            }
+            if (executor != null) {
+                try {
+                    executor.shutdown();
+                } catch (Exception closingEx) {
+                    getLogger().error("Failed to shut down AMQP Executor", closingEx);
+                    e.addSuppressed(closingEx);
                 }
             }
             throw e;
