@@ -138,7 +138,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Configure DynamoDB BatchGetItems Request")
-                    .explanation(String.format("Successfully configured BatchGetItems Request"))
+                    .explanation("Successfully configured BatchGetItems Request")
                     .build());
         } catch (final IllegalArgumentException e) {
             verificationLogger.error("Failed to configured BatchGetItems Request", e);
@@ -154,7 +154,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SKIPPED)
                     .verificationStepName("Get DynamoDB Items")
-                    .explanation(String.format("Skipped getting DynamoDB items because no primary keys would be included in retrieval"))
+                    .explanation("Skipped getting DynamoDB items because no primary keys would be included in retrieval")
                     .build());
         } else {
             try {
@@ -168,7 +168,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                     results.add(new ConfigVerificationResult.Builder()
                             .outcome(Outcome.SUCCESSFUL)
                             .verificationStepName("Get DynamoDB Items")
-                            .explanation(String.format("Successfully issued request, although no items were returned from DynamoDB"))
+                            .explanation("Successfully issued request, although no items were returned from DynamoDB")
                             .build());
                 } else {
                     // Handle processed items and get the json document

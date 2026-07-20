@@ -231,7 +231,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         final String id = requestContext.getId();
 
         if (StringUtils.isBlank(id)) {
-            throw new ResourceNotFoundException(String.format("Configuration request context config did not have a component ID."));
+            throw new ResourceNotFoundException("Configuration request context config did not have a component ID.");
         }
 
         // ensure the path could be
@@ -263,7 +263,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         final String id = requestContext.getId();
 
         if (StringUtils.isBlank(id)) {
-            throw new ResourceNotFoundException(String.format("Configuration request context did not have a component ID."));
+            throw new ResourceNotFoundException("Configuration request context did not have a component ID.");
         }
 
         // ensure the path could be
@@ -1134,7 +1134,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new ClusterRequestException(nodeResponse.getThrowable());
         } else if (nodeResponse.getClientResponse().getStatus() == Response.Status.CONFLICT.getStatusCode()) {
             ClientResponseUtils.drainClientResponse(nodeResponse.getClientResponse());
-            throw new InvalidRevisionException(String.format("NiFi is unable to process the request at this time."));
+            throw new InvalidRevisionException("NiFi is unable to process the request at this time.");
         } else if (nodeResponse.getClientResponse().getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
             ClientResponseUtils.drainClientResponse(nodeResponse.getClientResponse());
             throw new ResourceNotFoundException("Unable to find component with id: " + id);
