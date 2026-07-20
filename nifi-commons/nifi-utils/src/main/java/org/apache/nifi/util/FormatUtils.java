@@ -314,7 +314,7 @@ public class FormatUtils {
      * @return String representation of the given value and unit
      * @throws UnsupportedTemporalTypeException if the unit is not supported ({@link ChronoUnit#isDurationEstimated()} == true)
      */
-    public static String formatDurationToWords(long value, ChronoUnit unit) throws UnsupportedTemporalTypeException {
+    public static String formatDurationToWords(final long value, final ChronoUnit unit) throws UnsupportedTemporalTypeException {
         return formatDurationToWords(Duration.ZERO.plus(value, unit));
     }
 
@@ -326,14 +326,14 @@ public class FormatUtils {
      * @param source duration to convert to words
      * @return String representation of the given duration
      */
-    public static String formatDurationToWords(Duration source) {
-        long days = source.toDaysPart();
-        long hours = source.toHoursPart();
-        long minutes = source.toMinutesPart();
-        int seconds = source.toSecondsPart();
-        int nanos = source.toNanosPart();
+    public static String formatDurationToWords(final Duration source) {
+        final long days = source.toDaysPart();
+        final long hours = source.toHoursPart();
+        final long minutes = source.toMinutesPart();
+        final int seconds = source.toSecondsPart();
+        final int nanos = source.toNanosPart();
 
-        List<String> parts = new ArrayList<>();
+        final List<String> parts = new ArrayList<>();
 
         if (days > 0) {
             parts.add(days + (days == 1 ? " day" : " days"));
