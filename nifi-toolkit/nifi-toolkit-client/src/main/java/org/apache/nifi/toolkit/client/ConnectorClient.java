@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.client;
 
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
@@ -477,6 +478,38 @@ public interface ConnectorClient {
      * @throws IOException if an I/O error occurs
      */
     ComponentStateEntity clearControllerServiceState(String connectorId, String controllerServiceId) throws NiFiClientException, IOException;
+
+    /**
+     * Initiates an asynchronous request to determine the current backlog for the Connector with the given id.
+     *
+     * @param connectorId the Connector id
+     * @return the created backlog request entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    BacklogRequestEntity submitConnectorBacklogRequest(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the current status of a previously submitted Connector backlog request.
+     *
+     * @param connectorId the Connector id
+     * @param requestId the backlog request id
+     * @return the backlog request entity describing the current status of the request
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    BacklogRequestEntity getConnectorBacklogRequest(String connectorId, String requestId) throws NiFiClientException, IOException;
+
+    /**
+     * Deletes a previously submitted Connector backlog request, cancelling it if it has not yet completed.
+     *
+     * @param connectorId the Connector id
+     * @param requestId the backlog request id
+     * @return the backlog request entity describing the deleted request
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    BacklogRequestEntity deleteConnectorBacklogRequest(String connectorId, String requestId) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has

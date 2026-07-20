@@ -22,6 +22,7 @@ import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SelectiveDropResult;
@@ -780,6 +781,64 @@ public class TestSwappablePriorityQueue {
         final List<FlowFileRecord> active = queue.getActiveFlowFiles();
         assertNotNull(active);
         assertEquals(9999, active.size());
+    }
+
+    @Test
+    public void testGetQueueSnapshotReturnsFlowFilesInPollOrder() {
+        final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
+        };
+        queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
+
+        for (final int i : new int[] {5, 1, 4, 2, 3}) {
+            queue.put(new MockFlowFileRecord(Map.of("i", String.valueOf(i)), i));
+        }
+
+        final FlowFileQueueSnapshot snapshot = queue.getQueueSnapshot();
+        assertEquals(5, snapshot.queueSize().getObjectCount());
+        assertEquals(5, snapshot.activeFlowFiles().size());
+
+        final List<String> snapshotOrder = new ArrayList<>();
+        for (final FlowFileRecord record : snapshot.activeFlowFiles()) {
+            snapshotOrder.add(record.getAttribute("i"));
+        }
+        assertEquals(List.of("1", "2", "3", "4", "5"), snapshotOrder);
+
+        final List<String> pollOrder = new ArrayList<>();
+        FlowFileRecord polled;
+        while ((polled = queue.poll(Collections.emptySet(), 0L)) != null) {
+            pollOrder.add(polled.getAttribute("i"));
+        }
+        assertEquals(snapshotOrder, pollOrder);
+    }
+
+    @Test
+    public void testGetQueueSnapshotExcludesSwappedFlowFiles() {
+        // Fill the queue past its swap threshold so the first 10,000 FlowFiles remain in the active in-memory queue
+        // and the remaining 10,000 are swapped out. The snapshot's active list must contain only the in-memory
+        // FlowFiles, while its total QueueSize still counts every FlowFile, including those swapped to disk.
+        final int swapThreshold = 10_000;
+        final int totalFlowFiles = 20_000;
+        for (int i = 0; i < totalFlowFiles; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+
+        assertEquals(1, swapManager.swappedOut.size());
+
+        final FlowFileQueueSnapshot snapshot = queue.getQueueSnapshot();
+        assertEquals(totalFlowFiles, snapshot.queueSize().getObjectCount());
+        assertEquals(swapThreshold, snapshot.activeFlowFiles().size());
+
+        final int swappedCount = snapshot.queueSize().getObjectCount() - snapshot.activeFlowFiles().size();
+        assertEquals(totalFlowFiles - swapThreshold, swappedCount);
+
+        // The active in-memory FlowFiles are the first 10,000 added (sizes 0 - 9,999); the swapped FlowFiles
+        // (sizes 10,000 - 19,999) must not appear in the active list.
+        for (final FlowFileRecord activeFlowFile : snapshot.activeFlowFiles()) {
+            assertTrue(activeFlowFile.getSize() < swapThreshold);
+        }
     }
 
     @Test

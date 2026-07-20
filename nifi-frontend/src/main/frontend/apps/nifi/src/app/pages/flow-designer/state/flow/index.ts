@@ -17,6 +17,7 @@
 
 import { Position } from '../shared';
 import {
+    BacklogRequestEntity,
     BreadcrumbEntity,
     DisableComponentRequest,
     EnableComponentRequest,
@@ -727,6 +728,12 @@ export interface LocalChangesDialogRequest {
     versionControlInformation: VersionControlInformationEntity;
     localModifications: FlowComparisonEntity;
     mode: 'SHOW' | 'REVERT';
+}
+
+export interface ProcessorBacklogDialogRequest {
+    processorId: string;
+    requestEntity?: BacklogRequestEntity;
+    errorMessage?: string;
 }
 
 export interface DownloadFlowRequest {

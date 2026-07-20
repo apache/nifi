@@ -342,7 +342,7 @@ class KinesisConsumerClientTest {
                 .thenReturn(CompletableFuture.completedFuture(null));
 
         final EnhancedFanOutClient.ShardConsumer consumer =
-                new EnhancedFanOutClient.ShardConsumer("shardId-000000000001", result -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
+                new EnhancedFanOutClient.ShardConsumer("shardId-000000000001", result -> { }, millisBehind -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
 
         final StartingPosition pos = StartingPosition.builder()
                 .type(ShardIteratorType.TRIM_HORIZON)
@@ -404,7 +404,7 @@ class KinesisConsumerClientTest {
                 });
 
         final EnhancedFanOutClient.ShardConsumer consumer =
-                new EnhancedFanOutClient.ShardConsumer("shardId-000000000001", result -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
+                new EnhancedFanOutClient.ShardConsumer("shardId-000000000001", result -> { }, millisBehind -> { }, new ConcurrentLinkedQueue<>(), mockLogger);
 
         final StartingPosition pos = StartingPosition.builder()
                 .type(ShardIteratorType.TRIM_HORIZON)

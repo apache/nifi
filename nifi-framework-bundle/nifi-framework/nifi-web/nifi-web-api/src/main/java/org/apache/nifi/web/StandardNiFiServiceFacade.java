@@ -72,12 +72,15 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.connector.BacklogReportingConnector;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -89,6 +92,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -161,6 +165,7 @@ import org.apache.nifi.history.PreviousValue;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarInstallRequest;
 import org.apache.nifi.nar.NarManager;
 import org.apache.nifi.nar.NarNode;
@@ -344,6 +349,7 @@ import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.BacklogEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
@@ -7672,6 +7678,75 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ProcessorStatusDTO processorStatusDto = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
+    }
+
+    @Override
+    public void verifyCanReportProcessorBacklog(final String processorId) {
+        processorDAO.verifyReportBacklog(processorId);
+    }
+
+    @Override
+    public BacklogEntity getProcessorBacklog(final String processorId) throws BacklogReportingException {
+        logger.debug("Fetching backlog for Processor {}", processorId);
+        return toBacklogEntity(processorDAO.getBacklog(processorId));
+    }
+
+    @Override
+    public void verifyCanReportConnectorBacklog(final String connectorId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        if (!(connectorNode.getConnector() instanceof BacklogReportingConnector)) {
+            throw new IllegalStateException("Cannot report backlog for Connector " + connectorId
+                    + " because the Connector implementation does not implement BacklogReportingConnector");
+        }
+
+        final ValidationStatus validationStatus = connectorNode.getValidationStatus();
+        if (validationStatus != ValidationStatus.VALID) {
+            throw new IllegalStateException("Cannot report backlog for Connector " + connectorId
+                    + " because the Connector is not valid (Validation State is " + validationStatus + ")");
+        }
+
+        final ConnectorState currentState = connectorNode.getCurrentState();
+        if (currentState == ConnectorState.PREPARING_FOR_UPDATE || currentState == ConnectorState.UPDATING
+                || currentState == ConnectorState.UPDATE_FAILED) {
+            throw new IllegalStateException("Cannot report backlog for Connector " + connectorId
+                    + " because the Connector is in state " + currentState);
+        }
+    }
+
+    @Override
+    public BacklogEntity getConnectorBacklog(final String connectorId) throws BacklogReportingException {
+        logger.debug("Fetching backlog for Connector {}", connectorId);
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final Connector connector = connectorNode.getConnector();
+        if (!(connector instanceof final BacklogReportingConnector backlogReportingConnector)) {
+            // verifyCanReportConnectorBacklog is the documented precondition for this method and the
+            // REST layer always calls it first. This defensive check guards against callers that
+            // bypass the verify step and keeps the failure mode aligned with the Processor path.
+            throw new IllegalStateException("Cannot report backlog for Connector " + connectorId
+                    + " because the Connector implementation does not implement BacklogReportingConnector");
+        }
+
+        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
+        final Optional<Backlog> backlog;
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), connectorNode.getIdentifier())) {
+            backlog = backlogReportingConnector.getBacklog(connectorNode.getActiveFlowContext());
+        } catch (final BacklogReportingException e) {
+            logger.error("Failed to fetch backlog for Connector {}", connectorId, e);
+            throw e;
+        } catch (final RuntimeException e) {
+            logger.error("Failed to fetch backlog for Connector {}", connectorId, e);
+            throw new BacklogReportingException("Failed to fetch backlog for Connector " + connectorId, e);
+        }
+
+        return toBacklogEntity(backlog);
+    }
+
+    private BacklogEntity toBacklogEntity(final Optional<Backlog> backlog) {
+        final BacklogEntity entity = new BacklogEntity();
+        if (backlog.isPresent()) {
+            entity.setBacklog(dtoFactory.createBacklogDto(backlog.get()));
+        }
+        return entity;
     }
 
     protected Collection<AbstractMetricsRegistry> populateFlowMetrics(FlowMetricsReportingStrategy flowMetricsStrategy) {

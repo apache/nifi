@@ -38,6 +38,35 @@ export interface OkDialogRequest {
     message: string;
 }
 
+export interface Backlog {
+    flowFileCount?: number;
+    formattedFlowFileCount?: string;
+    byteCount?: number;
+    formattedByteCount?: string;
+    recordCount?: number;
+    formattedRecordCount?: string;
+    precision?: string;
+    lastCaughtUp?: string | null;
+    formattedLastCaughtUp?: string;
+}
+
+export interface BacklogRequest {
+    requestId: string;
+    uri: string;
+    componentId: string;
+    submissionTime?: string;
+    lastUpdated?: string;
+    complete: boolean;
+    failureReason?: string | null;
+    percentCompleted: number;
+    state?: string;
+    backlog?: Backlog | null;
+}
+
+export interface BacklogRequestEntity {
+    request: BacklogRequest;
+}
+
 export interface CancelDialogRequest {
     title: string;
     message: string;

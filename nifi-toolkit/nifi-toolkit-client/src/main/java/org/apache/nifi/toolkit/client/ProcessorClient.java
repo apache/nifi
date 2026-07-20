@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.client;
 
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
@@ -67,6 +68,12 @@ public interface ProcessorClient {
     ComponentStateEntity clearProcessorState(String processorId, ComponentStateEntity componentStateEntity) throws NiFiClientException, IOException;
 
     ComponentStateEntity getProcessorState(String processorId) throws NiFiClientException, IOException;
+
+    BacklogRequestEntity submitProcessorBacklogRequest(String processorId) throws NiFiClientException, IOException;
+
+    BacklogRequestEntity getProcessorBacklogRequest(String processorId, String requestId) throws NiFiClientException, IOException;
+
+    BacklogRequestEntity deleteProcessorBacklogRequest(String processorId, String requestId) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has

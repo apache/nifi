@@ -27,6 +27,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -37,6 +39,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.BacklogReportingProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -93,7 +96,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -152,7 +158,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
         buffer is typically much smaller because fetch threads block when the queue is \
         full and most responses are well below the maximum size.
         """)
-public class ConsumeKinesis extends AbstractProcessor {
+public class ConsumeKinesis extends AbstractProcessor implements BacklogReportingProcessor {
 
     static final String ATTR_STREAM_NAME = "aws.kinesis.stream.name";
     static final String ATTR_SHARD_ID = "aws.kinesis.shard.id";
@@ -352,6 +358,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     private volatile String efoConsumerArn;
     private final AtomicLong shardRoundRobinCounter = new AtomicLong();
 
+    private final ConcurrentMap<String, Long> shardMillisBehindLatest = new ConcurrentHashMap<>();
+    private volatile Instant lastCaughtUpTimestamp;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -382,41 +391,11 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final Region region = RegionUtil.getRegion(context);
-        final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
-                .asControllerService(AwsCredentialsProviderService.class).getAwsCredentialsProvider();
-        final String endpointOverride = context.getProperty(ENDPOINT_OVERRIDE).getValue();
-
-        final ClientOverrideConfiguration clientConfig = ClientOverrideConfiguration.builder()
-                .apiCallTimeout(API_CALL_TIMEOUT)
-                .apiCallAttemptTimeout(API_CALL_ATTEMPT_TIMEOUT)
-                .build();
-
-        final KinesisClientBuilder kinesisBuilder = KinesisClient.builder()
-                .region(region)
-                .credentialsProvider(credentialsProvider)
-                .overrideConfiguration(clientConfig);
-
-        final DynamoDbClientBuilder dynamoBuilder = DynamoDbClient.builder()
-                .region(region)
-                .credentialsProvider(credentialsProvider)
-                .overrideConfiguration(clientConfig);
-
-        if (endpointOverride != null && !endpointOverride.isEmpty()) {
-            final URI endpointUri = URI.create(endpointOverride);
-            kinesisBuilder.endpointOverride(endpointUri);
-            dynamoBuilder.endpointOverride(endpointUri);
-        }
-
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
-
-        kinesisHttpClient = buildApacheHttpClient(proxyConfig, PollingKinesisClient.MAX_CONCURRENT_FETCHES + 10);
-        dynamoHttpClient = buildApacheHttpClient(proxyConfig, 50);
-        kinesisBuilder.httpClient(kinesisHttpClient);
-        dynamoBuilder.httpClient(dynamoHttpClient);
-
-        kinesisClient = kinesisBuilder.build();
-        dynamoDbClient = dynamoBuilder.build();
+        final AwsClientBundle clientBundle = buildAwsClientBundle(context, PollingKinesisClient.MAX_CONCURRENT_FETCHES + 10, 50);
+        kinesisHttpClient = clientBundle.kinesisHttpClient();
+        dynamoHttpClient = clientBundle.dynamoHttpClient();
+        kinesisClient = clientBundle.kinesisClient();
+        dynamoDbClient = clientBundle.dynamoDbClient();
 
         final String checkpointTableName = context.getProperty(APPLICATION_NAME).getValue();
         streamName = context.getProperty(STREAM_NAME).getValue();
@@ -430,6 +409,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         shardManager = createShardManager(kinesisClient, dynamoDbClient, getLogger(), checkpointTableName, streamName);
         shardManager.ensureCheckpointTableExists();
         consumerClient = createConsumerClient(kinesisClient, getLogger(), efoMode);
+        consumerClient.setShardLagObserver(shardMillisBehindLatest::put);
 
         final Instant timestampForPosition = resolveTimestampPosition(context);
         if (timestampForPosition != null) {
@@ -437,6 +417,12 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         if (efoMode) {
+            final Region region = RegionUtil.getRegion(context);
+            final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
+                    .asControllerService(AwsCredentialsProviderService.class).getAwsCredentialsProvider();
+            final String endpointOverride = context.getProperty(ENDPOINT_OVERRIDE).getValue();
+            final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
+
             final NettyNioAsyncHttpClient.Builder nettyBuilder = NettyNioAsyncHttpClient.builder()
                     .protocol(Protocol.HTTP2)
                     .maxConcurrency(500)
@@ -539,6 +525,9 @@ public class ConsumeKinesis extends AbstractProcessor {
         kinesisHttpClient = null;
         closeQuietly(dynamoHttpClient);
         dynamoHttpClient = null;
+
+        // Per-shard lag is tied to the now-released owned-shard set; lastCaughtUpTimestamp is preserved deliberately.
+        shardMillisBehindLatest.clear();
     }
 
     @OnRemoved
@@ -660,6 +649,141 @@ public class ConsumeKinesis extends AbstractProcessor {
             consumerClient.releaseShards(claimedShards);
             throw e;
         }
+    }
+
+    /**
+     * Returns this node's view of how much data remains on the source Kinesis stream for the shards
+     * it currently owns. Kinesis does not expose a per-shard records-behind or bytes-behind count;
+     * the only available lag signal is {@link ShardFetchResult#millisBehindLatest()}. Backlog is
+     * therefore reported as the number of owned shards whose most recently observed
+     * {@code millisBehindLatest} is greater than zero. Because that count is a lower bound on the
+     * work remaining (each behind shard holds at least one un-fetched record and yields at least one
+     * FlowFile), both the {@code flowFiles} and {@code records} dimensions use
+     * {@link Backlog.Precision#AT_LEAST}, and every owned shard is presumed behind until a fetch
+     * result has been observed. When this node owns no shards (for example while stopped, or when
+     * another cluster node holds the shards), only a remembered last-caught-up timestamp is surfaced,
+     * or {@link Optional#empty()} when none has been observed, to avoid double-counting the stream
+     * backlog across shard-less nodes.
+     */
+    @Override
+    public Optional<Backlog> getBacklog(final ProcessContext context) throws BacklogReportingException {
+        final KinesisShardManager currentShardManager = shardManager;
+        if (currentShardManager == null) {
+            final Instant remembered = lastCaughtUpTimestamp;
+            if (remembered == null) {
+                return Optional.empty();
+            }
+            return Optional.of(Backlog.lastCaughtUp(remembered));
+        }
+
+        final List<Shard> ownedShards = currentShardManager.getOwnedShards();
+        if (ownedShards.isEmpty()) {
+            // The Processor is running on this node but owns no shards, which only happens in a
+            // clustered deployment where shard ownership is held by a different node. Reporting the
+            // full-stream backlog here would be double-counted at the cluster merge layer (every
+            // shard-less node would report the same number). Surface only the remembered
+            // last-caught-up timestamp, or Optional.empty() when no caught-up moment has been seen.
+            final Instant remembered = lastCaughtUpTimestamp;
+            if (remembered == null) {
+                return Optional.empty();
+            }
+            return Optional.of(Backlog.lastCaughtUp(remembered));
+        }
+
+        final Set<String> ownedShardIds = new HashSet<>();
+        for (final Shard shard : ownedShards) {
+            ownedShardIds.add(shard.shardId());
+        }
+        final int ownedShardCount = ownedShardIds.size();
+
+        if (shardMillisBehindLatest.isEmpty()) {
+            getLogger().warn("Reporting lower-bound backlog estimate for stream [{}] because no shard fetch results have been observed yet: ownedShards={}, precision=AT_LEAST",
+                    streamName, ownedShardCount);
+        }
+
+        // A shard with no reported lag value is presumed behind, the same as a shard whose most recently
+        // observed millisBehindLatest is greater than zero. This ensures a shard that has not yet reported
+        // (for example, immediately after startup or a shard reassignment) cannot cause the stream to be
+        // reported as caught up before its true state is known.
+        int shardsBehindCount = 0;
+        for (final String shardId : ownedShardIds) {
+            final Long millisBehind = shardMillisBehindLatest.get(shardId);
+            if (millisBehind == null || millisBehind > 0L) {
+                shardsBehindCount++;
+            }
+        }
+
+        if (shardsBehindCount == 0) {
+            final Backlog caughtUp = Backlog.caughtUp();
+            lastCaughtUpTimestamp = caughtUp.getLastCaughtUp().orElseThrow();
+            getLogger().debug("Reporting backlog for stream [{}] as caught up across {} owned shard(s)", streamName, ownedShardCount);
+            return Optional.of(caughtUp);
+        }
+
+        final Backlog backlog = Backlog.builder()
+                .flowFiles(shardsBehindCount)
+                .records(shardsBehindCount)
+                .precision(Backlog.Precision.AT_LEAST)
+                .lastCaughtUp(lastCaughtUpTimestamp)
+                .build();
+        getLogger().debug("Reporting backlog for stream [{}]: shardsBehind={}, ownedShards={}, lastCaughtUp={}, precision=AT_LEAST",
+                streamName, shardsBehindCount, ownedShardCount, lastCaughtUpTimestamp);
+        return Optional.of(backlog);
+    }
+
+    /**
+     * Builds a matched pair of {@link KinesisClient}/{@link DynamoDbClient} from the supplied
+     * {@link ProcessContext}, along with the underlying {@link SdkHttpClient}s that back them. Used by
+     * {@link #onScheduled(ProcessContext)}, which retains the returned clients for the duration of the
+     * scheduled run.
+     */
+    private AwsClientBundle buildAwsClientBundle(final ProcessContext context, final int kinesisConnectionPool, final int dynamoConnectionPool) {
+        final Region region = RegionUtil.getRegion(context);
+        final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
+                .asControllerService(AwsCredentialsProviderService.class).getAwsCredentialsProvider();
+        final String endpointOverride = context.getProperty(ENDPOINT_OVERRIDE).getValue();
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
+
+        final SdkHttpClient kinesisHttp = buildApacheHttpClient(proxyConfig, kinesisConnectionPool);
+        final SdkHttpClient dynamoHttp = buildApacheHttpClient(proxyConfig, dynamoConnectionPool);
+
+        final ClientOverrideConfiguration clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(API_CALL_TIMEOUT)
+                .apiCallAttemptTimeout(API_CALL_ATTEMPT_TIMEOUT)
+                .build();
+
+        final KinesisClientBuilder kinesisBuilder = KinesisClient.builder()
+                .region(region)
+                .credentialsProvider(credentialsProvider)
+                .overrideConfiguration(clientConfig)
+                .httpClient(kinesisHttp);
+        final DynamoDbClientBuilder dynamoBuilder = DynamoDbClient.builder()
+                .region(region)
+                .credentialsProvider(credentialsProvider)
+                .overrideConfiguration(clientConfig)
+                .httpClient(dynamoHttp);
+
+        if (endpointOverride != null && !endpointOverride.isEmpty()) {
+            final URI endpointUri = URI.create(endpointOverride);
+            kinesisBuilder.endpointOverride(endpointUri);
+            dynamoBuilder.endpointOverride(endpointUri);
+        }
+
+        return new AwsClientBundle(kinesisBuilder.build(), dynamoBuilder.build(), kinesisHttp, dynamoHttp);
+    }
+
+    /**
+     * Matched set of AWS SDK v2 clients built together so that they share configuration (region,
+     * credentials, endpoint override, proxy, override configuration). Both {@link KinesisClient} and
+     * {@link DynamoDbClient} are produced; the underlying {@link SdkHttpClient}s are returned so the caller
+     * can close them when it closes the SDK clients themselves.
+     */
+    private record AwsClientBundle(
+            KinesisClient kinesisClient,
+            DynamoDbClient dynamoDbClient,
+            SdkHttpClient kinesisHttpClient,
+            SdkHttpClient dynamoHttpClient
+    ) {
     }
 
     private List<ShardFetchResult> discardRelinquishedResults(final List<ShardFetchResult> consumedResults, final Set<String> claimedShards) {

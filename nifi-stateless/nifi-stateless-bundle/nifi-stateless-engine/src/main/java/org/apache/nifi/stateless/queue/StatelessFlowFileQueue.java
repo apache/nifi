@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.queue;
 
 import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -104,6 +105,17 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public QueueSize size() {
         return new QueueSize(flowFiles.size() + unacknowledgedCount.get(), totalBytes.get());
+    }
+
+    @Override
+    public FlowFileQueueSnapshot getQueueSnapshot() {
+        // Stateless queues are accessed from a single flow execution thread, so a snapshot built from the
+        // thread-safe LinkedBlockingQueue plus the AtomicInteger/AtomicLong counters is consistent enough
+        // for backlog reporting. No explicit lock is needed because the stateless engine does not run
+        // concurrent enqueue/dequeue activity against this queue.
+        final List<FlowFileRecord> snapshotActive = new ArrayList<>(flowFiles);
+        final QueueSize snapshotSize = new QueueSize(snapshotActive.size() + unacknowledgedCount.get(), totalBytes.get());
+        return new FlowFileQueueSnapshot(snapshotSize, snapshotActive);
     }
 
     @Override

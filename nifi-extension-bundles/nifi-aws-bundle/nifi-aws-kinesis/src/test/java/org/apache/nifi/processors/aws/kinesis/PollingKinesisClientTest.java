@@ -39,6 +39,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,6 +79,36 @@ class PollingKinesisClientTest {
         if (consumer != null) {
             consumer.close();
         }
+    }
+
+    /**
+     * Verifies the contract that the shard lag observer is notified on every successful
+     * {@code GetRecords} response — including responses that carry zero records — so that a shard which
+     * has caught up to the live tail can publish {@code millisBehindLatest = 0} and clear any prior
+     * lag observation held by the backlog tracker.
+     */
+    @Test
+    void testEmptyPollNotifiesShardLagObserver() throws Exception {
+        when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
+        when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenReturn(ITERATOR_RESPONSE);
+
+        final GetRecordsResponse firstResponse = GetRecordsResponse.builder()
+                .records(record("100", "data")).nextShardIterator("iter-next").millisBehindLatest(5000L).build();
+        final GetRecordsResponse caughtUpResponse = GetRecordsResponse.builder()
+                .records(List.of()).nextShardIterator("iter-next").millisBehindLatest(0L).build();
+        when(mockKinesisClient.getRecords(any(GetRecordsRequest.class)))
+                .thenReturn(firstResponse).thenReturn(caughtUpResponse);
+
+        final ConcurrentMap<String, Long> observed = new ConcurrentHashMap<>();
+        consumer.setShardLagObserver(observed::put);
+
+        consumer.startFetches(shards("shard-1"), "test-stream", 1000, "TRIM_HORIZON", mockShardManager);
+
+        final long deadline = System.currentTimeMillis() + 5_000L;
+        while (System.currentTimeMillis() < deadline && !Long.valueOf(0L).equals(observed.get("shard-1"))) {
+            Thread.sleep(20L);
+        }
+        assertEquals(0L, observed.get("shard-1"));
     }
 
     /**

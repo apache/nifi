@@ -34,6 +34,7 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProcessorClient;
 import org.apache.nifi.toolkit.client.VersionsClient;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
+import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
@@ -76,6 +77,7 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -2290,6 +2292,60 @@ public class NiFiClientUtil {
         nifiClient.getControllerServicesClient().deleteConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
 
         return results.getRequest().getResults();
+    }
+
+    /**
+     * Determines the backlog for the given Processor using the asynchronous backlog request flow: it submits a
+     * request, polls until the request is complete, deletes the request, and then returns the reported backlog. If
+     * the backlog determination failed, the request's failure reason is raised as a {@link NiFiClientException} so
+     * that callers observe the same failure they previously observed from the synchronous endpoint.
+     *
+     * @param processorId the Processor id
+     * @return the reported {@link BacklogDTO}, which may be {@code null} if the Processor reports no backlog
+     * @throws NiFiClientException if the request fails or the backlog determination reports a failure reason
+     */
+    public BacklogDTO getProcessorBacklog(final String processorId) throws NiFiClientException, IOException, InterruptedException {
+        BacklogRequestEntity results = nifiClient.getProcessorClient().submitProcessorBacklogRequest(processorId);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getProcessorClient().getProcessorBacklogRequest(processorId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getProcessorClient().deleteProcessorBacklogRequest(processorId, results.getRequest().getRequestId());
+
+        final String failureReason = results.getRequest().getFailureReason();
+        if (failureReason != null) {
+            throw new NiFiClientException(failureReason);
+        }
+
+        return results.getRequest().getBacklog();
+    }
+
+    /**
+     * Determines the backlog for the given Connector using the asynchronous backlog request flow: it submits a
+     * request, polls until the request is complete, deletes the request, and then returns the reported backlog. If
+     * the backlog determination failed, the request's failure reason is raised as a {@link NiFiClientException} so
+     * that callers observe the same failure they previously observed from the synchronous endpoint.
+     *
+     * @param connectorId the Connector id
+     * @return the reported {@link BacklogDTO}, which may be {@code null} if the Connector reports no backlog
+     * @throws NiFiClientException if the request fails or the backlog determination reports a failure reason
+     */
+    public BacklogDTO getConnectorBacklog(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        BacklogRequestEntity results = nifiClient.getConnectorClient().submitConnectorBacklogRequest(connectorId);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getConnectorClient().getConnectorBacklogRequest(connectorId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getConnectorClient().deleteConnectorBacklogRequest(connectorId, results.getRequest().getRequestId());
+
+        final String failureReason = results.getRequest().getFailureReason();
+        if (failureReason != null) {
+            throw new NiFiClientException(failureReason);
+        }
+
+        return results.getRequest().getBacklog();
     }
 
     public List<ConfigVerificationResultDTO> verifyReportingTaskConfig(final String taskId, final Map<String, String> properties)

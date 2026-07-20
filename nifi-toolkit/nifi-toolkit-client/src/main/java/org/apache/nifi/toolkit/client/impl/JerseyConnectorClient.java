@@ -27,6 +27,7 @@ import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
@@ -803,6 +804,59 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 .resolveTemplate("controllerServiceId", controllerServiceId);
 
             return getRequestBuilder(target).post(null, ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public BacklogRequestEntity submitConnectorBacklogRequest(final String connectorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+
+        return executeAction("Error submitting Backlog Request for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/backlog-requests")
+                    .resolveTemplate("id", connectorId);
+
+            return getRequestBuilder(target).post(null, BacklogRequestEntity.class);
+        });
+    }
+
+    @Override
+    public BacklogRequestEntity getConnectorBacklogRequest(final String connectorId, final String requestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Backlog Request id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving Backlog Request for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/backlog-requests/{requestId}")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("requestId", requestId);
+
+            return getRequestBuilder(target).get(BacklogRequestEntity.class);
+        });
+    }
+
+    @Override
+    public BacklogRequestEntity deleteConnectorBacklogRequest(final String connectorId, final String requestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Backlog Request id cannot be null or blank");
+        }
+
+        return executeAction("Error deleting Backlog Request for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/backlog-requests/{requestId}")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("requestId", requestId);
+
+            return getRequestBuilder(target).delete(BacklogRequestEntity.class);
         });
     }
 }

@@ -19,14 +19,17 @@ package org.apache.nifi.web.dao.impl;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -35,15 +38,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,6 +95,9 @@ class StandardProcessorDAOTest {
 
     @Mock
     private StateManager stateManager;
+
+    @Mock
+    private ControllerServiceProvider controllerServiceProvider;
 
     private StandardProcessorDAO dao;
 
@@ -193,6 +205,34 @@ class StandardProcessorDAOTest {
 
         // Should throw ResourceNotFoundException
         assertThrows(ResourceNotFoundException.class, () -> dao.verifyUpdate(processorDTO));
+    }
+
+    @Test
+    void testGetBacklogProvidesRealStateManagerToProcessor() throws Exception {
+        final String processorId = "test-processor-id";
+        final Backlog expectedBacklog = Backlog.caughtUp();
+
+        when(processorNode.getProcessor()).thenReturn(processor);
+        when(processorNode.getIdentifier()).thenReturn(processorId);
+        when(processorNode.getEffectivePropertyValues()).thenReturn(Map.of());
+        when(processorNode.getAnnotationData()).thenReturn(null);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+        when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
+        when(stateManagerProvider.getStateManager(eq(processorId), any())).thenReturn(stateManager);
+        when(processorNode.getReportedBacklog(any(ProcessContext.class))).thenReturn(Optional.of(expectedBacklog));
+
+        final Optional<Backlog> backlog = dao.getBacklog(processorId);
+
+        assertTrue(backlog.isPresent());
+        assertEquals(expectedBacklog, backlog.get());
+
+        final ArgumentCaptor<ProcessContext> contextCaptor = ArgumentCaptor.forClass(ProcessContext.class);
+        verify(processorNode).getReportedBacklog(contextCaptor.capture());
+        final ProcessContext capturedContext = contextCaptor.getValue();
+        assertNotNull(capturedContext.getStateManager());
+        // The constructed ProcessContext must expose the real per-component StateManager so backlog
+        // implementations that consult cluster state observe the same state the running Processor would.
+        assertSame(stateManager, capturedContext.getStateManager());
     }
 
     @Test

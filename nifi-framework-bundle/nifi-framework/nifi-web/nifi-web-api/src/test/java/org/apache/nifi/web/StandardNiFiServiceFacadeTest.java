@@ -36,6 +36,8 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
@@ -106,6 +108,7 @@ import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
@@ -126,6 +129,7 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.BacklogEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -144,6 +148,7 @@ import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
@@ -178,6 +183,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -2576,5 +2582,139 @@ public class StandardNiFiServiceFacadeTest {
         assertEquals(cause, exception.getCause());
 
         verify(processGroup, never()).synchronizeWithFlowRegistry(any(FlowManager.class));
+    }
+
+    // -----------------
+    // Backlog Tests
+    // -----------------
+
+    @Test
+    public void testGetProcessorBacklog() throws BacklogReportingException {
+        final String processorId = "processor-backlog";
+        final ProcessorDAO processorDAO = mock(ProcessorDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setProcessorDAO(processorDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final Backlog reportedBacklog = Backlog.builder().records(42L).precision(Backlog.Precision.EXACT).build();
+        when(processorDAO.getBacklog(processorId)).thenReturn(Optional.of(reportedBacklog));
+
+        final BacklogDTO mappedDto = new BacklogDTO();
+        mappedDto.setRecordCount(42L);
+        mappedDto.setPrecision("EXACT");
+        when(dtoFactory.createBacklogDto(reportedBacklog)).thenReturn(mappedDto);
+
+        final BacklogEntity entity = serviceFacade.getProcessorBacklog(processorId);
+
+        verify(processorDAO).getBacklog(processorId);
+        assertNotNull(entity);
+        assertNotNull(entity.getBacklog());
+        assertEquals(42L, entity.getBacklog().getRecordCount());
+        assertEquals("EXACT", entity.getBacklog().getPrecision());
+    }
+
+    @Test
+    public void testGetProcessorBacklogMapsCaughtUpDirectly() throws BacklogReportingException {
+        final String processorId = "processor-caught-up";
+        final ProcessorDAO processorDAO = mock(ProcessorDAO.class);
+        serviceFacade.setProcessorDAO(processorDAO);
+        serviceFacade.setDtoFactory(new DtoFactory());
+
+        final Backlog caughtUpBacklog = Backlog.caughtUp();
+        when(processorDAO.getBacklog(processorId)).thenReturn(Optional.of(caughtUpBacklog));
+
+        final BacklogEntity entity = serviceFacade.getProcessorBacklog(processorId);
+
+        assertNotNull(entity);
+        final BacklogDTO dto = entity.getBacklog();
+        assertNotNull(dto);
+        assertEquals(0L, dto.getFlowFileCount());
+        assertEquals(0L, dto.getByteCount());
+        assertEquals(0L, dto.getRecordCount());
+        assertEquals("0", dto.getFormattedFlowFileCount());
+        assertEquals("0 bytes", dto.getFormattedByteCount());
+        assertEquals("0", dto.getFormattedRecordCount());
+        assertEquals("EXACT", dto.getPrecision());
+        assertNotNull(dto.getLastCaughtUp());
+        assertNotNull(dto.getFormattedLastCaughtUp());
+    }
+
+    @Test
+    public void testGetProcessorBacklogMapsEmptyOptionalToNullDto() throws BacklogReportingException {
+        final String processorId = "processor-empty";
+        final ProcessorDAO processorDAO = mock(ProcessorDAO.class);
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setProcessorDAO(processorDAO);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        when(processorDAO.getBacklog(processorId)).thenReturn(Optional.empty());
+
+        final BacklogEntity entity = serviceFacade.getProcessorBacklog(processorId);
+
+        verify(processorDAO).getBacklog(processorId);
+        assertNotNull(entity);
+        assertNull(entity.getBacklog());
+        verify(dtoFactory, times(0)).createBacklogDto(any(Backlog.class));
+    }
+
+    @Test
+    public void testVerifyCanReportProcessorBacklogPropagatesIllegalState() {
+        final String processorId = "processor-disabled";
+        final ProcessorDAO processorDAO = mock(ProcessorDAO.class);
+        serviceFacade.setProcessorDAO(processorDAO);
+
+        doThrow(new IllegalStateException("Processor is disabled")).when(processorDAO).verifyReportBacklog(processorId);
+
+        assertThrows(IllegalStateException.class, () -> serviceFacade.verifyCanReportProcessorBacklog(processorId));
+    }
+
+    @Test
+    public void testGetProcessorBacklogPropagatesBacklogReportingException() throws BacklogReportingException {
+        final String processorId = "processor-failure";
+        final ProcessorDAO processorDAO = mock(ProcessorDAO.class);
+        serviceFacade.setProcessorDAO(processorDAO);
+
+        final BacklogReportingException failure = new BacklogReportingException("Source unreachable");
+        when(processorDAO.getBacklog(processorId)).thenThrow(failure);
+
+        final BacklogReportingException thrown = assertThrows(BacklogReportingException.class,
+                () -> serviceFacade.getProcessorBacklog(processorId));
+        assertEquals("Source unreachable", thrown.getMessage());
+    }
+
+    @Test
+    public void testVerifyCanReportConnectorBacklogRejectsConnectorWithoutBacklogCapability() {
+        final String connectorId = "connector-no-backlog";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final org.apache.nifi.components.connector.Connector connector = mock(org.apache.nifi.components.connector.Connector.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getConnector()).thenReturn(connector);
+
+        assertThrows(IllegalStateException.class, () -> serviceFacade.verifyCanReportConnectorBacklog(connectorId));
+    }
+
+    @Test
+    public void testVerifyCanReportConnectorBacklogAcceptsBacklogReportingConnector() {
+        final String connectorId = "connector-with-backlog";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        // The capability is declared by implementing BacklogReportingConnector, not by a flag, so
+        // the mock must satisfy both Connector and BacklogReportingConnector for the instanceof
+        // check to succeed.
+        final org.apache.nifi.components.connector.Connector connector = mock(org.apache.nifi.components.connector.Connector.class,
+                org.mockito.Mockito.withSettings().extraInterfaces(org.apache.nifi.components.connector.BacklogReportingConnector.class));
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getConnector()).thenReturn(connector);
+        when(connectorNode.getValidationStatus()).thenReturn(org.apache.nifi.components.validation.ValidationStatus.VALID);
+        when(connectorNode.getCurrentState()).thenReturn(org.apache.nifi.components.connector.ConnectorState.STOPPED);
+
+        serviceFacade.verifyCanReportConnectorBacklog(connectorId);
     }
 }
