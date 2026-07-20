@@ -28,9 +28,9 @@ import javax.script.ScriptEngineFactory;
  */
 public class ClojureScriptEngineFactory implements ScriptEngineFactory {
 
-    public static final List<String> EXTENSIONS = Collections.unmodifiableList(Collections.singletonList("clj"));
+    public static final List<String> EXTENSIONS = Collections.singletonList("clj");
     public static final List<String> MIME_TYPES = Collections.unmodifiableList(Arrays.asList("application/clojure", "text/clojure"));
-    public static final List<String> NAMES = Collections.unmodifiableList(Collections.singletonList("Clojure"));
+    public static final List<String> NAMES = Collections.singletonList("Clojure");
 
     // This engine provides constants, global engine properties, etc. to be returned by the ScriptEngineFactory interface methods,
     // and is not used to execute scripts. A new ClojureScriptEngine will be returned by each call to getScriptEngine()
