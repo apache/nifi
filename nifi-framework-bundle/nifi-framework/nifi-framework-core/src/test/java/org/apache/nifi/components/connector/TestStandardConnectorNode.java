@@ -1046,6 +1046,40 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testIsModifiedReportsFalseWhenPropertyConfiguredWithStructurallyEmptyTypedReference() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A structurally-empty SecretReference or AssetReference (no provider/secret name, no asset identifiers) is a
+        // placeholder for an unset property, not a configured value, so it must not be treated as a modification.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new SecretReference(null, "My Provider", null, null),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertFalse(node.isModified());
+
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new AssetReference(Set.of()),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertFalse(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenPropertyConfiguredWithPopulatedAssetReference() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // An Asset reference that actually points at an asset can never be a default value, so its presence means the
+        // Connector has been configured.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new AssetReference(Set.of("asset-1")),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
     public void testIsModifiedReportsTrueWhenWorkingConfigurationDiffersFromDefault() throws FlowUpdateException {
         final DefaultValueConnector connector = new DefaultValueConnector();
         final StandardConnectorNode node = createConnectorNode(connector);

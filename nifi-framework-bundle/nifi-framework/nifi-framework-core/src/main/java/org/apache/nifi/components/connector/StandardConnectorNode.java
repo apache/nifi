@@ -1191,9 +1191,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     /**
      * Determines whether the configuration held by the given flow context deviates from the Connector's default
-     * configuration. A property is treated as modified when it is configured with a Secret or Asset reference (neither
-     * of which can represent a default) or with a String literal whose value differs from the property's declared
-     * default.
+     * configuration. A property is treated as modified when it is configured with a String literal whose value differs
+     * from the property's declared default, or with a populated Secret or Asset reference (neither of which can
+     * represent a default). A structurally-empty Secret or Asset reference is a placeholder for an unset property and is
+     * not treated as a modification.
      */
     private boolean configurationDiffersFromDefaults(final FrameworkFlowContext flowContext, final Map<String, Map<String, String>> defaultValuesByStep) {
         if (flowContext == null) {
@@ -1222,7 +1223,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                             this, propertyName, namedStepConfiguration.stepName());
                         return true;
                     }
-                } else {
+                } else if (!isStructurallyEmptyReference(valueReference)) {
                     logger.debug("{} differs from its initial flow because property [{}] of configuration step [{}] is configured with a {} reference",
                         this, propertyName, namedStepConfiguration.stepName(), valueReference.getValueType());
                     return true;
@@ -1231,6 +1232,20 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         return false;
+    }
+
+    /**
+     * Determines whether the given non-{@code StringLiteralValue} reference is structurally empty, meaning it carries no
+     * actual referenced value and acts as a placeholder for an unset property rather than a configured one. A
+     * structurally-empty {@link SecretReference} has no provider or secret name; a structurally-empty
+     * {@link AssetReference} has no asset identifiers.
+     */
+    private boolean isStructurallyEmptyReference(final ConnectorValueReference valueReference) {
+        return switch (valueReference) {
+            case SecretReference secretReference -> isEmptySecretReference(secretReference);
+            case AssetReference assetReference -> assetReference.getAssetIdentifiers() == null || assetReference.getAssetIdentifiers().isEmpty();
+            default -> false;
+        };
     }
 
     /**
