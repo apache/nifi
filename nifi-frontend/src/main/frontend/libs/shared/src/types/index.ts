@@ -234,6 +234,7 @@ export type ConnectorActionName =
     | 'DRAIN_FLOWFILES'
     | 'CANCEL_DRAIN_FLOWFILES'
     | 'APPLY_UPDATES'
+    | 'MIGRATE'
     | 'DELETE';
 
 export interface ConnectorAction {

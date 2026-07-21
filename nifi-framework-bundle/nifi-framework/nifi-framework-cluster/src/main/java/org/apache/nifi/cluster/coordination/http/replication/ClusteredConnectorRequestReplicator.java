@@ -60,17 +60,22 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
 
         try {
             final NodeResponse mergedNodeResponse = asyncResponse.awaitMergedResponse();
+            final Entity updatedEntity = mergedNodeResponse.getUpdatedEntity();
             final Response response = mergedNodeResponse.getClientResponse();
-            final int statusCode = response.getStatusInfo().getStatusCode();
-            logger.debug("getState: Connector [{}] — merged response status [{}] ({})", connectorId, statusCode, response.getStatusInfo().getReasonPhrase());
-
-            verifyResponse(response.getStatusInfo(), connectorId);
+            if (response != null) {
+                final int statusCode = response.getStatusInfo().getStatusCode();
+                logger.debug("getState: Connector [{}] — merged response status [{}] ({})", connectorId, statusCode, response.getStatusInfo().getReasonPhrase());
+                verifyResponse(response.getStatusInfo(), connectorId);
+            } else if (mergedNodeResponse.hasThrowable()) {
+                throw new IOException("Failed to retrieve Connector state for " + connectorId, mergedNodeResponse.getThrowable());
+            } else if (!(updatedEntity instanceof ConnectorEntity)) {
+                throw new IOException("Received neither response nor merged Connector entity while retrieving state for Connector " + connectorId);
+            }
 
             // Use the merged/updated entity if available, otherwise fall back to reading from the raw response.
             // The updatedEntity contains the properly merged state from all nodes, while readEntity() would
             // only return the state from whichever single node was selected as the "client response".
             final ConnectorEntity connectorEntity;
-            final Entity updatedEntity = mergedNodeResponse.getUpdatedEntity();
             if (updatedEntity instanceof final ConnectorEntity mergedConnectorEntity) {
                 logger.debug("getState: Connector [{}] - using merged updatedEntity", connectorId);
                 connectorEntity = mergedConnectorEntity;
@@ -115,7 +120,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
         final String reason = responseStatusType.getReasonPhrase();
 
         if (responseStatusType.getStatusCode() == Status.NOT_FOUND.getStatusCode()) {
-            throw new IllegalArgumentException("Connector with ID + " + connectorId + " does not exist");
+            throw new IllegalArgumentException("Connector with ID " + connectorId + " does not exist");
         }
 
         final Family responseFamily = responseStatusType.getFamily();

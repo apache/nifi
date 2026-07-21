@@ -24,6 +24,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.controller.MockStateManagerProvider;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -129,6 +130,127 @@ public class TestStandardConnectorRepository {
         repository.restoreConnector(connector);
         assertEquals(1, repository.getConnectors(ConnectorSyncMode.SYNC_WITH_PROVIDER).size());
         assertEquals(connector, repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER));
+    }
+
+    @Test
+    public void testRestoreConnectorDoesNotCleanUpAssetsBeforeSynchronization() {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        // At restore time the Connector's managed flow has not yet been synchronized: its Managed Process Group
+        // and managed Parameter Context are empty, so its flow contexts reference no assets. Deleting assets here
+        // would discard assets that the Connector's not-yet-restored flow still references. A Connector restored in
+        // Troubleshooting mode relies on these assets surviving until restoreTroubleshootingFlow re-establishes the
+        // references, so restoreConnector must not delete any assets.
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn("asset-1");
+        when(asset.getName()).thenReturn("asset-1.txt");
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(asset));
+
+        repository.restoreConnector(connector);
+
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testSyncConnectorCleansUpUnreferencedAssets() throws Exception {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset referencedAsset = mock(Asset.class);
+        when(referencedAsset.getIdentifier()).thenReturn("referenced-asset");
+        when(referencedAsset.getName()).thenReturn("referenced.txt");
+
+        final Asset unreferencedAsset = mock(Asset.class);
+        when(unreferencedAsset.getIdentifier()).thenReturn("unreferenced-asset");
+        when(unreferencedAsset.getName()).thenReturn("unreferenced.txt");
+
+        final MutableConnectorConfigurationContext activeConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorConfiguration activeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("step1", new StepConfiguration(Map.of("property", new AssetReference(Set.of("referenced-asset")))))
+        ));
+        when(activeConfigContext.toConnectorConfiguration()).thenReturn(activeConfiguration);
+
+        final FrameworkFlowContext activeFlowContext = mock(FrameworkFlowContext.class);
+        when(activeFlowContext.getConfigurationContext()).thenReturn(activeConfigContext);
+
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        when(workingConfigContext.toConnectorConfiguration()).thenReturn(new ConnectorConfiguration(Set.of()));
+
+        final FrameworkFlowContext workingFlowContext = mock(FrameworkFlowContext.class);
+        when(workingFlowContext.getConfigurationContext()).thenReturn(workingConfigContext);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getActiveFlowContext()).thenReturn(activeFlowContext);
+        when(connector.getWorkingFlowContext()).thenReturn(workingFlowContext);
+
+        repository.restoreConnector(connector);
+
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(referencedAsset, unreferencedAsset));
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+        repository.syncConnector(versioned);
+
+        verify(assetManager).deleteAsset("unreferenced-asset");
+        verify(assetManager, never()).deleteAsset("referenced-asset");
+    }
+
+    @Test
+    public void testSyncConnectorSkipsAssetCleanupWhileMigrationInProgress() throws Exception {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset unreferencedAsset = mock(Asset.class);
+        when(unreferencedAsset.getIdentifier()).thenReturn("copied-during-migration");
+        when(unreferencedAsset.getName()).thenReturn("copied.txt");
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(unreferencedAsset));
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+
+        // While a migration is in progress, a sync must not reclaim assets the migration may have copied before the
+        // managed Process Group is rebuilt to reference them, even though they appear unreferenced.
+        repository.beginMigration("connector-1");
+        repository.syncConnector(versioned);
+        verify(assetManager, never()).deleteAsset(anyString());
+
+        // Once the migration completes, the next sync reclaims the now-genuinely-unreferenced asset.
+        repository.endMigration("connector-1");
+        repository.syncConnector(versioned);
+        verify(assetManager).deleteAsset("copied-during-migration");
+    }
+
+    @Test
+    public void testSyncConnectorInTroubleshootingDoesNotCleanUpAssets() throws Exception {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        // An Asset uploaded while in Troubleshooting mode may not be referenced by the experimental flow yet, and the
+        // user may have temporarily overridden the authoritative Asset reference. Restoring the Connector in
+        // Troubleshooting mode must therefore retain every Asset rather than deleting those that appear unreferenced.
+        final Asset unreferencedAsset = mock(Asset.class);
+        when(unreferencedAsset.getIdentifier()).thenReturn("uploaded-during-troubleshooting");
+        when(unreferencedAsset.getName()).thenReturn("uploaded.txt");
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        repository.restoreConnector(connector);
+
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(unreferencedAsset));
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.TROUBLESHOOTING, List.of());
+        repository.syncConnector(versioned);
+
+        verify(assetManager, never()).deleteAsset(anyString());
     }
 
     @Test
@@ -1059,6 +1181,34 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
+    public void testApplyUpdateAbortsWhenClusterStateRepeatedlyUnavailable() throws Exception {
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(mock(FlowManager.class));
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+
+        final AssetManager assetManager = mock(AssetManager.class);
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of());
+        when(initContext.getAssetManager()).thenReturn(assetManager);
+
+        final ConnectorRequestReplicator requestReplicator = mock(ConnectorRequestReplicator.class);
+        when(requestReplicator.getState(anyString())).thenThrow(new IOException("cluster state unavailable"));
+        when(initContext.getRequestReplicator()).thenReturn(requestReplicator);
+        repository.initialize(initContext);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(connector.getDesiredState()).thenReturn(ConnectorState.STOPPED);
+        repository.addConnector(connector);
+
+        repository.applyUpdate(connector, mock(ConnectorUpdateContext.class));
+
+        // An inability to read cluster state must abort the update rather than retry indefinitely. The IOException
+        // propagates out of waitForState and is handed to abortUpdate, rather than being swallowed by a retry loop.
+        verify(connector, timeout(5000)).abortUpdate(any(IOException.class));
+    }
+
+    @Test
     public void testApplyUpdateInTroubleshootingThrowsBeforeProviderConsultation() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1728,6 +1878,61 @@ public class TestStandardConnectorRepository {
         verify(connector).setCustomLoggingAttributes(expected);
     }
 
+    @Test
+    public void testVerifyMigrationDelegatesToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        repository.verifyMigration("connector-1");
+        verify(provider).verifyMigration("connector-1");
+
+        doThrow(new ConnectorConfigurationProviderException("provider rejected")).when(provider).verifyMigration("connector-1");
+        assertThrows(ConnectorConfigurationProviderException.class, () -> repository.verifyMigration("connector-1"));
+    }
+
+    @Test
+    public void testVerifyMigrationWithNullProviderIsNoOp() {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        repository.verifyMigration("connector-1");
+    }
+
+    @Test
+    public void testNotifyMigrationCompleteDelegatesToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        repository.notifyMigrationComplete("connector-1", "source-group");
+        verify(provider).migrationComplete("connector-1", "source-group");
+
+        repository.notifyMigrationComplete("connector-1", null);
+        verify(provider).migrationComplete("connector-1", null);
+    }
+
+    @Test
+    public void testNotifyMigrationCompleteWithNullProviderIsNoOp() {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        repository.notifyMigrationComplete("connector-1", "source-group");
+    }
+
+    @Test
+    public void testNotifyMigrationCompleteSavesWorkingConfigurationToProvider() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        repository.addConnector(connector);
+
+        // notifyMigrationComplete runs after commitMigratedConfiguration has already written the merged configuration
+        // onto the active configuration and rebuilt the working flow context from it, so the working flow context
+        // reflects the migrated configuration by the time this call is made.
+        repository.notifyMigrationComplete("connector-1", "source-group");
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configCaptor.capture());
+        assertEquals("Test Connector", configCaptor.getValue().getName());
+        verify(provider).migrationComplete("connector-1", "source-group");
+    }
+
     // --- Helper Methods ---
 
     private StandardConnectorRepository createRepositoryWithProviderAndAssetManager(
@@ -1882,7 +2087,7 @@ public class TestStandardConnectorRepository {
         final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
 
         final StandardConnectorNode node = new StandardConnectorNode(
-                identifier, mock(FlowManager.class), extensionManager, null, connectorDetails,
+                identifier, mock(FlowManager.class), extensionManager, new MockStateManagerProvider(), null, connectorDetails,
                 "TestConnector", connector.getClass().getCanonicalName(),
                 new StandardConnectorConfigurationContext(assetManager, secretsManager),
                 stateTransition, flowContextFactory, validationTrigger, false);

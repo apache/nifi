@@ -172,13 +172,14 @@ public class ConnectorParameterLookup implements ParameterLookup {
                     parameterValues.removeIf(param -> param.getName().equals(parameterName));
                 }
 
+                final List<VersionedAsset> referencedAssets = versionedParameter.getReferencedAssets();
                 final ParameterValue.Builder builder = new ParameterValue.Builder()
                     .name(parameterName)
-                    .value(versionedParameter.getValue())
+                    .value(referencedAssets == null || referencedAssets.isEmpty() ? versionedParameter.getValue() : null)
                     .sensitive(versionedParameter.isSensitive());
 
-                if (assetManager != null && versionedParameter.getReferencedAssets() != null) {
-                    for (final VersionedAsset versionedAsset : versionedParameter.getReferencedAssets()) {
+                if (assetManager != null && referencedAssets != null) {
+                    for (final VersionedAsset versionedAsset : referencedAssets) {
                         assetManager.getAsset(versionedAsset.getIdentifier()).ifPresent(builder::addReferencedAsset);
                     }
                 }

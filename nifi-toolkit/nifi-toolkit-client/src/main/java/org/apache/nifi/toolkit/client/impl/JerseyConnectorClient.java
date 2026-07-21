@@ -34,10 +34,13 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
+import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -458,6 +461,78 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                     .resolveTemplate("requestId", requestId);
 
             return getRequestBuilder(target).delete(VerifyConnectorConfigStepRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VersionedFlowMigrationSourcesEntity listMigrationSources(final String connectorId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(connectorId, "Connector ID required");
+
+        return executeAction("Error retrieving connector migration sources", () -> {
+            final WebTarget target = connectorTarget
+                    .path("/migration-sources")
+                    .resolveTemplate("id", connectorId);
+            return getRequestBuilder(target).get(VersionedFlowMigrationSourcesEntity.class);
+        });
+    }
+
+    @Override
+    public MigrationPayloadEntity uploadMigrationPayload(final String connectorId, final File file) throws NiFiClientException, IOException {
+        Objects.requireNonNull(connectorId, "Connector ID required");
+        Objects.requireNonNull(file, "Migration payload file required");
+        if (!file.exists()) {
+            throw new FileNotFoundException(file.getAbsolutePath());
+        }
+
+        try (final InputStream payloadInputStream = new FileInputStream(file)) {
+            return executeAction("Error uploading connector migration payload", () -> {
+                final WebTarget target = connectorTarget
+                        .path("/migration-payloads")
+                        .resolveTemplate("id", connectorId);
+                return getRequestBuilder(target).post(Entity.entity(payloadInputStream, MediaType.APPLICATION_OCTET_STREAM_TYPE), MigrationPayloadEntity.class);
+            });
+        }
+    }
+
+    @Override
+    public MigrationRequestEntity startMigration(final MigrationRequestEntity requestEntity) throws NiFiClientException, IOException {
+        Objects.requireNonNull(requestEntity, "Migration request entity required");
+        Objects.requireNonNull(requestEntity.getRequest(), "Migration request required");
+        Objects.requireNonNull(requestEntity.getRequest().getConnectorId(), "Connector ID required");
+
+        return executeAction("Error creating connector migration request", () -> {
+            final WebTarget target = connectorTarget
+                    .path("/migration-requests")
+                    .resolveTemplate("id", requestEntity.getRequest().getConnectorId());
+            return getRequestBuilder(target).post(Entity.entity(requestEntity, MediaType.APPLICATION_JSON_TYPE), MigrationRequestEntity.class);
+        });
+    }
+
+    @Override
+    public MigrationRequestEntity getMigrationStatus(final String connectorId, final String requestId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(connectorId, "Connector ID required");
+        Objects.requireNonNull(requestId, "Migration request ID required");
+
+        return executeAction("Error retrieving connector migration request", () -> {
+            final WebTarget target = connectorTarget
+                    .path("/migration-requests/{requestId}")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("requestId", requestId);
+            return getRequestBuilder(target).get(MigrationRequestEntity.class);
+        });
+    }
+
+    @Override
+    public MigrationRequestEntity cancelMigration(final String connectorId, final String requestId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(connectorId, "Connector ID required");
+        Objects.requireNonNull(requestId, "Migration request ID required");
+
+        return executeAction("Error deleting connector migration request", () -> {
+            final WebTarget target = connectorTarget
+                    .path("/migration-requests/{requestId}")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("requestId", requestId);
+            return getRequestBuilder(target).delete(MigrationRequestEntity.class);
         });
     }
 
