@@ -83,6 +83,7 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -649,6 +650,27 @@ public class NiFiClientUtil {
 
             if (iteration++ % 30 == 0) { // Every 3 seconds log status
                 logger.info("Connector with ID {} has state {} but waiting for state {}.", connectorId, state, desiredState);
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
+    public void waitForAssetRemoved(final String connectorId, final String assetId)
+            throws NiFiClientException, IOException, InterruptedException {
+        int iteration = 0;
+        while (true) {
+            final AssetsEntity assetsEntity = getConnectorClient().getAssets(connectorId);
+            final boolean assetStillPresent = assetsEntity.getAssets() != null
+                    && assetsEntity.getAssets().stream()
+                            .filter(a -> a.getAsset() != null)
+                            .anyMatch(a -> assetId.equals(a.getAsset().getId()));
+            if (!assetStillPresent) {
+                return;
+            }
+
+            if (iteration++ % 30 == 0) {
+                logger.info("Asset with ID {} is still present for Connector {} but waiting for removal.", assetId, connectorId);
             }
 
             Thread.sleep(100L);

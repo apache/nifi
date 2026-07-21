@@ -188,15 +188,8 @@ public class ConnectorAssetsIT extends NiFiSystemIT {
 
         getClientUtil().waitForConnectorState(connectorId, ConnectorState.STOPPED);
 
-        // Verify that the Asset has been removed from the Connector's Assets list
-        final AssetsEntity assetsAfterRemoval = connectorClient.getAssets(connectorId);
-        assertNotNull(assetsAfterRemoval);
-
-        final boolean assetStillPresent = assetsAfterRemoval.getAssets() != null && assetsAfterRemoval.getAssets().stream()
-                .filter(a -> a.getAsset() != null)
-                .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
-
-        assertFalse(assetStillPresent);
+        // Wait for the Asset to be removed from the Connector's Assets list
+        getClientUtil().waitForAssetRemoved(connectorId, uploadedAssetId);
 
         // Wait for Connector to stop before attempting to delete it.
         getClientUtil().waitForConnectorStopped(connectorAfterApply.getId());
