@@ -3046,7 +3046,7 @@ public final class DtoFactory {
         dto.setLocalValue(difference.getValueB() == null ? null : difference.getValueB().toString());
         dto.setRegistryValue(difference.getValueA() == null ? null : difference.getValueA().toString());
         dto.setClassification(classified.getClassification().name());
-        dto.setConflictCode(classified.getConflictCode());
+        dto.setConflictCode(classified.getConflictCode() == null ? null : classified.getConflictCode().name());
         dto.setConflictDetail(classified.getConflictDetail());
 
         return dto;

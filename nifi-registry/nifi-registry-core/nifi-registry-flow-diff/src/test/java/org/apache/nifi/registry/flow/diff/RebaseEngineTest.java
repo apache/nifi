@@ -38,19 +38,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestRebaseEngine {
+class RebaseEngineTest {
 
     private RebaseEngine engine;
 
     @BeforeEach
-    public void setup() {
-        engine = new RebaseEngine();
+    void setup() {
+        engine = new StandardRebaseEngine();
     }
 
     @Test
-    public void testCompatiblePositionChangeNoUpstreamConflict() {
+    void testCompatiblePositionChangeNoUpstreamConflict() {
         final VersionedProcessor processorA = createProcessor("proc-a", "ProcessorA");
         processorA.setPosition(new Position(100.0, 200.0));
 
@@ -87,7 +88,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testCompatiblePropertyChangeOnDifferentProperties() {
+    void testCompatiblePropertyChangeOnDifferentProperties() {
         final VersionedProcessor processorA = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "oldValueX");
         final VersionedProcessor localProcessorA = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "newValueX");
 
@@ -115,7 +116,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testConflictingPropertyChangeOnSamePropertyAndComponent() {
+    void testConflictingPropertyChangeOnSamePropertyAndComponent() {
         final VersionedProcessor processor = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "original");
         final VersionedProcessor localProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "localValue");
         final VersionedProcessor upstreamProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "upstreamValue");
@@ -141,7 +142,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testUnsupportedDifferenceTypeNoHandler() {
+    void testUnsupportedDifferenceTypeNoHandler() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
 
         final Set<FlowDifference> localDifferences = new HashSet<>();
@@ -158,12 +159,12 @@ public class TestRebaseEngine {
 
         final RebaseAnalysis.ClassifiedDifference classified = analysis.getClassifiedLocalChanges().get(0);
         assertEquals(RebaseClassification.UNSUPPORTED, classified.getClassification());
-        assertEquals("NO_HANDLER", classified.getConflictCode());
+        assertEquals(RebaseConflictCode.NO_HANDLER, classified.getConflictCode());
         assertNull(analysis.getMergedSnapshot());
     }
 
     @Test
-    public void testMixedCompatibleAndUnsupported() {
+    void testMixedCompatibleAndUnsupported() {
         final VersionedProcessor processorA = createProcessor("proc-a", "ProcessorA");
         processorA.setPosition(new Position(10.0, 20.0));
         final VersionedProcessor localProcessorA = createProcessor("proc-a", "ProcessorA");
@@ -188,7 +189,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testMixedCompatibleAndConflicting() {
+    void testMixedCompatibleAndConflicting() {
         final VersionedProcessor processorA = createProcessor("proc-a", "ProcessorA");
         processorA.setPosition(new Position(10.0, 20.0));
         final VersionedProcessor localProcessorA = createProcessor("proc-a", "ProcessorA");
@@ -218,7 +219,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testAllCompatibleMultipleLocalChanges() {
+    void testAllCompatibleMultipleLocalChanges() {
         final VersionedProcessor processorA = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "oldVal");
         processorA.setPosition(new Position(10.0, 20.0));
         processorA.setComments("old comments");
@@ -262,7 +263,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testEmptyLocalChanges() {
+    void testEmptyLocalChanges() {
         final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
         targetSnapshot.setIdentifier("root");
         targetSnapshot.getProcessors().add(createProcessor("proc-a", "ProcessorA"));
@@ -276,7 +277,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testCanonicalConflictKeySameComponentDifferentProperties() {
+    void testCanonicalConflictKeySameComponentDifferentProperties() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
 
         final FlowDifference diffPropX = new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, processor, processor, "propX",
@@ -302,7 +303,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testCanonicalConflictKeySamePropertyDifferentComponents() {
+    void testCanonicalConflictKeySamePropertyDifferentComponents() {
         final VersionedProcessor processorA = createProcessor("proc-a", "ProcessorA");
         final VersionedProcessor processorB = createProcessor("proc-b", "ProcessorB");
 
@@ -311,8 +312,8 @@ public class TestRebaseEngine {
         final FlowDifference diffB = new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, processorB, processorB, "propX",
                 "old", "new", "Property propX changed on B");
 
-        final String keyA = RebaseEngine.computeConflictKey(diffA);
-        final String keyB = RebaseEngine.computeConflictKey(diffB);
+        final String keyA = StandardRebaseEngine.computeConflictKey(diffA);
+        final String keyB = StandardRebaseEngine.computeConflictKey(diffB);
         assertNotEquals(keyA, keyB);
 
         final Set<FlowDifference> localDifferences = new HashSet<>();
@@ -334,7 +335,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testAnalysisFingerprintDeterminism() {
+    void testAnalysisFingerprintDeterminism() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
         processor.setPosition(new Position(10.0, 20.0));
         final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");
@@ -361,7 +362,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testAnalysisFingerprintChangesWithDifferentInputs() {
+    void testAnalysisFingerprintChangesWithDifferentInputs() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
         processor.setPosition(new Position(10.0, 20.0));
         final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");
@@ -386,29 +387,33 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testDeepCloneIndependence() {
-        final VersionedProcessGroup original = new VersionedProcessGroup();
-        original.setIdentifier("root");
-        original.setComments("original comments");
+    void testMergedSnapshotAppliesLocalChangesToTargetInPlace() {
+        final VersionedProcessor targetProcessor = createProcessor("proc-a", "ProcessorA");
+        targetProcessor.setPosition(new Position(10.0, 20.0));
 
-        final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
-        processor.setPosition(new Position(10.0, 20.0));
-        original.getProcessors().add(processor);
+        final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
+        targetSnapshot.setIdentifier("root");
+        targetSnapshot.getProcessors().add(targetProcessor);
 
-        final VersionedProcessGroup cloned = engine.deepClone(original);
+        final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");
+        localProcessor.setPosition(new Position(100.0, 200.0));
 
-        cloned.setComments("modified comments");
-        final VersionedProcessor clonedProcessor = cloned.getProcessors().iterator().next();
-        clonedProcessor.setPosition(new Position(999.0, 999.0));
+        final Set<FlowDifference> localDifferences = new HashSet<>();
+        localDifferences.add(new StandardFlowDifference(DifferenceType.POSITION_CHANGED, targetProcessor, localProcessor,
+                new Position(10.0, 20.0), new Position(100.0, 200.0), "Position changed on proc-a"));
 
-        assertEquals("original comments", original.getComments());
-        final VersionedProcessor originalProcessor = original.getProcessors().iterator().next();
-        assertEquals(10.0, originalProcessor.getPosition().getX());
-        assertEquals(20.0, originalProcessor.getPosition().getY());
+        final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetSnapshot);
+
+        // The engine mutates the provided target snapshot in place to build the merged snapshot
+        assertTrue(analysis.isRebaseAllowed());
+        assertSame(targetSnapshot, analysis.getMergedSnapshot());
+        final VersionedProcessor mergedProcessor = analysis.getMergedSnapshot().getProcessors().iterator().next();
+        assertEquals(100.0, mergedProcessor.getPosition().getX());
+        assertEquals(200.0, mergedProcessor.getPosition().getY());
     }
 
     @Test
-    public void testNestedComponentResolutionPositionChange() {
+    void testNestedComponentResolutionPositionChange() {
         final VersionedProcessor processor = createProcessor("nested-proc", "NestedProcessor");
         processor.setPosition(new Position(10.0, 20.0));
         final VersionedProcessor localProcessor = createProcessor("nested-proc", "NestedProcessor");
@@ -440,7 +445,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testSizeChangeCompatibility() {
+    void testSizeChangeCompatibility() {
         final VersionedLabel originalLabel = createLabel("label-a", 100.0, 50.0);
         final VersionedLabel localLabel = createLabel("label-a", 200.0, 100.0);
 
@@ -464,7 +469,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testBendpointsChangeCompatibility() {
+    void testBendpointsChangeCompatibility() {
         final VersionedConnection originalConn = createConnection("conn-a");
         originalConn.setBends(List.of(new Position(10.0, 10.0)));
 
@@ -494,7 +499,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testCommentsChangeCompatibility() {
+    void testCommentsChangeCompatibility() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
         processor.setComments("old comments");
         final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");
@@ -522,7 +527,7 @@ public class TestRebaseEngine {
     }
 
     @Test
-    public void testCommentsChangeConflict() {
+    void testCommentsChangeConflict() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
         processor.setComments("original");
         final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");

@@ -42,7 +42,7 @@ public class PropertyChangedRebaseHandler implements RebaseHandler {
                                                         final VersionedProcessGroup targetSnapshot) {
         final String propertyName = localDifference.getFieldName().orElse(null);
         if (propertyName == null) {
-            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "MISSING_FIELD_NAME",
+            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.MISSING_FIELD_NAME,
                     "Property change difference does not specify a field name");
         }
 
@@ -56,7 +56,7 @@ public class PropertyChangedRebaseHandler implements RebaseHandler {
                 if (Objects.equals(localDifference.getValueB(), upstreamDifference.getValueB())) {
                     return RebaseAnalysis.ClassifiedDifference.compatible(localDifference);
                 }
-                return RebaseAnalysis.ClassifiedDifference.conflicting(localDifference, "SAME_PROPERTY",
+                return RebaseAnalysis.ClassifiedDifference.conflicting(localDifference, RebaseConflictCode.SAME_PROPERTY,
                         "Both local and upstream flows modified property '%s' on component %s".formatted(propertyName, componentIdentifier));
             }
         }
@@ -64,17 +64,17 @@ public class PropertyChangedRebaseHandler implements RebaseHandler {
         if (localDifference.getValueA() == null) {
             final VersionedConfigurableComponent targetComponent = RebaseHandlerUtils.findConfigurableComponentById(targetSnapshot, componentIdentifier);
             if (targetComponent == null) {
-                return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "COMPONENT_NOT_FOUND",
+                return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.COMPONENT_NOT_FOUND,
                         "Component %s not found in target snapshot".formatted(componentIdentifier));
             }
             final Map<String, VersionedPropertyDescriptor> descriptors = targetComponent.getPropertyDescriptors();
             if (descriptors == null || !descriptors.containsKey(propertyName)) {
-                return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "DESCRIPTOR_CHANGED",
+                return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.DESCRIPTOR_CHANGED,
                         "Property descriptor '%s' no longer exists on component %s".formatted(propertyName, componentIdentifier));
             }
             final VersionedPropertyDescriptor descriptor = descriptors.get(propertyName);
             if (!descriptor.isSensitive()) {
-                return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "DESCRIPTOR_CHANGED",
+                return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.DESCRIPTOR_CHANGED,
                         "Property '%s' on component %s is no longer sensitive".formatted(propertyName, componentIdentifier));
             }
         }

@@ -217,6 +217,7 @@ import org.apache.nifi.registry.flow.diff.RebaseAnalysis;
 import org.apache.nifi.registry.flow.diff.RebaseEngine;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StandardRebaseEngine;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
@@ -6597,14 +6598,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new NiFiCoreException("Failed to retrieve flow from Flow Registry in order to perform rebase analysis due to " + e.getMessage(), e);
         }
 
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
 
-        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
 
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", currentRegistryGroup);
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
-        final FlowComparator localComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds,
+        final FlowComparator localComparator = new StandardFlowComparator(registryFlow, localFlow,
                 new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison localComparison = localComparator.compare();
 
@@ -6619,7 +6619,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Current Version", currentRegistryGroup);
         final ComparableDataFlow targetFlow = new StandardComparableDataFlow("Target Version", targetRegistryGroup);
-        final FlowComparator upstreamComparator = new StandardFlowComparator(currentFlow, targetFlow, ancestorServiceIds,
+        final FlowComparator upstreamComparator = new StandardFlowComparator(currentFlow, targetFlow,
                 new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison upstreamComparison = upstreamComparator.compare();
 
@@ -6640,7 +6640,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             descendantFailureReason = e.getMessage();
         }
 
-        final RebaseEngine rebaseEngine = new RebaseEngine();
+        final RebaseEngine rebaseEngine = new StandardRebaseEngine();
         final RebaseAnalysis analysis = rebaseEngine.analyze(localDifferences, upstreamDifferences, targetRegistryGroup);
 
         if (descendantHasLocalModifications) {
@@ -6690,6 +6690,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final VersionedProcessGroup currentRegistryGroup;
         final FlowSnapshotContainer targetSnapshotContainer;
+        final VersionedProcessGroup cleanTargetSnapshot;
         try {
             final FlowSnapshotContainer currentSnapshotContainer = flowRegistry.getFlowContents(
                     FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), currentVersionLocation, true);
@@ -6697,18 +6698,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             targetSnapshotContainer = flowRegistry.getFlowContents(
                     FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
+
+            // Retrieve a second, independent copy of the target version to retain as the clean snapshot for the Version
+            // Control Information. The snapshot passed to the RebaseEngine is mutated in place to build the merged
+            // snapshot, so a separate clean copy of the target version is required.
+            final FlowSnapshotContainer cleanTargetSnapshotContainer = flowRegistry.getFlowContents(
+                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
+            cleanTargetSnapshot = cleanTargetSnapshotContainer.getFlowSnapshot().getFlowContents();
         } catch (final IOException | FlowRegistryException e) {
             throw new NiFiCoreException("Failed to retrieve flow from Flow Registry for rebase due to " + e.getMessage(), e);
         }
 
         final VersionedProcessGroup targetRegistryGroup = targetSnapshotContainer.getFlowSnapshot().getFlowContents();
-        final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
-        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
 
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", currentRegistryGroup);
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
-        final FlowComparator localComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds,
+        final FlowComparator localComparator = new StandardFlowComparator(registryFlow, localFlow,
                 new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison localComparison = localComparator.compare();
 
@@ -6723,7 +6730,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Current Version", currentRegistryGroup);
         final ComparableDataFlow targetFlow = new StandardComparableDataFlow("Target Version", targetRegistryGroup);
-        final FlowComparator upstreamComparator = new StandardFlowComparator(currentFlow, targetFlow, ancestorServiceIds,
+        final FlowComparator upstreamComparator = new StandardFlowComparator(currentFlow, targetFlow,
                 new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison upstreamComparison = upstreamComparator.compare();
 
@@ -6735,7 +6742,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
 
-        final RebaseEngine rebaseEngine = new RebaseEngine();
+        final RebaseEngine rebaseEngine = new StandardRebaseEngine();
         final RebaseAnalysis analysis = rebaseEngine.analyze(localDifferences, upstreamDifferences, targetRegistryGroup);
 
         if (!analysis.isRebaseAllowed()) {
@@ -6746,7 +6753,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new IllegalStateException("The rebase analysis has changed since the analysis was performed. Please re-run the rebase analysis.");
         }
 
-        rebaseCleanSnapshots.put(processGroupId, targetRegistryGroup);
+        rebaseCleanSnapshots.put(processGroupId, cleanTargetSnapshot);
         targetSnapshotContainer.getFlowSnapshot().setFlowContents(analysis.getMergedSnapshot());
         return targetSnapshotContainer;
     }
@@ -6777,6 +6784,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .flowSnapshot(cleanSnapshot)
                 .build();
         processGroup.setVersionControlInformation(updatedVci, Collections.emptyMap());
+    }
+
+    @Override
+    public void clearRebaseSnapshot(final String processGroupId) {
+        rebaseCleanSnapshots.remove(processGroupId);
     }
 
     @Override

@@ -1090,9 +1090,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
-            description = "For a Process Group that is under Version Control, this will perform a rebase analysis by comparing "
-                    + "local modifications against upstream changes between the current version and the specified target version. "
-                    + "The analysis determines whether a rebase is allowed or if there are conflicts.",
+            description = """
+                    For a Process Group that is under Version Control, this will perform a rebase analysis by comparing \
+                    local modifications against upstream changes between the current version and the specified target version. \
+                    The analysis determines whether a rebase is allowed or if there are conflicts.""",
             security = {
                     @SecurityRequirement(name = "Read - /process-groups/{uuid}")
             }
@@ -1133,19 +1134,19 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
-            description = "For a Process Group that is already under Version Control, this will initiate the action of rebasing "
-                    + "the flow to a different version while preserving compatible local changes. This can be a lengthy "
-                    + "process, as it will stop any Processors and disable any Controller Services necessary to perform the action and then restart them. As a result, "
-                    + "the endpoint will immediately return a VersionedFlowUpdateRequestEntity, and the process of rebasing the flow will occur "
-                    + "asynchronously in the background. The client may then periodically poll the status of the request by issuing a GET request to "
-                    + "/versions/rebase-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to "
-                    + "/versions/rebase-requests/{requestId}. " + NON_GUARANTEED_ENDPOINT,
+            description = """
+                    For a Process Group that is already under Version Control, this will initiate the action of rebasing \
+                    the flow to a different version while preserving compatible local changes. This can be a lengthy \
+                    process, as it will stop any Processors and disable any Controller Services necessary to perform the action and then restart them. As a result, \
+                    the endpoint will immediately return a VersionedFlowUpdateRequestEntity, and the process of rebasing the flow will occur \
+                    asynchronously in the background. The client may then periodically poll the status of the request by issuing a GET request to \
+                    /versions/rebase-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to \
+                    /versions/rebase-requests/{requestId}.\s""" + NON_GUARANTEED_ENDPOINT,
             security = {
                     @SecurityRequirement(name = "Read - /process-groups/{uuid}"),
                     @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
                     @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                     @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                    @SecurityRequirement(name = "Write - if the template contains any restricted components - /restricted-components"),
                     @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
@@ -1495,10 +1496,16 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         versionControlInfo.setVersion(metadata.getVersion());
         versionControlInfo.setState(flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE.name() : VersionedFlowState.STALE.name());
 
-        final ProcessGroupEntity result = serviceFacade.updateProcessGroupContents(revision, groupId, versionControlInfo, flowSnapshot, idGenerationSeed,
-                verifyNotModified, false, updateDescendantVersionedFlows);
+        final ProcessGroupEntity result;
+        try {
+            result = serviceFacade.updateProcessGroupContents(revision, groupId, versionControlInfo, flowSnapshot, idGenerationSeed,
+                    verifyNotModified, false, updateDescendantVersionedFlows);
 
-        serviceFacade.resetVersionControlSnapshotAfterRebase(groupId);
+            serviceFacade.resetVersionControlSnapshotAfterRebase(groupId);
+        } finally {
+            // Ensure any retained clean rebase snapshot is released even if the update fails
+            serviceFacade.clearRebaseSnapshot(groupId);
+        }
 
         return result;
     }

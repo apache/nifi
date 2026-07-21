@@ -1793,6 +1793,14 @@ public interface NiFiServiceFacade {
     void resetVersionControlSnapshotAfterRebase(String processGroupId);
 
     /**
+     * Removes any retained clean target snapshot for the given process group without modifying the Version Control
+     * Information. This is invoked to guarantee the retained snapshot is released even when a rebase update fails.
+     *
+     * @param processGroupId the process group ID
+     */
+    void clearRebaseSnapshot(String processGroupId);
+
+    /**
      * Determines whether the process group with the given id or any of its descendants are under version control.
      *
      * @param groupId the ID of the Process Group

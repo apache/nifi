@@ -42,7 +42,7 @@ public class PropertyAddedRebaseHandler implements RebaseHandler {
                                                         final VersionedProcessGroup targetSnapshot) {
         final String propertyName = localDifference.getFieldName().orElse(null);
         if (propertyName == null) {
-            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "MISSING_FIELD_NAME",
+            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.MISSING_FIELD_NAME,
                     "Property added difference does not specify a field name");
         }
 
@@ -57,20 +57,20 @@ public class PropertyAddedRebaseHandler implements RebaseHandler {
                 if (Objects.equals(localDifference.getValueB(), upstreamDifference.getValueB())) {
                     return RebaseAnalysis.ClassifiedDifference.compatible(localDifference);
                 }
-                return RebaseAnalysis.ClassifiedDifference.conflicting(localDifference, "SAME_PROPERTY",
+                return RebaseAnalysis.ClassifiedDifference.conflicting(localDifference, RebaseConflictCode.SAME_PROPERTY,
                         "Both local and upstream flows set property '%s' on component %s".formatted(propertyName, componentIdentifier));
             }
         }
 
         final VersionedConfigurableComponent targetComponent = RebaseHandlerUtils.findConfigurableComponentById(targetSnapshot, componentIdentifier);
         if (targetComponent == null) {
-            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "COMPONENT_NOT_FOUND",
+            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.COMPONENT_NOT_FOUND,
                     "Component %s not found in target snapshot".formatted(componentIdentifier));
         }
 
         final Map<String, VersionedPropertyDescriptor> descriptors = targetComponent.getPropertyDescriptors();
         if (descriptors == null || !descriptors.containsKey(propertyName)) {
-            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, "DESCRIPTOR_NOT_FOUND",
+            return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.DESCRIPTOR_NOT_FOUND,
                     "Property descriptor '%s' does not exist on component %s in target version".formatted(propertyName, componentIdentifier));
         }
 

@@ -63,11 +63,11 @@ public class RebaseAnalysis {
     public static class ClassifiedDifference {
         private final FlowDifference difference;
         private final RebaseClassification classification;
-        private final String conflictCode;
+        private final RebaseConflictCode conflictCode;
         private final String conflictDetail;
 
         public ClassifiedDifference(final FlowDifference difference, final RebaseClassification classification,
-                                    final String conflictCode, final String conflictDetail) {
+                                    final RebaseConflictCode conflictCode, final String conflictDetail) {
             this.difference = Objects.requireNonNull(difference, "Difference is required");
             this.classification = Objects.requireNonNull(classification, "Classification is required");
             this.conflictCode = conflictCode;
@@ -78,11 +78,11 @@ public class RebaseAnalysis {
             return new ClassifiedDifference(difference, RebaseClassification.COMPATIBLE, null, null);
         }
 
-        public static ClassifiedDifference conflicting(final FlowDifference difference, final String conflictCode, final String conflictDetail) {
+        public static ClassifiedDifference conflicting(final FlowDifference difference, final RebaseConflictCode conflictCode, final String conflictDetail) {
             return new ClassifiedDifference(difference, RebaseClassification.CONFLICTING, conflictCode, conflictDetail);
         }
 
-        public static ClassifiedDifference unsupported(final FlowDifference difference, final String conflictCode, final String conflictDetail) {
+        public static ClassifiedDifference unsupported(final FlowDifference difference, final RebaseConflictCode conflictCode, final String conflictDetail) {
             return new ClassifiedDifference(difference, RebaseClassification.UNSUPPORTED, conflictCode, conflictDetail);
         }
 
@@ -94,7 +94,7 @@ public class RebaseAnalysis {
             return classification;
         }
 
-        public String getConflictCode() {
+        public RebaseConflictCode getConflictCode() {
             return conflictCode;
         }
 
