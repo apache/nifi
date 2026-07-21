@@ -31,10 +31,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ReplayLastEventEndpointMergerTest {
+class ReplayLastEventEndpointMergerTest {
+
+    private static final NodeIdentifier NODE_1 = new NodeIdentifier("node1", "host1", 8080, "host1", 8081, "host1", 8082, 8083, false);
+    private static final NodeIdentifier NODE_2 = new NodeIdentifier("node2", "host2", 8080, "host2", 8081, "host2", 8082, 8083, false);
+
+    private static final long EVENT_ID_1 = 7L;
+    private static final long EVENT_ID_2 = 5L;
 
     @Test
-    public void testCanHandle() {
+    void testCanHandle() {
         final ReplayLastEventEndpointMerger merger = new ReplayLastEventEndpointMerger();
         assertTrue(merger.canHandle(URI.create("/nifi-api/provenance-events/latest/replays"), "POST"));
         assertFalse(merger.canHandle(URI.create("/nifi-api/provenance-events/latest/replays"), "GET"));
@@ -48,18 +54,15 @@ public class ReplayLastEventEndpointMergerTest {
      * Provenance event IDs are local counters per node, so ID collisions across nodes are normal.
      */
     @Test
-    public void testMergeResponsesWithIdenticalEventIds() {
+    void testMergeResponsesWithIdenticalEventIds() {
         final ReplayLastEventEndpointMerger merger = new ReplayLastEventEndpointMerger();
 
-        final ReplayLastEventResponseEntity clientEntity = createEntity(7L, null, true);
+        final ReplayLastEventResponseEntity clientEntity = createEntity(EVENT_ID_1, null, true);
 
-        final NodeIdentifier node1 = new NodeIdentifier("node1", "host1", 8080, "host1", 8081, "host1", 8082, 8083, false);
-        final NodeIdentifier node2 = new NodeIdentifier("node2", "host2", 8080, "host2", 8081, "host2", 8082, 8083, false);
-
-        // Both nodes replay their last event; both happen to report local event ID 7
+        // Both nodes replay their last event; both happen to report the same local event ID
         final Map<NodeIdentifier, ReplayLastEventResponseEntity> entityMap = new HashMap<>();
-        entityMap.put(node1, createEntity(7L, null, true));
-        entityMap.put(node2, createEntity(7L, null, true));
+        entityMap.put(NODE_1, createEntity(EVENT_ID_1, null, true));
+        entityMap.put(NODE_2, createEntity(EVENT_ID_1, null, true));
 
         merger.mergeResponses(clientEntity, entityMap, Collections.emptySet(), Collections.emptySet());
 
@@ -71,17 +74,14 @@ public class ReplayLastEventEndpointMergerTest {
     }
 
     @Test
-    public void testMergeResponsesWithDistinctEventIds() {
+    void testMergeResponsesWithDistinctEventIds() {
         final ReplayLastEventEndpointMerger merger = new ReplayLastEventEndpointMerger();
 
-        final ReplayLastEventResponseEntity clientEntity = createEntity(3L, null, true);
-
-        final NodeIdentifier node1 = new NodeIdentifier("node1", "host1", 8080, "host1", 8081, "host1", 8082, 8083, false);
-        final NodeIdentifier node2 = new NodeIdentifier("node2", "host2", 8080, "host2", 8081, "host2", 8082, 8083, false);
+        final ReplayLastEventResponseEntity clientEntity = createEntity(EVENT_ID_1, null, true);
 
         final Map<NodeIdentifier, ReplayLastEventResponseEntity> entityMap = new HashMap<>();
-        entityMap.put(node1, createEntity(3L, null, true));
-        entityMap.put(node2, createEntity(5L, null, true));
+        entityMap.put(NODE_1, createEntity(EVENT_ID_1, null, true));
+        entityMap.put(NODE_2, createEntity(EVENT_ID_2, null, true));
 
         merger.mergeResponses(clientEntity, entityMap, Collections.emptySet(), Collections.emptySet());
 
@@ -91,17 +91,14 @@ public class ReplayLastEventEndpointMergerTest {
     }
 
     @Test
-    public void testMergeResponsesWithFailure() {
+    void testMergeResponsesWithFailure() {
         final ReplayLastEventEndpointMerger merger = new ReplayLastEventEndpointMerger();
 
-        final ReplayLastEventResponseEntity clientEntity = createEntity(1L, null, true);
-
-        final NodeIdentifier node1 = new NodeIdentifier("node1", "host1", 8080, "host1", 8081, "host1", 8082, 8083, false);
-        final NodeIdentifier node2 = new NodeIdentifier("node2", "host2", 8080, "host2", 8081, "host2", 8082, 8083, false);
+        final ReplayLastEventResponseEntity clientEntity = createEntity(EVENT_ID_1, null, true);
 
         final Map<NodeIdentifier, ReplayLastEventResponseEntity> entityMap = new HashMap<>();
-        entityMap.put(node1, createEntity(1L, null, true));
-        entityMap.put(node2, createEntity(null, "Source FlowFile Queue", false));
+        entityMap.put(NODE_1, createEntity(EVENT_ID_1, null, true));
+        entityMap.put(NODE_2, createEntity(null, "Source FlowFile Queue", false));
 
         merger.mergeResponses(clientEntity, entityMap, Collections.emptySet(), Collections.emptySet());
 
