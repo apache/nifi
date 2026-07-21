@@ -554,6 +554,61 @@ class RebaseEngineTest {
         assertNull(analysis.getMergedSnapshot());
     }
 
+    @Test
+    void testUpstreamRemovedComponentIsUnsupported() {
+        final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
+        processor.setPosition(new Position(10.0, 20.0));
+        final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");
+        localProcessor.setPosition(new Position(100.0, 200.0));
+
+        final Set<FlowDifference> localDifferences = new HashSet<>();
+        localDifferences.add(new StandardFlowDifference(DifferenceType.POSITION_CHANGED, processor, localProcessor,
+                new Position(10.0, 20.0), new Position(100.0, 200.0), "Position changed locally"));
+
+        // Upstream removed the same component in the target version
+        final Set<FlowDifference> upstreamDifferences = new HashSet<>();
+        upstreamDifferences.add(new StandardFlowDifference(DifferenceType.COMPONENT_REMOVED, processor, null,
+                null, null, "Component removed upstream"));
+
+        // Target no longer contains the component
+        final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
+        targetSnapshot.setIdentifier("root");
+
+        final RebaseAnalysis analysis = engine.analyze(localDifferences, upstreamDifferences, targetSnapshot);
+
+        assertFalse(analysis.isRebaseAllowed());
+        assertNull(analysis.getMergedSnapshot());
+        assertEquals(1, analysis.getClassifiedLocalChanges().size());
+        final RebaseAnalysis.ClassifiedDifference classified = analysis.getClassifiedLocalChanges().get(0);
+        assertEquals(RebaseClassification.UNSUPPORTED, classified.getClassification());
+        assertEquals(RebaseConflictCode.COMPONENT_NOT_FOUND, classified.getConflictCode());
+    }
+
+    @Test
+    void testClassifyDoesNotBuildMergedSnapshotOrMutateTarget() {
+        final VersionedProcessor targetProcessor = createProcessor("proc-a", "ProcessorA");
+        targetProcessor.setPosition(new Position(10.0, 20.0));
+        final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
+        targetSnapshot.setIdentifier("root");
+        targetSnapshot.getProcessors().add(targetProcessor);
+
+        final VersionedProcessor localProcessor = createProcessor("proc-a", "ProcessorA");
+        localProcessor.setPosition(new Position(100.0, 200.0));
+
+        final Set<FlowDifference> localDifferences = new HashSet<>();
+        localDifferences.add(new StandardFlowDifference(DifferenceType.POSITION_CHANGED, targetProcessor, localProcessor,
+                new Position(10.0, 20.0), new Position(100.0, 200.0), "Position changed locally"));
+
+        final RebaseAnalysis analysis = engine.classify(localDifferences, Collections.emptySet(), targetSnapshot);
+
+        // classify() reports the classification but never builds a merged snapshot or mutates the target
+        assertTrue(analysis.isRebaseAllowed());
+        assertNull(analysis.getMergedSnapshot());
+        final VersionedProcessor unchanged = targetSnapshot.getProcessors().iterator().next();
+        assertEquals(10.0, unchanged.getPosition().getX());
+        assertEquals(20.0, unchanged.getPosition().getY());
+    }
+
     private VersionedProcessor createProcessor(final String identifier, final String name) {
         final VersionedProcessor processor = new VersionedProcessor();
         processor.setIdentifier(identifier);

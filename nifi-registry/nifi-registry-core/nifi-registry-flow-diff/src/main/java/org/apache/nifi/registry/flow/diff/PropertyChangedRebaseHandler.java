@@ -49,10 +49,15 @@ public class PropertyChangedRebaseHandler implements RebaseHandler {
         final String componentIdentifier = localDifference.getComponentB().getIdentifier();
 
         for (final FlowDifference upstreamDifference : upstreamDifferences) {
-            if (upstreamDifference.getDifferenceType() == DifferenceType.PROPERTY_CHANGED
+            if ((upstreamDifference.getDifferenceType() == DifferenceType.PROPERTY_CHANGED || upstreamDifference.getDifferenceType() == DifferenceType.PROPERTY_REMOVED)
+                    && upstreamDifference.getComponentA() != null
                     && componentIdentifier.equals(upstreamDifference.getComponentA().getIdentifier())
                     && upstreamDifference.getFieldName().isPresent()
                     && propertyName.equals(upstreamDifference.getFieldName().get())) {
+                if (upstreamDifference.getDifferenceType() == DifferenceType.PROPERTY_REMOVED) {
+                    return RebaseAnalysis.ClassifiedDifference.conflicting(localDifference, RebaseConflictCode.SAME_PROPERTY,
+                            "Local flow modified property '%s' on component %s, but the target version removed the property".formatted(propertyName, componentIdentifier));
+                }
                 if (Objects.equals(localDifference.getValueB(), upstreamDifference.getValueB())) {
                     return RebaseAnalysis.ClassifiedDifference.compatible(localDifference);
                 }

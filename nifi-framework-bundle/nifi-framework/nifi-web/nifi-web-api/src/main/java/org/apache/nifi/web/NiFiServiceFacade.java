@@ -1784,21 +1784,15 @@ public interface NiFiServiceFacade {
     FlowSnapshotContainer getRebasedFlowSnapshot(String processGroupId, String targetVersion, String expectedAnalysisFingerprint);
 
     /**
-     * Resets the Version Control Information snapshot for a process group after a rebase operation.
-     * After rebase, the VCI snapshot must reference the clean target version (not the merged snapshot)
-     * so that subsequent local modification checks correctly detect the preserved local changes.
+     * Resets the Version Control Information snapshot for a process group to the clean target version after a rebase.
+     * The rebase synchronizes the flow to the merged snapshot (target version plus preserved local changes); this
+     * re-fetches the clean target version from the Flow Registry and stores it as the VCI snapshot so that subsequent
+     * local modification checks correctly detect the preserved local changes. It relies only on the process group's own
+     * Version Control Information, so it can be invoked on every node that applies the rebase.
      *
      * @param processGroupId the process group ID
      */
-    void resetVersionControlSnapshotAfterRebase(String processGroupId);
-
-    /**
-     * Removes any retained clean target snapshot for the given process group without modifying the Version Control
-     * Information. This is invoked to guarantee the retained snapshot is released even when a rebase update fails.
-     *
-     * @param processGroupId the process group ID
-     */
-    void clearRebaseSnapshot(String processGroupId);
+    void resetVersionControlSnapshotToCleanTarget(String processGroupId);
 
     /**
      * Determines whether the process group with the given id or any of its descendants are under version control.

@@ -28,7 +28,20 @@ import java.util.Set;
 public interface RebaseEngine {
 
     /**
-     * Analyze the local changes against the upstream changes for a rebase onto the given target version.
+     * Classify the local changes against the upstream changes for a rebase onto the given target version, without
+     * modifying the target snapshot. Use this for read-only analysis; the returned analysis has a {@code null} merged
+     * snapshot.
+     *
+     * @param localDifferences    the differences between the current version and the local flow
+     * @param upstreamDifferences the differences between the current version and the target version
+     * @param targetSnapshot      the target version snapshot; it is only read, never modified
+     * @return the rebase analysis with classified local changes and fingerprint, and a {@code null} merged snapshot
+     */
+    RebaseAnalysis classify(Set<FlowDifference> localDifferences, Set<FlowDifference> upstreamDifferences, VersionedProcessGroup targetSnapshot);
+
+    /**
+     * Analyze the local changes against the upstream changes for a rebase onto the given target version and, when the
+     * rebase is allowed, build the merged snapshot.
      *
      * @param localDifferences    the differences between the current version and the local flow
      * @param upstreamDifferences the differences between the current version and the target version

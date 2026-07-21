@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.RebaseChangeDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -333,6 +334,66 @@ public class RebaseVersionIT extends NiFiSystemIT {
         assertEquals("99 B", properties.get("File Size"));
         assertEquals("5", properties.get("Batch Size"));
         assertEquals("30", properties.get("Max FlowFiles"));
+    }
+
+    @Test
+    public void testRejectedRebaseWhenTargetRemovesLocallyModifiedComponent() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity originalGroup = util.createProcessGroup("Original", "root");
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", originalGroup.getId());
+
+        final VersionControlInformationEntity vci = util.startVersionControl(originalGroup, clientEntity, TEST_FLOWS_BUCKET, "RemovedComponentFlow");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        // Version 2 removes the processor that exists in version 1
+        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+        final ProcessorEntity secondGroupProcessor = findSingleProcessor(secondGroup.getId());
+        getNifiClient().getProcessorClient().deleteProcessor(secondGroupProcessor);
+        util.saveFlowVersion(secondGroup, clientEntity, getVersionControlInformation(secondGroup.getId()));
+
+        // Locally modify the processor that the target version removed
+        util.updateProcessorProperties(generate, Map.of("File Size", "99 B"));
+
+        final RebaseAnalysisEntity analysis = util.getRebaseAnalysis(originalGroup.getId(), "2");
+        assertFalse(analysis.getRebaseAllowed(), "Rebase should be blocked because the target version removed the locally modified component");
+
+        final boolean removedComponentRejected = analysis.getLocalChanges().stream()
+                .anyMatch(change -> "UNSUPPORTED".equals(change.getClassification()) && "COMPONENT_NOT_FOUND".equals(change.getConflictCode()));
+        assertTrue(removedComponentRejected, "Expected an UNSUPPORTED change with conflict code COMPONENT_NOT_FOUND. Local changes: "
+                + describeLocalChanges(analysis));
+    }
+
+    @Test
+    public void testRebasePreservesLocalModificationsAgainstTargetVersion() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity originalGroup = util.createProcessGroup("Original", "root");
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", originalGroup.getId());
+
+        final VersionControlInformationEntity vci = util.startVersionControl(originalGroup, clientEntity, TEST_FLOWS_BUCKET, "PreserveLocalModsFlow");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+        final ProcessorEntity secondGroupProcessor = findSingleProcessor(secondGroup.getId());
+        util.updateProcessorProperties(secondGroupProcessor, Map.of("Batch Size", "5"));
+        util.saveFlowVersion(secondGroup, clientEntity, getVersionControlInformation(secondGroup.getId()));
+
+        util.updateProcessorProperties(generate, Map.of("File Size", "99 B"));
+
+        util.rebaseFlowVersion(originalGroup.getId(), "2");
+
+        final VersionControlInformationDTO updatedVci = getVersionControlInfo(originalGroup.getId());
+        assertEquals("2", updatedVci.getVersion());
+
+        // The Version Control Information snapshot must be the clean target version (not the merged snapshot). If it were
+        // the merged snapshot, the preserved local change would not be reported as a local modification. This is the key
+        // assertion for the cluster-safe reset: every node must reset its VCI to the clean target.
+        final FlowComparisonEntity localModifications = getNifiClient().getProcessGroupClient().getLocalModifications(originalGroup.getId());
+        assertFalse(localModifications.getComponentDifferences().isEmpty(),
+                "Expected the preserved local change to be reported as a local modification after rebase, but none were found");
     }
 
     private String describeLocalChanges(final RebaseAnalysisEntity analysis) {

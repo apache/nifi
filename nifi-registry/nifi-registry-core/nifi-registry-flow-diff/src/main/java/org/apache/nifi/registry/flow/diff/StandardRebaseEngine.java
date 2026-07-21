@@ -56,26 +56,19 @@ public class StandardRebaseEngine implements RebaseEngine {
     }
 
     @Override
+    public RebaseAnalysis classify(final Set<FlowDifference> localDifferences, final Set<FlowDifference> upstreamDifferences,
+                                   final VersionedProcessGroup targetSnapshot) {
+        final List<RebaseAnalysis.ClassifiedDifference> classifiedChanges = classifyChanges(localDifferences, upstreamDifferences, targetSnapshot);
+        final boolean allCompatible = isAllCompatible(classifiedChanges);
+        final String fingerprint = computeAnalysisFingerprint(classifiedChanges, upstreamDifferences);
+        return new RebaseAnalysis(classifiedChanges, upstreamDifferences, allCompatible, fingerprint, null);
+    }
+
+    @Override
     public RebaseAnalysis analyze(final Set<FlowDifference> localDifferences, final Set<FlowDifference> upstreamDifferences,
                                   final VersionedProcessGroup targetSnapshot) {
-        final List<RebaseAnalysis.ClassifiedDifference> classifiedChanges = new ArrayList<>();
-        boolean allCompatible = true;
-
-        for (final FlowDifference localDifference : localDifferences) {
-            final RebaseHandler handler = handlerRegistry.get(localDifference.getDifferenceType());
-            if (handler == null) {
-                classifiedChanges.add(RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.NO_HANDLER,
-                        "No rebase handler registered for difference type: " + localDifference.getDifferenceType().getDescription()));
-                allCompatible = false;
-                continue;
-            }
-
-            final RebaseAnalysis.ClassifiedDifference classified = handler.classify(localDifference, upstreamDifferences, targetSnapshot);
-            classifiedChanges.add(classified);
-            if (classified.getClassification() != RebaseClassification.COMPATIBLE) {
-                allCompatible = false;
-            }
-        }
+        final List<RebaseAnalysis.ClassifiedDifference> classifiedChanges = classifyChanges(localDifferences, upstreamDifferences, targetSnapshot);
+        final boolean allCompatible = isAllCompatible(classifiedChanges);
 
         VersionedProcessGroup mergedSnapshot = null;
         if (allCompatible) {
@@ -90,6 +83,49 @@ public class StandardRebaseEngine implements RebaseEngine {
 
         final String fingerprint = computeAnalysisFingerprint(classifiedChanges, upstreamDifferences);
         return new RebaseAnalysis(classifiedChanges, upstreamDifferences, allCompatible, fingerprint, mergedSnapshot);
+    }
+
+    private List<RebaseAnalysis.ClassifiedDifference> classifyChanges(final Set<FlowDifference> localDifferences,
+                                                                      final Set<FlowDifference> upstreamDifferences,
+                                                                      final VersionedProcessGroup targetSnapshot) {
+        final List<RebaseAnalysis.ClassifiedDifference> classifiedChanges = new ArrayList<>();
+
+        for (final FlowDifference localDifference : localDifferences) {
+            final RebaseHandler handler = handlerRegistry.get(localDifference.getDifferenceType());
+            if (handler == null) {
+                classifiedChanges.add(RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.NO_HANDLER,
+                        "No rebase handler registered for difference type: " + localDifference.getDifferenceType().getDescription()));
+                continue;
+            }
+
+            // A local change to a component the target version removed cannot be preserved; the merged snapshot would
+            // not contain the component and the change would be silently dropped. Reject it up front.
+            final String componentIdentifier = resolveComponentIdentifier(localDifference);
+            if (isRemovedInTarget(componentIdentifier, upstreamDifferences)) {
+                classifiedChanges.add(RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.COMPONENT_NOT_FOUND,
+                        "Component %s was removed in the target version".formatted(componentIdentifier)));
+                continue;
+            }
+
+            classifiedChanges.add(handler.classify(localDifference, upstreamDifferences, targetSnapshot));
+        }
+
+        return classifiedChanges;
+    }
+
+    private static boolean isAllCompatible(final List<RebaseAnalysis.ClassifiedDifference> classifiedChanges) {
+        return classifiedChanges.stream().allMatch(classified -> classified.getClassification() == RebaseClassification.COMPATIBLE);
+    }
+
+    private static boolean isRemovedInTarget(final String componentIdentifier, final Set<FlowDifference> upstreamDifferences) {
+        for (final FlowDifference upstreamDifference : upstreamDifferences) {
+            if (upstreamDifference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED
+                    && upstreamDifference.getComponentA() != null
+                    && componentIdentifier.equals(upstreamDifference.getComponentA().getIdentifier())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String computeConflictKey(final FlowDifference difference) {

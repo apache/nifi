@@ -483,7 +483,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -499,8 +498,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
     private static final int VALIDATION_WAIT_MILLIS = 50;
     private static final String ROOT_PROCESS_GROUP = "RootProcessGroup";
-
-    private final Map<String, VersionedProcessGroup> rebaseCleanSnapshots = new ConcurrentHashMap<>();
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -6641,7 +6638,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final RebaseEngine rebaseEngine = new StandardRebaseEngine();
-        final RebaseAnalysis analysis = rebaseEngine.analyze(localDifferences, upstreamDifferences, targetRegistryGroup);
+        final RebaseAnalysis analysis = rebaseEngine.classify(localDifferences, upstreamDifferences, targetRegistryGroup);
 
         if (descendantHasLocalModifications) {
             final RebaseAnalysis blockedAnalysis = new RebaseAnalysis(analysis.getClassifiedLocalChanges(), upstreamDifferences,
@@ -6690,7 +6687,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final VersionedProcessGroup currentRegistryGroup;
         final FlowSnapshotContainer targetSnapshotContainer;
-        final VersionedProcessGroup cleanTargetSnapshot;
         try {
             final FlowSnapshotContainer currentSnapshotContainer = flowRegistry.getFlowContents(
                     FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), currentVersionLocation, true);
@@ -6698,13 +6694,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             targetSnapshotContainer = flowRegistry.getFlowContents(
                     FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
-
-            // Retrieve a second, independent copy of the target version to retain as the clean snapshot for the Version
-            // Control Information. The snapshot passed to the RebaseEngine is mutated in place to build the merged
-            // snapshot, so a separate clean copy of the target version is required.
-            final FlowSnapshotContainer cleanTargetSnapshotContainer = flowRegistry.getFlowContents(
-                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
-            cleanTargetSnapshot = cleanTargetSnapshotContainer.getFlowSnapshot().getFlowContents();
         } catch (final IOException | FlowRegistryException e) {
             throw new NiFiCoreException("Failed to retrieve flow from Flow Registry for rebase due to " + e.getMessage(), e);
         }
@@ -6753,22 +6742,44 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new IllegalStateException("The rebase analysis has changed since the analysis was performed. Please re-run the rebase analysis.");
         }
 
-        rebaseCleanSnapshots.put(processGroupId, cleanTargetSnapshot);
+        // The merged snapshot is what gets synchronized to the flow. The Version Control Information is later reset to
+        // the clean target version (on every node, via resetVersionControlSnapshotToCleanTarget) so that the preserved
+        // local changes are still detected as local modifications.
         targetSnapshotContainer.getFlowSnapshot().setFlowContents(analysis.getMergedSnapshot());
         return targetSnapshotContainer;
     }
 
     @Override
-    public void resetVersionControlSnapshotAfterRebase(final String processGroupId) {
-        final VersionedProcessGroup cleanSnapshot = rebaseCleanSnapshots.remove(processGroupId);
-        if (cleanSnapshot == null) {
-            return;
-        }
+    public void resetVersionControlSnapshotToCleanTarget(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
         final VersionControlInformation existingVci = processGroup.getVersionControlInformation();
         if (existingVci == null) {
             return;
         }
+
+        // After a rebase the flow was synchronized to the merged snapshot, so the VCI currently references the merged
+        // snapshot. Re-fetch the clean target version from the Flow Registry (using the coordinates now stored in the
+        // VCI) and store that as the VCI snapshot, so subsequent modification checks report the preserved local changes
+        // as local modifications. This runs on every node that applies the rebase, avoiding any cross-node shared state.
+        final FlowRegistryClientNode flowRegistry = flowRegistryDAO.getFlowRegistryClient(existingVci.getRegistryIdentifier());
+        if (flowRegistry == null) {
+            throw new IllegalStateException("Process Group with ID %s is tracking to a flow in Flow Registry with ID %s but cannot find a Flow Registry with that identifier"
+                    .formatted(processGroupId, existingVci.getRegistryIdentifier()));
+        }
+
+        final FlowVersionLocation targetVersionLocation = new FlowVersionLocation(existingVci.getBranch(), existingVci.getBucketIdentifier(),
+                existingVci.getFlowIdentifier(), existingVci.getVersion());
+
+        final VersionedProcessGroup cleanTargetSnapshot;
+        try {
+            final FlowSnapshotContainer cleanTargetContainer = flowRegistry.getFlowContents(
+                    FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), targetVersionLocation, true);
+            cleanTargetSnapshot = cleanTargetContainer.getFlowSnapshot().getFlowContents();
+        } catch (final IOException | FlowRegistryException e) {
+            throw new NiFiCoreException("Failed to retrieve the target version from the Flow Registry to reset the Version Control snapshot after rebase due to "
+                    + e.getMessage(), e);
+        }
+
         final StandardVersionControlInformation updatedVci = new StandardVersionControlInformation.Builder()
                 .registryId(existingVci.getRegistryIdentifier())
                 .registryName(existingVci.getRegistryName())
@@ -6781,14 +6792,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .storageLocation(existingVci.getStorageLocation())
                 .version(existingVci.getVersion())
                 .status(existingVci.getStatus())
-                .flowSnapshot(cleanSnapshot)
+                .flowSnapshot(cleanTargetSnapshot)
                 .build();
         processGroup.setVersionControlInformation(updatedVci, Collections.emptyMap());
-    }
-
-    @Override
-    public void clearRebaseSnapshot(final String processGroupId) {
-        rebaseCleanSnapshots.remove(processGroupId);
     }
 
     @Override

@@ -39,6 +39,7 @@ public class CommentsChangedRebaseHandler implements RebaseHandler {
         final String componentIdentifier = localDifference.getComponentB().getIdentifier();
         for (final FlowDifference upstreamDifference : upstreamDifferences) {
             if (upstreamDifference.getDifferenceType() == DifferenceType.COMMENTS_CHANGED
+                    && upstreamDifference.getComponentA() != null
                     && componentIdentifier.equals(upstreamDifference.getComponentA().getIdentifier())) {
                 return RebaseAnalysis.ClassifiedDifference.conflicting(localDifference, RebaseConflictCode.SAME_COMPONENT_COMMENTS,
                         "Both local and upstream flows modified comments on component " + componentIdentifier);

@@ -113,6 +113,27 @@ class PropertyChangedRebaseHandlerTest {
     }
 
     @Test
+    void testPropertyRemovedUpstream() {
+        final VersionedProcessor processor = createProcessorWithProperty(PROC_A, PROP_X, OLD_VALUE);
+        final VersionedProcessor localProcessor = createProcessorWithProperty(PROC_A, PROP_X, NEW_VALUE);
+
+        final FlowDifference localDifference = new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, processor, localProcessor, PROP_X,
+                OLD_VALUE, NEW_VALUE, "Property propX changed locally");
+
+        final Set<FlowDifference> upstreamDifferences = new HashSet<>();
+        upstreamDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_REMOVED, processor, processor, PROP_X,
+                OLD_VALUE, null, "Property propX removed upstream"));
+
+        final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
+        targetSnapshot.setIdentifier(ROOT);
+
+        final RebaseAnalysis.ClassifiedDifference result = handler.classify(localDifference, upstreamDifferences, targetSnapshot);
+
+        assertEquals(RebaseClassification.CONFLICTING, result.getClassification());
+        assertEquals(RebaseConflictCode.SAME_PROPERTY, result.getConflictCode());
+    }
+
+    @Test
     void testSamePropertyOnDifferentComponent() {
         final VersionedProcessor processorA = createProcessorWithProperty(PROC_A, PROP_X, OLD_VALUE);
         final VersionedProcessor localProcessorA = createProcessorWithProperty(PROC_A, PROP_X, NEW_VALUE);
