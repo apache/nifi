@@ -61,7 +61,7 @@ import org.apache.nifi.parameter.ParameterProviderInitializationContext;
 import org.apache.nifi.parameter.StandardParameterProviderInitializationContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -167,7 +167,7 @@ public class ComponentBuilder {
 
     private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         try {
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.getDeclaredConstructor().newInstance(), new StandardLoggingContext());
+            final ComponentLog componentLog = new StandardComponentLog(identifier, InMemoryFlowRegistry.class.getDeclaredConstructor().newInstance(), new StandardLoggingContext());
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
             final InMemoryFlowRegistry registryClient = new InMemoryFlowRegistry();
             final LoggableComponent<FlowRegistryClient> nodeComponent = new LoggableComponent<>(registryClient, bundleCoordinate, terminationAwareLogger);
@@ -288,7 +288,7 @@ public class ComponentBuilder {
 
             logger.info("Created Controller Service of type {} with identifier {}", type, identifier);
             final StandardLoggingContext loggingContext = new StandardLoggingContext();
-            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, loggingContext);
+            final ComponentLog serviceLogger = new StandardComponentLog(identifier, serviceImpl, loggingContext);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier, rawClass);
@@ -356,7 +356,7 @@ public class ComponentBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Object extensionInstance = rawClass.getDeclaredConstructor().newInstance();
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, loggingContext);
+            final ComponentLog componentLog = new StandardComponentLog(identifier, extensionInstance, loggingContext);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final T cast = nodeType.cast(extensionInstance);

@@ -88,7 +88,7 @@ import org.apache.nifi.parameter.StandardParameterProviderInitializationContext;
 import org.apache.nifi.processor.GhostProcessor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.python.PythonBridge;
@@ -524,7 +524,7 @@ public class ExtensionBuilder {
 
         final String componentType = connector.getClass().getSimpleName();
         final StandardLoggingContext loggingContext = new StandardLoggingContext();
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, loggingContext);
+        final ComponentLog componentLog = new StandardComponentLog(identifier, connector, loggingContext);
         final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
 
         final StandardConnectorNode connectorNode = new StandardConnectorNode(
@@ -575,7 +575,7 @@ public class ExtensionBuilder {
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
         final StandardLoggingContext loggingContext = new StandardLoggingContext();
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, loggingContext);
+        final ComponentLog componentLog = new StandardComponentLog(identifier, ghostConnector, loggingContext);
         final ConnectorDetails connectorDetails = new ConnectorDetails(ghostConnector, bundleCoordinate, componentLog);
 
         // If an instance class loader has been created for this connector, remove it because it's no longer necessary.
@@ -814,7 +814,7 @@ public class ExtensionBuilder {
 
             logger.info("Created Controller Service of type {} with identifier {}", type, identifier);
             final StandardLoggingContext loggingContext = new StandardLoggingContext();
-            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, loggingContext);
+            final ComponentLog serviceLogger = new StandardComponentLog(identifier, serviceImpl, loggingContext);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier, serviceImpl.getClass());
@@ -1045,7 +1045,7 @@ public class ExtensionBuilder {
 
             final Processor processor = pythonBridge.createProcessor(identifier, type, bundleCoordinate.getVersion(), true, true);
 
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, loggingContext);
+            final ComponentLog componentLog = new StandardComponentLog(identifier, processor, loggingContext);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(identifier, terminationAwareLogger,
@@ -1108,7 +1108,7 @@ public class ExtensionBuilder {
 
             final Object extensionInstance = rawClass.getDeclaredConstructor().newInstance();
 
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, loggingContext);
+            final ComponentLog componentLog = new StandardComponentLog(identifier, extensionInstance, loggingContext);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final T cast = nodeType.cast(extensionInstance);

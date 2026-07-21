@@ -45,7 +45,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
@@ -280,7 +280,7 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext(connectable));
+                    final ComponentLog procLog = new StandardComponentLog(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext(connectable));
 
                     try {
                         rawSession.commitAsync(null, t -> {
@@ -314,7 +314,7 @@ public class ConnectableTask {
     }
 
     private ComponentLog getComponentLog() {
-        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext(connectable));
+        return new StandardComponentLog(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext(connectable));
     }
 
 }

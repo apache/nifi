@@ -38,7 +38,7 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -281,7 +281,9 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
         final FlowAnalysisRuleNode ruleNode = locateFlowAnalysisRule(flowAnalysisRuleId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(ruleNode.getFlowAnalysisRule(), logRepository, new StandardLoggingContext());
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                flowAnalysisRuleId, ruleNode.getFlowAnalysisRule(), new StandardLoggingContext(), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
@@ -289,11 +291,9 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
             parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = ruleNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
-        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+        return verificationResults.stream()
             .map(this::createConfigVerificationResultDto)
             .collect(Collectors.toList());
-
-        return resultsDtos;
     }
 
     private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {

@@ -32,30 +32,48 @@ import org.slf4j.spi.LoggingEventBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public class SimpleProcessLogger implements ComponentLog {
+public class StandardComponentLog implements ComponentLog {
 
     private static final String CAUSED_BY = String.format("%n- Caused by: ");
 
     private static final Throwable NULL_THROWABLE = null;
+    private static final String COMPONENT_ID_ATTRIBUTE_KEY = "componentId";
 
+    private final String componentId;
+    private final Object component;
     private final Logger logger;
     private final LogRepository logRepository;
-    private final Object component;
-
     private final LoggingContext loggingContext;
 
-    public SimpleProcessLogger(final String componentId, final Object component, final LoggingContext loggingContext) {
-        this(component, LogRepositoryFactory.getRepository(componentId), loggingContext);
+    /**
+     * Constructor with required properties and LogRepository located using Component ID
+     *
+     * @param componentId Component Identifier required
+     * @param component Component Object from which to determine Logger class
+     * @param loggingContext Logging Context required for additional attributes
+     */
+    public StandardComponentLog(final String componentId, final Object component, final LoggingContext loggingContext) {
+        this(componentId, component, loggingContext, LogRepositoryFactory.getRepository(componentId));
     }
 
-    public SimpleProcessLogger(final Object component, final LogRepository logRepository, final LoggingContext loggingContext) {
+    /**
+     * Constructor with required properties and provided LogRepository implementation
+     *
+     * @param componentId Component Identifier required
+     * @param component Component Object from which to determine Logger class
+     * @param loggingContext Logging Context required for additional attributes
+     * @param logRepository Log Repository implementation required
+     */
+    public StandardComponentLog(final String componentId, final Object component, final LoggingContext loggingContext, final LogRepository logRepository) {
+        this.componentId = Objects.requireNonNull(componentId, "Component ID required");
+        this.component = Objects.requireNonNull(component, "Component required");
         this.logger = LoggerFactory.getLogger(component.getClass());
-        this.logRepository = logRepository;
-        this.component = component;
-        this.loggingContext = loggingContext;
+        this.loggingContext = Objects.requireNonNull(loggingContext, "Logging Context required");
+        this.logRepository = Objects.requireNonNull(logRepository, "Log Repository required");
     }
 
     @Override
@@ -476,11 +494,13 @@ public class SimpleProcessLogger implements ComponentLog {
         final Map<String, String> attributes = loggingContext.getAttributes();
         final Set<String> attributeKeys = attributes.keySet();
         try {
+            MDC.put(COMPONENT_ID_ATTRIBUTE_KEY, componentId);
             attributes.forEach(MDC::put);
             builder.log(message, arguments);
         } finally {
             // Remove MDC attributes after logging
             attributeKeys.forEach(MDC::remove);
+            MDC.remove(COMPONENT_ID_ATTRIBUTE_KEY);
         }
     }
 }

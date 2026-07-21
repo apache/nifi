@@ -47,7 +47,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
@@ -282,7 +282,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
         } catch (Exception e) {
             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
 
-            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), getFlowAnalysisRule(), new StandardLoggingContext());
+            final ComponentLog componentLog = new StandardComponentLog(getIdentifier(), getFlowAnalysisRule(), new StandardLoggingContext());
 
             componentLog.error("Failed to invoke {} method", cause);
 
