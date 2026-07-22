@@ -26,7 +26,6 @@ import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
-import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -52,7 +51,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -198,12 +196,6 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
         }
     }
 
-    private List<String> validateProposedConfiguration(final FlowAnalysisRuleNode flowAnalysisRule, final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
-        final List<String> validationErrors = new ArrayList<>();
-
-        return validationErrors;
-    }
-
     @Override
     public void verifyDelete(final String flowAnalysisRuleId) {
         final FlowAnalysisRuleNode flowAnalysisRule = locateFlowAnalysisRule(flowAnalysisRuleId);
@@ -246,14 +238,6 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
                 flowAnalysisRuleDTO.getProperties(),
                 flowAnalysisRuleDTO.getBundle())) {
             modificationRequest = true;
-
-            // validate the request
-            final List<String> requestValidation = validateProposedConfiguration(flowAnalysisRule, flowAnalysisRuleDTO);
-
-            // ensure there was no validation errors
-            if (!requestValidation.isEmpty()) {
-                throw new ValidationException(requestValidation);
-            }
         }
 
         final BundleDTO bundleDTO = flowAnalysisRuleDTO.getBundle();
