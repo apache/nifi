@@ -949,6 +949,28 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(scheduledStateDiff, null, flowManager));
     }
 
+    @Test
+    public void testIsComponentUpdateRequiredForPublicPortNameChange() {
+        // A public-port name change must still be reported as "update required" by the shared filter. The preservation of a
+        // local public-port name is scoped to the synchronizer (gated by FlowSynchronizationOptions.preservePublicPortNames) and to the
+        // affected-components calculation (which applies FILTER_PUBLIC_PORT_NAME_CHANGES), so the core semantics of this shared, static
+        // method must remain unchanged - otherwise cluster reconnection and startup would stop preserving the incoming flow's port names.
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
+        final VersionedPort portA = new VersionedPort();
+        portA.setAllowRemoteAccess(Boolean.TRUE);
+        final VersionedPort portB = new VersionedPort();
+        portB.setAllowRemoteAccess(Boolean.TRUE);
+
+        final StandardFlowDifference nameChange = new StandardFlowDifference(
+                DifferenceType.NAME_CHANGED, portA, portB, "Original Name", "Renamed", "");
+
+        assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(nameChange, null, flowManager));
+
+        // The dedicated predicate, on the other hand, excludes the public-port name change so opt-in callers can preserve the local name.
+        assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(nameChange));
+    }
+
     @DynamicProperty(name = "Dynamic Property", value = "Value", description = "Allows dynamic properties")
     private static class DynamicAnnotationProcessor extends AbstractProcessor {
         @Override

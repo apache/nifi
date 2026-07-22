@@ -6919,6 +6919,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(difference -> difference.getComponentA() != null) // a difference that would not affect a local component
                 .filter(diff -> FlowDifferenceFilters.isComponentUpdateRequired(diff, proposedFlow.getContents(), flowManager))
+                // A local rename of a public port is preserved during a version-control update (it is not overwritten with the
+                // registry name), so the port must not be reported as affected/stopped for that name change. Applied unconditionally here because
+                // this affected-components calculation serves only the version-control update path.
+                .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
                 .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
                 .map(difference -> {
                     final VersionedComponent localComponent = difference.getComponentA();
