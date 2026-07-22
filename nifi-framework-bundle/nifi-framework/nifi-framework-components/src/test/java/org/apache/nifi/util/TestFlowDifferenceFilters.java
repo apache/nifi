@@ -429,21 +429,15 @@ public class TestFlowDifferenceFilters {
 
         final InstantiatedVersionedProcessGroup localGroup = new InstantiatedVersionedProcessGroup(pgInstanceId, parentGroupId);
 
-        // !accessibleA && accessibleB -> environmental: snapshot points at a service that does not exist locally
-        // (e.g. a dev-environment id), local points at an existing ancestor service.
         assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, foreignServiceId, ancestorServiceX, true,
                 "Switching from an unavailable external service to a local ancestor service must be treated as environmental");
 
-        // accessibleA && accessibleB -> NOT environmental: a genuine switch between two services that both exist locally.
         assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, ancestorServiceY, ancestorServiceX, false,
                 "Switching between two locally-accessible ancestor services must remain a reported change");
 
-        // accessibleA && !accessibleB -> NOT environmental: local points at a service that is not an accessible ancestor (e.g. one defined
-        // inside the versioned Process Group), so the change must surface.
         assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, ancestorServiceX, internalServiceId, false,
                 "Switching to a service that is not an accessible ancestor (e.g. internal to the group) must remain a reported change");
 
-        // !accessibleA && !accessibleB -> NOT environmental.
         assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, "foreign-1", "foreign-2", false,
                 "A change between two non-ancestor services must remain a reported change");
     }
