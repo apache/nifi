@@ -35,7 +35,9 @@ import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -286,8 +288,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             } catch (Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
-                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
-                            Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                    this.bulletinRepo.addBulletin(createControllerServiceBulletin(controllerServiceNode,
+                            "Could not start " + controllerServiceNode + " due to " + e, e));
                 }
             }
         }
@@ -369,8 +371,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         }
 
                         if (this.bulletinRepo != null) {
-                            this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
-                                Severity.ERROR.name(), "Could not enable " + controllerServiceNode + " due to " + e));
+                            this.bulletinRepo.addBulletin(createControllerServiceBulletin(controllerServiceNode,
+                                "Could not enable " + controllerServiceNode + " due to " + e, e));
                         }
 
                         break;
@@ -379,8 +381,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             } catch (Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
-                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
-                        Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                    this.bulletinRepo.addBulletin(createControllerServiceBulletin(controllerServiceNode,
+                        "Could not start " + controllerServiceNode + " due to " + e, e));
                 }
             }
         }
@@ -828,5 +830,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public ExtensionManager getExtensionManager() {
         return extensionManager;
+    }
+
+    private Bulletin createControllerServiceBulletin(final ControllerServiceNode serviceNode, final String message, final Throwable t) {
+        final ProcessGroup processGroup = serviceNode.getProcessGroup();
+        final String groupId = processGroup == null ? null : processGroup.getIdentifier();
+        final String groupName = processGroup == null ? null : processGroup.getName();
+        return BulletinFactory.createBulletin(groupId, groupName, serviceNode.getIdentifier(),
+                ComponentType.CONTROLLER_SERVICE, serviceNode.getName(), "Controller Service", Severity.ERROR.name(), message, t);
     }
 }
