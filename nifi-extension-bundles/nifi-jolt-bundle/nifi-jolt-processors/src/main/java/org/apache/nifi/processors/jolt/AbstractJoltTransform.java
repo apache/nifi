@@ -198,7 +198,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                     reason = "%s [%s]".formatted(cause.getMessage(), e.getMessage());
                 }
 
-                final String message = "Specification not valid... %s".formatted(reason);
+                final String message = "Specification not valid: %s".formatted(reason);
                 results.add(new ValidationResult.Builder()
                         .valid(false)
                         .subject(JOLT_SPEC.getDisplayName())
