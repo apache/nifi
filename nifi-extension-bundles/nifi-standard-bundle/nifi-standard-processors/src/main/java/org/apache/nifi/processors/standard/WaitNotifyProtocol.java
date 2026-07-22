@@ -318,7 +318,10 @@ public class WaitNotifyProtocol {
                     signalId, expectedRevision, actualRevision));
         }
 
-        cache.remove(signalId, stringSerializer);
+        if (!cache.remove(signalId, stringSerializer)) {
+            throw new ConcurrentModificationException(String.format(
+                    "Failed to complete signal [%s]: signal was concurrently removed.", signalId));
+        }
     }
 
     public void replace(final Signal signal) throws IOException, ConcurrentModificationException {
