@@ -38,7 +38,7 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -264,7 +264,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final ReportingTaskNode taskNode = locateReportingTask(reportingTaskId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(taskNode.getReportingTask(), logRepository, new StandardLoggingContext());
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                reportingTaskId, taskNode.getReportingTask(), new StandardLoggingContext(), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
@@ -272,11 +274,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = taskNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
-        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+        return verificationResults.stream()
             .map(this::createConfigVerificationResultDto)
             .collect(Collectors.toList());
-
-        return resultsDtos;
     }
 
     private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {

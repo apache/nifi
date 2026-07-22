@@ -55,7 +55,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -322,7 +322,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     }
                 } catch (final Exception e) {
                     final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                    final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask, new StandardLoggingContext());
+                    final ComponentLog componentLog = new StandardComponentLog(reportingTask.getIdentifier(), reportingTask, new StandardLoggingContext());
                     componentLog.error("Failed to invoke @OnScheduled method due to {}", cause);
 
                     LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
@@ -372,7 +372,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                 } catch (final Exception e) {
                     final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                    final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask, new StandardLoggingContext());
+                    final ComponentLog componentLog = new StandardComponentLog(reportingTask.getIdentifier(), reportingTask, new StandardLoggingContext());
                     componentLog.error("Failed to invoke @OnUnscheduled method due to {}", cause);
 
                     LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",

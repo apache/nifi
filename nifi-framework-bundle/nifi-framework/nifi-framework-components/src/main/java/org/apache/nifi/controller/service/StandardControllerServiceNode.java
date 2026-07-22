@@ -70,7 +70,7 @@ import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
@@ -737,7 +737,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
 
                     final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                    final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService, new StandardLoggingContext(serviceNode));
+                    final ComponentLog componentLog = new StandardComponentLog(getIdentifier(), controllerService, new StandardLoggingContext(serviceNode));
                     componentLog.error("Failed to invoke @OnEnabled method", cause);
                     invokeDisable(configContext);
 
@@ -832,7 +832,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {
             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService, new StandardLoggingContext(StandardControllerServiceNode.this));
+            final ComponentLog componentLog = new StandardComponentLog(getIdentifier(), controllerService, new StandardLoggingContext(StandardControllerServiceNode.this));
             componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
             LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
         }

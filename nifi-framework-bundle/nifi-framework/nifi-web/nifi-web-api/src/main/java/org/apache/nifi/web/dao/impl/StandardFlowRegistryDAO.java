@@ -25,7 +25,7 @@ import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.registry.flow.BucketLocation;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBranch;
@@ -271,7 +271,9 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         final FlowRegistryClientNode registry = getFlowRegistryClient(registryId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(registry, logRepository, new StandardLoggingContext());
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                registryId, registry, new StandardLoggingContext(), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final Map<String, String> effectiveProperties = properties == null ? Collections.emptyMap() : properties;

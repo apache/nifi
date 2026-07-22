@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class TestSimpleProcessLogger {
+public class StandardComponentLogTest {
 
     private static final String FIRST_MESSAGE = "FIRST";
     private static final String SECOND_MESSAGE = "SECOND";
@@ -87,6 +87,8 @@ public class TestSimpleProcessLogger {
 
     private static final String GROUP_ID_KEY = "groupId";
 
+    private static final String COMPONENT_ID = "component-id";
+
     @Mock
     private ConfigurableComponent component;
 
@@ -110,13 +112,13 @@ public class TestSimpleProcessLogger {
 
     private Object[] componentCausesArguments;
 
-    private SimpleProcessLogger componentLog;
+    private StandardComponentLog componentLog;
 
     private final ArgumentCaptor<Object[]> argumentCaptor = ArgumentCaptor.forClass(Object[].class);
 
     @BeforeEach
     public void setLogger() throws IllegalAccessException {
-        componentLog = new SimpleProcessLogger(component, logRepository, loggingContext);
+        componentLog = new StandardComponentLog(COMPONENT_ID, component, loggingContext, logRepository);
         FieldUtils.writeDeclaredField(componentLog, "logger", logger, true);
 
         componentArguments = new Object[]{component};

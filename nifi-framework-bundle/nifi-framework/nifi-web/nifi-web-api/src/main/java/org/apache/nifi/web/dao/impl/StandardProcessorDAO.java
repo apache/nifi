@@ -42,7 +42,7 @@ import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -510,16 +510,16 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             new NopStateManager(), () -> false, flowController);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(processor, logRepository, new StandardLoggingContext(processor));
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                processorId, processor, new StandardLoggingContext(processor), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
         final List<ConfigVerificationResult> verificationResults = processor.verifyConfiguration(processContext, configVerificationLog, attributes, extensionManager,
             processor.getProcessGroup().getParameterContext());
 
-        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+        return verificationResults.stream()
             .map(this::createConfigVerificationResultDto)
             .collect(Collectors.toList());
-
-        return resultsDtos;
     }
 
     private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
