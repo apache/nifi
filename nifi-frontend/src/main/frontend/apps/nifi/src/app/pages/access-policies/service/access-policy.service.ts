@@ -18,10 +18,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
-import { Observable } from 'rxjs';
+import { defer, Observable } from 'rxjs';
 import { AccessPolicyEntity, ComponentResourceAction, ResourceAction } from '../state/shared';
 import { TenantEntity } from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import { safeApiPath } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class AccessPolicyService {
@@ -98,18 +99,28 @@ export class AccessPolicyService {
     }
 
     getAccessPolicy(resourceAction: ResourceAction): Observable<any> {
-        const transformed = this.transformConnectorPolicyResource(resourceAction);
-        const path: string[] = [transformed.action, transformed.resource];
-        if (transformed.resourceIdentifier) {
-            path.push(transformed.resourceIdentifier);
-        }
-        return this.httpClient.get(`${AccessPolicyService.API}/policies/${path.join('/')}`);
+        // Deferred so a safeApiPath rejection of untrusted (route-derived) input surfaces as an
+        // observable error the caller's catchError can handle, rather than throwing synchronously.
+        return defer(() => {
+            const transformed = this.transformConnectorPolicyResource(resourceAction);
+            // `resource` may be a composite value (e.g. 'provenance-data/connectors'); split it so
+            // each atom is validated and encoded individually by safeApiPath.
+            const segments: string[] = [transformed.action, ...transformed.resource.split('/').filter(Boolean)];
+            if (transformed.resourceIdentifier) {
+                segments.push(transformed.resourceIdentifier);
+            }
+            return this.httpClient.get(`${AccessPolicyService.API}/policies/${safeApiPath(...segments)}`);
+        });
     }
 
     getPolicyComponent(resourceAction: ComponentResourceAction): Observable<any> {
-        return this.httpClient.get(
-            `${AccessPolicyService.API}/${resourceAction.resource}/${resourceAction.resourceIdentifier}`
-        );
+        return defer(() => {
+            const path = safeApiPath(
+                ...resourceAction.resource.split('/').filter(Boolean),
+                resourceAction.resourceIdentifier
+            );
+            return this.httpClient.get(`${AccessPolicyService.API}/${path}`);
+        });
     }
 
     updateAccessPolicy(accessPolicy: AccessPolicyEntity, users: TenantEntity[], userGroups: TenantEntity[]) {
@@ -123,7 +134,9 @@ export class AccessPolicyService {
             }
         };
 
-        return this.httpClient.put(`${AccessPolicyService.API}/policies/${accessPolicy.id}`, payload);
+        return defer(() =>
+            this.httpClient.put(`${AccessPolicyService.API}/policies/${safeApiPath(accessPolicy.id)}`, payload)
+        );
     }
 
     deleteAccessPolicy(accessPolicy: AccessPolicyEntity): Observable<any> {
@@ -133,7 +146,11 @@ export class AccessPolicyService {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(`${AccessPolicyService.API}/policies/${accessPolicy.id}`, { params });
+        return defer(() =>
+            this.httpClient.delete(`${AccessPolicyService.API}/policies/${safeApiPath(accessPolicy.id)}`, {
+                params
+            })
+        );
     }
 
     getUsers(): Observable<any> {

@@ -174,5 +174,72 @@ describe('AccessPolicyService', () => {
             httpMock.expectOne('../nifi-api/policies/read/provenance-data/connectors').flush({});
             httpMock.verify();
         });
+
+        it('should encode an untrusted resourceIdentifier segment', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            service
+                .getAccessPolicy({
+                    resource: 'processors',
+                    resourceIdentifier: 'a b',
+                    action: Action.Read
+                })
+                .subscribe();
+
+            httpMock.expectOne('../nifi-api/policies/read/processors/a%20b').flush({});
+            httpMock.verify();
+        });
+
+        it('should reject a path-traversal resourceIdentifier without issuing a request', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            let error: unknown;
+            service
+                .getAccessPolicy({
+                    resource: 'processors',
+                    resourceIdentifier: '../../controller',
+                    action: Action.Read
+                })
+                .subscribe({ error: (e) => (error = e) });
+
+            // the rejection surfaces through the observable error channel (deferred), and no request is issued
+            expect(error).toBeInstanceOf(Error);
+            httpMock.verify();
+        });
+    });
+
+    describe('getPolicyComponent', () => {
+        it('should GET the component resource URL with encoded segments', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            service
+                .getPolicyComponent({
+                    resource: 'processors',
+                    resourceIdentifier: 'proc 1',
+                    action: Action.Write,
+                    policy: 'component'
+                })
+                .subscribe();
+
+            httpMock.expectOne('../nifi-api/processors/proc%201').flush({});
+            httpMock.verify();
+        });
+
+        it('should reject a path-traversal resourceIdentifier without issuing a request', () => {
+            const httpMock = TestBed.inject(HttpTestingController);
+
+            let error: unknown;
+            service
+                .getPolicyComponent({
+                    resource: 'processors',
+                    resourceIdentifier: '..%2F..%2Fnifi-api%2Fcontroller%2Fconfig',
+                    action: Action.Write,
+                    policy: 'component'
+                })
+                .subscribe({ error: (e) => (error = e) });
+
+            expect(error).toBeInstanceOf(Error);
+            httpMock.verify();
+        });
     });
 });
