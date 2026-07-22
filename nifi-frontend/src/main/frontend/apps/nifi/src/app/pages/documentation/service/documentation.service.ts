@@ -17,7 +17,8 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { defer, Observable } from 'rxjs';
+import { safeApiPath } from '@nifi/shared';
 import { ProcessorDefinition } from '../state/processor-definition';
 import { ControllerServiceDefinition } from '../state/controller-service-definition';
 import { DefinitionCoordinates } from '../state';
@@ -34,57 +35,87 @@ export class DocumentationService {
 
     private static readonly API: string = '../nifi-api';
 
+    /**
+     * Build the validated/encoded `{group}/{artifact}/{version}/{type}` path suffix from
+     * route-derived definition coordinates. Each atom is validated and encoded by safeApiPath,
+     * which throws on a path separator or traversal sequence so untrusted deep-link input cannot
+     * redirect the authenticated request to an arbitrary same-origin path.
+     */
+    private static coordinatePath(coordinates: DefinitionCoordinates): string {
+        return safeApiPath(coordinates.group, coordinates.artifact, coordinates.version, coordinates.type);
+    }
+
     getProcessorDefinition(coordinates: DefinitionCoordinates): Observable<ProcessorDefinition> {
-        return this.httpClient.get<ProcessorDefinition>(
-            `${DocumentationService.API}/flow/processor-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        // Deferred so a safeApiPath rejection of untrusted (route-derived) input surfaces as an
+        // observable error the caller's catchError can handle, rather than throwing synchronously.
+        return defer(() =>
+            this.httpClient.get<ProcessorDefinition>(
+                `${DocumentationService.API}/flow/processor-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getControllerServiceDefinition(coordinates: DefinitionCoordinates): Observable<ControllerServiceDefinition> {
-        return this.httpClient.get<ControllerServiceDefinition>(
-            `${DocumentationService.API}/flow/controller-service-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<ControllerServiceDefinition>(
+                `${DocumentationService.API}/flow/controller-service-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getReportingTaskDefinition(coordinates: DefinitionCoordinates): Observable<ReportingTaskDefinition> {
-        return this.httpClient.get<ReportingTaskDefinition>(
-            `${DocumentationService.API}/flow/reporting-task-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<ReportingTaskDefinition>(
+                `${DocumentationService.API}/flow/reporting-task-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getFlowRegistryClientDefinition(coordinates: DefinitionCoordinates): Observable<FlowRegistryClientDefinition> {
-        return this.httpClient.get<FlowRegistryClientDefinition>(
-            `${DocumentationService.API}/flow/flow-registry-client-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<FlowRegistryClientDefinition>(
+                `${DocumentationService.API}/flow/flow-registry-client-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getParameterProviderDefinition(coordinates: DefinitionCoordinates): Observable<ParameterProviderDefinition> {
-        return this.httpClient.get<ParameterProviderDefinition>(
-            `${DocumentationService.API}/flow/parameter-provider-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<ParameterProviderDefinition>(
+                `${DocumentationService.API}/flow/parameter-provider-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getFlowAnalysisRuleDefinition(coordinates: DefinitionCoordinates): Observable<FlowAnalysisRuleDefinition> {
-        return this.httpClient.get<FlowAnalysisRuleDefinition>(
-            `${DocumentationService.API}/flow/flow-analysis-rule-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<FlowAnalysisRuleDefinition>(
+                `${DocumentationService.API}/flow/flow-analysis-rule-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getAdditionalDetails(coordinates: DefinitionCoordinates): Observable<AdditionalDetailsEntity> {
-        return this.httpClient.get<AdditionalDetailsEntity>(
-            `${DocumentationService.API}/flow/additional-details/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<AdditionalDetailsEntity>(
+                `${DocumentationService.API}/flow/additional-details/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getConnectorDefinition(coordinates: DefinitionCoordinates): Observable<ConnectorDefinition> {
-        return this.httpClient.get<ConnectorDefinition>(
-            `${DocumentationService.API}/flow/connector-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        return defer(() =>
+            this.httpClient.get<ConnectorDefinition>(
+                `${DocumentationService.API}/flow/connector-definition/${DocumentationService.coordinatePath(coordinates)}`
+            )
         );
     }
 
     getStepDocumentation(coordinates: DefinitionCoordinates, stepName: string): Observable<StepDocumentationEntity> {
-        return this.httpClient.get<StepDocumentationEntity>(
-            `${DocumentationService.API}/flow/steps/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}/${stepName}`
+        return defer(() =>
+            this.httpClient.get<StepDocumentationEntity>(
+                `${DocumentationService.API}/flow/steps/${DocumentationService.coordinatePath(coordinates)}/${safeApiPath(stepName)}`
+            )
         );
     }
 }

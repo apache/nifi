@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ContentViewerComponent } from './content-viewer.component';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { contentViewersFeatureKey } from '../state';
 import { viewerOptionsFeatureKey } from '../state/viewer-options';
 import { initialState } from '../state/viewer-options/viewer-options.reducer';
@@ -26,12 +26,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconModule } from '@angular/material/icon';
-import { NifiTooltipDirective } from '@nifi/shared';
+import { NifiTooltipDirective, selectQueryParams } from '@nifi/shared';
 import { aboutFeatureKey } from '../../../state/about';
 import { initialState as aboutInitialState } from '../../../state/about/about.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
 import { initialState as currentUserInitialState } from '../../../state/current-user/current-user.reducer';
 import { DEFAULT_ROUTER_FEATURENAME } from '@ngrx/router-store';
+import { selectAbout } from '../../../state/about/about.selectors';
+import { setRef } from '../state/content/content.actions';
 
 describe('ContentViewerComponent', () => {
     let component: ContentViewerComponent;
@@ -65,6 +67,45 @@ describe('ContentViewerComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    describe('ref query param origin guard', () => {
+        const instanceUri = 'https://nifi.example.com/nifi-api';
+
+        // The guard lives in the constructor subscription, so override the selectors and
+        // build a fresh component instance after wiring the desired route/about state.
+        function setupWithRef(ref: string) {
+            const store = TestBed.inject(MockStore);
+            store.overrideSelector(selectAbout, { uri: instanceUri } as never);
+            store.overrideSelector(selectQueryParams, { ref });
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            const localFixture = TestBed.createComponent(ContentViewerComponent);
+            localFixture.detectChanges();
+
+            return { dispatchSpy };
+        }
+
+        it('dispatches setRef for a same-origin ref', () => {
+            const ref = 'https://nifi.example.com/nifi-api/flowfile-queues/1/flowfiles/2/content';
+            const { dispatchSpy } = setupWithRef(ref);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(setRef({ ref }));
+        });
+
+        it('does not dispatch setRef for a cross-origin ref', () => {
+            const ref = 'https://evil.example.com/nifi-api/flowfile-queues/1/flowfiles/2/content';
+            const { dispatchSpy } = setupWithRef(ref);
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(setRef({ ref }));
+        });
+
+        it('does not dispatch setRef for a prefix-spoofing origin', () => {
+            const ref = 'https://nifi.example.com.evil.com/nifi-api/flowfile-queues/1/flowfiles/2/content';
+            const { dispatchSpy } = setupWithRef(ref);
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(setRef({ ref }));
+        });
     });
 
     describe('resolveBaseMediaType', () => {
