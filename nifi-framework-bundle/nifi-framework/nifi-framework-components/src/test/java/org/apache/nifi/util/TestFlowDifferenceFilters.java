@@ -44,6 +44,7 @@ import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -51,6 +52,7 @@ import org.mockito.Mockito;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -391,6 +393,88 @@ public class TestFlowDifferenceFilters {
 
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager, context));
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(controllerServiceDifference, null, flowManager, context));
+    }
+
+    /**
+     * Changing a processor property that references an external (ancestor) controller service is not reported as a local
+     * modification, because the same logical service typically has a different identifier in each environment. This exercises the
+     * directional rule over the set of accessible ancestor controller service ids: suppression happens only when the versioned-snapshot
+     * reference is not a locally-accessible ancestor service while the local reference is.
+     */
+    @Test
+    public void testExternalControllerServiceReferenceChangeDirectionalRule() {
+        final String pgInstanceId = "pg-instance";
+        final String parentGroupId = "parent-group";
+        final String propertyName = "SSL Context Service";
+
+        final String ancestorServiceX = "ancestor-service-x";
+        final String ancestorServiceY = "ancestor-service-y";
+        final String foreignServiceId = "foreign-service-id";
+        final String internalServiceId = "internal-service-id";
+
+        // Two controller services defined in the parent (ancestor) group, i.e. external to the versioned Process Group.
+        final ControllerServiceNode serviceX = Mockito.mock(ControllerServiceNode.class);
+        Mockito.when(serviceX.getVersionedComponentId()).thenReturn(Optional.of(ancestorServiceX));
+        final ControllerServiceNode serviceY = Mockito.mock(ControllerServiceNode.class);
+        Mockito.when(serviceY.getVersionedComponentId()).thenReturn(Optional.of(ancestorServiceY));
+
+        final ProcessGroup parentGroup = Mockito.mock(ProcessGroup.class);
+        Mockito.when(parentGroup.getControllerServices(true)).thenReturn(Set.of(serviceX, serviceY));
+
+        final ProcessGroup liveGroup = Mockito.mock(ProcessGroup.class);
+        Mockito.when(liveGroup.getParent()).thenReturn(parentGroup);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(flowManager.getGroup(pgInstanceId)).thenReturn(liveGroup);
+
+        final InstantiatedVersionedProcessGroup localGroup = new InstantiatedVersionedProcessGroup(pgInstanceId, parentGroupId);
+
+        assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, foreignServiceId, ancestorServiceX, true,
+                "Switching from an unavailable external service to a local ancestor service must be treated as environmental");
+
+        assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, ancestorServiceY, ancestorServiceX, false,
+                "Switching between two locally-accessible ancestor services must remain a reported change");
+
+        assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, ancestorServiceX, internalServiceId, false,
+                "Switching to a service that is not an accessible ancestor (e.g. internal to the group) must remain a reported change");
+
+        assertExternalServiceChange(localGroup, flowManager, parentGroupId, propertyName, "foreign-1", "foreign-2", false,
+                "A change between two non-ancestor services must remain a reported change");
+    }
+
+    private void assertExternalServiceChange(final InstantiatedVersionedProcessGroup localGroup, final FlowManager flowManager,
+                                             final String groupId, final String propertyName, final String snapshotValue,
+                                             final String localValue, final boolean expectedEnvironmental, final String message) {
+        final VersionedPropertyDescriptor descriptor = new VersionedPropertyDescriptor();
+        descriptor.setName(propertyName);
+        descriptor.setDisplayName(propertyName);
+        descriptor.setDynamic(false);
+        descriptor.setIdentifiesControllerService(true);
+
+        final InstantiatedVersionedProcessor snapshotProcessor = new InstantiatedVersionedProcessor("processor-instance", groupId);
+        snapshotProcessor.setComponentType(ComponentType.PROCESSOR);
+        snapshotProcessor.setIdentifier("processor-instance");
+        snapshotProcessor.setProperties(Map.of(propertyName, snapshotValue));
+        snapshotProcessor.setPropertyDescriptors(Map.of(propertyName, descriptor));
+
+        final InstantiatedVersionedProcessor localProcessor = new InstantiatedVersionedProcessor("processor-instance", groupId);
+        localProcessor.setComponentType(ComponentType.PROCESSOR);
+        localProcessor.setIdentifier("processor-instance");
+        localProcessor.setProperties(Map.of(propertyName, localValue));
+        localProcessor.setPropertyDescriptors(Map.of(propertyName, descriptor));
+
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_CHANGED, snapshotProcessor, localProcessor, propertyName, snapshotValue, localValue,
+                "Property '" + propertyName + "' changed");
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext context =
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(List.of(difference), localGroup, flowManager);
+
+        if (expectedEnvironmental) {
+            assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager, context), message);
+        } else {
+            assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager, context), message);
+        }
     }
 
     @Test

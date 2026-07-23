@@ -68,13 +68,9 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.VersionedComponent;
-import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer;
 import org.apache.nifi.flow.synchronization.VersionedFlowSynchronizationContext;
 import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
@@ -3867,7 +3863,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final FlowSnapshotContainer registrySnapshotContainer = flowRegistry.getFlowContents(
                         FlowRegistryClientContextFactory.getAnonymousContext(), flowVersionLocation, false);
                 final RegisteredFlowSnapshot registrySnapshot = registrySnapshotContainer.getFlowSnapshot();
-                resolveExternalServiceReferences(registrySnapshot);
                 final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
                 vci.setFlowSnapshot(registryFlow);
             } catch (final IOException | FlowRegistryException e) {
@@ -4094,81 +4089,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         return uuid.toString();
     }
 
-    private void resolveExternalServiceReferences(final RegisteredFlowSnapshot snapshot) {
-        final Map<String, ExternalControllerServiceReference> externalRefs = snapshot.getExternalControllerServices();
-        if (externalRefs == null || externalRefs.isEmpty()) {
-            return;
-        }
-
-        final ProcessGroup parentGroup = getParent();
-        if (parentGroup == null) {
-            return;
-        }
-
-        final Map<String, String> serviceNameToVersionedId = new HashMap<>();
-        for (final ControllerServiceNode serviceNode : parentGroup.getControllerServices(true)) {
-            final String versionedId = serviceNode.getVersionedComponentId().orElse(
-                    VersionedComponentFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
-            serviceNameToVersionedId.put(serviceNode.getName(), versionedId);
-        }
-
-        final Map<String, String> foreignToLocalId = new HashMap<>();
-        for (final Map.Entry<String, ExternalControllerServiceReference> entry : externalRefs.entrySet()) {
-            final String foreignId = entry.getKey();
-            final String serviceName = entry.getValue().getName();
-            final String localId = serviceNameToVersionedId.get(serviceName);
-            if (localId != null && !localId.equals(foreignId)) {
-                foreignToLocalId.put(foreignId, localId);
-            }
-        }
-
-        if (!foreignToLocalId.isEmpty()) {
-            replaceExternalServiceIds(snapshot.getFlowContents(), foreignToLocalId);
-        }
-    }
-
-    private void replaceExternalServiceIds(final VersionedProcessGroup group, final Map<String, String> foreignToLocalId) {
-        if (group.getProcessors() != null) {
-            for (final VersionedProcessor processor : group.getProcessors()) {
-                replaceServicePropertyIds(processor.getProperties(), processor.getPropertyDescriptors(), foreignToLocalId);
-            }
-        }
-
-        if (group.getControllerServices() != null) {
-            for (final VersionedControllerService service : group.getControllerServices()) {
-                replaceServicePropertyIds(service.getProperties(), service.getPropertyDescriptors(), foreignToLocalId);
-            }
-        }
-
-        if (group.getProcessGroups() != null) {
-            for (final VersionedProcessGroup child : group.getProcessGroups()) {
-                replaceExternalServiceIds(child, foreignToLocalId);
-            }
-        }
-    }
-
-    private void replaceServicePropertyIds(final Map<String, String> properties, final Map<String, VersionedPropertyDescriptor> descriptors,
-                                           final Map<String, String> foreignToLocalId) {
-        if (properties == null || descriptors == null) {
-            return;
-        }
-
-        for (final Map.Entry<String, String> entry : properties.entrySet()) {
-            final String propertyValue = entry.getValue();
-            if (propertyValue == null) {
-                continue;
-            }
-
-            final VersionedPropertyDescriptor descriptor = descriptors.get(entry.getKey());
-            if (descriptor != null && descriptor.getIdentifiesControllerService()) {
-                final String localId = foreignToLocalId.get(propertyValue);
-                if (localId != null) {
-                    entry.setValue(localId);
-                }
-            }
-        }
-    }
-
     private Set<FlowDifference> getModifications() {
         final StandardVersionControlInformation vci = versionControlInfo.get();
 
@@ -4202,7 +4122,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final FlowComparison comparison = flowComparator.compare();
             final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
             final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
-                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, versionedGroup, flowManager);
 
             final Set<FlowDifference> differences = comparisonDifferences.stream()
                 .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager, environmentalContext))
