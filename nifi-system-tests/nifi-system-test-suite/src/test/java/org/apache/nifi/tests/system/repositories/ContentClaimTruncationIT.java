@@ -198,6 +198,55 @@ public class ContentClaimTruncationIT extends NiFiSystemIT {
         });
     }
 
+    // Reproduces content loss when a downstream session clones a FlowFile and removes the clone within the same
+    // session, as ExecuteGroovyScript with Failure Strategy "transfer to failure" does. The clone shares the
+    // FlowFile's content claim, and its create-then-remove within one session must not decrement the claim's
+    // truncation reference count. Draining the leg that performs the clone-and-remove must not truncate content
+    // claims that are still referenced by FlowFiles held on the other leg.
+    @Test
+    public void testInSessionClonedAndRemovedFlowFileDoesNotTruncateSharedClaim() throws Exception {
+        final ProcessorEntity generator = getClientUtil().createProcessor("GenerateTruncatableFlowFiles");
+        final ProcessorEntity cloneAndTerminate = getClientUtil().createProcessor("CloneAndTerminate");
+        final ProcessorEntity holdTerminate = getClientUtil().createProcessor("TerminateFlowFile");
+        getClientUtil().updateProcessorProperties(generator, GENERATE_TRUNCATABLE_PROPS);
+        getClientUtil().updateProcessorSchedulingPeriod(generator, "0 sec");
+
+        ConnectionEntity cloneConnection = getClientUtil().createConnection(generator, cloneAndTerminate, "success");
+        ConnectionEntity holdConnection = getClientUtil().createConnection(generator, holdTerminate, "success");
+        cloneConnection = getClientUtil().updateConnectionBackpressure(cloneConnection, 10000, BACKPRESSURE_BYTES);
+        holdConnection = getClientUtil().updateConnectionBackpressure(holdConnection, 10000, BACKPRESSURE_BYTES);
+
+        getClientUtil().startProcessor(generator);
+        waitForQueueCount(cloneConnection.getId(), 100);
+        waitForQueueCount(holdConnection.getId(), 100);
+
+        getClientUtil().stopProcessor(generator);
+        getClientUtil().waitForStoppedProcessor(generator.getId());
+
+        final File contentRepositoryDirectory = new File(getNiFiInstance().getInstanceDirectory(), "content_repository");
+
+        // Drain the leg that clones each FlowFile and removes the clone within the same session.
+        drainTerminateQueue(cloneAndTerminate, cloneConnection.getId());
+        // Allow several truncation cleanup cycles to run; if the shared claims were incorrectly queued for
+        // truncation, the content repository would shrink well below the retained size within this window.
+        Thread.sleep(5000);
+
+        // The other leg still holds all FlowFiles, so their (shared) content claims must not be truncated.
+        final long sizeAfterCloneLegDrained = getContentRepositorySize(contentRepositoryDirectory.toPath());
+        assertTrue(sizeAfterCloneLegDrained >= NOT_TRUNCATED_MIN_BYTES,
+                "Content must not be truncated while the other connection still references the same claims; size was " + sizeAfterCloneLegDrained);
+
+        // Once the holding leg is drained too, all content should be cleaned up.
+        drainTerminateQueue(holdTerminate, holdConnection.getId());
+        waitFor(() -> {
+            try {
+                return getContentRepositorySize(contentRepositoryDirectory.toPath()) == 0;
+            } catch (final IOException e) {
+                return false;
+            }
+        });
+    }
+
     // Same scenario as testClonedSuccessNoTruncationUntilBothConnectionsDrained, but the second connection uses
     // PriorityAttributePrioritizer. After the first connection is drained, only the large FlowFiles are removed
     // from the second connection so that tail truncation of content repository files can occur.

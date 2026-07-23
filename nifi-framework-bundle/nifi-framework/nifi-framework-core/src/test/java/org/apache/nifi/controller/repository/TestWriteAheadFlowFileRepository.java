@@ -1214,6 +1214,80 @@ public class TestWriteAheadFlowFileRepository {
                 "Shared Content Claim must not be queued for truncation while live siblings still reference it");
     }
 
+    @Test
+    public void testInSessionCreatedAndRemovedCloneDoesNotDecrementSharedTruncationReference() throws IOException {
+        // A session that creates a clone of a FlowFile (sharing its truncation-eligible Content Claim) and
+        // removes that clone within the same session produces a single record whose type transitions from
+        // CREATE to DELETE and which has no original claim. The CREATE increment never runs for such a record,
+        // so its DELETE must not decrement the shared claim's truncation reference count. Otherwise a claim
+        // that is still referenced by a live sibling FlowFile is queued for truncation and its content is lost.
+        // This mirrors ExecuteGroovyScript with "transfer to failure", where every get() clones the FlowFile
+        // and commitAsync() removes the clone.
+        final RuntimeRepoContext context = createRuntimeRepoContext();
+
+        final ResourceClaim resourceClaim = context.claimManager().newResourceClaim("container", "section", "1", false, false);
+        // One claimant reference per live FlowFile (leg A, leg B) plus the in-session clone, so the resource
+        // claim stays referenced (not destructable) after the deletes and the truncation behavior is isolated.
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        context.claimManager().incrementClaimantCount(resourceClaim);
+        final StandardContentClaim sharedClaim = createClaim(resourceClaim, 1024L, TRUNCATION_CANDIDATE_LENGTH, true);
+
+        final FlowFileRecord legA = new StandardFlowFileRecord.Builder()
+                .id(1L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(sharedClaim)
+                .build();
+        final FlowFileRecord legB = new StandardFlowFileRecord.Builder()
+                .id(2L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .contentClaim(sharedClaim)
+                .build();
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(context.claimManager());
+            repo.loadFlowFiles(context.queueProvider());
+
+            // Two committed CREATE records for the shared claim -> truncation reference count = 2.
+            final List<RepositoryRecord> createRecords = new ArrayList<>();
+            for (final FlowFileRecord flowFile : List.of(legA, legB)) {
+                final StandardRepositoryRecord createRecord = new StandardRepositoryRecord(context.queue());
+                createRecord.setWorking(flowFile, false);
+                createRecord.setDestination(context.queue());
+                createRecords.add(createRecord);
+            }
+            repo.updateRepository(createRecords);
+            assertEquals(2, repo.getContentClaimReferenceCount(sharedClaim));
+
+            // A single commit that deletes leg A (a persisted FlowFile, has an original claim) and also removes
+            // an in-session clone that shares the same claim. The clone was created and removed within this
+            // session: one record, no original claim, CREATE -> DELETE.
+            final StandardRepositoryRecord deleteLegA = new StandardRepositoryRecord(context.queue(), legA);
+            deleteLegA.markForDelete();
+
+            final FlowFileRecord clone = new StandardFlowFileRecord.Builder()
+                    .id(3L)
+                    .addAttribute("uuid", UUID.randomUUID().toString())
+                    .contentClaim(sharedClaim)
+                    .build();
+            final StandardRepositoryRecord createdAndRemovedClone = new StandardRepositoryRecord(context.queue());
+            createdAndRemovedClone.setWorking(clone, false);
+            createdAndRemovedClone.markForDelete();
+
+            repo.updateRepository(List.of(deleteLegA, createdAndRemovedClone));
+            repo.checkpoint();
+        }
+
+        // Leg B is still live, so exactly one truncation reference must remain for the shared claim.
+        assertEquals(1, context.claimManager().getTruncationReferenceCount(sharedClaim),
+                "Deleting one live sibling plus an in-session create+remove clone must leave one reference for the still-live sibling");
+
+        final List<ContentClaim> truncated = new ArrayList<>();
+        context.claimManager().drainTruncatableClaims(truncated, 100);
+        assertFalse(truncated.contains(sharedClaim),
+                "Shared Content Claim must not be queued for truncation while a live sibling FlowFile still references it");
+    }
+
     // =========================================================================
     // Truncation Feature: Recovery Tests
     // =========================================================================
