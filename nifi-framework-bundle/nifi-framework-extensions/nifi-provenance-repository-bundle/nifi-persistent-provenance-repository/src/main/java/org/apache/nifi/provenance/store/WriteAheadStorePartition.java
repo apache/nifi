@@ -41,6 +41,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -490,18 +492,22 @@ public class WriteAheadStorePartition implements EventStorePartition {
     }
 
     @Override
-    public void purgeOldEvents(final long olderThan, final TimeUnit unit) {
-        final long timeCutoff = System.currentTimeMillis() - unit.toMillis(olderThan);
-
+    public void purgeOldEvents(final long olderThan, final ChronoUnit timeUnit) {
+        // Use ZDT to allow the system to handle a ChronoUnit that is otherwise "estimated"
+        final long timeCutoff = ZonedDateTime.now()
+                .minus(olderThan, timeUnit)
+                .toInstant().toEpochMilli();
         final List<File> removed = getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
             .sorted(DirectoryUtils.SMALLEST_ID_FIRST)
             .filter(this::delete)
             .collect(Collectors.toList());
 
+        String thresholdWords = FormatUtils.formatDurationToWords(olderThan, timeUnit);
+
         if (removed.isEmpty()) {
-            logger.debug("No Provenance Event files that exceed time-based threshold of {} {}", olderThan, unit);
+            logger.debug("No Provenance Event files that exceed time-based threshold of {}", thresholdWords);
         } else {
-            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} {}: {}", removed.size(), olderThan, unit, removed);
+            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} : {}", removed.size(), thresholdWords, removed);
         }
     }
 
