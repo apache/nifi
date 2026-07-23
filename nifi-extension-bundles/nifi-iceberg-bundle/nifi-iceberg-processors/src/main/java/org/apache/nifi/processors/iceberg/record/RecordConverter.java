@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.iceberg.record;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.iceberg.types.Type;
+import org.apache.iceberg.types.Types;
+import org.apache.iceberg.variants.Variant;
+import org.apache.iceberg.variants.VariantPrimitive;
+import org.apache.iceberg.variants.Variants;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -23,13 +29,20 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.sql.Date;
 import java.sql.Time;
-import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Record Converter handles translating field values to types compatible with Apache Iceberg Records
@@ -39,7 +52,11 @@ class RecordConverter {
     private static final Set<RecordFieldType> CONVERSION_REQUIRED_FIELD_TYPES = Set.of(
             RecordFieldType.TIMESTAMP,
             RecordFieldType.DATE,
-            RecordFieldType.TIME
+            RecordFieldType.TIME,
+            RecordFieldType.UUID,
+            RecordFieldType.ARRAY,
+            RecordFieldType.RECORD,
+            RecordFieldType.MAP
     );
 
     /**
@@ -48,13 +65,11 @@ class RecordConverter {
      * @param inputRecord Input Record to be converted
      * @return Input Record or new Record with converted field values
      */
-    static Record getConvertedRecord(final Record inputRecord) {
+    static Record getConvertedRecord(final Record inputRecord, final Types.StructType struct) {
         final Record convertedRecord;
 
-        final RecordSchema recordSchema = inputRecord.getSchema();
-        if (isConversionRequired(recordSchema)) {
-            final Map<String, Object> values = inputRecord.toMap();
-            convertedRecord = getConvertedRecord(recordSchema, values);
+        if (isConversionRequired(inputRecord.getSchema(), struct)) {
+            convertedRecord = convertRecord(inputRecord, struct);
         } else {
             convertedRecord = inputRecord;
         }
@@ -62,36 +77,115 @@ class RecordConverter {
         return convertedRecord;
     }
 
-    private static Record getConvertedRecord(final RecordSchema recordSchema, final Map<String, Object> values) {
+    static Record convertRecord(final Record inputRecord, final Types.StructType struct) {
+        final RecordSchema recordSchema = inputRecord.getSchema();
+        final Map<String, Object> values = inputRecord.toMap();
         final Map<String, Object> convertedValues = new LinkedHashMap<>();
 
-        for (final Map.Entry<String, Object> entry : values.entrySet()) {
-            final String field = entry.getKey();
-            final Object value = entry.getValue();
-            final Object converted = getConvertedValue(value);
-            convertedValues.put(field, converted);
+        for (final RecordField field : recordSchema.getFields()) {
+            final String fieldName = field.getFieldName();
+            final Types.NestedField icebergField = struct.field(fieldName);
+            final Object rawValue = values.get(fieldName);
+            if (icebergField == null) {
+                convertedValues.put(fieldName, rawValue);
+            }
+            else {
+                convertedValues.put(fieldName, convertValue(rawValue, icebergField.type()));
+            }
         }
 
         return new MapRecord(recordSchema, convertedValues);
     }
 
-    private static Object getConvertedValue(final Object value) {
-        return switch (value) {
-            // Convert java.sql types to corresponding java.time types for Apache Iceberg
-            case Timestamp timestamp -> timestamp.toLocalDateTime();
-            case Date date -> date.toLocalDate();
-            case Time time -> time.toLocalTime();
-            case null, default -> value;
+    private static Object convertValue(final Object value, final org.apache.iceberg.types.Type icebergType) {
+        if (value == null) {
+            return null;
+        }
+
+        return switch (icebergType.typeId()) {
+            case TIMESTAMP -> {
+                final LocalDateTime local = ((Timestamp) value).toLocalDateTime();
+                yield ((Types.TimestampType) icebergType).shouldAdjustToUTC()
+                        ? local.atOffset(ZoneOffset.UTC)
+                        : local;
+            }
+            case UUID -> value instanceof java.util.UUID ? value : java.util.UUID.fromString(value.toString());
+            case FIXED -> toByteArray(value);
+            case BINARY -> ByteBuffer.wrap(toByteArray(value));
+            case LIST -> {
+                final Iterable<?> elements = value instanceof Object[] array ? Arrays.asList(array) : (List<?>) value;
+                final List<Object> list = new ArrayList<>();
+                for (final Object element : elements) {
+                    list.add(convertValue(element, ((Types.ListType) icebergType).elementType()));
+                }
+                yield list;
+            }
+            case STRUCT -> value instanceof final org.apache.iceberg.data.Record convertedStruct
+                    ? convertedStruct
+                    : new DelegatedRecord(
+                            (org.apache.nifi.serialization.record.Record) value,
+                            (Types.StructType) icebergType
+                    );
+            case MAP -> {
+                final Types.MapType mapType = (Types.MapType) icebergType;
+                final Map<Object, Object> converted = new LinkedHashMap<>();
+                for (final Map.Entry<Object, Object> entry : ((Map<Object, Object>) value).entrySet()) {
+                    final Object convertedKey = convertValue(entry.getKey(), mapType.keyType());
+                    final Object convertedValue = convertValue(entry.getValue(), mapType.valueType());
+                    converted.put(convertedKey, convertedValue);
+                }
+                yield converted;
+            }
+            case DATE -> ((Date) value).toLocalDate();
+            case TIME -> ((Time) value).toLocalTime();
+            case VARIANT -> convertVariant(value);
+            default -> value;
         };
     }
 
-    private static boolean isConversionRequired(final RecordSchema recordSchema) {
+    private static Variant convertVariant(final Object value) {
+        if (value instanceof Variant variant) {
+            return variant;
+        }
+
+        final VariantPrimitive<?> primitive = switch (value) {
+            case Boolean booleanValue -> Variants.of(booleanValue);
+            case Integer integerValue -> Variants.of(integerValue);
+            case Long longValue -> Variants.of(longValue);
+            case Float floatValue -> Variants.of(floatValue);
+            case Double doubleValue -> Variants.of(doubleValue);
+            case BigDecimal decimalValue -> Variants.of(decimalValue);
+            case ByteBuffer byteBufferValue -> Variants.of(byteBufferValue);
+            case byte[] bytesValue -> Variants.of(ByteBuffer.wrap(bytesValue));
+            case UUID uuidValue -> Variants.ofUUID(uuidValue);
+            case String stringValue -> Variants.of(stringValue);
+            default -> Variants.of(value.toString());
+        };
+
+        return Variant.of(Variants.emptyMetadata(), primitive);
+    }
+
+    private static byte[] toByteArray(final Object value) {
+        if (value instanceof byte[] bytes) {
+            return bytes;
+        }
+        final Object[] boxed = (Object[]) value;
+        final Byte[] boxedBytes = Arrays.copyOf(boxed, boxed.length, Byte[].class);
+        return ArrayUtils.toPrimitive(boxedBytes);
+    }
+
+    private static boolean isConversionRequired(final RecordSchema recordSchema, final Types.StructType struct) {
         final List<RecordField> fields = recordSchema.getFields();
 
         for (final RecordField field : fields) {
             final DataType dataType = field.getDataType();
             final RecordFieldType recordFieldType = dataType.getFieldType();
             if (CONVERSION_REQUIRED_FIELD_TYPES.contains(recordFieldType)) {
+                return true;
+            }
+
+            final Types.NestedField icebergField = struct.field(field.getFieldName());
+            if (icebergField != null && icebergField.type().typeId() == Type.TypeID.VARIANT) {
                 return true;
             }
         }

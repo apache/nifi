@@ -19,7 +19,6 @@ package org.apache.nifi.processors.iceberg.record;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.RecordField;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -38,7 +37,7 @@ public class DelegatedRecord implements Record {
             final org.apache.nifi.serialization.record.Record record,
             final Types.StructType struct
     ) {
-        this.record = RecordConverter.getConvertedRecord(Objects.requireNonNull(record));
+        this.record = RecordConverter.getConvertedRecord(Objects.requireNonNull(record), struct);
         this.struct = Objects.requireNonNull(struct);
     }
 
@@ -77,8 +76,8 @@ public class DelegatedRecord implements Record {
      */
     @Override
     public Object get(final int position) {
-        final RecordField recordField = record.getSchema().getField(position);
-        return record.getValue(recordField);
+        final String fieldName = struct.fields().get(position).name();
+        return record.getValue(fieldName);
     }
 
     /**
@@ -141,8 +140,8 @@ public class DelegatedRecord implements Record {
      */
     @Override
     public <T> void set(final int position, final T value) {
-        final RecordField recordField = record.getSchema().getField(position);
-        record.setValue(recordField, value);
+        final String fieldName = struct.fields().get(position).name();
+        record.setValue(fieldName, value);
     }
 
     @Override
