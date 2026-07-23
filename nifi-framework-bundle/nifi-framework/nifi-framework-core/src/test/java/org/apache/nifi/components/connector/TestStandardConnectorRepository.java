@@ -37,6 +37,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
@@ -2171,6 +2172,188 @@ public class TestStandardConnectorRepository {
 
         public void reset() {
             onStepConfiguredCalls.clear();
+        }
+    }
+
+    @Test
+    public void testInheritConfigurationMigratesActiveAndWorkingIndependently() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.forStep("step1").renameProperty("legacy", "renamed"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConfigurationStep activeStep = createVersionedStep("step1",
+                Map.of("legacy", createStringLiteralRef("active-value")));
+        final VersionedConfigurationStep workingStep = createVersionedStep("step1",
+                Map.of("legacy", createStringLiteralRef("working-value")));
+
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(activeStep), List.of(workingStep), bundle);
+
+        assertNotSame(node.getActiveFlowContext().getConfigurationContext(),
+                node.getWorkingFlowContext().getConfigurationContext());
+        assertEquals("active-value",
+                node.getActiveFlowContext().getConfigurationContext().getProperty("step1", "renamed").getValue());
+        assertEquals("working-value",
+                node.getWorkingFlowContext().getConfigurationContext().getProperty("step1", "renamed").getValue());
+        assertFalse(node.getActiveFlowContext().getConfigurationContext().getPropertyNames("step1").contains("legacy"));
+        assertFalse(node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("step1").contains("legacy"));
+    }
+
+    @Test
+    public void testInheritConfigurationInvokesMigratePropertiesWithEmptyStepLists() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.forStep("added-by-migration").setProperty("prop", "value"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(), List.of(), bundle);
+
+        assertNotSame(node.getActiveFlowContext().getConfigurationContext(),
+                node.getWorkingFlowContext().getConfigurationContext());
+        assertEquals("value",
+                node.getActiveFlowContext().getConfigurationContext().getProperty("added-by-migration", "prop").getValue());
+        assertEquals("value",
+                node.getWorkingFlowContext().getConfigurationContext().getProperty("added-by-migration", "prop").getValue());
+    }
+
+    @Test
+    public void testMigratePropertiesRenamePropertyPropagatesToLiveConfiguration() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.forStep("step1").renameProperty("legacy", "renamed"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConfigurationStep step = createVersionedStep("step1", Map.of("legacy", createStringLiteralRef("kept-value")));
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(step), List.of(step), bundle);
+
+        final Set<String> workingPropertyNames = node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("step1");
+        assertTrue(workingPropertyNames.contains("renamed"));
+        assertFalse(workingPropertyNames.contains("legacy"));
+        assertEquals("kept-value", node.getWorkingFlowContext().getConfigurationContext().getProperty("step1", "renamed").getValue());
+
+        final Set<String> activePropertyNames = node.getActiveFlowContext().getConfigurationContext().getPropertyNames("step1");
+        assertTrue(activePropertyNames.contains("renamed"));
+        assertFalse(activePropertyNames.contains("legacy"));
+    }
+
+    @Test
+    public void testMigratePropertiesRemovePropertyPropagatesToLiveConfiguration() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.forStep("step1").removeProperty("obsolete"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConfigurationStep step = createVersionedStep("step1",
+                Map.of("obsolete", createStringLiteralRef("gone"), "kept", createStringLiteralRef("value")));
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(step), List.of(step), bundle);
+
+        final Set<String> propertyNames = node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("step1");
+        assertFalse(propertyNames.contains("obsolete"));
+        assertTrue(propertyNames.contains("kept"));
+    }
+
+    @Test
+    public void testMigratePropertiesAddPropertyPropagatesToLiveConfiguration() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.forStep("step1").setProperty("added", "new-value"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConfigurationStep step = createVersionedStep("step1", Map.of("original", createStringLiteralRef("v")));
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(step), List.of(step), bundle);
+
+        final Set<String> propertyNames = node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("step1");
+        assertTrue(propertyNames.contains("added"));
+        assertEquals("new-value", node.getWorkingFlowContext().getConfigurationContext().getProperty("step1", "added").getValue());
+    }
+
+    @Test
+    public void testMigratePropertiesRenameStepPreservesAllPropertiesAndFiresCallback() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.renameStep("old-step", "new-step"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConfigurationStep step = createVersionedStep("old-step",
+                Map.of("a", createStringLiteralRef("A"), "b", createStringLiteralRef("B")));
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(step), List.of(step), bundle);
+
+        assertTrue(node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("old-step").isEmpty());
+        final Set<String> newStepProperties = node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("new-step");
+        assertEquals(Set.of("a", "b"), newStepProperties);
+        assertEquals("A", node.getWorkingFlowContext().getConfigurationContext().getProperty("new-step", "a").getValue());
+        assertEquals("B", node.getWorkingFlowContext().getConfigurationContext().getProperty("new-step", "b").getValue());
+
+        assertTrue(connector.wasOnStepConfiguredCalled("new-step"));
+    }
+
+    @Test
+    public void testMigratePropertiesRemoveStepDropsAllProperties() throws FlowUpdateException {
+        final MigratingConnector connector = new MigratingConnector();
+        connector.setMigration(config -> config.removeStep("obsolete-step"));
+        final StandardConnectorNode node = createRealConnectorNode("connector-1", connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConfigurationStep obsolete = createVersionedStep("obsolete-step", Map.of("a", createStringLiteralRef("A")));
+        final VersionedConfigurationStep survivor = createVersionedStep("survivor", Map.of("b", createStringLiteralRef("B")));
+        node.transitionStateForUpdating();
+        node.prepareForUpdate();
+        node.inheritConfiguration(List.of(obsolete, survivor), List.of(obsolete, survivor), bundle);
+
+        assertTrue(node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("obsolete-step").isEmpty());
+        assertEquals(Set.of("b"), node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("survivor"));
+    }
+
+    private static class MigratingConnector extends TrackingConnector {
+        private java.util.function.Consumer<ConnectorPropertyConfiguration> migration = config -> { };
+
+        public void setMigration(final java.util.function.Consumer<ConnectorPropertyConfiguration> migration) {
+            this.migration = migration;
+        }
+
+        @Override
+        public void migrateProperties(final ConnectorPropertyConfiguration config) {
+            migration.accept(config);
         }
     }
 }

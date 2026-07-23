@@ -60,6 +60,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.GroupedComponent;
+import org.apache.nifi.migration.StandardConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.StringUtils;
@@ -76,6 +77,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -378,41 +380,71 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 final Bundle flowContextBundle) throws FlowUpdateException {
 
         logger.debug("Inheriting configuration for {}", this);
-        final MutableConnectorConfigurationContext configurationContext = createConfigurationContext(activeConfig);
-        final FrameworkFlowContext inheritContext = flowContextFactory.createWorkingFlowContext(identifier,
-            connectorDetails.getComponentLog(), configurationContext, flowContextBundle);
 
-        // Apply the update for the active config
+        // Give the Connector a chance to evolve its persisted property/step names before we build the runtime
+        // configuration contexts. Active and working configs are migrated independently because they can diverge.
+        final Map<String, Map<String, ConnectorValueReference>> migratedActiveProperties = migrateProperties(activeConfig);
+        final Map<String, Map<String, ConnectorValueReference>> migratedWorkingProperties = migrateProperties(workingConfig);
+
+        final MutableConnectorConfigurationContext activeSeedContext = createConfigurationContext(migratedActiveProperties);
+        final FrameworkFlowContext inheritContext = flowContextFactory.createWorkingFlowContext(identifier,
+            connectorDetails.getComponentLog(), activeSeedContext, flowContextBundle);
+
+        // Apply the active configuration. This restores activeFlowContext to migratedActiveProperties and internally
+        // rebuilds workingFlowContext aliased to activeFlowContext's configuration; we discard that alias below and
+        // construct an independent working context so active and working do not share configuration state when the
+        // two lists actually diverge.
         applyUpdate(inheritContext);
 
-        // Configure the working config but do not apply
-        for (final VersionedConfigurationStep step : workingConfig) {
-            final StepConfiguration stepConfig = createStepConfiguration(step);
-            setConfiguration(step.getName(), stepConfig, true);
+        // Tear down the working context that applyUpdate created aliased to active, and rebuild it around an
+        // independent configuration seeded from migratedWorkingProperties. Then fire onConfigurationStepConfigured
+        // for every step so renamed steps trigger the flow-builder callback under their new name and any
+        // value-derived flow state (resolved asset paths, secret values, etc.) is populated against the fresh
+        // working context.
+        destroyWorkingContext();
+        final MutableConnectorConfigurationContext workingConfigContext = createConfigurationContext(migratedWorkingProperties);
+        workingFlowContext = flowContextFactory.createWorkingFlowContext(identifier,
+            connectorDetails.getComponentLog(), workingConfigContext, flowContextBundle);
+        getComponentLog().info("Working Flow Context has been rebuilt with independent configuration");
+        for (final String stepName : migratedWorkingProperties.keySet()) {
+            notifyStepConfigured(stepName);
         }
 
         logger.debug("Successfully inherited configuration for {}", this);
     }
 
-    private StepConfiguration createStepConfiguration(final VersionedConfigurationStep step) {
+    private Map<String, Map<String, ConnectorValueReference>> migrateProperties(final List<VersionedConfigurationStep> flowConfiguration) {
+        // Preserve persisted step order so the notifyStepConfigured loop in inheritConfiguration fires in a
+        // deterministic order matching the flow definition.
+        final Map<String, Map<String, ConnectorValueReference>> initial = new LinkedHashMap<>();
+        for (final VersionedConfigurationStep versionedConfigStep : flowConfiguration) {
+            initial.put(versionedConfigStep.getName(), toValueReferenceMap(versionedConfigStep));
+        }
+
+        final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+            getConnector().migrateProperties(propertyConfiguration);
+        }
+        return propertyConfiguration.getMutatedProperties();
+    }
+
+    private Map<String, ConnectorValueReference> toValueReferenceMap(final VersionedConfigurationStep step) {
         final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
         if (step.getProperties() != null) {
             for (final Map.Entry<String, VersionedConnectorValueReference> entry : step.getProperties().entrySet()) {
-                final ConnectorValueReference valueReference = createValueReference(entry.getValue());
-                convertedProperties.put(entry.getKey(), valueReference);
+                convertedProperties.put(entry.getKey(), createValueReference(entry.getValue()));
             }
         }
-
-        return new StepConfiguration(convertedProperties);
+        return convertedProperties;
     }
 
-    private MutableConnectorConfigurationContext createConfigurationContext(final List<VersionedConfigurationStep> flowConfiguration) {
+    private MutableConnectorConfigurationContext createConfigurationContext(final Map<String, Map<String, ConnectorValueReference>> migratedConfiguration) {
         final StandardConnectorConfigurationContext configurationContext = new StandardConnectorConfigurationContext(
             initializationContext.getAssetManager(), initializationContext.getSecretsManager());
 
-        for (final VersionedConfigurationStep versionedConfigStep : flowConfiguration) {
-            final StepConfiguration stepConfig = createStepConfiguration(versionedConfigStep);
-            configurationContext.setProperties(versionedConfigStep.getName(), stepConfig);
+        for (final Map.Entry<String, Map<String, ConnectorValueReference>> entry : migratedConfiguration.entrySet()) {
+            final StepConfiguration stepConfig = new StepConfiguration(new HashMap<>(entry.getValue()));
+            configurationContext.setProperties(entry.getKey(), stepConfig);
         }
 
         return configurationContext;
