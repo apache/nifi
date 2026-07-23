@@ -23,9 +23,13 @@ add_property() {
   property_value=$2
 
   if [ -n "${property_value}" ]; then
-    xmlstarlet ed --inplace --subnode "${property_xpath}" --type elem -n property -v "${property_value}" \
-      -i \$prev --type attr -n name -v "${property_name}" \
-      "${providers_file}"
+    if xmlstarlet sel -Q -t -c "${property_xpath}/property[@name='${property_name}']" "${providers_file}"; then
+      xmlstarlet ed --inplace -u "${property_xpath}/property[@name='${property_name}']" -v "${property_value}" "${providers_file}"
+    else
+      xmlstarlet ed --inplace --subnode "${property_xpath}" --type elem -n property -v "${property_value}" \
+        -i \$prev --type attr -n name -v "${property_name}" \
+        "${providers_file}"
+    fi
   fi
 }
 
