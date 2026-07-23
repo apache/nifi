@@ -31,7 +31,7 @@ public class TestNeo4JCypherQueryGeneratorService {
     @Test
     void testGenerateSetPropertiesMutationForNode() {
         final Neo4JCypherQueryGeneratorService service = new Neo4JCypherQueryGeneratorService();
-        final LinkedHashMap<String, Object> identifiers = new LinkedHashMap<>();
+        final Map<String, Object> identifiers = new LinkedHashMap<>();
         identifiers.put("id", 123L);
         final Map<String, Object> properties = Map.of("price", 100, "age", "10");
 
@@ -49,7 +49,7 @@ public class TestNeo4JCypherQueryGeneratorService {
     @Test
     void testGenerateSetPropertiesMutationForEdgeUsesMatchQuery() {
         final Neo4JCypherQueryGeneratorService service = new Neo4JCypherQueryGeneratorService();
-        final LinkedHashMap<String, Object> identifiers = new LinkedHashMap<>();
+        final Map<String, Object> identifiers = new LinkedHashMap<>();
         identifiers.put("edgeId", "123");
         final Map<String, Object> properties = Map.of("weight", 7);
 
@@ -73,7 +73,7 @@ public class TestNeo4JCypherQueryGeneratorService {
     @Test
     void testGenerateSetPropertiesMutationRejectsNullIdentifierValue() {
         final Neo4JCypherQueryGeneratorService service = new Neo4JCypherQueryGeneratorService();
-        final LinkedHashMap<String, Object> identifiers = new LinkedHashMap<>();
+        final Map<String, Object> identifiers = new LinkedHashMap<>();
         identifiers.put("id", null);
 
         assertThrows(ProcessException.class, () -> service.generateSetPropertiesMutation(GraphElementType.NODE, identifiers, "Person", Map.of()));
@@ -82,7 +82,7 @@ public class TestNeo4JCypherQueryGeneratorService {
     @Test
     void testGenerateSetPropertiesMutationRejectsInvalidToken() {
         final Neo4JCypherQueryGeneratorService service = new Neo4JCypherQueryGeneratorService();
-        final LinkedHashMap<String, Object> identifiers = new LinkedHashMap<>();
+        final Map<String, Object> identifiers = new LinkedHashMap<>();
         identifiers.put("edge-id", "123");
 
         assertThrows(ProcessException.class, () -> service.generateSetPropertiesMutation(GraphElementType.EDGE, identifiers, "ASSOCIATED_WITH", Map.of()));
