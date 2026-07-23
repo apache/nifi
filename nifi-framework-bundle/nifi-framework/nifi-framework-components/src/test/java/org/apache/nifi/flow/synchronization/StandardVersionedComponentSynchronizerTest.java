@@ -1073,6 +1073,198 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalControllerServiceParameterReferencePreserved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // A controller-service-identifying property is configured with a Parameter reference (#{svc}) that resolves to a
+        // controller service living outside this process group. The proposed (versioned) flow references the property via
+        // the SAME parameter reference. Synchronizing must PRESERVE the parameter reference.
+        //
+        // Bug: populatePropertiesMap resolves the effective value (#{svc} -> concrete service id), finds that id as an
+        // existing external controller service, and pins the property to the concrete instance id -- silently dropping the
+        // parameterization. On the next flow comparison this surfaces as DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED.
+        // This test asserts the correct behavior and therefore fails against the current implementation.
+        final String parameterReference = "#{svc}";
+        final String externalServiceId = "external-service-id";
+
+        final PropertyDescriptor descriptorCS = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorCS, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorCS = new VersionedPropertyDescriptor();
+        versionedDescriptorCS.setName(descriptorCS.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorCS.getName(), versionedDescriptorCS);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorCS, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("cs"))).thenReturn(descriptorCS);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        // #{svc} resolves to the concrete id of a controller service outside this group.
+        when(processorNode.getEffectivePropertyValue(eq(descriptorCS))).thenReturn(externalServiceId);
+        when(processorNode.isReferencingParameter(eq(descriptorCS.getName()))).thenReturn(true);
+
+        final ProcessGroup processGroup = processorNode.getProcessGroup();
+        final ProcessGroup processGroupParent = mock(ProcessGroup.class);
+        final ControllerServiceNode externalService = createMockControllerService();
+        when(processGroup.getParent()).thenReturn(processGroupParent);
+        when(processGroupParent.findControllerService(eq(externalServiceId), eq(false), eq(true))).thenReturn(externalService);
+
+        // Proposed flow references the property via the SAME parameter reference.
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("cs", parameterReference);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.forClass(Map.class);
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(parameterReference, properties.get("cs"),
+                "Controller-service property configured with a Parameter reference was flattened to the resolved service id");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testNonControllerServiceParameterReferencePreserved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // A regular (non-CS-identifying) property is configured with a Parameter reference (#{my_param}).
+        // The proposed (versioned) flow references the same parameter. Synchronizing must preserve the
+        // parameter reference rather than substituting any resolved effective value.
+        final String parameterReference = "#{my_param}";
+        final String effectiveValue = "resolved-value";
+
+        final PropertyDescriptor descriptorA = new PropertyDescriptor.Builder().name("a").build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorA, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorA = new VersionedPropertyDescriptor();
+        versionedDescriptorA.setName(descriptorA.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorA.getName(), versionedDescriptorA);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorA, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("a"))).thenReturn(descriptorA);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        when(processorNode.getEffectivePropertyValue(eq(descriptorA))).thenReturn(effectiveValue);
+        when(processorNode.isReferencingParameter(eq(descriptorA.getName()))).thenReturn(true);
+
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("a", parameterReference);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.forClass(Map.class);
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(parameterReference, properties.get("a"),
+                "Non-CS property configured with a Parameter reference should preserve the reference, not resolve it");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testNonControllerServiceParameterChangedToHardCoded() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // When the proposed flow replaces a Parameter reference with a hard-coded value on a non-CS property,
+        // the synchronizer must use the hard-coded proposed value, not the old parameter reference.
+        final String parameterReference = "#{my_param}";
+        final String newExplicitValue = "new-explicit-value";
+
+        final PropertyDescriptor descriptorA = new PropertyDescriptor.Builder().name("a").build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorA, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorA = new VersionedPropertyDescriptor();
+        versionedDescriptorA.setName(descriptorA.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorA.getName(), versionedDescriptorA);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorA, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("a"))).thenReturn(descriptorA);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        when(processorNode.isReferencingParameter(eq(descriptorA.getName()))).thenReturn(true);
+
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("a", newExplicitValue);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.forClass(Map.class);
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(newExplicitValue, properties.get("a"),
+                "Non-CS property previously set via Parameter reference should adopt the hard-coded value from the proposed flow");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testControllerServiceParameterChangedToHardCoded() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // When the proposed flow replaces a Parameter reference with a hard-coded versioned component ID on
+        // a CS-identifying property, the synchronizer must resolve the versioned ID to the local instance ID.
+        final String parameterReference = "#{svc}";
+        final String versionedCsId = "versioned-cs-uuid";
+
+        final PropertyDescriptor descriptorCS = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorCS, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorCS = new VersionedPropertyDescriptor();
+        versionedDescriptorCS.setName(descriptorCS.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorCS.getName(), versionedDescriptorCS);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorCS, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("cs"))).thenReturn(descriptorCS);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        when(processorNode.isReferencingParameter(eq(descriptorCS.getName()))).thenReturn(true);
+
+        // Wire up a local controller service that the versioned ID resolves to.
+        final ControllerServiceNode localService = createMockControllerService();
+        when(localService.getVersionedComponentId()).thenReturn(Optional.of(versionedCsId));
+        when(group.getControllerServices(false)).thenReturn(Set.of(localService));
+
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("cs", versionedCsId);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.forClass(Map.class);
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(localService.getIdentifier(), properties.get("cs"),
+                "CS-identifying property previously set via Parameter reference should be resolved to the local service instance ID");
+    }
+
+    @Test
     public void testControllerServiceRemoved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final ControllerServiceNode service = createMockControllerService();
         when(service.isActive()).thenReturn(true);
