@@ -20,7 +20,7 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="shortcut icon" href="/nifi-registry-docs/images/registry-favicon.png"/>
+        <link rel="shortcut icon" href="${pageContext.request.contextPath}/images/registry-favicon.png"/>
         <title>NiFi Registry Documentation</title>
         <script type="text/javascript" src="js/jquery.min.js"></script>
         <script type="text/javascript" src="js/application.js"></script>

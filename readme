@@ -1,0 +1,8 @@
+Build the NiFi Source First, you need to compile the source code you just patched so that it generates those .zip files. From the root (C:\MyData\Test\nifi-2.4.0-source-release\original-repo\nifi), run:
+
+Run - mvn clean install -DskipTests
+(Note: This might take ~10-15 minutes since NiFi is huge. It will create nifi-assembly/target/nifi-2.4.0-bin.zip and nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-2.4.0-bin.zip)
+
+Move the Zips to your Docker folder Copy those two generated .zip files into your nifi-docker/dockerhub/ folder so Docker can see them.
+
+docker build -f Dockerfile-local -t nifi:2.4.0-custom .

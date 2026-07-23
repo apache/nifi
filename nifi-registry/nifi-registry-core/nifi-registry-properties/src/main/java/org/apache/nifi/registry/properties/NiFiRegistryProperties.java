@@ -59,6 +59,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public static final String WEB_WORKING_DIR = "nifi.registry.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.registry.web.jetty.threads";
+    public static final String WEB_CONTEXT_PATH = "nifi.registry.web.context.path";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.registry.web.should.send.server.version";
 
     public static final String SECURITY_KEYSTORE = "nifi.registry.security.keystore";
@@ -513,5 +514,31 @@ public class NiFiRegistryProperties extends ApplicationProperties {
             }
         }
         return networkInterfaceNames;
+    }
+
+    /**
+     * Returns the web context path prefix. The path will be normalized to ensure it starts with a leading slash
+     * and does not end with a trailing slash. Returns an empty string if not configured.
+     *
+     * @return the normalized context path prefix (e.g., "/integration-hub")
+     */
+    public String getWebContextPath() {
+        final String contextPath = getProperty(WEB_CONTEXT_PATH);
+        if (StringUtils.isBlank(contextPath)) {
+            return "";
+        }
+        return normalizeContextPath(contextPath.trim());
+    }
+
+    private String normalizeContextPath(String cp) {
+        if (cp == null || cp.equalsIgnoreCase("")) {
+            return "";
+        } else {
+            String trimmedCP = cp.trim();
+            // Ensure it starts with a leading slash and does not end in a trailing slash
+            trimmedCP = trimmedCP.startsWith("/") ? trimmedCP : "/" + trimmedCP;
+            trimmedCP = trimmedCP.endsWith("/") ? trimmedCP.substring(0, trimmedCP.length() - 1) : trimmedCP;
+            return trimmedCP;
+        }
     }
 }

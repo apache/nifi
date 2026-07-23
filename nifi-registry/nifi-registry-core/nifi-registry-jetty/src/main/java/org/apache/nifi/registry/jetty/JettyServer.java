@@ -155,6 +155,10 @@ public class JettyServer {
     }
 
     protected List<URI> getApplicationUrls() {
+        // Get the context path prefix and build the full application path
+        final String contextPathPrefix = properties.getWebContextPath();
+        final String applicationPath = contextPathPrefix + APPLICATION_PATH;
+
         return Arrays.stream(server.getConnectors())
                 .map(connector -> (ServerConnector) connector)
                 .map(serverConnector -> {
@@ -164,7 +168,7 @@ public class JettyServer {
                     final String connectorHost = serverConnector.getHost();
                     final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
                     try {
-                        return new URI(scheme, null, host, port, APPLICATION_PATH, null, null);
+                        return new URI(scheme, null, host, port, applicationPath, null, null);
                     } catch (URISyntaxException e) {
                         throw new RuntimeException(e);
                     }
