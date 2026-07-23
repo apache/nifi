@@ -758,14 +758,12 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         lifecycleState.clearTerminationFlag();
+        lifecycleState.setScheduled(true);
 
-        // Schedule the component to be triggered, unless the engine is stateless. For stateless engine, we let the stateless
-        // framework take care of triggering components.
+        // Stateless components are driven by the stateless framework, so no scheduling agent is involved.
         if (connectable.getProcessGroup().resolveExecutionEngine() != ExecutionEngine.STATELESS) {
             getSchedulingAgent(connectable).schedule(connectable, lifecycleState);
         }
-
-        lifecycleState.setScheduled(true);
     }
 
     private synchronized void stopConnectable(final Connectable connectable) {
