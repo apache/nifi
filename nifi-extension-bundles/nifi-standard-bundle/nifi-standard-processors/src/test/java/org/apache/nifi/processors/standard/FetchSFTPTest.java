@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class TestFetchSFTP {
+class FetchSFTPTest {
 
     private static final String SOURCE_FILENAME = "test.txt";
     private static final String SOURCE_CONTENTS = "source content";
@@ -103,7 +103,7 @@ class TestFetchSFTP {
         runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
         runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, DESTINATION_DIR);
         runner.setProperty(FetchFileTransfer.MOVE_CREATE_DIRECTORY, Boolean.FALSE.toString());
-        runner.setProperty(FetchFileTransfer.MOVE_CONFLICT_RESOLUTION, FetchFileTransfer.CONFLICT_RESOLUTION_REPLACE.getValue());
+        runner.setProperty(FetchFileTransfer.MOVE_CONFLICT_RESOLUTION, FetchFileTransfer.MoveConflictResolution.REPLACE.getValue());
 
         runner.enqueue(new byte[0]);
         runner.run();
