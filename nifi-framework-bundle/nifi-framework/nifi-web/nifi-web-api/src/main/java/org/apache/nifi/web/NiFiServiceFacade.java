@@ -152,6 +152,7 @@ import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -1768,6 +1769,49 @@ public interface NiFiServiceFacade {
      * @throws IllegalStateException if the Process Group with the given ID is not under version control
      */
     FlowComparisonEntity getLocalModifications(String processGroupId);
+
+    /**
+     * Performs a rebase analysis for the given Process Group, comparing local modifications against
+     * upstream changes between the current version and the specified target version.
+     *
+     * @param processGroupId the ID of the Process Group
+     * @param targetVersion the target version to rebase to
+     * @return a RebaseAnalysisEntity that contains the analysis of local and upstream changes
+     * @throws IllegalStateException if the Process Group with the given ID is not under version control
+     */
+    RebaseAnalysisEntity getRebaseAnalysis(String processGroupId, String targetVersion);
+
+    /**
+     * Verifies that the Process Group with the given identifier can be rebased to a new version.
+     *
+     * @param processGroupId the ID of the Process Group
+     * @param targetVersion the target version to rebase to
+     * @throws IllegalStateException if the Process Group cannot be rebased
+     */
+    void verifyCanRebase(String processGroupId, String targetVersion);
+
+    /**
+     * Returns a FlowSnapshotContainer for the target version of the flow with the merged rebase contents applied.
+     * This re-runs the rebase analysis and verifies the fingerprint before producing the merged snapshot.
+     *
+     * @param processGroupId the ID of the Process Group
+     * @param targetVersion the target version to rebase to
+     * @param expectedAnalysisFingerprint the expected analysis fingerprint to validate that the analysis has not changed
+     * @return a FlowSnapshotContainer containing the target version snapshot with merged local changes applied
+     * @throws IllegalStateException if the rebase is not allowed or the fingerprint does not match
+     */
+    FlowSnapshotContainer getRebasedFlowSnapshot(String processGroupId, String targetVersion, String expectedAnalysisFingerprint);
+
+    /**
+     * Resets the Version Control Information snapshot for a process group to the clean target version after a rebase.
+     * The rebase synchronizes the flow to the merged snapshot (target version plus preserved local changes); this
+     * re-fetches the clean target version from the Flow Registry and stores it as the VCI snapshot so that subsequent
+     * local modification checks correctly detect the preserved local changes. It relies only on the process group's own
+     * Version Control Information, so it can be invoked on every node that applies the rebase.
+     *
+     * @param processGroupId the process group ID
+     */
+    void resetVersionControlSnapshotToCleanTarget(String processGroupId);
 
     /**
      * Determines whether the process group with the given id or any of its descendants are under version control.

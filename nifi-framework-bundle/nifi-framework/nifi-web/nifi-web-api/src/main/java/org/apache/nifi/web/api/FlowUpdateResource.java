@@ -111,6 +111,17 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                                                             final boolean verifyNotModified, final boolean updateDescendantVersionedFlows);
 
     /**
+     * Invoked after a flow update has been successfully applied on this node, allowing subclasses to perform
+     * request-type-specific post-processing (for example, a rebase adjusting the Version Control Information). The
+     * default implementation does nothing.
+     *
+     * @param groupId     the id of the process group that was updated
+     * @param requestType the type of update request that was performed
+     */
+    protected void postProcessFlowUpdate(final String groupId, final String requestType) {
+    }
+
+    /**
      * Create the entity that is passed for update flow replication
      */
     protected abstract Entity createReplicateUpdateFlowEntity(final Revision revision, final T requestEntity,
@@ -282,7 +293,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                         updateFlow(groupId, wrapper.getComponentLifecycle(), wrapper.getRequestUri(),
                                 wrapper.getAffectedComponents(), wrapper.isReplicateRequest(), wrapper.getReplicateUriPath(),
                                 revision, wrapper.getRequestEntity(), wrapper.getFlowSnapshot(), request,
-                                idGenerationSeed, allowDirtyFlowUpdate);
+                                idGenerationSeed, allowDirtyFlowUpdate, requestType);
 
                         // no need to store any result of above flow update because it's not used
                         vcur.markStepComplete();
@@ -323,7 +334,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                             final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest,
                             final String replicateUriPath, final Revision revision, final T requestEntity,
                             final RegisteredFlowSnapshot flowSnapshot, final AsynchronousWebRequest<T, T> asyncRequest,
-                            final String idGenerationSeed, final boolean allowDirtyFlowUpdate)
+                            final String idGenerationSeed, final boolean allowDirtyFlowUpdate, final String requestType)
             throws LifecycleManagementException, ResumeFlowException {
 
         // Steps 5-6: Determine which components must be stopped and stop them.
@@ -435,6 +446,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 // Each concrete class defines its own update flow functionality
                 try {
                     performUpdateFlow(groupId, currentGroupRevision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true);
+                    postProcessFlowUpdate(groupId, requestType);
                 } catch (final Exception e) {
                     // If clustered, just throw the original Exception.
                     // Otherwise, rollback the flow update. We do not perform the rollback if clustered because
