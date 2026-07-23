@@ -43,6 +43,8 @@ import org.apache.nifi.cdc.mysql.MockBinlogClient;
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
+import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -83,9 +85,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -188,6 +193,86 @@ public class CaptureChangeMySQLTest {
         SSLSocketFactory sslSocketFactory = client.getSslSocketFactory();
         assertNotNull(sslSocketFactory, "Binary Log SSLSocketFactory not found");
         assertEquals(BinaryLogSSLSocketFactory.class, sslSocketFactory.getClass(), "Binary Log SSLSocketFactory class not matched");
+    }
+
+    @Test
+    public void testPasswordSourceProviderWithoutControllerServiceNotValid() {
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
+        testRunner.setProperty(CaptureChangeMySQL.PASSWORD_SOURCE, CaptureChangeMySQL.PasswordSource.PASSWORD_PROVIDER);
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testPasswordSourceProviderWithControllerServiceValid(@Mock DatabasePasswordProvider passwordProvider) throws InitializationException {
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
+        testRunner.setProperty(CaptureChangeMySQL.PASSWORD_SOURCE, CaptureChangeMySQL.PasswordSource.PASSWORD_PROVIDER);
+
+        final String identifier = DatabasePasswordProvider.class.getName();
+        when(passwordProvider.getIdentifier()).thenReturn(identifier);
+        testRunner.addControllerService(identifier, passwordProvider);
+        testRunner.enableControllerService(passwordProvider);
+        testRunner.setProperty(CaptureChangeMySQL.DB_PASSWORD_PROVIDER, identifier);
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testPasswordProviderTokenUsedOnRun(@Mock DatabasePasswordProvider passwordProvider) throws InitializationException {
+        final String identifier = DatabasePasswordProvider.class.getName();
+        when(passwordProvider.getIdentifier()).thenReturn(identifier);
+        when(passwordProvider.getPassword(any())).thenReturn("token".toCharArray());
+        testRunner.addControllerService(identifier, passwordProvider);
+        testRunner.enableControllerService(passwordProvider);
+
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION);
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, ROOT_USER);
+        testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+        testRunner.setProperty(CaptureChangeMySQL.PASSWORD_SOURCE, CaptureChangeMySQL.PasswordSource.PASSWORD_PROVIDER);
+        testRunner.setProperty(CaptureChangeMySQL.DB_PASSWORD_PROVIDER, identifier);
+
+        testRunner.run(1, false, true);
+
+        verify(passwordProvider, atLeastOnce()).getPassword(any(DatabasePasswordRequestContext.class));
+    }
+
+    @Test
+    public void testPasswordProviderEmptyTokenThrowsProcessException(@Mock DatabasePasswordProvider passwordProvider) throws InitializationException {
+        final String identifier = DatabasePasswordProvider.class.getName();
+        when(passwordProvider.getIdentifier()).thenReturn(identifier);
+        when(passwordProvider.getPassword(any())).thenReturn(new char[0]);
+        testRunner.addControllerService(identifier, passwordProvider);
+        testRunner.enableControllerService(passwordProvider);
+
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION);
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, ROOT_USER);
+        testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+        testRunner.setProperty(CaptureChangeMySQL.PASSWORD_SOURCE, CaptureChangeMySQL.PasswordSource.PASSWORD_PROVIDER);
+        testRunner.setProperty(CaptureChangeMySQL.DB_PASSWORD_PROVIDER, identifier);
+
+        final AssertionError assertionError = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertInstanceOf(ProcessException.class, assertionError.getCause());
+        assertEquals("Database Password Provider returned an empty password", assertionError.getCause().getMessage());
+    }
+
+    @Test
+    public void testPasswordProviderNullTokenThrowsProcessException(@Mock DatabasePasswordProvider passwordProvider) throws InitializationException {
+        final String identifier = DatabasePasswordProvider.class.getName();
+        when(passwordProvider.getIdentifier()).thenReturn(identifier);
+        when(passwordProvider.getPassword(any())).thenReturn(null);
+        testRunner.addControllerService(identifier, passwordProvider);
+        testRunner.enableControllerService(passwordProvider);
+
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION);
+        testRunner.setProperty(CaptureChangeMySQL.USERNAME, ROOT_USER);
+        testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+        testRunner.setProperty(CaptureChangeMySQL.PASSWORD_SOURCE, CaptureChangeMySQL.PasswordSource.PASSWORD_PROVIDER);
+        testRunner.setProperty(CaptureChangeMySQL.DB_PASSWORD_PROVIDER, identifier);
+
+        final AssertionError assertionError = assertThrows(AssertionError.class, () -> testRunner.run());
+        assertInstanceOf(ProcessException.class, assertionError.getCause());
+        assertEquals("Database Password Provider returned an empty password", assertionError.getCause().getMessage());
     }
 
     @Test
