@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BacklogRequestDTO;
@@ -30,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -59,9 +59,6 @@ public class BacklogRequestEndpointMerger extends AbstractSingleEntityEndpoint<B
             Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}/backlog-requests(/[a-f0-9\\-]{36})?");
     public static final Pattern CONNECTOR_BACKLOG_REQUEST_URI_PATTERN =
             Pattern.compile("/nifi-api/connectors/[a-f0-9\\-]{36}/backlog-requests(/[a-f0-9\\-]{36})?");
-
-    public static final String PRECISION_EXACT = "EXACT";
-    public static final String PRECISION_AT_LEAST = "AT_LEAST";
 
     private static final long NOW_WINDOW_MILLISECONDS = 3000L;
 
@@ -131,26 +128,32 @@ public class BacklogRequestEndpointMerger extends AbstractSingleEntityEndpoint<B
      * Mutates {@code clientEntity} in-place so that its {@code backlog} field reflects the cluster-wide
      * aggregation across the provided entities. Visible for testing.
      *
+     * <p>Each reporting node's {@link BacklogDTO} is converted back into a {@link Backlog} and the nodes are
+     * combined with {@link Backlog#plus(Backlog)}, so the numeric-summation, precision, and earliest-timestamp
+     * rules are defined in exactly one place — the nifi-api {@code Backlog} type — rather than being
+     * re-implemented here. The cluster-specific rules below are then layered on top of that combination.</p>
+     *
      * <p>Aggregation rules:</p>
      * <ul>
      *     <li>
-     *         Numeric dimensions ({@code flowFileCount}, {@code byteCount}, {@code recordCount}): treat a
-     *         {@code null} per-node value as zero for summation. Emit the sum unless every reporting node
-     *         had {@code null} for that dimension, in which case emit {@code null} on the merged DTO so
-     *         the JSON output continues to omit the dimension.
+     *         Numeric dimensions ({@code flowFileCount}, {@code byteCount}, {@code recordCount}): a dimension
+     *         a node does not report is omitted rather than treated as zero, and {@link Backlog#plus(Backlog)}
+     *         sums the reported values. A dimension that no reporting node populated stays absent, so the JSON
+     *         output continues to omit it.
      *     </li>
      *     <li>
-     *         {@code precision}: emit {@code EXACT} only if every reporting node reported {@code EXACT},
-     *         every reporting node reported the same set of populated numeric dimensions, <i>and</i> no
-     *         node returned {@code backlog == null}. If any node returned {@code backlog == null} the
-     *         cluster total is by definition a lower bound — the unknown node could be holding additional
-     *         work — so emit {@code AT_LEAST}.
+     *         {@code precision}: {@link Backlog#plus(Backlog)} yields {@code EXACT} only when every reporting
+     *         node is {@code EXACT} and every node that reports numeric dimensions reports the same set of them;
+     *         a node that reports no numeric dimensions (for example, only a {@code lastCaughtUp}) contributes
+     *         no numeric uncertainty. In addition, if any node returned {@code backlog == null} the cluster
+     *         total is by definition a lower bound — the unknown node could be holding additional work — so the
+     *         merged precision is forced to {@code AT_LEAST}.
      *     </li>
      *     <li>
-     *         {@code lastCaughtUp}: emit the minimum (earliest) ISO-8601 timestamp across reporting nodes.
-     *         Emit {@code null} if any reporting node returned {@code null} for {@code lastCaughtUp},
-     *         <i>or</i> if any node returned {@code backlog == null}. The cluster cannot claim it is
-     *         caught up if any node has not reported.
+     *         {@code lastCaughtUp}: the earliest reported timestamp across reporting nodes. It is cleared to
+     *         {@code null} if any reporting node returned {@code null} for {@code lastCaughtUp} <i>or</i> if any
+     *         node returned {@code backlog == null}, because the cluster cannot claim it is caught up unless
+     *         every node reported that it was.
      *     </li>
      *     <li>
      *         A per-node response whose {@code backlog} property is {@code null} counts as "no value to
@@ -165,64 +168,100 @@ public class BacklogRequestEndpointMerger extends AbstractSingleEntityEndpoint<B
      * @param entities every per-node entity contributing to the merge, including the client entity
      */
     static void mergeEntities(final BacklogEntity clientEntity, final List<BacklogEntity> entities) {
-        final List<BacklogDTO> reportingNodeDtos = new ArrayList<>(entities.size());
+        final List<Backlog> reportingBacklogs = new ArrayList<>(entities.size());
         boolean anyNodeMissingBacklog = false;
+        boolean anyNodeMissingLastCaughtUp = false;
         for (final BacklogEntity entity : entities) {
-            if (entity == null) {
-                // A null entity is treated as a non-reporting node for the same reason a null backlog is:
-                // the cluster has no value from that node and therefore cannot claim completeness.
+            final BacklogDTO dto = entity == null ? null : entity.getBacklog();
+            if (dto == null) {
+                // A null entity or a null backlog is a non-reporting node: the cluster has no value from that
+                // node and therefore cannot claim completeness for the dimensions it might be holding.
                 anyNodeMissingBacklog = true;
                 continue;
             }
 
-            final BacklogDTO dto = entity.getBacklog();
-            if (dto == null) {
-                anyNodeMissingBacklog = true;
-            } else {
-                reportingNodeDtos.add(dto);
+            reportingBacklogs.add(toBacklog(dto));
+            if (dto.getLastCaughtUp() == null) {
+                anyNodeMissingLastCaughtUp = true;
             }
         }
 
-        if (reportingNodeDtos.isEmpty()) {
+        if (reportingBacklogs.isEmpty()) {
             clientEntity.setBacklog(null);
             return;
         }
 
-        final BacklogDTO merged = new BacklogDTO();
-        final Long mergedFlowFileCount = sumDimension(reportingNodeDtos, BacklogDTO::getFlowFileCount);
-        final Long mergedByteCount = sumDimension(reportingNodeDtos, BacklogDTO::getByteCount);
-        final Long mergedRecordCount = sumDimension(reportingNodeDtos, BacklogDTO::getRecordCount);
-
-        merged.setFlowFileCount(mergedFlowFileCount);
-        if (mergedFlowFileCount != null) {
-            merged.setFormattedFlowFileCount(FormatUtils.formatCount(mergedFlowFileCount));
+        Backlog combined = reportingBacklogs.getFirst();
+        for (int i = 1; i < reportingBacklogs.size(); i++) {
+            combined = combined.plus(reportingBacklogs.get(i));
         }
 
-        merged.setByteCount(mergedByteCount);
-        if (mergedByteCount != null) {
-            merged.setFormattedByteCount(FormatUtils.formatDataSize(mergedByteCount));
-        }
+        // A non-reporting node could be holding additional work, so its absence taints the merged counts.
+        final Backlog.Precision precision = anyNodeMissingBacklog ? Backlog.Precision.AT_LEAST : combined.getPrecision();
+        // The cluster can only claim it is caught up when every node reported and every reporting node supplied
+        // a lastCaughtUp; otherwise the earliest-timestamp claim would rest on incomplete data.
+        final boolean clusterMayBeCaughtUp = !anyNodeMissingBacklog && !anyNodeMissingLastCaughtUp;
 
-        merged.setRecordCount(mergedRecordCount);
-        if (mergedRecordCount != null) {
-            merged.setFormattedRecordCount(FormatUtils.formatCount(mergedRecordCount));
-        }
-
-        // If any node was unable to report, the cluster cannot claim "caught up" — that claim
-        // requires every node to have observed itself caught up.
-        final String mergedLastCaughtUp = anyNodeMissingBacklog ? null : minLastCaughtUp(reportingNodeDtos);
-        merged.setLastCaughtUp(mergedLastCaughtUp);
-        if (mergedLastCaughtUp != null) {
-            merged.setFormattedLastCaughtUp(computeFormattedLastCaughtUp(mergedLastCaughtUp, merged));
-        }
-
-        merged.setPrecision(mergePrecision(reportingNodeDtos, anyNodeMissingBacklog));
-
-        clientEntity.setBacklog(merged);
+        clientEntity.setBacklog(toDto(combined, precision, clusterMayBeCaughtUp));
     }
 
-    private static String computeFormattedLastCaughtUp(final String mergedLastCaughtUp, final BacklogDTO merged) {
-        final Instant lastCaughtUp = Instant.parse(mergedLastCaughtUp);
+    private static Backlog toBacklog(final BacklogDTO dto) {
+        final Backlog.Builder builder = Backlog.builder();
+        if (dto.getFlowFileCount() != null) {
+            builder.flowFiles(dto.getFlowFileCount());
+        }
+
+        if (dto.getByteCount() != null) {
+            builder.bytes(dto.getByteCount());
+        }
+
+        if (dto.getRecordCount() != null) {
+            builder.records(dto.getRecordCount());
+        }
+
+        if (dto.getLastCaughtUp() != null) {
+            builder.lastCaughtUp(Instant.parse(dto.getLastCaughtUp()));
+        }
+
+        // Any value other than the exact EXACT marker, including a missing precision, is treated as a lower
+        // bound so the merged result never over-claims exactness.
+        final boolean exact = Backlog.Precision.EXACT.name().equals(dto.getPrecision());
+        builder.precision(exact ? Backlog.Precision.EXACT : Backlog.Precision.AT_LEAST);
+        return builder.build();
+    }
+
+    private static BacklogDTO toDto(final Backlog combined, final Backlog.Precision precision, final boolean clusterMayBeCaughtUp) {
+        final BacklogDTO merged = new BacklogDTO();
+        merged.setPrecision(precision.name());
+
+        if (combined.getFlowFileCount().isPresent()) {
+            final long flowFileCount = combined.getFlowFileCount().getAsLong();
+            merged.setFlowFileCount(flowFileCount);
+            merged.setFormattedFlowFileCount(FormatUtils.formatCount(flowFileCount));
+        }
+
+        if (combined.getByteCount().isPresent()) {
+            final long byteCount = combined.getByteCount().getAsLong();
+            merged.setByteCount(byteCount);
+            merged.setFormattedByteCount(FormatUtils.formatDataSize(byteCount));
+        }
+
+        if (combined.getRecordCount().isPresent()) {
+            final long recordCount = combined.getRecordCount().getAsLong();
+            merged.setRecordCount(recordCount);
+            merged.setFormattedRecordCount(FormatUtils.formatCount(recordCount));
+        }
+
+        if (clusterMayBeCaughtUp && combined.getLastCaughtUp().isPresent()) {
+            final Instant lastCaughtUp = combined.getLastCaughtUp().get();
+            merged.setLastCaughtUp(lastCaughtUp.toString());
+            merged.setFormattedLastCaughtUp(computeFormattedLastCaughtUp(lastCaughtUp, merged));
+        }
+
+        return merged;
+    }
+
+    private static String computeFormattedLastCaughtUp(final Instant lastCaughtUp, final BacklogDTO merged) {
         final Instant now = Instant.now();
         if (isNumericallyCaughtUp(merged)
                 && Math.abs(now.toEpochMilli() - lastCaughtUp.toEpochMilli()) <= NOW_WINDOW_MILLISECONDS) {
@@ -240,69 +279,5 @@ public class BacklogRequestEndpointMerger extends AbstractSingleEntityEndpoint<B
 
     private static boolean isZeroOrNull(final Long value) {
         return value == null || value.longValue() == 0L;
-    }
-
-    private static Long sumDimension(final List<BacklogDTO> dtos, final Function<BacklogDTO, Long> accessor) {
-        long sum = 0L;
-        boolean anyPresent = false;
-        for (final BacklogDTO dto : dtos) {
-            final Long value = accessor.apply(dto);
-            if (value != null) {
-                sum += value;
-                anyPresent = true;
-            }
-        }
-
-        return anyPresent ? sum : null;
-    }
-
-    /**
-     * Returns the earliest {@code lastCaughtUp} timestamp across the supplied DTOs, formatted as
-     * ISO-8601. If any DTO returns {@code null}, returns {@code null} so the merged DTO continues
-     * to omit the field — the cluster cannot claim it is caught up if any node has not reported.
-     */
-    private static String minLastCaughtUp(final List<BacklogDTO> dtos) {
-        Instant earliest = null;
-        for (final BacklogDTO dto : dtos) {
-            final String candidate = dto.getLastCaughtUp();
-            if (candidate == null) {
-                return null;
-            }
-
-            final Instant candidateInstant = Instant.parse(candidate);
-            if (earliest == null || candidateInstant.isBefore(earliest)) {
-                earliest = candidateInstant;
-            }
-        }
-
-        return earliest == null ? null : earliest.toString();
-    }
-
-    private static String mergePrecision(final List<BacklogDTO> dtos, final boolean anyNodeMissingBacklog) {
-        if (anyNodeMissingBacklog) {
-            return PRECISION_AT_LEAST;
-        }
-
-        boolean allExact = true;
-        boolean shapesAgree = true;
-
-        final BacklogDTO firstDto = dtos.getFirst();
-        final boolean firstFlow = firstDto.getFlowFileCount() != null;
-        final boolean firstBytes = firstDto.getByteCount() != null;
-        final boolean firstRecords = firstDto.getRecordCount() != null;
-
-        for (final BacklogDTO dto : dtos) {
-            if (!PRECISION_EXACT.equals(dto.getPrecision())) {
-                allExact = false;
-            }
-
-            if ((dto.getFlowFileCount() != null) != firstFlow
-                    || (dto.getByteCount() != null) != firstBytes
-                    || (dto.getRecordCount() != null) != firstRecords) {
-                shapesAgree = false;
-            }
-        }
-
-        return (allExact && shapesAgree) ? PRECISION_EXACT : PRECISION_AT_LEAST;
     }
 }

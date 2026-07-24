@@ -230,6 +230,24 @@ public class BacklogRequestEndpointMergerTest {
     }
 
     @Test
+    public void testMergeEntitiesTimestampOnlyNodeDoesNotDowngradePrecision() {
+        // A node that reports only a lastCaughtUp (no numeric dimensions) contributes no numeric
+        // uncertainty, so it must not force the merged precision to AT_LEAST. This matches the
+        // combination rules defined by Backlog.plus(), which the merger now delegates to.
+        final BacklogEntity client = entityWith(backlog(10L, 100L, 1000L, "2026-05-15T10:00:00Z", "EXACT"));
+        final BacklogEntity timestampOnly = entityWith(backlog(null, null, null, "2026-05-15T09:00:00Z", "EXACT"));
+
+        BacklogRequestEndpointMerger.mergeEntities(client, Arrays.asList(client, timestampOnly));
+
+        final BacklogDTO merged = client.getBacklog();
+        assertEquals(10L, merged.getFlowFileCount());
+        assertEquals(100L, merged.getByteCount());
+        assertEquals(1000L, merged.getRecordCount());
+        assertEquals("EXACT", merged.getPrecision());
+        assertEquals("2026-05-15T09:00:00Z", merged.getLastCaughtUp());
+    }
+
+    @Test
     public void testMergeEntitiesDowngradesPrecisionWhenShapeDiffers() {
         final BacklogEntity client = entityWith(backlog(10L, 100L, null, "2026-05-15T10:00:00Z", "EXACT"));
         final BacklogEntity nodeTwo = entityWith(backlog(null, 50L, null, "2026-05-15T09:00:00Z", "EXACT"));
