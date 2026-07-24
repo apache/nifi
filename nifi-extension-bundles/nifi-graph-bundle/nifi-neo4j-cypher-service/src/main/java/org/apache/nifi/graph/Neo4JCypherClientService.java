@@ -37,6 +37,9 @@ import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
+import org.neo4j.driver.exceptions.ServiceUnavailableException;
+import org.neo4j.driver.exceptions.SessionExpiredException;
+import org.neo4j.driver.exceptions.TransientException;
 import org.neo4j.driver.internal.InternalNode;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.driver.summary.SummaryCounters;
@@ -288,8 +291,23 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
 
             return resultAttributes;
         } catch (Exception ex) {
+            if (isTransientConnectivityFailure(ex)) {
+                throw new GraphClientTransientException("Transient query execution failure", ex);
+            }
             throw new ProcessException("Query execution failed", ex);
         }
+    }
+
+    private static boolean isTransientConnectivityFailure(final Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof ServiceUnavailableException || current instanceof SessionExpiredException || current instanceof TransientException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+
+        return false;
     }
 
     @Override
