@@ -94,6 +94,11 @@ class StandardProcessSessionTest {
     private static final String BACK_PRESSURE_DATA_SIZE_THRESHOLD = "1 MB";
     private static final long BACK_PRESSURE_BYTES_THRESHOLD = 1048576;
 
+    private static final String SOURCE_CONNECTABLE_ID = "source-id";
+    private static final String SOURCE_CONNECTABLE_NAME = "source-name";
+    private static final String DESTINATION_CONNECTABLE_ID = "destination-id";
+    private static final String DESTINATION_CONNECTABLE_NAME = "destination-name";
+
     @Mock
     RepositoryContext repositoryContext;
 
@@ -181,7 +186,7 @@ class StandardProcessSessionTest {
         when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
         when(repositoryContext.isRecordConnectionStatusEventEnabled()).thenReturn(true);
 
-        final Connection connection = mock(Connection.class);
+        final Connection connection = getConnection();
         when(repositoryContext.getPollableConnections()).thenReturn(List.of(connection));
         final FlowFileRecord flowFileRecord = mock(FlowFileRecord.class);
         when(connection.poll(anySet())).thenReturn(flowFileRecord);
@@ -192,7 +197,7 @@ class StandardProcessSessionTest {
         final FlowFile flowFile = session.get();
         assertNotNull(flowFile);
 
-        final Connection outputConnection = mock(Connection.class);
+        final Connection outputConnection = getConnection();
         when(outputConnection.getIdentifier()).thenReturn(OUTPUT_CONNECTION_ID);
         final FlowFileQueue outputFlowFileQueue = mock(FlowFileQueue.class);
         when(outputFlowFileQueue.getBackPressureDataSizeThreshold()).thenReturn(BACK_PRESSURE_DATA_SIZE_THRESHOLD);
@@ -227,10 +232,12 @@ class StandardProcessSessionTest {
         assertEquals(objectCount, firstConnectionStatusEvent.getQueuedCount());
         assertEquals(byteCount, firstConnectionStatusEvent.getQueuedBytes());
         assertEquals(LoadBalanceStatus.LOAD_BALANCE_INACTIVE, firstConnectionStatusEvent.getLoadBalanceStatus());
+        assertSourceDestinationFound(firstConnectionStatusEvent);
 
         final ConnectionStatusEvent secondConnectionStatusEvent = events.getLast();
         final ComponentMetricContext secondComponentMetricContext = secondConnectionStatusEvent.getComponentMetricContext();
         assertEquals(OUTPUT_CONNECTION_ID, secondComponentMetricContext.id());
+        assertSourceDestinationFound(secondConnectionStatusEvent);
     }
 
     @Test
@@ -239,7 +246,7 @@ class StandardProcessSessionTest {
         when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
         when(repositoryContext.isRecordConnectionStatusEventEnabled()).thenReturn(true);
 
-        final Connection connection = mock(Connection.class);
+        final Connection connection = getConnection();
         when(repositoryContext.getPollableConnections()).thenReturn(List.of(connection));
         final FlowFileRecord flowFileRecord = mock(FlowFileRecord.class);
         when(connection.poll(anySet())).thenReturn(flowFileRecord);
@@ -272,7 +279,7 @@ class StandardProcessSessionTest {
         when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
         when(repositoryContext.isRecordConnectionStatusEventEnabled()).thenReturn(true);
 
-        final Connection connection = mock(Connection.class);
+        final Connection connection = getConnection();
         when(repositoryContext.getPollableConnections()).thenReturn(List.of(connection));
         final FlowFileRecord flowFileRecord = mock(FlowFileRecord.class);
         when(connection.poll(anySet())).thenReturn(flowFileRecord);
@@ -308,6 +315,7 @@ class StandardProcessSessionTest {
         assertEquals(byteCount, connectionStatusEvent.getQueuedBytes());
         assertEquals(LoadBalanceStatus.LOAD_BALANCE_NOT_CONFIGURED, connectionStatusEvent.getLoadBalanceStatus());
         assertEquals(FlowFileAvailability.FLOWFILE_AVAILABLE, connectionStatusEvent.getFlowFileAvailability());
+        assertSourceDestinationFound(connectionStatusEvent);
     }
 
     @Test
@@ -408,6 +416,16 @@ class StandardProcessSessionTest {
         assertEquals(bytesWritten, processSessionEvent.getBytesWritten(), "Process Session Bytes written not matched");
     }
 
+    private void assertSourceDestinationFound(final ConnectionStatusEvent connectionStatusEvent) {
+        final ComponentMetricContext source = connectionStatusEvent.getSourceComponentMetricContext();
+        assertEquals(SOURCE_CONNECTABLE_ID, source.id());
+        assertEquals(SOURCE_CONNECTABLE_NAME, source.name());
+
+        final ComponentMetricContext destination = connectionStatusEvent.getDestinationComponentMetricContext();
+        assertEquals(DESTINATION_CONNECTABLE_ID, destination.id());
+        assertEquals(DESTINATION_CONNECTABLE_NAME, destination.name());
+    }
+
     private void setRepositoryContext() {
         when(repositoryContext.getProvenanceRepository()).thenReturn(provenanceRepository);
         when(repositoryContext.getFlowFileRepository()).thenReturn(flowFileRepository);
@@ -419,5 +437,21 @@ class StandardProcessSessionTest {
         final Path destination = Files.createTempFile(StandardProcessSessionTest.class.getSimpleName(), ProcessSession.class.getSimpleName());
         destination.toFile().deleteOnExit();
         return destination;
+    }
+
+    private Connection getConnection() {
+        final Connection connection = mock(Connection.class);
+
+        final Connectable source = mock(Connectable.class);
+        when(source.getIdentifier()).thenReturn(SOURCE_CONNECTABLE_ID);
+        when(source.getName()).thenReturn(SOURCE_CONNECTABLE_NAME);
+        when(connection.getSource()).thenReturn(source);
+
+        final Connectable destination = mock(Connectable.class);
+        when(destination.getIdentifier()).thenReturn(DESTINATION_CONNECTABLE_ID);
+        when(destination.getName()).thenReturn(DESTINATION_CONNECTABLE_NAME);
+        when(connection.getDestination()).thenReturn(destination);
+
+        return connection;
     }
 }

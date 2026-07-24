@@ -26,6 +26,8 @@ import org.apache.nifi.controller.status.LoadBalanceStatus;
  */
 record StandardConnectionStatusEvent(
         ComponentMetricContext componentMetricContext,
+        ComponentMetricContext sourceComponentMetricContext,
+        ComponentMetricContext destinationComponentMetricContext,
         long backPressureBytesThreshold,
         long backPressureObjectThreshold,
         long queuedBytes,
@@ -37,6 +39,16 @@ record StandardConnectionStatusEvent(
     @Override
     public ComponentMetricContext getComponentMetricContext() {
         return componentMetricContext;
+    }
+
+    @Override
+    public ComponentMetricContext getSourceComponentMetricContext() {
+        return sourceComponentMetricContext;
+    }
+
+    @Override
+    public ComponentMetricContext getDestinationComponentMetricContext() {
+        return destinationComponentMetricContext;
     }
 
     @Override
