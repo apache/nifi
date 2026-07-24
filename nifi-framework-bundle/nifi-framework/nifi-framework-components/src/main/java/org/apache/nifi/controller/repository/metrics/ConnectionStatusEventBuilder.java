@@ -29,6 +29,8 @@ import java.util.Objects;
 public class ConnectionStatusEventBuilder {
 
     private final ComponentMetricContext componentMetricContext;
+    private final ComponentMetricContext sourceComponentMetricContext;
+    private final ComponentMetricContext destinationMetricContext;
 
     private long backPressureBytesThreshold;
     private long backPressureObjectThreshold;
@@ -37,12 +39,22 @@ public class ConnectionStatusEventBuilder {
     private LoadBalanceStatus loadBalanceStatus = LoadBalanceStatus.LOAD_BALANCE_NOT_CONFIGURED;
     private FlowFileAvailability flowFileAvailability = FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
 
-    private ConnectionStatusEventBuilder(final ComponentMetricContext componentMetricContext) {
+    private ConnectionStatusEventBuilder(
+            final ComponentMetricContext componentMetricContext,
+            final ComponentMetricContext sourceComponentMetricContext,
+            final ComponentMetricContext destinationMetricContext
+    ) {
         this.componentMetricContext = Objects.requireNonNull(componentMetricContext, "Component Metric Context required");
+        this.sourceComponentMetricContext = Objects.requireNonNull(sourceComponentMetricContext, "Source Component Metric Context required");
+        this.destinationMetricContext = Objects.requireNonNull(destinationMetricContext, "Destination Component Metric Context required");
     }
 
-    public static ConnectionStatusEventBuilder forComponent(final ComponentMetricContext componentMetricContext) {
-        return new ConnectionStatusEventBuilder(componentMetricContext);
+    public static ConnectionStatusEventBuilder forComponent(
+            final ComponentMetricContext componentMetricContext,
+            final ComponentMetricContext sourceComponentMetricContext,
+            final ComponentMetricContext destinationMetricContext
+    ) {
+        return new ConnectionStatusEventBuilder(componentMetricContext, sourceComponentMetricContext, destinationMetricContext);
     }
 
     public ConnectionStatusEventBuilder backPressureBytesThreshold(final long backPressureBytesThreshold) {
@@ -78,6 +90,8 @@ public class ConnectionStatusEventBuilder {
     public ConnectionStatusEvent build() {
         return new StandardConnectionStatusEvent(
                 componentMetricContext,
+                sourceComponentMetricContext,
+                destinationMetricContext,
                 backPressureBytesThreshold,
                 backPressureObjectThreshold,
                 queuedBytes,

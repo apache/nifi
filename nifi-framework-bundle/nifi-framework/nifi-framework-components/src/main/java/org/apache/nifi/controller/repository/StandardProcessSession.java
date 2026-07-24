@@ -52,6 +52,7 @@ import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
@@ -824,7 +825,19 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private void recordConnectionStatusEvents(final Checkpoint checkpoint) {
         // Check enabled status to avoid building objects and calling methods when not used
         if (context.isRecordConnectionStatusEventEnabled()) {
+            final Map<String, ComponentMetricContext> connectableMetricContexts = new HashMap<>();
+
             for (final Connection connection : checkpoint.processedConnections.values()) {
+                final Connectable source = connection.getSource();
+                final ComponentMetricContext sourceContext = connectableMetricContexts.computeIfAbsent(source.getIdentifier(),
+                    id -> getComponentMetricContext(source)
+                );
+
+                final Connectable destination = connection.getDestination();
+                final ComponentMetricContext destinationContext = connectableMetricContexts.computeIfAbsent(destination.getIdentifier(),
+                        id -> getComponentMetricContext(destination)
+                );
+
                 final ComponentMetricContext connectionMetricContext = checkpoint.connectionMetricContexts.get(connection.getIdentifier());
                 final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
                 final QueueSize queueSize = flowFileQueue.size();
@@ -832,7 +845,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 final LoadBalanceStatus loadBalanceStatus = getLoadBalanceStatus(flowFileQueue);
                 final FlowFileAvailability flowFileAvailability = flowFileQueue.getFlowFileAvailability();
 
-                final ConnectionStatusEvent connectionStatusEvent = ConnectionStatusEventBuilder.forComponent(connectionMetricContext)
+                final ConnectionStatusEvent connectionStatusEvent = ConnectionStatusEventBuilder.forComponent(
+                        connectionMetricContext,
+                        sourceContext,
+                        destinationContext
+                        )
                         .backPressureBytesThreshold(backPressureBytesThreshold)
                         .backPressureObjectThreshold(flowFileQueue.getBackPressureObjectThreshold())
                         .queuedBytes(queueSize.getByteCount())
@@ -843,6 +860,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 context.recordConnectionStatusEvent(connectionStatusEvent);
             }
         }
+    }
+
+    private ComponentMetricContext getComponentMetricContext(final Connectable connectable) {
+        final ProcessGroup processGroup = connectable.getProcessGroup();
+        final Map<String, String> attributes = processGroup == null ? Map.of() : processGroup.getLoggingAttributes();
+        return new ComponentMetricContext(
+                connectable.getIdentifier(),
+                connectable.getName(),
+                connectable.getComponentType(),
+                attributes
+        );
     }
 
     private LoadBalanceStatus getLoadBalanceStatus(final FlowFileQueue flowFileQueue) {

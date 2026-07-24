@@ -31,6 +31,20 @@ public interface ConnectionStatusEvent {
     ComponentMetricContext getComponentMetricContext();
 
     /**
+     * Get Component Metric Context describing the Source Component for the Connection
+     *
+     * @return Source Component Metric Context
+     */
+    ComponentMetricContext getSourceComponentMetricContext();
+
+    /**
+     * Get Component Metric Context describing the Destination Component for the Connection
+     *
+     * @return Destination Component Metric Context
+     */
+    ComponentMetricContext getDestinationComponentMetricContext();
+
+    /**
      * Get configured Back Pressure Bytes Threshold
      *
      * @return Back Pressure Bytes Threshold
