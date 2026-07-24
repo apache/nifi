@@ -34,7 +34,7 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
-        <tika.version>3.3.1</tika.version>
+        <tika.version>3.3.2</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
