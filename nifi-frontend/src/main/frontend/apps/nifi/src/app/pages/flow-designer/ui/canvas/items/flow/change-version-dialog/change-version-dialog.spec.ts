@@ -21,7 +21,7 @@ import { By } from '@angular/platform-browser';
 import { ChangeVersionDialog } from './change-version-dialog';
 import { ChangeVersionDialogRequest } from '../../../../../state/flow';
 import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -33,6 +33,8 @@ import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 import { canvasFeatureKey } from '../../../../../state';
 import { flowFeatureKey } from '../../../../../state/flow';
 import { Sort } from '@angular/material/sort';
+import { FlowDiffDialog, FlowDiffDialogData } from '../flow-diff-dialog/flow-diff-dialog';
+import { LARGE_DIALOG } from '@nifi/shared';
 
 interface SetupOptions {
     dialogData?: ChangeVersionDialogRequest;
@@ -491,6 +493,68 @@ describe('ChangeVersionDialog', () => {
             const changeButton = fixture.debugElement.query(By.css('[data-qa="change-button"]'));
 
             expect(changeButton.nativeElement.disabled).toBe(false);
+        });
+    });
+
+    describe('Flow Diff Dialog', () => {
+        it('should include actions column in displayed columns', async () => {
+            const { component } = await setup();
+
+            expect(component.displayedColumns).toContain('actions');
+        });
+
+        it('should render actions menu button for each version row', async () => {
+            const { fixture } = await setup();
+            const actionButtons = fixture.debugElement.queryAll(By.css('[data-qa="version-actions-button"]'));
+
+            expect(actionButtons.length).toBe(2);
+        });
+
+        it('should open FlowDiffDialog when openFlowDiff is called', async () => {
+            const { component, fixture } = await setup();
+            const dialogInstance = fixture.debugElement.injector.get(MatDialog);
+            const openSpy = vi.spyOn(dialogInstance, 'open').mockReturnValue({} as any);
+            const flowVersion = component.dataSource.data[1];
+
+            component.openFlowDiff(flowVersion);
+
+            expect(openSpy).toHaveBeenCalledWith(
+                FlowDiffDialog,
+                expect.objectContaining({
+                    ...LARGE_DIALOG,
+                    autoFocus: false,
+                    data: expect.objectContaining({
+                        currentVersion: '2',
+                        selectedVersion: flowVersion.version
+                    })
+                })
+            );
+        });
+
+        it('should pass version control information to FlowDiffDialog', async () => {
+            const { component, fixture, dialogData } = await setup();
+            const dialogInstance = fixture.debugElement.injector.get(MatDialog);
+            const openSpy = vi.spyOn(dialogInstance, 'open').mockReturnValue({} as any);
+            const flowVersion = component.dataSource.data[1];
+
+            component.openFlowDiff(flowVersion);
+
+            const openCall = openSpy.mock.calls[0];
+            const passedData = openCall[1]!.data as FlowDiffDialogData;
+            expect(passedData.versionControlInformation).toEqual(dialogData.versionControlInformation);
+        });
+
+        it('should pass all flow versions to FlowDiffDialog', async () => {
+            const { component, fixture } = await setup();
+            const dialogInstance = fixture.debugElement.injector.get(MatDialog);
+            const openSpy = vi.spyOn(dialogInstance, 'open').mockReturnValue({} as any);
+            const flowVersion = component.dataSource.data[1];
+
+            component.openFlowDiff(flowVersion);
+
+            const openCall = openSpy.mock.calls[0];
+            const passedData = openCall[1]!.data as FlowDiffDialogData;
+            expect(passedData.versions).toHaveLength(2);
         });
     });
 });
