@@ -204,17 +204,17 @@ public class TestFormatUtils {
 
     private static Stream<Arguments> getDurationValues() {
         return Stream.of(
-                Arguments.of(Duration.parse("PT0.000000001S"), "1 ns"),
-                Arguments.of(Duration.parse("PT0.000000002S"), "2 ns"),
-                Arguments.of(Duration.parse("PT1S"), "1 second 0 ns"),
-                Arguments.of(Duration.parse("PT2S"), "2 seconds 0 ns"),
-                Arguments.of(Duration.parse("PT1M"), "1 minute 0 seconds 0 ns"),
-                Arguments.of(Duration.parse("PT2M"), "2 minutes 0 seconds 0 ns"),
-                Arguments.of(Duration.parse("PT1H"), "1 hour 0 minutes 0 seconds 0 ns"),
-                Arguments.of(Duration.parse("PT2H"), "2 hours 0 minutes 0 seconds 0 ns"),
-                Arguments.of(Duration.parse("P1D"), "1 day 0 hours 0 minutes 0 seconds 0 ns"),
-                Arguments.of(Duration.parse("P35D"), "35 days 0 hours 0 minutes 0 seconds 0 ns"),
-                Arguments.of(Duration.parse("P366D"), "366 days 0 hours 0 minutes 0 seconds 0 ns")
+                Arguments.of(Duration.parse("PT0.000000001S"), "1ns"),
+                Arguments.of(Duration.parse("PT0.000000002S"), "2ns"),
+                Arguments.of(Duration.parse("PT1S"), "1s 0ns"),
+                Arguments.of(Duration.parse("PT2S"), "2s 0ns"),
+                Arguments.of(Duration.parse("PT1M"), "1m 0s 0ns"),
+                Arguments.of(Duration.parse("PT2M"), "2m 0s 0ns"),
+                Arguments.of(Duration.parse("PT1H"), "1h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("PT2H"), "2h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("P1D"), "1d 0h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("P35D"), "35d 0h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("P366D"), "366d 0h 0m 0s 0ns")
         );
     }
 }

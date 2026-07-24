@@ -336,19 +336,19 @@ public class FormatUtils {
         final List<String> parts = new ArrayList<>();
 
         if (days > 0) {
-            parts.add(days + (days == 1 ? " day" : " days"));
+            parts.add(days + "d");
         }
         if (hours > 0 || !parts.isEmpty()) {
-            parts.add(hours + (hours == 1 ? " hour" : " hours"));
+            parts.add(hours + "h");
         }
         if (minutes > 0 || !parts.isEmpty()) {
-            parts.add(minutes + (minutes == 1 ? " minute" : " minutes"));
+            parts.add(minutes + "m");
         }
         if (seconds > 0 || !parts.isEmpty()) {
-            parts.add(seconds + (seconds == 1 ? " second" : " seconds"));
+            parts.add(seconds + "s");
         }
         if (nanos > 0 || !parts.isEmpty()) {
-            parts.add(nanos + " ns");
+            parts.add(nanos + "ns");
         }
 
         return String.join(" ", parts);
