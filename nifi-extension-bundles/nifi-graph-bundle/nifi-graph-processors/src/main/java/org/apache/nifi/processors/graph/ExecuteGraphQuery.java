@@ -170,7 +170,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
                 session.exportTo(input, out);
                 out.close();
 
-                query = new String(out.toByteArray());
+                query = out.toString();
             } catch (Exception ex) {
                 throw new ProcessException(ex);
             }

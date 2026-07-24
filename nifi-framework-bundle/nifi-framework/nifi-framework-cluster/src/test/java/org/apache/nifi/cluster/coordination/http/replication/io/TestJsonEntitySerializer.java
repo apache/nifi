@@ -60,7 +60,7 @@ public class TestJsonEntitySerializer {
 
             serializer.serialize(processor, baos);
 
-            final String serialized = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+            final String serialized = baos.toString(StandardCharsets.UTF_8);
             assertEquals("{\"id\":\"123\",\"component\":{\"config\":{\"properties\":{\"key\":\"value\"}}}}", serialized);
         }
     }
@@ -91,7 +91,7 @@ public class TestJsonEntitySerializer {
             bulletin.setBulletin(bulletinDto);
             serializer.serialize(bulletin, baos);
 
-            final String serialized = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+            final String serialized = baos.toString(StandardCharsets.UTF_8);
             assertEquals("{\"bulletin\":{\"category\":\"test\",\"level\":\"INFO\",\"timestamp\":\"" + formattedTimestamp + "\"}}", serialized);
         }
     }

@@ -75,7 +75,7 @@ public class TestHtmlExtensionDocWriter {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         docWriter.write(metadata, extension, out);
 
-        final String docsResult = new String(out.toByteArray(), StandardCharsets.UTF_8);
+        final String docsResult = out.toString(StandardCharsets.UTF_8);
         assertNotNull(docsResult);
 
         XmlValidator.assertXmlValid(docsResult);

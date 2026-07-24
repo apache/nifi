@@ -173,7 +173,7 @@ public class ExtensionMappings {
         final String extensionContent;
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             extensionSerializer.serialize(extension, out);
-            extensionContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
+            extensionContent = out.toString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new SerializationException("Unable to serialize extension", e);
         }

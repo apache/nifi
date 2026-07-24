@@ -119,7 +119,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             session.exportTo(input, out);
             out.close();
-            queryString = new String(out.toByteArray());
+            queryString = out.toString();
         }
 
         return queryString;

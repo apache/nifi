@@ -46,7 +46,7 @@ public class CuratorACLProviderFactory {
 
             if (!StringUtils.isEmpty(config.getAuthPrincipal())) {
 
-                final String realm = config.getAuthPrincipal().substring(config.getAuthPrincipal().indexOf('@') + 1, config.getAuthPrincipal().length());
+                final String realm = config.getAuthPrincipal().substring(config.getAuthPrincipal().indexOf('@') + 1);
                 final String[] user = config.getAuthPrincipal().substring(0, config.getAuthPrincipal().indexOf('@')).split("/");
                 final String host = user.length == 2 ? user[1] : null;
                 final String instance = user[0];

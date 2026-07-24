@@ -137,12 +137,12 @@ public class DeleteMongo extends AbstractMongoProcessor {
             session.exportTo(flowFile, bos);
             bos.close();
 
-            String json = new String(bos.toByteArray());
+            String json = bos.toString();
             Document query = Document.parse(json);
             DeleteResult result;
 
             if (deleteMode.equals(DELETE_ONE.getValue())
-                    || (deleteMode.equals(DELETE_ATTR.getValue()) && deleteAttr.toLowerCase().equals("one"))) {
+                    || (deleteMode.equals(DELETE_ATTR.getValue()) && deleteAttr.equalsIgnoreCase("one"))) {
                 result = collection.deleteOne(query);
             } else {
                 result = collection.deleteMany(query);
