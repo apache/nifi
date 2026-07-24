@@ -170,7 +170,7 @@ public class TestSwappablePriorityQueue {
 
         // Added 3 FlowFiles to the queue. These will all go to the Swap Queue.
         for (final String iValue : new String[] {"10000", "-5", "8000"}) {
-            final MockFlowFileRecord swapQueueFlowFile1 = new MockFlowFileRecord(Map.of("i", String.valueOf(iValue)), 10_000);
+            final MockFlowFileRecord swapQueueFlowFile1 = new MockFlowFileRecord(Map.of("i", iValue), 10_000);
             queue.put(swapQueueFlowFile1);
         }
 

@@ -37,7 +37,7 @@ public class SecureClientZooKeeperFactory implements ZookeeperFactory {
         // Netty is required for the secure client config.
         final String cnxnSocket = zkConfig.getConnectionSocket();
         if (!NETTY_CLIENT_CNXN_SOCKET.equals(cnxnSocket)) {
-            throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", String.valueOf(cnxnSocket), NETTY_CLIENT_CNXN_SOCKET));
+            throw new IllegalArgumentException(String.format("connection factory set to '%s', %s required", cnxnSocket, NETTY_CLIENT_CNXN_SOCKET));
         }
         zkSecureClientConfig.setProperty(ZKClientConfig.ZOOKEEPER_CLIENT_CNXN_SOCKET, cnxnSocket);
 
