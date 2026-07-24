@@ -160,11 +160,21 @@ export interface OpenChangeVersionDialogRequest {
     processGroupId: string;
 }
 
+export interface OpenCreateBranchDialogRequest {
+    processGroupId: string;
+}
+
 export interface ChangeVersionDialogRequest {
     processGroupId: string;
     revision: Revision;
     versionControlInformation: VersionControlInformation;
     versions: VersionedFlowSnapshotMetadataEntity[];
+}
+
+export interface CreateBranchDialogRequest {
+    processGroupId: string;
+    revision: Revision;
+    versionControlInformation: VersionControlInformation;
 }
 
 export interface SaveVersionDialogRequest {
@@ -188,6 +198,14 @@ export interface ConfirmStopVersionControlRequest {
 export interface StopVersionControlRequest {
     revision: Revision;
     processGroupId: string;
+}
+
+export interface CreateFlowBranchRequest {
+    processGroupId: string;
+    revision: Revision;
+    branch: string;
+    sourceBranch?: string;
+    sourceVersion?: string;
 }
 
 export interface StopVersionControlResponse {
