@@ -19,7 +19,6 @@ package org.apache.nifi.processors.iceberg.record;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.RecordField;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -70,15 +69,17 @@ public class DelegatedRecord implements Record {
     }
 
     /**
-     * Get Field value for specified position from supporting Record
+     * Get Field value for specified position from supporting Record. The position refers to the Iceberg Table struct,
+     * so the field is resolved by the Iceberg column name to align incoming Record fields with Table columns
+     * regardless of the incoming Record field ordering. Columns not present in the incoming Record return null.
      *
-     * @param position Field position
+     * @param position Field position in the Iceberg Table struct
      * @return Field value or null when not found
      */
     @Override
     public Object get(final int position) {
-        final RecordField recordField = record.getSchema().getField(position);
-        return record.getValue(recordField);
+        final Types.NestedField field = struct.fields().get(position);
+        return record.getValue(field.name());
     }
 
     /**
@@ -133,16 +134,18 @@ public class DelegatedRecord implements Record {
     }
 
     /**
-     * Set Field value for specified position
+     * Set Field value for specified position. The position refers to the Iceberg Table struct, so the field is resolved
+     * by the Iceberg column name to remain symmetric with {@link #get(int)} regardless of the incoming Record field
+     * ordering.
      *
-     * @param position Field position
+     * @param position Field position in the Iceberg Table struct
      * @param value Field value
      * @param <T> Field Value Type
      */
     @Override
     public <T> void set(final int position, final T value) {
-        final RecordField recordField = record.getSchema().getField(position);
-        record.setValue(recordField, value);
+        final Types.NestedField field = struct.fields().get(position);
+        record.setValue(field.name(), value);
     }
 
     @Override
