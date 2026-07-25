@@ -265,11 +265,9 @@ class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = String.format("[{\"timestamp\":37293723,\"time\":37293723,\"date\":%d}]", date.getTime());
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -292,11 +290,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"id\":\"1\"}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -319,11 +315,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"id\":\"1\",\"name\":\"John\"}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -346,11 +340,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"id\":\"1\",\"name\":null}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -373,11 +365,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"id\":\"1\"}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -401,11 +391,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"id\":\"1\",\"name\":null}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -429,11 +417,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"id\":\"1\",\"dob\":\"1/1/1970\"}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -456,7 +442,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        assertEquals("[{\"id\":\"1\",\"name\":null}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("[{\"id\":\"1\",\"name\":null}]", baos.toString(StandardCharsets.UTF_8));
 
         baos.reset();
         try (
@@ -467,7 +453,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        assertEquals("[{\"id\":\"1\"}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("[{\"id\":\"1\"}]", baos.toString(StandardCharsets.UTF_8));
 
         baos.reset();
         try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
@@ -478,7 +464,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        assertEquals("[{\"id\":\"1\"}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("[{\"id\":\"1\"}]", baos.toString(StandardCharsets.UTF_8));
 
         // set an explicit null value
         values.put("name", null);
@@ -492,7 +478,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        assertEquals("[{\"id\":\"1\",\"name\":null}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("[{\"id\":\"1\",\"name\":null}]", baos.toString(StandardCharsets.UTF_8));
 
         baos.reset();
         try (
@@ -503,7 +489,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        assertEquals("[{\"id\":\"1\"}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("[{\"id\":\"1\"}]", baos.toString(StandardCharsets.UTF_8));
 
         baos.reset();
         try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
@@ -514,7 +500,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        assertEquals("[{\"id\":\"1\",\"name\":null}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("[{\"id\":\"1\",\"name\":null}]", baos.toString(StandardCharsets.UTF_8));
 
     }
 
@@ -551,12 +537,10 @@ class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final byte[] data = baos.toByteArray();
-
         final long dateTime = date.getTime();
         final String expected = String.format("{\"timestamp\":37293723,\"time\":37293723,\"date\":%d}\n{\"timestamp\":37293999,\"time\":37293999,\"date\":%d}", dateTime, dateTime);
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -581,11 +565,9 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[{\"path\":[\"10.2.1.3\"]}]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 
@@ -627,9 +609,7 @@ class TestWriteJsonResult {
             writer.finishRecordSet();
         }
 
-        final byte[] data = baos.toByteArray();
-
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(json, output);
     }
 

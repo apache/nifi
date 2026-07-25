@@ -82,7 +82,7 @@ public class VerifyContents extends AbstractProcessor {
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
             StreamUtils.copy(in, baos);
-            contents = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+            contents = baos.toString(StandardCharsets.UTF_8);
         } catch (final Exception e) {
             throw new ProcessException(e);
         }

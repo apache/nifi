@@ -1254,7 +1254,7 @@ public class StandardProcessSessionIT {
         // should be OK
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         session.exportTo(flowFile, os);
-        assertEquals("Hello World", new String(os.toByteArray()));
+        assertEquals("Hello World", os.toString());
         os.close();
 
         // should throw ProcessException because of IOException (from processor code)

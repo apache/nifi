@@ -156,7 +156,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
             StringBuilder newFilename = new StringBuilder();
             int extensionIndex = fileName.lastIndexOf(".");
             if (extensionIndex != -1) {
-                newFilename.append(fileName.substring(0, extensionIndex));
+                newFilename.append(fileName, 0, extensionIndex);
             } else {
                 newFilename.append(fileName);
             }

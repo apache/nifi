@@ -519,7 +519,7 @@ public class PutEmail extends AbstractProcessor {
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, byteBuffer, false));
 
             final Charset charset = getCharset(context);
-            messageText = new String(byteBuffer, 0, byteBuffer.length, charset);
+            messageText = new String(byteBuffer, charset);
         } else if (context.getProperty(MESSAGE).isSet()) {
             messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
         }

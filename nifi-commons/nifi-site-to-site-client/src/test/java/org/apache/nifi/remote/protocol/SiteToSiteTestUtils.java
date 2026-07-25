@@ -44,7 +44,7 @@ public class SiteToSiteTestUtils {
     public static String readContents(DataPacket packet) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream((int) packet.getSize());
         StreamUtils.copy(packet.getData(), os);
-        return new String(os.toByteArray(), StandardCharsets.UTF_8);
+        return os.toString(StandardCharsets.UTF_8);
     }
 
     public static void execReceiveZeroFlowFile(Transaction transaction) throws IOException {

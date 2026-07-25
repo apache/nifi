@@ -134,7 +134,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
             if (input == null || input.length == 0) {
                 return null;
             }
-            return new String(input, 0, input.length, charset);
+            return new String(input, charset);
         }
     }
 

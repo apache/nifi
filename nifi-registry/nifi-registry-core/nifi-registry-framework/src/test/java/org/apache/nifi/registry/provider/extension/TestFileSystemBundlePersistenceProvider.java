@@ -140,9 +140,9 @@ public class TestFileSystemBundlePersistenceProvider {
         verifyBundleVersion(bundleStorageDir, versionCoordinate, newContent);
 
         // retrieved content should be updated
-        try (final OutputStream out = new ByteArrayOutputStream()) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             fileSystemBundleProvider.getBundleVersionContent(versionCoordinate, out);
-            final String retrievedContent = new String(((ByteArrayOutputStream) out).toByteArray(), StandardCharsets.UTF_8);
+            final String retrievedContent = out.toString(StandardCharsets.UTF_8);
             assertEquals(newContent, retrievedContent);
         }
     }
@@ -159,17 +159,17 @@ public class TestFileSystemBundlePersistenceProvider {
         final BundleVersionCoordinate versionCoordinate2 = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, SECOND_VERSION, type);
         createBundleVersion(fileSystemBundleProvider, versionCoordinate2, content2);
 
-        try (final OutputStream out = new ByteArrayOutputStream()) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             fileSystemBundleProvider.getBundleVersionContent(versionCoordinate1, out);
 
-            final String retrievedContent1 = new String(((ByteArrayOutputStream) out).toByteArray(), StandardCharsets.UTF_8);
+            final String retrievedContent1 = out.toString(StandardCharsets.UTF_8);
             assertEquals(content1, retrievedContent1);
         }
 
-        try (final OutputStream out = new ByteArrayOutputStream()) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             fileSystemBundleProvider.getBundleVersionContent(versionCoordinate2, out);
 
-            final String retrievedContent2 = new String(((ByteArrayOutputStream) out).toByteArray(), StandardCharsets.UTF_8);
+            final String retrievedContent2 = out.toString(StandardCharsets.UTF_8);
             assertEquals(content2, retrievedContent2);
         }
     }

@@ -59,7 +59,7 @@ public interface QueryHelper {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             session.exportTo(input, out);
             out.close();
-            queryStr = new String(out.toByteArray());
+            queryStr = out.toString();
         }
 
         return queryStr;
