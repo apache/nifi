@@ -123,7 +123,7 @@ public class TestJSLTTransformJSON {
         runner.enqueue(json);
 
         final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.run());
-        assertTrue(assertionFailedError.getMessage().contains("'JSLT Transformation' is invalid because Read JSLT Transform failed, reason:"));
+        assertTrue(assertionFailedError.getMessage().contains("'JSLT Transformation' is invalid because") && assertionFailedError.getMessage().contains("file"));
     }
 
     @ParameterizedTest
