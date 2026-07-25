@@ -21,6 +21,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.text.DecimalFormatSymbols;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -193,5 +194,27 @@ public class TestFormatUtils {
                          + TimeUnit.MILLISECONDS.convert(60, TimeUnit.MINUTES)
                          + TimeUnit.MILLISECONDS.convert(60, TimeUnit.SECONDS)
                          + TimeUnit.MILLISECONDS.convert(1001, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "1000:01:01.001"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getDurationValues")
+    public void testFormatDurationToWords(Duration duration, String expected) {
+        assertEquals(expected, FormatUtils.formatDurationToWords(duration));
+    }
+
+    private static Stream<Arguments> getDurationValues() {
+        return Stream.of(
+                Arguments.of(Duration.parse("PT0.000000001S"), "1ns"),
+                Arguments.of(Duration.parse("PT0.000000002S"), "2ns"),
+                Arguments.of(Duration.parse("PT1S"), "1s 0ns"),
+                Arguments.of(Duration.parse("PT2S"), "2s 0ns"),
+                Arguments.of(Duration.parse("PT1M"), "1m 0s 0ns"),
+                Arguments.of(Duration.parse("PT2M"), "2m 0s 0ns"),
+                Arguments.of(Duration.parse("PT1H"), "1h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("PT2H"), "2h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("P1D"), "1d 0h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("P35D"), "35d 0h 0m 0s 0ns"),
+                Arguments.of(Duration.parse("P366D"), "366d 0h 0m 0s 0ns")
+        );
     }
 }
