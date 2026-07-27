@@ -111,26 +111,26 @@ public class InjectMetadataRecord extends MapRecord {
 
     public static MapRecord toWrapperRecord(final HeaderValueConverter headerValueConverter, final ByteRecord consumerRecord, final Record record, final Tuple<RecordField, Object> tupleKey) {
         final RecordSchema schema = record.getSchema();
-        RecordSchema finalSchema = InjectMetadataRecord.toWrapperSchema(tupleKey.getKey(), schema);
+        RecordSchema finalSchema = toWrapperSchema(tupleKey.getKey(), schema);
 
         final Map<String, Object> valuesMetadata = new HashMap<>();
-        valuesMetadata.put(InjectMetadataRecord.TOPIC, consumerRecord.getTopic());
-        valuesMetadata.put(InjectMetadataRecord.PARTITION, consumerRecord.getPartition());
-        valuesMetadata.put(InjectMetadataRecord.OFFSET, consumerRecord.getOffset());
-        valuesMetadata.put(InjectMetadataRecord.TIMESTAMP, consumerRecord.getTimestamp());
+        valuesMetadata.put(TOPIC, consumerRecord.getTopic());
+        valuesMetadata.put(PARTITION, consumerRecord.getPartition());
+        valuesMetadata.put(OFFSET, consumerRecord.getOffset());
+        valuesMetadata.put(TIMESTAMP, consumerRecord.getTimestamp());
         if (tupleKey.getKey() != null) {
-            valuesMetadata.put(InjectMetadataRecord.KEY, tupleKey.getValue());
+            valuesMetadata.put(KEY, tupleKey.getValue());
         }
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
         for (RecordHeader header : consumerRecord.getHeaders()) {
             valuesHeaders.put(header.key(), headerValueConverter.convert(header.value()));
         }
-        valuesMetadata.put(InjectMetadataRecord.HEADERS, valuesHeaders);
+        valuesMetadata.put(HEADERS, valuesHeaders);
 
         final Map<String, Object> valueMap = record.toMap();
         final Map<String, Object> valueMapWithInjectedMetadata = new HashMap<>(valueMap);
-        valueMapWithInjectedMetadata.put(InjectMetadataRecord.METADATA, valuesMetadata);
+        valueMapWithInjectedMetadata.put(METADATA, valuesMetadata);
 
         return new MapRecord(finalSchema, valueMapWithInjectedMetadata);
     }

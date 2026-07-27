@@ -65,7 +65,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint joinpoint
      * @return node
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ReportingTaskDAO+) && "
             + "execution(org.apache.nifi.controller.ReportingTaskNode createReportingTask(org.apache.nifi.web.api.dto.ReportingTaskDTO))")

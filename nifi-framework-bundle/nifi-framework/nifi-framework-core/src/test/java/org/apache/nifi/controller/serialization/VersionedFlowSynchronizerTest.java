@@ -78,6 +78,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -465,13 +466,13 @@ class VersionedFlowSynchronizerTest {
         final ConnectorNode orphanConnector = mock(ConnectorNode.class);
         when(orphanConnector.getIdentifier()).thenReturn("orphan-connector-id");
         when(connectorRepository.stopConnector(orphanConnector))
-                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         final ConnectorNode syncedNode = mock(ConnectorNode.class);
         when(connectorRepository.syncConnector(proposedConnector))
                 .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
-                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         setFlowController(connectorRepository);
         when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(orphanConnector));
@@ -505,7 +506,7 @@ class VersionedFlowSynchronizerTest {
         when(connectorRepository.syncConnector(versionedConnector))
                 .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
-                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         setFlowController(connectorRepository);
         when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(existingConnector));
@@ -534,7 +535,7 @@ class VersionedFlowSynchronizerTest {
         final ConnectorNode orphanConnector = mock(ConnectorNode.class);
         when(orphanConnector.getIdentifier()).thenReturn("orphan-connector-id");
 
-        final java.util.concurrent.CompletableFuture<Void> failedFuture = new java.util.concurrent.CompletableFuture<>();
+        final CompletableFuture<Void> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(new RuntimeException("Stop failed"));
         when(connectorRepository.stopConnector(orphanConnector)).thenReturn(failedFuture);
 
@@ -542,7 +543,7 @@ class VersionedFlowSynchronizerTest {
         when(connectorRepository.syncConnector(proposedConnector))
                 .thenReturn(ConnectorSyncResult.syncedConfigUnchanged(syncedNode, VersionedConnectorState.ENABLED));
         when(connectorRepository.stopConnector(syncedNode))
-                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         setFlowController(connectorRepository);
         when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(orphanConnector));

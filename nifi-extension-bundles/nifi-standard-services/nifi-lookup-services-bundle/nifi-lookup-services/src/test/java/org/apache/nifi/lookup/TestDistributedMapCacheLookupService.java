@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -106,7 +107,7 @@ public class TestDistributedMapCacheLookupService {
         }
 
         @Override
-        protected java.util.List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             return new ArrayList<>();
         }
 

@@ -723,8 +723,8 @@ public class TestListenHTTP {
             assertTrue(response.isSuccessful(), String.format("Unexpected code: %s, body: %s", response.code(), response.body()));
         }
 
-        runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
-        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
+        runner.assertAllFlowFilesTransferred(RELATIONSHIP_SUCCESS, 5);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
         // Part fragments are not processed in the order we submitted them.
         // We cannot rely on the order we sent them in.
         MockFlowFile mff = findFlowFile(flowFilesForRelationship, "p1");

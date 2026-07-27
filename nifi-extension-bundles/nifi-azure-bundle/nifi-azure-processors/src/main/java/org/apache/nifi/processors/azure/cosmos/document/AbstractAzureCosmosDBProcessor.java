@@ -237,15 +237,15 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         if (!databaseIsSet) {
-            final String msg = AbstractAzureCosmosDBProcessor.DATABASE_NAME.getDisplayName() + " must be set.";
+            final String msg = DATABASE_NAME.getDisplayName() + " must be set.";
             validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         if (!collectionIsSet) {
-            final String msg = AbstractAzureCosmosDBProcessor.CONTAINER_ID.getDisplayName() + " must be set.";
+            final String msg = CONTAINER_ID.getDisplayName() + " must be set.";
             validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         if (!partitionIsSet) {
-            final String msg = AbstractAzureCosmosDBProcessor.PARTITION_KEY.getDisplayName() + " must be set.";
+            final String msg = PARTITION_KEY.getDisplayName() + " must be set.";
             validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         return validationResults;

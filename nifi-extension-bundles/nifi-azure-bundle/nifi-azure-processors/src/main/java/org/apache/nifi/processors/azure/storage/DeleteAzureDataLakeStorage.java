@@ -40,9 +40,6 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.time.Duration;
 import java.util.List;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
@@ -70,10 +67,10 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
+            AzureStorageUtils.ADLS_CREDENTIALS_SERVICE,
+            AzureStorageUtils.FILESYSTEM,
             FILESYSTEM_OBJECT_TYPE,
-            DIRECTORY,
+            AzureStorageUtils.DIRECTORY,
             FILE,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     );
@@ -88,10 +85,10 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             final boolean isFile = context.getProperty(FILESYSTEM_OBJECT_TYPE).getValue().equals(FS_TYPE_FILE.getValue());
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
 
-            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, flowFile);
+            final String fileSystem = evaluateFileSystemProperty(AzureStorageUtils.FILESYSTEM, context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
-            final String directory = evaluateDirectoryProperty(DIRECTORY, context, flowFile);
+            final String directory = evaluateDirectoryProperty(AzureStorageUtils.DIRECTORY, context, flowFile);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
 
             if (isFile) {
@@ -116,7 +113,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
-        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName());
         config.renameProperty("filesystem-object-type", FILESYSTEM_OBJECT_TYPE.getName());
         config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
     }

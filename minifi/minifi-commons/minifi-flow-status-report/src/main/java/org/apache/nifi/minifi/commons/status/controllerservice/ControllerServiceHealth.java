@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.commons.status.controllerservice;
 
 import org.apache.nifi.minifi.commons.status.common.ValidationError;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ControllerServiceHealth implements java.io.Serializable {
+public class ControllerServiceHealth implements Serializable {
     private String state;
     private boolean hasBulletins;
     private List<ValidationError> validationErrorList;

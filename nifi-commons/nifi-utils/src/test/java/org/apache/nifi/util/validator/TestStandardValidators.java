@@ -22,7 +22,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -54,7 +53,7 @@ public class TestStandardValidators {
     public void testNonEmptyELValidator() {
         Validator val = StandardValidators.NON_EMPTY_EL_VALIDATOR;
         ValidationContext vc = mock(ValidationContext.class);
-        Mockito.when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
+        when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
 
         ValidationResult vr = val.validate("foo", "", vc);
         assertFalse(vr.isValid());
@@ -62,7 +61,7 @@ public class TestStandardValidators {
         vr = val.validate("foo", "    h", vc);
         assertTrue(vr.isValid());
 
-        Mockito.when(vc.isExpressionLanguagePresent("${test}")).thenReturn(true);
+        when(vc.isExpressionLanguagePresent("${test}")).thenReturn(true);
         vr = val.validate("foo", "${test}", vc);
         assertTrue(vr.isValid());
 
@@ -74,7 +73,7 @@ public class TestStandardValidators {
     public void testHostnamePortListValidator() {
         Validator val = StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR;
         ValidationContext vc = mock(ValidationContext.class);
-        Mockito.when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
+        when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
 
         ValidationResult vr = val.validate("foo", "", vc);
         assertFalse(vr.isValid());
@@ -97,7 +96,7 @@ public class TestStandardValidators {
         vr = val.validate("foo", "test:65535,localhost:666,127.0.0.1:8989", vc);
         assertTrue(vr.isValid());
 
-        Mockito.when(vc.isExpressionLanguagePresent("${test}")).thenReturn(true);
+        when(vc.isExpressionLanguagePresent("${test}")).thenReturn(true);
         vr = val.validate("foo", "${test}", vc);
         assertTrue(vr.isValid());
 
@@ -111,7 +110,7 @@ public class TestStandardValidators {
             .createTimePeriodValidator(1L, TimeUnit.SECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         ValidationResult vr;
 
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final ValidationContext validationContext = mock(ValidationContext.class);
 
         vr = val.validate("TimePeriodTest", "0 sense made", validationContext);
         assertFalse(vr.isValid());
@@ -137,7 +136,7 @@ public class TestStandardValidators {
         Validator val = StandardValidators.createDataSizeBoundsValidator(100, 1000);
         ValidationResult vr;
 
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final ValidationContext validationContext = mock(ValidationContext.class);
         vr = val.validate("DataSizeBounds", "5 GB", validationContext);
         assertFalse(vr.isValid());
 
@@ -173,7 +172,7 @@ public class TestStandardValidators {
         Validator val = StandardValidators.createListValidator(true, false, mockValidator);
         ValidationResult vr;
 
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final ValidationContext validationContext = mock(ValidationContext.class);
 
         vr = val.validate("List", null, validationContext);
         assertFalse(vr.isValid());
@@ -323,7 +322,7 @@ public class TestStandardValidators {
         Validator val = StandardValidators.createListValidator(true, false, mockValidator, true);
         ValidationResult vr;
 
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final ValidationContext validationContext = mock(ValidationContext.class);
 
         vr = val.validate("List", null, validationContext);
         assertFalse(vr.isValid());

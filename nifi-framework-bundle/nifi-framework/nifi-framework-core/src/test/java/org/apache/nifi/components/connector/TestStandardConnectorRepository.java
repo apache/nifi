@@ -70,6 +70,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -1076,7 +1077,7 @@ public class TestStandardConnectorRepository {
         // Step 1: provider.syncAssets() called
         verify(provider).syncAssets("connector-1");
         // Step 2: provider.load() called to reload updated config (may also have been called during addConnector)
-        verify(provider, org.mockito.Mockito.atLeastOnce()).load("connector-1");
+        verify(provider, atLeastOnce()).load("connector-1");
     }
 
     @Test

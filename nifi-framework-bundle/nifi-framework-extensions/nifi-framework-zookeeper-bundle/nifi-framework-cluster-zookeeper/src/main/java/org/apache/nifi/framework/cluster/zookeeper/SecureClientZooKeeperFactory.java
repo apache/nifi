@@ -18,6 +18,7 @@
 package org.apache.nifi.framework.cluster.zookeeper;
 
 import org.apache.curator.utils.ZookeeperFactory;
+import org.apache.zookeeper.ClientCnxnSocketNetty;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.admin.ZooKeeperAdmin;
@@ -27,7 +28,7 @@ import org.apache.zookeeper.common.X509Util;
 
 public class SecureClientZooKeeperFactory implements ZookeeperFactory {
 
-    public static final String NETTY_CLIENT_CNXN_SOCKET = org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
+    public static final String NETTY_CLIENT_CNXN_SOCKET = ClientCnxnSocketNetty.class.getName();
 
     private ZKClientConfig zkSecureClientConfig;
 

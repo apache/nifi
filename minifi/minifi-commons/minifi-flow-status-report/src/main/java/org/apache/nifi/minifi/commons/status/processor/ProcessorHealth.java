@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.commons.status.processor;
 
 import org.apache.nifi.minifi.commons.status.common.ValidationError;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ProcessorHealth implements java.io.Serializable {
+public class ProcessorHealth implements Serializable {
     private String runStatus;
     private boolean hasBulletins;
     private List<ValidationError> validationErrorList;

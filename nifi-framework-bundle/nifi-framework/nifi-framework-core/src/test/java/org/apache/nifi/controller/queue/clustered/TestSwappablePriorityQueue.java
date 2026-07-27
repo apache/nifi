@@ -36,7 +36,6 @@ import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +65,7 @@ public class TestSwappablePriorityQueue {
     private final List<String> events = new ArrayList<>();
     private EventReporter eventReporter;
 
-    private final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+    private final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
     private final DropFlowFileAction dropAction = (flowFiles, requestor) -> {
         return new QueueSize(flowFiles.size(), flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
     };

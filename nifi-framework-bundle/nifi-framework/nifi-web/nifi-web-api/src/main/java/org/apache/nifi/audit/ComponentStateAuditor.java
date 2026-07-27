@@ -45,7 +45,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param processor the processor
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.ProcessorNode)) && "
@@ -78,7 +78,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param controllerService the controller service
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.service.ControllerServiceNode)) && "
@@ -112,7 +112,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param reportingTask the reporting task
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.ReportingTaskNode)) && "
@@ -145,7 +145,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param flowAnalysisRule the flow analysis rule
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.FlowAnalysisRuleNode)) && "
@@ -178,7 +178,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param parameterProvider the parameter provider
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.ParameterProviderNode)) && "
@@ -211,7 +211,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param flowRegistryClient the flow registry client
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
             + "execution(void clearState(org.apache.nifi.registry.flow.FlowRegistryClientNode)) && "

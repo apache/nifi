@@ -40,7 +40,7 @@ public class ConsumePOP3 extends AbstractEmailProcessor<Pop3MailReceiver> {
     @Override
     protected Pop3MailReceiver buildMessageReceiver(ProcessContext context) {
         final Pop3MailReceiver receiver = new Pop3MailReceiver(this.buildUrl(context));
-        receiver.setShouldDeleteMessages(context.getProperty(AbstractEmailProcessor.SHOULD_DELETE_MESSAGES).asBoolean());
+        receiver.setShouldDeleteMessages(context.getProperty(SHOULD_DELETE_MESSAGES).asBoolean());
         return receiver;
     }
 

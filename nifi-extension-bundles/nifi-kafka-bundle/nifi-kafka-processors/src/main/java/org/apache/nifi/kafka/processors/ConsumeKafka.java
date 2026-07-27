@@ -295,7 +295,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .name("Key Record Reader")
             .description("The Record Reader to use for parsing the Kafka Record Key into a Record")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(NONE)
             .required(true)
             .dependsOn(KEY_FORMAT, KeyFormat.RECORD)
             .build();
@@ -853,7 +853,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private Iterator<ByteRecord> transformDemarcator(final ProcessContext context, final Iterator<ByteRecord> consumerRecords) {
-        final String demarcatorValue = context.getProperty(ConsumeKafka.MESSAGE_DEMARCATOR).getValue();
+        final String demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR).getValue();
         if (demarcatorValue == null) {
             return consumerRecords;
         }

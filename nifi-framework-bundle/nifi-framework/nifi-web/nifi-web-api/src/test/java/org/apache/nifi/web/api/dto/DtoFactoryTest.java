@@ -62,6 +62,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -286,7 +287,7 @@ public class DtoFactoryTest {
         when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
         when(serviceNode.isDeprecated()).thenReturn(false);
         when(serviceNode.isExtensionMissing()).thenReturn(true); // ghost component
-        when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(serviceNode.getVersionedComponentId()).thenReturn(Optional.empty());
         when(serviceNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
         final ControllerService controllerService = mock(ControllerService.class);
         when(controllerService.getPropertyDescriptors()).thenReturn(Collections.emptyList());
@@ -325,7 +326,7 @@ public class DtoFactoryTest {
         when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
         when(serviceNode.isDeprecated()).thenReturn(false);
         when(serviceNode.isExtensionMissing()).thenReturn(false); // not ghost
-        when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(serviceNode.getVersionedComponentId()).thenReturn(Optional.empty());
         when(serviceNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
         final ControllerService controllerService = mock(ControllerService.class);
         when(controllerService.getPropertyDescriptors()).thenReturn(Collections.emptyList());
@@ -365,7 +366,7 @@ public class DtoFactoryTest {
         when(serviceNode.isSupportsSensitiveDynamicProperties()).thenReturn(false);
         when(serviceNode.isDeprecated()).thenReturn(false);
         when(serviceNode.isExtensionMissing()).thenReturn(false); // not ghost
-        when(serviceNode.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(serviceNode.getVersionedComponentId()).thenReturn(Optional.empty());
         when(serviceNode.getRawPropertyValues()).thenReturn(Collections.emptyMap());
         final ControllerService controllerService = mock(ControllerService.class);
         when(controllerService.getPropertyDescriptors()).thenReturn(Collections.emptyList());
@@ -469,7 +470,7 @@ public class DtoFactoryTest {
         when(connection.getBendPoints()).thenReturn(Collections.emptyList());
         when(connection.getLabelIndex()).thenReturn(0);
         when(connection.getZIndex()).thenReturn(0L);
-        when(connection.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(connection.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Create the DTO factory
         final DtoFactory dtoFactory = new DtoFactory();
@@ -544,7 +545,7 @@ public class DtoFactoryTest {
         when(connection.getBendPoints()).thenReturn(Collections.emptyList());
         when(connection.getLabelIndex()).thenReturn(0);
         when(connection.getZIndex()).thenReturn(0L);
-        when(connection.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(connection.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Create the DTO factory
         final DtoFactory dtoFactory = new DtoFactory();
@@ -619,7 +620,7 @@ public class DtoFactoryTest {
         when(connection.getBendPoints()).thenReturn(Collections.emptyList());
         when(connection.getLabelIndex()).thenReturn(0);
         when(connection.getZIndex()).thenReturn(0L);
-        when(connection.getVersionedComponentId()).thenReturn(java.util.Optional.empty());
+        when(connection.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Create the DTO factory
         final DtoFactory dtoFactory = new DtoFactory();

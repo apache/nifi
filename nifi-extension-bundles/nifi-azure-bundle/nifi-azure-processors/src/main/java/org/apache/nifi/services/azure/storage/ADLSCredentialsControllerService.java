@@ -35,12 +35,6 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
-
 /**
  * Provides credentials details for ADLS
  *
@@ -76,19 +70,19 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
+            .dependsOn(AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
-            CREDENTIALS_TYPE,
+            AzureStorageUtils.CREDENTIALS_TYPE,
             ACCOUNT_KEY,
             SAS_TOKEN,
-            MANAGED_IDENTITY_CLIENT_ID,
-            SERVICE_PRINCIPAL_TENANT_ID,
-            SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET,
+            AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID,
+            AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID,
+            AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID,
+            AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET,
             AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE
     );
@@ -107,24 +101,24 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_NAME.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME, ENDPOINT_SUFFIX.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME, SAS_TOKEN.getName());
-        config.renameProperty(AzureStorageUtils.OLD_MANAGED_IDENTITY_CLIENT_ID_DESCRIPTOR_NAME, MANAGED_IDENTITY_CLIENT_ID.getName());
-        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_TENANT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_TENANT_ID.getName());
-        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_ID.getName());
-        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_SECRET.getName());
+        config.renameProperty(AzureStorageUtils.OLD_MANAGED_IDENTITY_CLIENT_ID_DESCRIPTOR_NAME, AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID.getName());
+        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_TENANT_ID_DESCRIPTOR_NAME, AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID.getName());
+        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID.getName());
+        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET.getName());
 
-        if (!config.hasProperty(CREDENTIALS_TYPE)) {
+        if (!config.hasProperty(AzureStorageUtils.CREDENTIALS_TYPE)) {
             final String propNameUseManagedIdentity = "storage-use-managed-identity";
 
             if (config.isPropertySet(ACCOUNT_KEY)) {
-                config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getValue());
+                config.setProperty(AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getValue());
             } else if (config.isPropertySet(SAS_TOKEN)) {
-                config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN.getValue());
-            } else if (config.isPropertySet(SERVICE_PRINCIPAL_TENANT_ID)) {
-                config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getValue());
+                config.setProperty(AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN.getValue());
+            } else if (config.isPropertySet(AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID)) {
+                config.setProperty(AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getValue());
             } else {
                 config.getPropertyValue(propNameUseManagedIdentity).ifPresent(value -> {
                     if ("true".equals(value)) {
-                        config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY.getValue());
+                        config.setProperty(AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY.getValue());
                     }
                 });
             }
@@ -148,14 +142,14 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
         setValue(credentialsBuilder, SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
         setValue(credentialsBuilder, ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
-        setValue(credentialsBuilder, CREDENTIALS_TYPE, property -> property.asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.MANAGED_IDENTITY,
+        setValue(credentialsBuilder, AzureStorageUtils.CREDENTIALS_TYPE, property -> property.asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.MANAGED_IDENTITY,
                 ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
-        setValue(credentialsBuilder, MANAGED_IDENTITY_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setManagedIdentityClientId, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setManagedIdentityClientId, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
 
-        if (context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.IDENTITY_FEDERATION) {
+        if (context.getProperty(AzureStorageUtils.CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.IDENTITY_FEDERATION) {
             final AzureIdentityFederationTokenProvider identityTokenProvider = context.getProperty(AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER)
                     .asControllerService(AzureIdentityFederationTokenProvider.class);
             credentialsBuilder.setIdentityTokenProvider(identityTokenProvider);

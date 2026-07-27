@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.google.cloud.storage.Storage.PredefinedAcl.BUCKET_OWNER_READ;
-import static org.apache.nifi.processors.gcp.storage.PutGCSObject.GZIPCONTENT;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CACHE_CONTROL_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.COMPONENT_COUNT_ATTR;
@@ -236,7 +235,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         runner.setProperty(PutGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
         runner.setProperty(PutGCSObject.OVERWRITE, String.valueOf(OVERWRITE));
         runner.setProperty(PutGCSObject.CONTENT_DISPOSITION_TYPE, CONTENT_DISPOSITION_TYPE);
-        runner.setProperty(GZIPCONTENT, Boolean.FALSE.toString());
+        runner.setProperty(PutGCSObject.GZIPCONTENT, Boolean.FALSE.toString());
         runner.assertValid();
 
         when(storage.createFrom(blobInfoArgumentCaptor.capture(),

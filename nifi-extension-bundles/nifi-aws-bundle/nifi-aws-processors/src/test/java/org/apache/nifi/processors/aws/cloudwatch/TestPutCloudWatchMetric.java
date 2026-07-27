@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPutCloudWatchMetric {
@@ -293,7 +292,7 @@ public class TestPutCloudWatchMetric {
     @Test
     void testMigration() {
         final Map<String, String> expectedRenamed = Map.ofEntries(
-                Map.entry("aws-region", REGION.getName()),
+                Map.entry("aws-region", RegionUtil.REGION.getName()),
                 Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
                 Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName()),
                 Map.entry("MetricName", PutCloudWatchMetric.METRIC_NAME.getName()),

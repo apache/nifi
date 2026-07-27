@@ -71,11 +71,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -296,9 +299,9 @@ public class TestConnectorResource {
         final ConnectorResource spyResource = spy(connectorResource);
         doReturn(true).when(spyResource).isRequestFromClusterNode();
 
-        final java.io.File tempFile = java.io.File.createTempFile("test-asset", ".txt");
+        final File tempFile = File.createTempFile("test-asset", ".txt");
         tempFile.deleteOnExit();
-        java.nio.file.Files.writeString(tempFile.toPath(), "asset-content");
+        Files.writeString(tempFile.toPath(), "asset-content");
 
         final Asset mockAsset = mock(Asset.class);
         when(mockAsset.getOwnerIdentifier()).thenReturn(CONNECTOR_ID);
@@ -306,7 +309,7 @@ public class TestConnectorResource {
         when(mockAsset.getName()).thenReturn("test-asset.txt");
 
         final String assetId = "test-asset-id";
-        when(serviceFacade.getConnectorAsset(assetId)).thenReturn(java.util.Optional.of(mockAsset));
+        when(serviceFacade.getConnectorAsset(assetId)).thenReturn(Optional.of(mockAsset));
 
         try (Response response = spyResource.getAssetContent(CONNECTOR_ID, assetId)) {
             assertEquals(200, response.getStatus());

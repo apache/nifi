@@ -35,7 +35,6 @@ import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.processor.Processor;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,44 +44,45 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
 
     private ConnectableTask createTask(final Connectable connectable) {
-        final FlowController flowController = Mockito.mock(FlowController.class);
-        Mockito.when(flowController.getStateManagerProvider()).thenReturn(Mockito.mock(StateManagerProvider.class));
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.getStateManagerProvider()).thenReturn(mock(StateManagerProvider.class));
 
-        final RepositoryContext repoContext = Mockito.mock(StandardRepositoryContext.class);
-        Mockito.when(repoContext.getFlowFileEventRepository()).thenReturn(Mockito.mock(FlowFileEventRepository.class));
+        final RepositoryContext repoContext = mock(StandardRepositoryContext.class);
+        when(repoContext.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
 
         when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
 
-        final RepositoryContextFactory contextFactory = Mockito.mock(RepositoryContextFactory.class);
-        Mockito.when(contextFactory.newProcessContext(Mockito.any(Connectable.class), Mockito.any(AtomicLong.class))).thenReturn(repoContext);
+        final RepositoryContextFactory contextFactory = mock(RepositoryContextFactory.class);
+        when(contextFactory.newProcessContext(any(Connectable.class), any(AtomicLong.class))).thenReturn(repoContext);
 
         final LifecycleState scheduleState = new LifecycleState(connectable.getIdentifier());
 
-        return new ConnectableTask(Mockito.mock(SchedulingAgent.class), connectable,
+        return new ConnectableTask(mock(SchedulingAgent.class), connectable,
                 flowController, contextFactory, scheduleState);
     }
 
     @Test
     public void testIsWorkToDo() {
-        final ProcessorNode procNode = Mockito.mock(ProcessorNode.class);
-        Mockito.when(procNode.hasIncomingConnection()).thenReturn(false);
+        final ProcessorNode procNode = mock(ProcessorNode.class);
+        when(procNode.hasIncomingConnection()).thenReturn(false);
 
-        final Processor processor = Mockito.mock(Processor.class);
-        Mockito.when(procNode.getIdentifier()).thenReturn("123");
-        Mockito.when(procNode.getRunnableComponent()).thenReturn(processor);
+        final Processor processor = mock(Processor.class);
+        when(procNode.getIdentifier()).thenReturn("123");
+        when(procNode.getRunnableComponent()).thenReturn(processor);
 
         // There is work to do because there are no incoming connections.
         final ConnectableTask task = createTask(procNode);
         assertFalse(task.invoke().isYield());
 
         // Test with only a single connection that is self-looping and empty
-        final Connection selfLoopingConnection = Mockito.mock(Connection.class);
+        final Connection selfLoopingConnection = mock(Connection.class);
         when(selfLoopingConnection.getSource()).thenReturn(procNode);
         when(selfLoopingConnection.getDestination()).thenReturn(procNode);
 
@@ -91,18 +91,18 @@ public class TestConnectableTask {
         assertFalse(task.invoke().isYield());
 
         // Test with only a single connection that is self-looping and empty
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.ACTIVE_QUEUE_EMPTY);
 
-        final FlowFileQueue nonEmptyQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue nonEmptyQueue = mock(FlowFileQueue.class);
         when(nonEmptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
 
         when(selfLoopingConnection.getFlowFileQueue()).thenReturn(nonEmptyQueue);
         assertFalse(task.invoke().isYield());
 
         // Test with only a non-looping Connection that has no FlowFiles
-        final Connection emptyConnection = Mockito.mock(Connection.class);
-        when(emptyConnection.getSource()).thenReturn(Mockito.mock(ProcessorNode.class));
+        final Connection emptyConnection = mock(Connection.class);
+        when(emptyConnection.getSource()).thenReturn(mock(ProcessorNode.class));
         when(emptyConnection.getDestination()).thenReturn(procNode);
 
         when(emptyConnection.getFlowFileQueue()).thenReturn(flowFileQueue);
@@ -111,8 +111,8 @@ public class TestConnectableTask {
         assertTrue(task.invoke().isYield());
 
         // test when the queue has data
-        final Connection nonEmptyConnection = Mockito.mock(Connection.class);
-        when(nonEmptyConnection.getSource()).thenReturn(Mockito.mock(ProcessorNode.class));
+        final Connection nonEmptyConnection = mock(Connection.class);
+        when(nonEmptyConnection.getSource()).thenReturn(mock(ProcessorNode.class));
         when(nonEmptyConnection.getDestination()).thenReturn(procNode);
         when(nonEmptyConnection.getFlowFileQueue()).thenReturn(nonEmptyQueue);
         when(procNode.getIncomingConnections()).thenReturn(Collections.singletonList(nonEmptyConnection));
@@ -121,11 +121,11 @@ public class TestConnectableTask {
 
     @Test
     public void testIsWorkToDoFunnels() {
-        final Funnel funnel = Mockito.mock(Funnel.class);
-        Mockito.when(funnel.hasIncomingConnection()).thenReturn(false);
-        Mockito.when(funnel.getRunnableComponent()).thenReturn(funnel);
-        Mockito.when(funnel.getConnectableType()).thenReturn(ConnectableType.FUNNEL);
-        Mockito.when(funnel.getIdentifier()).thenReturn("funnel-1");
+        final Funnel funnel = mock(Funnel.class);
+        when(funnel.hasIncomingConnection()).thenReturn(false);
+        when(funnel.getRunnableComponent()).thenReturn(funnel);
+        when(funnel.getConnectableType()).thenReturn(ConnectableType.FUNNEL);
+        when(funnel.getIdentifier()).thenReturn("funnel-1");
 
         final ConnectableTask task = createTask(funnel);
         assertTrue(task.invoke().isYield(),
@@ -134,14 +134,14 @@ public class TestConnectableTask {
         // Test with only a single connection that is self-looping and empty.
         // Actually, this self-loop input can not be created for Funnels using NiFi API because an outer layer check condition does not allow it.
         // But test it anyways.
-        final Connection selfLoopingConnection = Mockito.mock(Connection.class);
+        final Connection selfLoopingConnection = mock(Connection.class);
         when(selfLoopingConnection.getSource()).thenReturn(funnel);
         when(selfLoopingConnection.getDestination()).thenReturn(funnel);
 
         when(funnel.hasIncomingConnection()).thenReturn(true);
         when(funnel.getIncomingConnections()).thenReturn(Collections.singletonList(selfLoopingConnection));
 
-        final FlowFileQueue emptyQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue emptyQueue = mock(FlowFileQueue.class);
         when(emptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.ACTIVE_QUEUE_EMPTY);
         when(selfLoopingConnection.getFlowFileQueue()).thenReturn(emptyQueue);
 
@@ -153,8 +153,8 @@ public class TestConnectableTask {
                 "If there is no incoming connection from other components, it should be yielded.");
 
         // Add an incoming connection from another component.
-        final ProcessorNode inputProcessor = Mockito.mock(ProcessorNode.class);
-        final Connection incomingFromAnotherComponent = Mockito.mock(Connection.class);
+        final ProcessorNode inputProcessor = mock(ProcessorNode.class);
+        final Connection incomingFromAnotherComponent = mock(Connection.class);
         when(incomingFromAnotherComponent.getSource()).thenReturn(inputProcessor);
         when(incomingFromAnotherComponent.getDestination()).thenReturn(funnel);
         when(incomingFromAnotherComponent.getFlowFileQueue()).thenReturn(emptyQueue);
@@ -166,8 +166,8 @@ public class TestConnectableTask {
                 " it should be yielded because there's no outgoing connections.");
 
         // Add an outgoing connection to another component.
-        final ProcessorNode outputProcessor = Mockito.mock(ProcessorNode.class);
-        final Connection outgoingToAnotherComponent = Mockito.mock(Connection.class);
+        final ProcessorNode outputProcessor = mock(ProcessorNode.class);
+        final Connection outgoingToAnotherComponent = mock(Connection.class);
         when(outgoingToAnotherComponent.getSource()).thenReturn(funnel);
         when(outgoingToAnotherComponent.getDestination()).thenReturn(outputProcessor);
         outgoingConnections.add(outgoingToAnotherComponent);
@@ -176,7 +176,7 @@ public class TestConnectableTask {
                 " it should be yielded because there's no incoming FlowFiles to process.");
 
         // Adding input FlowFiles.
-        final FlowFileQueue nonEmptyQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue nonEmptyQueue = mock(FlowFileQueue.class);
         when(nonEmptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
         when(incomingFromAnotherComponent.getFlowFileQueue()).thenReturn(nonEmptyQueue);
         assertFalse(task.invoke().isYield(),

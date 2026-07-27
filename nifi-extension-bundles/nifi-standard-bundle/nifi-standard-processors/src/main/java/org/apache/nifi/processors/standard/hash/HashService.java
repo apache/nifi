@@ -93,7 +93,7 @@ public class HashService {
     }
 
     /**
-     * Returns the hash of the specified value. This method uses an {@link java.io.InputStream} to perform the operation in a streaming manner for large inputs.
+     * Returns the hash of the specified value. This method uses an {@link InputStream} to perform the operation in a streaming manner for large inputs.
      *
      * @param algorithm the hash algorithm to use
      * @param value     the value to hash (cannot be {@code null} but can be an empty stream)

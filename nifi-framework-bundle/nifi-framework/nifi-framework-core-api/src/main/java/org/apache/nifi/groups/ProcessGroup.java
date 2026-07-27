@@ -918,7 +918,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     RemoteGroupPort findRemoteGroupPort(String identifier);
 
     /**
-     * @return a Set of all {@link org.apache.nifi.connectable.Positionable}s contained within this
+     * @return a Set of all {@link Positionable}s contained within this
      * {@link ProcessGroup} and any child {@link ProcessGroup}s
      */
     Set<Positionable> findAllPositionables();

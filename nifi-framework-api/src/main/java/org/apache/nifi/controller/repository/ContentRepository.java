@@ -38,7 +38,7 @@ public interface ContentRepository {
      * ContentRepositoryContext.
      *
      * @param context to initialize repository
-     * @throws java.io.IOException if unable to init
+     * @throws IOException if unable to init
      */
     void initialize(ContentRepositoryContext context) throws IOException;
 
@@ -58,7 +58,7 @@ public interface ContentRepository {
      * @param containerName name of container to check capacity on
      * @return the maximum number of bytes that can be stored in the storage
      * mechanism that backs the container with the given name
-     * @throws java.io.IOException if unable to check capacity
+     * @throws IOException if unable to check capacity
      * @throws IllegalArgumentException if no container exists with the given
      * name
      */
@@ -68,7 +68,7 @@ public interface ContentRepository {
      * @param containerName to check space on
      * @return the number of bytes available to be used used by the storage
      * mechanism that backs the container with the given name
-     * @throws java.io.IOException if unable to check space
+     * @throws IOException if unable to check space
      * @throws IllegalArgumentException if no container exists with the given
      * name
      */
@@ -90,7 +90,7 @@ public interface ContentRepository {
      * loss tolerant. If true the repository might choose more volatile storage
      * options which could increase performance for a tradeoff with reliability
      * @return newly created claim
-     * @throws java.io.IOException if unable to create claim
+     * @throws IOException if unable to create claim
      */
     ContentClaim create(boolean lossTolerant) throws IOException;
 

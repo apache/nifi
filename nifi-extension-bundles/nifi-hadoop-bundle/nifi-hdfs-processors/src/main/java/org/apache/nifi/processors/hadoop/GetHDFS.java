@@ -410,7 +410,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
      *
      * @param context context
      * @return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     protected Set<Path> performListing(final ProcessContext context) throws IOException, InterruptedException {
 
@@ -448,7 +448,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
      * @param dir dir
      * @param filesVisited filesVisited
      * @return files to process
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException, InterruptedException {
         if (null == filesVisited) {

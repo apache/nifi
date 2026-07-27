@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.system;
 
-public class SystemProcessorStats implements java.io.Serializable {
+import java.io.Serializable;
+
+public class SystemProcessorStats implements Serializable {
 
     private double loadAverage;
     private int availableProcessors;

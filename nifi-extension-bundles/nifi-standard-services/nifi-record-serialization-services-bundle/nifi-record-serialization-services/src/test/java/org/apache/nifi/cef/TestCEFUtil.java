@@ -53,9 +53,9 @@ public class TestCEFUtil {
     static final Map<String, Object> EXPECTED_EXTENSION_VALUES = new HashMap<>();
 
     static final String CUSTOM_EXTENSION_FIELD_NAME = "loginsequence";
-    static final RecordField CUSTOM_EXTENSION_FIELD = new RecordField(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, RecordFieldType.INT.getDataType());
-    static final RecordField CUSTOM_EXTENSION_FIELD_AS_STRING = new RecordField(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, RecordFieldType.STRING.getDataType());
-    static final RecordField CUSTOM_EXTENSION_FIELD_AS_CHOICE = new RecordField(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, RecordFieldType.CHOICE.getChoiceDataType(
+    static final RecordField CUSTOM_EXTENSION_FIELD = new RecordField(CUSTOM_EXTENSION_FIELD_NAME, RecordFieldType.INT.getDataType());
+    static final RecordField CUSTOM_EXTENSION_FIELD_AS_STRING = new RecordField(CUSTOM_EXTENSION_FIELD_NAME, RecordFieldType.STRING.getDataType());
+    static final RecordField CUSTOM_EXTENSION_FIELD_AS_CHOICE = new RecordField(CUSTOM_EXTENSION_FIELD_NAME, RecordFieldType.CHOICE.getChoiceDataType(
             RecordFieldType.FLOAT.getDataType(), RecordFieldType.STRING.getDataType()
     ));
 
@@ -102,7 +102,7 @@ public class TestCEFUtil {
     }
 
     static List<RecordField> getFieldsWithCustomExtensions(RecordField... customExtensions) {
-        final List<RecordField> result = TestCEFUtil.getFieldWithExtensions();
+        final List<RecordField> result = getFieldWithExtensions();
 
         Collections.addAll(result, customExtensions);
 

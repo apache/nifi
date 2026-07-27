@@ -123,20 +123,20 @@ public class AuthorizationService {
 
     public void verifyAuthorizerIsManaged() {
         if (!isManagedAuthorizer()) {
-            throw new IllegalStateException(AuthorizationService.MSG_NON_MANAGED_AUTHORIZER);
+            throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
         }
     }
 
     public void verifyAuthorizerSupportsConfigurablePolicies() {
         if (!isConfigurableAccessPolicyProvider()) {
             verifyAuthorizerIsManaged();
-            throw new IllegalStateException(AuthorizationService.MSG_NON_CONFIGURABLE_POLICIES);
+            throw new IllegalStateException(MSG_NON_CONFIGURABLE_POLICIES);
         }
     }
 
     public void verifyAuthorizerSupportsConfigurableUserGroups() {
         if (!isConfigurableUserGroupProvider()) {
-            throw new IllegalStateException(AuthorizationService.MSG_NON_CONFIGURABLE_USERS);
+            throw new IllegalStateException(MSG_NON_CONFIGURABLE_USERS);
         }
     }
 
@@ -284,8 +284,7 @@ public class AuthorizationService {
             throw new IllegalArgumentException("User group identity must be specified when creating a new group.");
         }
 
-        final org.apache.nifi.registry.security.authorization.Group createdGroup =
-                configurableUserGroupProvider().addGroup(userGroupFromDTO(userGroup));
+        final Group createdGroup = configurableUserGroupProvider().addGroup(userGroupFromDTO(userGroup));
         return userGroupToDTO(createdGroup);
     }
 
@@ -294,7 +293,7 @@ public class AuthorizationService {
     }
 
     public UserGroup getUserGroup(final String identifier) {
-        final org.apache.nifi.registry.security.authorization.Group group = userGroupProvider.getGroup(identifier);
+        final Group group = userGroupProvider.getGroup(identifier);
 
         if (group == null) {
             LOGGER.warn("The specified user group id [{}] does not exist.", identifier);
@@ -305,7 +304,7 @@ public class AuthorizationService {
     }
 
     public void verifyUserGroupExists(final String identifier) {
-        final org.apache.nifi.registry.security.authorization.Group group = userGroupProvider.getGroup(identifier);
+        final Group group = userGroupProvider.getGroup(identifier);
         if (group == null) {
             LOGGER.warn("The specified user group id [{}] does not exist.", identifier);
             throw new ResourceNotFoundException("The specified user group ID does not exist in this registry.");
@@ -315,8 +314,7 @@ public class AuthorizationService {
     public UserGroup updateUserGroup(final UserGroup userGroup) {
         verifyUserGroupProviderIsConfigurable();
 
-        final org.apache.nifi.registry.security.authorization.Group updatedGroup =
-                configurableUserGroupProvider().updateGroup(userGroupFromDTO(userGroup));
+        final Group updatedGroup = configurableUserGroupProvider().updateGroup(userGroupFromDTO(userGroup));
 
         if (updatedGroup == null) {
             LOGGER.warn("The specified user group id [{}] does not exist.", userGroup.getIdentifier());
@@ -610,8 +608,7 @@ public class AuthorizationService {
         return userDTO;
     }
 
-    private UserGroup userGroupToDTO(
-            final org.apache.nifi.registry.security.authorization.Group userGroup) {
+    private UserGroup userGroupToDTO(final Group userGroup) {
         if (userGroup == null) {
             return null;
         }
@@ -649,7 +646,7 @@ public class AuthorizationService {
         if (user != null) {
             return tenantToDTO(user);
         } else {
-            org.apache.nifi.registry.security.authorization.Group group = userGroupProvider.getGroup(identifier);
+            Group group = userGroupProvider.getGroup(identifier);
             return tenantToDTO(group);
         }
     }
@@ -679,7 +676,7 @@ public class AuthorizationService {
         return tenantDTO;
     }
 
-    private Tenant tenantToDTO(org.apache.nifi.registry.security.authorization.Group group) {
+    private Tenant tenantToDTO(Group group) {
         if (group == null) {
             return null;
         }
@@ -709,12 +706,11 @@ public class AuthorizationService {
                 .build();
     }
 
-    private static org.apache.nifi.registry.security.authorization.Group userGroupFromDTO(
-            final UserGroup userGroupDTO) {
+    private static Group userGroupFromDTO(final UserGroup userGroupDTO) {
         if (userGroupDTO == null) {
             return null;
         }
-        org.apache.nifi.registry.security.authorization.Group.Builder groupBuilder = new org.apache.nifi.registry.security.authorization.Group.Builder()
+        Group.Builder groupBuilder = new Group.Builder()
                 .identifier(userGroupDTO.getIdentifier())
                 .name(userGroupDTO.getIdentity());
         Set<Tenant> users = userGroupDTO.getUsers();

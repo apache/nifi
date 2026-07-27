@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.commons.status.instance;
 
 import org.apache.nifi.minifi.commons.status.common.BulletinStatus;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class InstanceStatus implements java.io.Serializable {
+public class InstanceStatus implements Serializable {
 
     private InstanceHealth instanceHealth;
     private List<BulletinStatus> bulletinList;

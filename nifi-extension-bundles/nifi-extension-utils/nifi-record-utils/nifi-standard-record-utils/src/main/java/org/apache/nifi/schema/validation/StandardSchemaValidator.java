@@ -34,6 +34,9 @@ import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -250,13 +253,13 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
             case CHAR:
                 return value instanceof Character;
             case DATE:
-                return value instanceof java.sql.Date;
+                return value instanceof Date;
             case STRING:
                 return value instanceof String;
             case TIME:
-                return value instanceof java.sql.Time;
+                return value instanceof Time;
             case TIMESTAMP:
-                return value instanceof java.sql.Timestamp;
+                return value instanceof Timestamp;
 
             // Numeric data types
             case BIGINT:

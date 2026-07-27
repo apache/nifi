@@ -401,14 +401,14 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     }
 
     private void handleUnexpectedError(final ProcessSession session, FlowFile flowFile, final Exception e) {
-        flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_MESSAGE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
 
     private void handleExpectedError(final ProcessSession session, FlowFile flowFile, final GoogleJsonResponseException e) {
-        flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_MESSAGE, e.getMessage());
-        flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_CODE, valueOf(e.getStatusCode()));
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getStatusCode()));
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }

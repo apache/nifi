@@ -160,7 +160,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         splunkServiceArguments = getSplunkServiceArgs(context);
         splunkService = getSplunkService(splunkServiceArguments);
-        requestChannel = context.getProperty(SplunkAPICall.REQUEST_CHANNEL).evaluateAttributeExpressions().getValue();
+        requestChannel = context.getProperty(REQUEST_CHANNEL).evaluateAttributeExpressions().getValue();
         final String scheme = context.getProperty(SCHEME).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();

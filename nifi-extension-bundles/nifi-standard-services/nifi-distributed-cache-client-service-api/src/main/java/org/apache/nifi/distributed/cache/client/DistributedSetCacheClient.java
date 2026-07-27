@@ -72,7 +72,7 @@ public interface DistributedSetCacheClient extends ControllerService {
      * Attempts to notify the server that we are finished communicating with it
      * and cleans up resources
      *
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     void close() throws IOException;
 }

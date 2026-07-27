@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_USER_METADATA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -132,7 +131,7 @@ public class TestPutAzureBlobStorage_v12 {
                 @Override
                 protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
                     return super.getSupportedPropertyDescriptors().stream()
-                            .filter(pd -> !pd.equals(BLOB_STORAGE_CREDENTIALS_SERVICE))
+                            .filter(pd -> !pd.equals(AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE))
                             .toList();
                 }
             };

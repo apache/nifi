@@ -27,7 +27,7 @@ import java.util.Set;
 
 /**
  * This interface defines an API that can be used for interacting with a
- * Distributed Cache that functions similarly to a {@link java.util.Map Map}.
+ * Distributed Cache that functions similarly to a {@link Map Map}.
  *
  */
 @Tags({"distributed", "client", "cluster", "map", "cache"})
@@ -168,7 +168,7 @@ public interface DistributedMapCacheClient extends ControllerService {
      * Attempts to notify the server that we are finished communicating with it
      * and cleans up resources
      *
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     void close() throws IOException;
 

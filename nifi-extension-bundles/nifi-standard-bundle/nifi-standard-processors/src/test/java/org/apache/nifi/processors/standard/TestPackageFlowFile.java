@@ -24,7 +24,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -33,7 +32,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestPackageFlowFile {
 
@@ -60,7 +61,7 @@ public class TestPackageFlowFile {
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PackageFlowFile.REL_SUCCESS).getFirst();
 
         // mime.type has changed
-        Assertions.assertEquals(StandardFlowFileMediaType.VERSION_3.getMediaType(),
+        assertEquals(StandardFlowFileMediaType.VERSION_3.getMediaType(),
                 outputFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
         // content can be unpacked with FlowFileUnpackagerV3
@@ -69,14 +70,14 @@ public class TestPackageFlowFile {
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
             // verify attributes in package
-            Assertions.assertEquals(5, unpackedAttributes.size());
-            Assertions.assertNotNull(unpackedAttributes.get(CoreAttributes.UUID.key()));
-            Assertions.assertNotNull(unpackedAttributes.get(CoreAttributes.PATH.key()));
-            Assertions.assertEquals(SAMPLE_ATTR_FILENAME, unpackedAttributes.get(CoreAttributes.FILENAME.key()));
-            Assertions.assertEquals(SAMPLE_ATTR_MIME_TYPE, unpackedAttributes.get(CoreAttributes.MIME_TYPE.key()));
-            Assertions.assertEquals(EXTRA_ATTR_VALUE, unpackedAttributes.get(EXTRA_ATTR_KEY));
+            assertEquals(5, unpackedAttributes.size());
+            assertNotNull(unpackedAttributes.get(CoreAttributes.UUID.key()));
+            assertNotNull(unpackedAttributes.get(CoreAttributes.PATH.key()));
+            assertEquals(SAMPLE_ATTR_FILENAME, unpackedAttributes.get(CoreAttributes.FILENAME.key()));
+            assertEquals(SAMPLE_ATTR_MIME_TYPE, unpackedAttributes.get(CoreAttributes.MIME_TYPE.key()));
+            assertEquals(EXTRA_ATTR_VALUE, unpackedAttributes.get(EXTRA_ATTR_KEY));
             // verify content in package
-            Assertions.assertArrayEquals(SAMPLE_CONTENT.getBytes(), baos.toByteArray());
+            assertArrayEquals(SAMPLE_CONTENT.getBytes(), baos.toByteArray());
         }
     }
 
@@ -98,7 +99,7 @@ public class TestPackageFlowFile {
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PackageFlowFile.REL_SUCCESS).getFirst();
 
         // mime.type has changed
-        Assertions.assertEquals(StandardFlowFileMediaType.VERSION_3.getMediaType(),
+        assertEquals(StandardFlowFileMediaType.VERSION_3.getMediaType(),
                 outputFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
         // content can be unpacked with FlowFileUnpackagerV3
@@ -108,13 +109,13 @@ public class TestPackageFlowFile {
             for (int i = 0; i < fileCount; i++) {
                 Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
                 // verify attributes in package
-                Assertions.assertEquals(4, unpackedAttributes.size());
-                Assertions.assertNotNull(unpackedAttributes.get(CoreAttributes.UUID.key()));
-                Assertions.assertNotNull(unpackedAttributes.get(CoreAttributes.PATH.key()));
-                Assertions.assertEquals(i + SAMPLE_ATTR_FILENAME, unpackedAttributes.get(CoreAttributes.FILENAME.key()));
-                Assertions.assertEquals(SAMPLE_ATTR_MIME_TYPE, unpackedAttributes.get(CoreAttributes.MIME_TYPE.key()));
+                assertEquals(4, unpackedAttributes.size());
+                assertNotNull(unpackedAttributes.get(CoreAttributes.UUID.key()));
+                assertNotNull(unpackedAttributes.get(CoreAttributes.PATH.key()));
+                assertEquals(i + SAMPLE_ATTR_FILENAME, unpackedAttributes.get(CoreAttributes.FILENAME.key()));
+                assertEquals(SAMPLE_ATTR_MIME_TYPE, unpackedAttributes.get(CoreAttributes.MIME_TYPE.key()));
                 // verify content in package
-                Assertions.assertArrayEquals(SAMPLE_CONTENT.getBytes(), baos.toByteArray());
+                assertArrayEquals(SAMPLE_CONTENT.getBytes(), baos.toByteArray());
                 baos.reset();
             }
         }

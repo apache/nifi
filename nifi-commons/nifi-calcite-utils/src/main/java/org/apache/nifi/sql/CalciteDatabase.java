@@ -20,6 +20,7 @@ package org.apache.nifi.sql;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.slf4j.Logger;
@@ -76,7 +77,7 @@ public class CalciteDatabase implements Closeable {
 
     static {
         try {
-            DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
+            DriverManager.registerDriver(new Driver());
         } catch (final Exception e) {
             throw new RuntimeException("Could not initialize Calcite JDBC Driver");
         }

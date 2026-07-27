@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.registry;
 
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
@@ -81,7 +82,7 @@ public abstract class AbstractNiFiRegistryCommand<R extends Result> extends Abst
      * but if it wasn't then assume the source is the same registry we already know about
      */
     protected NiFiRegistryClient getSourceClient(final NiFiRegistryClient client, final String srcPropsValue)
-            throws IOException, org.apache.commons.cli.MissingOptionException {
+            throws IOException, MissingOptionException {
         final NiFiRegistryClient srcClient;
         if (!StringUtils.isBlank(srcPropsValue)) {
             final Properties srcProps = new Properties();

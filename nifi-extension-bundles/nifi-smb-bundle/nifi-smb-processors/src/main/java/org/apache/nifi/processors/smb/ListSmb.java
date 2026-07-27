@@ -121,7 +121,7 @@ import static org.apache.nifi.services.smb.SmbListableEntity.SIZE;
         @WritesAttribute(attribute = SIZE, description = "The size of the file in bytes."),
         @WritesAttribute(attribute = ALLOCATION_SIZE, description = "The number of bytes allocated for the file on the server."),
 })
-@Stateful(scopes = {Scope.CLUSTER}, description =
+@Stateful(scopes = {CLUSTER}, description =
         "After performing a listing of files, the state of the previous listing can be stored in order to list files "
                 + "continuously without duplication."
 )
@@ -250,12 +250,12 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             FILE_FILTER,
             PATH_FILTER,
             IGNORE_FILES_WITH_SUFFIX,
-            AbstractListProcessor.RECORD_WRITER,
+            RECORD_WRITER,
             MINIMUM_AGE,
             MAXIMUM_AGE,
             MINIMUM_SIZE,
             MAXIMUM_SIZE,
-            AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION,
+            TARGET_SYSTEM_TIMESTAMP_PRECISION,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET

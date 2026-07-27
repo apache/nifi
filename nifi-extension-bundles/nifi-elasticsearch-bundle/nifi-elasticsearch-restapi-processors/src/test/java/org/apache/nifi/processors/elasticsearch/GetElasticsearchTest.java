@@ -241,7 +241,7 @@ class GetElasticsearchTest {
     }
 
     private static void assertOutputAttribute(final MockFlowFile doc, final boolean attributeOutput) {
-        GetElasticsearchTest.assertOutputAttribute(doc, attributeOutput, "elasticsearch.doc");
+        assertOutputAttribute(doc, attributeOutput, "elasticsearch.doc");
     }
 
     private static void assertCommonAttributes(final MockFlowFile doc, final boolean type) {

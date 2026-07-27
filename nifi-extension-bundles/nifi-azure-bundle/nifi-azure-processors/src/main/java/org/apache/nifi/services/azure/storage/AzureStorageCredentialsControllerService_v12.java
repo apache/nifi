@@ -32,16 +32,6 @@ import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_KEY;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_NAME;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SAS_TOKEN;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
-
 /**
  * Provides credentials details for Azure Storage processors
  *
@@ -58,20 +48,20 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
+            .dependsOn(AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ACCOUNT_NAME,
+            AzureStorageUtils.ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
-            CREDENTIALS_TYPE,
-            ACCOUNT_KEY,
-            SAS_TOKEN,
-            MANAGED_IDENTITY_CLIENT_ID,
-            SERVICE_PRINCIPAL_TENANT_ID,
-            SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET,
-            IDENTITY_FEDERATION_TOKEN_PROVIDER,
+            AzureStorageUtils.CREDENTIALS_TYPE,
+            AzureStorageUtils.ACCOUNT_KEY,
+            AzureStorageUtils.SAS_TOKEN,
+            AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID,
+            AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID,
+            AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID,
+            AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET,
+            AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -89,29 +79,29 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
 
     @Override
     public AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes) {
-        String accountName = context.getProperty(ACCOUNT_NAME).getValue();
+        String accountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).getValue();
         String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
-        AzureStorageCredentialsType credentialsType = context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class);
+        AzureStorageCredentialsType credentialsType = context.getProperty(AzureStorageUtils.CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class);
         ProxyOptions proxyOptions = AzureStorageUtils.getProxyOptions(context);
 
         switch (credentialsType) {
             case ACCOUNT_KEY:
-                String accountKey = context.getProperty(ACCOUNT_KEY).getValue();
+                String accountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithAccountKey(accountName, endpointSuffix, accountKey);
             case SAS_TOKEN:
-                String sasToken = context.getProperty(SAS_TOKEN).getValue();
+                String sasToken = context.getProperty(AzureStorageUtils.SAS_TOKEN).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithSasToken(accountName, endpointSuffix, sasToken);
             case MANAGED_IDENTITY:
-                String managedIdentityClientId = context.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
+                String managedIdentityClientId = context.getProperty(AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithManagedIdentity(accountName, endpointSuffix, managedIdentityClientId, proxyOptions);
             case SERVICE_PRINCIPAL:
-                String servicePrincipalTenantId = context.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue();
-                String servicePrincipalClientId = context.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue();
-                String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
+                String servicePrincipalTenantId = context.getProperty(AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID).getValue();
+                String servicePrincipalClientId = context.getProperty(AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID).getValue();
+                String servicePrincipalClientSecret = context.getProperty(AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix,
                         servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
             case IDENTITY_FEDERATION:
-                final AzureIdentityFederationTokenProvider identityTokenProvider = context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER)
+                final AzureIdentityFederationTokenProvider identityTokenProvider = context.getProperty(AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER)
                         .asControllerService(AzureIdentityFederationTokenProvider.class);
                 return AzureStorageCredentialsDetails_v12.createWithIdentityTokenProvider(
                         accountName,
@@ -125,14 +115,14 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty(AzureStorageUtils.OLD_CREDENTIALS_TYPE_DESCRIPTOR_NAME, AzureStorageUtils.CREDENTIALS_TYPE.getName());
-        config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_KEY.getName());
-        config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_NAME.getName());
+        config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME, AzureStorageUtils.ACCOUNT_KEY.getName());
+        config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME, AzureStorageUtils.ACCOUNT_NAME.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME, ENDPOINT_SUFFIX.getName());
-        config.renameProperty(AzureStorageUtils.STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME, SAS_TOKEN.getName());
-        config.renameProperty(AzureStorageUtils.OLD_MANAGED_IDENTITY_CLIENT_ID_DESCRIPTOR_NAME, MANAGED_IDENTITY_CLIENT_ID.getName());
-        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_TENANT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_TENANT_ID.getName());
-        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_ID.getName());
-        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_SECRET.getName());
+        config.renameProperty(AzureStorageUtils.STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME, AzureStorageUtils.SAS_TOKEN.getName());
+        config.renameProperty(AzureStorageUtils.OLD_MANAGED_IDENTITY_CLIENT_ID_DESCRIPTOR_NAME, AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID.getName());
+        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_TENANT_ID_DESCRIPTOR_NAME, AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID.getName());
+        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID.getName());
+        config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET.getName());
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 }

@@ -34,7 +34,7 @@ public interface Serializer<T> {
      * @param value value
      * @param output stream
      * @throws SerializationException If unable to serialize the given value
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     void serialize(T value, OutputStream output) throws SerializationException, IOException;
 

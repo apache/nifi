@@ -55,6 +55,7 @@ import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -172,7 +173,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         return new File(f);
     }
 
-    private void callScriptStatic(String method, final ProcessContext context) throws IllegalAccessException, java.lang.reflect.InvocationTargetException {
+    private void callScriptStatic(String method, final ProcessContext context) throws IllegalAccessException, InvocationTargetException {
         if (compiled != null) {
             Method m = null;
             try {
@@ -244,7 +245,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         // Only re-create the shell if necessary, this helps if loading native libraries
-        if (ExecuteGroovyScript.ADD_CLASSPATH.equals(descriptor)) {
+        if (ADD_CLASSPATH.equals(descriptor)) {
             this.shell = null;
         }
         this.compiled = null;

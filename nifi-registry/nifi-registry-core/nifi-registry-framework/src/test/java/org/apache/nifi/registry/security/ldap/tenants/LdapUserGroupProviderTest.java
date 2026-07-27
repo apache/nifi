@@ -30,7 +30,6 @@ import org.apache.nifi.registry.util.StandardPropertyValue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.security.ldap.server.UnboundIdContainer;
 
@@ -797,7 +796,7 @@ public class LdapUserGroupProviderTest {
     }
 
     private NiFiRegistryProperties getNiFiProperties(final Properties properties) {
-        final NiFiRegistryProperties registryProperties = Mockito.mock(NiFiRegistryProperties.class);
+        final NiFiRegistryProperties registryProperties = mock(NiFiRegistryProperties.class);
         when(registryProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
         when(registryProperties.getProperty(anyString())).then(invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));
         return registryProperties;

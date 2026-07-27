@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard.calcite;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.flowfile.FlowFile;
@@ -81,7 +82,7 @@ public class TestRecordResultSetOutputStreamCallback {
     }
 
     private ResultSet getResultSet() throws SQLException {
-        DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
+        DriverManager.registerDriver(new Driver());
         final Connection connection = DriverManager.getConnection("jdbc:calcite:");
         final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
         calciteConnection.getRootSchema().add("TEST", new ReflectiveSchema(new CalciteTestSchema()));

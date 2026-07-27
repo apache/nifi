@@ -25,6 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.authorization.AccessDeniedException;
@@ -159,7 +160,7 @@ public class ParquetContentViewerController extends HttpServlet {
             case GenericData.EnumSymbol enumSymbol -> {
                 return enumSymbol.toString();
             }
-            case org.apache.avro.util.Utf8 utf8 -> {
+            case Utf8 utf8 -> {
                 return utf8.toString();
             }
             case null, default -> {

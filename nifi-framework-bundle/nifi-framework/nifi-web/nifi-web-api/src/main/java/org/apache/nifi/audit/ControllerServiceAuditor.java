@@ -72,7 +72,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @return node
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
             + "execution(org.apache.nifi.controller.service.ControllerServiceNode createControllerService(org.apache.nifi.web.api.dto.ControllerServiceDTO))")

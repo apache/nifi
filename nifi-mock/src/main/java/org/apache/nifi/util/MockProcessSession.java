@@ -379,7 +379,7 @@ public class MockProcessSession implements ProcessSession {
 
     /**
      * Clear the 'committed' flag so that we can test that the next iteration of
-     * {@link org.apache.nifi.processor.Processor#onTrigger} commits or rolls back the
+     * {@link Processor#onTrigger} commits or rolls back the
      * session
      */
     public void clearCommitted() {
@@ -388,7 +388,7 @@ public class MockProcessSession implements ProcessSession {
 
     /**
      * Clear the 'rolledBack' flag so that we can test that the next iteration
-     * of {@link org.apache.nifi.processor.Processor#onTrigger} commits or rolls back the
+     * of {@link Processor#onTrigger} commits or rolls back the
      * session
      */
     public void clearRollback() {

@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -148,7 +149,7 @@ public class TestJacksonCSVRecordReader {
 
             final Record record = reader.nextRecord();
             final Object date = record.getValue("date");
-            assertEquals(java.sql.Date.valueOf(dateValue), date);
+            assertEquals(Date.valueOf(dateValue), date);
         }
     }
 

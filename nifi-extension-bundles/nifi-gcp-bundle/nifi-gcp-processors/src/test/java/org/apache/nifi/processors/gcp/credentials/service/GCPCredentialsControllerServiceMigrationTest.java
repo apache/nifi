@@ -18,7 +18,6 @@ package org.apache.nifi.processors.gcp.credentials.service;
 
 import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.junit.jupiter.api.Test;
@@ -26,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
@@ -41,64 +41,64 @@ class GCPCredentialsControllerServiceMigrationTest {
     @Test
     void testMigratesApplicationDefaultFlag() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName(), "true");
+        properties.put(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName(), "true");
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.APPLICATION_DEFAULT.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
-        assertFalse(configuration.getRawProperties().containsKey(CredentialPropertyDescriptors.LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
+        assertFalse(configuration.getRawProperties().containsKey(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName()));
     }
 
     @Test
     void testMigratesServiceAccountFile() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
+        properties.put(SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
     }
 
     @Test
     void testMigratesServiceAccountJson() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON.getName(), SERVICE_ACCOUNT_JSON_PLACEHOLDER);
+        properties.put(SERVICE_ACCOUNT_JSON.getName(), SERVICE_ACCOUNT_JSON_PLACEHOLDER);
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
     }
 
     @Test
     void testMigratesComputeEngineFlag() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName(), "true");
+        properties.put(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName(), "true");
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.COMPUTE_ENGINE.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
-        assertFalse(configuration.getRawProperties().containsKey(CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
+        assertFalse(configuration.getRawProperties().containsKey(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName()));
     }
 
     @Test
     void testDoesNotOverrideExistingAuthenticationStrategy() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue());
-        properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
+        properties.put(AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue());
+        properties.put(SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
     }
 
     @Test
@@ -109,32 +109,32 @@ class GCPCredentialsControllerServiceMigrationTest {
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.APPLICATION_DEFAULT.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
     }
 
     @Test
     void testLegacyPropertiesDeriveAuthenticationStrategyWhenMissing() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
+        properties.put(SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
     }
 
     @Test
     void testDoesNotOverrideExplicitStrategyWhenServiceAccountPropertiesSet() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.APPLICATION_DEFAULT.getValue());
-        properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
+        properties.put(AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.APPLICATION_DEFAULT.getValue());
+        properties.put(SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
         assertEquals(AuthenticationStrategy.APPLICATION_DEFAULT.getValue(),
-                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+                configuration.getRawProperties().get(AUTHENTICATION_STRATEGY.getName()));
     }
 
     @Test

@@ -19,6 +19,8 @@ package org.apache.nifi.framework.cluster.zookeeper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.ClientCnxnSocketNIO;
+import org.apache.zookeeper.ClientCnxnSocketNetty;
 import org.apache.zookeeper.common.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,11 +32,9 @@ import java.util.regex.Pattern;
 
 public class ZooKeeperClientConfig {
 
-    public static final String NETTY_CLIENT_CNXN_SOCKET =
-        org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
+    public static final String NETTY_CLIENT_CNXN_SOCKET = ClientCnxnSocketNetty.class.getName();
 
-    public static final String NIO_CLIENT_CNXN_SOCKET =
-        org.apache.zookeeper.ClientCnxnSocketNIO.class.getName();
+    public static final String NIO_CLIENT_CNXN_SOCKET = ClientCnxnSocketNIO.class.getName();
 
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperClientConfig.class);
     private static final Pattern PORT_PATTERN = Pattern.compile("[0-9]{1,5}");

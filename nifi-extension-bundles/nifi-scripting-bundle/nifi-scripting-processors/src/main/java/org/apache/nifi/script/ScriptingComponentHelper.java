@@ -247,7 +247,7 @@ public class ScriptingComponentHelper {
      * called, and the configurator is saved for future calls.
      *
      * @param numberOfScriptEngines number of engines to setup
-     * @see org.apache.nifi.processors.script.ScriptRunner
+     * @see ScriptRunner
      */
     public void setupScriptRunners(final boolean newQ, final int numberOfScriptEngines, final String scriptToRun, final ComponentLog log) {
         if (newQ) {

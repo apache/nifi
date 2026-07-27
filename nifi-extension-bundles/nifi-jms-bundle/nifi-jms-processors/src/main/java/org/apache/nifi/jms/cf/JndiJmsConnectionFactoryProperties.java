@@ -24,7 +24,6 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -86,7 +85,7 @@ public class JndiJmsConnectionFactoryProperties {
             .name("JNDI Principal")
             .description("The Principal to use when authenticating with JNDI (java.naming.security.principal).")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
@@ -100,12 +99,12 @@ public class JndiJmsConnectionFactoryProperties {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY,
-            JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL,
-            JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME,
-            JndiJmsConnectionFactoryProperties.JNDI_CLIENT_LIBRARIES,
-            JndiJmsConnectionFactoryProperties.JNDI_PRINCIPAL,
-            JndiJmsConnectionFactoryProperties.JNDI_CREDENTIALS
+            JNDI_INITIAL_CONTEXT_FACTORY,
+            JNDI_PROVIDER_URL,
+            JNDI_CONNECTION_FACTORY_NAME,
+            JNDI_CLIENT_LIBRARIES,
+            JNDI_PRINCIPAL,
+            JNDI_CREDENTIALS
     );
 
     public static List<PropertyDescriptor> getPropertyDescriptors() {

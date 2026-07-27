@@ -688,7 +688,7 @@ public class InvokeHTTP extends AbstractProcessor {
                 if (newValue == null || newValue.isEmpty()) {
                     requestHeaderAttributesPattern = null;
                 } else {
-                    final String trimmedValue = StringUtils.trimToEmpty(newValue);
+                    final String trimmedValue = trimToEmpty(newValue);
                     requestHeaderAttributesPattern = Pattern.compile(trimmedValue);
                 }
             }

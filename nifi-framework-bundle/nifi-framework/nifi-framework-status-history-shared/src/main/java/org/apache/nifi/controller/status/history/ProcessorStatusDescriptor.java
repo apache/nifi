@@ -314,7 +314,7 @@ public enum ProcessorStatusDescriptor {
                     final long millis = snapshot.getStatusMetric(metricDescriptor);
                     metricMillis += millis;
 
-                    final long taskNanos = snapshot.getStatusMetric(ProcessorStatusDescriptor.TASK_NANOS.getDescriptor());
+                    final long taskNanos = snapshot.getStatusMetric(TASK_NANOS.getDescriptor());
                     procNanos += taskNanos;
                 }
 

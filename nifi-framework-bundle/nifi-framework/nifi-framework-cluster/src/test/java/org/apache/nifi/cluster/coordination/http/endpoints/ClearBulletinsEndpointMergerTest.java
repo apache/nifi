@@ -17,12 +17,14 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,16 +97,16 @@ public class ClearBulletinsEndpointMergerTest {
             final BulletinEntity bulletin = new BulletinEntity();
             bulletin.setId((long) i);
             bulletin.setCanRead(true);
-            bulletin.setTimestamp(new java.util.Date());
+            bulletin.setTimestamp(new Date());
             bulletin.setSourceId("test-source");
             bulletin.setGroupId("test-group");
 
             // Create the nested BulletinDTO
-            final org.apache.nifi.web.api.dto.BulletinDTO bulletinDto = new org.apache.nifi.web.api.dto.BulletinDTO();
+            final BulletinDTO bulletinDto = new BulletinDTO();
             bulletinDto.setMessage("Test bulletin " + i);
             bulletinDto.setLevel("INFO");
             bulletinDto.setSourceId("test-source");
-            bulletinDto.setTimestamp(new java.util.Date());
+            bulletinDto.setTimestamp(new Date());
             bulletin.setBulletin(bulletinDto);
 
             bulletins.add(bulletin);

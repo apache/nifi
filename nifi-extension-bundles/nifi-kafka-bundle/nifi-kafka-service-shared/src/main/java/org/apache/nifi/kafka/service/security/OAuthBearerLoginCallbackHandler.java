@@ -42,8 +42,8 @@ import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.isSaslExtensio
 import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.removeSaslExtensionPropertyPrefix;
 
 /**
- * {@link org.apache.kafka.common.security.auth.AuthenticateCallbackHandler} implementation to support OAuth 2 in NiFi Kafka components.
- * It uses {@link org.apache.nifi.oauth2.OAuth2AccessTokenProvider} controller service to acquire Access Tokens. The service reference is injected via the Kafka configuration.
+ * {@link AuthenticateCallbackHandler} implementation to support OAuth 2 in NiFi Kafka components.
+ * It uses {@link OAuth2AccessTokenProvider} controller service to acquire Access Tokens. The service reference is injected via the Kafka configuration.
  * The service identifier will be validated against the serviceId provided in the JAAS configuration to ensure consistency.
  * For Access Token validation and parsing, the handler relies on the Kafka OAuth support classes. Only the token retrieval is NiFi specific.
  */

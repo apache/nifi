@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.instance;
 
-public class InstanceStats implements java.io.Serializable {
+import java.io.Serializable;
+
+public class InstanceStats implements Serializable {
     private long bytesRead;
     private long bytesWritten;
     private long bytesSent;

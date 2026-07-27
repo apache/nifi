@@ -1216,7 +1216,7 @@ public class TestStandardConnectorNode {
     }
 
     private StepConfiguration createStepConfiguration(final Map<String, String> properties) {
-        final Map<String, ConnectorValueReference> valueReferences = new java.util.HashMap<>();
+        final Map<String, ConnectorValueReference> valueReferences = new HashMap<>();
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             valueReferences.put(entry.getKey(), new StringLiteralValue(entry.getValue()));
         }

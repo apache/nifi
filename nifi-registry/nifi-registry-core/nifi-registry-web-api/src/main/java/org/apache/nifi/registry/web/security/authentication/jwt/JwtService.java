@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.authentication.AuthenticationResponse;
 import org.apache.nifi.registry.security.key.Key;
 import org.apache.nifi.registry.security.key.KeyService;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class JwtService {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(JwtService.class);
+    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
 
     private static final MacAlgorithm SIGNATURE_ALGORITHM = Jwts.SIG.HS256;
     private static final String USERNAME_CLAIM = "preferred_username";

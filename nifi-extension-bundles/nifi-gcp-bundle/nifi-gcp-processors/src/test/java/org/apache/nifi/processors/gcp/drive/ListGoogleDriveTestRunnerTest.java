@@ -33,7 +33,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -83,7 +82,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
     @BeforeEach
     void setUp() throws Exception {
-        mockDriverService = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+        mockDriverService = mock(Drive.class, RETURNS_DEEP_STUBS);
 
         when(mockDriverService.files()
                 .get(folderId)
@@ -300,25 +299,25 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                 return super.put(key, value);
             }
         };
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, id);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, filename);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(size != null ? size : 0L));
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, valueOf(size != null));
-        inputFlowFileAttributes.put(GoogleDriveAttributes.TIMESTAMP, valueOf(expectedTimestamp));
-        inputFlowFileAttributes.put(GoogleDriveAttributes.CREATED_TIME, Instant.ofEpochMilli(createdTime != null ? createdTime : 0L).toString());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.MODIFIED_TIME, Instant.ofEpochMilli(modifiedTime != null ? modifiedTime : 0L).toString());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, mimeType);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.PATH, folderName);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.OWNER, owner);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.LAST_MODIFYING_USER, lastModifyingUser);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.WEB_VIEW_LINK, webViewLink);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.WEB_CONTENT_LINK, webContentLink);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.PARENT_FOLDER_ID, folderId);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.PARENT_FOLDER_NAME, folderName);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.LISTED_FOLDER_ID, folderId);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.LISTED_FOLDER_NAME, folderName);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_ID, driveId);
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_NAME, driveName);
+        inputFlowFileAttributes.put(ID, id);
+        inputFlowFileAttributes.put(FILENAME, filename);
+        inputFlowFileAttributes.put(SIZE, valueOf(size != null ? size : 0L));
+        inputFlowFileAttributes.put(SIZE_AVAILABLE, valueOf(size != null));
+        inputFlowFileAttributes.put(TIMESTAMP, valueOf(expectedTimestamp));
+        inputFlowFileAttributes.put(CREATED_TIME, Instant.ofEpochMilli(createdTime != null ? createdTime : 0L).toString());
+        inputFlowFileAttributes.put(MODIFIED_TIME, Instant.ofEpochMilli(modifiedTime != null ? modifiedTime : 0L).toString());
+        inputFlowFileAttributes.put(MIME_TYPE, mimeType);
+        inputFlowFileAttributes.put(PATH, folderName);
+        inputFlowFileAttributes.put(OWNER, owner);
+        inputFlowFileAttributes.put(LAST_MODIFYING_USER, lastModifyingUser);
+        inputFlowFileAttributes.put(WEB_VIEW_LINK, webViewLink);
+        inputFlowFileAttributes.put(WEB_CONTENT_LINK, webContentLink);
+        inputFlowFileAttributes.put(PARENT_FOLDER_ID, folderId);
+        inputFlowFileAttributes.put(PARENT_FOLDER_NAME, folderName);
+        inputFlowFileAttributes.put(LISTED_FOLDER_ID, folderId);
+        inputFlowFileAttributes.put(LISTED_FOLDER_NAME, folderName);
+        inputFlowFileAttributes.put(SHARED_DRIVE_ID, driveId);
+        inputFlowFileAttributes.put(SHARED_DRIVE_NAME, driveName);
         Set<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
 
         testRunner.run();

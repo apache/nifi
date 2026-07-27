@@ -1060,7 +1060,7 @@ public class TestFlowDifferenceFilters {
         final VersionedProcessor processorA = new VersionedProcessor();
         final VersionedProcessor processorB = new VersionedProcessor();
         processorA.setScheduledState(null);
-        processorB.setScheduledState(org.apache.nifi.flow.ScheduledState.RUNNING);
+        processorB.setScheduledState(ScheduledState.RUNNING);
 
         final StandardFlowDifference scheduledStateDiff = new StandardFlowDifference(
                 DifferenceType.SCHEDULED_STATE_CHANGED, processorA, processorB,

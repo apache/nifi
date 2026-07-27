@@ -21,7 +21,7 @@ import org.apache.nifi.registry.provider.Provider;
 /**
  * An extension point that will be passed events produced by actions take in the registry.
  *
- * The list of event types can be found in {@link org.apache.nifi.registry.hook.EventType}.
+ * The list of event types can be found in {@link EventType}.
  *
  * NOTE: Although this interface is intended to be an extension point, it is not yet considered stable and thus may
  * change across releases until the registry matures.

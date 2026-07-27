@@ -68,9 +68,6 @@ import java.util.stream.Collectors;
 
 import static com.azure.core.http.ContentType.APPLICATION_OCTET_STREAM;
 import static com.azure.core.util.FluxUtil.toFluxByteBuffer;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CONTENT_MD5;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.convertMd5ToBytes;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -146,12 +143,12 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            BLOB_STORAGE_CREDENTIALS_SERVICE,
+            AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
             AzureStorageUtils.CREATE_CONTAINER,
             AzureStorageUtils.CONFLICT_RESOLUTION,
             BLOB_NAME,
-            CONTENT_MD5,
+            AzureStorageUtils.CONTENT_MD5,
             BLOB_TAG_PREFIX,
             REMOVE_TAG_PREFIX,
             RESOURCE_TRANSFER_SOURCE,
@@ -243,9 +240,9 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                         blobParallelUploadOptions.setMetadata(userMetadata);
                     }
 
-                    final String contentMd5 = context.getProperty(CONTENT_MD5).evaluateAttributeExpressions(sourceFlowFile).getValue();
+                    final String contentMd5 = context.getProperty(AzureStorageUtils.CONTENT_MD5).evaluateAttributeExpressions(sourceFlowFile).getValue();
                     if (contentMd5 != null) {
-                        final byte[] md5Bytes = convertMd5ToBytes(contentMd5);
+                        final byte[] md5Bytes = AzureStorageUtils.convertMd5ToBytes(contentMd5);
                         final BlobHttpHeaders blobHttpHeaders = new BlobHttpHeaders().setContentMd5(md5Bytes);
                         blobParallelUploadOptions.setHeaders(blobHttpHeaders);
                     }
@@ -292,7 +289,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
-        config.renameProperty(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
+        config.renameProperty(OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONFLICT_RESOLUTION_DESCRIPTOR_NAME, AzureStorageUtils.CONFLICT_RESOLUTION.getName());
         config.renameProperty(AzureStorageUtils.OLD_CREATE_CONTAINER_DESCRIPTOR_NAME, AzureStorageUtils.CREATE_CONTAINER.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, AzureStorageUtils.CONTAINER.getName());

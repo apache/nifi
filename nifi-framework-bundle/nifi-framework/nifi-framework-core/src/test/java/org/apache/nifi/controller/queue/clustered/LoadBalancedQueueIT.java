@@ -59,7 +59,6 @@ import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -98,9 +97,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.nullable;
 import static org.mockito.Mockito.when;
 
 public class LoadBalancedQueueIT {
@@ -167,8 +169,8 @@ public class LoadBalancedQueueIT {
         doAnswer(invocation -> compressionReference.get()).when(serverQueue).getLoadBalanceCompression();
 
         flowController = mock(FlowController.class);
-        final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        when(flowManager.getConnection(Mockito.anyString())).thenReturn(connection);
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getConnection(anyString())).thenReturn(connection);
         when(flowController.getFlowManager()).thenReturn(flowManager);
 
         // Create repos for the server
@@ -1303,9 +1305,9 @@ public class LoadBalancedQueueIT {
     private ContentRepository createContentRepository(final ConcurrentMap<ContentClaim, byte[]> claimContents) throws IOException {
         final ContentRepository contentRepo = mock(ContentRepository.class);
 
-        Mockito.doAnswer((Answer<ContentClaim>) invocation -> createContentClaim(null)).when(contentRepo).create(Mockito.anyBoolean());
+        doAnswer((Answer<ContentClaim>) invocation -> createContentClaim(null)).when(contentRepo).create(anyBoolean());
 
-        Mockito.doAnswer(new Answer<OutputStream>() {
+        doAnswer(new Answer<OutputStream>() {
             @Override
             public OutputStream answer(final InvocationOnMock invocation) {
                 final ContentClaim contentClaim = invocation.getArgument(0);
@@ -1322,7 +1324,7 @@ public class LoadBalancedQueueIT {
             }
         }).when(contentRepo).write(any(ContentClaim.class));
 
-        Mockito.doAnswer((Answer<InputStream>) invocation -> {
+        doAnswer((Answer<InputStream>) invocation -> {
             final ContentClaim contentClaim = invocation.getArgument(0);
             if (contentClaim == null) {
                 return new ByteArrayInputStream(new byte[0]);
@@ -1334,7 +1336,7 @@ public class LoadBalancedQueueIT {
             }
 
             return new ByteArrayInputStream(bytes);
-        }).when(contentRepo).read(Mockito.nullable(ContentClaim.class));
+        }).when(contentRepo).read(nullable(ContentClaim.class));
 
         return contentRepo;
     }

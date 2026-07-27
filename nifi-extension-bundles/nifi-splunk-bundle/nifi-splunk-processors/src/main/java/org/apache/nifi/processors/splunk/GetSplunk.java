@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.splunk;
 
+import com.splunk.HttpException;
 import com.splunk.JobExportArgs;
 import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
@@ -495,7 +496,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         try {
             export = splunkService.export(query, exportArgs);
         //Catch Stale connection exception, reinitialize, and retry
-        } catch (com.splunk.HttpException e) {
+        } catch (HttpException e) {
             getLogger().error("Splunk request status code:{} Retrying the request.", e.getStatus());
             splunkService.logout();
             splunkService = createSplunkService(context);

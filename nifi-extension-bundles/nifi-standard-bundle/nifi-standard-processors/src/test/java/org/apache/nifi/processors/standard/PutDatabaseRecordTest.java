@@ -41,7 +41,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentMatchers;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -2352,7 +2351,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
                 return spyStmt[0];
             }
         };
-        doAnswer(answer).when(dbcp).getConnection(ArgumentMatchers.anyMap());
+        doAnswer(answer).when(dbcp).getConnection(anyMap());
         return () -> spyStmt[0];
     }
 

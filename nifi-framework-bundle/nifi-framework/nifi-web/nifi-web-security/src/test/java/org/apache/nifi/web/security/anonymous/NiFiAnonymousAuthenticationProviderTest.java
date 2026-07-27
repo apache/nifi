@@ -24,7 +24,6 @@ import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,7 +35,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
     @Test
     public void testAnonymousDisabledNotSecure() {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.isAnonymousAuthenticationAllowed()).thenReturn(false);
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
@@ -53,7 +52,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
     @Test
     public void testAnonymousEnabledNotSecure() {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.isAnonymousAuthenticationAllowed()).thenReturn(true);
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
@@ -70,7 +69,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
     @Test
     public void testAnonymousDisabledSecure() {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.isAnonymousAuthenticationAllowed()).thenReturn(false);
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));
@@ -85,7 +84,7 @@ public class NiFiAnonymousAuthenticationProviderTest {
 
     @Test
     public void testAnonymousEnabledSecure() {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.isAnonymousAuthenticationAllowed()).thenReturn(true);
 
         final NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider = new NiFiAnonymousAuthenticationProvider(nifiProperties, mock(Authorizer.class));

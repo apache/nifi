@@ -26,7 +26,6 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -139,8 +138,8 @@ public class HikariCPConnectionPoolTest {
 
         runner.enableControllerService(service);
 
-        Assertions.assertEquals(4, service.getDataSource().getMinimumIdle());
-        Assertions.assertEquals(1000, service.getDataSource().getMaxLifetime());
+        assertEquals(4, service.getDataSource().getMinimumIdle());
+        assertEquals(1000, service.getDataSource().getMaxLifetime());
 
         service.getDataSource().close();
     }

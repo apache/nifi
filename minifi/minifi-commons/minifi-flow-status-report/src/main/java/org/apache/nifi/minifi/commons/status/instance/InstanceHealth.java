@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.instance;
 
-public class InstanceHealth implements java.io.Serializable {
+import java.io.Serializable;
+
+public class InstanceHealth implements Serializable {
 
     private int queuedCount;
     private double queuedContentSize;

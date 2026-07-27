@@ -47,7 +47,7 @@ public enum SaslMechanism implements DescribedValue {
         if (StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
             return EnumSet.allOf(SaslMechanism.class);
         } else {
-            return EnumSet.complementOf(EnumSet.of(SaslMechanism.AWS_MSK_IAM));
+            return EnumSet.complementOf(EnumSet.of(AWS_MSK_IAM));
         }
     }
 

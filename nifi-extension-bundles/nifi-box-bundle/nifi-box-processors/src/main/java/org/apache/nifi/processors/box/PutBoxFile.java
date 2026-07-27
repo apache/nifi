@@ -419,14 +419,14 @@ public class PutBoxFile extends AbstractBoxProcessor {
     }
 
     private void handleUnexpectedError(final ProcessSession session, FlowFile flowFile, final Exception e) {
-        flowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_MESSAGE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
 
     private void handleExpectedError(final ProcessSession session, FlowFile flowFile, final BoxAPIResponseException e) {
-        flowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_MESSAGE, e.getMessage());
-        flowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_CODE, valueOf(e.getResponseCode()));
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }

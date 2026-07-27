@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.entity;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
 /**
- * Provides access to a component given an {@link org.apache.nifi.web.api.dto.PermissionsDTO}.  This is intended to be used by classes that extend {@link Entity}.
+ * Provides access to a component given an {@link PermissionsDTO}.  This is intended to be used by classes that extend {@link Entity}.
  * @param <DtoType> type of component
  */
 public interface Permissible<DtoType> {

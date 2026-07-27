@@ -45,7 +45,7 @@ import java.util.Map;
 
 /**
  * {@link KafkaRecordConverter} implementation for transforming NiFi
- * {@link org.apache.nifi.serialization.record.Record} objects to {@link KafkaRecord} for publish to
+ * {@link Record} objects to {@link KafkaRecord} for publish to
  * Kafka.
  */
 public class RecordWrapperStreamKafkaRecordConverter implements KafkaRecordConverter {

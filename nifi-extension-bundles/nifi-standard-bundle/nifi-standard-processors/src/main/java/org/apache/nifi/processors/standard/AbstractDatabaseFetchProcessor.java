@@ -441,15 +441,15 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
             case TIMESTAMP:
                 Timestamp colTimestampValue = resultSet.getTimestamp(columnIndex);
-                java.sql.Timestamp maxTimestampValue = null;
+                Timestamp maxTimestampValue = null;
                 if (maxValueString != null) {
                     // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
                     // should be stored as a full timestamp. Even so, check to see if the value is missing time-of-day information, and use the "date" coercion rather than the
                     // "timestamp" coercion in that case
                     try {
-                        maxTimestampValue = java.sql.Timestamp.valueOf(maxValueString);
+                        maxTimestampValue = Timestamp.valueOf(maxValueString);
                     } catch (IllegalArgumentException iae) {
-                        maxTimestampValue = new java.sql.Timestamp(java.sql.Date.valueOf(maxValueString).getTime());
+                        maxTimestampValue = new Timestamp(java.sql.Date.valueOf(maxValueString).getTime());
                     }
                 }
                 if (maxTimestampValue == null || colTimestampValue.after(maxTimestampValue)) {

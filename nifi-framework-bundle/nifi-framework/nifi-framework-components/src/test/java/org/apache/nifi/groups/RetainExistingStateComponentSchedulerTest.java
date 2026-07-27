@@ -25,8 +25,8 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -313,9 +313,9 @@ class RetainExistingStateComponentSchedulerTest {
     }
 
     private ProcessGroup createProcessGroup(final Set<ProcessorNode> processors, final Set<Port> inputPorts, final Set<ControllerServiceNode> services) {
-        final ProcessGroup group = Mockito.mock(ProcessGroup.class);
+        final ProcessGroup group = mock(ProcessGroup.class);
         when(group.getProcessors()).thenReturn(processors);
-        when(group.findAllProcessors()).thenReturn(new java.util.ArrayList<>(processors));
+        when(group.findAllProcessors()).thenReturn(new ArrayList<>(processors));
         when(group.getInputPorts()).thenReturn(inputPorts);
         when(group.getOutputPorts()).thenReturn(Collections.emptySet());
         when(group.getFunnels()).thenReturn(Collections.emptySet());

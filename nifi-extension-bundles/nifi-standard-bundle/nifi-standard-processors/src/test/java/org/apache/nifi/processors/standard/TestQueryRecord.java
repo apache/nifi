@@ -60,6 +60,7 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -151,7 +152,7 @@ public class TestQueryRecord {
         assertArrayEquals(new String[] {"red", "green"}, (Object[]) output.getValue("colors"));
         assertArrayEquals(new String[] {"John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
 
-        assertEquals(java.time.LocalDate.parse(ISO_DATE), output.getAsLocalDate("joinTime", ISO_DATE_FORMAT));
+        assertEquals(LocalDate.parse(ISO_DATE), output.getAsLocalDate("joinTime", ISO_DATE_FORMAT));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
     }
 

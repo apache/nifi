@@ -26,7 +26,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -649,11 +648,11 @@ public class FileAccessPolicyProviderTest {
         final String nodeIdentity1 = "node1";
         final String nodeIdentity2 = "node2";
 
-        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
-        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
                 .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
-        when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
                 .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "1")))
@@ -1083,7 +1082,7 @@ public class FileAccessPolicyProviderTest {
     }
 
     private NiFiProperties getNiFiProperties(final Properties properties) {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
         when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));

@@ -19,6 +19,8 @@ package org.apache.nifi.controller.scheduling.processors;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.util.concurrent.TimeUnit;
@@ -84,6 +86,6 @@ public class FailOnScheduledProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(org.apache.nifi.processor.ProcessContext context, org.apache.nifi.processor.ProcessSession session) throws ProcessException {
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     }
 }

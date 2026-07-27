@@ -627,7 +627,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * @param name the property to remove
      * @param allowRemovalOfRequiredProperties whether or not the property should be removed if it's required
      * @return true if removed; false otherwise
-     * @throws java.lang.IllegalArgumentException if the name is null
+     * @throws IllegalArgumentException if the name is null
      */
     private boolean removeProperty(final String name, final boolean allowRemovalOfRequiredProperties) {
         if (null == name) {

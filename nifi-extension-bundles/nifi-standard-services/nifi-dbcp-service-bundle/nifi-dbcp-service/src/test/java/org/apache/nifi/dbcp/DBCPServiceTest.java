@@ -50,15 +50,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_EVICTABLE_IDLE_TIME;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_IDLE;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.VALIDATION_QUERY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -282,16 +273,16 @@ public class DBCPServiceTest {
     @Test
     void testMigrateProperties() {
         final Map<String, String> expectedRenamed = Map.ofEntries(
-                Map.entry("database-driver-locations", DB_DRIVER_LOCATION.getName()),
-                Map.entry("Database Driver Location(s)", DB_DRIVER_LOCATION.getName()),
-                Map.entry(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName()),
-                Map.entry(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName()),
-                Map.entry(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName()),
-                Map.entry(DBCPProperties.OLD_MAX_CONN_LIFETIME_PROPERTY_NAME, MAX_CONN_LIFETIME.getName()),
-                Map.entry(DBCPProperties.OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME, EVICTION_RUN_PERIOD.getName()),
-                Map.entry(DBCPProperties.OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, MIN_EVICTABLE_IDLE_TIME.getName()),
-                Map.entry(DBCPProperties.OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, SOFT_MIN_EVICTABLE_IDLE_TIME.getName()),
-                Map.entry(DBCPProperties.OLD_KERBEROS_USER_SERVICE_PROPERTY_NAME, KERBEROS_USER_SERVICE.getName())
+                Map.entry("database-driver-locations", DBCPProperties.DB_DRIVER_LOCATION.getName()),
+                Map.entry("Database Driver Location(s)", DBCPProperties.DB_DRIVER_LOCATION.getName()),
+                Map.entry(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, DBCPProperties.VALIDATION_QUERY.getName()),
+                Map.entry(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, DBCPProperties.MIN_IDLE.getName()),
+                Map.entry(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, DBCPProperties.MAX_IDLE.getName()),
+                Map.entry(DBCPProperties.OLD_MAX_CONN_LIFETIME_PROPERTY_NAME, DBCPProperties.MAX_CONN_LIFETIME.getName()),
+                Map.entry(DBCPProperties.OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME, DBCPProperties.EVICTION_RUN_PERIOD.getName()),
+                Map.entry(DBCPProperties.OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, DBCPProperties.MIN_EVICTABLE_IDLE_TIME.getName()),
+                Map.entry(DBCPProperties.OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME.getName()),
+                Map.entry(DBCPProperties.OLD_KERBEROS_USER_SERVICE_PROPERTY_NAME, DBCPProperties.KERBEROS_USER_SERVICE.getName())
         );
 
         final Map<String, String> propertyValues = Map.of();

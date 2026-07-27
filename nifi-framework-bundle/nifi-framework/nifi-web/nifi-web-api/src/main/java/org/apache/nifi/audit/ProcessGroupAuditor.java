@@ -68,7 +68,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @return group
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.ProcessGroup createProcessGroup(String, org.apache.nifi.web.api.dto.ProcessGroupDTO))")

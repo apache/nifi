@@ -46,6 +46,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.sql.Time;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -336,7 +337,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
-        if (value instanceof java.sql.Time) {
+        if (value instanceof Time) {
             final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timeFormat), fieldName);
             generator.writeObject(formatted);
             return;

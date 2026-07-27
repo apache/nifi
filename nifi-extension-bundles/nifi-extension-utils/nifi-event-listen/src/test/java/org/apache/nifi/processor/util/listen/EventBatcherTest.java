@@ -29,7 +29,6 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -65,7 +64,7 @@ public class EventBatcherTest {
                 return event.getSender();
             }
         };
-        session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));
+        session = new MockProcessSession(new SharedSessionState(processor, idGenerator), mock(Processor.class));
         eventFactory = new StandardNetworkEventFactory();
     }
 

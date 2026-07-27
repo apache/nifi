@@ -827,9 +827,9 @@ public class TestRecordPath {
                 final List<T> expectedUnchangedValues,
                 final List<Object> expectedAdjustedValues) {
             final Stream<Map.Entry<Object, Object>> expectedValues = Stream.concat(
-                    expectedUnchangedValues.stream().map(value -> Map.entry(value, value)),
+                    expectedUnchangedValues.stream().map(value -> entry(value, value)),
                     expectedAdjustedValues.stream().map(
-                            value -> Map.entry(value, DataTypeUtils.convertType(value, expectedType, "field"))
+                            value -> entry(value, DataTypeUtils.convertType(value, expectedType, "field"))
                     )
             );
 

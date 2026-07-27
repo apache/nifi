@@ -87,6 +87,7 @@ import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.parameter.StandardParameterUpdate;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
@@ -4031,7 +4032,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private ProcessContext createProcessContext(final ProcessorNode processorNode) {
-        final org.apache.nifi.processor.Processor processor = processorNode.getProcessor();
+        final Processor processor = processorNode.getProcessor();
         final Class<?> componentClass = processor == null ? null : processor.getClass();
         return new StandardProcessContext(processorNode, controllerServiceProvider,
             stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass), () -> false, nodeTypeProvider);

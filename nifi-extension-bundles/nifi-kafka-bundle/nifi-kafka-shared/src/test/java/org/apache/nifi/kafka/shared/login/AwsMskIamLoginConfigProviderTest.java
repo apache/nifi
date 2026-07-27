@@ -17,6 +17,7 @@
 package org.apache.nifi.kafka.shared.login;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -98,7 +99,7 @@ class AwsMskIamLoginConfigProviderTest {
                 "awsRoleSessionName JAAS option not present");
     }
 
-    private static class MockOAuth2AccessTokenProvider extends org.apache.nifi.controller.AbstractControllerService implements OAuth2AccessTokenProvider {
+    private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
         @Override
         public AccessToken getAccessDetails() {
             final AccessToken accessToken = new AccessToken();

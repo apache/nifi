@@ -43,7 +43,7 @@ public class ControllerAuditor extends NiFiAuditor {
      * @param proceedingJoinPoint joint point
      * @param maxTimerDrivenThreadCount thread count
      * @param controllerFacade facade
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
             + "execution(void setMaxTimerDrivenThreadCount(int)) && "

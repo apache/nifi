@@ -23,12 +23,14 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -72,9 +75,9 @@ class RecordToItemConverterTest {
         values.put("double", Double.valueOf(1234.5678D));
         values.put("bigint", BigInteger.TEN);
         values.put("decimal", new BigDecimal("12345678901234567890.123456789012345678901234567890"));
-        values.put("timestamp", new java.sql.Timestamp(37293723L));
-        values.put("date", java.sql.Date.valueOf("1970-01-01"));
-        values.put("time", new java.sql.Time(37293723L));
+        values.put("timestamp", new Timestamp(37293723L));
+        values.put("date", Date.valueOf("1970-01-01"));
+        values.put("time", new Time(37293723L));
         values.put("char", 'c');
         values.put("enum", Component.Controller);
         values.put("array", new Integer[] {0, 1, 10});
@@ -112,7 +115,7 @@ class RecordToItemConverterTest {
         assertEquals(string(Component.Controller.name()), item.get("enum"));
 
         // DynamoDB uses lists and still keeps the payload datatype
-        Assertions.assertIterableEquals(Arrays.asList(number(BigDecimal.ZERO), number(BigDecimal.ONE), number(BigDecimal.TEN)),
+        assertIterableEquals(Arrays.asList(number(BigDecimal.ZERO), number(BigDecimal.ONE), number(BigDecimal.TEN)),
                 item.get("array").l());
 
         // DynamoDB cannot handle choice, all values enveloped into choice are handled as strings
@@ -262,7 +265,7 @@ class RecordToItemConverterTest {
         final Map<String, AttributeValue> resultMap = result.m();
         assertEquals(1, resultMap.size());
         final AttributeValue fieldResult = resultMap.get("starType");
-        Assertions.assertNotNull(fieldResult.m());
+        assertNotNull(fieldResult.m());
         final Map<String, AttributeValue> fieldResultMap = fieldResult.m();
         assertEquals(bool(false), fieldResultMap.get("isDwarf"));
         assertEquals(string("G"), fieldResultMap.get("type"));

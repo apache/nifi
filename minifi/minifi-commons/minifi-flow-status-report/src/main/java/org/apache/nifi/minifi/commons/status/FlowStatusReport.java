@@ -28,10 +28,11 @@ import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupStatusBean;
 import org.apache.nifi.minifi.commons.status.system.SystemDiagnosticsStatus;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.util.List;
 
-public class FlowStatusReport implements java.io.Serializable {
+public class FlowStatusReport implements Serializable {
     private List<ControllerServiceStatus> controllerServiceStatusList;
     private List<ProcessorStatusBean> processorStatusList;
     private List<ConnectionStatusBean> connectionStatusList;

@@ -59,16 +59,16 @@ import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStat
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.ownershipToString;
 
 /**
- * The {@link com.azure.messaging.eventhubs.CheckpointStore} is responsible for managing the storage of partition ownership and checkpoint information for Azure Event Hubs consumers.
+ * The {@link CheckpointStore} is responsible for managing the storage of partition ownership and checkpoint information for Azure Event Hubs consumers.
  * The underlying storage has to be persistent and centralized (shared across the consumer clients in the consumer group).
  * <p>
- * There exist one ownership entry and one checkpoint entry for each partition in the store. They represent {@link com.azure.messaging.eventhubs.models.PartitionOwnership}
- * and {@link com.azure.messaging.eventhubs.models.Checkpoint} entities in a storage-specific serialized form.
+ * There exist one ownership entry and one checkpoint entry for each partition in the store. They represent {@link PartitionOwnership}
+ * and {@link Checkpoint} entities in a storage-specific serialized form.
  * <p>
  * The checkpoint store is plugged into {@link com.azure.messaging.eventhubs.EventProcessorClient} and directly used by the load balancer algorithm running in each consumer client instance.
  * <p>
  * {@code ComponentStateCheckpointStore} stores the partition ownership and checkpoint information in the component's (that is {@link org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub}
- * processor's) state using NiFi's {@link org.apache.nifi.components.state.StateManager} in the background.
+ * processor's) state using NiFi's {@link StateManager} in the background.
  * <p>
  * The format of the ownership entry in the state map:
  * <pre>    ownership/event-hub-namespace/event-hub-name/consumer-group/partition-id -> client-id/last-modified-time/etag</pre>
@@ -77,16 +77,16 @@ import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStat
  * <pre>    checkpoint/event-hub-namespace/event-hub-name/consumer-group/partition-id -> offset/sequence-number</pre>
  * <p>
  * The checkpoint store is required to provide optimistic locking mechanism in order to avoid concurrent updating of the same ownership entry and therefore owning the same partition
- * by multiple client instances at the same time. The optimistic locking is supposed to be based on the <code>eTag</code> field of {@link com.azure.messaging.eventhubs.models.PartitionOwnership}
+ * by multiple client instances at the same time. The optimistic locking is supposed to be based on the <code>eTag</code> field of {@link PartitionOwnership}
  * and should be supported at entry level (only updating the same partition ownership is conflicting, claiming ownership of 2 different partitions or updating 2 checkpoints in parallel are
  * valid operations as they are independent changes).
  * <p>
- * {@link org.apache.nifi.components.state.StateManager#replace(StateMap, Map, Scope)} method supports optimistic locking but only globally, in the scope of the whole state map (which may or may not
+ * {@link StateManager#replace(StateMap, Map, Scope)} method supports optimistic locking but only globally, in the scope of the whole state map (which may or may not
  * contain conflicting changes after update). For this reason, the state update had to be implemented in 2 phases in {@link ComponentStateCheckpointStore#claimOwnership(List)}:
  * <ul>
  *     <li>in the 1st phase the algorithm gets the current state and tries to set the ownership in memory based on <code>eTag</code>, the claim request is skipped if <code>eTag</code>
  *     does not match (the original <code>eTag</code> was retrieved in {@link ComponentStateCheckpointStore#listOwnership(String, String, String)})</li>
- *     <li>in the 2nd phase {@link org.apache.nifi.components.state.StateManager#replace(StateMap, Map, Scope)} is called to persist the new state and if it is not successful - meaning
+ *     <li>in the 2nd phase {@link StateManager#replace(StateMap, Map, Scope)} is called to persist the new state and if it is not successful - meaning
  *     that another client instance changed the state in the meantime which may or may not be conflicting -, then the whole process needs to be started over with the 1st phase</li>
  * </ul>
  */

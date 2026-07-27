@@ -52,11 +52,11 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         File file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, file.getId());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, file.getName());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(DEFAULT_FILE_CONTENT.length()));
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE_AVAILABLE, "true");
-        inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, "text/plain");
+        inputFlowFileAttributes.put(ID, file.getId());
+        inputFlowFileAttributes.put(FILENAME, file.getName());
+        inputFlowFileAttributes.put(SIZE, valueOf(DEFAULT_FILE_CONTENT.length()));
+        inputFlowFileAttributes.put(SIZE_AVAILABLE, "true");
+        inputFlowFileAttributes.put(MIME_TYPE, "text/plain");
 
         Set<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
         List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
@@ -73,13 +73,13 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
     @Test
     void testInputFlowFileReferencesMissingFile() {
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, "missing");
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, "missing_filename");
+        inputFlowFileAttributes.put(ID, "missing");
+        inputFlowFileAttributes.put(FILENAME, "missing_filename");
 
         Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
-                Map.of(GoogleDriveAttributes.ID, "missing",
-                    GoogleDriveAttributes.FILENAME, "missing_filename",
-                    GoogleDriveAttributes.ERROR_CODE, "404")
+                Map.of(ID, "missing",
+                    FILENAME, "missing_filename",
+                    ERROR_CODE, "404")
         ));
 
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
@@ -94,8 +94,8 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         File file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, file.getId());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, file.getName());
+        inputFlowFileAttributes.put(ID, file.getId());
+        inputFlowFileAttributes.put(FILENAME, file.getName());
         MockFlowFile input = new MockFlowFile(1) {
             final AtomicBoolean throwException = new AtomicBoolean(true);
 

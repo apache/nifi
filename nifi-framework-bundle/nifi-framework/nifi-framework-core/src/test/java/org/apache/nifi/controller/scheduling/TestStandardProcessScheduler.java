@@ -83,7 +83,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.AdditionalMatchers;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -120,6 +119,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardProcessScheduler {
@@ -127,7 +128,7 @@ public class TestStandardProcessScheduler {
     private StandardProcessScheduler scheduler = null;
     private ReportingTaskNode taskNode = null;
     private TestReportingTask reportingTask = null;
-    private final StateManagerProvider stateMgrProvider = Mockito.mock(StateManagerProvider.class);
+    private final StateManagerProvider stateMgrProvider = mock(StateManagerProvider.class);
     private FlowController controller;
     private FlowManager flowManager;
     private ProcessGroup rootGroup;
@@ -150,36 +151,36 @@ public class TestStandardProcessScheduler {
         extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
+        scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), mock(FlowController.class),
             stateMgrProvider, nifiProperties, new StandardLifecycleStateManager());
-        scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
+        scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, mock(SchedulingAgent.class));
 
         reportingTask = new TestReportingTask();
         final ReportingInitializationContext config = new StandardReportingInitializationContext(UUID.randomUUID().toString(), "Test", SchedulingStrategy.TIMER_DRIVEN, "5 secs",
-                Mockito.mock(ComponentLog.class), null, KerberosConfig.NOT_CONFIGURED, null);
+                mock(ComponentLog.class), null, KerberosConfig.NOT_CONFIGURED, null);
         reportingTask.initialize(config);
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null);
-        final TerminationAwareLogger logger = Mockito.mock(TerminationAwareLogger.class);
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final TerminationAwareLogger logger = mock(TerminationAwareLogger.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
         final LoggableComponent<ReportingTask> loggableComponent = new LoggableComponent<>(reportingTask, systemBundle.getBundleDetails().getCoordinate(), logger);
-        taskNode = new StandardReportingTaskNode(loggableComponent, UUID.randomUUID().toString(), Mockito.mock(FlowController.class), scheduler, validationContextFactory,
+        taskNode = new StandardReportingTaskNode(loggableComponent, UUID.randomUUID().toString(), mock(FlowController.class), scheduler, validationContextFactory,
             reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
-        flowManager = Mockito.mock(FlowManager.class);
-        controller = Mockito.mock(FlowController.class);
+        flowManager = mock(FlowManager.class);
+        controller = mock(FlowController.class);
         when(controller.getFlowManager()).thenReturn(flowManager);
-        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
+        when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         serviceProvider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
 
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
-        Mockito.doAnswer((Answer<ProcessorNode>) invocation -> {
+        doAnswer((Answer<ProcessorNode>) invocation -> {
             final String id = invocation.getArgument(0);
             return processorMap.get(id);
-        }).when(flowManager).getProcessorNode(Mockito.anyString());
+        }).when(flowManager).getProcessorNode(anyString());
 
-        Mockito.doAnswer((Answer<Object>) invocation -> {
+        doAnswer((Answer<Object>) invocation -> {
             final ProcessorNode procNode = invocation.getArgument(0);
             processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
             return null;
@@ -188,9 +189,9 @@ public class TestStandardProcessScheduler {
         when(controller.getControllerServiceProvider()).thenReturn(serviceProvider);
 
         rootGroup = new MockProcessGroup(flowManager);
-        when(flowManager.getGroup(Mockito.anyString())).thenReturn(rootGroup);
+        when(flowManager.getGroup(anyString())).thenReturn(rootGroup);
 
-        when(controller.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
+        when(controller.getReloadComponent()).thenReturn(mock(ReloadComponent.class));
 
         doAnswer((Answer<ControllerServiceNode>) invocation -> {
             final String type = invocation.getArgument(0);
@@ -202,12 +203,12 @@ public class TestStandardProcessScheduler {
                 .type(type)
                 .bundleCoordinate(bundleCoordinate)
                 .controllerServiceProvider(serviceProvider)
-                .processScheduler(Mockito.mock(ProcessScheduler.class))
-                .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
-                .validationTrigger(Mockito.mock(ValidationTrigger.class))
-                .reloadComponent(Mockito.mock(ReloadComponent.class))
-                .verifiableComponentFactory(Mockito.mock(VerifiableComponentFactory.class))
-                .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
+                .processScheduler(mock(ProcessScheduler.class))
+                .nodeTypeProvider(mock(NodeTypeProvider.class))
+                .validationTrigger(mock(ValidationTrigger.class))
+                .reloadComponent(mock(ReloadComponent.class))
+                .verifiableComponentFactory(mock(VerifiableComponentFactory.class))
+                .stateManagerProvider(mock(StateManagerProvider.class))
                 .extensionManager(extensionManager)
                 .buildControllerService();
 
@@ -257,8 +258,8 @@ public class TestStandardProcessScheduler {
         final Processor proc = new ServiceReferencingProcessor();
         proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
 
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = Mockito.mock(VerifiableComponentFactory.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
 
         final ControllerServiceNode service = flowManager.createControllerService(NoStartServiceImpl.class.getName(), "service",
                 systemBundle.getBundleDetails().getCoordinate(), null, true, true, null);
@@ -555,8 +556,8 @@ public class TestStandardProcessScheduler {
         proc.setDesiredFailureCount(3);
 
         proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = Mockito.mock(VerifiableComponentFactory.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
@@ -583,8 +584,8 @@ public class TestStandardProcessScheduler {
         proc.setOnScheduledSleepDuration(20, TimeUnit.MINUTES, true, 1);
 
         proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = Mockito.mock(VerifiableComponentFactory.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
@@ -614,8 +615,8 @@ public class TestStandardProcessScheduler {
         proc.setOnScheduledSleepDuration(20, TimeUnit.MINUTES, false, 1);
 
         proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = Mockito.mock(VerifiableComponentFactory.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
@@ -715,7 +716,7 @@ public class TestStandardProcessScheduler {
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), mock(FlowController.class),
             stateMgrProvider, nifiProperties, new StandardLifecycleStateManager());
     }
 
@@ -737,8 +738,8 @@ public class TestStandardProcessScheduler {
 
         final LifecycleState lifecycleState = harness.lifecycleStateManager().getOrRegisterLifecycleState(procNode.getIdentifier(), false, false);
 
-        final ProcessSession retainedSession = Mockito.mock(ProcessSession.class);
-        final ProcessSessionFactory delegateFactory = Mockito.mock(ProcessSessionFactory.class);
+        final ProcessSession retainedSession = mock(ProcessSession.class);
+        final ProcessSessionFactory delegateFactory = mock(ProcessSessionFactory.class);
         when(delegateFactory.createSession()).thenReturn(retainedSession);
 
         final WeakHashMapProcessSessionFactory retainedFactory = new WeakHashMapProcessSessionFactory(delegateFactory);
@@ -751,7 +752,7 @@ public class TestStandardProcessScheduler {
 
         harness.scheduler().terminateProcessor(procNode);
 
-        Mockito.verify(retainedSession).rollback();
+        verify(retainedSession).rollback();
         // Keep the Session wrapper reachable through verification so that the factory's WeakHashMap
         // entry tracking it cannot be cleared by the GC before terminateActiveSessions() iterates it.
         Reference.reachabilityFence(sessionWrapper);
@@ -807,9 +808,9 @@ public class TestStandardProcessScheduler {
     }
 
     private TerminationTestHarness createTerminationTestHarness() {
-        final FlowController flowController = Mockito.mock(FlowController.class);
+        final FlowController flowController = mock(FlowController.class);
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
-        when(flowController.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
+        when(flowController.getReloadComponent()).thenReturn(mock(ReloadComponent.class));
         when(flowController.getControllerServiceProvider()).thenReturn(serviceProvider);
 
         final LifecycleStateManager lifecycleStateManager = new StandardLifecycleStateManager();
@@ -817,7 +818,7 @@ public class TestStandardProcessScheduler {
 
         final StandardProcessScheduler localScheduler = new StandardProcessScheduler(componentLifeCyclePool, flowController,
             stateMgrProvider, nifiProperties, lifecycleStateManager);
-        localScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
+        localScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, mock(SchedulingAgent.class));
 
         return new TerminationTestHarness(localScheduler, lifecycleStateManager, componentLifeCyclePool);
     }
@@ -827,11 +828,11 @@ public class TestStandardProcessScheduler {
         final Processor processor = new NoOpProcessor();
         processor.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
 
-        final TerminationAwareLogger logger = Mockito.mock(TerminationAwareLogger.class);
+        final TerminationAwareLogger logger = mock(TerminationAwareLogger.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), logger);
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid,
-            new StandardValidationContextFactory(serviceProvider), harness.scheduler(), serviceProvider, Mockito.mock(ReloadComponent.class),
-            Mockito.mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
+            new StandardValidationContextFactory(serviceProvider), harness.scheduler(), serviceProvider, mock(ReloadComponent.class),
+            mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
         rootGroup.addProcessor(procNode);
         return procNode;
     }

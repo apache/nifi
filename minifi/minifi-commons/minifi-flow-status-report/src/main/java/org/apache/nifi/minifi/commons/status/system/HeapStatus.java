@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.system;
 
-public class HeapStatus implements java.io.Serializable {
+import java.io.Serializable;
+
+public class HeapStatus implements Serializable {
 
     private long totalHeap;
     private long maxHeap;
