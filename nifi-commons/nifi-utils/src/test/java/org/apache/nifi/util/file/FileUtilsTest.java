@@ -50,4 +50,18 @@ class FileUtilsTest {
         assertEquals("report...", FileUtils.getSanitizedFilename("report..."));
         assertEquals(".env", FileUtils.getSanitizedFilename(".env"));
     }
+
+    @Test
+    void testGetSanitizedFilenamePreservesSupplementaryCodePoints() {
+        // U+1F4C4 PAGE FACING UP - encoded as a UTF-16 surrogate pair
+        final int pageFacingUpCharacter = 0x1F4C4;
+        final String pageFacingUp = new String(Character.toChars(pageFacingUpCharacter));
+
+        final String complexFilename = "a" + pageFacingUp + "b";
+        assertEquals(complexFilename, FileUtils.getSanitizedFilename(complexFilename));
+
+        // Test standard character replacements
+        assertEquals(pageFacingUp + "_file.txt", FileUtils.getSanitizedFilename(pageFacingUp + "/file.txt"));
+        assertEquals("report " + pageFacingUp + ".txt", FileUtils.getSanitizedFilename("report " + pageFacingUp + ".txt"));
+    }
 }
