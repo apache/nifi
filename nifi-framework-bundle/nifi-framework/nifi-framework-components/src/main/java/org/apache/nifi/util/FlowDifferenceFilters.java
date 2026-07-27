@@ -41,6 +41,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -779,6 +780,12 @@ public class FlowDifferenceFilters {
                 continue;
             }
 
+            // Only treat the added Controller Service as environmental when it was created by property migration.
+            // A service that a user added has no such marker and must be reported as a local modification.
+            if (!isMigrationCreatedControllerService(difference)) {
+                continue;
+            }
+
             for (final String candidateId : getControllerServiceIdentifiers(difference)) {
                 if (controllerServicePropertyAddsByValue.containsKey(candidateId)) {
                     serviceIdsWithMatchingAdditions.add(candidateId);
@@ -968,6 +975,13 @@ public class FlowDifferenceFilters {
             return false;
         }
 
+        return false;
+    }
+
+    private static boolean isMigrationCreatedControllerService(final FlowDifference difference) {
+        if (difference.getComponentB() instanceof final VersionedControllerService service) {
+            return StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT.equals(service.getComments());
+        }
         return false;
     }
 

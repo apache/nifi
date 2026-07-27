@@ -35,6 +35,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -325,6 +326,7 @@ public class TestFlowDifferenceFilters {
 
         final InstantiatedVersionedControllerService instantiatedControllerService = new InstantiatedVersionedControllerService(controllerServiceId, groupId);
         instantiatedControllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
+        instantiatedControllerService.setComments(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
 
         final FlowDifference controllerServiceDifference = new StandardFlowDifference(
                 DifferenceType.COMPONENT_ADDED,
@@ -344,6 +346,63 @@ public class TestFlowDifferenceFilters {
         assertFalse(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager));
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager, context));
         assertTrue(FlowDifferenceFilters.isEnvironmentalChange(controllerServiceDifference, null, flowManager, context));
+    }
+
+    /**
+     * A Controller Service that a user adds (i.e. without the migration marker comment) and references from a new
+     * processor property must be reported as a local modification -- neither the service creation nor the property
+     * addition may be treated as an environmental change.
+     */
+    @Test
+    public void testUserAddedControllerServiceReferencedByNewPropertyIsNotEnvironmentalChange() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+
+        final String processorId = "processor-instance";
+        final String groupId = "group-id";
+        final String propertyName = "ABC";
+        final String controllerServiceId = "controller-service-id";
+
+        Mockito.when(flowManager.getProcessorNode(processorId)).thenReturn(processorNode);
+
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .identifiesControllerService(ControllerService.class)
+                .build();
+        Mockito.when(processorNode.getPropertyDescriptor(propertyName)).thenReturn(propertyDescriptor);
+
+        final InstantiatedVersionedProcessor instantiatedProcessor = new InstantiatedVersionedProcessor(processorId, groupId);
+        instantiatedProcessor.setComponentType(ComponentType.PROCESSOR);
+
+        final FlowDifference propertyDifference = new StandardFlowDifference(
+                DifferenceType.PROPERTY_ADDED,
+                instantiatedProcessor,
+                instantiatedProcessor,
+                propertyName,
+                null,
+                controllerServiceId,
+                "Controller service reference added");
+
+        // No migration marker comment -> this represents a user-added service.
+        final InstantiatedVersionedControllerService instantiatedControllerService = new InstantiatedVersionedControllerService(controllerServiceId, groupId);
+        instantiatedControllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
+
+        final FlowDifference controllerServiceDifference = new StandardFlowDifference(
+                DifferenceType.COMPONENT_ADDED,
+                null,
+                instantiatedControllerService,
+                null,
+                null,
+                "Controller service created");
+
+        final FlowDifferenceFilters.EnvironmentalChangeContext context = FlowDifferenceFilters.buildEnvironmentalChangeContext(
+                List.of(propertyDifference, controllerServiceDifference), flowManager);
+
+        assertFalse(FlowDifferenceFilters.isControllerServiceCreatedForNewProperty(propertyDifference, context));
+        assertFalse(FlowDifferenceFilters.isControllerServiceCreatedForNewProperty(controllerServiceDifference, context));
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(propertyDifference, null, flowManager, context));
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(controllerServiceDifference, null, flowManager, context));
     }
 
     @Test
@@ -379,6 +438,7 @@ public class TestFlowDifferenceFilters {
         final InstantiatedVersionedControllerService instantiatedControllerService = new InstantiatedVersionedControllerService(controllerServiceInstanceId, groupId);
         instantiatedControllerService.setComponentType(ComponentType.CONTROLLER_SERVICE);
         instantiatedControllerService.setIdentifier(controllerServiceVersionedId);
+        instantiatedControllerService.setComments(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
 
         final FlowDifference controllerServiceDifference = new StandardFlowDifference(
                 DifferenceType.COMPONENT_ADDED,
