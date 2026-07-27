@@ -89,6 +89,7 @@ import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultsEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextValidationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
@@ -185,6 +186,39 @@ public class ParameterContextResource extends AbstractParameterResource {
             parameterContext.authorize(authorizer, RequestAction.READ, user);
             parameterContext.authorize(authorizer, RequestAction.WRITE, user);
         });
+    }
+
+    private void authorizeReadWriteParameterContextWithComponents(
+            final AuthorizableLookup lookup,
+            final String parameterContextId,
+            final ParameterContextEntity requestEntity,
+            final Set<AffectedComponentEntity> affectedComponents,
+            final NiFiUser user
+    ) {
+        authorizeReadWriteParameterContext(parameterContextId);
+
+        // Verify READ and WRITE permissions for affected Components
+        affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
+
+        final ParameterContext parameterContext = lookup.getParameterContext(parameterContextId);
+
+        // Verify READ on inherited Parameter Contexts
+        for (final ParameterContext inheritedParameterContext : parameterContext.getInheritedParameterContexts()) {
+            inheritedParameterContext.authorize(authorizer, RequestAction.READ, user);
+        }
+
+        // Verify READ on requested inherited Parameter Contexts
+        final List<ParameterContextReferenceEntity> requestedInheritedParameterContexts = requestEntity.getComponent().getInheritedParameterContexts();
+        if (requestedInheritedParameterContexts != null) {
+            for (final ParameterContextReferenceEntity requestedInheritedParameterContext : requestedInheritedParameterContexts) {
+                final String requestedId = requestedInheritedParameterContext.getId();
+                // Parameter Context existence check in prior verification methods
+                final ParameterContext requestedParameterContext = lookup.getParameterContext(requestedId);
+                requestedParameterContext.authorize(authorizer, RequestAction.READ, user);
+            }
+        }
+
+        validateControllerServiceReferences(requestEntity, lookup, parameterContext, user);
     }
 
     @GET
@@ -312,7 +346,11 @@ public class ParameterContextResource extends AbstractParameterResource {
                     "/parameter-contexts/update-requests endpoint. That endpoint will, in turn, call this endpoint.",
             security = {
                     @SecurityRequirement(name = "Read - /parameter-contexts/{id}"),
-                    @SecurityRequirement(name = "Write - /parameter-contexts/{id}")
+                    @SecurityRequirement(name = "Write - /parameter-contexts/{id}"),
+                    @SecurityRequirement(name = "Read - for every component that is affected by the update"),
+                    @SecurityRequirement(name = "Write - for every component that is affected by the update"),
+                    @SecurityRequirement(name = "Read - for every currently inherited parameter context"),
+                    @SecurityRequirement(name = "Read - for any new inherited parameter context")
             }
     )
     public Response updateParameterContext(
@@ -347,12 +385,15 @@ public class ParameterContextResource extends AbstractParameterResource {
             verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(updateDto));
+
         final Revision requestRevision = getRevision(requestEntity.getRevision(), updateDto.getId());
         return withWriteLock(
                 serviceFacade,
                 requestEntity,
                 requestRevision,
-                lookup -> authorizeReadWriteParameterContext(contextId),
+                lookup -> authorizeReadWriteParameterContextWithComponents(lookup, contextId, requestEntity, affectedComponents, user),
                 () -> serviceFacade.verifyUpdateParameterContext(updateDto, true),
                 (rev, entity) -> {
                     final ParameterContextEntity updatedEntity = serviceFacade.updateParameterContext(rev, entity.getComponent());
@@ -728,16 +769,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                 serviceFacade,
                 requestWrapper,
                 requestRevision,
-                lookup -> {
-                    // Verify READ and WRITE permissions for user, for the Parameter Context itself
-                    authorizeReadWriteParameterContext(contextId);
-
-                    // Verify READ and WRITE permissions for user, for every component that is affected
-                    affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
-
-                    final ParameterContext parameterContext = lookup.getParameterContext(contextId);
-                    validateControllerServiceReferences(requestEntity, lookup, parameterContext, user);
-                },
+                lookup -> authorizeReadWriteParameterContextWithComponents(lookup, contextId, requestEntity, affectedComponents, user),
                 () -> {
                     // Verify Request
                     serviceFacade.verifyUpdateParameterContext(contextDto, false);
