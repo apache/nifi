@@ -15,6 +15,7 @@
 
 org.apache.nifi.connectors.tests.system.AssetConnector
 org.apache.nifi.connectors.tests.system.AsymmetricFailureMigrationConnector
+org.apache.nifi.connectors.tests.system.BacklogReportingTestConnector
 org.apache.nifi.connectors.tests.system.BundleResolutionConnector
 org.apache.nifi.connectors.tests.system.CalculateConnector
 org.apache.nifi.connectors.tests.system.ComponentLifecycleConnector

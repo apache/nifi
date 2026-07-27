@@ -18,11 +18,17 @@ package org.apache.nifi.kafka.service;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsSpec;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
 import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
@@ -67,6 +73,9 @@ import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -173,6 +182,19 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     );
 
     private static final KafkaConnectionVerifier kafkaConnectionVerifier = new KafkaConnectionVerifier();
+
+    /**
+     * Bound applied to the Admin client used only for backlog determination, in place of the
+     * potentially much longer Client Timeout configured for regular produce/consume operations.
+     */
+    private static final int BACKLOG_ADMIN_TIMEOUT_MS = 10_000;
+
+    /**
+     * Delay between reconnect and retry attempts for the Admin client used only for backlog determination,
+     * so that a broker outage does not cause a burst of retries within the bounded BACKLOG_ADMIN_TIMEOUT_MS
+     * window.
+     */
+    private static final int BACKLOG_ADMIN_BACKOFF_MS = 2_000;
 
     private volatile ServiceConfiguration serviceConfiguration;
     private volatile Properties producerProperties;
@@ -319,6 +341,117 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             sortedTopicNames.sort(String.CASE_INSENSITIVE_ORDER);
             return sortedTopicNames;
         }
+    }
+
+    @Override
+    public long getCommittedOffsetLag(final PollingContext pollingContext) throws ExecutionException, InterruptedException {
+        Objects.requireNonNull(pollingContext, "Polling Context required");
+        final String groupId = pollingContext.getGroupId();
+        Objects.requireNonNull(groupId, "Group Id required to compute committed-offset lag");
+
+        try (final Admin admin = Admin.create(buildAdminProperties())) {
+            final Set<String> topicNames = resolveTopicNames(admin, pollingContext);
+            if (topicNames.isEmpty()) {
+                return 0L;
+            }
+
+            final Map<String, TopicDescription> topicDescriptions = admin.describeTopics(topicNames).allTopicNames().get();
+            final Set<TopicPartition> partitions = new HashSet<>();
+            for (final TopicDescription topicDescription : topicDescriptions.values()) {
+                topicDescription.partitions().forEach(partitionInfo ->
+                        partitions.add(new TopicPartition(topicDescription.name(), partitionInfo.partition())));
+            }
+            if (partitions.isEmpty()) {
+                return 0L;
+            }
+
+            final Map<TopicPartition, OffsetSpec> endOffsetRequest = new HashMap<>(partitions.size());
+            final Map<TopicPartition, OffsetSpec> beginningOffsetRequest = new HashMap<>(partitions.size());
+            for (final TopicPartition partition : partitions) {
+                endOffsetRequest.put(partition, OffsetSpec.latest());
+                beginningOffsetRequest.put(partition, OffsetSpec.earliest());
+            }
+            final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> endOffsets = admin.listOffsets(endOffsetRequest).all().get();
+            final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> beginningOffsets = admin.listOffsets(beginningOffsetRequest).all().get();
+
+            final Map<String, ListConsumerGroupOffsetsSpec> groupRequest =
+                    Map.of(groupId, new ListConsumerGroupOffsetsSpec().topicPartitions(partitions));
+            final Map<TopicPartition, OffsetAndMetadata> committedOffsets =
+                    admin.listConsumerGroupOffsets(groupRequest).partitionsToOffsetAndMetadata(groupId).get();
+
+            long totalLag = 0L;
+            for (final TopicPartition partition : partitions) {
+                final ListOffsetsResult.ListOffsetsResultInfo endInfo = endOffsets.get(partition);
+                if (endInfo == null) {
+                    continue;
+                }
+                final long endOffset = endInfo.offset();
+                final OffsetAndMetadata committed = committedOffsets.get(partition);
+                final long lagForPartition;
+                if (committed == null) {
+                    final ListOffsetsResult.ListOffsetsResultInfo beginningInfo = beginningOffsets.get(partition);
+                    final long beginningOffset = beginningInfo == null ? 0L : beginningInfo.offset();
+                    lagForPartition = Math.max(0L, endOffset - beginningOffset);
+                } else {
+                    lagForPartition = Math.max(0L, endOffset - committed.offset());
+                }
+                totalLag = Math.addExact(totalLag, lagForPartition);
+            }
+            return totalLag;
+        }
+    }
+
+    private Properties buildAdminProperties() {
+        final Properties adminProperties = new Properties();
+        adminProperties.putAll(consumerProperties);
+        // Defensive/precautionary: the shared consumerProperties built by getConsumerProperties does not
+        // contain these consumer-only keys (getConsumerService applies group id, auto-offset-reset, and
+        // auto-commit to its own per-consumer Properties copy, not to this shared field), so in the current
+        // code path these removals are a no-op. They are kept so the Admin client can never inherit those
+        // consumer-only settings and log warnings about unknown configs should the shared properties ever change.
+        adminProperties.remove(ConsumerConfig.GROUP_ID_CONFIG);
+        adminProperties.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+        adminProperties.remove(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
+
+        // This Admin client is used exclusively to determine backlog, which is a best-effort, UI-facing
+        // check rather than part of the data plane. consumerProperties carries the Client Timeout
+        // configured for regular produce/consume operations, which may be tens of seconds or more.
+        // Overriding it here with a short, fixed bound keeps an unreachable or slow broker from stalling
+        // a backlog check for that entire duration, and limits how long the Admin client's background
+        // thread keeps retrying before this short-lived client is closed.
+        adminProperties.put(AdminClientConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, BACKLOG_ADMIN_TIMEOUT_MS);
+        adminProperties.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, BACKLOG_ADMIN_TIMEOUT_MS / 2);
+
+        // When no broker in the bootstrap list can be reached, the Admin client repeatedly rebootstraps
+        // and retries fetching metadata with minimal delay between attempts, which floods the log within
+        // the short window before BACKLOG_ADMIN_TIMEOUT_MS elapses. Widening the reconnect and retry
+        // backoff spaces out those attempts so a single failed backlog check produces a handful of log
+        // lines instead of a burst of them.
+        adminProperties.put(AdminClientConfig.RECONNECT_BACKOFF_MS_CONFIG, BACKLOG_ADMIN_BACKOFF_MS);
+        adminProperties.put(AdminClientConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, BACKLOG_ADMIN_BACKOFF_MS);
+        adminProperties.put(AdminClientConfig.RETRY_BACKOFF_MS_CONFIG, BACKLOG_ADMIN_BACKOFF_MS);
+        return adminProperties;
+    }
+
+    private Set<String> resolveTopicNames(final Admin admin, final PollingContext pollingContext) throws ExecutionException, InterruptedException {
+        final Optional<Pattern> topicPatternFound = pollingContext.getTopicPattern();
+        if (topicPatternFound.isEmpty()) {
+            final Collection<String> configuredTopics = pollingContext.getTopics();
+            if (configuredTopics == null || configuredTopics.isEmpty()) {
+                return Set.of();
+            }
+            return new HashSet<>(configuredTopics);
+        }
+
+        final Pattern topicPattern = topicPatternFound.get();
+        final Set<String> allTopicNames = admin.listTopics().names().get();
+        final Set<String> matchingTopicNames = new HashSet<>();
+        for (final String topicName : allTopicNames) {
+            if (topicPattern.matcher(topicName).matches()) {
+                matchingTopicNames.add(topicName);
+            }
+        }
+        return matchingTopicNames;
     }
 
 

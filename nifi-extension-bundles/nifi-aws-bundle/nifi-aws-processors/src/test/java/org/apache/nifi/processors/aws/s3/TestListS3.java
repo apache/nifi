@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.aws.s3;
 
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -61,6 +63,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
@@ -68,6 +71,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -401,6 +406,208 @@ public class TestListS3 {
         ff1.assertAttributeEquals("s3.bucket", "test-bucket");
         ff1.assertAttributeEquals("s3.lastModified", String.valueOf(lastModified.toEpochMilli()));
         ff1.assertAttributeEquals("s3.version", "2");
+    }
+
+    @Test
+    public void testBacklogWithUseVersionsEnumeratesAllObjectVersions() throws BacklogReportingException {
+        // When Use Versions=true, backlog reporting must follow the processor's configured listing
+        // mode and enumerate via ListObjectVersions so that non-current versions are included in
+        // the count. Going through ListObjectsV2 in this configuration would under-report the
+        // backlog because non-current versions, which the processor itself can still emit, would
+        // not be visible.
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.BY_TIMESTAMPS.getValue());
+        runner.setProperty(ListS3.USE_VERSIONS, "true");
+
+        final Instant lastModified = Instant.now().minus(1, ChronoUnit.HOURS);
+        final ObjectVersion currentVersion = ObjectVersion.builder()
+                .key("versioned-key")
+                .versionId("v2")
+                .lastModified(lastModified)
+                .size(10L)
+                .isLatest(true)
+                .build();
+        final ObjectVersion priorVersion = ObjectVersion.builder()
+                .key("versioned-key")
+                .versionId("v1")
+                .lastModified(lastModified.minus(1, ChronoUnit.HOURS))
+                .size(20L)
+                .isLatest(false)
+                .build();
+        final ListObjectVersionsResponse response = ListObjectVersionsResponse.builder()
+                .versions(currentVersion, priorVersion)
+                .isTruncated(false)
+                .build();
+        when(mockS3Client.listObjectVersions(any(ListObjectVersionsRequest.class))).thenReturn(response);
+
+        final Optional<Backlog> reported = listS3.getBacklog(runner.getProcessContext());
+
+        assertTrue(reported.isPresent());
+        final Backlog backlog = reported.get();
+        assertEquals(Backlog.Precision.EXACT, backlog.getPrecision());
+        assertTrue(backlog.getFlowFileCount().isPresent());
+        assertEquals(2L, backlog.getFlowFileCount().getAsLong());
+
+        verify(mockS3Client, Mockito.atLeastOnce()).listObjectVersions(any(ListObjectVersionsRequest.class));
+        verify(mockS3Client, Mockito.never()).listObjectsV2(any(ListObjectsV2Request.class));
+        verify(mockS3Client, Mockito.never()).listObjects(any(ListObjectsRequest.class));
+    }
+
+    @Test
+    public void testBacklogWithListType1EnumeratesWithListObjects() throws BacklogReportingException {
+        // List Type=1 selects the legacy ListObjects API. Backlog reporting must follow that mode
+        // rather than always going through ListObjectsV2, so that what is counted matches what the
+        // processor would actually emit.
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.BY_TIMESTAMPS.getValue());
+        runner.setProperty(ListS3.LIST_TYPE, "1");
+
+        final Instant lastModified = Instant.now().minus(1, ChronoUnit.HOURS);
+        final S3Object first = S3Object.builder().key("a").lastModified(lastModified).size(5L).build();
+        final S3Object second = S3Object.builder().key("b").lastModified(lastModified).size(7L).build();
+        final ListObjectsResponse response = ListObjectsResponse.builder()
+                .contents(first, second)
+                .isTruncated(false)
+                .build();
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(response);
+
+        final Optional<Backlog> reported = listS3.getBacklog(runner.getProcessContext());
+
+        assertTrue(reported.isPresent());
+        final Backlog backlog = reported.get();
+        assertEquals(Backlog.Precision.EXACT, backlog.getPrecision());
+        assertTrue(backlog.getFlowFileCount().isPresent());
+        assertEquals(2L, backlog.getFlowFileCount().getAsLong());
+
+        verify(mockS3Client, Mockito.atLeastOnce()).listObjects(any(ListObjectsRequest.class));
+        verify(mockS3Client, Mockito.never()).listObjectsV2(any(ListObjectsV2Request.class));
+        verify(mockS3Client, Mockito.never()).listObjectVersions(any(ListObjectVersionsRequest.class));
+    }
+
+    @Test
+    public void testEntityTrackingBacklogCountsOverwrittenObject() throws Exception {
+        final String serviceId = "DistributedMapCacheClient";
+        when(mockCache.getIdentifier()).thenReturn(serviceId);
+        runner.addControllerService(serviceId, mockCache);
+        runner.enableControllerService(mockCache);
+
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.BY_ENTITIES);
+        runner.setProperty(ListS3.LIST_TYPE, "1");
+        runner.setProperty(ListS3.TRACKING_STATE_CACHE, serviceId);
+
+        final Instant baseTime = Instant.now();
+        final S3Object original = S3Object.builder()
+                .key("overwritten-key")
+                .lastModified(baseTime.minus(5, ChronoUnit.MINUTES))
+                .size(10L)
+                .build();
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class)))
+                .thenReturn(ListObjectsResponse.builder().contents(original).isTruncated(false).build());
+
+        // Populate the entity tracker with the original object by exercising the normal listing path.
+        // stopOnFinish is false so the tracker's in-memory listed-entity state remains available to getBacklog.
+        runner.run(1, false, true);
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
+
+        // The tracked object has not changed, so it is not part of the backlog.
+        final Optional<Backlog> caughtUp = listS3.getBacklog(runner.getProcessContext());
+        assertTrue(caughtUp.isPresent());
+        assertTrue(caughtUp.get().getFlowFileCount().isPresent());
+        assertEquals(0L, caughtUp.get().getFlowFileCount().getAsLong());
+
+        // The same key is overwritten in place with a newer timestamp and a different size. The running
+        // processor's ListedEntityTracker would re-list and re-emit it, so backlog must count it even
+        // though the identifier was already tracked.
+        final S3Object overwritten = S3Object.builder()
+                .key("overwritten-key")
+                .lastModified(baseTime.minus(1, ChronoUnit.MINUTES))
+                .size(20L)
+                .build();
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class)))
+                .thenReturn(ListObjectsResponse.builder().contents(overwritten).isTruncated(false).build());
+
+        final Optional<Backlog> reported = listS3.getBacklog(runner.getProcessContext());
+        assertTrue(reported.isPresent());
+        assertTrue(reported.get().getFlowFileCount().isPresent());
+        assertEquals(1L, reported.get().getFlowFileCount().getAsLong());
+    }
+
+    @Test
+    public void testGetBacklogWrapsClientCreationFailure() {
+        final RuntimeException clientFailure = new RuntimeException("credentials provider failed");
+        final ListS3 failingListS3 = new ListS3() {
+            @Override
+            protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
+                throw clientFailure;
+            }
+
+            @Override
+            protected S3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
+                throw clientFailure;
+            }
+        };
+        final TestRunner failingRunner = TestRunners.newTestRunner(failingListS3);
+        AuthUtils.enableAccessKey(failingRunner, "accessKeyId", "secretKey");
+        failingRunner.setProperty(RegionUtil.REGION, "eu-west-1");
+        failingRunner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        failingRunner.setProperty(ListS3.LISTING_STRATEGY, ListS3.BY_TIMESTAMPS.getValue());
+
+        final BacklogReportingException thrown = assertThrows(BacklogReportingException.class,
+                () -> failingListS3.getBacklog(failingRunner.getProcessContext()));
+        assertSame(clientFailure, thrown.getCause());
+    }
+
+    @Test
+    public void testBacklogCountsAllPagesWhenListingPaginates() throws BacklogReportingException {
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.BY_TIMESTAMPS.getValue());
+        runner.setProperty(ListS3.LIST_TYPE, "1");
+
+        final ListObjectsResponse firstPage = buildListObjectsResponse(List.of("key-0001", "key-0002", "key-0003"), true, null);
+        final ListObjectsResponse secondPage = buildListObjectsResponse(List.of("key-0004", "key-0005"), false, null);
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class)))
+                .thenReturn(firstPage)
+                .thenReturn(secondPage);
+
+        final Optional<Backlog> reported = listS3.getBacklog(runner.getProcessContext());
+
+        assertTrue(reported.isPresent());
+        assertTrue(reported.get().getFlowFileCount().isPresent());
+        assertEquals(5L, reported.get().getFlowFileCount().getAsLong());
+        verify(mockS3Client, Mockito.times(2)).listObjects(any(ListObjectsRequest.class));
+    }
+
+    @Test
+    public void testBacklogSkipsAgeFilteringBeforeOnScheduled() throws BacklogReportingException {
+        // getBacklog can be invoked before the processor has ever been scheduled, for example from the
+        // UI while the processor is stopped. The minimum and maximum object-age thresholds are resolved
+        // in @OnScheduled, so before the processor is scheduled they are unset and age filtering does not
+        // run: every listed object is counted regardless of the configured age thresholds.
+        runner.setProperty(RegionUtil.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
+        runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.BY_TIMESTAMPS.getValue());
+        runner.setProperty(ListS3.LIST_TYPE, "1");
+        runner.setProperty(ListS3.MIN_AGE, "1 hour");
+        runner.setProperty(ListS3.MAX_AGE, "2 hours");
+
+        // The "young" object is newer than the one-hour minimum age and the "old" object is older than
+        // the two-hour maximum age, so both would be excluded if the age filter were applied.
+        final Instant now = Instant.now();
+        final S3Object young = S3Object.builder().key("young").lastModified(now).size(1L).build();
+        final S3Object old = S3Object.builder().key("old").lastModified(now.minus(3, ChronoUnit.HOURS)).size(1L).build();
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class)))
+                .thenReturn(ListObjectsResponse.builder().contents(young, old).isTruncated(false).build());
+
+        final Optional<Backlog> reported = listS3.getBacklog(runner.getProcessContext());
+
+        assertTrue(reported.isPresent());
+        assertTrue(reported.get().getFlowFileCount().isPresent());
+        assertEquals(2L, reported.get().getFlowFileCount().getAsLong());
     }
 
     @Test

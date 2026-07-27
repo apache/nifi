@@ -24,6 +24,7 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProcessorClient;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
@@ -309,6 +310,59 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
                     .resolveTemplate("id", processorId);
 
             return getRequestBuilder(target).get(ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public BacklogRequestEntity submitProcessorBacklogRequest(final String processorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor ID cannot be null or blank");
+        }
+
+        return executeAction("Error submitting Backlog Request for Processor " + processorId, () -> {
+            final WebTarget target = processorTarget
+                    .path("/backlog-requests")
+                    .resolveTemplate("id", processorId);
+
+            return getRequestBuilder(target).post(null, BacklogRequestEntity.class);
+        });
+    }
+
+    @Override
+    public BacklogRequestEntity getProcessorBacklogRequest(final String processorId, final String requestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor ID cannot be null or blank");
+        }
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Backlog Request ID cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving Backlog Request for Processor " + processorId, () -> {
+            final WebTarget target = processorTarget
+                    .path("/backlog-requests/{requestId}")
+                    .resolveTemplate("id", processorId)
+                    .resolveTemplate("requestId", requestId);
+
+            return getRequestBuilder(target).get(BacklogRequestEntity.class);
+        });
+    }
+
+    @Override
+    public BacklogRequestEntity deleteProcessorBacklogRequest(final String processorId, final String requestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor ID cannot be null or blank");
+        }
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Backlog Request ID cannot be null or blank");
+        }
+
+        return executeAction("Error deleting Backlog Request for Processor " + processorId, () -> {
+            final WebTarget target = processorTarget
+                    .path("/backlog-requests/{requestId}")
+                    .resolveTemplate("id", processorId)
+                    .resolveTemplate("requestId", requestId);
+
+            return getRequestBuilder(target).delete(BacklogRequestEntity.class);
         });
     }
 }

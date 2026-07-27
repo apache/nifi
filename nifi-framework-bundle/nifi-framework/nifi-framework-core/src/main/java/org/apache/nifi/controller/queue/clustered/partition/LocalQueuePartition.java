@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -110,6 +111,16 @@ public interface LocalQueuePartition extends QueuePartition {
      * @return a List of FlowFiles
      */
     List<FlowFileRecord> getListableFlowFiles();
+
+    /**
+     * Returns the partition's local queue size and its active in-memory FlowFiles atomically.
+     * Implementations must obtain both values under the same lock so callers see a coherent
+     * point-in-time view; see {@link org.apache.nifi.controller.queue.FlowFileQueue#getQueueSnapshot()}
+     * for the broader contract.
+     *
+     * @return a non-null snapshot of the partition's local queue size and active FlowFiles
+     */
+    FlowFileQueueSnapshot getQueueSnapshot();
 
     /**
      * Inherits the contents of another queue/partition

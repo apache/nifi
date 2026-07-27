@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 /**
  * Enhanced Fan-Out Kinesis consumer that uses SubscribeToShard with dedicated throughput
@@ -100,7 +101,8 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
                 final BigInteger lastSeq = checkpoint == null ? null : new BigInteger(checkpoint);
                 final StartingPosition startingPosition = buildStartingPosition(lastSeq, initialStreamPosition);
                 logger.info("Creating Enhanced Fan-Out subscription for stream [{}] shard [{}] type [{}] seq [{}]", streamName, shardId, startingPosition.type(), lastSeq);
-                final ShardConsumer shardConsumer = new ShardConsumer(shardId, result -> enqueueIfActiveConsumer(shardId, result), pausedConsumers, logger);
+                final ShardConsumer shardConsumer = new ShardConsumer(shardId, result -> enqueueIfActiveConsumer(shardId, result),
+                        millisBehindLatest -> recordShardLag(shardId, millisBehindLatest), pausedConsumers, logger);
                 final ShardConsumer prior = shardConsumers.putIfAbsent(shardId, shardConsumer);
                 if (prior == null) {
                     try {
@@ -349,6 +351,7 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
     static final class ShardConsumer {
         private final String shardId;
         private final Consumer<ShardFetchResult> resultSink;
+        private final LongConsumer lagObserver;
         private final Queue<ShardConsumer> pausedConsumers;
         private final ComponentLog consumerLogger;
         private final AtomicBoolean subscribing = new AtomicBoolean(false);
@@ -361,10 +364,11 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
         private volatile BigInteger lastQueuedSequenceNumber;
         private volatile boolean shardNotFound;
 
-        ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink,
+        ShardConsumer(final String shardId, final Consumer<ShardFetchResult> resultSink, final LongConsumer lagObserver,
                       final Queue<ShardConsumer> pausedConsumers, final ComponentLog consumerLogger) {
             this.shardId = shardId;
             this.resultSink = resultSink;
+            this.lagObserver = lagObserver;
             this.pausedConsumers = pausedConsumers;
             this.consumerLogger = consumerLogger;
         }
@@ -599,18 +603,25 @@ final class EnhancedFanOutClient extends KinesisConsumerClient {
                     return;
                 }
 
+                final Long millisBehindLatest = event.millisBehindLatest();
+                if (millisBehindLatest != null) {
+                    // Notify the backlog tracker on every event, including events that carry no records.
+                    // Empty events are the only way a caught-up shard transitions from "behind" back to 0.
+                    lagObserver.accept(millisBehindLatest);
+                }
+
                 if (event.records().isEmpty()) {
                     requestNext();
                     return;
                 }
 
-                final long millisBehind = event.millisBehindLatest() != null ? event.millisBehindLatest() : -1;
                 final List<Record> records = deduplicateRecords(event.records());
                 if (records.isEmpty()) {
                     requestNext();
                     return;
                 }
 
+                final long millisBehind = millisBehindLatest != null ? millisBehindLatest : -1;
                 final ShardFetchResult result = createFetchResult(shardId, records, millisBehind);
                 lastQueuedSequenceNumber = result.lastSequenceNumber();
                 resultSink.accept(result);
