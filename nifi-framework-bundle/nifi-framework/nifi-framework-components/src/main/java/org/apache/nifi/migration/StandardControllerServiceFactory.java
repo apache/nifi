@@ -45,6 +45,14 @@ import java.util.UUID;
 public class StandardControllerServiceFactory implements ControllerServiceFactory {
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceFactory.class);
 
+    /**
+     * Comment applied to any Controller Service created as part of a component's property migration. This marks the
+     * service as migration-created so that flow-difference filtering can distinguish it from a service that a user
+     * added, and avoid reporting migration-created services as local modifications.
+     */
+    public static final String MIGRATION_CREATED_COMMENT = "Created during property migration";
+
+
     private final ExtensionManager extensionManager;
     private final FlowManager flowManager;
     private final ControllerServiceProvider serviceProvider;
@@ -98,6 +106,11 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode);
         serviceNode.migrateConfiguration(creationDetails.serviceProperties(), serviceFactory);
+
+        // Mark the service as migration-created so that flow-difference filtering can distinguish it from a
+        // service added by a user and avoid reporting it as a local modification.
+        serviceNode.setComments(MIGRATION_CREATED_COMMENT);
+
 
         if (isEnable()) {
             final ValidationStatus validationStatus = serviceNode.performValidation();

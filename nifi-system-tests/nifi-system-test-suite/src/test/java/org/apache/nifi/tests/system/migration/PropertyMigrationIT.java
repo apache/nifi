@@ -17,6 +17,7 @@
 
 package org.apache.nifi.tests.system.migration;
 
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.ControllerServicesClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -140,16 +141,22 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         final Map<String, String> service1Props = service1.getComponent().getProperties();
         assertEquals(Map.of("Initial Value", "17"), service1Props);
         assertEquals(2, service1.getComponent().getReferencingComponents().size());
+        assertEquals(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT, service1.getComponent().getComments(),
+                "Migration-created Controller Service should carry the migration marker comment");
 
         final ControllerServiceEntity service4 = serviceClient.getControllerService(proc4UpdatedProps.get(SERVICE));
         final Map<String, String> service4Props = service4.getComponent().getProperties();
         assertEquals(Map.of("Initial Value", "17"), service4Props);
         assertEquals(1, service4.getComponent().getReferencingComponents().size());
+        assertEquals(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT, service4.getComponent().getComments(),
+                "Migration-created Controller Service should carry the migration marker comment");
 
         final ControllerServiceEntity service3 = serviceClient.getControllerService(proc3UpdatedProps.get(SERVICE));
         final Map<String, String> service3Props = service3.getComponent().getProperties();
         assertEquals(Map.of("Initial Value", "41"), service3Props);
         assertEquals(1, service3.getComponent().getReferencingComponents().size());
+        assertEquals(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT, service3.getComponent().getComments(),
+                "Migration-created Controller Service should carry the migration marker comment");
     }
 
     private Map<String, String> getProperties(final ProcessorEntity processor) throws NiFiClientException, IOException {

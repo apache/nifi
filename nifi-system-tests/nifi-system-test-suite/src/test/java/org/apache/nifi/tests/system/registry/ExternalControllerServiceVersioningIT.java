@@ -17,9 +17,11 @@
 
 package org.apache.nifi.tests.system.registry;
 
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.tests.system.NiFiClientUtil;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -291,6 +293,99 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
     }
 
     /**
+     * Reproduces a "Show Local Changes" gap: a Controller Service that a user adds to a <em>nested (child)</em>
+     * Process Group of a versioned Process Group is not reported as a local modification.
+     *
+     * This mirrors a customer scenario -- a processor inside a nested group of a versioned connector had a service
+     * (e.g. an SSL Context Service) added from the processor's property dialog. The service was created in the
+     * nested group, but "Show Local Changes" did not list it, so the customization was missed on upgrade.
+     *
+     * Adding a Controller Service from a processor property produces two flow differences: a processor
+     * PROPERTY_ADDED (the reference) and a COMPONENT_ADDED (the service). These are paired and classified as an
+     * environmental change (see {@code FlowDifferenceFilters#isControllerServiceCreatedForNewProperty}), so
+     * {@code getLocalModifications} drops both and the service is never shown.
+     */
+    @Test
+    public void testControllerServiceAddedInNestedGroupAppearsInLocalChanges() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity registryClient = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        // Versioned parent PG containing a nested child PG. The child holds a processor that will later reference
+        // a newly-created service, and a terminate processor so the committed flow is complete.
+        final ProcessGroupEntity parent = util.createProcessGroup("Parent", "root");
+        final ProcessGroupEntity nested = util.createProcessGroup("Nested", parent.getId());
+        final ProcessorEntity counter = util.createProcessor("CountFlowFiles", nested.getId());
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", nested.getId());
+        util.createConnection(counter, terminate, "success");
+
+        // Commit the flow WITHOUT any controller service, so the service added below is a genuine local addition.
+        util.startVersionControl(parent, registryClient, TEST_FLOWS_BUCKET, "nested-cs-local-changes");
+        util.assertFlowUpToDate(parent.getId());
+
+        // Simulate "add Controller Service from the processor property dialog": create a new service in the NESTED
+        // (child) group and point the processor's controller-service property at it.
+        final ControllerServiceEntity nestedService = util.createControllerService(COUNT_SERVICE_TYPE, nested.getId());
+        util.updateProcessorProperties(counter, Collections.singletonMap("Count Service", nestedService.getComponent().getId()));
+
+        // "Show Local Changes" must report the newly added Controller Service.
+        final FlowComparisonEntity localMods = getNifiClient().getProcessGroupClient().getLocalModifications(parent.getId());
+
+        final String addedServiceId = nestedService.getComponent().getId();
+        final boolean serviceReported = localMods.getComponentDifferences().stream()
+                .anyMatch(diff -> addedServiceId.equals(diff.getComponentId()));
+
+        assertTrue(serviceReported,
+                "Show Local Changes should report the Controller Service added in the nested process group, but it did not. "
+                        + "Reported differences: " + describeDifferences(localMods));
+    }
+
+    private String describeDifferences(final FlowComparisonEntity localMods) {
+        final StringBuilder sb = new StringBuilder();
+        for (final ComponentDifferenceDTO component : localMods.getComponentDifferences()) {
+            sb.append("\n  - ").append(component.getComponentType()).append(" '").append(component.getComponentName()).append("' (")
+                    .append(component.getComponentId()).append(")");
+            if (component.getDifferences() != null) {
+                for (final DifferenceDTO difference : component.getDifferences()) {
+                    sb.append("\n      * ").append(difference.getDifference());
+                }
+            }
+        }
+        return sb.length() == 0 ? "<none>" : sb.toString();
+    }
+
+    /**
+     * A Controller Service marked as migration-created (via the migration marker comment) must NOT be reported by
+     * "Show Local Changes", even when it is added after the flow was committed and referenced by a processor. This is
+     * the counterpart to the user-added case, which is reported. The marker mirrors what property migration applies
+     * when it creates a service, so this exercises the suppression end-to-end without requiring a real migration.
+     */
+    @Test
+    public void testMigrationMarkedControllerServiceNotReportedAsLocalChange() throws NiFiClientException, IOException {
+        final FlowRegistryClientEntity registryClient = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity group = util.createProcessGroup("Parent", "root");
+        final ProcessorEntity counter = util.createProcessor("CountFlowFiles", group.getId());
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", group.getId());
+        util.createConnection(counter, terminate, "success");
+
+        util.startVersionControl(group, registryClient, TEST_FLOWS_BUCKET, "migration-marked-service");
+        util.assertFlowUpToDate(group.getId());
+
+        // Add a Controller Service carrying the migration marker comment (as property migration would) and reference it.
+        final ControllerServiceEntity service = util.createControllerService(COUNT_SERVICE_TYPE, group.getId());
+        setControllerServiceComments(service, StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
+        util.updateProcessorProperties(counter, Collections.singletonMap("Count Service", service.getComponent().getId()));
+
+        final String serviceId = service.getComponent().getId();
+        final boolean serviceReported = getNifiClient().getProcessGroupClient().getLocalModifications(group.getId())
+                .getComponentDifferences().stream()
+                .anyMatch(diff -> serviceId.equals(diff.getComponentId()));
+        assertFalse(serviceReported,
+                "A migration-marked Controller Service must not be reported as a local modification, but it was");
+    }
+
+    /**
      * Deletes only the connections and processors within a Process Group, without touching
      * Controller Services (which may be inherited from ancestor groups).
      */
@@ -322,6 +417,20 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
         final ControllerServiceDTO dto = new ControllerServiceDTO();
         dto.setId(service.getId());
         dto.setName(newName);
+
+        final ControllerServiceEntity entity = new ControllerServiceEntity();
+        entity.setId(service.getId());
+        entity.setComponent(dto);
+        entity.setRevision(service.getRevision());
+
+        return getNifiClient().getControllerServicesClient().updateControllerService(entity);
+    }
+
+    private ControllerServiceEntity setControllerServiceComments(final ControllerServiceEntity service, final String comments)
+            throws NiFiClientException, IOException {
+        final ControllerServiceDTO dto = new ControllerServiceDTO();
+        dto.setId(service.getId());
+        dto.setComments(comments);
 
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setId(service.getId());
