@@ -43,5 +43,4 @@ public class DateTimeAdapter extends XmlAdapter<String, Date> {
         final ZonedDateTime zonedDateTime = LocalDateTime.parse(date, DATE_TIME_FORMATTER).atZone(ZoneId.systemDefault());
         return Date.from(zonedDateTime.toInstant());
     }
-
 }
