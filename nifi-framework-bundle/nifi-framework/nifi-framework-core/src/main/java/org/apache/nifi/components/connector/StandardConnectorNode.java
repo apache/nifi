@@ -60,6 +60,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.GroupedComponent;
+import org.apache.nifi.migration.StandardConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.StringUtils;
@@ -76,6 +77,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -378,41 +380,68 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 final Bundle flowContextBundle) throws FlowUpdateException {
 
         logger.debug("Inheriting configuration for {}", this);
-        final MutableConnectorConfigurationContext configurationContext = createConfigurationContext(activeConfig);
-        final FrameworkFlowContext inheritContext = flowContextFactory.createWorkingFlowContext(identifier,
-            connectorDetails.getComponentLog(), configurationContext, flowContextBundle);
 
-        // Apply the update for the active config
+        // Give the Connector a chance to evolve its persisted property/step names before we build the runtime
+        // configuration contexts. Active and working configs are migrated independently because they can diverge.
+        final Map<String, StepConfiguration> migratedActiveProperties = migrateProperties(activeConfig);
+        final Map<String, StepConfiguration> migratedWorkingProperties = migrateProperties(workingConfig);
+
+        final MutableConnectorConfigurationContext activeSeedContext = createConfigurationContext(migratedActiveProperties);
+        final FrameworkFlowContext inheritContext = flowContextFactory.createWorkingFlowContext(identifier, connectorDetails.getComponentLog(), activeSeedContext, flowContextBundle);
+
+        // Apply the active configuration. This restores activeFlowContext to migratedActiveProperties and internally
+        // rebuilds workingFlowContext aliased to activeFlowContext's configuration; we discard that alias below and
+        // construct an independent working context so active and working do not share configuration state when the
+        // two lists actually diverge.
         applyUpdate(inheritContext);
 
-        // Configure the working config but do not apply
-        for (final VersionedConfigurationStep step : workingConfig) {
-            final StepConfiguration stepConfig = createStepConfiguration(step);
-            setConfiguration(step.getName(), stepConfig, true);
+        // Tear down the working context that applyUpdate created aliased to active, and rebuild it around an
+        // independent configuration seeded from migratedWorkingProperties. Then fire onConfigurationStepConfigured
+        // for every step so renamed steps trigger the flow-builder callback under their new name and any
+        // value-derived flow state (resolved asset paths, secret values, etc.) is populated against the fresh
+        // working context.
+        destroyWorkingContext();
+        final MutableConnectorConfigurationContext workingConfigContext = createConfigurationContext(migratedWorkingProperties);
+        workingFlowContext = flowContextFactory.createWorkingFlowContext(identifier, connectorDetails.getComponentLog(), workingConfigContext, flowContextBundle);
+        getComponentLog().info("Working Flow Context has been rebuilt with independent configuration");
+        for (final String stepName : migratedWorkingProperties.keySet()) {
+            notifyStepConfigured(stepName);
         }
 
         logger.debug("Successfully inherited configuration for {}", this);
     }
 
-    private StepConfiguration createStepConfiguration(final VersionedConfigurationStep step) {
+    private Map<String, StepConfiguration> migrateProperties(final List<VersionedConfigurationStep> flowConfiguration) {
+        // Preserve persisted step order so the notifyStepConfigured loop in inheritConfiguration fires in a
+        // deterministic order matching the flow definition.
+        final Map<String, StepConfiguration> initial = new LinkedHashMap<>();
+        for (final VersionedConfigurationStep versionedConfigStep : flowConfiguration) {
+            initial.put(versionedConfigStep.getName(), new StepConfiguration(toValueReferenceMap(versionedConfigStep)));
+        }
+
+        final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+            getConnector().migrateProperties(propertyConfiguration);
+        }
+        return propertyConfiguration.getMutatedProperties();
+    }
+
+    private Map<String, ConnectorValueReference> toValueReferenceMap(final VersionedConfigurationStep step) {
         final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
         if (step.getProperties() != null) {
             for (final Map.Entry<String, VersionedConnectorValueReference> entry : step.getProperties().entrySet()) {
-                final ConnectorValueReference valueReference = createValueReference(entry.getValue());
-                convertedProperties.put(entry.getKey(), valueReference);
+                convertedProperties.put(entry.getKey(), createValueReference(entry.getValue()));
             }
         }
-
-        return new StepConfiguration(convertedProperties);
+        return convertedProperties;
     }
 
-    private MutableConnectorConfigurationContext createConfigurationContext(final List<VersionedConfigurationStep> flowConfiguration) {
+    private MutableConnectorConfigurationContext createConfigurationContext(final Map<String, StepConfiguration> migratedConfiguration) {
         final StandardConnectorConfigurationContext configurationContext = new StandardConnectorConfigurationContext(
             initializationContext.getAssetManager(), initializationContext.getSecretsManager());
 
-        for (final VersionedConfigurationStep versionedConfigStep : flowConfiguration) {
-            final StepConfiguration stepConfig = createStepConfiguration(versionedConfigStep);
-            configurationContext.setProperties(versionedConfigStep.getName(), stepConfig);
+        for (final Map.Entry<String, StepConfiguration> entry : migratedConfiguration.entrySet()) {
+            configurationContext.setProperties(entry.getKey(), entry.getValue());
         }
 
         return configurationContext;
@@ -1153,10 +1182,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
      */
     @Override
     public boolean isModified() {
-        final Map<String, Map<String, String>> defaultValuesByStep = buildDefaultValuesByStep();
+        final Map<String, ConfigurationStep> stepsByName = indexConfigurationSteps();
 
-        if (configurationDiffersFromDefaults(activeFlowContext, defaultValuesByStep)
-            || configurationDiffersFromDefaults(workingFlowContext, defaultValuesByStep)) {
+        if (configurationDiffersFromDefaults(activeFlowContext, stepsByName)
+            || configurationDiffersFromDefaults(workingFlowContext, stepsByName)) {
             return true;
         }
 
@@ -1164,29 +1193,41 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     }
 
     /**
-     * Builds a mapping of configuration step name to the declared default value of each property within that step, as
-     * defined by the Connector's {@link ConfigurationStep configuration steps}. A property with no default is
-     * represented by a {@code null} value so that an unset (or explicitly null) configured value compares equal to it.
+     * Indexes the Connector's declared {@link ConfigurationStep configuration steps} by name so that per-property
+     * default values can be resolved without pre-flattening every descriptor into an intermediate map.
      */
-    private Map<String, Map<String, String>> buildDefaultValuesByStep() {
-        final Map<String, Map<String, String>> defaultValuesByStep = new HashMap<>();
+    private Map<String, ConfigurationStep> indexConfigurationSteps() {
+        final Map<String, ConfigurationStep> stepsByName = new HashMap<>();
 
         final List<ConfigurationStep> configurationSteps = getConfigurationSteps();
         if (configurationSteps == null) {
-            return defaultValuesByStep;
+            return stepsByName;
         }
 
         for (final ConfigurationStep configurationStep : configurationSteps) {
-            final Map<String, String> propertyDefaults = new HashMap<>();
-            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
-                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
-                    propertyDefaults.put(descriptor.getName(), descriptor.getDefaultValue());
-                }
-            }
-            defaultValuesByStep.put(configurationStep.getName(), propertyDefaults);
+            stepsByName.put(configurationStep.getName(), configurationStep);
         }
 
-        return defaultValuesByStep;
+        return stepsByName;
+    }
+
+    /**
+     * Returns the declared default value of the named property within the given configuration step, or {@code null}
+     * when the step is {@code null} or the property is not declared. A {@code null} return value matches an unset (or
+     * explicitly {@code null}) configured value under {@link Objects#equals(Object, Object)}.
+     */
+    private String defaultFor(final ConfigurationStep configurationStep, final String propertyName) {
+        if (configurationStep == null) {
+            return null;
+        }
+        for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+            for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                if (Objects.equals(descriptor.getName(), propertyName)) {
+                    return descriptor.getDefaultValue();
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -1196,7 +1237,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
      * represent a default). A structurally-empty Secret or Asset reference is a placeholder for an unset property and is
      * not treated as a modification.
      */
-    private boolean configurationDiffersFromDefaults(final FrameworkFlowContext flowContext, final Map<String, Map<String, String>> defaultValuesByStep) {
+    private boolean configurationDiffersFromDefaults(final FrameworkFlowContext flowContext, final Map<String, ConfigurationStep> stepsByName) {
         if (flowContext == null) {
             return false;
         }
@@ -1208,7 +1249,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
         final ConnectorConfiguration configuration = configurationContext.toConnectorConfiguration();
         for (final NamedStepConfiguration namedStepConfiguration : configuration.getNamedStepConfigurations()) {
-            final Map<String, String> propertyDefaults = defaultValuesByStep.getOrDefault(namedStepConfiguration.stepName(), Map.of());
+            final ConfigurationStep configurationStep = stepsByName.get(namedStepConfiguration.stepName());
 
             for (final Map.Entry<String, ConnectorValueReference> propertyEntry : namedStepConfiguration.configuration().getPropertyValues().entrySet()) {
                 final String propertyName = propertyEntry.getKey();
@@ -1218,7 +1259,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 }
 
                 if (valueReference instanceof final StringLiteralValue stringLiteralValue) {
-                    if (!Objects.equals(stringLiteralValue.getValue(), propertyDefaults.get(propertyName))) {
+                    if (!Objects.equals(stringLiteralValue.getValue(), defaultFor(configurationStep, propertyName))) {
                         logger.debug("{} differs from its initial flow because property [{}] of configuration step [{}] is not set to its default value",
                             this, propertyName, namedStepConfiguration.stepName());
                         return true;
