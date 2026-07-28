@@ -45,9 +45,15 @@ class RecordConverterTest {
 
     private static final String ITEMS_FIELD_NAME = "items";
 
+    private static final String ADDRESS_FIELD_NAME = "address";
+
+    private static final String ID_FIELD_NAME = "id";
+
     private static final String CITY_FIELD_VALUE = "Berlin";
 
     private static final String NAME_FIELD_VALUE = "widget";
+
+    private static final String ID_FIELD_VALUE = "row-1";
 
     @Test
     void testConvertPrimitiveArrayToList() {
@@ -170,5 +176,47 @@ class RecordConverterTest {
         final List<?> list = assertInstanceOf(List.class, items);
         final StructLike first = assertInstanceOf(StructLike.class, list.get(0));
         assertEquals(NAME_FIELD_VALUE, first.get(0, String.class));
+    }
+
+    /**
+     * A Record field declared as CHOICE, as schema inference produces when a field is an object in some Records and a
+     * scalar in others, must still be converted. Conversion is driven by the Iceberg type rather than the Record field
+     * type, so the CHOICE needs no dedicated handling, but it must not short circuit conversion of the whole Record.
+     */
+    @Test
+    void testGetConvertedRecordChoiceFieldWithScalarSiblings() {
+        final Types.StructType nestedStruct = Types.StructType.of(
+                Types.NestedField.optional(2, CITY_FIELD_NAME, Types.StringType.get())
+        );
+        final Types.StructType struct = Types.StructType.of(
+                Types.NestedField.optional(1, ADDRESS_FIELD_NAME, nestedStruct),
+                Types.NestedField.optional(3, ID_FIELD_NAME, Types.StringType.get())
+        );
+
+        final RecordSchema nestedSchema = new SimpleRecordSchema(List.of(
+                new RecordField(CITY_FIELD_NAME, RecordFieldType.STRING.getDataType())
+        ));
+        final Map<String, Object> nestedValues = new LinkedHashMap<>();
+        nestedValues.put(CITY_FIELD_NAME, CITY_FIELD_VALUE);
+        final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
+
+        // Every field other than the CHOICE is a scalar, so the CHOICE alone must require conversion
+        final RecordSchema schema = new SimpleRecordSchema(List.of(
+                new RecordField(ADDRESS_FIELD_NAME, RecordFieldType.CHOICE.getChoiceDataType(
+                        RecordFieldType.RECORD.getRecordDataType(nestedSchema),
+                        RecordFieldType.STRING.getDataType())),
+                new RecordField(ID_FIELD_NAME, RecordFieldType.STRING.getDataType())
+        ));
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put(ADDRESS_FIELD_NAME, nestedRecord);
+        values.put(ID_FIELD_NAME, ID_FIELD_VALUE);
+        final Record record = new MapRecord(schema, values);
+
+        final org.apache.iceberg.data.Record converted = new DelegatedRecord(record, struct);
+        final Object address = converted.getField(ADDRESS_FIELD_NAME);
+
+        final StructLike addressStruct = assertInstanceOf(StructLike.class, address);
+        assertEquals(CITY_FIELD_VALUE, addressStruct.get(0, String.class));
+        assertEquals(ID_FIELD_VALUE, converted.getField(ID_FIELD_NAME));
     }
 }

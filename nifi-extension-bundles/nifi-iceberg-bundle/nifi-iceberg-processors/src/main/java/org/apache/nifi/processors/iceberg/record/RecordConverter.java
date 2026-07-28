@@ -46,7 +46,9 @@ class RecordConverter {
             RecordFieldType.TIME,
             RecordFieldType.ARRAY,
             RecordFieldType.RECORD,
-            RecordFieldType.MAP
+            RecordFieldType.MAP,
+            // CHOICE can wrap any of the above, so it must also trigger conversion.
+            RecordFieldType.CHOICE
     );
 
     /**
