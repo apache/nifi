@@ -120,7 +120,8 @@ class RecordConverter {
     }
 
     private static Map<Object, Object> convertMap(final Map<?, ?> map, final Types.MapType mapType) {
-        final Map<Object, Object> converted = new LinkedHashMap<>();
+        // Using LinkedHashMap here to keep input ordering for deterministic flows.
+        final Map<Object, Object> converted = new LinkedHashMap<>(map.size());
         for (final Map.Entry<?, ?> entry : map.entrySet()) {
             final Object key = convertValue(entry.getKey(), mapType.keyType());
             final Object mappedValue = convertValue(entry.getValue(), mapType.valueType());
