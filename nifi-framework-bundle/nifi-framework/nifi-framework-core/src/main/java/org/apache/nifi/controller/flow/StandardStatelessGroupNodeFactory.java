@@ -57,7 +57,7 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.LoggingContext;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -177,7 +177,8 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
         logRepository.removeAllObservers();
         logRepository.addObserver(LogLevel.WARN, new ConnectableLogObserver(bulletinRepository, statelessGroupNode));
         final LoggingContext loggingContext = new StandardLoggingContext(statelessGroupNode);
-        final ComponentLog componentLog = new SimpleProcessLogger(statelessGroupNode, logRepository, loggingContext);
+        final String componentId = group.getIdentifier();
+        final ComponentLog componentLog = new StandardComponentLog(componentId, statelessGroupNode, loggingContext, logRepository);
 
         final StatelessGroupNodeInitializationContext initContext = () -> componentLog;
         statelessGroupNode.initialize(initContext);

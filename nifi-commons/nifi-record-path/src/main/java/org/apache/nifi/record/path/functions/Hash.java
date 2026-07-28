@@ -55,7 +55,7 @@ public class Hash extends RecordPathSegment {
                 }
 
                 final MessageDigest digest = getDigest(algorithmValue);
-                final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
+                final String value = DataTypeUtils.toString(fv.getValue(), null);
                 String encoded = new DigestUtils(digest).digestAsHex(value);
                 return new StandardFieldValue(encoded, fv.getField(), fv.getParent().orElse(null));
             });

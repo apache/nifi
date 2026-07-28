@@ -28,6 +28,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,7 +50,7 @@ public class ReplayLastEventEndpointMerger extends AbstractSingleEntityEndpoint<
                                   final Set<NodeResponse> problematicResponses) {
 
         // Move all aggregate snapshots into the node snapshots.
-        final Set<Long> replayedEventIds = new HashSet<>();
+        final List<Long> replayedEventIds = new ArrayList<>();
         final Set<String> failureExplanations = new HashSet<>();
         boolean eventAvailable = false;
         for (final Map.Entry<NodeIdentifier, ReplayLastEventResponseEntity> entry : entityMap.entrySet()) {

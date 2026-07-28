@@ -104,7 +104,7 @@ public class JMSPublisherConsumerIT {
         byte[] expected;
         try (
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
+            DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream)
         ) {
             dataOutputStream.writeBoolean(true);
             dataOutputStream.writeByte(1);

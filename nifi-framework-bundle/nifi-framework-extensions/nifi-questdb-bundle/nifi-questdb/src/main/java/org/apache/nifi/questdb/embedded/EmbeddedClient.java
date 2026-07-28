@@ -112,7 +112,7 @@ final class EmbeddedClient implements Client {
 
         try (
             final RecordCursorFactory factory = compiledQuery.getRecordCursorFactory();
-            final RecordCursor cursor = factory.getCursor(getSqlExecutionContext());
+            final RecordCursor cursor = factory.getCursor(getSqlExecutionContext())
         ) {
             final CursorBasedQueryRowContext rowContext = new CursorBasedQueryRowContext(cursor);
 

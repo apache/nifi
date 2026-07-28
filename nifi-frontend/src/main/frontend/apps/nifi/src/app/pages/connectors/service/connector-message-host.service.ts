@@ -16,6 +16,7 @@
  */
 
 import { DestroyRef, Injectable, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, fromEvent } from 'rxjs';
@@ -25,12 +26,6 @@ import { ConnectorMessage, ConnectorUiReadyMessage, isConnectorMessage } from '@
 export interface ConnectorMessageHostOptions {
     /** Angular DestroyRef for automatic subscription cleanup. */
     destroyRef: DestroyRef;
-
-    /**
-     * The expected origin of the iframe (e.g. `'https://connector-ui.example.com'`).
-     * Messages whose `event.origin` does not match are silently dropped.
-     */
-    expectedOrigin: string;
 
     /**
      * Optional lazy getter for the HTMLIFrameElement hosting the custom UI.
@@ -68,20 +63,22 @@ export interface ConnectorMessageHostOptions {
 })
 export class ConnectorMessageHost {
     private router = inject(Router);
+    private readonly document = inject(DOCUMENT);
     private activeSubscription: Subscription | null = null;
 
     /**
-     * Extract the origin from a URL string for use with `expectedOrigin`.
-     * Returns an empty string when the URL cannot be parsed, which will
-     * cause all origin checks to fail-closed (no messages accepted).
+     * The only origin trusted for inbound and outbound connector messages.
+     *
+     * Connector custom UIs are always served by the same NiFi web server that
+     * serves this application, so the iframe is same-origin with the parent.
+     * Trusting the application's own origin -- rather than an origin derived
+     * from the entity-controlled `configurationUrl` / `detailsUrl` -- prevents
+     * a connector entity from attesting to its own message origin (CWE-346).
+     *
+     * The origin is immutable for the application's lifetime, so it is captured
+     * once at construction rather than recomputed on every access.
      */
-    static extractOrigin(url: string): string {
-        try {
-            return new URL(url).origin;
-        } catch {
-            return '';
-        }
-    }
+    readonly trustedOrigin = this.document.location.origin;
 
     /**
      * Begin listening for postMessage events.
@@ -91,7 +88,7 @@ export class ConnectorMessageHost {
      * accumulating duplicate subscriptions.
      *
      * Only messages that pass all of the following checks are processed:
-     * 1. `event.origin` matches `expectedOrigin`
+     * 1. `event.origin` matches the application's own origin (`trustedOrigin`)
      * 2. `event.source` matches the iframe's `contentWindow` (when `iframeElement` is provided)
      * 3. `isConnectorMessage()` type guard passes (namespace + type validation)
      *
@@ -131,7 +128,13 @@ export class ConnectorMessageHost {
      * Validate that the MessageEvent originates from the expected iframe.
      */
     private isAllowedSource(event: MessageEvent, options: ConnectorMessageHostOptions): boolean {
-        if (event.origin !== options.expectedOrigin) {
+        // Origin must match the application's own origin exactly. Connector
+        // custom UIs are served same-origin by the backend (see
+        // ConnectorResource#buildCustomUiUrl), so a mismatch means the message
+        // is not from our embedded UI and is dropped (fail-closed). A custom UI
+        // whose configurationUrl/detailsUrl were ever cross-origin would render
+        // but be unable to communicate.
+        if (event.origin !== this.trustedOrigin) {
             return false;
         }
 

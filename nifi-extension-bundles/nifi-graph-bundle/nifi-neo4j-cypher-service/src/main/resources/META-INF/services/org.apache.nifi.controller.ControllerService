@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.graph.Neo4JCypherClientService
+org.apache.nifi.graph.Neo4JCypherQueryGeneratorService

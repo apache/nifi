@@ -108,7 +108,7 @@ public class DropRequestEndpointMerger extends AbstractSingleDTOEndpoint<DropReq
         if (originalCount == 0) {
             clientDto.setPercentCompleted(allFinished ? 100 : 0);
         } else {
-            clientDto.setPercentCompleted((int) ((double) droppedCount / (double) originalCount * 100D));
+            clientDto.setPercentCompleted((int) ((double) droppedCount / originalCount * 100D));
         }
 
         if (!nodeWaiting) {

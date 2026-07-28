@@ -31,5 +31,5 @@ public enum FlowFileOutboundPolicy {
      * out of the group. I.e., the FlowFiles will be batched together and transferred at the same time (not necessarily in a single
      * Process Session) but no FlowFile will be transferred until all FlowFiles in the group are ready to be transferred.
      */
-    BATCH_OUTPUT;
+    BATCH_OUTPUT
 }

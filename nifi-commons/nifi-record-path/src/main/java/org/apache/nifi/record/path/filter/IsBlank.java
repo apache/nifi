@@ -30,7 +30,7 @@ public class IsBlank extends FunctionFilter {
 
     @Override
     protected boolean test(final FieldValue fieldValue, final RecordPathEvaluationContext context) {
-        final String fieldVal = DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+        final String fieldVal = DataTypeUtils.toString(fieldValue.getValue(), null);
         if (fieldVal == null) {
             return true;
         }

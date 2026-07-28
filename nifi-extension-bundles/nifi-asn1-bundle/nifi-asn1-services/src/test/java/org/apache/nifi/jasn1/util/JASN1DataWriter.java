@@ -35,7 +35,7 @@ public class JASN1DataWriter {
 
         try (
                 final FileOutputStream fileOutputStream = new FileOutputStream(file);
-                final ReverseByteArrayOutputStream outputStream = new ReverseByteArrayOutputStream(1024);
+                final ReverseByteArrayOutputStream outputStream = new ReverseByteArrayOutputStream(1024)
         ) {
             final int encodeOffset = berObject.encode(outputStream);
 

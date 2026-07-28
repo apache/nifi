@@ -22,7 +22,15 @@ import { loadContentViewerOptions, resetContentViewerOptions } from '../state/vi
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { selectBundledViewerOptions, selectViewerOptions } from '../state/viewer-options/viewer-options.selectors';
 import { ContentViewer, HEX_VIEWER_URL, SupportedMimeTypes } from '../state/viewer-options';
-import { isDefinedAndNotNull, NiFiCommon, SelectGroup, SelectOption, selectQueryParams, TextTip } from '@nifi/shared';
+import {
+    isDefinedAndNotNull,
+    isSameOriginTarget,
+    NiFiCommon,
+    SelectGroup,
+    SelectOption,
+    selectQueryParams,
+    TextTip
+} from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { concatLatestFrom } from '@ngrx/operators';
 import { navigateToBundledContentViewer, resetContent, setRef } from '../state/content/content.actions';
@@ -185,8 +193,10 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                             if (dataRef) {
                                 // this check is used to ensure the data ref which is supplied through a query
                                 // param will attempt to load content from this specific NiFi instance and
-                                // not some other location
-                                return dataRef.startsWith(about.uri);
+                                // not some other location. A prefix (startsWith) check is bypassable via a
+                                // look-alike origin, so canonicalize and require both the same origin and that
+                                // the ref resolves under the instance URI's path.
+                                return isSameOriginTarget(dataRef, about.uri, { requireBasePathPrefix: true });
                             }
 
                             return false;

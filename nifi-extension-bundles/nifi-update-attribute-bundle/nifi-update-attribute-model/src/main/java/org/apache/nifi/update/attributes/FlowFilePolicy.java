@@ -30,5 +30,5 @@ public enum FlowFilePolicy {
      * When multiple rules match, they will all be executed against the original
      * flow file.
      */
-    USE_ORIGINAL;
+    USE_ORIGINAL
 }

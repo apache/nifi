@@ -25,30 +25,42 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
+import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.MigrationRequestDTO;
+import org.apache.nifi.web.api.dto.MigrationRequestLocalSourceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.BacklogEntity;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,14 +68,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -160,6 +181,80 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade).getConnector(CONNECTOR_ID, false);
+    }
+
+    @Test
+    public void testGetMigrationSources() {
+        final VersionedFlowMigrationSourcesEntity migrationSourcesEntity = new VersionedFlowMigrationSourcesEntity();
+        when(serviceFacade.getConnectorMigrationSources(CONNECTOR_ID)).thenReturn(migrationSourcesEntity);
+
+        try (final Response response = connectorResource.getMigrationSources(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(migrationSourcesEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorMigrationSources(CONNECTOR_ID);
+    }
+
+    @Test
+    public void testCreateMigrationRequestRejectsMismatchedConnectorId() {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId("different-connector");
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> connectorResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+    }
+
+    @Test
+    public void testCreateMigrationRequestRequiresExactlyOneSource() {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+        requestDto.setPayloadId("payload-1");
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> connectorResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+    }
+
+    @Test
+    public void testCreateMigrationRequestVerifiesConnectorReadinessBeforeSubmission() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        doThrow(new IllegalStateException("Connector must be stopped before it can be migrated"))
+                .when(serviceFacade).verifyConnectorReadyForMigration(CONNECTOR_ID);
+
+        final IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> spyResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+        assertEquals("Connector must be stopped before it can be migrated", thrown.getMessage());
+
+        // Readiness is checked first, so an unready Connector aborts before the source-specific verification.
+        verify(serviceFacade).verifyConnectorReadyForMigration(CONNECTOR_ID);
+        verify(serviceFacade, never()).verifyCanMigrateConnector(anyString(), anyString());
+    }
+
+    @Test
+    public void testCreateMigrationRequestRequiresLocalSourceOrPayload() {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> connectorResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
     }
 
     @Test
@@ -877,5 +972,168 @@ public class TestConnectorResource {
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).verifyCanClearConnectorControllerServiceState(anyString(), anyString());
         verify(serviceFacade, never()).clearConnectorControllerServiceState(anyString(), anyString(), any());
+    }
+
+    @Test
+    public void testCreateMigrationPayloadRejectsContentExceedingSizeCap() {
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        // A stream that never ends will surpass the payload size cap, at which point the read fails and the upload is
+        // rejected rather than buffering an unbounded amount of content in memory.
+        final InputStream unboundedWhitespace = new InputStream() {
+            @Override
+            public int read() {
+                return ' ';
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) {
+                Arrays.fill(b, off, off + len, (byte) ' ');
+                return len;
+            }
+        };
+
+        final IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> spyResource.createMigrationPayload(CONNECTOR_ID, unboundedWhitespace));
+        assertEquals("Deserialization of uploaded migration payload failed", thrown.getMessage());
+        assertEquals(IOException.class, thrown.getCause().getClass());
+        assertTrue(thrown.getCause().getMessage().contains("maximum allowed length"), thrown.getCause().getMessage());
+    }
+
+    private MigrationRequestLocalSourceDTO createLocalMigrationSource(final String processGroupId) {
+        final MigrationRequestLocalSourceDTO localSource = new MigrationRequestLocalSourceDTO();
+        localSource.setProcessGroupId(processGroupId);
+        return localSource;
+    }
+
+    private NiFiUser authenticate() {
+        final NiFiUser user = new StandardNiFiUser.Builder().identity("unit-test-user").build();
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(user));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return user;
+    }
+
+    @Test
+    public void testSubmitConnectorBacklogRequestHappyPath() throws Exception {
+        authenticate();
+
+        final BacklogEntity entity = new BacklogEntity();
+        final BacklogDTO dto = new BacklogDTO();
+        dto.setFlowFileCount(5L);
+        dto.setPrecision("EXACT");
+        entity.setBacklog(dto);
+        when(serviceFacade.getConnectorBacklog(CONNECTOR_ID)).thenReturn(entity);
+
+        final String requestId;
+        try (Response response = connectorResource.submitConnectorBacklogRequest(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            final BacklogRequestEntity body = (BacklogRequestEntity) response.getEntity();
+            assertEquals(CONNECTOR_ID, body.getRequest().getComponentId());
+            assertNotNull(body.getRequest().getRequestId());
+            requestId = body.getRequest().getRequestId();
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).verifyCanReportConnectorBacklog(CONNECTOR_ID);
+
+        final BacklogRequestEntity completedEntity = awaitBacklogRequestCompletion(requestId);
+        assertEquals(5L, completedEntity.getRequest().getBacklog().getFlowFileCount());
+
+        try (Response deleteResponse = connectorResource.deleteConnectorBacklogRequest(CONNECTOR_ID, requestId)) {
+            assertEquals(200, deleteResponse.getStatus());
+        }
+    }
+
+    @Test
+    public void testSubmitConnectorBacklogRequestSurfacesRootCauseOfFailure() throws Exception {
+        authenticate();
+
+        final RuntimeException rootCause = new RuntimeException("Timed out waiting for a node assignment");
+        when(serviceFacade.getConnectorBacklog(CONNECTOR_ID))
+                .thenThrow(new BacklogReportingException("Failed to determine Kafka backlog", rootCause));
+
+        final String requestId;
+        try (Response response = connectorResource.submitConnectorBacklogRequest(CONNECTOR_ID)) {
+            requestId = ((BacklogRequestEntity) response.getEntity()).getRequest().getRequestId();
+        }
+
+        final BacklogRequestEntity completedEntity = awaitBacklogRequestCompletion(requestId);
+        final String failureReason = completedEntity.getRequest().getFailureReason();
+        assertTrue(failureReason.contains("Failed to determine Kafka backlog"));
+        assertTrue(failureReason.contains("Timed out waiting for a node assignment"));
+    }
+
+    @Test
+    public void testSubmitConnectorBacklogRequestVerificationFailsNeverCallsServiceFacade() throws Exception {
+        authenticate();
+        doThrow(new IllegalStateException("Connector is disabled")).when(serviceFacade).verifyCanReportConnectorBacklog(CONNECTOR_ID);
+
+        assertThrows(IllegalStateException.class, () -> connectorResource.submitConnectorBacklogRequest(CONNECTOR_ID));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).verifyCanReportConnectorBacklog(CONNECTOR_ID);
+        verify(serviceFacade, never()).getConnectorBacklog(anyString());
+    }
+
+    @Test
+    public void testSubmitConnectorBacklogRequestNotAuthorized() throws Exception {
+        authenticate();
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () -> connectorResource.submitConnectorBacklogRequest(CONNECTOR_ID));
+
+        verify(serviceFacade, never()).verifyCanReportConnectorBacklog(anyString());
+    }
+
+    @Test
+    public void testDeleteConnectorBacklogRequestCancelsInProgressRequestAndInterruptsBackgroundThread() throws Exception {
+        authenticate();
+
+        final CountDownLatch backlogDeterminationStarted = new CountDownLatch(1);
+        final CountDownLatch backlogDeterminationInterrupted = new CountDownLatch(1);
+        when(serviceFacade.getConnectorBacklog(CONNECTOR_ID)).thenAnswer(invocation -> {
+            backlogDeterminationStarted.countDown();
+            try {
+                Thread.sleep(30_000L);
+            } catch (final InterruptedException e) {
+                backlogDeterminationInterrupted.countDown();
+                throw new BacklogReportingException("Interrupted while determining backlog");
+            }
+            return new BacklogEntity();
+        });
+
+        final String requestId;
+        try (Response response = connectorResource.submitConnectorBacklogRequest(CONNECTOR_ID)) {
+            requestId = ((BacklogRequestEntity) response.getEntity()).getRequest().getRequestId();
+        }
+
+        assertTrue(backlogDeterminationStarted.await(5, TimeUnit.SECONDS));
+
+        try (Response deleteResponse = connectorResource.deleteConnectorBacklogRequest(CONNECTOR_ID, requestId)) {
+            assertEquals(200, deleteResponse.getStatus());
+            final BacklogRequestEntity body = (BacklogRequestEntity) deleteResponse.getEntity();
+            assertTrue(body.getRequest().isComplete());
+            assertEquals("Request cancelled by user", body.getRequest().getFailureReason());
+        }
+
+        assertTrue(backlogDeterminationInterrupted.await(5, TimeUnit.SECONDS));
+    }
+
+    private BacklogRequestEntity awaitBacklogRequestCompletion(final String requestId) throws Exception {
+        final long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        BacklogRequestEntity entity;
+        do {
+            try (Response response = connectorResource.getConnectorBacklogRequest(CONNECTOR_ID, requestId)) {
+                entity = (BacklogRequestEntity) response.getEntity();
+            }
+            if (entity.getRequest().isComplete()) {
+                return entity;
+            }
+            Thread.sleep(20L);
+        } while (System.currentTimeMillis() < deadline);
+
+        fail("Backlog request did not complete within the expected time");
+        return entity;
     }
 }

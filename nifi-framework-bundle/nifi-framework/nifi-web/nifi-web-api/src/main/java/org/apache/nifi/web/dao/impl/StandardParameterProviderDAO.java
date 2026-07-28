@@ -36,7 +36,7 @@ import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -238,7 +238,9 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(parameterProviderNode.getParameterProvider(), logRepository, new StandardLoggingContext());
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                parameterProviderId, parameterProviderNode.getParameterProvider(), new StandardLoggingContext(), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;
@@ -246,11 +248,9 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
                 parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = parameterProviderNode.verifyConfiguration(configurationContext, configVerificationLog, extensionManager);
-        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+        return verificationResults.stream()
                 .map(this::createConfigVerificationResultDto)
                 .collect(Collectors.toList());
-
-        return resultsDtos;
     }
 
     private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {

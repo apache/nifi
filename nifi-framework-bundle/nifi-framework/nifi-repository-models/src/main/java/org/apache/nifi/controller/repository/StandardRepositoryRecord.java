@@ -268,7 +268,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
 
     @Override
     public List<ContentClaim> getTransientClaims() {
-        return transientClaims == null ? Collections.<ContentClaim>emptyList() : Collections.unmodifiableList(transientClaims);
+        return transientClaims == null ? Collections.emptyList() : Collections.unmodifiableList(transientClaims);
     }
 
     void addTransientClaim(final ContentClaim claim) {

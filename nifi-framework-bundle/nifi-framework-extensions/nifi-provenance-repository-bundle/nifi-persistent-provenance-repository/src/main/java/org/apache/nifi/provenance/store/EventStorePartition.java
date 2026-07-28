@@ -23,9 +23,9 @@ import org.apache.nifi.provenance.store.iterator.EventIterator;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public interface EventStorePartition extends Closeable {
     /**
@@ -102,7 +102,7 @@ public interface EventStorePartition extends Closeable {
      * @param olderThan the amount of time for which any event older than this should be removed
      * @param timeUnit the unit of time that applies to the first argument
      */
-    void purgeOldEvents(long olderThan, TimeUnit timeUnit);
+    void purgeOldEvents(long olderThan, ChronoUnit timeUnit);
 
     /**
      * Purges some number of events from the partition. The oldest events will be purged.

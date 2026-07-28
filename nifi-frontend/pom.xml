@@ -430,6 +430,7 @@
                         <exclude>src/main/frontend/.editorconfig</exclude>
                         <exclude>src/main/frontend/.build.env</exclude>
                         <exclude>src/main/frontend/README.md</exclude>
+                        <exclude>src/main/frontend/DESIGN.md</exclude>
                         <exclude>src/main/frontend/.prettierrc</exclude>
                         <exclude>src/main/frontend/.prettierignore</exclude>
                         <exclude>src/main/frontend/.npmrc</exclude>

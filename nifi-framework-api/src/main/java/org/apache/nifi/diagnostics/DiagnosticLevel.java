@@ -27,5 +27,5 @@ public enum DiagnosticLevel {
     /**
      * Detailed diagnostics information should be gathered, even if it is more expensive and/or generates verbose output.
      */
-    VERBOSE;
+    VERBOSE
 }

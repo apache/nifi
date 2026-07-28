@@ -25,6 +25,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DelegatedRecordTest {
 
@@ -52,6 +54,18 @@ class DelegatedRecordTest {
     private static final LocalDate UPDATED_CONVERTED = UPDATED.toLocalDate();
     private static final Time STOPPED = Time.valueOf("23:30:45");
     private static final LocalTime STOPPED_CONVERTED = STOPPED.toLocalTime();
+
+    private static final String ID_FIELD = "id";
+    private static final String AMOUNT_FIELD = "amount";
+    private static final int ID = 7;
+    private static final int ID_MODIFIED = 99;
+    private static final BigDecimal AMOUNT = new BigDecimal("12.34");
+
+    private static final Types.StructType TABLE_STRUCT = Types.StructType.of(
+            Types.NestedField.required(1, ID_FIELD, Types.IntegerType.get()),
+            Types.NestedField.optional(2, AMOUNT_FIELD, Types.DecimalType.of(10, 2)),
+            Types.NestedField.optional(3, LABEL_FIELD, Types.StringType.get())
+    );
 
     @Test
     void testCopyEmptyRecord() {
@@ -82,7 +96,9 @@ class DelegatedRecordTest {
 
         final Record record = new MapRecord(recordSchema, values);
 
-        final Types.StructType structType = Types.StructType.of();
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.optional(1, LABEL_FIELD, Types.StringType.get())
+        );
         final DelegatedRecord delegatedRecord = new DelegatedRecord(record, structType);
 
         final Types.StructType recordStruct = delegatedRecord.struct();
@@ -134,5 +150,70 @@ class DelegatedRecordTest {
 
         final Object stopped = delegatedRecord.getField(STOPPED_FIELD);
         assertEquals(STOPPED_CONVERTED, stopped);
+    }
+
+    /**
+     * Iceberg writers read values positionally against the table struct, so position 0 must always return the value of
+     * the table's first column ("id"), independent of the field ordering in the incoming Record schema.
+     */
+    @Test
+    void testGetByPositionMatchesTableColumnNameRegardlessOfInputOrder() {
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(shuffledInputRecord(), TABLE_STRUCT);
+
+        assertEquals(ID, delegatedRecord.get(0));
+        assertEquals(AMOUNT, delegatedRecord.get(1));
+        assertEquals(LABEL, delegatedRecord.get(2));
+    }
+
+    /**
+     * When the incoming Record does not contain a column present in the table schema, positional access must return
+     * null for that column rather than shifting subsequent input values into it.
+     */
+    @Test
+    void testGetByPositionReturnsNullForColumnMissingFromInput() {
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField(ID_FIELD, RecordFieldType.INT.getDataType()),
+                new RecordField(LABEL_FIELD, RecordFieldType.STRING.getDataType())
+        ));
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put(ID_FIELD, ID);
+        values.put(LABEL_FIELD, LABEL);
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(new MapRecord(recordSchema, values), TABLE_STRUCT);
+
+        assertEquals(ID, delegatedRecord.get(0));
+        assertNull(delegatedRecord.get(1), "Missing '" + AMOUNT_FIELD + "' column must be null, not shifted input data");
+        assertEquals(LABEL, delegatedRecord.get(2));
+    }
+
+    /**
+     * Positional set must resolve the target field by the Iceberg table column name for the given position, independent
+     * of the incoming Record field ordering, so that set(position) is symmetric with get(position).
+     */
+    @Test
+    void testSetByPositionMatchesTableColumnNameRegardlessOfInputOrder() {
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(shuffledInputRecord(), TABLE_STRUCT);
+
+        delegatedRecord.set(0, ID_MODIFIED);
+
+        assertEquals(ID_MODIFIED, delegatedRecord.getField(ID_FIELD));
+        assertEquals(AMOUNT, delegatedRecord.getField(AMOUNT_FIELD));
+        assertEquals(LABEL, delegatedRecord.getField(LABEL_FIELD));
+    }
+
+    /**
+     * Build an incoming Record whose field ordering (amount, label, id) intentionally differs from the
+     * {@link #TABLE_STRUCT} ordering (id, amount, label) so positional access must resolve by column name.
+     */
+    private static Record shuffledInputRecord() {
+        final RecordSchema recordSchema = new SimpleRecordSchema(List.of(
+                new RecordField(AMOUNT_FIELD, RecordFieldType.DECIMAL.getDataType()),
+                new RecordField(LABEL_FIELD, RecordFieldType.STRING.getDataType()),
+                new RecordField(ID_FIELD, RecordFieldType.INT.getDataType())
+        ));
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put(AMOUNT_FIELD, AMOUNT);
+        values.put(LABEL_FIELD, LABEL);
+        values.put(ID_FIELD, ID);
+        return new MapRecord(recordSchema, values);
     }
 }

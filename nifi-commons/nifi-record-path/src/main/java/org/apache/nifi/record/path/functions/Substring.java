@@ -59,7 +59,7 @@ public class Substring extends RecordPathSegment {
                 final int start = startIndex.getAsInt();
                 final int end = endIndex.getAsInt();
 
-                final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
+                final String value = DataTypeUtils.toString(fv.getValue(), null);
 
                 // Allow for negative indices to be used to reference offset from string length. We add 1 here because we want -1 to refer
                 // to the actual length of the string.

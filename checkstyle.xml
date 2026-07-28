@@ -125,7 +125,10 @@
         <module name="PatternVariableName"/>
         <module name="RecordComponentName"/>
         <module name="IllegalIdentifierName"/>
-        <module name="UnnecessarySemicolonInTryWithResources"/>
+        <module name="UnnecessarySemicolonInEnumeration"/>
+        <module name="UnnecessarySemicolonInTryWithResources">
+            <property name="allowWhenNoBraceAfterSemicolon" value="false"/>
+        </module>
         <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>
         <module name="AvoidNoArgumentSuperConstructorCall"/>
         <module name="NeedBraces"/>

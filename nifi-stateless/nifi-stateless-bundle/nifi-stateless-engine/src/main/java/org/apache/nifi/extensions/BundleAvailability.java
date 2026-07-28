@@ -22,5 +22,5 @@ public enum BundleAvailability {
 
     PARENT_NOT_AVAILABLE,
 
-    BUNDLE_AVAILABLE;
+    BUNDLE_AVAILABLE
 }

@@ -938,7 +938,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final ConnectorRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
 
             final String syncTimeoutValue = properties.getProperty(NiFiProperties.CONNECTOR_SYNC_TIMEOUT, NiFiProperties.DEFAULT_CONNECTOR_SYNC_TIMEOUT);
-            final long syncTimeoutMillis = (long) FormatUtils.getTimeDuration(syncTimeoutValue, TimeUnit.MILLISECONDS);
+            final long syncTimeoutMillis = FormatUtils.getTimeDuration(syncTimeoutValue, TimeUnit.MILLISECONDS);
             final Duration connectorSyncTimeout = Duration.ofMillis(syncTimeoutMillis);
 
             final ConnectorRepositoryInitializationContext initializationContext = new StandardConnectorRepoInitializationContext(

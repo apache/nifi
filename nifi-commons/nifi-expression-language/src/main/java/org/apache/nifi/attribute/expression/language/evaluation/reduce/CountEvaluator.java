@@ -42,7 +42,7 @@ public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvalua
             return new WholeNumberQueryResult(count);
         }
 
-        if (result.getResultType() == ResultType.BOOLEAN && ((Boolean) result.getValue()).equals(Boolean.FALSE)) {
+        if (result.getResultType() == ResultType.BOOLEAN && result.getValue().equals(Boolean.FALSE)) {
             return new WholeNumberQueryResult(count);
         }
 

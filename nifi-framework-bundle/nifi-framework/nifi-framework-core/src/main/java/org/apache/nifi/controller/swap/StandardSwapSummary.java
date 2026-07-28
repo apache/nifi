@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class StandardSwapSummary implements SwapSummary {
-    public static final SwapSummary EMPTY_SUMMARY = new StandardSwapSummary(new QueueSize(0, 0L), null, Collections.<ResourceClaim>emptyList(), 0L, 0L);
+    public static final SwapSummary EMPTY_SUMMARY = new StandardSwapSummary(new QueueSize(0, 0L), null, Collections.emptyList(), 0L, 0L);
 
     private final QueueSize queueSize;
     private final Long maxFlowFileId;

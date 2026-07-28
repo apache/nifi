@@ -30,8 +30,7 @@ public class FlowInfo {
 
     public FlowInfo(final String rootGroupId, final List<PortDTO> ports) {
         this.rootGroupId = rootGroupId;
-        this.ports = (ports == null ? Collections.unmodifiableList(Collections.EMPTY_LIST) :
-                Collections.unmodifiableList(new ArrayList<>(ports)));
+        this.ports = (ports == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(ports)));
     }
 
     public String getRootGroupId() {

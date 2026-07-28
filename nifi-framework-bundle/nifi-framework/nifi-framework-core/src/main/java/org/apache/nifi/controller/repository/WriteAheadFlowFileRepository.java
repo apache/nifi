@@ -621,7 +621,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             case CONTENTMISSING:
                 if (record.isContentModified()) {
                     decrementContentClaimReference(record.getOriginalClaim());
-                } else {
+                } else if (record.getOriginalClaim() != null) {
+                    // Only decrement when the FlowFile was persisted, i.e. its CREATE incremented the count.
+                    // A FlowFile created and removed within a single session yields one record whose type
+                    // transitions from CREATE to DELETE and which has no original claim; that CREATE increment
+                    // never ran, so decrementing here would corrupt the count for a claim that is still
+                    // referenced by live sibling FlowFiles, allowing their content to be truncated away.
                     decrementContentClaimReference(currentClaim);
                 }
                 break;

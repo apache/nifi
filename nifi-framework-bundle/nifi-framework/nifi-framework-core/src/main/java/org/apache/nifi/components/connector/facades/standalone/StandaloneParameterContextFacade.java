@@ -109,6 +109,7 @@ public class StandaloneParameterContextFacade implements ParameterContextFacade 
                 .name(parameterValue.getName())
                 .value(parameterValue.getValue())
                 .sensitive(parameterValue.isSensitive())
+                .referencedAssets(parameterValue.getAssets())
                 .build();
 
             paramMap.put(parameterValue.getName(), parameter);

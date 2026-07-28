@@ -60,6 +60,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDependency;
@@ -176,6 +177,7 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.RebaseAnalysis;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
@@ -270,6 +272,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -283,6 +286,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -301,6 +305,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -316,6 +321,8 @@ public final class DtoFactory {
     @SuppressWarnings("rawtypes")
     private static final Comparator<Class> CLASS_NAME_COMPARATOR = (class1, class2) -> Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
     public static final String SENSITIVE_VALUE_MASK = "********";
+
+    private static final long BACKLOG_NOW_WINDOW_MILLISECONDS = 3000L;
 
     private BulletinRepository bulletinRepository;
     private ControllerServiceProvider controllerServiceProvider;
@@ -2856,7 +2863,7 @@ public final class DtoFactory {
 
         final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
         final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =
-                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
+                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, localGroup, flowManager);
 
         for (final FlowDifference difference : comparisonDifferences) {
             // capture bundle differences and dedupe those differences
@@ -2974,6 +2981,78 @@ public final class DtoFactory {
             dto.setComponentId(component.getIdentifier());
             dto.setProcessGroupId(dto.getProcessGroupId());
         }
+
+        return dto;
+    }
+
+    public RebaseAnalysisEntity createRebaseAnalysisEntity(final RebaseAnalysis analysis, final String processGroupId,
+                                                             final String currentVersion, final String targetVersion,
+                                                             final Set<FlowDifference> upstreamDifferences,
+                                                             final String failureReasonOverride) {
+        final RebaseAnalysisEntity entity = new RebaseAnalysisEntity();
+        entity.setProcessGroupId(processGroupId);
+        entity.setCurrentVersion(currentVersion);
+        entity.setTargetVersion(targetVersion);
+        entity.setRebaseAllowed(analysis.isRebaseAllowed());
+        entity.setAnalysisFingerprint(analysis.getAnalysisFingerprint());
+
+        final List<RebaseChangeDTO> localChangeDtos = new ArrayList<>();
+        for (final RebaseAnalysis.ClassifiedDifference classified : analysis.getClassifiedLocalChanges()) {
+            localChangeDtos.add(createRebaseChangeDto(classified));
+        }
+        entity.setLocalChanges(localChangeDtos);
+
+        final Set<ComponentDifferenceDTO> upstreamChangeDtos = new HashSet<>();
+        final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
+        for (final FlowDifference difference : upstreamDifferences) {
+            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
+            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+            differences.add(createDifferenceDto(difference));
+        }
+        for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
+            entry.getKey().setDifferences(entry.getValue());
+            upstreamChangeDtos.add(entry.getKey());
+        }
+        entity.setUpstreamChanges(upstreamChangeDtos);
+
+        if (!analysis.isRebaseAllowed()) {
+            if (failureReasonOverride != null) {
+                entity.setFailureReason(failureReasonOverride);
+            } else {
+                final StringBuilder failureReason = new StringBuilder();
+                for (final RebaseAnalysis.ClassifiedDifference classified : analysis.getClassifiedLocalChanges()) {
+                    if (classified.getConflictCode() != null) {
+                        if (!failureReason.isEmpty()) {
+                            failureReason.append("; ");
+                        }
+                        failureReason.append(classified.getConflictDetail());
+                    }
+                }
+                entity.setFailureReason(failureReason.toString());
+            }
+        }
+
+        return entity;
+    }
+
+    private RebaseChangeDTO createRebaseChangeDto(final RebaseAnalysis.ClassifiedDifference classified) {
+        final FlowDifference difference = classified.getDifference();
+        final RebaseChangeDTO dto = new RebaseChangeDTO();
+
+        final VersionedComponent component = difference.getComponentB() != null ? difference.getComponentB() : difference.getComponentA();
+        if (component != null) {
+            dto.setComponentId(component.getIdentifier());
+            dto.setComponentName(component.getName());
+            dto.setComponentType(component.getComponentType().toString());
+        }
+
+        dto.setDifferenceType(difference.getDifferenceType().getDescription());
+        dto.setFieldName(difference.getFieldName().orElse(null));
+        dto.setLocalValue(difference.getValueB() == null ? null : difference.getValueB().toString());
+        dto.setRegistryValue(difference.getValueA() == null ? null : difference.getValueA().toString());
+        dto.setClassification(classified.getClassification().name());
+        dto.setConflictCode(classified.getConflictCode() == null ? null : classified.getConflictCode().name());
+        dto.setConflictDetail(classified.getConflictDetail());
 
         return dto;
     }
@@ -3387,6 +3466,66 @@ public final class DtoFactory {
         return documentedTypes;
     }
 
+    /**
+     * Maps a {@link Backlog} report from the nifi-api into a {@link BacklogDTO} suitable for REST
+     * clients. Each present numeric dimension is copied verbatim and accompanied by a formatted
+     * string (e.g., {@code "4.89 GB"}, {@code "1,025"}); absent dimensions map to {@code null} on
+     * both the raw and formatted fields, which the JSON serializer omits from the response. The
+     * {@code lastCaughtUp} instant is serialized as its {@link Instant#toString()} form (ISO-8601
+     * UTC) and accompanied by a relative-time string (e.g., {@code "5 mins ago"}, or {@code "now"}
+     * when all numeric dimensions are zero/absent and the timestamp falls within
+     * {@link #BACKLOG_NOW_WINDOW_MILLISECONDS} of the current server clock). Precision is the
+     * {@link Backlog.Precision#name() Backlog.Precision name}.
+     *
+     * @param backlog the source backlog
+     * @return a BacklogDTO mirroring the dimensions reported by {@code backlog}, or {@code null} if {@code backlog} is null
+     */
+    public BacklogDTO createBacklogDto(final Backlog backlog) {
+        if (backlog == null) {
+            return null;
+        }
+
+        final BacklogDTO dto = new BacklogDTO();
+        dto.setPrecision(backlog.getPrecision().name());
+
+        if (backlog.getFlowFileCount().isPresent()) {
+            final long flowFileCount = backlog.getFlowFileCount().getAsLong();
+            dto.setFlowFileCount(flowFileCount);
+            dto.setFormattedFlowFileCount(FormatUtils.formatCount(flowFileCount));
+        }
+        if (backlog.getByteCount().isPresent()) {
+            final long byteCount = backlog.getByteCount().getAsLong();
+            dto.setByteCount(byteCount);
+            dto.setFormattedByteCount(FormatUtils.formatDataSize(byteCount));
+        }
+        if (backlog.getRecordCount().isPresent()) {
+            final long recordCount = backlog.getRecordCount().getAsLong();
+            dto.setRecordCount(recordCount);
+            dto.setFormattedRecordCount(FormatUtils.formatCount(recordCount));
+        }
+        if (backlog.getLastCaughtUp().isPresent()) {
+            final Instant lastCaughtUp = backlog.getLastCaughtUp().get();
+            dto.setLastCaughtUp(lastCaughtUp.toString());
+            final boolean numericallyCaughtUp = isZeroOrAbsent(backlog.getFlowFileCount())
+                    && isZeroOrAbsent(backlog.getByteCount())
+                    && isZeroOrAbsent(backlog.getRecordCount());
+            dto.setFormattedLastCaughtUp(computeFormattedLastCaughtUp(lastCaughtUp, numericallyCaughtUp));
+        }
+        return dto;
+    }
+
+    private static String computeFormattedLastCaughtUp(final Instant lastCaughtUp, final boolean numericallyCaughtUp) {
+        final Instant now = Instant.now();
+        if (numericallyCaughtUp && Math.abs(now.toEpochMilli() - lastCaughtUp.toEpochMilli()) <= BACKLOG_NOW_WINDOW_MILLISECONDS) {
+            return "now";
+        }
+        return FormatUtils.formatRelativeTime(lastCaughtUp, now);
+    }
+
+    private static boolean isZeroOrAbsent(final OptionalLong value) {
+        return value.isEmpty() || value.getAsLong() == 0L;
+    }
+
     public ProcessorDTO createProcessorDto(final ProcessorNode node) {
         return createProcessorDto(node, false);
     }
@@ -3423,6 +3562,7 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(processorClass.isAnnotationPresent(Stateful.class));
         dto.setSupportsSensitiveDynamicProperties(node.isSupportsSensitiveDynamicProperties());
+        dto.setSupportsBacklogReporting(node.supportsBacklogReporting());
         dto.setRestricted(false);
         dto.setDeprecated(node.isDeprecated());
         dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
@@ -4523,6 +4663,7 @@ public final class DtoFactory {
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
         copy.setSupportsBatching(original.getSupportsBatching());
         copy.setSupportsSensitiveDynamicProperties(original.getSupportsSensitiveDynamicProperties());
+        copy.setSupportsBacklogReporting(original.getSupportsBacklogReporting());
         copy.setPersistsState(original.getPersistsState());
         copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setExtensionMissing(original.getExtensionMissing());

@@ -48,7 +48,7 @@ public class SubstringAfterLast extends RecordPathSegment {
                     return fv;
                 }
 
-                final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
+                final String value = DataTypeUtils.toString(fv.getValue(), null);
                 final int index = value.lastIndexOf(searchValue);
                 if (index < 0) {
                     return fv;

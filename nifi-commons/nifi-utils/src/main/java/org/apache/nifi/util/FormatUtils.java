@@ -20,6 +20,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.time.DurationFormat;
 
 import java.text.NumberFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -28,8 +29,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
+import java.time.temporal.UnsupportedTemporalTypeException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -132,6 +137,81 @@ public class FormatUtils {
 
         // default to bytes
         return format.format(dataSize) + " bytes";
+    }
+
+    /**
+     * Formats the gap between two instants as a coarse-grained, human-readable relative-time
+     * string, for example {@code "5 secs ago"}, {@code "in 2 mins"}, {@code "yesterday"},
+     * {@code "tomorrow"}, {@code "3 days ago"}, {@code "2 weeks ago"}, {@code "4 months ago"},
+     * or {@code "1 year ago"}. When {@code from} is before {@code to}, the result reads as
+     * "X ago"; when {@code from} is after {@code to}, the result reads as "in X". The unit
+     * granularity is chosen so that the displayed number is small but informative — sub-minute
+     * gaps surface as seconds, sub-hour gaps as minutes, and so on up through years.
+     *
+     * <p>This method does not return a special {@code "now"} string when the gap is small;
+     * callers that want to collapse a small window around {@code to} (for example, "(now)" when
+     * a backlog is current within a few seconds) should test for that condition themselves
+     * before invoking this method.</p>
+     *
+     * @param from the instant to describe relative to {@code to}, never {@code null}
+     * @param to the reference instant (usually "now"), never {@code null}
+     * @return a relative-time string describing the gap from {@code from} to {@code to}
+     */
+    public static String formatRelativeTime(final Instant from, final Instant to) {
+        final long differenceMillis = to.toEpochMilli() - from.toEpochMilli();
+        final boolean past = differenceMillis >= 0;
+        final long absoluteDifferenceMillis = Math.abs(differenceMillis);
+
+        final long secondMillis = 1000L;
+        final long minuteMillis = 60L * secondMillis;
+        final long hourMillis = 60L * minuteMillis;
+        final long dayMillis = 24L * hourMillis;
+        final long weekMillis = 7L * dayMillis;
+        final long monthMillis = 30L * dayMillis;
+        final long yearMillis = 365L * dayMillis;
+
+        // Round the difference into each candidate unit before deciding which bucket it belongs in.
+        // Rounding first keeps the chosen bucket and the displayed number consistent, so a value near a
+        // boundary (for example 59.5 seconds) is promoted to the next unit ("1 min ago") instead of
+        // producing a rounded number that overflows its own bucket ("60 secs ago").
+        final long seconds = Math.round((double) absoluteDifferenceMillis / secondMillis);
+        if (seconds < 60L) {
+            return formatRelativeUnit(Math.max(1L, seconds), "sec", past);
+        }
+
+        final long minutes = Math.round((double) absoluteDifferenceMillis / minuteMillis);
+        if (minutes < 60L) {
+            return formatRelativeUnit(minutes, "min", past);
+        }
+
+        final long hours = Math.round((double) absoluteDifferenceMillis / hourMillis);
+        if (hours < 24L) {
+            return formatRelativeUnit(hours, "hour", past);
+        }
+
+        final long days = Math.round((double) absoluteDifferenceMillis / dayMillis);
+        if (days == 1L) {
+            return past ? "yesterday" : "tomorrow";
+        }
+        if (days < 7L) {
+            return formatRelativeUnit(days, "day", past);
+        }
+        if (absoluteDifferenceMillis < monthMillis) {
+            final long weeks = Math.round((double) absoluteDifferenceMillis / weekMillis);
+            return formatRelativeUnit(weeks, "week", past);
+        }
+        if (absoluteDifferenceMillis < yearMillis) {
+            final long months = Math.round((double) absoluteDifferenceMillis / monthMillis);
+            return formatRelativeUnit(months, "month", past);
+        }
+
+        final long years = Math.round((double) absoluteDifferenceMillis / yearMillis);
+        return formatRelativeUnit(years, "year", past);
+    }
+
+    private static String formatRelativeUnit(final long value, final String unit, final boolean past) {
+        final String suffix = (value == 1L) ? unit : unit + "s";
+        return past ? value + " " + suffix + " ago" : "in " + value + " " + suffix;
     }
 
     /**
@@ -297,5 +377,55 @@ public class FormatUtils {
 
         final OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, zoneOffset);
         return offsetDateTime.toInstant();
+    }
+
+    /**
+     * Format a value of ChronoUnit into a word representation.
+     * Does not handle estimated ChronoUnit values.
+     * For anything greater than {@link ChronoUnit#DAYS}, use {@link #formatDurationToWords(Duration)}.
+     *
+     * @param value the number of the given {@link ChronoUnit} to measure
+     * @param unit {@link ChronoUnit} that the value represents
+     * @return String representation of the given value and unit
+     * @throws UnsupportedTemporalTypeException if the unit is not supported ({@link ChronoUnit#isDurationEstimated()} == true)
+     */
+    public static String formatDurationToWords(final long value, final ChronoUnit unit) throws UnsupportedTemporalTypeException {
+        return formatDurationToWords(Duration.ZERO.plus(value, unit));
+    }
+
+    /**
+     * Format a Duration using words (days, hours, minutes, seconds, ns) where all lower units are
+     *   included once a non-zero unit is found. Unit plurality is preserved.
+     * Maximum resolution is in terms of days.
+     *
+     * @param source duration to convert to words
+     * @return String representation of the given duration
+     */
+    public static String formatDurationToWords(final Duration source) {
+        final long days = source.toDaysPart();
+        final long hours = source.toHoursPart();
+        final long minutes = source.toMinutesPart();
+        final int seconds = source.toSecondsPart();
+        final int nanos = source.toNanosPart();
+
+        final List<String> parts = new ArrayList<>();
+
+        if (days > 0) {
+            parts.add(days + "d");
+        }
+        if (hours > 0 || !parts.isEmpty()) {
+            parts.add(hours + "h");
+        }
+        if (minutes > 0 || !parts.isEmpty()) {
+            parts.add(minutes + "m");
+        }
+        if (seconds > 0 || !parts.isEmpty()) {
+            parts.add(seconds + "s");
+        }
+        if (nanos > 0 || !parts.isEmpty()) {
+            parts.add(nanos + "ns");
+        }
+
+        return String.join(" ", parts);
     }
 }

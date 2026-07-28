@@ -20,6 +20,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -126,14 +127,8 @@ public class FlowFileUnpackagerV3 implements FlowFileUnpackager {
 
     protected long readLong(final InputStream in) throws IOException {
         fillBuffer(in, readBuffer, 8);
-        return (((long) readBuffer[0] << 56)
-                + ((long) (readBuffer[1] & 255) << 48)
-                + ((long) (readBuffer[2] & 255) << 40)
-                + ((long) (readBuffer[3] & 255) << 32)
-                + ((long) (readBuffer[4] & 255) << 24)
-                + ((readBuffer[5] & 255) << 16)
-                + ((readBuffer[6] & 255) << 8)
-                + ((readBuffer[7] & 255)));
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(readBuffer);
+        return byteBuffer.getLong();
     }
 
     private Integer readFieldLength(final InputStream in) throws IOException {

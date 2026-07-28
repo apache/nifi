@@ -39,6 +39,6 @@ public interface TransactionFailureCallback {
         /**
          * Failure occurred when sending data to the node
          */
-        SENDING;
+        SENDING
     }
 }

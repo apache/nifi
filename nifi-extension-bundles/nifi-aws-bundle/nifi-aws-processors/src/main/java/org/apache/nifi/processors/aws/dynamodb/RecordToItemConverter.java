@@ -64,7 +64,7 @@ final class RecordToItemConverter {
             case DOUBLE:
             case BIGINT:
             case DECIMAL:
-                builder.n(DataTypeUtils.toString(object, (String) null));
+                builder.n(DataTypeUtils.toString(object, null));
                 break;
             case ARRAY:
                 final List<AttributeValue> list = Arrays.stream(DataTypeUtils.toArray(object, null, null))
@@ -88,7 +88,7 @@ final class RecordToItemConverter {
             case STRING:
             case CHOICE: // No similar data type is supported by DynamoDB
             default:
-                builder.s(DataTypeUtils.toString(object, (String) null));
+                builder.s(DataTypeUtils.toString(object, null));
         }
         return builder.build();
     }

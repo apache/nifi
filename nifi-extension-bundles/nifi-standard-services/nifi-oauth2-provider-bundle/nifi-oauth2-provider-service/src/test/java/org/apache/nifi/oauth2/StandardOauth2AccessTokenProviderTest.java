@@ -27,7 +27,6 @@ import okio.Buffer;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
@@ -648,7 +647,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
 
-        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+        final List<ConfigVerificationResult> results = testSubject.verify(
             mockContext,
             runner.getLogger(),
             Collections.emptyMap()
@@ -666,7 +665,7 @@ public class StandardOauth2AccessTokenProviderTest {
         TestRunner runner = TestRunners.newTestRunner(processor);
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenThrow(new IOException());
 
-        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+        final List<ConfigVerificationResult> results = testSubject.verify(
             mockContext,
             runner.getLogger(),
             Collections.emptyMap()

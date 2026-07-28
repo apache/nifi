@@ -182,6 +182,6 @@ public class ExtensionDefinition {
     public enum ExtensionRuntime {
         JAVA,
 
-        PYTHON;
+        PYTHON
     }
 }

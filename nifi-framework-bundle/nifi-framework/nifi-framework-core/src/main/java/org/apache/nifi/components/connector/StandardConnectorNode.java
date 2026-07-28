@@ -29,6 +29,12 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.ParameterContextFacade;
+import org.apache.nifi.components.connector.migration.ConnectorMigrationContext;
+import org.apache.nifi.components.connector.migration.MigratableConnector;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -94,6 +100,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private final String identifier;
     private final FlowManager flowManager;
     private final ExtensionManager extensionManager;
+    private final StateManagerProvider stateManagerProvider;
     private final Authorizable parentAuthorizable;
     private final ConnectorDetails connectorDetails;
     private final String componentType;
@@ -120,16 +127,16 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private volatile Map<String, String> customLoggingAttributes = Map.of();
     private volatile Map<String, String> mergedLoggingAttributes = Map.of();
 
-
     public StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
-        final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails, final String componentType, final String componentCanonicalClass,
-        final MutableConnectorConfigurationContext configurationContext,
+        final StateManagerProvider stateManagerProvider, final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails,
+        final String componentType, final String componentCanonicalClass, final MutableConnectorConfigurationContext configurationContext,
         final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory,
         final ConnectorValidationTrigger validationTrigger, final boolean extensionMissing) {
 
         this.identifier = identifier;
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
+        this.stateManagerProvider = stateManagerProvider;
         this.parentAuthorizable = parentAuthorizable;
         this.connectorDetails = connectorDetails;
         this.componentType = componentType;
@@ -303,6 +310,67 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
             throw t;
         }
+    }
+
+    @Override
+    public ConnectorConfiguration applyMigratedConfiguration(final MutableConnectorConfigurationContext mergedConfiguration) throws FlowUpdateException {
+        if (initializationContext == null) {
+            throw new IllegalStateException("Cannot apply migrated configuration because " + this + " has not been initialized yet.");
+        }
+        Objects.requireNonNull(mergedConfiguration, "Merged configuration is required");
+
+        logger.debug("Applying migrated configuration to {}", this);
+        // mergedConfiguration is the working configuration the connector mutated through the migration context. It was
+        // seeded with a clone of this connector's active configuration, so it already holds the fully-merged result of
+        // every setProperties/replaceProperties call the connector made. The clone is the working flow context that
+        // drives Connector.applyUpdate(working, active) below. The live active configuration is intentionally left
+        // untouched at this point: the framework only commits the merged configuration onto the active configuration
+        // after the state-migration phase has also succeeded (see commitMigratedConfiguration). This means a failure in
+        // migrateState(...) or in applying the staged component states can be rolled back simply by restoring the
+        // initial flow, without having to revert any active-configuration mutations.
+        mergedConfiguration.resolvePropertyValues();
+
+        final FrameworkFlowContext migrationWorkingContext = flowContextFactory.createWorkingFlowContext(
+                identifier, connectorDetails.getComponentLog(), mergedConfiguration, activeFlowContext.getBundle());
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+            // Same applyUpdate(...) call signature the framework uses for regular working->active updates. The connector
+            // calls getInitializationContext().updateFlow(activeFlowContext, ...) inside applyUpdate(...); the
+            // activeFlowContext here is the real FrameworkFlowContext, so updateFlow(...) installs the rebuilt managed
+            // flow normally (it is only the migration-scoped wrapper handed to migrateConfiguration/migrateState that
+            // refuses updateFlow(...)).
+            getConnector().applyUpdate(migrationWorkingContext, activeFlowContext);
+        } catch (final FlowUpdateException e) {
+            throw e;
+        } catch (final Throwable t) {
+            throw new FlowUpdateException("Failed to apply migrated configuration for " + this, t);
+        }
+
+        logger.info("Applied migrated configuration to {}; managed Process Group has been rebuilt and the merged"
+                + " configuration is pending commit", this);
+        return mergedConfiguration.toConnectorConfiguration();
+    }
+
+    @Override
+    public void commitMigratedConfiguration(final ConnectorConfiguration mergedConfiguration) {
+        if (initializationContext == null) {
+            throw new IllegalStateException("Cannot commit migrated configuration because " + this + " has not been initialized yet.");
+        }
+        Objects.requireNonNull(mergedConfiguration, "Merged configuration is required");
+
+        // Write the merged configuration onto the active configuration so the migration outcome is persisted to
+        // flow.json.gz. Each step is written via replaceProperties so the resulting active configuration matches the
+        // merged configuration exactly, including any properties the connector removed during migration. This is the
+        // durability boundary of the two-phase migration: once this commit runs the migration is part of the persisted
+        // flow and will be restored on every restart via inheritConfiguration(...).
+        for (final NamedStepConfiguration stepConfig : mergedConfiguration.getNamedStepConfigurations()) {
+            activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.configuration());
+        }
+
+        resetValidationState();
+        recreateWorkingFlowContext();
+
+        logger.info("Committed migrated configuration onto active configuration for {}", this);
     }
 
     @Override
@@ -1054,6 +1122,183 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         recreateWorkingFlowContext();
     }
 
+    @Override
+    public boolean isMigrationSupported(final ConnectorMigrationContext context) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+            final Connector connector = getConnector();
+            if (!(connector instanceof final MigratableConnector migratableConnector)) {
+                return false;
+            }
+            return migratableConnector.isMigrationSupported(context);
+        } catch (final Exception e) {
+            getComponentLog().warn("Failed to evaluate whether migration is supported for {}; assuming migration is not supported", context.getSourceFlow(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Determines whether the Connector has been modified since it was created. Rather than comparing the managed flow
+     * structure (which a Connector derives entirely from its configuration), this considers the Connector modified when
+     * either of the following holds for the Active or Working configuration:
+     * <ul>
+     *   <li>any configured property differs from the property's declared default value; or</li>
+     *   <li>any Processor or Controller Service in the managed flow has stored component state.</li>
+     * </ul>
+     * A configuration whose properties are all at their defaults produces the initial flow, so an unmodified Connector
+     * can be safely migrated without discarding user changes. Any deviation in configuration, or any component state
+     * accumulated by running the flow, means migration would overwrite those changes and is therefore disallowed.
+     *
+     * @return {@code true} if the Connector's Active or Working configuration deviates from its defaults or any managed
+     *         component has stored state; {@code false} otherwise
+     */
+    @Override
+    public boolean isModified() {
+        final Map<String, Map<String, String>> defaultValuesByStep = buildDefaultValuesByStep();
+
+        if (configurationDiffersFromDefaults(activeFlowContext, defaultValuesByStep)
+            || configurationDiffersFromDefaults(workingFlowContext, defaultValuesByStep)) {
+            return true;
+        }
+
+        return hasComponentState(activeFlowContext) || hasComponentState(workingFlowContext);
+    }
+
+    /**
+     * Builds a mapping of configuration step name to the declared default value of each property within that step, as
+     * defined by the Connector's {@link ConfigurationStep configuration steps}. A property with no default is
+     * represented by a {@code null} value so that an unset (or explicitly null) configured value compares equal to it.
+     */
+    private Map<String, Map<String, String>> buildDefaultValuesByStep() {
+        final Map<String, Map<String, String>> defaultValuesByStep = new HashMap<>();
+
+        final List<ConfigurationStep> configurationSteps = getConfigurationSteps();
+        if (configurationSteps == null) {
+            return defaultValuesByStep;
+        }
+
+        for (final ConfigurationStep configurationStep : configurationSteps) {
+            final Map<String, String> propertyDefaults = new HashMap<>();
+            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                    propertyDefaults.put(descriptor.getName(), descriptor.getDefaultValue());
+                }
+            }
+            defaultValuesByStep.put(configurationStep.getName(), propertyDefaults);
+        }
+
+        return defaultValuesByStep;
+    }
+
+    /**
+     * Determines whether the configuration held by the given flow context deviates from the Connector's default
+     * configuration. A property is treated as modified when it is configured with a String literal whose value differs
+     * from the property's declared default, or with a populated Secret or Asset reference (neither of which can
+     * represent a default). A structurally-empty Secret or Asset reference is a placeholder for an unset property and is
+     * not treated as a modification.
+     */
+    private boolean configurationDiffersFromDefaults(final FrameworkFlowContext flowContext, final Map<String, Map<String, String>> defaultValuesByStep) {
+        if (flowContext == null) {
+            return false;
+        }
+
+        final MutableConnectorConfigurationContext configurationContext = flowContext.getConfigurationContext();
+        if (configurationContext == null) {
+            return false;
+        }
+
+        final ConnectorConfiguration configuration = configurationContext.toConnectorConfiguration();
+        for (final NamedStepConfiguration namedStepConfiguration : configuration.getNamedStepConfigurations()) {
+            final Map<String, String> propertyDefaults = defaultValuesByStep.getOrDefault(namedStepConfiguration.stepName(), Map.of());
+
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : namedStepConfiguration.configuration().getPropertyValues().entrySet()) {
+                final String propertyName = propertyEntry.getKey();
+                final ConnectorValueReference valueReference = propertyEntry.getValue();
+                if (valueReference == null) {
+                    continue;
+                }
+
+                if (valueReference instanceof final StringLiteralValue stringLiteralValue) {
+                    if (!Objects.equals(stringLiteralValue.getValue(), propertyDefaults.get(propertyName))) {
+                        logger.debug("{} differs from its initial flow because property [{}] of configuration step [{}] is not set to its default value",
+                            this, propertyName, namedStepConfiguration.stepName());
+                        return true;
+                    }
+                } else if (!isStructurallyEmptyReference(valueReference)) {
+                    logger.debug("{} differs from its initial flow because property [{}] of configuration step [{}] is configured with a {} reference",
+                        this, propertyName, namedStepConfiguration.stepName(), valueReference.getValueType());
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines whether the given non-{@code StringLiteralValue} reference is structurally empty, meaning it carries no
+     * actual referenced value and acts as a placeholder for an unset property rather than a configured one. A
+     * structurally-empty {@link SecretReference} has no provider or secret name; a structurally-empty
+     * {@link AssetReference} has no asset identifiers.
+     */
+    private boolean isStructurallyEmptyReference(final ConnectorValueReference valueReference) {
+        return switch (valueReference) {
+            case SecretReference secretReference -> isEmptySecretReference(secretReference);
+            case AssetReference assetReference -> assetReference.getAssetIdentifiers() == null || assetReference.getAssetIdentifiers().isEmpty();
+            default -> false;
+        };
+    }
+
+    /**
+     * Determines whether any Processor or Controller Service within the given flow context's managed Process Group has
+     * stored component state in either the local or cluster scope. A component with stored state has been run since the
+     * Connector was created, so the managed flow no longer reflects the Connector's initial flow.
+     */
+    private boolean hasComponentState(final FrameworkFlowContext flowContext) {
+        if (flowContext == null) {
+            return false;
+        }
+
+        final ProcessGroup managedProcessGroup = flowContext.getManagedProcessGroup();
+        if (managedProcessGroup == null) {
+            return false;
+        }
+
+        for (final ProcessorNode processor : managedProcessGroup.findAllProcessors()) {
+            if (componentHasStoredState(processor.getIdentifier())) {
+                logger.debug("{} differs from its initial flow because Processor [{}] has stored component state", this, processor.getIdentifier());
+                return true;
+            }
+        }
+
+        for (final ControllerServiceNode controllerService : managedProcessGroup.findAllControllerServices()) {
+            if (componentHasStoredState(controllerService.getIdentifier())) {
+                logger.debug("{} differs from its initial flow because Controller Service [{}] has stored component state", this, controllerService.getIdentifier());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean componentHasStoredState(final String componentIdentifier) {
+        final StateManager stateManager = stateManagerProvider.getStateManager(componentIdentifier);
+        if (stateManager == null) {
+            return false;
+        }
+
+        return hasStoredState(stateManager, Scope.LOCAL) || hasStoredState(stateManager, Scope.CLUSTER);
+    }
+
+    private boolean hasStoredState(final StateManager stateManager, final Scope scope) {
+        try {
+            final StateMap stateMap = stateManager.getState(scope);
+            return stateMap != null && !stateMap.toMap().isEmpty();
+        } catch (final IOException e) {
+            logger.warn("Failed to read {} state for a component of {} while checking whether it matches its initial flow; treating the component as having no state in this scope", scope, this, e);
+            return false;
+        }
+    }
+
     private void stopComponents(final VersionedProcessGroup group) {
         for (final VersionedProcessor processor : group.getProcessors()) {
             if (processor.getScheduledState() == ScheduledState.RUNNING) {
@@ -1167,7 +1412,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         return availableBundles.size() == 1;
     }
 
-    private void recreateWorkingFlowContext() {
+    @Override
+    public void recreateWorkingFlowContext() {
         destroyWorkingContext();
         workingFlowContext = flowContextFactory.createWorkingFlowContext(identifier,
             connectorDetails.getComponentLog(), activeFlowContext.getConfigurationContext(), activeFlowContext.getBundle());
@@ -1599,11 +1845,33 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         actions.add(createDrainFlowFilesAction(stopped && !troubleshooting, dataQueued));
         actions.add(createCancelDrainFlowFilesAction(currentState == ConnectorState.DRAINING));
         actions.add(createApplyUpdatesAction(currentState, troubleshooting));
+        actions.add(createMigrateAction(stopped && !troubleshooting));
         actions.add(createDeleteAction(stopped && !troubleshooting, dataQueued));
         actions.add(createEnterTroubleshootingAction(currentState));
         actions.add(createEndTroubleshootingAction());
 
         return actions;
+    }
+
+    private ConnectorAction createMigrateAction(final boolean stopped) {
+        final boolean allowed;
+        final String reason;
+
+        if (!stopped) {
+            allowed = false;
+            reason = "Connector must be stopped";
+        } else if (!(getConnector() instanceof MigratableConnector)) {
+            allowed = false;
+            reason = "Connector does not support migration from a Versioned flow";
+        } else if (isModified()) {
+            allowed = false;
+            reason = "Connector has been modified since it was created; migration would overwrite those modifications";
+        } else {
+            allowed = true;
+            reason = null;
+        }
+
+        return new StandardConnectorAction("MIGRATE", "Migrate a Versioned flow's assets and configuration into this Connector", allowed, reason);
     }
 
     private boolean isStopped() {

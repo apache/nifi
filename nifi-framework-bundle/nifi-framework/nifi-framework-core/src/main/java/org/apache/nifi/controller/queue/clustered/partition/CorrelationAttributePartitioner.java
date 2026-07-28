@@ -103,7 +103,7 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
 
         private double nextDouble() {
             state = LCG_MULTIPLIER * state + INDEX_OFFSET;
-            return ((double) ((int) (state >>> 33) + 1)) / 0x1.0p31;
+            return ((int) (state >>> 33) + 1) / 0x1.0p31;
         }
     }
 }

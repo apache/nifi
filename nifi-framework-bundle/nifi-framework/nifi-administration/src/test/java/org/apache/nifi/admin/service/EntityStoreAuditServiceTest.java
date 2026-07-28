@@ -107,7 +107,7 @@ class EntityStoreAuditServiceTest {
 
     private static final String SORT_ASCENDING = "ASC";
 
-    private static final ActionConverter actionConverter = action -> (FlowAction) Map::of;
+    private static final ActionConverter actionConverter = action -> Map::of;
 
     @TempDir
     File directory;

@@ -18,5 +18,5 @@ package org.apache.nifi.web.api.request;
 
 public enum FlowMetricsReportingStrategy {
     ALL_PROCESS_GROUPS,
-    ALL_COMPONENTS;
+    ALL_COMPONENTS
 }

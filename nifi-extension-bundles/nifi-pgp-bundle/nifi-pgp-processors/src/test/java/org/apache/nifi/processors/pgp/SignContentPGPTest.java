@@ -261,7 +261,7 @@ public class SignContentPGPTest {
 
         assertTrue(verified);
 
-        final String literal = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String literal = outputStream.toString(StandardCharsets.UTF_8);
         assertEquals(DATA, literal);
     }
 }

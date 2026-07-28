@@ -193,7 +193,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         try (
             final InputStream inStream = session.read(flowFile);
-            final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger());
+            final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())
         ) {
             RecordSchema schema = reader.getSchema();
 

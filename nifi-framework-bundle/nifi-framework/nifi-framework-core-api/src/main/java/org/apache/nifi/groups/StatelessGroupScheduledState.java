@@ -19,5 +19,5 @@ package org.apache.nifi.groups;
 
 public enum StatelessGroupScheduledState {
     RUNNING,
-    STOPPED;
+    STOPPED
 }

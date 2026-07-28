@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
@@ -25,6 +27,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ProcessorDAO {
@@ -80,6 +83,31 @@ public interface ProcessorDAO {
      * @param processorId the ID of the Processor
      */
     void verifyConfigVerification(String processorId);
+
+    /**
+     * Verifies that the specified processor is in an appropriate state to be asked for a backlog report.
+     *
+     * @param processorId the ID of the Processor
+     */
+    void verifyReportBacklog(String processorId);
+
+    /**
+     * Returns the backlog reported by the specified processor.
+     *
+     * <p>
+     *     Implementations are responsible for first verifying that the processor is in an appropriate state
+     *     (per {@link #verifyReportBacklog(String)}), then building a fresh {@code ProcessContext} for the
+     *     processor and threading that context through to {@link ProcessorNode#getReportedBacklog(org.apache.nifi.processor.ProcessContext)}.
+     *     A fresh context per call is intentional so that the processor's backlog query is isolated from
+     *     its running state and can be answered even when the processor is stopped.
+     * </p>
+     *
+     * @param processorId the ID of the processor
+     * @return the processor's reported backlog, or {@link Optional#empty()} if the processor does not
+     *         implement {@code BacklogReportingProcessor} or has nothing to report
+     * @throws BacklogReportingException if the processor attempted to determine its backlog and failed
+     */
+    Optional<Backlog> getBacklog(String processorId) throws BacklogReportingException;
 
     /**
      * Verifies that the specified processor can be terminated at this time

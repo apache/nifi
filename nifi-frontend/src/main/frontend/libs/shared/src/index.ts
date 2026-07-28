@@ -23,3 +23,4 @@ export * from './state';
 export * from './types';
 export * from './utils/connector-permissions.utils';
 export * from './utils/connector-validation.utils';
+export * from './utils/url-safety.utils';

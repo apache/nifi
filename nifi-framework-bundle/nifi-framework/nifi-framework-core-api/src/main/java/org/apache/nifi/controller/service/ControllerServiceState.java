@@ -39,5 +39,5 @@ public enum ControllerServiceState {
      * Controller Service has been enabled and has finished its lifecycle
      * methods. The Controller Service is ready to be used.
      */
-    ENABLED;
+    ENABLED
 }

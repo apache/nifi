@@ -29,5 +29,5 @@ public enum TransferDirection {
     /**
      * The client is to receive data from the remote instance.
      */
-    RECEIVE;
+    RECEIVE
 }

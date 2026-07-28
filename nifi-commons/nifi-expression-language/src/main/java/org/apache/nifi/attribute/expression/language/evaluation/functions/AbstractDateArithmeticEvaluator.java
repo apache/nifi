@@ -61,11 +61,11 @@ abstract class AbstractDateArithmeticEvaluator extends DateEvaluator {
 
         if (amountEvaluator instanceof StringLiteralEvaluator) {
             DateAmountParser.validate(
-                    ((StringLiteralEvaluator) amountEvaluator).evaluate(null).getValue());
+                    amountEvaluator.evaluate(null).getValue());
         }
 
         if (timeZoneEvaluator instanceof StringLiteralEvaluator) {
-            final String tz = ((StringLiteralEvaluator) timeZoneEvaluator).evaluate(null).getValue();
+            final String tz = timeZoneEvaluator.evaluate(null).getValue();
             try {
                 ZoneId.of(tz);
             } catch (final DateTimeException e) {

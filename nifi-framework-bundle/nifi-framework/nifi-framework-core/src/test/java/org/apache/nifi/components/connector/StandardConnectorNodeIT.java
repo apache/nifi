@@ -322,6 +322,22 @@ public class StandardConnectorNodeIT {
         assertEquals("Hi.", parameterContext.getParameter("Text").orElseThrow().getValue());
     }
 
+    // A Connector that only sets parameter values (as this one does) keeps the same managed flow structure regardless of
+    // its configuration. isModified() must therefore key off the Connector's configuration rather than the flow
+    // structure: a freshly created Connector is not modified, but changing a property value away from its default must
+    // be detected as a modification so that migration is no longer offered.
+    @Test
+    public void testIsModifiedReflectsConfigurationChanges() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeParameterConnector();
+        assertFalse(connectorNode.isModified());
+
+        final StepConfiguration textStepConfig = new StepConfiguration(Map.of("Text", new StringLiteralValue("Hi.")));
+        final NamedStepConfiguration textNamedStep = new NamedStepConfiguration("Text Configuration", textStepConfig);
+        configure(connectorNode, new ConnectorConfiguration(Set.of(textNamedStep)));
+
+        assertTrue(connectorNode.isModified());
+    }
+
     @Test
     @Timeout(10)
     public void testOnPropertyModifiedCalledOnApplyUpdate() throws FlowUpdateException {

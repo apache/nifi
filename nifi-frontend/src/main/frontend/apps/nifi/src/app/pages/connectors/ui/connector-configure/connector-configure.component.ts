@@ -163,7 +163,6 @@ export class ConnectorConfigure implements OnInit {
 
                     this.connectorMessageHost.startListening({
                         destroyRef: this.destroyRef,
-                        expectedOrigin: ConnectorMessageHost.extractOrigin(connector.component.configurationUrl),
                         iframeElement: () => this.iframeRef()?.nativeElement,
                         onConnectorUiReady: () => {
                             this.childConnectorUiReady = true;
@@ -180,10 +179,9 @@ export class ConnectorConfigure implements OnInit {
         if (!iframe?.contentWindow || !configurationUrl) {
             return;
         }
-        const targetOrigin = ConnectorMessageHost.extractOrigin(configurationUrl);
-        if (!targetOrigin) {
-            return;
-        }
+        // Target the application's own origin (where the same-origin custom UI
+        // is served), not an origin derived from the entity-controlled URL.
+        const targetOrigin = this.connectorMessageHost.trustedOrigin;
         const message: ParentToConnectorMessage = {
             namespace: CONNECTOR_MESSAGE_NAMESPACE,
             type: 'disconnected-node-acknowledgment',

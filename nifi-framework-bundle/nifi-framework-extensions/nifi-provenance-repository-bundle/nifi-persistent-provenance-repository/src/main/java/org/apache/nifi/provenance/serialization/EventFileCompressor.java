@@ -147,7 +147,7 @@ public class EventFileCompressor implements Runnable {
 
                 final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                 final long bytesAfter = outputFile.length();
-                final double reduction = 100 * (1 - (double) bytesAfter / (double) bytesBefore);
+                final double reduction = 100 * (1 - (double) bytesAfter / bytesBefore);
                 final String reductionTwoDecimals = String.format("%.2f", reduction);
                 logger.debug("Successfully compressed Provenance Event File {} in {} millis from {} to {}, a reduction of {}%",
                     uncompressedEventFile, millis, FormatUtils.formatDataSize(bytesBefore), FormatUtils.formatDataSize(bytesAfter), reductionTwoDecimals);

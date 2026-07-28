@@ -20,6 +20,7 @@ import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestVersionedRemoteProcessGroup {
 
@@ -31,10 +32,10 @@ public class TestVersionedRemoteProcessGroup {
         /* targetUri is null, targetUris varies */
 
         vRPG.setTargetUris(null);
-        assertEquals(null, vRPG.getTargetUris());
+        assertNull(vRPG.getTargetUris());
 
         vRPG.setTargetUris("");
-        assertEquals(null, vRPG.getTargetUris());
+        assertNull(vRPG.getTargetUris());
 
         vRPG.setTargetUris("uri-2");
         assertEquals("uri-2", vRPG.getTargetUris());
@@ -45,10 +46,10 @@ public class TestVersionedRemoteProcessGroup {
         /* targetUri is empty, targetUris varies */
 
         vRPG.setTargetUris(null);
-        assertEquals(null, vRPG.getTargetUris());
+        assertNull(vRPG.getTargetUris());
 
         vRPG.setTargetUris("");
-        assertEquals(null, vRPG.getTargetUris());
+        assertNull(vRPG.getTargetUris());
 
         vRPG.setTargetUris("uri-2");
         assertEquals("uri-2", vRPG.getTargetUris());
@@ -59,10 +60,10 @@ public class TestVersionedRemoteProcessGroup {
         /* targetUri is set, targetUris varies */
 
         vRPG.setTargetUris(null);
-        assertEquals(null, vRPG.getTargetUris());
+        assertNull(vRPG.getTargetUris());
 
         vRPG.setTargetUris("");
-        assertEquals(null, vRPG.getTargetUris());
+        assertNull(vRPG.getTargetUris());
 
         vRPG.setTargetUris("uri-2");
         assertEquals("uri-2", vRPG.getTargetUris());

@@ -56,7 +56,7 @@ final class CollisionAwareResourceProviderWorker extends ConflictResolvingExtern
 
         try (
                 final NarCloseable ignored = NarCloseable.withComponentNarLoader(getProviderClassLoader());
-                final InputStream inputStream = getProvider().fetchExternalResource(availableResource);
+                final InputStream inputStream = getProvider().fetchExternalResource(availableResource)
         ) {
             if (tempFile.exists() && !tempFile.delete()) {
                 throw new ExternalResourceProviderException("Buffer file '" + tempFile.getName() + "' already exists and cannot be deleted");

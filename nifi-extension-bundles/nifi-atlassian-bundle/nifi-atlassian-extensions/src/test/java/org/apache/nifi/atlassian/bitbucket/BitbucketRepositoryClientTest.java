@@ -42,6 +42,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -368,6 +369,23 @@ class BitbucketRepositoryClientTest {
         stubGetChain(branchListResponse());
         final BitbucketRepositoryClient client = buildCloudClient();
         assertThrows(IllegalArgumentException.class, () -> client.createBranch("feature", "  ", Optional.empty()));
+    }
+
+    @Test
+    void testGetBranchesCloudFollowsPagination() throws FlowRegistryException {
+        final String firstPage = "{\"values\":[{\"name\":\"main\"},{\"name\":\"develop\"}],"
+                + "\"next\":\"https://api.bitbucket.org/2.0/repositories/test-workspace/test-repo/refs/branches?page=2\"}";
+        final String secondPage = "{\"values\":[{\"name\":\"feature-1\"},{\"name\":\"feature-2\"}]}";
+        stubGetChain(
+                branchListResponse(),
+                mockResponse(HttpURLConnection.HTTP_OK, firstPage),
+                mockResponse(HttpURLConnection.HTTP_OK, secondPage)
+        );
+
+        final BitbucketRepositoryClient client = buildCloudClient();
+        final Set<String> branches = client.getBranches();
+
+        assertEquals(Set.of("main", "develop", "feature-1", "feature-2"), branches);
     }
 
     private BitbucketRepositoryClient buildDataCenterClient() throws FlowRegistryException {

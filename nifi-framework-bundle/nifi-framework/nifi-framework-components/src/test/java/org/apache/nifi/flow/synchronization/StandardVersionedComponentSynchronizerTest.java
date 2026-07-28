@@ -78,6 +78,7 @@ import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -936,6 +937,56 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testPublicInputPortLocalNamePreservedOnVersionControlUpdate() {
+        // With preservePublicPortNames on (the version-control update path), a public input port whose only difference
+        // from the registry flow is a local rename must keep its local name; the port is not even flagged for update.
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final PublicPort publicPort = createMappablePublicInputPort(processGroup, "port-vid", "Local Renamed", null);
+        when(processGroup.getInputPorts()).thenReturn(Collections.singleton(publicPort));
+        when(flowManager.getPublicInputPort(anyString())).thenReturn(Optional.empty());
+
+        final VersionedExternalFlow externalFlow = singlePublicInputPortFlow(processGroup, "port-vid", "Registry Name", null);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, preservePublicPortNamesOptions(true)));
+
+        verify(publicPort, never()).setName(anyString());
+    }
+
+    @Test
+    public void testPublicInputPortNameAdoptedWhenNotPreserving() {
+        // With preservePublicPortNames off (cluster reconnection / startup), the incoming flow's port name must still be adopted.
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final PublicPort publicPort = createMappablePublicInputPort(processGroup, "port-vid", "Local Renamed", null);
+        when(processGroup.getInputPorts()).thenReturn(Collections.singleton(publicPort));
+        when(flowManager.getPublicInputPort(anyString())).thenReturn(Optional.empty());
+
+        final VersionedExternalFlow externalFlow = singlePublicInputPortFlow(processGroup, "port-vid", "Registry Name", null);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, preservePublicPortNamesOptions(false)));
+
+        verify(publicPort).setName("Registry Name");
+    }
+
+    @Test
+    public void testPublicInputPortLocalNamePreservedWhenPortUpdatedForOtherReasons() {
+        // Multi-change case: the port lands in the update set because of another difference (comments), but with the
+        // flag on the local name must still be preserved even though the port is updated.
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final PublicPort publicPort = createMappablePublicInputPort(processGroup, "port-vid", "Local Renamed", "old comments");
+        when(processGroup.getInputPorts()).thenReturn(Collections.singleton(publicPort));
+        when(flowManager.getPublicInputPort(anyString())).thenReturn(Optional.empty());
+
+        final VersionedExternalFlow externalFlow = singlePublicInputPortFlow(processGroup, "port-vid", "Registry Name", "new comments");
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, preservePublicPortNamesOptions(true)));
+
+        // The comment change is applied, but the local name wins over the registry name.
+        verify(publicPort).setComments("new comments");
+        verify(publicPort).setName("Local Renamed");
+        verify(publicPort, never()).setName("Registry Name");
+    }
+
+    @Test
     public void testRemoveOutputPortFailsIfIncomingConnection() {
         createMockConnection(processorA, outputPort, group);
 
@@ -1672,6 +1723,57 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedPort.setConcurrentlySchedulableTaskCount(1);
 
         return versionedPort;
+    }
+
+    private FlowSynchronizationOptions preservePublicPortNamesOptions(final boolean preserve) {
+        return new FlowSynchronizationOptions.Builder()
+            .componentIdGenerator(componentIdGenerator)
+            .componentComparisonIdLookup(VersionedComponent::getIdentifier)
+            .componentScheduler(componentScheduler)
+            .scheduledStateChangeListener(scheduledStateChangeListener)
+            .preservePublicPortNames(preserve)
+            .build();
+    }
+
+    private PublicPort createMappablePublicInputPort(final ProcessGroup processGroup, final String versionedId, final String localName, final String comments) {
+        final String groupId = processGroup.getIdentifier();
+        final PublicPort port = Mockito.mock(PublicPort.class);
+        when(port.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(port.getProcessGroupIdentifier()).thenReturn(groupId);
+        when(port.getVersionedComponentId()).thenReturn(Optional.of(versionedId));
+        when(port.getName()).thenReturn(localName);
+        when(port.getComments()).thenReturn(comments);
+        when(port.getMaxConcurrentTasks()).thenReturn(1);
+        when(port.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(port.getConnectableType()).thenReturn(ConnectableType.INPUT_PORT);
+        when(port.getScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.STOPPED);
+        when(port.isRunning()).thenReturn(false);
+        when(port.getProcessGroup()).thenReturn(processGroup);
+        return port;
+    }
+
+    // Builds a proposed flow whose only public input port matches the live port by versioned id, differing by the given name
+    // (and optionally comments). ENABLED scheduled state and the other fields match what a STOPPED live port maps to, so the
+    // only differences are the ones under test.
+    private VersionedExternalFlow singlePublicInputPortFlow(final ProcessGroup processGroup, final String versionedId, final String name, final String comments) {
+        final VersionedPort proposedPort = new VersionedPort();
+        proposedPort.setIdentifier(versionedId);
+        proposedPort.setInstanceIdentifier(versionedId);
+        proposedPort.setName(name);
+        proposedPort.setComments(comments);
+        proposedPort.setScheduledState(ScheduledState.ENABLED);
+        proposedPort.setComponentType(ComponentType.INPUT_PORT);
+        proposedPort.setPosition(new Position(0D, 0D));
+        proposedPort.setConcurrentlySchedulableTaskCount(1);
+        proposedPort.setAllowRemoteAccess(Boolean.TRUE);
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier(processGroup.getIdentifier());
+        versionedGroup.setInputPorts(Set.of(proposedPort));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+        return externalFlow;
     }
 
     private void assertSensitivePropertyDecrypted(final ComponentNode componentNode) {

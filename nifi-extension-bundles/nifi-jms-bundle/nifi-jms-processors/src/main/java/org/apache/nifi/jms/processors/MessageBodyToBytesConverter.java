@@ -92,7 +92,7 @@ abstract class MessageBodyToBytesConverter {
     public static byte[] toBytes(StreamMessage message) {
         try (
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
+            DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream)
         ) {
             while (true) {
                 try {
@@ -143,7 +143,7 @@ abstract class MessageBodyToBytesConverter {
         ObjectMapper objectMapper = new ObjectMapper();
 
         try (
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
         ) {
             Map<String, Object> objectMap = new HashMap<>();
 

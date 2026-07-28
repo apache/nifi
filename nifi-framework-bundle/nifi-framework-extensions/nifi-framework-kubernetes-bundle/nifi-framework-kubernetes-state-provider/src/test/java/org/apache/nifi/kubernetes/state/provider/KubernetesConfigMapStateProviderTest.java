@@ -56,6 +56,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -229,7 +230,7 @@ class KubernetesConfigMapStateProviderTest {
 
         final IOException exception = assertThrows(IOException.class, () -> provider.setState(state, COMPONENT_ID));
         assertEquals(String.format("Failed to update state for Component with ID [%s]", COMPONENT_ID), exception.getMessage());
-        assertTrue(exception.getCause() instanceof KubernetesClientException);
+        assertInstanceOf(KubernetesClientException.class, exception.getCause());
         assertEquals(conflictException, exception.getCause());
 
         verify(mockResource, atLeastOnce()).update();

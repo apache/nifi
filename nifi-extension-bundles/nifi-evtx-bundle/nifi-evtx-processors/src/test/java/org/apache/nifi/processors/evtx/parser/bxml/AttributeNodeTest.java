@@ -59,7 +59,7 @@ public class AttributeNodeTest extends BxmlNodeWithTokenAndStringTestBase {
         assertEquals(ATTRIBUTE_NAME, attributeNode.getAttributeName());
         BxmlNode attributeNodeValue = attributeNode.getValue();
         assertInstanceOf(ValueNode.class, attributeNodeValue);
-        List<BxmlNode> children = ((ValueNode) attributeNodeValue).getChildren();
+        List<BxmlNode> children = attributeNodeValue.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(NullTypeNode.class, children.get(0));
     }

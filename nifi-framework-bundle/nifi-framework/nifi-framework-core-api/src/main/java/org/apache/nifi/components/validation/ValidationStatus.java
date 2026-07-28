@@ -31,5 +31,5 @@ public enum ValidationStatus {
     /**
      * Component is in the process of validation, and it is unknown at this time whether the component is truly valid or not.
      */
-    VALIDATING;
+    VALIDATING
 }

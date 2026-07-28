@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
+import org.apache.nifi.distributed.cache.client.Deserializer;
+import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
 import org.apache.nifi.reporting.InitializationException;
@@ -783,6 +786,115 @@ public class TestWait {
         signal = protocol.getSignal("key");
         assertEquals(3, signal.getCount("counter"));
         assertEquals(0, signal.getReleasableCount());
+    }
+
+    /**
+     * A {@link MockCacheClient} extension that can simulate concurrent-modification scenarios
+     * by returning {@code false} from {@link #replace} on demand, or by returning a stale
+     * (bumped) revision from {@link #fetch} on a specific call number.
+     */
+    private static class ControllableCacheClient extends MockCacheClient {
+        private volatile boolean failNextReplace = false;
+        private volatile int bumpRevisionOnFetchCall = -1;
+        private volatile int fetchCallCount = 0;
+
+        void setFailNextReplace() {
+            failNextReplace = true;
+        }
+
+        void setBumpRevisionOnFetchCall(final int callNumber) {
+            fetchCallCount = 0;
+            bumpRevisionOnFetchCall = callNumber;
+        }
+
+        @Override
+        public <K, V> boolean replace(final AtomicCacheEntry<K, V, Long> entry,
+                final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+            if (failNextReplace) {
+                failNextReplace = false;
+                return false;
+            }
+            return super.replace(entry, keySerializer, valueSerializer);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <K, V> AtomicCacheEntry<K, V, Long> fetch(final K key,
+                final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
+            final AtomicCacheEntry<K, V, Long> entry = super.fetch(key, keySerializer, valueDeserializer);
+            final int call = ++fetchCallCount;
+            if (bumpRevisionOnFetchCall == call && entry != null) {
+                return new AtomicCacheEntry<>(entry.getKey(), entry.getValue(),
+                        entry.getRevision().orElse(0L) + 999L);
+            }
+            return entry;
+        }
+    }
+
+    /**
+     * When a concurrent Notify wins the CAS slot, {@code protocol.replace(signal)}
+     * throws {@link ConcurrentModificationException}. Wait must roll back the session and
+     * throw a {@link ProcessException} so FlowFiles are retried rather than silently lost.
+     */
+    @Test
+    public void testWaitProgressedRollsBackOnConcurrentReplaceFailure() throws Exception {
+        final ControllableCacheClient controllableService = new ControllableCacheClient();
+        runner.addControllerService("controllable-service", controllableService);
+        runner.enableControllerService(controllableService);
+        runner.setProperty(Wait.DISTRIBUTED_CACHE_SERVICE, "controllable-service");
+
+        // Signal count=2, target=1, releasable=1 (default): after consuming 1 signal to release
+        // the FlowFile, releasableCount becomes 1 (leftover ticket). That means waitCompleted=false
+        // and waitProgressed=true → Wait calls protocol.replace(signal).
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "1");
+
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(controllableService);
+        protocol.notify("key", WaitNotifyProtocol.DEFAULT_COUNT_NAME, 2, null);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("releaseSignalAttribute", "key");
+        runner.enqueue(new byte[]{}, attrs);
+
+        // Simulate a concurrent Notify winning the CAS slot: replace() will return false.
+        controllableService.setFailNextReplace();
+
+        final AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        assertInstanceOf(ProcessException.class, e.getCause());
+        assertInstanceOf(ConcurrentModificationException.class, e.getCause().getCause());
+    }
+
+    /**
+     * When {@code protocol.complete(signal)} detects that the cached entry was
+     * modified by a concurrent Notify between Wait's initial fetch and the remove call, Wait
+     * must roll back the session and throw a {@link ProcessException} to avoid silently
+     * discarding the Notify update.
+     */
+    @Test
+    public void testWaitCompletedRollsBackOnConcurrentSignalModification() throws Exception {
+        final ControllableCacheClient controllableService = new ControllableCacheClient();
+        runner.addControllerService("controllable-service", controllableService);
+        runner.enableControllerService(controllableService);
+        runner.setProperty(Wait.DISTRIBUTED_CACHE_SERVICE, "controllable-service");
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "1");
+
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(controllableService);
+        protocol.notify("key", WaitNotifyProtocol.DEFAULT_COUNT_NAME, 1, null);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("releaseSignalAttribute", "key");
+        runner.enqueue(new byte[]{}, attrs);
+
+        // After notify(), reset the counter. During runner.run():
+        //   call 1 = Wait's own getSignal() → returns normally (revision N)
+        //   call 2 = complete()'s internal getSignal() → returns bumped revision (simulating concurrent Notify)
+        controllableService.setBumpRevisionOnFetchCall(2);
+
+        final AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        assertInstanceOf(ProcessException.class, e.getCause());
+        assertInstanceOf(ConcurrentModificationException.class, e.getCause().getCause());
     }
 
     @Test

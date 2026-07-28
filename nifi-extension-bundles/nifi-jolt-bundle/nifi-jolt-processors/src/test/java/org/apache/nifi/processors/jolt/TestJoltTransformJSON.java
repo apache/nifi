@@ -18,6 +18,7 @@ package org.apache.nifi.processors.jolt;
 
 import io.joltcommunity.jolt.Diffy;
 import io.joltcommunity.jolt.JsonUtils;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.processor.Processor;
@@ -40,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -107,6 +109,19 @@ class TestJoltTransformJSON {
 
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.assertValid();
+    }
+
+    @Test
+    void testNonExistingJOLTSpec() throws IOException {
+        final Path testResourcesDir = Paths.get("src/test/resources");
+        final Path nonexistingSpec = testResourcesDir.resolve("nonExistingSpec.json");
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, nonexistingSpec.toAbsolutePath().toString());
+        runner.enqueue(JSON_INPUT);
+        runner.assertNotValid();
+
+        final Collection<ValidationResult> validationResults = runner.validate();
+        final String explanation = validationResults.iterator().next().getExplanation();
+        assertTrue(explanation.contains("file"));
     }
 
     @Test
@@ -211,10 +226,9 @@ class TestJoltTransformJSON {
     }
 
     @ParameterizedTest()
-    @MethodSource("getChainrArguments")
-    void testTransformInputWithChainr(Path specPath) throws IOException {
-        final String spec = Files.readString(specPath);
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+    @MethodSource("getChainrArgumentContents")
+    void testTransformInputWithChainrContents(String chainrSpecContents) throws IOException {
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.enqueue(JSON_INPUT);
         runner.run();
 
@@ -615,9 +629,50 @@ class TestJoltTransformJSON {
         );
     }
 
-    private static Stream<Arguments> getChainrArguments() {
+    private static Stream<Arguments> getChainrArgumentContents() throws IOException {
+        final String chainrSpecWithLeadingMultLineJavaComment = """
+                /*
+                    Multiline Java comment
+                */
+                [
+                  {
+                    "operation": "shift",
+                    "spec": {
+                      "rating": {
+                        "primary": {
+                          "value": "Rating",
+                          "max": "RatingRange"
+                        },
+                        "*": {
+                          "max": "SecondaryRatings.&1.Range",
+                          "value": "SecondaryRatings.&1.Value",
+                          "$": "SecondaryRatings.&1.Id"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "operation": "default",
+                    "spec": {
+                      "Range": 5,
+                      "SecondaryRatings": {
+                        "*": {
+                          "Range": 5
+                        }
+                      }
+                    }
+                  }
+                ]
+                """;
+
+        final Path chainrSpecWithoutCommentsPath = Paths.get(CHAINR_SPEC_PATH);
+        final String chainrSpecWithoutComments = Files.readString(chainrSpecWithoutCommentsPath);
+        final Path chainrSpecWithLeadingSingleLineCommentPath = Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json");
+        final String chainrSpecWithLeadingSingleLineComment = Files.readString(chainrSpecWithLeadingSingleLineCommentPath);
+
         return Stream.of(
-                Arguments.argumentSet("has no single line comments", Paths.get(CHAINR_SPEC_PATH)),
-                Arguments.argumentSet("has a single line comment", Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json")));
+                Arguments.argumentSet("No Java comments", chainrSpecWithoutComments),
+                Arguments.argumentSet("Leading single line Java comment", chainrSpecWithLeadingSingleLineComment),
+                Arguments.argumentSet("Leading multi-line Java comment", chainrSpecWithLeadingMultLineJavaComment));
     }
 }

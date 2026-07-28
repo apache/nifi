@@ -276,7 +276,7 @@ public class FormatUtils {
             int newOrd = newTimeUnit.ordinal();
 
             List<Long> unitMultipliers = TIME_UNIT_MULTIPLIERS.subList(newOrd, originalOrd);
-            return unitMultipliers.stream().reduce(1L, (a, b) -> (long) a * b);
+            return unitMultipliers.stream().reduce(1L, (a, b) -> a * b);
         }
     }
 

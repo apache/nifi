@@ -23,6 +23,6 @@ public enum SearchScope {
 
     OBJECT,
     ONE_LEVEL,
-    SUBTREE;
+    SUBTREE
 
 }

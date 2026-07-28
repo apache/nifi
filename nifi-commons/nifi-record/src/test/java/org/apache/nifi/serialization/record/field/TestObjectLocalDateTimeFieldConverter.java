@@ -34,7 +34,7 @@ public class TestObjectLocalDateTimeFieldConverter {
     private static final long MILLIS_TIMESTAMP_LONG = 1707238288351L;
     private static final long MICROS_TIMESTAMP_LONG = 1707238288351567L;
     private static final String MICROS_TIMESTAMP_STRING = Long.toString(MICROS_TIMESTAMP_LONG);
-    private static final double MICROS_TIMESTAMP_DOUBLE = ((double) MICROS_TIMESTAMP_LONG) / 1000000D;
+    private static final double MICROS_TIMESTAMP_DOUBLE = MICROS_TIMESTAMP_LONG / 1000000D;
     private static final long NANOS_AFTER_SECOND = 351567000L;
     private static final Instant INSTANT_MILLIS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG);
     // Create an instant to represent the same time as the microsecond precision timestamp. We add nanoseconds after second but then have to subtract the milliseconds after the second that are already

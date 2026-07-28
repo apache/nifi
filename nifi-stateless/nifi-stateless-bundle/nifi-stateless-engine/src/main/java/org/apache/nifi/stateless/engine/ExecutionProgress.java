@@ -73,6 +73,6 @@ public interface ExecutionProgress {
     enum CompletionAction {
         COMPLETE,
 
-        CANCEL;
+        CANCEL
     }
 }

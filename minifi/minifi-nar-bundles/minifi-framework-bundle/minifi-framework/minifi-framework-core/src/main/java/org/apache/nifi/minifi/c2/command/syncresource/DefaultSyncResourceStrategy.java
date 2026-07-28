@@ -33,7 +33,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 
 import static java.nio.file.Files.copy;
 import static java.nio.file.Files.createTempFile;
@@ -42,17 +41,16 @@ import static java.util.Map.entry;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
 import static java.util.function.Predicate.not;
-import static java.util.regex.Pattern.compile;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.PARTIALLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.ResourceType.ASSET;
+import static org.apache.nifi.minifi.c2.command.UpdateAssetCommandHelper.ALLOWED_RESOURCE_PATH_PATTERN;
 
 public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSyncResourceStrategy.class);
-    private static final Pattern ALLOWED_RESOURCE_PATH_PATTERN = compile("^(?:[^~<>:\\|\\\"\\?\\*\\.\\/\\\\]+(?:[/\\\\][^~<>:\\|\\\"\\?\\*\\.\\/\\\\]+)*)?$");
 
     private static final Set<Entry<OperationState, OperationState>> SUCCESS_RESULT_PAIRS = Set.of(
         entry(NO_OPERATION, NO_OPERATION),

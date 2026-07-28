@@ -42,9 +42,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -113,7 +113,7 @@ public class AuthorizingFlowContextTest {
         final ProcessGroupFacade result = authorizingFlowContext.getRootGroup();
 
         assertNotNull(result);
-        assertTrue(result instanceof AuthorizingProcessGroupFacade);
+        assertInstanceOf(AuthorizingProcessGroupFacade.class, result);
         verify(connectorAuthorizable).authorize(any(Authorizer.class), any(RequestAction.class), any(NiFiUser.class));
     }
 
@@ -124,7 +124,7 @@ public class AuthorizingFlowContextTest {
         final ParameterContextFacade result = authorizingFlowContext.getParameterContext();
 
         assertNotNull(result);
-        assertTrue(result instanceof AuthorizingParameterContextFacade);
+        assertInstanceOf(AuthorizingParameterContextFacade.class, result);
         verify(connectorAuthorizable).authorize(any(Authorizer.class), any(RequestAction.class), any(NiFiUser.class));
     }
 

@@ -19,5 +19,5 @@ package org.apache.nifi.xml.inference;
 public enum XmlNodeType {
     CONTAINER,
     TEXT,
-    ARRAY;
+    ARRAY
 }

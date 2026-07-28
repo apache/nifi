@@ -31,7 +31,6 @@ import ca.uhn.hl7v2.parser.DefaultEscaping;
 import ca.uhn.hl7v2.parser.EncodingCharacters;
 import ca.uhn.hl7v2.parser.Escaping;
 import ca.uhn.hl7v2.parser.PipeParser;
-import ca.uhn.hl7v2.validation.ValidationContext;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -178,7 +177,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             hapiContext.setModelClassFactory(new CanonicalModelClassFactory(inputVersion));
         }
         if (skipValidation) {
-            hapiContext.setValidationContext((ValidationContext) ValidationContextFactory.noValidation());
+            hapiContext.setValidationContext(ValidationContextFactory.noValidation());
         }
 
         final PipeParser parser = hapiContext.getPipeParser();

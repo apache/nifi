@@ -643,7 +643,7 @@ public class LookupRecord extends AbstractProcessor {
             final Optional<?> lookupValueCacheOption;
 
             try {
-                lookupValueCacheOption = (Optional<?>) cache.get(lookupCoordinates, k -> null);
+                lookupValueCacheOption = cache.get(lookupCoordinates, k -> null);
                 if (lookupValueCacheOption == null) {
                     lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
                 } else {
@@ -827,7 +827,7 @@ public class LookupRecord extends AbstractProcessor {
     enum MatchResult {
         ALL_MATCH,
         NONE_MATCH,
-        SOME_MATCH;
+        SOME_MATCH
     }
 
     private interface ReplacementStrategy {

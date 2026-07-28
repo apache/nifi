@@ -930,7 +930,7 @@ public class AvroTypeUtil {
                     return rawValue;
                 }
 
-                return DataTypeUtils.toString(rawValue, (String) null, charset);
+                return DataTypeUtils.toString(rawValue, null, charset);
         }
 
         return rawValue;

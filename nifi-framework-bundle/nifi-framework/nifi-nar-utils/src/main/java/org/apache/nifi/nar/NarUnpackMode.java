@@ -33,5 +33,5 @@ public enum NarUnpackMode {
      * Unpacking to an uber jar is generally a slower process. However, it has the upside of
      * being able to load all classes from the NAR using a single open file handle by the URLClassLoader.
      */
-    UNPACK_TO_UBER_JAR;
+    UNPACK_TO_UBER_JAR
 }

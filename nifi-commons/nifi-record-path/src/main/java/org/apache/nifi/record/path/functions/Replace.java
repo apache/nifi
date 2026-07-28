@@ -55,7 +55,7 @@ public class Replace extends RecordPathSegment {
                     return fv;
                 }
 
-                final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
+                final String value = DataTypeUtils.toString(fv.getValue(), null);
                 final String replaced = value.replace(searchValue, replacementValue);
                 return new StandardFieldValue(replaced, fv.getField(), fv.getParent().orElse(null));
             });

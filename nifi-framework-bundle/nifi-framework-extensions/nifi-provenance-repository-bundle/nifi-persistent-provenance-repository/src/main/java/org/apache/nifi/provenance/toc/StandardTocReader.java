@@ -23,6 +23,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 
 /**
  * Standard implementation of TocReader.
@@ -37,6 +40,8 @@ import java.io.IOException;
  * byte (N*8+2)-(N*8+9): long: offset of block N
  */
 public class StandardTocReader implements TocReader {
+    private static final VarHandle LONG_VAR_HANDLE = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
+
     private final boolean compressed;
     private final long[] offsets;
     private final long[] firstEventIds;
@@ -97,14 +102,7 @@ public class StandardTocReader implements TocReader {
     }
 
     private long readLong(final byte[] buffer, final int offset) {
-        return ((long) buffer[offset] << 56) +
-            ((long) (buffer[offset + 1] & 0xFF) << 48) +
-            ((long) (buffer[offset + 2] & 0xFF) << 40) +
-            ((long) (buffer[offset + 3] & 0xFF) << 32) +
-            ((long) (buffer[offset + 4] & 0xFF) << 24) +
-            ((long) (buffer[offset + 5] & 0xFF) << 16) +
-            ((long) (buffer[offset + 6] & 0xFF) << 8) +
-            (buffer[offset + 7] & 0xFF);
+        return (long) LONG_VAR_HANDLE.get(buffer, offset);
     }
 
     @Override

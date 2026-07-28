@@ -126,7 +126,7 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
     public int getPercentComplete() {
         readLock.lock();
         try {
-            return (numSteps < 1) ? 100 : (int) (((float) numCompletedSteps / (float) numSteps) * 100.0F);
+            return (numSteps < 1) ? 100 : (int) (((float) numCompletedSteps / numSteps) * 100.0F);
         } finally {
             readLock.unlock();
         }

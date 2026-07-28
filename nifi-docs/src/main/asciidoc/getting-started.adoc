@@ -374,8 +374,6 @@ categorizing them by their functions.
   received from S3.
 - *ConsumeKafka*: Fetches messages from Apache Kafka. The messages can be emitted as a FlowFile per message or can be batched together using a user-specified delimiter.
 - *GetMongo*: Executes a user-specified query against MongoDB and writes the contents to a new FlowFile.
-- *ConsumeTwitter*: Allows Users to register a filter to listen to the X/Twitter "garden hose" or Enterprise endpoint, creating a FlowFile for each post
-  that is received.
 
 === Data Egress / Sending Data
 - *PutEmail*: Sends an E-mail to the configured recipients. The content of the FlowFile is optionally sent as an attachment.

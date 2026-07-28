@@ -28,5 +28,5 @@ public enum ConnectorState {
     UPDATING,
     UPDATE_FAILED,
     UPDATED,
-    TROUBLESHOOTING;
+    TROUBLESHOOTING
 }

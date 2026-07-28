@@ -80,7 +80,7 @@ public class RecordPathFunction {
 
     private <T> T eval(final Record record, final String recordPath, final Function<Object, T> transform) {
         final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
-        final RecordPathResult result = compiled.evaluate((Record) record);
+        final RecordPathResult result = compiled.evaluate(record);
 
         return evalResults(result.getSelectedFields(), transform,
             () -> "RecordPath " + recordPath + " evaluated against " + record + " resulted in more than one return value. The RecordPath must be further constrained.");

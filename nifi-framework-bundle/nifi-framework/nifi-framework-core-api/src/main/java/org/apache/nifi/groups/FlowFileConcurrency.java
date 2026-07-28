@@ -49,6 +49,6 @@ public enum FlowFileConcurrency {
     /**
      * The number of FlowFiles that can be processed concurrently is unbounded.
      */
-    UNBOUNDED;
+    UNBOUNDED
 
 }

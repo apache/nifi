@@ -26,6 +26,7 @@ import java.io.StringWriter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DtoFactoryBulletinStackTraceTest {
 
@@ -48,7 +49,7 @@ class DtoFactoryBulletinStackTraceTest {
         final BulletinDTO dto = dtoFactory.createBulletinDto(bulletin, false);
 
         assertNotNull(dto);
-        assertEquals(null, dto.getStackTrace(), "DTO must not include stackTrace by default");
+        assertNull(dto.getStackTrace(), "DTO must not include stackTrace by default");
     }
 
     @Test

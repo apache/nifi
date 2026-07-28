@@ -343,7 +343,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
 
         final int numEvents = 10_000_000;
         final int recordBytes = serializedRecord.length;
-        final long totalRecordBytes = (long) recordBytes * (long) numEvents;
+        final long totalRecordBytes = (long) recordBytes * numEvents;
 
         final long startNanos = System.nanoTime();
         try (final InputStream in = new LoopingInputStream(header, serializedRecord);

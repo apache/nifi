@@ -37,7 +37,7 @@ public enum ConnectorPropertyType {
 
     ASSET,
 
-    ASSET_LIST;
+    ASSET_LIST
 
 }
 

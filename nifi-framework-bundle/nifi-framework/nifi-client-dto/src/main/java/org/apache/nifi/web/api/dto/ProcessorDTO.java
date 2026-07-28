@@ -42,6 +42,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsParallelProcessing;
     private Boolean supportsBatching;
     private Boolean supportsSensitiveDynamicProperties;
+    private Boolean supportsBacklogReporting;
     private Boolean persistsState;
     private Boolean restricted;
     private Boolean deprecated;
@@ -152,6 +153,18 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
+    }
+
+    /**
+     * @return whether the processor implements {@code BacklogReportingProcessor} and can report a backlog
+     */
+    @Schema(description = "Whether the processor implements BacklogReportingProcessor and can report a backlog.")
+    public Boolean getSupportsBacklogReporting() {
+        return supportsBacklogReporting;
+    }
+
+    public void setSupportsBacklogReporting(final Boolean supportsBacklogReporting) {
+        this.supportsBacklogReporting = supportsBacklogReporting;
     }
 
     /**

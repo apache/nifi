@@ -21,6 +21,6 @@ package org.apache.nifi.registry.security.authorization;
  */
 public enum UserContextKeys {
 
-    CLIENT_ADDRESS;
+    CLIENT_ADDRESS
 
 }

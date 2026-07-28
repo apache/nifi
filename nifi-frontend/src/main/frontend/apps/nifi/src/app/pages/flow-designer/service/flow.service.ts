@@ -52,6 +52,7 @@ import { Client } from '../../../service/client.service';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import {
+    BacklogRequestEntity,
     ClearBulletinsRequest,
     DisableComponentRequest,
     EnableComponentRequest,
@@ -93,6 +94,22 @@ export class FlowService implements PropertyDescriptorRetriever {
 
     getProcessor(id: string): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/processors/${id}`);
+    }
+
+    submitProcessorBacklogRequest(id: string): Observable<BacklogRequestEntity> {
+        return this.httpClient.post<BacklogRequestEntity>(`${FlowService.API}/processors/${id}/backlog-requests`, null);
+    }
+
+    pollProcessorBacklogRequest(id: string, requestId: string): Observable<BacklogRequestEntity> {
+        return this.httpClient.get<BacklogRequestEntity>(
+            `${FlowService.API}/processors/${id}/backlog-requests/${requestId}`
+        );
+    }
+
+    deleteProcessorBacklogRequest(id: string, requestId: string): Observable<BacklogRequestEntity> {
+        return this.httpClient.delete<BacklogRequestEntity>(
+            `${FlowService.API}/processors/${id}/backlog-requests/${requestId}`
+        );
     }
 
     getInputPort(id: string): Observable<any> {

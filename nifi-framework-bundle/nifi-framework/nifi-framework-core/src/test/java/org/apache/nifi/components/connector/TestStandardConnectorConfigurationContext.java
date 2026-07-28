@@ -140,6 +140,7 @@ public class TestStandardConnectorConfigurationContext {
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertNull(context.getProperty("step1", "key2").getValue());
         assertEquals("value3", context.getProperty("step1", "key3").getValue());
+        assertEquals(Set.of("key1", "key3"), context.getPropertyNames("step1"));
     }
 
     @Test
@@ -217,6 +218,7 @@ public class TestStandardConnectorConfigurationContext {
         assertEquals("6", context.getProperty("step1", "f").getValue());
         assertEquals("7", context.getProperty("step1", "g").getValue());
         assertEquals("8", context.getProperty("step1", "h").getValue());
+        assertEquals(Set.of("a", "c", "d", "e", "f", "g", "h"), context.getPropertyNames("step1"));
     }
 
     @Test

@@ -18,6 +18,8 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -41,8 +43,9 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -67,6 +70,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -403,6 +407,25 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
+    public void verifyReportBacklog(final String processorId) {
+        locateProcessor(processorId).verifyCanReportBacklog();
+    }
+
+    @Override
+    public Optional<Backlog> getBacklog(final String processorId) throws BacklogReportingException {
+        // Callers are required to invoke verifyReportBacklog first (the REST layer does this via
+        // NiFiServiceFacade.verifyCanReportProcessorBacklog). Re-verifying here would duplicate the
+        // capability/state check that the verify step already performed.
+        final ProcessorNode processor = locateProcessor(processorId);
+        final Processor componentProcessor = processor.getProcessor();
+        final Class<?> componentClass = componentProcessor == null ? null : componentProcessor.getClass();
+        final ProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(),
+                flowController.getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, flowController);
+
+        return processor.getReportedBacklog(processContext);
+    }
+
+    @Override
     public void verifyUpdate(final ProcessorDTO processorDTO) {
         verifyUpdate(locateProcessor(processorDTO.getId()), processorDTO);
     }
@@ -510,16 +533,16 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             new NopStateManager(), () -> false, flowController);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(processor, logRepository, new StandardLoggingContext(processor));
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                processorId, processor, new StandardLoggingContext(processor), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
         final List<ConfigVerificationResult> verificationResults = processor.verifyConfiguration(processContext, configVerificationLog, attributes, extensionManager,
             processor.getProcessGroup().getParameterContext());
 
-        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+        return verificationResults.stream()
             .map(this::createConfigVerificationResultDto)
             .collect(Collectors.toList());
-
-        return resultsDtos;
     }
 
     private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {

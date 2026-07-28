@@ -31,6 +31,6 @@ public enum ExpressionLanguageScope {
     /**
      * Expression language is evaluated per flow file using attributes
      */
-    FLOWFILE_ATTRIBUTES;
+    FLOWFILE_ATTRIBUTES
 
 }

@@ -32,7 +32,7 @@ public class RecordPathUtils {
             return null;
         }
 
-        final String stringValue = DataTypeUtils.toString(stringFieldValue.get().getValue(), (String) null);
+        final String stringValue = DataTypeUtils.toString(stringFieldValue.get().getValue(), null);
         if (stringValue == null) {
             return null;
         }

@@ -20,9 +20,11 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
+import org.apache.nifi.components.connector.ConnectorMigrationSource;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 
@@ -30,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 public interface ConnectorDAO {
 
@@ -92,6 +95,14 @@ public interface ConnectorDAO {
     List<Asset> getAssets(String id);
 
     Optional<Asset> getAsset(String assetId);
+
+    List<ConnectorMigrationSource> getMigrationSources(String id);
+
+    void verifyCanMigrateFromVersionedFlow(String connectorId, String processGroupId);
+
+    void verifyConnectorReadyForMigration(String connectorId);
+
+    void migrateFromVersionedFlow(String connectorId, String processGroupId, VersionedExternalFlow sourceFlow, BooleanSupplier cancellationCheck);
 
 }
 

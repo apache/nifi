@@ -124,7 +124,7 @@ public abstract class AbstractMongoQueryProcessor extends AbstractMongoProcessor
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 session.exportTo(input, out);
                 out.close();
-                query = Document.parse(new String(out.toByteArray()));
+                query = Document.parse(out.toString());
             } catch (Exception ex) {
                 getLogger().error("Error reading FlowFile : ", ex);
                 throw new ProcessException(ex);

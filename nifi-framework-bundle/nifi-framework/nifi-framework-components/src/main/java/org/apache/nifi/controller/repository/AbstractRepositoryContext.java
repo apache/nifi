@@ -24,6 +24,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.ComponentMetricReporter;
+import org.apache.nifi.controller.metrics.ConnectionStatusEvent;
 import org.apache.nifi.controller.metrics.CounterRecord;
 import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
@@ -180,6 +181,16 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     @Override
     public void recordProcessSessionEvent(final ProcessSessionEvent event) {
         componentMetricReporter.recordProcessSessionEvent(event);
+    }
+
+    @Override
+    public void recordConnectionStatusEvent(final ConnectionStatusEvent event) {
+        componentMetricReporter.recordConnectionStatusEvent(event);
+    }
+
+    @Override
+    public boolean isRecordConnectionStatusEventEnabled() {
+        return componentMetricReporter.isRecordConnectionStatusEventEnabled();
     }
 
     @Override

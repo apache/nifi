@@ -26,5 +26,5 @@ public enum BucketItemType {
 
     Flow,
 
-    Bundle;
+    Bundle
 }

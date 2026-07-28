@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+org.apache.nifi.processors.tests.system.AssetReadingProcessor
+org.apache.nifi.processors.tests.system.BacklogReportingTestProcessor
 org.apache.nifi.processors.tests.system.ClassloaderIsolationWithServiceProperty
+org.apache.nifi.processors.tests.system.CloneAndTerminate
 org.apache.nifi.processors.tests.system.CountEvents
 org.apache.nifi.processors.tests.system.CountFlowFiles
 org.apache.nifi.processors.tests.system.ConcatenateFlowFiles

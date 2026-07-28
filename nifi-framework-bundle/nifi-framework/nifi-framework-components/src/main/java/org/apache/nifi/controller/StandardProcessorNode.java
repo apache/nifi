@@ -40,6 +40,8 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.Backlog;
+import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -87,11 +89,12 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.processor.BacklogReportingProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -1494,7 +1497,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                      final ScheduledState scheduledState, final boolean triggerLifecycleMethods) {
 
         final Processor processor = processorRef.get().getProcessor();
-        final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
+        final ComponentLog procLog = new StandardComponentLog(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
         LOG.debug("Starting {}", this);
 
         ScheduledState currentState;
@@ -1634,12 +1637,52 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    @Override
+    public boolean supportsBacklogReporting() {
+        return getProcessor() instanceof BacklogReportingProcessor;
+    }
+
+    @Override
+    public Optional<Backlog> getReportedBacklog(final ProcessContext context) throws BacklogReportingException {
+        final Processor processor = getProcessor();
+        if (!(processor instanceof BacklogReportingProcessor)) {
+            return Optional.empty();
+        }
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
+            return ((BacklogReportingProcessor) processor).getBacklog(context);
+        } catch (final BacklogReportingException e) {
+            LOG.error("Failed to determine backlog for {}", this, e);
+            throw e;
+        } catch (final RuntimeException e) {
+            LOG.error("Failed to determine backlog for {}", this, e);
+            throw new BacklogReportingException("Failed to determine backlog for " + this, e);
+        }
+    }
+
+    @Override
+    public void verifyCanReportBacklog() {
+        if (!supportsBacklogReporting()) {
+            throw new IllegalStateException("Cannot report backlog for " + this + " because the Processor does not implement BacklogReportingProcessor");
+        }
+
+        final ScheduledState state = getScheduledState();
+        if (state == ScheduledState.DISABLED) {
+            throw new IllegalStateException("Cannot report backlog for " + this + " because the Processor is disabled");
+        }
+
+        final ValidationStatus validationStatus = getValidationStatus();
+        if (validationStatus != ValidationStatus.VALID) {
+            throw new IllegalStateException("Cannot report backlog for " + this + " because the Processor is not valid (Validation State is " + validationStatus + ")");
+        }
+    }
+
     private void initiateStart(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis,
             final AtomicLong startupAttemptCount, final Supplier<ProcessContext> processContextFactory, final SchedulingAgentCallback schedulingAgentCallback,
             final boolean triggerLifecycleMethods) {
 
         final Processor processor = getProcessor();
-        final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
+        final ComponentLog procLog = new StandardComponentLog(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
 
         // Completion Timestamp is set to MAX_VALUE because we don't want to timeout until the task has a chance to run.
         final AtomicLong completionTimestampRef = new AtomicLong(Long.MAX_VALUE);

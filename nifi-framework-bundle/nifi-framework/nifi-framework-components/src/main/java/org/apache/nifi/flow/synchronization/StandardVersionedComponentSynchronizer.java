@@ -63,7 +63,6 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedComponentState;
-import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -341,6 +340,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         for (final FlowDifference diff : flowComparison.getDifferences()) {
             if (!FlowDifferenceFilters.isComponentUpdateRequired(diff, versionedExternalFlow.getFlowContents(), context.getFlowManager())) {
+                continue;
+            }
+
+            // When updating from version control, preserve a local rename of a public port (an input/output port that allows remote
+            // access) instead of reverting it to the registry-defined name. Without this, the name change is treated as an update and the user's
+            // local name is overwritten. Only the version-control update path opts in via preservePublicPortNames; cluster reconnection and startup
+            // leave it false so the node still adopts the incoming flow's port names.
+            if (syncOptions.isPreservePublicPortNames() && FlowDifferenceFilters.isPublicPortNameChange(diff)) {
                 continue;
             }
 
@@ -1052,7 +1059,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 LOG.info("Added {} to {}", added, group);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
-                proposedPortFinalNames.put(port, proposedPort.getName());
+                // When the port is updated for any reason, preserve the local name of a public port instead of overwriting it with the
+                // registry-defined name (the port may be in the update set because of another difference such as a comment change).
+                final String finalName = syncOptions.isPreservePublicPortNames() && port instanceof PublicPort ? port.getName() : proposedPort.getName();
+                proposedPortFinalNames.put(port, finalName);
                 updatePort(port, proposedPort, temporaryName);
                 LOG.info("Updated {}", port);
             } else {
@@ -1074,7 +1084,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 LOG.info("Added {} to {}", added, group);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
-                proposedPortFinalNames.put(port, proposedPort.getName());
+                // When the port is updated for any reason, preserve the local name of a public port instead of overwriting it with the
+                // registry-defined name (the port may be in the update set because of another difference such as a comment change).
+                final String finalName = syncOptions.isPreservePublicPortNames() && port instanceof PublicPort ? port.getName() : proposedPort.getName();
+                proposedPortFinalNames.put(port, finalName);
                 updatePort(port, proposedPort, temporaryName);
                 LOG.info("Updated {}", port);
             } else {
@@ -4128,45 +4141,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void validateLocalStateTopology(final VersionedProcessGroup proposed) {
-        final int connectedNodeCount = context.getConnectedNodeCount();
-        if (connectedNodeCount <= 0) {
-            return;
-        }
-
-        final int maxSourceNodes = findMaxLocalStateNodeCount(proposed);
-        if (maxSourceNodes > connectedNodeCount) {
-            throw new IllegalStateException(
-                    "Cannot import flow with component state: the flow definition contains local state from %d source node(s) but the destination cluster has only %d connected node(s). "
-                            .formatted(maxSourceNodes, connectedNodeCount)
-                    + "Import into a cluster with at least %d node(s), or export without component state.".formatted(maxSourceNodes));
-        }
-    }
-
-    private int findMaxLocalStateNodeCount(final VersionedProcessGroup group) {
-        int max = 0;
-        for (final VersionedConfigurableExtension ext : getStatefulExtensions(group)) {
-            final VersionedComponentState state = ext.getComponentState();
-            if (state != null && state.getLocalNodeStates() != null) {
-                max = Math.max(max, state.getLocalNodeStates().size());
-            }
-        }
-        if (group.getProcessGroups() != null) {
-            for (final VersionedProcessGroup child : group.getProcessGroups()) {
-                max = Math.max(max, findMaxLocalStateNodeCount(child));
-            }
-        }
-        return max;
-    }
-
-    private List<VersionedConfigurableExtension> getStatefulExtensions(final VersionedProcessGroup group) {
-        final List<VersionedConfigurableExtension> extensions = new ArrayList<>();
-        if (group.getProcessors() != null) {
-            extensions.addAll(group.getProcessors());
-        }
-        if (group.getControllerServices() != null) {
-            extensions.addAll(group.getControllerServices());
-        }
-        return extensions;
+        VersionedComponentStateValidator.validateLocalStateTopology(proposed, context.getConnectedNodeCount());
     }
 
     private void restoreComponentState(final String componentId, final VersionedComponentState componentState, final ComponentNode componentNode) {

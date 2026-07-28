@@ -458,6 +458,11 @@ export const openEditLabelDialog = createAction(
     props<{ request: EditComponentDialogRequest }>()
 );
 
+export const openProcessorBacklogDialog = createAction(
+    `${CANVAS_PREFIX} Open Processor Backlog Dialog`,
+    props<{ id: string }>()
+);
+
 export const navigateToManageRemotePorts = createAction(
     `${CANVAS_PREFIX} Open Remote Process Group Manage Remote Ports`,
     props<{ request: RpgManageRemotePortsRequest }>()

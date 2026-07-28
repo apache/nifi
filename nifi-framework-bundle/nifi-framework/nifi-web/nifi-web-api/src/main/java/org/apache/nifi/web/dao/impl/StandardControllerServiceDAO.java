@@ -40,7 +40,7 @@ import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -464,7 +464,9 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ControllerServiceNode serviceNode = locateControllerService(controllerServiceId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(serviceNode.getControllerServiceImplementation(), logRepository, new StandardLoggingContext(serviceNode));
+        final ComponentLog configVerificationLog = new StandardComponentLog(
+                controllerServiceId, serviceNode.getControllerServiceImplementation(), new StandardLoggingContext(serviceNode), logRepository
+        );
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = serviceNode.getProcessGroup() == null ? ParameterLookup.EMPTY : serviceNode.getProcessGroup().getParameterContext();
@@ -472,11 +474,9 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             parameterLookup, flowController.getControllerServiceProvider(), null);
 
         final List<ConfigVerificationResult> verificationResults = serviceNode.verifyConfiguration(configurationContext, configVerificationLog, variables, extensionManager, parameterLookup);
-        final List<ConfigVerificationResultDTO> resultsDtos = verificationResults.stream()
+        return verificationResults.stream()
             .map(this::createConfigVerificationResultDto)
             .collect(Collectors.toList());
-
-        return resultsDtos;
     }
 
     private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {

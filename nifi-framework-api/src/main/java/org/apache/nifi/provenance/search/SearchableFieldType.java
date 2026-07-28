@@ -24,5 +24,5 @@ public enum SearchableFieldType {
     STRING,
     DATE,
     DATA_SIZE,
-    LONG;
+    LONG
 }

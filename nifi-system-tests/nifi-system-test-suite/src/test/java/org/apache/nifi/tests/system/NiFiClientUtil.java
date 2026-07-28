@@ -16,14 +16,19 @@
  */
 package org.apache.nifi.tests.system;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.flow.VersionedNodeState;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -34,6 +39,7 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProcessorClient;
 import org.apache.nifi.toolkit.client.VersionsClient;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
+import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
@@ -49,6 +55,8 @@ import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.MigrationRequestDTO;
+import org.apache.nifi.web.api.dto.MigrationRequestLocalSourceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
@@ -76,6 +84,8 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -95,6 +105,8 @@ import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
+import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
+import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
@@ -117,6 +129,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.RebaseAnalysisEntity;
+import org.apache.nifi.web.api.entity.RebaseRequestEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
@@ -126,12 +140,14 @@ import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -336,6 +352,124 @@ public class NiFiClientUtil {
         return valueRef;
     }
 
+    public VersionedFlowMigrationSourcesEntity listMigrationSources(final String connectorId) throws NiFiClientException, IOException {
+        return getConnectorClient().listMigrationSources(connectorId);
+    }
+
+    public MigrationPayloadEntity uploadMigrationPayload(final String connectorId, final File file) throws NiFiClientException, IOException {
+        return getConnectorClient().uploadMigrationPayload(connectorId, file);
+    }
+
+    public MigrationRequestEntity startMigrationFromLocalSource(final String connectorId, final String processGroupId) throws NiFiClientException, IOException {
+        final MigrationRequestLocalSourceDTO localSource = new MigrationRequestLocalSourceDTO();
+        localSource.setProcessGroupId(processGroupId);
+
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(connectorId);
+        requestDto.setLocalSource(localSource);
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+        return getConnectorClient().startMigration(requestEntity);
+    }
+
+    public MigrationRequestEntity startMigrationFromPayload(final String connectorId, final String payloadId) throws NiFiClientException, IOException {
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(connectorId);
+        requestDto.setPayloadId(payloadId);
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+        return getConnectorClient().startMigration(requestEntity);
+    }
+
+    private static final long MIGRATION_WAIT_TIMEOUT_MILLIS = 60_000L;
+
+    public MigrationRequestEntity waitForMigrationToComplete(final String connectorId, final String requestId) throws NiFiClientException, IOException, InterruptedException {
+        final long deadlineMillis = System.currentTimeMillis() + MIGRATION_WAIT_TIMEOUT_MILLIS;
+        int iteration = 0;
+        while (true) {
+            final MigrationRequestEntity requestEntity = getConnectorClient().getMigrationStatus(connectorId, requestId);
+            final MigrationRequestDTO request = requestEntity.getRequest();
+            if (request.isComplete()) {
+                return requestEntity;
+            }
+
+            if (System.currentTimeMillis() >= deadlineMillis) {
+                throw new IllegalStateException("Migration request " + requestId + " for Connector " + connectorId
+                        + " did not complete within " + MIGRATION_WAIT_TIMEOUT_MILLIS + "ms; last state " + request.getState()
+                        + " (" + request.getPercentCompleted() + "% complete)");
+            }
+
+            if (iteration++ % 30 == 0) {
+                logger.info("Migration request {} for Connector {} is in state {} ({}% complete)",
+                    requestId, connectorId, request.getState(), request.getPercentCompleted());
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
+    public MigrationRequestEntity waitForMigrationSuccess(final String connectorId, final String requestId) throws NiFiClientException, IOException, InterruptedException {
+        final MigrationRequestEntity completedRequest = waitForMigrationToComplete(connectorId, requestId);
+        final String failureReason = completedRequest.getRequest().getFailureReason();
+        if (failureReason != null) {
+            throw new IllegalStateException("Migration failed: " + failureReason);
+        }
+
+        return completedRequest;
+    }
+
+    public MigrationRequestEntity waitForMigrationFailure(final String connectorId, final String requestId) throws NiFiClientException, IOException, InterruptedException {
+        final MigrationRequestEntity completedRequest = waitForMigrationToComplete(connectorId, requestId);
+        if (completedRequest.getRequest().getFailureReason() == null) {
+            throw new IllegalStateException("Expected migration failure but request completed successfully");
+        }
+
+        return completedRequest;
+    }
+
+    public MigrationRequestEntity cancelMigration(final String connectorId, final String requestId) throws NiFiClientException, IOException {
+        return getConnectorClient().cancelMigration(connectorId, requestId);
+    }
+
+    private static final ObjectMapper MIGRATION_PAYLOAD_OBJECT_MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    /**
+     * Reads an exported flow snapshot, expands the LOCAL component state of the processor whose type ends
+     * with the given suffix to the requested number of node states, and writes the modified snapshot back
+     * to the same file. Used by clustered migration tests that need to construct a payload whose
+     * cluster-topology rule violation is unambiguous.
+     *
+     * @param exportFile the file containing a previously-exported {@link RegisteredFlowSnapshot}
+     * @param processorTypeSuffix a suffix that uniquely identifies the stateful processor inside the snapshot
+     * @param nodeStateValues the count values to assign to each synthetic node state, one per source node
+     * @throws IOException when the file cannot be read or written
+     * @throws IllegalStateException when no processor matches the given suffix or has no exported state
+     */
+    public void rewriteMigrationPayloadWithNodeStates(final File exportFile, final String processorTypeSuffix, final List<String> nodeStateValues) throws IOException {
+        final RegisteredFlowSnapshot flowSnapshot = MIGRATION_PAYLOAD_OBJECT_MAPPER.readValue(exportFile, RegisteredFlowSnapshot.class);
+        final VersionedProcessor statefulProcessor = flowSnapshot.getFlowContents().getProcessors().stream()
+                .filter(processor -> processor.getType().endsWith(processorTypeSuffix))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No processor in snapshot ends with type " + processorTypeSuffix));
+        if (statefulProcessor.getComponentState() == null) {
+            throw new IllegalStateException("Processor " + statefulProcessor.getName() + " has no exported component state");
+        }
+
+        final List<VersionedNodeState> nodeStates = new ArrayList<>();
+        for (final String value : nodeStateValues) {
+            nodeStates.add(new VersionedNodeState(Map.of("count", value)));
+        }
+        statefulProcessor.getComponentState().setLocalNodeStates(nodeStates);
+
+        if (!exportFile.delete() && exportFile.exists()) {
+            throw new IOException("Could not delete prior export file " + exportFile.getAbsolutePath() + " before writing the modified payload");
+        }
+        MIGRATION_PAYLOAD_OBJECT_MAPPER.writeValue(exportFile, flowSnapshot);
+    }
+
     public ConfigurationStepEntity configureConnectorWithReferences(final String connectorId, final String configurationStepName,
             final Map<String, ConnectorValueReferenceDTO> propertyValues) throws NiFiClientException, IOException {
         final ConnectorEntity connectorEntity = getConnectorClient().getConnector(connectorId);
@@ -520,6 +654,27 @@ public class NiFiClientUtil {
 
             if (iteration++ % 30 == 0) { // Every 3 seconds log status
                 logger.info("Connector with ID {} has state {} but waiting for state {}.", connectorId, state, desiredState);
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
+    public void waitForAssetRemoved(final String connectorId, final String assetId)
+            throws NiFiClientException, IOException, InterruptedException {
+        int iteration = 0;
+        while (true) {
+            final AssetsEntity assetsEntity = getConnectorClient().getAssets(connectorId);
+            final boolean assetStillPresent = assetsEntity.getAssets() != null
+                    && assetsEntity.getAssets().stream()
+                            .filter(a -> a.getAsset() != null)
+                            .anyMatch(a -> assetId.equals(a.getAsset().getId()));
+            if (!assetStillPresent) {
+                return;
+            }
+
+            if (iteration++ % 30 == 0) {
+                logger.info("Asset with ID {} is still present for Connector {} but waiting for removal.", assetId, connectorId);
             }
 
             Thread.sleep(100L);
@@ -2292,6 +2447,60 @@ public class NiFiClientUtil {
         return results.getRequest().getResults();
     }
 
+    /**
+     * Determines the backlog for the given Processor using the asynchronous backlog request flow: it submits a
+     * request, polls until the request is complete, deletes the request, and then returns the reported backlog. If
+     * the backlog determination failed, the request's failure reason is raised as a {@link NiFiClientException} so
+     * that callers observe the same failure they previously observed from the synchronous endpoint.
+     *
+     * @param processorId the Processor id
+     * @return the reported {@link BacklogDTO}, which may be {@code null} if the Processor reports no backlog
+     * @throws NiFiClientException if the request fails or the backlog determination reports a failure reason
+     */
+    public BacklogDTO getProcessorBacklog(final String processorId) throws NiFiClientException, IOException, InterruptedException {
+        BacklogRequestEntity results = nifiClient.getProcessorClient().submitProcessorBacklogRequest(processorId);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getProcessorClient().getProcessorBacklogRequest(processorId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getProcessorClient().deleteProcessorBacklogRequest(processorId, results.getRequest().getRequestId());
+
+        final String failureReason = results.getRequest().getFailureReason();
+        if (failureReason != null) {
+            throw new NiFiClientException(failureReason);
+        }
+
+        return results.getRequest().getBacklog();
+    }
+
+    /**
+     * Determines the backlog for the given Connector using the asynchronous backlog request flow: it submits a
+     * request, polls until the request is complete, deletes the request, and then returns the reported backlog. If
+     * the backlog determination failed, the request's failure reason is raised as a {@link NiFiClientException} so
+     * that callers observe the same failure they previously observed from the synchronous endpoint.
+     *
+     * @param connectorId the Connector id
+     * @return the reported {@link BacklogDTO}, which may be {@code null} if the Connector reports no backlog
+     * @throws NiFiClientException if the request fails or the backlog determination reports a failure reason
+     */
+    public BacklogDTO getConnectorBacklog(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        BacklogRequestEntity results = nifiClient.getConnectorClient().submitConnectorBacklogRequest(connectorId);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getConnectorClient().getConnectorBacklogRequest(connectorId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getConnectorClient().deleteConnectorBacklogRequest(connectorId, results.getRequest().getRequestId());
+
+        final String failureReason = results.getRequest().getFailureReason();
+        if (failureReason != null) {
+            throw new NiFiClientException(failureReason);
+        }
+
+        return results.getRequest().getBacklog();
+    }
+
     public List<ConfigVerificationResultDTO> verifyReportingTaskConfig(final String taskId, final Map<String, String> properties)
                 throws InterruptedException, IOException, NiFiClientException {
 
@@ -2476,6 +2685,50 @@ public class NiFiClientUtil {
 
         while (true) {
             final VersionedFlowUpdateRequestEntity entity = versionsClient.getRevertFlowVersionRequest(requestId);
+
+            if (entity.getRequest().isComplete()) {
+                return entity;
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
+    public RebaseAnalysisEntity getRebaseAnalysis(final String processGroupId, final String targetVersion) throws NiFiClientException, IOException {
+        return nifiClient.getVersionsClient().getRebaseAnalysis(processGroupId, targetVersion);
+    }
+
+    public VersionedFlowUpdateRequestEntity rebaseFlowVersion(final String processGroupId, final String targetVersion) throws NiFiClientException, IOException, InterruptedException {
+        logger.info("Submitting Rebase Flow Version request to rebase Group with ID {} to Version {}", processGroupId, targetVersion);
+
+        final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
+        final ProcessGroupDTO groupDto = groupEntity.getComponent();
+        final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
+        if (vciDto == null) {
+            throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        vciDto.setVersion(targetVersion);
+
+        final VersionControlInformationEntity vciEntity = new VersionControlInformationEntity();
+        vciEntity.setProcessGroupRevision(groupEntity.getRevision());
+        vciEntity.setVersionControlInformation(vciDto);
+
+        final RebaseAnalysisEntity analysis = nifiClient.getVersionsClient().getRebaseAnalysis(processGroupId, targetVersion);
+
+        final RebaseRequestEntity rebaseRequest = new RebaseRequestEntity();
+        rebaseRequest.setVersionControlInformationEntity(vciEntity);
+        rebaseRequest.setAnalysisFingerprint(analysis.getAnalysisFingerprint());
+
+        final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().initiateRebase(processGroupId, rebaseRequest);
+        return waitForRebaseCompleted(result.getRequest().getRequestId());
+    }
+
+    private VersionedFlowUpdateRequestEntity waitForRebaseCompleted(final String requestId) throws NiFiClientException, IOException, InterruptedException {
+        final VersionsClient versionsClient = nifiClient.getVersionsClient();
+
+        while (true) {
+            final VersionedFlowUpdateRequestEntity entity = versionsClient.getRebaseRequest(requestId);
 
             if (entity.getRequest().isComplete()) {
                 return entity;

@@ -108,7 +108,6 @@ export class ConnectorDetail implements OnInit {
 
                     this.connectorMessageHost.startListening({
                         destroyRef: this.destroyRef,
-                        expectedOrigin: ConnectorMessageHost.extractOrigin(connector.component.detailsUrl),
                         iframeElement: () => this.iframeRef()?.nativeElement
                     });
                 }

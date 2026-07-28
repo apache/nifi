@@ -30,6 +30,6 @@ public enum NarSource {
     /**
      * Installed from an extension registry client.
      */
-    EXTENSION_REGISTRY_CLIENT;
+    EXTENSION_REGISTRY_CLIENT
 
 }

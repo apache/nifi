@@ -107,11 +107,11 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
                 totalFlowFileSize += flowFile.getSize();
             }
 
-            double seconds = (double) transferTime / 1000D;
+            double seconds = transferTime / 1000D;
             if (seconds <= 0D) {
                 seconds = .00000001D;
             }
-            final double bytesPerSecond = ((double) totalFlowFileSize / seconds);
+            final double bytesPerSecond = (totalFlowFileSize / seconds);
             final String transferRate = FormatUtils.formatDataSize(bytesPerSecond) + "/sec";
 
             logger.info("received {} files/{} bytes from Remote Host: [{}] Port [{}] SubjectDN [{}] in {} milliseconds at a rate of {}; "

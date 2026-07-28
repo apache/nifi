@@ -84,7 +84,7 @@ public abstract class AbstractReportingContext implements ReportingContext {
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return Collections.unmodifiableMap(properties);
+        return properties;
     }
 
     @Override

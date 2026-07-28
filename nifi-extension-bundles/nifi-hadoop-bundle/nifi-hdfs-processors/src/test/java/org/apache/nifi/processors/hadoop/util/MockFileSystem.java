@@ -245,7 +245,7 @@ public class MockFileSystem extends FileSystem {
     }
 
     public FileStatus newDir(Path p) {
-        return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms(Integer.decode("0755").shortValue()), "owner", "group", (Path) null, p, true, false, false);
+        return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms(Integer.decode("0755").shortValue()), "owner", "group", null, p, true, false, false);
     }
 
     public FileStatus newFile(String p) {

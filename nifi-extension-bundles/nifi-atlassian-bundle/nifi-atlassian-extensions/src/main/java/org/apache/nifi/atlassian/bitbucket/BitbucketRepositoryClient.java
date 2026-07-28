@@ -251,29 +251,19 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     private Set<String> getBranchesCloud() throws FlowRegistryException {
         final URI uri = getRepositoryUriBuilder().addPathSegment("refs").addPathSegment("branches").build();
-        try (final HttpResponseEntity response = this.webClient.getWebClientService()
-                .get()
-                .uri(uri)
-                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                .retrieve()) {
+        final String errorMessage = "Error while listing branches for repository [%s]".formatted(repoName);
+        final Iterator<JsonNode> branches = getPagedResponseValues(uri, errorMessage);
 
-            verifyStatusCode(response, "Error while listing branches for repository [%s]".formatted(repoName), HttpURLConnection.HTTP_OK);
-
-            final JsonNode jsonResponse = parseResponseBody(response, uri);
-            final JsonNode values = jsonResponse.get(FIELD_VALUES);
-            final Set<String> result = new HashSet<>();
-            if (values != null && values.isArray()) {
-                for (JsonNode branch : values) {
-                    final String branchName = branch.path(FIELD_NAME).asText(EMPTY_STRING);
-                    if (!branchName.isEmpty()) {
-                        result.add(branchName);
-                    }
-                }
+        final Set<String> result = new HashSet<>();
+        while (branches.hasNext()) {
+            final JsonNode branch = branches.next();
+            final String branchName = branch.path(FIELD_NAME).asText(EMPTY_STRING);
+            if (!branchName.isEmpty()) {
+                result.add(branchName);
             }
-            return result;
-        } catch (final IOException e) {
-            throw new FlowRegistryException("Failed closing Bitbucket branch listing response", e);
         }
+
+        return result;
     }
 
     private Set<String> getBranchesDataCenter() throws FlowRegistryException {

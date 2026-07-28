@@ -20,5 +20,5 @@ package org.apache.nifi.components.connector;
 public enum ConfigurationUpdateResult {
     NO_CHANGES,
 
-    CHANGES_MADE;
+    CHANGES_MADE
 }

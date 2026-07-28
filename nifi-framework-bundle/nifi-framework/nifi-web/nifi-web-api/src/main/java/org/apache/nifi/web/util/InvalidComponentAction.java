@@ -30,5 +30,5 @@ public enum InvalidComponentAction {
     /**
      * Throw a {@link LifecycleManagementException} if a component is invalid
      */
-    FAIL;
+    FAIL
 }

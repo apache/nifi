@@ -58,7 +58,7 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
 
         // configuration
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(eq(PROP_USER_GROUP_PROVIDER_PREFIX + "1"))).thenReturn(new StandardPropertyValue(String.valueOf("1"), null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(PROP_USER_GROUP_PROVIDER_PREFIX + "1"))).thenReturn(new StandardPropertyValue("1", null, ParameterLookup.EMPTY));
         mockProperties(configurationContext);
 
         assertThrows(AuthorizerCreationException.class, () -> {

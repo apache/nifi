@@ -23,7 +23,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterTag;
-import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -463,7 +462,7 @@ public class TestAwsSecretsManagerParameterProvider {
         }
 
         // Verify config verification
-        final List<ConfigVerificationResult> results = ((VerifiableParameterProvider) parameterProvider).verify(mockConfigurationContext, initContext.getLogger());
+        final List<ConfigVerificationResult> results = parameterProvider.verify(mockConfigurationContext, initContext.getLogger());
 
         assertEquals(1, results.size());
         assertEquals(expectedOutcome, results.get(0).getOutcome());

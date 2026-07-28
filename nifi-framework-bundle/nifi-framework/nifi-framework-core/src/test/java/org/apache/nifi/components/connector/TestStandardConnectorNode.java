@@ -24,10 +24,17 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.controller.MockStateManagerProvider;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -42,6 +49,7 @@ import org.junit.jupiter.api.Timeout;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -62,6 +71,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
@@ -84,14 +94,18 @@ public class TestStandardConnectorNode {
     private SecretsManager secretsManager;
 
     private FlowContextFactory flowContextFactory;
+    private StateManagerProvider stateManagerProvider;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         scheduler = new FlowEngine(1, "flow-engine");
+        stateManagerProvider = new MockStateManagerProvider();
 
         when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
         when(managedProcessGroup.getQueueSize()).thenReturn(new QueueSize(0, 0L));
+        when(managedProcessGroup.findAllProcessors()).thenReturn(List.of());
+        when(managedProcessGroup.findAllControllerServices()).thenReturn(Set.of());
 
         flowContextFactory = new FlowContextFactory() {
             @Override
@@ -555,6 +569,75 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testApplyMigratedConfigurationReturnsMergedConfigurationWithoutMutatingActive() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        // Populate the active configuration with pre-migration values.
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("stepA", createStepConfiguration(Map.of("propA", "before-migration")));
+        connectorNode.setConfiguration("stepB", createStepConfiguration(Map.of("propB", "before-migration")));
+        connectorNode.applyUpdate();
+
+        // Build the merged working configuration the way the migration context does: clone the active configuration,
+        // merge new values onto stepA, and replace stepB wholesale.
+        final MutableConnectorConfigurationContext working = connectorNode.getActiveFlowContext().getConfigurationContext().clone();
+        working.setProperties("stepA", createStepConfiguration(Map.of("propA", "after-migration", "propC", "added-by-merge")));
+        working.replaceProperties("stepB", createStepConfiguration(Map.of("propB-renamed", "after-migration")));
+
+        final ConnectorConfiguration merged = connectorNode.applyMigratedConfiguration(working);
+
+        // The returned merged configuration must reflect the applied changes...
+        final NamedStepConfiguration mergedStepA = merged.getNamedStepConfiguration("stepA");
+        assertEquals(new StringLiteralValue("after-migration"), mergedStepA.configuration().getPropertyValues().get("propA"));
+        assertEquals(new StringLiteralValue("added-by-merge"), mergedStepA.configuration().getPropertyValues().get("propC"));
+        final NamedStepConfiguration mergedStepB = merged.getNamedStepConfiguration("stepB");
+        assertEquals(Map.of("propB-renamed", new StringLiteralValue("after-migration")), mergedStepB.configuration().getPropertyValues());
+
+        // ...but the active configuration must still hold the pre-migration values. This is the durability boundary:
+        // the migration outcome is only persisted onto active when commitMigratedConfiguration runs after the state
+        // phase succeeds.
+        assertEquals(Map.of("propA", new StringLiteralValue("before-migration")), activeStepProperties(connectorNode, "stepA"));
+        assertEquals(Map.of("propB", new StringLiteralValue("before-migration")), activeStepProperties(connectorNode, "stepB"));
+    }
+
+    @Test
+    public void testCommitMigratedConfigurationWritesMergedConfigurationOntoActive() throws FlowUpdateException {
+        final TrackingConnector trackingConnector = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("stepA", createStepConfiguration(Map.of("propA", "before-migration")));
+        connectorNode.setConfiguration("stepB", createStepConfiguration(Map.of("propB", "before-migration")));
+        connectorNode.applyUpdate();
+
+        final MutableConnectorConfigurationContext working = connectorNode.getActiveFlowContext().getConfigurationContext().clone();
+        working.setProperties("stepA", createStepConfiguration(Map.of("propA", "after-migration")));
+        working.replaceProperties("stepB", createStepConfiguration(Map.of("propB-renamed", "after-migration")));
+
+        final ConnectorConfiguration merged = connectorNode.applyMigratedConfiguration(working);
+        connectorNode.commitMigratedConfiguration(merged);
+
+        assertEquals(Map.of("propA", new StringLiteralValue("after-migration")), activeStepProperties(connectorNode, "stepA"));
+        // replaceProperties removed propB and introduced propB-renamed.
+        assertEquals(Map.of("propB-renamed", new StringLiteralValue("after-migration")), activeStepProperties(connectorNode, "stepB"));
+    }
+
+    @Test
+    public void testCommitMigratedConfigurationRejectsNullMergedConfiguration() throws FlowUpdateException {
+        final StandardConnectorNode connectorNode = createConnectorNode();
+        assertThrows(NullPointerException.class, () -> connectorNode.commitMigratedConfiguration(null));
+    }
+
+    private static Map<String, ConnectorValueReference> activeStepProperties(final StandardConnectorNode connectorNode, final String stepName) {
+        final ConnectorConfiguration activeConfig = connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final NamedStepConfiguration namedStep = activeConfig.getNamedStepConfiguration(stepName);
+        return namedStep == null ? Map.of() : namedStep.configuration().getPropertyValues();
+    }
+
+    @Test
     public void testDiscardWorkingConfigurationContinuesOnStepFailure() throws FlowUpdateException {
         final FailingStepConnector failingStepConnector = new FailingStepConnector("failingStep");
         final StandardConnectorNode connectorNode = createConnectorNode(failingStepConnector);
@@ -911,6 +994,166 @@ public class TestStandardConnectorNode {
         assertEquals(managedProcessGroup, connectorNode.getProcessGroup());
     }
 
+    @Test
+    public void testIsModifiedReportsFalseForFreshlyCreatedConnector() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A freshly created Connector has not been configured away from its defaults and has no component state, so it
+        // is not modified.
+        assertFalse(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsFalseWhenConfigurationEqualsDefaults() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // Explicitly setting properties to the same values the connector declares as defaults leaves the Connector
+        // unmodified.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new StringLiteralValue("Hello"),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertFalse(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenAStringPropertyDiffersFromDefault() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // Changing a single property value away from its default is enough to make the Connector modified, even though
+        // the managed flow structure is unchanged. This is the scenario that a flow-structure comparison misses.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new StringLiteralValue("Goodbye"),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenPropertyConfiguredWithSecretReference() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A Secret reference can never be a default value, so its presence means the Connector has been configured.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new SecretReference("pid", "My Provider", "greeting-secret", "My Provider.greeting-secret"),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsFalseWhenPropertyConfiguredWithStructurallyEmptyTypedReference() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A structurally-empty SecretReference or AssetReference (no provider/secret name, no asset identifiers) is a
+        // placeholder for an unset property, not a configured value, so it must not be treated as a modification.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new SecretReference(null, "My Provider", null, null),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertFalse(node.isModified());
+
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new AssetReference(Set.of()),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertFalse(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenPropertyConfiguredWithPopulatedAssetReference() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // An Asset reference that actually points at an asset can never be a default value, so its presence means the
+        // Connector has been configured.
+        seedActiveConfiguration(node, "settings", Map.of(
+            "Greeting", new AssetReference(Set.of("asset-1")),
+            "Repeat Count", new StringLiteralValue("1")));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenWorkingConfigurationDiffersFromDefault() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // A pending (working) configuration change that has not yet been applied to the active configuration is still a
+        // modification that must block migration.
+        node.getWorkingFlowContext().getConfigurationContext().setProperties("settings",
+            new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Goodbye"))));
+
+        assertTrue(node.isModified());
+    }
+
+    @Test
+    public void testIsModifiedReportsTrueWhenAManagedComponentHasStoredState() throws FlowUpdateException {
+        stateManagerProvider = stateManagerProviderWithStoredState();
+
+        final ProcessorNode statefulProcessor = mock(ProcessorNode.class);
+        when(statefulProcessor.getIdentifier()).thenReturn("stateful-processor");
+        when(managedProcessGroup.findAllProcessors()).thenReturn(List.of(statefulProcessor));
+
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode node = createConnectorNode(connector);
+
+        // Even with the configuration entirely at its defaults, a managed component that has accumulated state means the
+        // flow has been run and migration must not overwrite that state.
+        assertTrue(node.isModified());
+    }
+
+    private static void seedActiveConfiguration(final StandardConnectorNode node, final String stepName, final Map<String, ConnectorValueReference> properties) {
+        node.getActiveFlowContext().getConfigurationContext().setProperties(stepName, new StepConfiguration(properties));
+    }
+
+    private StateManagerProvider stateManagerProviderWithStoredState() {
+        return new StateManagerProvider() {
+            @Override
+            public StateManager getStateManager(final String componentId) {
+                final StateManager stateManager = mock(StateManager.class);
+                final StateMap storedState = new StandardStateMap(Map.of("key", "value"), Optional.of("1"));
+                try {
+                    when(stateManager.getState(any(Scope.class))).thenReturn(storedState);
+                } catch (final IOException e) {
+                    throw new AssertionError(e);
+                }
+                return stateManager;
+            }
+
+            @Override
+            public StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
+                return getStateManager(componentId);
+            }
+
+            @Override
+            public void shutdown() {
+            }
+
+            @Override
+            public void enableClusterProvider() {
+            }
+
+            @Override
+            public void disableClusterProvider() {
+            }
+
+            @Override
+            public boolean isClusterProviderEnabled() {
+                return false;
+            }
+
+            @Override
+            public void onComponentRemoved(final String componentId) {
+            }
+        };
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
@@ -931,6 +1174,7 @@ public class TestStandardConnectorNode {
             "test-connector-id",
             mock(FlowManager.class),
             extensionManager,
+            stateManagerProvider,
             null,
             createConnectorDetails(connector),
             "TestConnector",
@@ -1238,6 +1482,69 @@ public class TestStandardConnectorNode {
 
             final ConfigurationStep step = new ConfigurationStep.Builder()
                 .name("requiredStep")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Test connector declaring a single configuration step with two properties that have default values. Used to
+     * exercise the configuration-versus-default comparison performed by {@code isModified()}.
+     */
+    private static class DefaultValueConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor greeting = new ConnectorPropertyDescriptor.Builder()
+                .name("Greeting")
+                .description("Greeting text")
+                .required(true)
+                .defaultValue("Hello")
+                .build();
+
+            final ConnectorPropertyDescriptor repeatCount = new ConnectorPropertyDescriptor.Builder()
+                .name("Repeat Count")
+                .description("Number of times to repeat the greeting")
+                .required(true)
+                .defaultValue("1")
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General settings")
+                .properties(List.of(greeting, repeatCount))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("settings")
                 .propertyGroups(List.of(propertyGroup))
                 .build();
 

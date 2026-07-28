@@ -178,6 +178,39 @@ public class SwappablePriorityQueue {
         }
     }
 
+    /**
+     * Acquires the queue's write lock so the caller can freeze all mutating operations
+     * (put/poll/swap/drop) on this queue until {@link #unlockForSnapshot()} is called. Used by
+     * load-balanced queues to capture a consistent snapshot across all of their partitions.
+     */
+    public void lockForSnapshot() {
+        writeLock.lock();
+    }
+
+    public void unlockForSnapshot() {
+        writeLock.unlock("snapshot");
+    }
+
+    public FlowFileQueueSnapshot getQueueSnapshot() {
+        readLock.lock();
+        try {
+            final QueueSize snapshotSize = getFlowFileQueueSize().toQueueSize();
+            // java.util.PriorityQueue iterates in heap order, not priority/poll order. Re-heap into a fresh
+            // PriorityQueue using the same prioritizer and drain it to capture the FlowFiles in the order
+            // a caller would receive them via poll() — i.e. true queue order.
+            final Queue<FlowFileRecord> ordered = new PriorityQueue<>(Math.max(1, activeQueue.size()), new QueuePrioritizer(getPriorities()));
+            ordered.addAll(activeQueue);
+            final List<FlowFileRecord> snapshotActiveFlowFiles = new ArrayList<>(ordered.size());
+            FlowFileRecord next;
+            while ((next = ordered.poll()) != null) {
+                snapshotActiveFlowFiles.add(next);
+            }
+            return new FlowFileQueueSnapshot(snapshotSize, snapshotActiveFlowFiles);
+        } finally {
+            readLock.unlock("getQueueSnapshot");
+        }
+    }
+
     public boolean isUnacknowledgedFlowFile() {
         return getFlowFileQueueSize().getUnacknowledgedCount() > 0;
     }
