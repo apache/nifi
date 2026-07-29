@@ -23,8 +23,12 @@ import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.handler.HeaderWriterHandler;
+import org.apache.nifi.web.server.handler.UnsupportedContentEncodingHandler;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
+import org.eclipse.jetty.compression.server.CompressionConfig;
+import org.eclipse.jetty.compression.server.CompressionHandler;
 import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Connector;
@@ -51,6 +55,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import javax.security.auth.x500.X500Principal;
@@ -149,6 +154,59 @@ class StandardServerProviderTest {
 
         assertStandardConfigurationFound(server);
         assertHttpConnectorFound(server);
+    }
+
+    @Test
+    void testGetServerCompressionHandlerCompressesResponses() {
+        final Properties applicationProperties = new Properties();
+        applicationProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, RANDOM_PORT);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
+
+        final StandardServerProvider provider = new StandardServerProvider(null);
+
+        final Server server = provider.getServer(properties);
+
+        final Handler.Collection handlerCollection = (Handler.Collection) server.getHandler();
+        final CompressionHandler compressionHandler = handlerCollection.getDescendant(CompressionHandler.class);
+        assertNotNull(compressionHandler);
+
+        final CompressionConfig compressionConfig = compressionHandler.getConfiguration("/");
+        assertNotNull(compressionConfig);
+
+        final Set<String> compressMethods = compressionConfig.getCompressIncludeMethods();
+        assertTrue(compressMethods.contains(HttpMethod.GET.asString()));
+        assertTrue(compressMethods.contains(HttpMethod.POST.asString()));
+
+        final UnsupportedContentEncodingHandler unsupportedContentEncodingHandler = handlerCollection.getDescendant(UnsupportedContentEncodingHandler.class);
+        assertNotNull(unsupportedContentEncodingHandler);
+    }
+
+    @Timeout(15)
+    @Test
+    void testGetServerRejectsCompressedRequestBody() throws Exception {
+        final Properties applicationProperties = new Properties();
+        applicationProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, RANDOM_PORT);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
+
+        final StandardServerProvider provider = new StandardServerProvider(null);
+
+        final Server server = provider.getServer(properties);
+
+        try {
+            startServer(server);
+            final URI localhostUri = UriComponentsBuilder.fromUri(server.getURI()).host(LOCALHOST_NAME).build().toUri();
+
+            try (HttpClient httpClient = HttpClient.newBuilder().connectTimeout(TIMEOUT).build()) {
+                final HttpRequest compressedRequest = HttpRequest.newBuilder(localhostUri)
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .header(HttpHeader.CONTENT_ENCODING.asString(), "gzip")
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(new byte[]{1, 2, 3}))
+                        .build();
+                assertResponseStatusCode(httpClient, compressedRequest, HttpStatus.UNSUPPORTED_MEDIA_TYPE_415);
+            }
+        } finally {
+            server.stop();
+        }
     }
 
     @Test

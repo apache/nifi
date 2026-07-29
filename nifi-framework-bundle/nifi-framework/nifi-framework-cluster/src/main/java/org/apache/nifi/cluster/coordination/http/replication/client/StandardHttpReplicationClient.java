@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.coordination.http.replication.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import jakarta.ws.rs.core.MultivaluedHashMap;
@@ -41,6 +42,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -113,6 +115,8 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
 
         objectMapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
         objectMapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(objectMapper.getTypeFactory()));
+        // Disable closing source streams to allow draining and subsequent closing
+        objectMapper.disable(JsonParser.Feature.AUTO_CLOSE_SOURCE);
 
         jsonSerializer = new JsonEntitySerializer(objectMapper);
         xmlSerializer = new XmlEntitySerializer();
@@ -209,9 +213,23 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
         final InputStream responseBody = getResponseBody(responseEntity.body(), headers);
         final Runnable closeCallback = () -> {
             try {
+                // Drain raw response stream before closing the Response Entity
+                responseEntity.body().transferTo(OutputStream.nullOutputStream());
+            } catch (final IOException e) {
+                logger.debug("Drain failed for Replicated {} {} HTTP {}", method, location, statusCode, e);
+            }
+
+            try {
                 responseEntity.close();
             } catch (final IOException e) {
                 logger.warn("Close failed for Replicated {} {} HTTP {}", method, location, statusCode, e);
+            }
+
+            try {
+                // Release resources for gzip wrapped streams
+                responseBody.close();
+            } catch (final IOException e) {
+                logger.warn("Close failed for Replicated Response Body {} {} HTTP {}", method, location, statusCode, e);
             }
         };
 

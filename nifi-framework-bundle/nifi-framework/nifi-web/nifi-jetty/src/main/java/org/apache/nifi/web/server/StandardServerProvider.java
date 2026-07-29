@@ -21,8 +21,12 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.connector.FrameworkServerConnectorFactory;
 import org.apache.nifi.web.server.handler.ContextPathRedirectPatternRule;
 import org.apache.nifi.web.server.handler.HeaderWriterHandler;
+import org.apache.nifi.web.server.handler.UnsupportedContentEncodingHandler;
 import org.apache.nifi.web.server.log.RequestLogProvider;
 import org.apache.nifi.web.server.log.StandardRequestLogProvider;
+import org.eclipse.jetty.compression.gzip.GzipCompression;
+import org.eclipse.jetty.compression.server.CompressionConfig;
+import org.eclipse.jetty.compression.server.CompressionHandler;
 import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
@@ -47,6 +51,8 @@ import javax.net.ssl.SSLContext;
  * Standard implementation of Server Provider with default Handlers
  */
 class StandardServerProvider implements ServerProvider {
+    private static final String ROOT_PATH = "/";
+
     private static final String ALL_PATHS_PATTERN = "/*";
 
     private static final String FRONTEND_CONTEXT_PATH = "/nifi";
@@ -139,6 +145,27 @@ class StandardServerProvider implements ServerProvider {
         // Set Handler for standard response headers
         standardHandler.addHandler(new HeaderWriterHandler());
 
+        // Reject requests that declare a Content-Encoding because request bodies are not decompressed
+        standardHandler.addHandler(new UnsupportedContentEncodingHandler());
+
+        // Set Handler for response compression
+        standardHandler.addHandler(getCompressionHandler());
+
         return standardHandler;
+    }
+
+    private CompressionHandler getCompressionHandler() {
+        final GzipCompression gzipCompression = new GzipCompression();
+        final CompressionHandler compressionHandler = new CompressionHandler();
+        compressionHandler.putCompression(gzipCompression);
+
+        final CompressionConfig compressionConfig = CompressionConfig.builder()
+                .defaults()
+                // Disable decompression of requests
+                .decompressExcludeEncoding(gzipCompression.getEncodingName())
+                .build();
+        compressionHandler.putConfiguration(ROOT_PATH, compressionConfig);
+
+        return compressionHandler;
     }
 }

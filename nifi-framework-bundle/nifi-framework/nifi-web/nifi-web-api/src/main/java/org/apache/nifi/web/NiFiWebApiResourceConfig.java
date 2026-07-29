@@ -46,6 +46,7 @@ import org.apache.nifi.web.api.config.NodeDisconnectionExceptionMapper;
 import org.apache.nifi.web.api.config.NodeReconnectionExceptionMapper;
 import org.apache.nifi.web.api.config.NotFoundExceptionMapper;
 import org.apache.nifi.web.api.config.RangeNotSatisfiableExceptionMapper;
+import org.apache.nifi.web.api.config.RequestContentLengthExceededExceptionMapper;
 import org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper;
 import org.apache.nifi.web.api.config.ThrowableMapper;
 import org.apache.nifi.web.api.config.UnknownNodeExceptionMapper;
@@ -56,9 +57,7 @@ import org.apache.nifi.web.api.filter.RedirectResourceFilter;
 import org.apache.nifi.web.util.ObjectMapperResolver;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
-import org.glassfish.jersey.message.GZipEncoder;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.server.filter.EncodingFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
@@ -135,6 +134,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(NodeDisconnectionExceptionMapper.class);
         register(NodeReconnectionExceptionMapper.class);
         register(RangeNotSatisfiableExceptionMapper.class);
+        register(RequestContentLengthExceededExceptionMapper.class);
         register(ResourceNotFoundExceptionMapper.class);
         register(NotFoundExceptionMapper.class);
         register(UnknownNodeExceptionMapper.class);
@@ -142,9 +142,6 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(ValidationExceptionMapper.class);
         register(WebApplicationExceptionMapper.class);
         register(ThrowableMapper.class);
-
-        // gzip
-        EncodingFilter.enableFor(this, GZipEncoder.class);
     }
 
 }

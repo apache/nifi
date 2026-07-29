@@ -17,8 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.io;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.GenericType;
@@ -51,7 +49,7 @@ public class ReplicatedResponse extends Response {
     private static final int MAXIMUM_BUFFER_SIZE = 1048576;
     private static final int CONTENT_LENGTH_UNKNOWN = -1;
 
-    private final ObjectMapper codec;
+    private final ObjectMapper objectMapper;
     private final InputStream responseBody;
     private final MultivaluedMap<String, String> responseHeaders;
     private final URI location;
@@ -59,12 +57,12 @@ public class ReplicatedResponse extends Response {
     private final Runnable closeCallback;
     private final int contentLength;
 
-    private final JsonFactory jsonFactory = new JsonFactory();
-
     private final byte[] bufferedResponseBody;
 
+    private Object bufferedEntity;
+
     public ReplicatedResponse(
-            final ObjectMapper codec,
+            final ObjectMapper objectMapper,
             final InputStream responseBody,
             final MultivaluedMap<String, String> responseHeaders,
             final URI location,
@@ -72,7 +70,7 @@ public class ReplicatedResponse extends Response {
             final int contentLength,
             final Runnable closeCallback
     ) {
-        this.codec = codec;
+        this.objectMapper = objectMapper;
         this.responseBody = responseBody;
         this.responseHeaders = responseHeaders;
         this.location = location;
@@ -101,42 +99,30 @@ public class ReplicatedResponse extends Response {
 
     @Override
     public Object getEntity() {
-        final InputStream responseBodyStream = getResponseBodyStream();
-
-        try {
-            final JsonParser parser = jsonFactory.createParser(responseBodyStream);
-            parser.setCodec(codec);
-            return parser.readValueAs(Object.class);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to parse response", e);
+        if (bufferedEntity == null) {
+            // Read response entity to buffered entity to support multiple invocations
+            bufferedEntity = readResponseEntity(Object.class);
         }
+
+        return bufferedEntity;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T readEntity(Class<T> entityType) {
-        final InputStream responseBodyStream = getResponseBodyStream();
+    public <T> T readEntity(final Class<T> entityType) {
+        final T entity;
 
+        // Return raw response body stream when requested without buffering
         if (InputStream.class.equals(entityType)) {
-            return (T) responseBodyStream;
+            return (T) getResponseBodyStream();
         }
 
-        if (String.class.equals(entityType)) {
-            try {
-                final byte[] responseBytes = responseBodyStream.readAllBytes();
-                return (T) new String(responseBytes, StandardCharsets.UTF_8);
-            } catch (final IOException e) {
-                throw new UncheckedIOException("Read Replicated Response Body to String failed for %s".formatted(location), e);
-            }
+        if (bufferedEntity == null) {
+            // Read response entity to buffered entity to support multiple invocations
+            bufferedEntity = readResponseEntity(entityType);
         }
-
-        try {
-            final JsonParser parser = jsonFactory.createParser(responseBodyStream);
-            parser.setCodec(codec);
-            return parser.readValueAs(entityType);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to parse response as entity of type " + entityType, e);
-        }
+        entity = (T) bufferedEntity;
+        return entity;
     }
 
     @Override
@@ -285,6 +271,26 @@ public class ReplicatedResponse extends Response {
         }
 
         return responseBodyStream;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T readResponseEntity(final Class<T> entityType) {
+        final InputStream responseBodyStream = getResponseBodyStream();
+
+        if (String.class.equals(entityType)) {
+            try {
+                final byte[] responseBytes = responseBodyStream.readAllBytes();
+                return (T) new String(responseBytes, StandardCharsets.UTF_8);
+            } catch (final IOException e) {
+                throw new UncheckedIOException("Read Replicated Response Body to String failed for %s".formatted(location), e);
+            }
+        }
+
+        try {
+            return objectMapper.readValue(responseBodyStream, entityType);
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to parse response as Entity [%s] for %s".formatted(entityType, location), e);
+        }
     }
 
     private static byte[] readResponseBody(final InputStream inputStream, final URI location, final int statusCode) {

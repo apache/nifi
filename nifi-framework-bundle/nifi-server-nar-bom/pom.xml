@@ -98,6 +98,18 @@
                         <groupId>org.springframework</groupId>
                         <artifactId>spring-web</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>jetty-rewrite</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.compression</groupId>
+                        <artifactId>jetty-compression-gzip</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.compression</groupId>
+                        <artifactId>jetty-compression-server</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
         </dependencies>
