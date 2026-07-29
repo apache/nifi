@@ -2496,6 +2496,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return initialized.get();
     }
 
+    public boolean isAutoResumeState() {
+        return nifiProperties.getAutoResumeState();
+    }
+
     public boolean isFlowSynchronized() {
         return flowSynchronized.get();
     }
