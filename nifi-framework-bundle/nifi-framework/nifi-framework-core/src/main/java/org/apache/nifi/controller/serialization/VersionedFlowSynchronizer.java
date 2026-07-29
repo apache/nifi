@@ -108,6 +108,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.slf4j.Logger;
@@ -1173,11 +1174,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         // Enable any Controller-level services that are intended to be enabled.
         if (!toEnable.isEmpty()) {
-            controller.getControllerServiceProvider().enableControllerServices(toEnable);
+            if (controller.isInitialized() || controller.isAutoResumeState()) {
+                controller.getControllerServiceProvider().enableControllerServices(toEnable);
 
-            // Validate Controller-level services
-            for (final ControllerServiceNode serviceNode : toEnable) {
-                serviceNode.performValidation();
+                // Validate Controller-level services
+                for (final ControllerServiceNode serviceNode : toEnable) {
+                    serviceNode.performValidation();
+                }
+            } else {
+                logger.info("Leaving {} root Controller Services disabled because {} is false", toEnable.size(), NiFiProperties.AUTO_RESUME_STATE);
             }
         }
 
@@ -1586,6 +1591,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         @Override
         protected void startNow(final ProcessGroup statelessGroup) {
             flowController.startProcessGroup(statelessGroup);
+        }
+
+        @Override
+        protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
+            if (flowController.isInitialized() || flowController.isAutoResumeState()) {
+                super.enableNow(controllerServices);
+            } else {
+                logger.info("Leaving {} Controller Services disabled because {} is false", controllerServices.size(), NiFiProperties.AUTO_RESUME_STATE);
+            }
         }
     }
 }
