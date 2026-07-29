@@ -271,6 +271,13 @@
         font-size: 12px;
     }
 
+    /* Rotate about the glyph itself, not the svg view box */
+    text.load-balance-icon-active {
+        transform: rotate(90deg);
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
     g.connection rect.backpressure-object > title > tspan,
     g.connection rect.backpressure-data-size > title > tspan {
         display: block;
