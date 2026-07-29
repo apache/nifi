@@ -2193,6 +2193,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ControllerServiceEntity getConnectorControllerService(final String connectorId, final String controllerServiceId,
+            final boolean includeReferencingComponents) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        return createControllerServiceEntity(controllerService, includeReferencingComponents);
+    }
+
+    @Override
     public ComponentStateDTO getConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
         final StateMap clusterState = isClustered() ? componentStateDAO.getState(controllerService, Scope.CLUSTER) : null;

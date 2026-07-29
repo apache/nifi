@@ -3095,6 +3095,66 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     // -----------------
+    // Controller Services
+    // -----------------
+
+    /**
+     * Gets a controller service within a connector. Available regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     * @param uiOnly              whether to strip non-UI-relevant fields from the response
+     * @return a ControllerServiceEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/controller-services/{controllerServiceId}")
+    @Operation(
+            summary = "Gets a controller service within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ControllerServiceEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            },
+            description = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain " +
+                    "fields that are necessary for rendering the NiFi User Interface. As such, the selected fields may change " +
+                    "at any time, even during incremental releases, without warning. As a result, this parameter should not be " +
+                    "provided by any client other than the UI."
+    )
+    public Response getConnectorControllerService(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The controller service id.", required = true)
+            @PathParam("controllerServiceId") final String controllerServiceId,
+            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // Resolve the controller service from the managed Process Group tree so the Troubleshooting access gate does not apply.
+        final ControllerServiceEntity entity = serviceFacade.getConnectorControllerService(connectorId, controllerServiceId, true);
+        if (uiOnly) {
+            stripNonUiRelevantFields(entity);
+        }
+        controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
+
+        return generateOkResponse(entity).build();
+    }
+
+    // -----------------
     // Controller Service State
     // -----------------
 

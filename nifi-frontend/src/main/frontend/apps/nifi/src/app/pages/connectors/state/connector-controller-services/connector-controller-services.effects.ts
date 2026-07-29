@@ -19,8 +19,9 @@ import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { HttpErrorResponse } from '@angular/common/http';
 import { NEVER, combineLatest, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
 import { XL_DIALOG } from '@nifi/shared';
 import { ConnectorService } from '../../service/connector.service';
@@ -30,6 +31,8 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import * as ConnectorControllerServicesActions from './connector-controller-services.actions';
+import * as ConnectorCanvasActions from '../connector-canvas/connector-canvas.actions';
+import { selectConnectorIdFromRoute } from './connector-controller-services.selectors';
 import { bindConnectorParameterContext } from '../connector-canvas/bind-connector-parameter-context';
 
 @Injectable()
@@ -148,7 +151,49 @@ export class ConnectorControllerServicesEffects {
                     // values still render in the value tip.
                     instance.createNewService = () => NEVER;
                     instance.convertToParameter = () => NEVER;
-                    instance.goToService = () => undefined;
+                    instance.goToService = (serviceId: string) => {
+                        this.store
+                            .select(selectConnectorIdFromRoute)
+                            .pipe(take(1))
+                            .subscribe((connectorId) => {
+                                if (!connectorId) {
+                                    this.store.dispatch(
+                                        ErrorActions.addBannerError({
+                                            errorContext: {
+                                                errors: ['Unable to determine Connector id for navigation.'],
+                                                context: ErrorContextKey.CONTROLLER_SERVICES
+                                            }
+                                        })
+                                    );
+                                    return;
+                                }
+
+                                this.connectorService
+                                    .getControllerService(connectorId, serviceId)
+                                    .pipe(takeUntil(dialogRef.afterClosed()))
+                                    .subscribe({
+                                        next: (serviceEntity) => {
+                                            this.store.dispatch(
+                                                ConnectorCanvasActions.navigateToControllerService({
+                                                    processGroupId: serviceEntity.component.parentGroupId,
+                                                    serviceId: serviceEntity.id
+                                                })
+                                            );
+                                            dialogRef.close();
+                                        },
+                                        error: (errorResponse: HttpErrorResponse) => {
+                                            this.store.dispatch(
+                                                ErrorActions.addBannerError({
+                                                    errorContext: {
+                                                        errors: [this.errorHelper.getErrorString(errorResponse)],
+                                                        context: ErrorContextKey.CONTROLLER_SERVICES
+                                                    }
+                                                })
+                                            );
+                                        }
+                                    });
+                            });
+                    };
 
                     bindConnectorParameterContext(
                         this.store,

@@ -21,6 +21,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { asyncScheduler, interval, NEVER, Observable, of } from 'rxjs';
 import {
     catchError,
@@ -720,7 +721,49 @@ export class ConnectorCanvasEffects {
         instance.createNewProperty = () => NEVER;
         instance.createNewService = () => NEVER;
         instance.convertToParameter = () => NEVER;
-        instance.goToService = () => undefined;
+        instance.goToService = (serviceId: string) => {
+            this.store
+                .select(selectConnectorIdFromRoute)
+                .pipe(take(1))
+                .subscribe((connectorId) => {
+                    if (!connectorId) {
+                        this.store.dispatch(
+                            ErrorActions.addBannerError({
+                                errorContext: {
+                                    errors: ['Unable to determine Connector id for navigation.'],
+                                    context: ErrorContextKey.CONNECTOR_CANVAS
+                                }
+                            })
+                        );
+                        return;
+                    }
+
+                    this.connectorService
+                        .getControllerService(connectorId, serviceId)
+                        .pipe(takeUntil(dialogRef.afterClosed()))
+                        .subscribe({
+                            next: (serviceEntity) => {
+                                this.store.dispatch(
+                                    ConnectorCanvasActions.navigateToControllerService({
+                                        processGroupId: serviceEntity.component.parentGroupId,
+                                        serviceId: serviceEntity.id
+                                    })
+                                );
+                                dialogRef.close();
+                            },
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    ErrorActions.addBannerError({
+                                        errorContext: {
+                                            errors: [this.errorHelper.getErrorString(errorResponse)],
+                                            context: ErrorContextKey.CONNECTOR_CANVAS
+                                        }
+                                    })
+                                );
+                            }
+                        });
+                });
+        };
 
         // EditProcessor only exposes `parameterContext`; the underlying property table
         // disables parameter affordances on its own when parameterContext is undefined.

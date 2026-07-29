@@ -919,6 +919,51 @@ public class TestConnectorResource {
     }
 
     @Test
+    public void testGetConnectorControllerService() {
+        final ControllerServiceEntity controllerServiceEntity = new ControllerServiceEntity();
+        controllerServiceEntity.setId(CONTROLLER_SERVICE_ID);
+        when(serviceFacade.getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, true)).thenReturn(controllerServiceEntity);
+        when(controllerServiceResource.populateRemainingControllerServiceEntityContent(controllerServiceEntity)).thenReturn(controllerServiceEntity);
+
+        try (Response response = connectorResource.getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, false)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(controllerServiceEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, true);
+        verify(controllerServiceResource).populateRemainingControllerServiceEntityContent(controllerServiceEntity);
+    }
+
+    @Test
+    public void testGetConnectorControllerServiceUiOnly() {
+        final ControllerServiceEntity controllerServiceEntity = new ControllerServiceEntity();
+        controllerServiceEntity.setId(CONTROLLER_SERVICE_ID);
+        when(serviceFacade.getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, true)).thenReturn(controllerServiceEntity);
+        when(controllerServiceResource.populateRemainingControllerServiceEntityContent(controllerServiceEntity)).thenReturn(controllerServiceEntity);
+
+        try (Response response = connectorResource.getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, true)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(controllerServiceEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, true);
+        verify(controllerServiceResource).populateRemainingControllerServiceEntityContent(controllerServiceEntity);
+    }
+
+    @Test
+    public void testGetConnectorControllerServiceNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.getConnectorControllerService(CONNECTOR_ID, CONTROLLER_SERVICE_ID, false));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorControllerService(anyString(), anyString(), eq(true));
+    }
+
+    @Test
     public void testGetConnectorControllerServiceState() {
         final ComponentStateDTO stateDTO = new ComponentStateDTO();
         stateDTO.setComponentId(CONTROLLER_SERVICE_ID);

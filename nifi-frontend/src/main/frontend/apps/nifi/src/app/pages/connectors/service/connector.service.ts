@@ -124,6 +124,14 @@ export class ConnectorService {
         );
     }
 
+    getControllerService(connectorId: string, controllerServiceId: string): Observable<any> {
+        const uiOnly: any = { uiOnly: true };
+        return this.httpClient.get(
+            `${ConnectorService.API}/connectors/${connectorId}/controller-services/${controllerServiceId}`,
+            { params: uiOnly }
+        );
+    }
+
     getConnectorParameterContext(
         connectorId: string,
         processGroupId: string
