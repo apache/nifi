@@ -20,6 +20,8 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -76,8 +78,10 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
@@ -131,6 +135,7 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BacklogEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
@@ -149,6 +154,7 @@ import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
+import org.apache.nifi.web.dao.ParameterContextDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
@@ -171,6 +177,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -248,6 +255,12 @@ public class StandardNiFiServiceFacadeTest {
     private static final String PATH_TO_GROUP_1 = "Path1";
     private static final String PATH_TO_GROUP_2 = "Path2";
     private static final String RANDOM_GROUP_ID = "randomGroupId";
+
+    private static final String ASSET_ID = "asset-1";
+    private static final String ASSET_NAME = "asset-1.bin";
+    private static final String ASSET_PARAMETER_CONTEXT_ID = "parameter-context-1";
+    private static final String OTHER_PARAMETER_CONTEXT_ID = "parameter-context-2";
+    private static final String REFERENCING_PARAMETER_NAME = "asset-parameter";
 
     private StandardNiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -2751,5 +2764,103 @@ public class StandardNiFiServiceFacadeTest {
         when(connectorNode.getCurrentState()).thenReturn(org.apache.nifi.components.connector.ConnectorState.STOPPED);
 
         serviceFacade.verifyCanReportConnectorBacklog(connectorId);
+    }
+
+    @Test
+    public void testVerifyDeleteAssetWithUnknownAssetIdThrowsResourceNotFound() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final AssetManager assetManager = configureAssets(null, parameterContext);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+
+        verify(parameterContext, never()).getParameters();
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testVerifyDeleteAssetOwnedByDifferentContextThrowsResourceNotFound() {
+        final Asset asset = createAsset(ASSET_ID, OTHER_PARAMETER_CONTEXT_ID);
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final AssetManager assetManager = configureAssets(asset, parameterContext);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+
+        verify(parameterContext, never()).getParameters();
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testVerifyDeleteAssetOwnedByContextWithNoReferencesSucceeds() {
+        final Asset asset = createAsset(ASSET_ID, ASSET_PARAMETER_CONTEXT_ID);
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of());
+        configureAssets(asset, parameterContext);
+
+        serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID);
+    }
+
+    @Test
+    public void testVerifyDeleteAssetOwnedByContextThrowsWhenReferencedByParameter() {
+        final Asset asset = createAsset(ASSET_ID, ASSET_PARAMETER_CONTEXT_ID);
+        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(REFERENCING_PARAMETER_NAME).build();
+        final Parameter parameter = new Parameter.Builder().descriptor(descriptor).referencedAssets(List.of(asset)).build();
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of(descriptor, parameter));
+        final AssetManager assetManager = configureAssets(asset, parameterContext);
+
+        final IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+        assertTrue(exception.getMessage().contains(REFERENCING_PARAMETER_NAME));
+
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testDeleteAssetOwnedByDifferentContextDoesNotRemoveAsset() {
+        final Asset asset = createAsset(ASSET_ID, OTHER_PARAMETER_CONTEXT_ID);
+        final AssetManager assetManager = configureAssets(asset, mock(ParameterContext.class));
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.deleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testDeleteAssetOwnedByContextRemovesAsset() {
+        final Asset asset = createAsset(ASSET_ID, ASSET_PARAMETER_CONTEXT_ID);
+        when(asset.getDigest()).thenReturn(Optional.empty());
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of());
+        final AssetManager assetManager = configureAssets(asset, parameterContext);
+
+        final AssetEntity assetEntity = serviceFacade.deleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID);
+
+        assertNotNull(assetEntity);
+        assertEquals(ASSET_ID, assetEntity.getAsset().getId());
+        verify(assetManager).deleteAsset(ASSET_ID);
+    }
+
+    private Asset createAsset(final String assetId, final String ownerId) {
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn(assetId);
+        when(asset.getOwnerIdentifier()).thenReturn(ownerId);
+        when(asset.getName()).thenReturn(ASSET_NAME);
+        when(asset.getFile()).thenReturn(new File(ASSET_NAME));
+        return asset;
+    }
+
+    private AssetManager configureAssets(final Asset asset, final ParameterContext parameterContext) {
+        final AssetManager assetManager = mock(AssetManager.class);
+        if (asset != null) {
+            when(assetManager.getAsset(asset.getIdentifier())).thenReturn(Optional.of(asset));
+            when(assetManager.deleteAsset(asset.getIdentifier())).thenReturn(Optional.of(asset));
+        }
+
+        final ParameterContextDAO parameterContextDAO = mock(ParameterContextDAO.class);
+        when(parameterContextDAO.getParameterContext(anyString())).thenReturn(parameterContext);
+
+        serviceFacade.setAssetManager(assetManager);
+        serviceFacade.setParameterContextDAO(parameterContextDAO);
+        return assetManager;
     }
 }

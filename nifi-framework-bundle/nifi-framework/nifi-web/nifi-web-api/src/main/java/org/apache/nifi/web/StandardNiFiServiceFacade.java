@@ -8499,11 +8499,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteAsset(final String parameterContextId, final String assetId) {
-        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
-        final Set<String> referencingParameterNames = getReferencingParameterNames(parameterContext, assetId);
-        if (!referencingParameterNames.isEmpty()) {
-            final String joinedParametersNames = String.join(", ", referencingParameterNames);
-            throw new IllegalStateException("Unable to delete Asset [%s] because it is currently references by Parameters [%s]".formatted(assetId, joinedParametersNames));
+        final Asset asset = assetManager.getAsset(assetId)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Asset [%s] not found".formatted(assetId))
+                );
+
+        final String ownerIdentifier = asset.getOwnerIdentifier();
+        if (ownerIdentifier.equals(parameterContextId)) {
+            final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
+            final Set<String> referencingParameterNames = getReferencingParameterNames(parameterContext, assetId);
+            if (!referencingParameterNames.isEmpty()) {
+                final String joinedParametersNames = String.join(", ", referencingParameterNames);
+                throw new IllegalStateException("Unable to delete Asset [%s] because it is currently references by Parameters [%s]".formatted(assetId, joinedParametersNames));
+            }
+        } else {
+            throw new ResourceNotFoundException("Asset [%s] not found".formatted(assetId));
         }
     }
 
