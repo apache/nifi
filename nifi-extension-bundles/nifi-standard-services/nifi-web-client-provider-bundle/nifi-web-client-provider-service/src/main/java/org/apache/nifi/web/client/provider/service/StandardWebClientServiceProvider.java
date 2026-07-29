@@ -50,8 +50,6 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
-
 @CapabilityDescription("Web Client Service Provider with support for configuring standard HTTP connection properties")
 @Tags({ "HTTP", "Web", "Client" })
 public class StandardWebClientServiceProvider extends AbstractControllerService implements WebClientServiceProvider {
@@ -110,7 +108,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             REDIRECT_HANDLING_STRATEGY,
             HTTP_PROTOCOL_VERSION,
             SSL_CONTEXT_SERVICE,
-            PROXY_CONFIGURATION_SERVICE
+            ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE
     );
 
     private StandardWebClientService webClientService;
@@ -152,9 +150,9 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             standardWebClientService.setTlsContext(tlsContext);
         }
 
-        final PropertyValue proxyConfigurationServiceProperty = context.getProperty(PROXY_CONFIGURATION_SERVICE);
+        final PropertyValue proxyConfigurationServiceProperty = context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         if (proxyConfigurationServiceProperty.isSet()) {
-            final ProxyConfigurationService proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+            final ProxyConfigurationService proxyConfigurationService = context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
             final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
             final ProxyContext proxyContext = getProxyContext(proxyConfiguration);
             standardWebClientService.setProxyContext(proxyContext);

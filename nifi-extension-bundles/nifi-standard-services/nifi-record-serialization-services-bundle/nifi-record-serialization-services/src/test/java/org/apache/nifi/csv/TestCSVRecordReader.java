@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.Time;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -108,7 +109,7 @@ public class TestCSVRecordReader {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object date = record.getValue("date");
-                assertEquals(java.sql.Date.valueOf(dateValue), date);
+                assertEquals(Date.valueOf(dateValue), date);
             }
         }
     }
@@ -148,7 +149,7 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             final Object date = record.getValue("date");
-            assertEquals(java.sql.Date.valueOf(dateValue), date);
+            assertEquals(Date.valueOf(dateValue), date);
         }
     }
 
@@ -220,7 +221,7 @@ public class TestCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), timeFormat, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
-            final java.sql.Time time = (Time) record.getValue("time");
+            final Time time = (Time) record.getValue("time");
 
             final LocalTime localTime = LocalTime.parse(timeVal, dateTimeFormatter);
             assertEquals(Time.valueOf(localTime), time);

@@ -29,7 +29,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.security.ldap.server.UnboundIdContainer;
 
@@ -825,7 +824,7 @@ public class LdapUserGroupProviderTest {
     }
 
     private NiFiProperties getNiFiProperties(final Properties properties) {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
         when(nifiProperties.getProperty(anyString())).then(invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));
         return nifiProperties;

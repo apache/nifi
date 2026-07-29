@@ -244,9 +244,9 @@ class TestWriteJsonResult {
     @Test
     void testTimestampWithNullFormat() throws IOException {
         final Map<String, Object> values = new HashMap<>();
-        values.put("timestamp", new java.sql.Timestamp(37293723L));
-        values.put("time", new java.sql.Time(37293723L));
-        final java.sql.Date date = java.sql.Date.valueOf("1970-01-01");
+        values.put("timestamp", new Timestamp(37293723L));
+        values.put("time", new Time(37293723L));
+        final Date date = Date.valueOf("1970-01-01");
         values.put("date", date);
 
         final List<RecordField> fields = new ArrayList<>();
@@ -507,10 +507,10 @@ class TestWriteJsonResult {
     @Test
     void testOnelineOutput() throws IOException {
         final Map<String, Object> values1 = new HashMap<>();
-        values1.put("timestamp", new java.sql.Timestamp(37293723L));
-        values1.put("time", new java.sql.Time(37293723L));
+        values1.put("timestamp", new Timestamp(37293723L));
+        values1.put("time", new Time(37293723L));
 
-        final java.sql.Date date = java.sql.Date.valueOf("1970-01-01");
+        final Date date = Date.valueOf("1970-01-01");
         values1.put("date", date);
 
         final List<RecordField> fields1 = new ArrayList<>();
@@ -523,8 +523,8 @@ class TestWriteJsonResult {
         final Record record1 = new MapRecord(schema, values1);
 
         final Map<String, Object> values2 = new HashMap<>();
-        values2.put("timestamp", new java.sql.Timestamp(37293999L));
-        values2.put("time", new java.sql.Time(37293999L));
+        values2.put("timestamp", new Timestamp(37293999L));
+        values2.put("time", new Time(37293999L));
         values2.put("date", date);
 
         final Record record2 = new MapRecord(schema, values2);

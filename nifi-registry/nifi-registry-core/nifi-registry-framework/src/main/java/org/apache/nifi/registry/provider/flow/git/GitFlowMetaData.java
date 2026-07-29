@@ -445,7 +445,7 @@ class GitFlowMetaData {
     void saveBucket(final Bucket bucket, final File bucketDir) throws IOException {
         final Yaml yaml = new Yaml();
         final Map<String, Object> serializedBucket = bucket.serialize();
-        final File bucketFile = new File(bucketDir, GitFlowMetaData.BUCKET_FILENAME);
+        final File bucketFile = new File(bucketDir, BUCKET_FILENAME);
 
         try (final Writer writer = new OutputStreamWriter(
                 new FileOutputStream(bucketFile), StandardCharsets.UTF_8)) {

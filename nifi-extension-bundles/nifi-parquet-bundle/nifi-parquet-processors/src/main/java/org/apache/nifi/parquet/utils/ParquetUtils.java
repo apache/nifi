@@ -101,7 +101,7 @@ public class ParquetUtils {
     public static final PropertyDescriptor WRITER_VERSION = new PropertyDescriptor.Builder()
             .name("Writer Version")
             .description("Specifies the version used by Parquet writer")
-            .allowableValues(org.apache.parquet.column.ParquetProperties.WriterVersion.values())
+            .allowableValues(ParquetProperties.WriterVersion.values())
             .build();
 
     public static final PropertyDescriptor AVRO_READ_COMPATIBILITY = new PropertyDescriptor.Builder()
@@ -167,8 +167,8 @@ public class ParquetUtils {
         final ParquetFileWriter.Mode mode = overwrite ? ParquetFileWriter.Mode.OVERWRITE : ParquetFileWriter.Mode.CREATE;
         parquetConfig.setWriterMode(mode);
 
-        if (context.getProperty(ParquetUtils.COMPRESSION_TYPE).isSet()) {
-            final String compressionTypeValue = context.getProperty(ParquetUtils.COMPRESSION_TYPE).getValue();
+        if (context.getProperty(COMPRESSION_TYPE).isSet()) {
+            final String compressionTypeValue = context.getProperty(COMPRESSION_TYPE).getValue();
             final CompressionCodecName codecName = CompressionCodecName.valueOf(compressionTypeValue);
             parquetConfig.setCompressionCodec(codecName);
         }

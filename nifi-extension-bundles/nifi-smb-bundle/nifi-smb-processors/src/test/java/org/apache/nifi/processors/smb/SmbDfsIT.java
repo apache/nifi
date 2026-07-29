@@ -24,7 +24,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
-import org.apache.nifi.smb.common.SmbProperties;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
@@ -167,7 +166,7 @@ class SmbDfsIT {
         testRunner.setProperty(PutSmbFile.DIRECTORY, "dfs-link");
         testRunner.setProperty(PutSmbFile.USERNAME, "myuser");
         testRunner.setProperty(PutSmbFile.PASSWORD, "mypass");
-        testRunner.setProperty(SmbProperties.ENABLE_DFS, "true");
+        testRunner.setProperty(ENABLE_DFS, "true");
 
         testRunner.enqueue("put_content", Map.of(CoreAttributes.FILENAME.key(), "put_file"));
         testRunner.run();
@@ -188,7 +187,7 @@ class SmbDfsIT {
         testRunner.setProperty(GetSmbFile.DIRECTORY, "dfs-link");
         testRunner.setProperty(GetSmbFile.USERNAME, "myuser");
         testRunner.setProperty(GetSmbFile.PASSWORD, "mypass");
-        testRunner.setProperty(SmbProperties.ENABLE_DFS, "true");
+        testRunner.setProperty(ENABLE_DFS, "true");
 
         testRunner.run();
 

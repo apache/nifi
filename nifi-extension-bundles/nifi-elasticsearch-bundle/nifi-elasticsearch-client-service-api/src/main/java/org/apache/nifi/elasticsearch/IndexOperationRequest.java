@@ -177,7 +177,7 @@ public class IndexOperationRequest {
         Update("update"),
         Upsert("upsert");
 
-        private static final List<Operation> VALUES = List.of(Operation.values());
+        private static final List<Operation> VALUES = List.of(values());
 
         private final String value;
 

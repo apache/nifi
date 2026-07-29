@@ -69,9 +69,9 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
     @Test
     public void testNonMatchingControllerService() throws NiFiClientException, IOException, InterruptedException {
         final ControllerServiceEntity controllerService = getClientUtil().createControllerService(
-                NiFiSystemIT.TEST_CS_PACKAGE + ".FakeControllerService2",
+                TEST_CS_PACKAGE + ".FakeControllerService2",
                 "root",
-                NiFiSystemIT.NIFI_GROUP_ID,
+                NIFI_GROUP_ID,
                 "nifi-system-test-extensions2-nar",
                 getNiFiVersion());
 
@@ -90,9 +90,9 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
     @Test
     public void testNonMatchingDynamicPropertyControllerService() throws NiFiClientException, IOException, InterruptedException {
         final ControllerServiceEntity controllerService = getClientUtil().createControllerService(
-                NiFiSystemIT.TEST_CS_PACKAGE + ".FakeControllerService2",
+                TEST_CS_PACKAGE + ".FakeControllerService2",
                 "root",
-                NiFiSystemIT.NIFI_GROUP_ID,
+                NIFI_GROUP_ID,
                 "nifi-system-test-extensions2-nar",
                 getNiFiVersion());
 
@@ -115,9 +115,9 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
     public void testMatchingGenericControllerService() throws NiFiClientException, IOException {
         final ControllerServiceEntity fakeServiceEntity = getClientUtil().createControllerService("FakeControllerService1");
         final ProcessorEntity fakeProcessorEntity = getClientUtil().createProcessor(
-                NiFiSystemIT.TEST_PROCESSORS_PACKAGE + ".FakeGenericProcessor",
+                TEST_PROCESSORS_PACKAGE + ".FakeGenericProcessor",
                 "root",
-                NiFiSystemIT.NIFI_GROUP_ID,
+                NIFI_GROUP_ID,
                 "nifi-system-test-extensions2-nar",
                 getNiFiVersion());
         fakeProcessorEntity.getComponent().getConfig().setProperties(Collections.singletonMap("Fake Service", fakeServiceEntity.getId()));

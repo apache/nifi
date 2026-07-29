@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import static org.apache.nifi.jasn1.JASN1Reader.ASN_FILES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -87,8 +86,8 @@ public class JASN1ReaderTest {
     @Test
     public void testCanLoadClassCompiledFromAsn() throws Exception {
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
-        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Paths.get("src", "test", "resources", "test.asn").toString());
+        when(context.getProperty(JASN1Reader.ASN_FILES).isSet()).thenReturn(true);
+        when(context.getProperty(JASN1Reader.ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Paths.get("src", "test", "resources", "test.asn").toString());
 
         testSubject.onEnabled(context);
 
@@ -102,8 +101,8 @@ public class JASN1ReaderTest {
     @Test
     public void testAsnFileDoesntExist() {
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
-        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(
+        when(context.getProperty(JASN1Reader.ASN_FILES).isSet()).thenReturn(true);
+        when(context.getProperty(JASN1Reader.ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(
                 new StringJoiner(",")
                         .add(Paths.get("src", "test", "resources", "test.asn").toString())
                         .add(Paths.get("src", "test", "resources", "doesnt_exist.asn").toString())
@@ -198,8 +197,8 @@ public class JASN1ReaderTest {
 
     private void testParseError(String asnFile, List<String> expectedErrorMessages) {
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
-        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
+        when(context.getProperty(JASN1Reader.ASN_FILES).isSet()).thenReturn(true);
+        when(context.getProperty(JASN1Reader.ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFile);
 
         assertThrows(
@@ -217,8 +216,8 @@ public class JASN1ReaderTest {
 
     private void testCompileError(String asnFiles, List<String> expectedErrorMessages) {
         ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
-        when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
-        when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
+        when(context.getProperty(JASN1Reader.ASN_FILES).isSet()).thenReturn(true);
+        when(context.getProperty(JASN1Reader.ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFiles);
 
         assertThrows(

@@ -85,7 +85,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.time.Duration;
@@ -209,18 +208,18 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @BeforeEach
     public void setup() {
-        final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
-        flowManager = Mockito.mock(FlowManager.class);
-        controllerServiceProvider = Mockito.mock(ControllerServiceProvider.class);
-        final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> Mockito.mock(ProcessContext.class);
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        flowManager = mock(FlowManager.class);
+        controllerServiceProvider = mock(ControllerServiceProvider.class);
+        final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> mock(ProcessContext.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
         componentIdGenerator = (proposed, instance, group) -> proposed == null ? instance : proposed;
-        componentScheduler = Mockito.mock(ComponentScheduler.class);
+        componentScheduler = mock(ComponentScheduler.class);
         parameterContextManager = new StandardParameterContextManager();
-        parameterReferenceManager = Mockito.mock(ParameterReferenceManager.class);
+        parameterReferenceManager = mock(ParameterReferenceManager.class);
 
         bundleCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-standard-nar", "1.18.0");
-        controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        controllerServiceNode = mock(ControllerServiceNode.class);
         when(controllerServiceNode.getBundleCoordinate()).thenReturn(bundleCoordinate);
         when(flowManager.createControllerService(anyString(), anyString(), any(BundleCoordinate.class), anySet(), anyBoolean(), anyBoolean(), nullable(String.class)))
             .thenReturn(controllerServiceNode);
@@ -267,7 +266,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .reloadComponent(reloadComponent)
             .build();
 
-        group = Mockito.mock(ProcessGroup.class);
+        group = mock(ProcessGroup.class);
 
         processorA = createMockProcessor();
         processorB = createMockProcessor();
@@ -307,7 +306,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ProcessorNode createMockProcessor() {
         final String uuid = UUID.randomUUID().toString();
 
-        final ProcessorNode processor = Mockito.mock(ProcessorNode.class);
+        final ProcessorNode processor = mock(ProcessorNode.class);
         instrumentComponentNodeMethods(uuid, processor);
         when(processor.isRunning()).thenReturn(false);
         when(processor.getProcessGroup()).thenReturn(group);
@@ -320,7 +319,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceNode createMockControllerService() {
         final String uuid = UUID.randomUUID().toString();
 
-        final ControllerServiceNode service = Mockito.mock(ControllerServiceNode.class);
+        final ControllerServiceNode service = mock(ControllerServiceNode.class);
         instrumentComponentNodeMethods(uuid, service);
 
         when(service.isActive()).thenReturn(false);
@@ -344,7 +343,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private Port createMockPort(final ConnectableType connectableType) {
         final String uuid = UUID.randomUUID().toString();
 
-        final Port port = Mockito.mock(Port.class);
+        final Port port = mock(Port.class);
         when(port.getIdentifier()).thenReturn(uuid);
         when(port.isRunning()).thenReturn(false);
         when(port.getProcessGroup()).thenReturn(group);
@@ -367,11 +366,11 @@ public class StandardVersionedComponentSynchronizerTest {
     private Connection createMockConnection(final Connectable source, final Connectable destination, final ProcessGroup group) {
         final String uuid = UUID.randomUUID().toString();
 
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn(uuid);
         when(flowFileQueue.isEmpty()).thenAnswer(invocation -> !queuesWithData.contains(uuid));
 
-        final Connection connection = Mockito.mock(Connection.class);
+        final Connection connection = mock(Connection.class);
         when(connection.getIdentifier()).thenReturn(uuid);
         when(connection.getSource()).thenReturn(source);
         when(connection.getDestination()).thenReturn(destination);
@@ -1264,7 +1263,7 @@ public class StandardVersionedComponentSynchronizerTest {
         final ControllerServiceNode service = createMockControllerService();
         when(service.isActive()).thenReturn(true);
         when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
-        when(service.getReferences()).thenReturn(Mockito.mock(ControllerServiceReference.class));
+        when(service.getReferences()).thenReturn(mock(ControllerServiceReference.class));
 
         when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.emptyMap());
         when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
@@ -1324,13 +1323,13 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(controllerServiceProvider).unscheduleReferencingComponents(service);
         verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
 
-        Mockito.doAnswer((Answer<Void>) invocationOnMock -> {
+        doAnswer((Answer<Void>) invocationOnMock -> {
             final Set<?> services = invocationOnMock.getArgument(0);
             assertTrue(services.isEmpty());
             return null;
-        }).when(controllerServiceProvider).enableControllerServicesAsync(Mockito.anySet());
+        }).when(controllerServiceProvider).enableControllerServicesAsync(anySet());
 
-        verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(Mockito.any(ControllerServiceNode.class), Mockito.anySet(), Mockito.any(ComponentScheduler.class));
+        verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(any(ControllerServiceNode.class), anySet(), any(ComponentScheduler.class));
     }
 
     @Test
@@ -1798,7 +1797,7 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     private void setReferences(final ControllerServiceNode service, final ComponentNode... reference) {
-        final ControllerServiceReference csReference = Mockito.mock(ControllerServiceReference.class);
+        final ControllerServiceReference csReference = mock(ControllerServiceReference.class);
         when(csReference.getReferencingComponents()).thenReturn(new HashSet<>(Arrays.asList(reference)));
         when(service.getReferences()).thenReturn(csReference);
     }
@@ -1924,7 +1923,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
     private PublicPort createMappablePublicInputPort(final ProcessGroup processGroup, final String versionedId, final String localName, final String comments) {
         final String groupId = processGroup.getIdentifier();
-        final PublicPort port = Mockito.mock(PublicPort.class);
+        final PublicPort port = mock(PublicPort.class);
         when(port.getIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(port.getProcessGroupIdentifier()).thenReturn(groupId);
         when(port.getVersionedComponentId()).thenReturn(Optional.of(versionedId));

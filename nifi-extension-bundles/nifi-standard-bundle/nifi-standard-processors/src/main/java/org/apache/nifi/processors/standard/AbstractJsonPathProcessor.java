@@ -107,7 +107,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
     }
 
     /**
-     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link java.util.Map} and {@link java.util.List} objects can be rendered as JSON elements, everything else is
+     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link Map} and {@link List} objects can be rendered as JSON elements, everything else is
      * treated as a scalar.
      *
      * @param obj item to be inspected if it is a scalar or a JSON element

@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.system;
 
-public class GarbageCollectionStatus implements java.io.Serializable {
+import java.io.Serializable;
+
+public class GarbageCollectionStatus implements Serializable {
 
     private String name;
     private long collectionCount;

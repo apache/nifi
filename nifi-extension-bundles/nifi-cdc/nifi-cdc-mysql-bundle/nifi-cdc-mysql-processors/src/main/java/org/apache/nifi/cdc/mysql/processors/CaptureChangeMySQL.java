@@ -124,7 +124,6 @@ import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.XID;
 import static org.apache.nifi.cdc.event.io.EventWriter.CDC_EVENT_TYPE_ATTRIBUTE;
 import static org.apache.nifi.cdc.event.io.EventWriter.SEQUENCE_ID_KEY;
-import static org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE;
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as FlowFiles.
@@ -269,12 +268,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor EVENTS_PER_FLOWFILE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Event Processing Strategy")
-            .description("Specifies the strategy to use when writing events to FlowFile(s), such as '" + MAX_EVENTS_PER_FLOWFILE.getDisplayName() + "'")
+            .description("Specifies the strategy to use when writing events to FlowFile(s), such as '" + FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE.getDisplayName() + "'")
             .required(true)
             .sensitive(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(FlowFileEventWriteStrategy.class)
-            .defaultValue(MAX_EVENTS_PER_FLOWFILE)
+            .defaultValue(FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
@@ -287,7 +286,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(EVENTS_PER_FLOWFILE_STRATEGY, MAX_EVENTS_PER_FLOWFILE)
+            .dependsOn(EVENTS_PER_FLOWFILE_STRATEGY, FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE)
             .build();
 
     public static final PropertyDescriptor SERVER_ID = new PropertyDescriptor.Builder()

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.provider.flow;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.flow.FlowSnapshotContext;
@@ -69,7 +70,7 @@ public class TestFileSystemFlowPersistenceProvider {
     public void setup() throws IOException {
         flowStorageDir = new File(FLOW_STORAGE_DIR);
         if (flowStorageDir.exists()) {
-            org.apache.commons.io.FileUtils.cleanDirectory(flowStorageDir);
+            FileUtils.cleanDirectory(flowStorageDir);
             assertTrue(flowStorageDir.delete());
         }
 

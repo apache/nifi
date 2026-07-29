@@ -58,7 +58,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
     void testPaginationExpiration(final PaginationType paginationType) throws Exception {
         // test flowfile per page
         final TestRunner runner = createRunner(false);
-        final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
+        final TestElasticsearchClientService service = getService(runner);
         service.setMaxPages(2);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "1 sec");
@@ -66,7 +66,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
         // first page
         runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+        testCounts(runner, 0, 1, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "1");
         assertState(runner, paginationType, 10, 1, false);
@@ -81,7 +81,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
             // does not expire
             runOnce(runner);
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
             assertState(runner, paginationType, 20, 2, false);
@@ -108,7 +108,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
             // first page again (new query after first query expired)
             runOnce(runner);
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "1");
             assertState(runner, paginationType, 10, 1, false);
@@ -120,7 +120,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
             // second page
             runOnce(runner);
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
             assertState(runner, paginationType, 20, 2, false);
@@ -138,25 +138,25 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         final int expectedHitCount = 10 * iteration;
 
         if (perResponseResultOutputStrategy && (iteration == 1 || iteration == 2)) {
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", String.valueOf(iteration));
             assertState(runner, paginationType, expectedHitCount, iteration, false);
         } else if (perHitResultOutputStrategy && (iteration == 1 || iteration == 2)) {
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 10, 0, 0);
+            testCounts(runner, 0, 10, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(hit -> {
                 hit.assertAttributeEquals("hit.count", "1");
                 hit.assertAttributeEquals("page.number", String.valueOf(iteration));
             });
             assertState(runner, paginationType, expectedHitCount, iteration, false);
         } else if ((perResponseResultOutputStrategy || perHitResultOutputStrategy) && iteration == 3) {
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
+            testCounts(runner, 0, 0, 0, 0);
             if (runner.getProcessor() instanceof ConsumeElasticsearch) {
                 assertEquals("five", runner.getStateManager().getState(getStateScope()).get(ConsumeElasticsearch.STATE_RANGE_VALUE));
             }
             assertState(runner, paginationType, 20, 3, true);
         } else if (ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
-            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            testCounts(runner, 0, 1, 0, 0);
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "20");
             // the "last" page.number is used, so 2 here because there were 2 pages of hits
             runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
@@ -172,7 +172,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
     @EnumSource(PaginationType.class)
     void testPaginationWithoutRestartOnFinish(final PaginationType paginationType) throws Exception {
         final TestRunner runner = createRunner(false);
-        final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
+        final TestElasticsearchClientService service = getService(runner);
         service.setMaxPages(2);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_RESPONSE);
@@ -181,7 +181,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
         runOnce(runner);
 
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+        testCounts(runner, 0, 1, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getLast().assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getLast().assertAttributeEquals("page.number", "1");
         assertState(runner, paginationType, 10, 1, false);
@@ -189,7 +189,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
         runOnce(runner);
 
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 2, 0, 0);
+        testCounts(runner, 0, 2, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getLast().assertAttributeEquals("hit.count", "10");
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getLast().assertAttributeEquals("page.number", "2");
         assertState(runner, paginationType, 20, 2, false);
@@ -197,13 +197,13 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
         runOnce(runner);
 
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 2, 0, 0);
+        testCounts(runner, 0, 2, 0, 0);
         assertState(runner, paginationType, 20, 3, true);
         assertFalse(runner.isYieldCalled());
 
         runOnce(runner);
 
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 2, 0, 0);
+        testCounts(runner, 0, 2, 0, 0);
         assertState(runner, paginationType, 20, 3, true);
         assertTrue(runner.isYieldCalled());
     }

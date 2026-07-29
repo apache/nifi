@@ -31,7 +31,7 @@ public interface ProtocolListener {
      * Starts the instance for listening for messages. Start may only be called
      * if the instance is not running.
      *
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     void start() throws IOException;
 
@@ -39,7 +39,7 @@ public interface ProtocolListener {
      * Stops the instance from listening for messages. Stop may only be called
      * if the instance is running.
      *
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     void stop() throws IOException;
 

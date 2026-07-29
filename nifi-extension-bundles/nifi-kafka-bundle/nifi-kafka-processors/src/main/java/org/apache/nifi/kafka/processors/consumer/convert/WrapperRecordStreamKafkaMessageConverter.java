@@ -38,6 +38,7 @@ import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStreamKafkaMessageConverter {
 
@@ -50,7 +51,7 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
             final RecordSetWriterFactory writerFactory,
             final RecordReaderFactory keyReaderFactory,
             final HeaderValueConverter headerValueConverter,
-            final java.util.regex.Pattern headerNamePattern,
+            final Pattern headerNamePattern,
             final KeyFormat keyFormat,
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,

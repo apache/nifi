@@ -25,7 +25,6 @@ import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -42,7 +41,10 @@ import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpC
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,7 +62,7 @@ public class FileChangeIngestorTest {
     @BeforeEach
     public void setUp() {
         mockWatchService = mock(WatchService.class);
-        notifierSpy = Mockito.spy(new FileChangeIngestor());
+        notifierSpy = spy(new FileChangeIngestor());
         mockDifferentiator = mock(Differentiator.class);
         testNotifier = mock(ConfigurationChangeNotifier.class);
         testProperties = mock(BootstrapProperties.class);
@@ -104,18 +106,18 @@ public class FileChangeIngestorTest {
     /* Verify handleChange events */
     @Test
     public void testTargetChangedNoModification() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
+        when(mockDifferentiator.isNew(any(ByteBuffer.class))).thenReturn(false);
         final ConfigurationChangeNotifier testNotifier = mock(ConfigurationChangeNotifier.class);
 
         // In this case the WatchKey is null because there were no events found
         establishMockEnvironmentForChangeTests(null);
 
-        verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
+        verify(testNotifier, never()).notifyListeners(any(ByteBuffer.class));
     }
 
     @Test
     public void testTargetChangedWithModificationEventNonConfigFile() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
+        when(mockDifferentiator.isNew(any(ByteBuffer.class))).thenReturn(false);
         final ConfigurationChangeNotifier testNotifier = mock(ConfigurationChangeNotifier.class);
 
         // In this case, we receive a trigger event for the directory monitored, but it was another file not being monitored
@@ -125,12 +127,12 @@ public class FileChangeIngestorTest {
 
         notifierSpy.targetFileChanged();
 
-        verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
+        verify(testNotifier, never()).notifyListeners(any(ByteBuffer.class));
     }
 
     @Test
     public void testTargetChangedWithModificationEvent() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
+        when(mockDifferentiator.isNew(any(ByteBuffer.class))).thenReturn(true);
 
         final WatchKey mockWatchKey = createMockWatchKeyForPath(CONFIG_FILENAME);
         // Provided as a spy to allow injection of mock objects for some tests when dealing with the finalized FileSystems class
@@ -145,8 +147,8 @@ public class FileChangeIngestorTest {
         // Invoke the method of interest
         notifierSpy.run();
 
-        verify(mockWatchService, Mockito.atLeastOnce()).poll();
-        verify(testNotifier, Mockito.atLeastOnce()).notifyListeners(Mockito.any(ByteBuffer.class));
+        verify(mockWatchService, atLeastOnce()).poll();
+        verify(testNotifier, atLeastOnce()).notifyListeners(any(ByteBuffer.class));
     }
 
     /* Helper methods to establish mock environment */

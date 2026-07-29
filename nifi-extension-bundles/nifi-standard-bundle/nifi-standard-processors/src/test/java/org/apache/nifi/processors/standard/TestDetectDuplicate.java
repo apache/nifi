@@ -178,7 +178,7 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        protected java.util.List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> props = new ArrayList<>();
             props.add(MapCacheClientService.HOSTNAME);
             props.add(MapCacheClientService.COMMUNICATIONS_TIMEOUT);

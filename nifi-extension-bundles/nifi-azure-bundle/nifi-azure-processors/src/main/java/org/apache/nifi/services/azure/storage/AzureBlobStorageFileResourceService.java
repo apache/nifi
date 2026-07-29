@@ -42,8 +42,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_CONTAINER;
 import static org.apache.nifi.util.StringUtils.isBlank;
@@ -74,7 +72,7 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            BLOB_STORAGE_CREDENTIALS_SERVICE,
+            AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME
     );
@@ -89,7 +87,7 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.clientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
+        this.clientFactory = new BlobServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
         this.context = context;
     }
 
@@ -117,7 +115,7 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
     }
 
     protected BlobServiceClient getStorageClient(Map<String, String> attributes) {
-        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(BLOB_STORAGE_CREDENTIALS_SERVICE)
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE)
                 .asControllerService(AzureStorageCredentialsService_v12.class);
         return clientFactory.getStorageClient(credentialsService.getCredentialsDetails(attributes));
     }

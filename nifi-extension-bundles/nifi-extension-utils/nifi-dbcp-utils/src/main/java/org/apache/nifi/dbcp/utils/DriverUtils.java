@@ -34,6 +34,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 
+import static java.lang.reflect.Modifier.isAbstract;
+
 public class DriverUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DriverUtils.class);
@@ -136,7 +138,7 @@ public class DriverUtils {
 
         for (final ResourceReference resource : driverResources.flattenRecursively().asList()) {
             try {
-                final List<File> jarFiles = DriverUtils.getJarFilesFromResource(resource);
+                final List<File> jarFiles = getJarFilesFromResource(resource);
                 for (final File jarFile : jarFiles) {
                     driverClasses.addAll(scanJarForDriverClasses(jarFile));
                 }
@@ -199,7 +201,7 @@ public class DriverUtils {
             // Check if it implements Driver interface and is not abstract/interface
             return Driver.class.isAssignableFrom(clazz)
                     && !clazz.isInterface()
-                    && !java.lang.reflect.Modifier.isAbstract(clazz.getModifiers());
+                    && !isAbstract(clazz.getModifiers());
         } catch (final Throwable e) {
             // Class couldn't be loaded or has issues - not a valid driver
             return false;

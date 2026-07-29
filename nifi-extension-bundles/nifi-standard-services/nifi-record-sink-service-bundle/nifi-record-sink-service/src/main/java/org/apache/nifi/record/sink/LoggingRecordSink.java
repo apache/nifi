@@ -51,7 +51,7 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            RecordSinkService.RECORD_WRITER_FACTORY,
+            RECORD_WRITER_FACTORY,
             LOG_LEVEL
     );
 
@@ -65,7 +65,7 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        writerFactory = context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+        writerFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         logLevel = LogLevel.valueOf(context.getProperty(LOG_LEVEL).getValue());
     }
 

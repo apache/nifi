@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -184,10 +185,10 @@ class StandardConnectionDAOTest {
     @Test
     void testGetConnectionWithMultipleConnectors() {
         // Setup a second connector
-        final ConnectorNode connectorNode2 = org.mockito.Mockito.mock(ConnectorNode.class);
-        final FrameworkFlowContext flowContext2 = org.mockito.Mockito.mock(FrameworkFlowContext.class);
-        final ProcessGroup managedGroup2 = org.mockito.Mockito.mock(ProcessGroup.class);
-        final Connection connectionInSecondConnector = org.mockito.Mockito.mock(Connection.class);
+        final ConnectorNode connectorNode2 = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext2 = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup2 = mock(ProcessGroup.class);
+        final Connection connectionInSecondConnector = mock(Connection.class);
         final String secondConnectorConnectionId = "second-connector-connection-id";
 
         when(connectorRepository.getConnectors(ConnectorSyncMode.LOCAL_ONLY)).thenReturn(List.of(connectorNode, connectorNode2));

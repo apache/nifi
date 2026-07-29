@@ -21,6 +21,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 /**
  * Supports AWS credentials defined by an Access Key and Secret Key pair.
@@ -41,7 +42,7 @@ public class AccessKeyPairCredentialsStrategy extends AbstractCredentialsStrateg
     public AwsCredentialsProvider getAwsCredentialsProvider(final PropertyContext propertyContext) {
         final String accessKey = propertyContext.getProperty(AWSCredentialsProviderControllerService.ACCESS_KEY_ID).evaluateAttributeExpressions().getValue();
         final String secretKey = propertyContext.getProperty(AWSCredentialsProviderControllerService.SECRET_KEY).evaluateAttributeExpressions().getValue();
-        return software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+        return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
     }
 
 }

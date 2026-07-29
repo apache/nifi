@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -451,8 +452,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
      *            the Hadoop Configuration
      * @return CompressionCodec or null
      */
-    protected org.apache.hadoop.io.compress.CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
-        org.apache.hadoop.io.compress.CompressionCodec codec = null;
+    protected CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
+        CompressionCodec codec = null;
         if (context.getProperty(COMPRESSION_CODEC).isSet()) {
             String compressionClassname = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).getValue()).toString();
             CompressionCodecFactory ccf = new CompressionCodecFactory(configuration);

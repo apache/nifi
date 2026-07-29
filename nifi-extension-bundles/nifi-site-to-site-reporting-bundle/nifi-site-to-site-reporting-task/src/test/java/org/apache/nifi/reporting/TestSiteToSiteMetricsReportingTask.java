@@ -41,7 +41,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
@@ -58,6 +57,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteMetricsReportingTask {
@@ -105,26 +107,26 @@ public class TestSiteToSiteMetricsReportingTask {
         }
         properties.putAll(customProperties);
 
-        context = Mockito.mock(ReportingContext.class);
-        Mockito.when(context.getStateManager()).thenReturn(new MockStateManager(task));
-        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+        context = mock(ReportingContext.class);
+        when(context.getStateManager()).thenReturn(new MockStateManager(task));
+        doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(context).getProperty(any(PropertyDescriptor.class));
 
-        final EventAccess eventAccess = Mockito.mock(EventAccess.class);
-        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
-        Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
+        final EventAccess eventAccess = mock(EventAccess.class);
+        when(context.getEventAccess()).thenReturn(eventAccess);
+        when(eventAccess.getControllerStatus()).thenReturn(status);
 
-        final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
+        final PropertyValue pValue = mock(StandardPropertyValue.class);
         MockRecordWriter writer = new MockRecordWriter();
-        Mockito.when(context.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
-        Mockito.when(pValue.asControllerService(RecordSetWriterFactory.class)).thenReturn(writer);
+        when(context.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
+        when(pValue.asControllerService(RecordSetWriterFactory.class)).thenReturn(writer);
 
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
+        final ComponentLog logger = mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = mock(ReportingInitializationContext.class);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(logger);
         task.initialize(initContext);
 
         return task;
@@ -132,7 +134,7 @@ public class TestSiteToSiteMetricsReportingTask {
 
     @Test
     public void testValidationBothAmbariFormatRecordWriter() throws IOException {
-        ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        ValidationContext validationContext = mock(ValidationContext.class);
         final String urlEL = "http://${hostname(true)}:8080/nifi";
         final String url = "http://localhost:8080/nifi";
 
@@ -147,20 +149,20 @@ public class TestSiteToSiteMetricsReportingTask {
         properties.put(SiteToSiteUtils.INSTANCE_URL, url);
         properties.put(SiteToSiteUtils.PORT_NAME, "port");
 
-        final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
-        Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
-        Mockito.when(validationContext.newPropertyValue(urlEL)).thenReturn(pValueUrl);
-        Mockito.when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
-        Mockito.when(pValueUrl.getValue()).thenReturn(url);
+        final PropertyValue pValueUrl = mock(StandardPropertyValue.class);
+        when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
+        when(validationContext.newPropertyValue(urlEL)).thenReturn(pValueUrl);
+        when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
+        when(pValueUrl.getValue()).thenReturn(url);
 
-        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+        doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(validationContext).getProperty(any(PropertyDescriptor.class));
 
-        final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
-        Mockito.when(validationContext.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
-        Mockito.when(pValue.isSet()).thenReturn(true);
+        final PropertyValue pValue = mock(StandardPropertyValue.class);
+        when(validationContext.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
+        when(pValue.isSet()).thenReturn(true);
 
         // should be invalid because both ambari format and record writer are set
         Collection<ValidationResult> list = task.validate(validationContext);
@@ -170,7 +172,7 @@ public class TestSiteToSiteMetricsReportingTask {
 
     @Test
     public void testValidationRecordFormatNoRecordWriter() throws IOException {
-        ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        ValidationContext validationContext = mock(ValidationContext.class);
         final String urlEL = "http://${hostname(true)}:8080/nifi";
         final String url = "http://localhost:8080/nifi";
 
@@ -185,20 +187,20 @@ public class TestSiteToSiteMetricsReportingTask {
         properties.put(SiteToSiteUtils.INSTANCE_URL, url);
         properties.put(SiteToSiteUtils.PORT_NAME, "port");
 
-        final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
-        Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
-        Mockito.when(validationContext.newPropertyValue(urlEL)).thenReturn(pValueUrl);
-        Mockito.when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
-        Mockito.when(pValueUrl.getValue()).thenReturn(url);
+        final PropertyValue pValueUrl = mock(StandardPropertyValue.class);
+        when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
+        when(validationContext.newPropertyValue(urlEL)).thenReturn(pValueUrl);
+        when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
+        when(pValueUrl.getValue()).thenReturn(url);
 
-        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+        doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(validationContext).getProperty(any(PropertyDescriptor.class));
 
-        final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
-        Mockito.when(validationContext.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
-        Mockito.when(pValue.isSet()).thenReturn(false);
+        final PropertyValue pValue = mock(StandardPropertyValue.class);
+        when(validationContext.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
+        when(pValue.isSet()).thenReturn(false);
 
         // should be invalid because both ambari format and record writer are set
         Collection<ValidationResult> list = task.validate(validationContext);
@@ -287,17 +289,17 @@ public class TestSiteToSiteMetricsReportingTask {
         @Override
         public void setup(PropertyContext reportContext) {
             if (siteToSiteClient == null) {
-                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-                final Transaction transaction = Mockito.mock(Transaction.class);
+                final SiteToSiteClient client = mock(SiteToSiteClient.class);
+                final Transaction transaction = mock(Transaction.class);
 
                 assertDoesNotThrow(() -> {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                    doAnswer((Answer<Object>) invocation -> {
                         final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    }).when(transaction).send(any(byte[].class), any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                    when(client.createTransaction(any(TransferDirection.class))).thenReturn(transaction);
                 });
                 siteToSiteClient = client;
             }

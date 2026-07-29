@@ -32,6 +32,7 @@ import org.apache.nifi.controller.leader.election.TrackedLeaderElectionManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.ClientCnxnSocketNetty;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
@@ -581,8 +582,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
 
     public static class SecureClientZooKeeperFactory implements ZookeeperFactory {
 
-        public static final String NETTY_CLIENT_CNXN_SOCKET =
-            org.apache.zookeeper.ClientCnxnSocketNetty.class.getName();
+        public static final String NETTY_CLIENT_CNXN_SOCKET = ClientCnxnSocketNetty.class.getName();
 
         private final ZKClientConfig zkSecureClientConfig;
 

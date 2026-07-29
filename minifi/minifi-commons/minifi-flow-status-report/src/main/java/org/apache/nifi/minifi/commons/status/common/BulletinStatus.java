@@ -17,9 +17,10 @@
 
 package org.apache.nifi.minifi.commons.status.common;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class BulletinStatus implements java.io.Serializable {
+public class BulletinStatus implements Serializable {
     private Date timestamp;
     private String message;
 

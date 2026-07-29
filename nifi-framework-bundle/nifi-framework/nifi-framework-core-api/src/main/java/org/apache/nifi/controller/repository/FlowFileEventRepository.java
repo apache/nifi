@@ -27,7 +27,7 @@ public interface FlowFileEventRepository extends Closeable {
      * Updates the repository to include a new process session event
      *
      * @param event new event, including the identifier of the component that the event belongs to
-     * @throws java.io.IOException ioe
+     * @throws IOException ioe
      */
     void updateRepository(ProcessSessionEvent event) throws IOException;
 

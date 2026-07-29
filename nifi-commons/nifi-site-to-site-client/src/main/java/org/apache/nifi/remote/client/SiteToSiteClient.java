@@ -107,10 +107,10 @@ public interface SiteToSiteClient extends Closeable {
      *
      * @return a Transaction to use for sending or receiving data, or
      * <code>null</code> if all nodes are penalized.
-     * @throws org.apache.nifi.remote.exception.HandshakeException he
-     * @throws org.apache.nifi.remote.exception.PortNotRunningException pnre
+     * @throws HandshakeException he
+     * @throws PortNotRunningException pnre
      * @throws IOException ioe
-     * @throws org.apache.nifi.remote.exception.UnknownPortException upe
+     * @throws UnknownPortException upe
      */
     Transaction createTransaction(TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException;
 

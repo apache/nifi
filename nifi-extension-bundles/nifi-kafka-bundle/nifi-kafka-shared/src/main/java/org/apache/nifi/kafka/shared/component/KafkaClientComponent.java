@@ -126,7 +126,7 @@ public interface KafkaClientComponent {
             .displayName("AWS Profile Name")
             .description("The Amazon Web Services Profile to select when multiple profiles are available.")
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.SPECIFIED_PROFILE
             )
             .required(true)
@@ -139,7 +139,7 @@ public interface KafkaClientComponent {
             .description("The AWS Role ARN for cross-account access when using AWS MSK IAM. Used with Assume Role Session Name.")
             .required(true)
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.SPECIFIED_ROLE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
@@ -152,7 +152,7 @@ public interface KafkaClientComponent {
             .description("The AWS Role Session Name for cross-account access. Used in conjunction with Assume Role ARN.")
             .required(true)
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.SPECIFIED_ROLE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
@@ -166,7 +166,7 @@ public interface KafkaClientComponent {
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .build();

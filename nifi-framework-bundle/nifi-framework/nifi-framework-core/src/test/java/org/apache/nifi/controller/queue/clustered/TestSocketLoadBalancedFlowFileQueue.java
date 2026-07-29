@@ -48,7 +48,6 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -73,6 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -118,14 +118,14 @@ public class TestSocketLoadBalancedFlowFileQueue {
         nodeIds.add(createNodeIdentifier("11111111-1111-1111-1111-111111111111"));
         nodeIds.add(createNodeIdentifier("22222222-2222-2222-2222-222222222222"));
 
-        Mockito.doAnswer((Answer<Set<NodeIdentifier>>) invocation -> new HashSet<>(nodeIds)).when(clusterCoordinator).getNodeIdentifiers();
+        doAnswer((Answer<Set<NodeIdentifier>>) invocation -> new HashSet<>(nodeIds)).when(clusterCoordinator).getNodeIdentifiers();
 
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(localNodeIdentifier);
 
         doAnswer(invocation -> {
             clusterTopologyEventListener = invocation.getArgument(0);
             return null;
-        }).when(clusterCoordinator).registerEventListener(Mockito.any(ClusterTopologyEventListener.class));
+        }).when(clusterCoordinator).registerEventListener(any(ClusterTopologyEventListener.class));
 
         when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
         doAnswer((Answer<Object>) invocation -> {
@@ -134,13 +134,13 @@ public class TestSocketLoadBalancedFlowFileQueue {
                 provRecords.add(record);
             }
             return null;
-        }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
+        }).when(provRepo).registerEvents(any(Iterable.class));
 
         doAnswer((Answer<Object>) invocation -> {
             final Collection<RepositoryRecord> records = (Collection<RepositoryRecord>) invocation.getArguments()[0];
             repoRecords.addAll(records);
             return null;
-        }).when(flowFileRepo).updateRepository(Mockito.any(Collection.class));
+        }).when(flowFileRepo).updateRepository(any(Collection.class));
 
         final ProcessScheduler scheduler = mock(ProcessScheduler.class);
 
@@ -700,7 +700,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         queue.put(secondLocal);
         queue.put(remote);
 
-        final org.apache.nifi.controller.queue.FlowFileQueueSnapshot snapshot = queue.getQueueSnapshot();
+        final FlowFileQueueSnapshot snapshot = queue.getQueueSnapshot();
 
         assertEquals(3, snapshot.queueSize().getObjectCount());
         assertEquals(70L, snapshot.queueSize().getByteCount());
@@ -726,7 +726,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
             queue.put(new MockFlowFileRecord(1L));
         }
 
-        final org.apache.nifi.controller.queue.FlowFileQueueSnapshot initialSnapshot = queue.getQueueSnapshot();
+        final FlowFileQueueSnapshot initialSnapshot = queue.getQueueSnapshot();
         assertEquals(5, initialSnapshot.queueSize().getObjectCount());
         assertEquals(5, initialSnapshot.activeFlowFiles().size());
         assertEquals(initialSnapshot.queueSize().getObjectCount(), initialSnapshot.activeFlowFiles().size(),
@@ -758,7 +758,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         putThread.join(5_000L);
         assertTrue(putReturned.get(), "Put did not complete after the snapshot lock was released");
 
-        final org.apache.nifi.controller.queue.FlowFileQueueSnapshot afterPutSnapshot = queue.getQueueSnapshot();
+        final FlowFileQueueSnapshot afterPutSnapshot = queue.getQueueSnapshot();
         assertEquals(6, afterPutSnapshot.queueSize().getObjectCount());
         assertEquals(6, afterPutSnapshot.activeFlowFiles().size());
     }

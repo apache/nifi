@@ -92,7 +92,7 @@ public class AttributeRollingWindowIT {
 
         runner.assertQueueEmpty();
 
-        runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_FAILED_SET_STATE, 1);
+        runner.assertAllFlowFilesTransferred(REL_FAILED_SET_STATE, 1);
         MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(REL_FAILED_SET_STATE).getFirst();
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_VALUE_KEY);
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_COUNT_KEY);

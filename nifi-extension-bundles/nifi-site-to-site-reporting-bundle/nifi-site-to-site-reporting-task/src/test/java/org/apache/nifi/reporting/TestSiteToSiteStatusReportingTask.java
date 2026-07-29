@@ -44,7 +44,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
@@ -63,6 +62,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteStatusReportingTask {
@@ -77,23 +79,23 @@ public class TestSiteToSiteStatusReportingTask {
         }
         properties.putAll(customProperties);
 
-        context = Mockito.mock(ReportingContext.class);
-        Mockito.when(context.getStateManager())
+        context = mock(ReportingContext.class);
+        when(context.getStateManager())
                 .thenReturn(new MockStateManager(task));
-        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+        doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(context).getProperty(any(PropertyDescriptor.class));
 
-        final EventAccess eventAccess = Mockito.mock(EventAccess.class);
+        final EventAccess eventAccess = mock(EventAccess.class);
 
-        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
-        Mockito.when(eventAccess.getControllerStatus()).thenReturn(pgStatus);
+        when(context.getEventAccess()).thenReturn(eventAccess);
+        when(eventAccess.getControllerStatus()).thenReturn(pgStatus);
 
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
+        final ComponentLog logger = mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = mock(ReportingInitializationContext.class);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(logger);
         task.initialize(initContext);
 
         return task;
@@ -531,17 +533,17 @@ public class TestSiteToSiteStatusReportingTask {
         @Override
         public void setup(PropertyContext reportContext) {
             if (siteToSiteClient == null) {
-                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-                final Transaction transaction = Mockito.mock(Transaction.class);
+                final SiteToSiteClient client = mock(SiteToSiteClient.class);
+                final Transaction transaction = mock(Transaction.class);
 
                 assertDoesNotThrow(() -> {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                    doAnswer((Answer<Object>) invocation -> {
                         final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    }).when(transaction).send(any(byte[].class), any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                    when(client.createTransaction(any(TransferDirection.class))).thenReturn(transaction);
                 });
                 siteToSiteClient = client;
             }

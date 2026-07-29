@@ -45,6 +45,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -153,7 +154,7 @@ public class SplitXml extends AbstractProcessor {
 
         final AtomicBoolean failed = new AtomicBoolean(false);
         session.read(original, rawIn -> {
-            try (final InputStream in = new java.io.BufferedInputStream(rawIn)) {
+            try (final InputStream in = new BufferedInputStream(rawIn)) {
                 try {
                     final StandardInputSourceParser inputSourceParser = new StandardInputSourceParser();
                     inputSourceParser.setNamespaceAware(true);

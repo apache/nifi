@@ -107,7 +107,7 @@ public interface WriteAheadRepository<T> {
      *
      *
      * @return the number of records that were written to the new snapshot
-     * @throws java.io.IOException if failure during checkpoint
+     * @throws IOException if failure during checkpoint
      */
     int checkpoint() throws IOException;
 

@@ -20,6 +20,7 @@ import org.apache.nifi.registry.security.authorization.AccessPolicy;
 import org.apache.nifi.registry.security.authorization.RequestAction;
 import org.apache.nifi.registry.security.authorization.file.generated.Authorizations;
 import org.apache.nifi.registry.security.authorization.file.generated.Policies;
+import org.apache.nifi.registry.security.authorization.file.generated.Policy;
 import org.apache.nifi.registry.security.authorization.util.AccessPolicyProviderUtils;
 
 import java.util.Collections;
@@ -68,14 +69,14 @@ public class AuthorizationsHolder {
      * @param policies the JAXB Policies element
      * @return a set of AccessPolicies corresponding to the provided Resources
      */
-    private Set<AccessPolicy> createAccessPolicies(org.apache.nifi.registry.security.authorization.file.generated.Policies policies) {
+    private Set<AccessPolicy> createAccessPolicies(Policies policies) {
         Set<AccessPolicy> allPolicies = new HashSet<>();
         if (policies == null || policies.getPolicy() == null) {
             return allPolicies;
         }
 
         // load the new authorizations
-        for (final org.apache.nifi.registry.security.authorization.file.generated.Policy policy : policies.getPolicy()) {
+        for (final Policy policy : policies.getPolicy()) {
             final String policyIdentifier = policy.getIdentifier();
             final String resourceIdentifier = policy.getResource();
 
@@ -85,12 +86,12 @@ public class AuthorizationsHolder {
                     .resource(resourceIdentifier);
 
             // add each user identifier
-            for (org.apache.nifi.registry.security.authorization.file.generated.Policy.User user : policy.getUser()) {
+            for (Policy.User user : policy.getUser()) {
                 builder.addUser(user.getIdentifier());
             }
 
             // add each group identifier
-            for (org.apache.nifi.registry.security.authorization.file.generated.Policy.Group group : policy.getGroup()) {
+            for (Policy.Group group : policy.getGroup()) {
                 builder.addGroup(group.getIdentifier());
             }
 

@@ -80,7 +80,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             .name("AWS Web Identity Session Time")
             .description("Session time for AWS STS AssumeRoleWithWebIdentity (between 900 seconds and 3600 seconds).")
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .required(true)
@@ -93,7 +93,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             .name("AWS Web Identity STS Region")
             .description("Region identifier used for the AWS Security Token Service when exchanging Web Identity tokens.")
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .required(false)
@@ -104,7 +104,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             .name("AWS Web Identity STS Endpoint")
             .description("Optional endpoint override for the AWS Security Token Service.")
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .required(false)
@@ -116,7 +116,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             .description("SSL Context Service used when communicating with AWS STS for Web Identity federation.")
             .identifiesControllerService(SSLContextProvider.class)
             .dependsOn(
-                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .required(false)
@@ -134,10 +134,10 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
                 descriptors.remove();
                 // Add AWS MSK properties
                 descriptors.add(AWS_SASL_MECHANISM);
-                descriptors.add(KafkaClientComponent.AWS_ROLE_SOURCE);
-                descriptors.add(KafkaClientComponent.AWS_PROFILE_NAME);
-                descriptors.add(KafkaClientComponent.AWS_ASSUME_ROLE_ARN);
-                descriptors.add(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME);
+                descriptors.add(AWS_ROLE_SOURCE);
+                descriptors.add(AWS_PROFILE_NAME);
+                descriptors.add(AWS_ASSUME_ROLE_ARN);
+                descriptors.add(AWS_ASSUME_ROLE_SESSION_NAME);
                 descriptors.add(AWS_WEB_IDENTITY_TOKEN_PROVIDER);
                 descriptors.add(AWS_WEB_IDENTITY_SESSION_TIME);
                 descriptors.add(AWS_WEB_IDENTITY_STS_REGION);
@@ -158,7 +158,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        final AwsRoleSource roleSource = validationContext.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
+        final AwsRoleSource roleSource = validationContext.getProperty(AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
         if (roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN) {
             if (!validationContext.getProperty(AWS_WEB_IDENTITY_TOKEN_PROVIDER).isSet()) {
                 results.add(new ValidationResult.Builder()
@@ -194,7 +194,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
     }
 
     private void setAuthenticationProperties(final Properties properties, final PropertyContext propertyContext) {
-        final AwsRoleSource roleSource = propertyContext.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
+        final AwsRoleSource roleSource = propertyContext.getProperty(AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
         if (roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN) {
             final AwsCredentialsProvider credentialsProvider = createWebIdentityCredentialsProvider(propertyContext);
             properties.put(AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty(), credentialsProvider);
@@ -207,8 +207,8 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             throw new IllegalStateException("AWS Web Identity Token Provider is required when AWS Role Source is set to Web Identity Provider");
         }
 
-        final String roleArn = propertyContext.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
-        final String roleSessionName = propertyContext.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
+        final String roleArn = propertyContext.getProperty(AWS_ASSUME_ROLE_ARN).getValue();
+        final String roleSessionName = propertyContext.getProperty(AWS_ASSUME_ROLE_SESSION_NAME).getValue();
         final Long sessionTimeSeconds = propertyContext.getProperty(AWS_WEB_IDENTITY_SESSION_TIME).asTimePeriod(TimeUnit.SECONDS);
         final Integer sessionSeconds = sessionTimeSeconds == null ? null : sessionTimeSeconds.intValue();
         final String stsRegionId = propertyContext.getProperty(AWS_WEB_IDENTITY_STS_REGION).getValue();
@@ -351,8 +351,8 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
     public void migrateProperties(final PropertyConfiguration config) {
         // For backward compatibility: if an AWS Profile Name was configured previously,
         // set AWS Role Source to SPECIFIED_PROFILE
-        if (config.isPropertySet(KafkaClientComponent.AWS_PROFILE_NAME)) {
-            config.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.SPECIFIED_PROFILE.name());
+        if (config.isPropertySet(AWS_PROFILE_NAME)) {
+            config.setProperty(AWS_ROLE_SOURCE, AwsRoleSource.SPECIFIED_PROFILE.name());
         }
     }
 }

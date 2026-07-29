@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.processor;
 
-public class ProcessorStats implements java.io.Serializable {
+import java.io.Serializable;
+
+public class ProcessorStats implements Serializable {
 
     private int activeThreads;
     private int flowfilesReceived;

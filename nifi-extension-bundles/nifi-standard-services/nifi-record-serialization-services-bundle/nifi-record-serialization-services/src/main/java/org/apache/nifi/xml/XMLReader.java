@@ -54,10 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static org.apache.nifi.schema.inference.SchemaInferenceUtil.INFER_SCHEMA;
-import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
-import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
-
 @Tags({"xml", "record", "reader", "parser"})
 @CapabilityDescription("Reads XML content and creates Record objects. Records are expected in the second level of " +
         "XML data, embedded in an enclosing root tag.")
@@ -116,7 +112,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(false)
-            .dependsOn(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
+            .dependsOn(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA)
             .build();
 
     private volatile boolean parseXmlAttributes;
@@ -139,7 +135,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         config.renameProperty("attribute_prefix", ATTRIBUTE_PREFIX.getName());
         config.renameProperty("content_field_name", CONTENT_FIELD_NAME.getName());
         config.renameProperty("parse_xml_attributes", PARSE_XML_ATTRIBUTES.getName());
-        config.renameProperty(OBSOLETE_SCHEMA_CACHE, SCHEMA_CACHE.getName());
+        config.renameProperty(SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE, SchemaInferenceUtil.SCHEMA_CACHE.getName());
     }
 
     @Override
@@ -159,7 +155,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
-        allowableValues.add(INFER_SCHEMA);
+        allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
 
@@ -191,7 +187,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
 
     @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return INFER_SCHEMA;
+        return SchemaInferenceUtil.INFER_SCHEMA;
     }
 
     @Override

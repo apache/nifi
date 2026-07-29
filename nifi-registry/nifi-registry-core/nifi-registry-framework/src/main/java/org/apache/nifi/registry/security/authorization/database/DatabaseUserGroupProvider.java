@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.sql.DataSource;
 
 /**
- * Implementation of {@link org.apache.nifi.registry.security.authorization.ConfigurableUserGroupProvider} backed by a relational database.
+ * Implementation of {@link ConfigurableUserGroupProvider} backed by a relational database.
  */
 public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider {
 

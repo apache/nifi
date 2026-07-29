@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.flow.VersionedConnectorState;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -208,9 +209,9 @@ public interface ConnectorConfigurationProvider {
      * @param nifiUuid the NiFi-assigned UUID for this asset
      * @param assetName the filename of the asset (e.g., "postgresql-42.6.0.jar")
      * @param content the binary content of the asset
-     * @throws java.io.IOException if the asset cannot be stored
+     * @throws IOException if the asset cannot be stored
      */
-    void storeAsset(String connectorId, String nifiUuid, String assetName, InputStream content) throws java.io.IOException;
+    void storeAsset(String connectorId, String nifiUuid, String assetName, InputStream content) throws IOException;
 
     /**
      * Deletes an asset from the local {@link org.apache.nifi.asset.AssetManager} and from the

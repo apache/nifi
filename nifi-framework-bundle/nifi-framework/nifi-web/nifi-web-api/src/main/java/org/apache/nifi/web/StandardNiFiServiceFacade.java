@@ -4947,14 +4947,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * component hierarchy via the {@code findX} APIs first. This is required for
      * bulletins generated inside a connector's managed flow: the standard
      * {@link AuthorizableLookup} is backed by {@link org.apache.nifi.web.dao.impl.StandardProcessorDAO}
-     * (and its peers) which only walks the {@link org.apache.nifi.controller.flow.FlowManager}'s
+     * (and its peers) which only walks the {@link FlowManager}'s
      * root group, so any source that lives inside a connector's managed flow context
      * would otherwise resolve to {@link ResourceNotFoundException} and report
      * {@code canRead = false} for every bulletin -- preventing the canvas from
      * rendering bulletin icons for the connector's components and child groups.
      * Resolving via the live group preserves the source's authorizable parent chain
      * (which terminates at the connector node via
-     * {@link org.apache.nifi.groups.ProcessGroup#setExplicitParentAuthorizable(Authorizable)}),
+     * {@link ProcessGroup#setExplicitParentAuthorizable(Authorizable)}),
      * so READ on the connector correctly grants READ on its inner bulletins.</p>
      *
      * <p>The fallback to {@code authorizableLookup} handles source types that are

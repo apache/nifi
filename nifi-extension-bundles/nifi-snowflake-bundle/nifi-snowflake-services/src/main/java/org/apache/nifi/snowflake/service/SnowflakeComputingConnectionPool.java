@@ -132,13 +132,13 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_USER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(DBCPProperties.DB_USER)
+            .fromPropertyDescriptor(DB_USER)
             .displayName("Username")
             .description("The Snowflake user name.")
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_PASSWORD = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(DBCPProperties.DB_PASSWORD)
+            .fromPropertyDescriptor(DB_PASSWORD)
             .description("The password for the Snowflake user.")
             .build();
 

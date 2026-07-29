@@ -60,7 +60,6 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -750,7 +749,7 @@ public class JdbcCommon {
             final String sqlArgumentFormat = attributes.containsKey(sqlArgumentFormatAttributeName) ? attributes.get(sqlArgumentFormatAttributeName).getValue() : "";
 
             try {
-                JdbcCommon.setParameter(stmt, sqlArgumentIndex, sqlArgumentValue, sqlType, sqlArgumentFormat);
+                setParameter(stmt, sqlArgumentIndex, sqlArgumentValue, sqlType, sqlArgumentFormat);
             } catch (final NumberFormatException nfe) {
                 throw new SQLDataException("The value of the " + sqlArgumentValueAttributeName + " is '" + sqlArgumentLogValue + "', which cannot be converted into the necessary data type", nfe);
             } catch (ParseException pe) {
@@ -778,36 +777,36 @@ public class JdbcCommon {
             stmt.setNull(parameterIndex, jdbcType);
         } else {
             switch (jdbcType) {
-                case Types.BIT:
+                case BIT:
                     stmt.setBoolean(parameterIndex, "1".equals(parameterValue) || "t".equalsIgnoreCase(parameterValue) || Boolean.parseBoolean(parameterValue));
                     break;
-                case Types.BOOLEAN:
+                case BOOLEAN:
                     stmt.setBoolean(parameterIndex, Boolean.parseBoolean(parameterValue));
                     break;
-                case Types.TINYINT:
+                case TINYINT:
                     stmt.setByte(parameterIndex, Byte.parseByte(parameterValue));
                     break;
-                case Types.SMALLINT:
+                case SMALLINT:
                     stmt.setShort(parameterIndex, Short.parseShort(parameterValue));
                     break;
-                case Types.INTEGER:
+                case INTEGER:
                     stmt.setInt(parameterIndex, Integer.parseInt(parameterValue));
                     break;
-                case Types.BIGINT:
+                case BIGINT:
                     stmt.setLong(parameterIndex, Long.parseLong(parameterValue));
                     break;
-                case Types.REAL:
+                case REAL:
                     stmt.setFloat(parameterIndex, Float.parseFloat(parameterValue));
                     break;
-                case Types.FLOAT:
-                case Types.DOUBLE:
+                case FLOAT:
+                case DOUBLE:
                     stmt.setDouble(parameterIndex, Double.parseDouble(parameterValue));
                     break;
-                case Types.DECIMAL:
-                case Types.NUMERIC:
+                case DECIMAL:
+                case NUMERIC:
                     stmt.setBigDecimal(parameterIndex, new BigDecimal(parameterValue));
                     break;
-                case Types.DATE:
+                case DATE:
                     java.sql.Date date;
 
                     if (valueFormat.equals("")) {
@@ -825,7 +824,7 @@ public class JdbcCommon {
 
                     stmt.setDate(parameterIndex, date);
                     break;
-                case Types.TIME:
+                case TIME:
                     Time time;
 
                     if (valueFormat.equals("")) {
@@ -845,7 +844,7 @@ public class JdbcCommon {
 
                     stmt.setTime(parameterIndex, time);
                     break;
-                case Types.TIMESTAMP:
+                case TIMESTAMP:
                     Timestamp ts;
 
                     // Backwards compatibility note: Format was unsupported for a timestamp field.
@@ -866,9 +865,9 @@ public class JdbcCommon {
 
                     stmt.setTimestamp(parameterIndex, ts);
                     break;
-                case Types.BINARY:
-                case Types.VARBINARY:
-                case Types.LONGVARBINARY:
+                case BINARY:
+                case VARBINARY:
+                case LONGVARBINARY:
                     byte[] bValue;
 
                     switch (valueFormat) {
@@ -897,18 +896,18 @@ public class JdbcCommon {
                     }
 
                     break;
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.LONGNVARCHAR:
-                case Types.LONGVARCHAR:
+                case CHAR:
+                case VARCHAR:
+                case LONGNVARCHAR:
+                case LONGVARCHAR:
                     stmt.setString(parameterIndex, parameterValue);
                     break;
-                case Types.CLOB:
+                case CLOB:
                     try (final StringReader reader = new StringReader(parameterValue)) {
                         stmt.setCharacterStream(parameterIndex, reader);
                     }
                     break;
-                case Types.NCLOB:
+                case NCLOB:
                     try (final StringReader reader = new StringReader(parameterValue)) {
                         stmt.setNCharacterStream(parameterIndex, reader);
                     }

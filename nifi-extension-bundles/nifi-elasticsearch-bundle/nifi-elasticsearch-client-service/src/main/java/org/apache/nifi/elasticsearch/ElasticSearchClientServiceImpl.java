@@ -257,10 +257,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                             Incorrect/invalid %s.
                             The HTTP Hosts should be valid URIs including protocol, domain and port for each entry.
                             For example "https://elasticsearch1:9200, https://elasticsearch2:9200".
-                            """.formatted(ElasticSearchClientService.HTTP_HOSTS.getDisplayName()));
+                            """.formatted(HTTP_HOSTS.getDisplayName()));
         } catch (final InitializationException ie) {
             clientSetupResult.outcome(ConfigVerificationResult.Outcome.FAILED)
-                    .explanation("Incorrect/invalid " + ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName());
+                    .explanation("Incorrect/invalid " + PROP_SSL_CONTEXT_SERVICE.getDisplayName());
         } catch (final Exception ex) {
             getLogger().warn("Unable to setup Elasticsearch Rest Client", ex);
 

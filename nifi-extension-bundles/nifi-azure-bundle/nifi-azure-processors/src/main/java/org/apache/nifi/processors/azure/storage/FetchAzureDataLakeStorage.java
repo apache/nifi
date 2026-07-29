@@ -48,14 +48,6 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
-
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
 @CapabilityDescription("Fetch the specified file from Azure Data Lake Storage")
@@ -124,10 +116,10 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
-            FILE,
+            AzureStorageUtils.ADLS_CREDENTIALS_SERVICE,
+            AzureStorageUtils.FILESYSTEM,
+            AzureStorageUtils.DIRECTORY,
+            AzureStorageUtils.FILE,
             RANGE_START,
             RANGE_LENGTH,
             NUM_RETRIES,
@@ -155,16 +147,16 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             final DownloadRetryOptions retryOptions = new DownloadRetryOptions();
             retryOptions.setMaxRetryRequests(numRetries);
 
-            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, flowFile);
-            final String directory = evaluateDirectoryProperty(DIRECTORY, context, flowFile);
-            final String fileName = evaluateFileProperty(context, flowFile);
+            final String fileSystem = AzureStorageUtils.evaluateFileSystemProperty(AzureStorageUtils.FILESYSTEM, context, flowFile);
+            final String directory = AzureStorageUtils.evaluateDirectoryProperty(AzureStorageUtils.DIRECTORY, context, flowFile);
+            final String fileName = AzureStorageUtils.evaluateFileProperty(context, flowFile);
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
             final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
 
             if (fileClient.getProperties().isDirectory()) {
-                throw new ProcessException(FILE.getDisplayName() + " (" + fileName + ") points to a directory. Full path: " + fileClient.getFilePath());
+                throw new ProcessException(AzureStorageUtils.FILE.getDisplayName() + " (" + fileName + ") points to a directory. Full path: " + fileClient.getFilePath());
             }
 
             flowFile = session.write(flowFile, os -> fileClient.readWithResponse(os, fileRange, retryOptions, null, false, null, Context.NONE));
@@ -193,8 +185,8 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
-        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
-        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName());
         config.renameProperty("number-of-retries", NUM_RETRIES.getName());
         config.renameProperty("range-start", RANGE_START.getName());
         config.renameProperty("range-length", RANGE_LENGTH.getName());

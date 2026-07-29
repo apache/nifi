@@ -443,7 +443,7 @@ public class TestAbstractComponentNode {
         when(context.getProperties()).thenReturn(properties);
         final PropertyValue propertyValue = mock(PropertyValue.class);
         when(propertyValue.getValue()).thenReturn(serviceIdentifier);
-        when(context.getProperty(Mockito.eq(property))).thenReturn(propertyValue);
+        when(context.getProperty(eq(property))).thenReturn(propertyValue);
         when(context.isDependencySatisfied(any(PropertyDescriptor.class), any(Function.class))).thenReturn(true);
         return context;
     }

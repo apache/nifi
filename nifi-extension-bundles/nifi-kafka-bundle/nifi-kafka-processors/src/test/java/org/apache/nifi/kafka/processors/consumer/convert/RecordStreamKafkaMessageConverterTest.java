@@ -30,7 +30,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -47,12 +46,13 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 class RecordStreamKafkaMessageConverterTest {
 
-    private final RecordSetWriterFactory writerFactory = Mockito.mock(RecordSetWriterFactory.class, Mockito.withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
+    private final RecordSetWriterFactory writerFactory = mock(RecordSetWriterFactory.class, withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
     private final ComponentLog logger = mock(ComponentLog.class);
-    private final ProcessSession session = Mockito.mock(ProcessSession.class, Mockito.withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
+    private final ProcessSession session = mock(ProcessSession.class, withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
 
     private final OffsetTracker offsetTracker = new OffsetTracker();
 

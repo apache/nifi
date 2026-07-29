@@ -121,7 +121,7 @@ public class SiteToSiteUtils {
             .build();
 
     public static SiteToSiteClient getClient(PropertyContext reportContext, ComponentLog logger, StateManager stateManager) {
-        final SSLContextProvider sslContextProvider = reportContext.getProperty(SiteToSiteUtils.SSL_CONTEXT).asControllerService(SSLContextProvider.class);
+        final SSLContextProvider sslContextProvider = reportContext.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
         final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
         final SiteToSiteEventReporter eventReporter = (severity, category, message) -> {
             switch (severity) {
@@ -135,13 +135,13 @@ public class SiteToSiteUtils {
                     break;
             }
         };
-        final String destinationUrl = reportContext.getProperty(SiteToSiteUtils.DESTINATION_URL).evaluateAttributeExpressions().getValue();
+        final String destinationUrl = reportContext.getProperty(DESTINATION_URL).evaluateAttributeExpressions().getValue();
 
-        final SiteToSiteTransportProtocol mode = SiteToSiteTransportProtocol.valueOf(reportContext.getProperty(SiteToSiteUtils.TRANSPORT_PROTOCOL).getValue());
+        final SiteToSiteTransportProtocol mode = SiteToSiteTransportProtocol.valueOf(reportContext.getProperty(TRANSPORT_PROTOCOL).getValue());
 
         HttpProxy httpProxy = null;
         if (mode == SiteToSiteTransportProtocol.HTTP) {
-            final ProxyConfigurationService proxyConfigurationService = reportContext.getProperty(SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+            final ProxyConfigurationService proxyConfigurationService = reportContext.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
             if (proxyConfigurationService != null) {
                 final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
                 if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
@@ -157,11 +157,11 @@ public class SiteToSiteUtils {
         }
         return new SiteToSiteClient.Builder()
                 .urls(ClusterUrlParser.parseClusterUrls(destinationUrl))
-                .portName(reportContext.getProperty(SiteToSiteUtils.PORT_NAME).getValue())
-                .useCompression(reportContext.getProperty(SiteToSiteUtils.COMPRESS).asBoolean())
+                .portName(reportContext.getProperty(PORT_NAME).getValue())
+                .useCompression(reportContext.getProperty(COMPRESS).asBoolean())
                 .eventReporter(eventReporter)
                 .sslContext(sslContext)
-                .timeout(reportContext.getProperty(SiteToSiteUtils.TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+                .timeout(reportContext.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(mode)
                 .httpProxy(httpProxy)
                 .stateManager(stateManager)

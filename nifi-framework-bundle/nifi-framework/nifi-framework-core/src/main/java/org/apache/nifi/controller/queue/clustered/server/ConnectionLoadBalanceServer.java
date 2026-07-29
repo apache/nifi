@@ -212,8 +212,8 @@ public class ConnectionLoadBalanceServer {
 
         /**
          * Determines how to record the TLS-related error
-         * ({@link org.apache.nifi.security.util.TlsException}, {@link SSLPeerUnverifiedException},
-         * {@link java.security.cert.CertificateException}, etc.) to the log, based on how recently it was last seen.
+         * ({@link TlsException}, {@link SSLPeerUnverifiedException},
+         * {@link CertificateException}, etc.) to the log, based on how recently it was last seen.
          *
          * @param channelDescription the channel's String representation for the log message
          * @param e               the exception

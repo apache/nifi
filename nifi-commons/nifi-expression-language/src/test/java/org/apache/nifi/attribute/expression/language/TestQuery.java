@@ -28,7 +28,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -454,7 +454,7 @@ public class TestQuery {
 
         // Unquoted parameter used within a function argument
         parameters.put("Date Format", "yyyy");
-        final String expectedYear = String.valueOf(java.time.LocalDate.now().getYear());
+        final String expectedYear = String.valueOf(LocalDate.now().getYear());
         verifyEquals("${now():format(#{Date Format})}", attributes, stateValues, parameters, expectedYear);
     }
 
@@ -2670,7 +2670,7 @@ public class TestQuery {
 
         AttributeExpressionLanguageException thrown = assertThrows(AttributeExpressionLanguageException.class,
                 () -> verifyEquals("${getUri('https', 'admin:admin', 'nifi.apache.org', 'notANumber', '/path/data ', 'key=value&key2=value2', 'frag1')}", null, ""));
-        Assertions.assertEquals("Could not evaluate 'getUri' function with argument 'notANumber' which is not a number", thrown.getMessage());
+        assertEquals("Could not evaluate 'getUri' function with argument 'notANumber' which is not a number", thrown.getMessage());
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

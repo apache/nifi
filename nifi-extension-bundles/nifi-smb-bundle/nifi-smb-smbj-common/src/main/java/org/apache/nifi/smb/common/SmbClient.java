@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Extends {@link com.hierynomus.smbj.SMBClient} with connection health check.
+ * Extends {@link SMBClient} with connection health check.
  * <br/>
  * Workaround to https://github.com/hierynomus/smbj/issues/796.
  * <br/><br/>

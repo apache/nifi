@@ -40,6 +40,7 @@ import org.apache.nifi.processors.iceberg.record.DelegatedRecord;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.services.iceberg.IcebergCatalog;
 import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.nifi.services.iceberg.IcebergWriter;
@@ -233,7 +234,7 @@ public class PutIcebergRecord extends AbstractProcessor {
             final Types.StructType struct,
             final AtomicLong recordsProcessed
     ) throws IOException, MalformedRecordException {
-        org.apache.nifi.serialization.record.Record inputRecord = recordReader.nextRecord();
+        Record inputRecord = recordReader.nextRecord();
         while (inputRecord != null) {
             final DelegatedRecord delegatedRecord = new DelegatedRecord(inputRecord, struct);
             // Write Records to storage based on Iceberg Table configuration

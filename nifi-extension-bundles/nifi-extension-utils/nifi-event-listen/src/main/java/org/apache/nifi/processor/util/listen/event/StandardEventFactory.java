@@ -30,9 +30,9 @@ public class StandardEventFactory<T extends Event<?>> implements EventFactory<St
     public StandardEvent create(final byte[] data, final Map<String, String> metadata, final ChannelResponder responder) {
         String sender = null;
         String senderPort = null;
-        if (metadata != null && metadata.containsKey(EventFactory.SENDER_KEY)) {
-            sender = metadata.get(EventFactory.SENDER_KEY);
-            senderPort = metadata.get(EventFactory.SENDER_PORT_KEY);
+        if (metadata != null && metadata.containsKey(SENDER_KEY)) {
+            sender = metadata.get(SENDER_KEY);
+            senderPort = metadata.get(SENDER_PORT_KEY);
         }
         return new StandardEvent(sender, senderPort, data, responder);
     }

@@ -21,7 +21,7 @@ import com.azure.core.http.ProxyOptions;
 import java.util.Objects;
 
 /**
- * Utility class implementing equals and hashCode methods for {@link com.azure.core.http.ProxyOptions}.
+ * Utility class implementing equals and hashCode methods for {@link ProxyOptions}.
  */
 public final class ProxyOptionsUtils {
 

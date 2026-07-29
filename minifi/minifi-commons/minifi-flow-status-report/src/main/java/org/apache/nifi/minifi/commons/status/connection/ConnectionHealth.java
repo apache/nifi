@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.connection;
 
-public class ConnectionHealth implements java.io.Serializable {
+import java.io.Serializable;
+
+public class ConnectionHealth implements Serializable {
     private int queuedCount;
     private long queuedBytes;
 

@@ -75,7 +75,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @return connection
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
             + "execution(org.apache.nifi.connectable.Connection createConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO))")

@@ -47,7 +47,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
@@ -79,6 +78,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @Timeout(30)
@@ -147,9 +147,9 @@ public class TestPutTCP {
     public void testRunSuccessSslContextService() throws Exception {
         final SSLContext sslContext = getSslContext();
         final String identifier = SSLContextProvider.class.getName();
-        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
-        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(identifier);
-        Mockito.when(sslContextProvider.createContext()).thenReturn(sslContext);
+        final SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn(identifier);
+        when(sslContextProvider.createContext()).thenReturn(sslContext);
         runner.addControllerService(identifier, sslContextProvider);
         runner.enableControllerService(sslContextProvider);
         runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, identifier);

@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.connection;
 
-public class ConnectionStats implements java.io.Serializable {
+import java.io.Serializable;
+
+public class ConnectionStats implements Serializable {
     private int inputCount;
     private long inputBytes;
     private int outputCount;

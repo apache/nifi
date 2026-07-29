@@ -89,8 +89,8 @@ public class ScriptingComponentUtils {
 
         final String term = context.getSearchTerm();
 
-        final ResourceReference scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().asResource();
-        String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
+        final ResourceReference scriptFile = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().asResource();
+        String script = context.getProperty(SCRIPT_BODY).getValue();
 
         if (StringUtils.isBlank(script) && scriptFile == null) {
             return results;

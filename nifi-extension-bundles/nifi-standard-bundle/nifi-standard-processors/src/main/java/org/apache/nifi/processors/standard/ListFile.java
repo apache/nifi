@@ -34,7 +34,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -239,7 +238,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             "this property will result in less heap utilization, while a larger value may provide more accurate insights into how the disk access operations are performing")
         .required(true)
         .addValidator(POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .expressionLanguageSupported(ENVIRONMENT)
         .defaultValue("100000")
         .build();
 

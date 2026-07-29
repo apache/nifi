@@ -109,7 +109,7 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
                     .build());
         } else {
             // Iterate over dynamic properties, validating only newly added schemas, and adding results
-            schemaVersion = SchemaVersion.valueOf(validationContext.getProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION).getValue());
+            schemaVersion = SchemaVersion.valueOf(validationContext.getProperty(SCHEMA_VERSION).getValue());
             validationContext.getProperties().entrySet().stream()
                     .filter(entry -> entry.getKey().isDynamic() && !jsonSchemas.containsKey(entry.getKey().getName()))
                     .forEach(entry -> {

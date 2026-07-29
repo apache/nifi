@@ -72,7 +72,7 @@ public class TestFetchS3Object {
     @BeforeEach
     public void setUp() {
         mockS3Client = mock(S3Client.class);
-        Mockito.when(mockS3Client.utilities()).thenReturn(S3Utilities.builder().region(Region.US_WEST_2).build());
+        when(mockS3Client.utilities()).thenReturn(S3Utilities.builder().region(Region.US_WEST_2).build());
         mockFetchS3Object = new FetchS3Object() {
             @Override
             protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {

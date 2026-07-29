@@ -92,8 +92,8 @@ public final class NarClassLoaders {
      *
      * @param frameworkWorkingDir where to find framework artifacts
      * @param extensionsWorkingDir where to find extension artifacts
-     * @throws java.io.IOException if any issue occurs while exploding nar working directories.
-     * @throws java.lang.ClassNotFoundException if unable to load class definition
+     * @throws IOException if any issue occurs while exploding nar working directories.
+     * @throws ClassNotFoundException if unable to load class definition
      * @throws IllegalStateException already initialized with a given pair of
      * directories cannot reinitialize or use a different pair of directories.
      */
@@ -120,8 +120,8 @@ public final class NarClassLoaders {
      * @param rootClassloader the root classloader to use for booting Jetty
      * @param frameworkWorkingDir where to find framework artifacts
      * @param extensionsWorkingDir where to find extension artifacts
-     * @throws java.io.IOException if any issue occurs while exploding nar working directories.
-     * @throws java.lang.ClassNotFoundException if unable to load class definition
+     * @throws IOException if any issue occurs while exploding nar working directories.
+     * @throws ClassNotFoundException if unable to load class definition
      * @throws IllegalStateException already initialized with a given pair of
      * directories cannot reinitialize or use a different pair of directories.
      */

@@ -204,7 +204,7 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
             attributes.put("box.template.name", templateName);
             attributes.put("box.template.key", templateKey);
             attributes.put("box.template.scope", SCOPE_ENTERPRISE);
-            attributes.put("box.template.fields.count", String.valueOf(fields.size()));
+            attributes.put("box.template.fields.count", valueOf(fields.size()));
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().create(flowFile, "Created Box metadata template: " + templateName);
@@ -298,7 +298,7 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
                                              final List<MetadataTemplate.Field> fields) {
         MetadataTemplate.createMetadataTemplate(
                 boxAPIConnection,
-                CreateBoxMetadataTemplate.SCOPE_ENTERPRISE,
+                SCOPE_ENTERPRISE,
                 templateKey,
                 templateName,
                 isHidden,

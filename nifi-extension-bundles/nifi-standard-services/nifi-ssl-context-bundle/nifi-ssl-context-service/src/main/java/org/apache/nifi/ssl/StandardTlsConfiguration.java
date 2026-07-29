@@ -310,7 +310,7 @@ class StandardTlsConfiguration implements TlsConfiguration {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        org.apache.nifi.security.util.TlsConfiguration that = (org.apache.nifi.security.util.TlsConfiguration) o;
+        TlsConfiguration that = (TlsConfiguration) o;
         return Objects.equals(keystorePath, that.getKeystorePath())
                 && Objects.equals(keystorePassword, that.getKeystorePassword())
                 && Objects.equals(keyPassword, that.getKeyPassword())

@@ -28,7 +28,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -167,7 +166,7 @@ public class ListSmbIT extends SambaTestContainers {
                 .map(attributes -> attributes.get("filename"))
                 .collect(toSet());
 
-        assertEquals(new HashSet<>(Arrays.asList("file_name")), fileNames);
+        assertEquals(Set.of("file_name"), fileNames);
 
         testRunner.assertValid();
         testRunner.disableControllerService(smbjClientProviderService);

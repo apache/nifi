@@ -277,56 +277,56 @@ public class RedisUtils {
             .build();
 
     public static final List<PropertyDescriptor> REDIS_CONNECTION_PROPERTY_DESCRIPTORS = List.of(
-        RedisUtils.REDIS_MODE,
-        RedisUtils.CONNECTION_STRING,
-        RedisUtils.DATABASE,
-        RedisUtils.COMMUNICATION_TIMEOUT,
-        RedisUtils.CLUSTER_MAX_REDIRECTS,
-        RedisUtils.SENTINEL_MASTER,
-        RedisUtils.USERNAME,
-        RedisUtils.PASSWORD,
-        RedisUtils.SENTINEL_USERNAME,
-        RedisUtils.SENTINEL_PASSWORD,
-        RedisUtils.SSL_CONTEXT_SERVICE,
-        RedisUtils.POOL_MAX_TOTAL,
-        RedisUtils.POOL_MAX_IDLE,
-        RedisUtils.POOL_MIN_IDLE,
-        RedisUtils.POOL_BLOCK_WHEN_EXHAUSTED,
-        RedisUtils.POOL_MAX_WAIT_TIME,
-        RedisUtils.POOL_MIN_EVICTABLE_IDLE_TIME,
-        RedisUtils.POOL_TIME_BETWEEN_EVICTION_RUNS,
-        RedisUtils.POOL_NUM_TESTS_PER_EVICTION_RUN,
-        RedisUtils.POOL_TEST_ON_CREATE,
-        RedisUtils.POOL_TEST_ON_BORROW,
-        RedisUtils.POOL_TEST_ON_RETURN,
-        RedisUtils.POOL_TEST_WHILE_IDLE
+        REDIS_MODE,
+        CONNECTION_STRING,
+        DATABASE,
+        COMMUNICATION_TIMEOUT,
+        CLUSTER_MAX_REDIRECTS,
+        SENTINEL_MASTER,
+        USERNAME,
+        PASSWORD,
+        SENTINEL_USERNAME,
+        SENTINEL_PASSWORD,
+        SSL_CONTEXT_SERVICE,
+        POOL_MAX_TOTAL,
+        POOL_MAX_IDLE,
+        POOL_MIN_IDLE,
+        POOL_BLOCK_WHEN_EXHAUSTED,
+        POOL_MAX_WAIT_TIME,
+        POOL_MIN_EVICTABLE_IDLE_TIME,
+        POOL_TIME_BETWEEN_EVICTION_RUNS,
+        POOL_NUM_TESTS_PER_EVICTION_RUN,
+        POOL_TEST_ON_CREATE,
+        POOL_TEST_ON_BORROW,
+        POOL_TEST_ON_RETURN,
+        POOL_TEST_WHILE_IDLE
     );
 
     public static RedisConfig createRedisConfig(final PropertyContext context) {
-        final RedisType redisType = RedisType.fromDisplayName(context.getProperty(RedisUtils.REDIS_MODE).getValue());
-        final String connectString =   context.getProperty(RedisUtils.CONNECTION_STRING).evaluateAttributeExpressions().getValue();
+        final RedisType redisType = RedisType.fromDisplayName(context.getProperty(REDIS_MODE).getValue());
+        final String connectString =   context.getProperty(CONNECTION_STRING).evaluateAttributeExpressions().getValue();
 
         final RedisConfig redisConfig = new RedisConfig(redisType, connectString);
-        redisConfig.setSentinelMaster(context.getProperty(RedisUtils.SENTINEL_MASTER).evaluateAttributeExpressions().getValue());
-        redisConfig.setDbIndex(context.getProperty(RedisUtils.DATABASE).evaluateAttributeExpressions().asInteger());
-        redisConfig.setUsername(context.getProperty(RedisUtils.USERNAME).evaluateAttributeExpressions().getValue());
-        redisConfig.setPassword(context.getProperty(RedisUtils.PASSWORD).evaluateAttributeExpressions().getValue());
-        redisConfig.setSentinelUsername(context.getProperty(RedisUtils.SENTINEL_USERNAME).evaluateAttributeExpressions().getValue());
-        redisConfig.setSentinelPassword(context.getProperty(RedisUtils.SENTINEL_PASSWORD).evaluateAttributeExpressions().getValue());
-        redisConfig.setTimeout(context.getProperty(RedisUtils.COMMUNICATION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-        redisConfig.setClusterMaxRedirects(context.getProperty(RedisUtils.CLUSTER_MAX_REDIRECTS).asInteger());
-        redisConfig.setPoolMaxTotal(context.getProperty(RedisUtils.POOL_MAX_TOTAL).asInteger());
-        redisConfig.setPoolMaxIdle(context.getProperty(RedisUtils.POOL_MAX_IDLE).asInteger());
-        redisConfig.setPoolMinIdle(context.getProperty(RedisUtils.POOL_MIN_IDLE).asInteger());
-        redisConfig.setBlockWhenExhausted(context.getProperty(RedisUtils.POOL_BLOCK_WHEN_EXHAUSTED).asBoolean());
-        redisConfig.setMaxWaitTime(Duration.ofMillis(context.getProperty(RedisUtils.POOL_MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
-        redisConfig.setMinEvictableIdleDuration(Duration.ofMillis(context.getProperty(RedisUtils.POOL_MIN_EVICTABLE_IDLE_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
-        redisConfig.setTimeBetweenEvictionRuns(Duration.ofMillis(context.getProperty(RedisUtils.POOL_TIME_BETWEEN_EVICTION_RUNS).asTimePeriod(TimeUnit.MILLISECONDS)));
-        redisConfig.setNumTestsPerEvictionRun(context.getProperty(RedisUtils.POOL_NUM_TESTS_PER_EVICTION_RUN).asInteger());
-        redisConfig.setTestOnCreate(context.getProperty(RedisUtils.POOL_TEST_ON_CREATE).asBoolean());
-        redisConfig.setTestOnBorrow(context.getProperty(RedisUtils.POOL_TEST_ON_BORROW).asBoolean());
-        redisConfig.setTestOnReturn(context.getProperty(RedisUtils.POOL_TEST_ON_RETURN).asBoolean());
-        redisConfig.setTestWhenIdle(context.getProperty(RedisUtils.POOL_TEST_WHILE_IDLE).asBoolean());
+        redisConfig.setSentinelMaster(context.getProperty(SENTINEL_MASTER).evaluateAttributeExpressions().getValue());
+        redisConfig.setDbIndex(context.getProperty(DATABASE).evaluateAttributeExpressions().asInteger());
+        redisConfig.setUsername(context.getProperty(USERNAME).evaluateAttributeExpressions().getValue());
+        redisConfig.setPassword(context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue());
+        redisConfig.setSentinelUsername(context.getProperty(SENTINEL_USERNAME).evaluateAttributeExpressions().getValue());
+        redisConfig.setSentinelPassword(context.getProperty(SENTINEL_PASSWORD).evaluateAttributeExpressions().getValue());
+        redisConfig.setTimeout(context.getProperty(COMMUNICATION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        redisConfig.setClusterMaxRedirects(context.getProperty(CLUSTER_MAX_REDIRECTS).asInteger());
+        redisConfig.setPoolMaxTotal(context.getProperty(POOL_MAX_TOTAL).asInteger());
+        redisConfig.setPoolMaxIdle(context.getProperty(POOL_MAX_IDLE).asInteger());
+        redisConfig.setPoolMinIdle(context.getProperty(POOL_MIN_IDLE).asInteger());
+        redisConfig.setBlockWhenExhausted(context.getProperty(POOL_BLOCK_WHEN_EXHAUSTED).asBoolean());
+        redisConfig.setMaxWaitTime(Duration.ofMillis(context.getProperty(POOL_MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
+        redisConfig.setMinEvictableIdleDuration(Duration.ofMillis(context.getProperty(POOL_MIN_EVICTABLE_IDLE_TIME).asTimePeriod(TimeUnit.MILLISECONDS)));
+        redisConfig.setTimeBetweenEvictionRuns(Duration.ofMillis(context.getProperty(POOL_TIME_BETWEEN_EVICTION_RUNS).asTimePeriod(TimeUnit.MILLISECONDS)));
+        redisConfig.setNumTestsPerEvictionRun(context.getProperty(POOL_NUM_TESTS_PER_EVICTION_RUN).asInteger());
+        redisConfig.setTestOnCreate(context.getProperty(POOL_TEST_ON_CREATE).asBoolean());
+        redisConfig.setTestOnBorrow(context.getProperty(POOL_TEST_ON_BORROW).asBoolean());
+        redisConfig.setTestOnReturn(context.getProperty(POOL_TEST_ON_RETURN).asBoolean());
+        redisConfig.setTestWhenIdle(context.getProperty(POOL_TEST_WHILE_IDLE).asBoolean());
         return redisConfig;
     }
 
@@ -460,21 +460,21 @@ public class RedisUtils {
     public static List<ValidationResult> validate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final String redisMode = validationContext.getProperty(RedisUtils.REDIS_MODE).getValue();
-        final String connectionString = validationContext.getProperty(RedisUtils.CONNECTION_STRING).evaluateAttributeExpressions().getValue();
-        final Integer dbIndex = validationContext.getProperty(RedisUtils.DATABASE).evaluateAttributeExpressions().asInteger();
+        final String redisMode = validationContext.getProperty(REDIS_MODE).getValue();
+        final String connectionString = validationContext.getProperty(CONNECTION_STRING).evaluateAttributeExpressions().getValue();
+        final Integer dbIndex = validationContext.getProperty(DATABASE).evaluateAttributeExpressions().asInteger();
 
         if (StringUtils.isBlank(connectionString)) {
             results.add(new ValidationResult.Builder()
-                    .subject(RedisUtils.CONNECTION_STRING.getDisplayName())
+                    .subject(CONNECTION_STRING.getDisplayName())
                     .valid(false)
                     .explanation("Connection String cannot be blank")
                     .build());
-        } else if (RedisUtils.REDIS_MODE_STANDALONE.getValue().equals(redisMode)) {
+        } else if (REDIS_MODE_STANDALONE.getValue().equals(redisMode)) {
             final String[] hostAndPort = connectionString.split("[:]");
             if (hostAndPort == null || hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
                 results.add(new ValidationResult.Builder()
-                        .subject(RedisUtils.CONNECTION_STRING.getDisplayName())
+                        .subject(CONNECTION_STRING.getDisplayName())
                         .input(connectionString)
                         .valid(false)
                         .explanation("Standalone Connection String must be in the form host:port")
@@ -485,7 +485,7 @@ public class RedisUtils {
                 final String[] hostAndPort = connection.split("[:]");
                 if (hostAndPort == null || hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
                     results.add(new ValidationResult.Builder()
-                            .subject(RedisUtils.CONNECTION_STRING.getDisplayName())
+                            .subject(CONNECTION_STRING.getDisplayName())
                             .input(connection)
                             .valid(false)
                             .explanation("Connection String must be in the form host:port,host:port,host:port,etc.")
@@ -494,19 +494,19 @@ public class RedisUtils {
             }
         }
 
-        if (RedisUtils.REDIS_MODE_CLUSTER.getValue().equals(redisMode) && dbIndex > 0) {
+        if (REDIS_MODE_CLUSTER.getValue().equals(redisMode) && dbIndex > 0) {
             results.add(new ValidationResult.Builder()
-                    .subject(RedisUtils.DATABASE.getDisplayName())
+                    .subject(DATABASE.getDisplayName())
                     .valid(false)
                     .explanation("Database Index must be 0 when using clustered Redis")
                     .build());
         }
 
-        if (RedisUtils.REDIS_MODE_SENTINEL.getValue().equals(redisMode)) {
-            final String sentinelMaster = validationContext.getProperty(RedisUtils.SENTINEL_MASTER).evaluateAttributeExpressions().getValue();
+        if (REDIS_MODE_SENTINEL.getValue().equals(redisMode)) {
+            final String sentinelMaster = validationContext.getProperty(SENTINEL_MASTER).evaluateAttributeExpressions().getValue();
             if (StringUtils.isEmpty(sentinelMaster)) {
                 results.add(new ValidationResult.Builder()
-                        .subject(RedisUtils.SENTINEL_MASTER.getDisplayName())
+                        .subject(SENTINEL_MASTER.getDisplayName())
                         .valid(false)
                         .explanation("Sentinel Master must be provided when Mode is Sentinel")
                         .build());

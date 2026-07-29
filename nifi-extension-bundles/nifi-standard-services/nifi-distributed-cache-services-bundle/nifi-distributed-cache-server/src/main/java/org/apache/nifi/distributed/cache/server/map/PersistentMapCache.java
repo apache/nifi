@@ -25,6 +25,7 @@ import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -191,7 +192,7 @@ public class PersistentMapCache implements MapCache {
     private static class Serde implements SerDe<MapWaliRecord> {
 
         @Override
-        public void serializeEdit(final MapWaliRecord previousRecordState, final MapWaliRecord newRecordState, final java.io.DataOutputStream out) throws IOException {
+        public void serializeEdit(final MapWaliRecord previousRecordState, final MapWaliRecord newRecordState, final DataOutputStream out) throws IOException {
             final UpdateType updateType = newRecordState.getUpdateType();
             if (updateType == UpdateType.DELETE) {
                 out.write(0);
@@ -209,7 +210,7 @@ public class PersistentMapCache implements MapCache {
         }
 
         @Override
-        public void serializeRecord(final MapWaliRecord record, final java.io.DataOutputStream out) throws IOException {
+        public void serializeRecord(final MapWaliRecord record, final DataOutputStream out) throws IOException {
             serializeEdit(null, record, out);
         }
 

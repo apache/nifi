@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow.diff;
 
 import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
@@ -578,7 +579,7 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.PARAMETER_CONTEXT_CHANGED, groupA, groupB, VersionedProcessGroup::getParameterContextName, true, null);
         addIfDifferent(differences, DifferenceType.LOG_FILE_SUFFIX_CHANGED, groupA, groupB, VersionedProcessGroup::getLogFileSuffix, true, null);
         addIfDifferent(differences, DifferenceType.EXECUTION_ENGINE_CHANGED, groupA, groupB, VersionedProcessGroup::getExecutionEngine, true, ExecutionEngine.INHERITED);
-        addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, groupA, groupB, VersionedProcessGroup::getScheduledState, true, org.apache.nifi.flow.ScheduledState.ENABLED);
+        addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, groupA, groupB, VersionedProcessGroup::getScheduledState, true, ScheduledState.ENABLED);
         addIfDifferent(differences, DifferenceType.CONCURRENT_TASKS_CHANGED, groupA, groupB, VersionedProcessGroup::getMaxConcurrentTasks, true, 1);
         addIfDifferent(differences, DifferenceType.TIMEOUT_CHANGED, groupA, groupB, VersionedProcessGroup::getStatelessFlowTimeout, false, "1 min");
     }

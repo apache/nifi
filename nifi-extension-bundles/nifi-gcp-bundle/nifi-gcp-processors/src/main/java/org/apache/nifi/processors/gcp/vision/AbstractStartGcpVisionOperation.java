@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.gcp.vision;
 
 import com.google.api.gax.longrunning.OperationFuture;
+import com.google.protobuf.Message;
 import com.google.protobuf.util.JsonFormat;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,7 +39,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractStartGcpVisionOperation<B extends com.google.protobuf.Message.Builder> extends AbstractGcpVisionProcessor  {
+public abstract class AbstractStartGcpVisionOperation<B extends Message.Builder> extends AbstractGcpVisionProcessor  {
     public static final PropertyDescriptor FEATURE_TYPE = new PropertyDescriptor.Builder()
             .name("Vision Feature Type")
             .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. " +

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -133,6 +134,6 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
 
         final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.class, credentialsProvider.getClass());
+        assertEquals(ProfileCredentialsProvider.class, credentialsProvider.getClass());
     }
 }

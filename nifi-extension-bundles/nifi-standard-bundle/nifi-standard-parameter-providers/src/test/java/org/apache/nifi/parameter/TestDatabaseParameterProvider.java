@@ -255,10 +255,10 @@ public class TestDatabaseParameterProvider {
 
     private class ResultSetAnswer implements Answer<Boolean> {
 
-        private final Iterator<java.util.Map<String, String>> rowIterator;
-        private java.util.Map<String, String> currentRow;
+        private final Iterator<Map<String, String>> rowIterator;
+        private Map<String, String> currentRow;
 
-        private ResultSetAnswer(final List<java.util.Map<String, String>> rows) {
+        private ResultSetAnswer(final List<Map<String, String>> rows) {
             this.rowIterator = rows.iterator();
         }
 

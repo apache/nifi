@@ -61,9 +61,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.processor.util.list.ListedEntityTracker.INITIAL_LISTING_TARGET;
-import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
-import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_TIME_WINDOW;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_ETAG;
@@ -79,12 +76,6 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -141,18 +132,18 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
+            AzureStorageUtils.ADLS_CREDENTIALS_SERVICE,
+            AzureStorageUtils.FILESYSTEM,
+            AzureStorageUtils.DIRECTORY,
             RECURSE_SUBDIRECTORIES,
             FILE_FILTER,
             PATH_FILTER,
             INCLUDE_TEMPORARY_FILES,
             RECORD_WRITER,
             LISTING_STRATEGY,
-            TRACKING_STATE_CACHE,
-            TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET,
+            ListedEntityTracker.TRACKING_STATE_CACHE,
+            ListedEntityTracker.TRACKING_TIME_WINDOW,
+            ListedEntityTracker.INITIAL_LISTING_TARGET,
             MIN_AGE,
             MAX_AGE,
             MIN_SIZE,
@@ -161,9 +152,9 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     );
 
     private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Set.of(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
+            AzureStorageUtils.ADLS_CREDENTIALS_SERVICE,
+            AzureStorageUtils.FILESYSTEM,
+            AzureStorageUtils.DIRECTORY,
             RECURSE_SUBDIRECTORIES,
             FILE_FILTER,
             PATH_FILTER,
@@ -199,14 +190,14 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName());
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
-        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName());
         config.renameProperty("recurse-subdirectories", RECURSE_SUBDIRECTORIES.getName());
         config.renameProperty("file-filter", FILE_FILTER.getName());
         config.renameProperty("path-filter", PATH_FILTER.getName());
         config.renameProperty("include-temporary-files", INCLUDE_TEMPORARY_FILES.getName());
-        config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
-        config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
-        config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, INITIAL_LISTING_TARGET.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListedEntityTracker.TRACKING_STATE_CACHE.getName());
+        config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListedEntityTracker.TRACKING_TIME_WINDOW.getName());
+        config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListedEntityTracker.INITIAL_LISTING_TARGET.getName());
     }
 
     @Override
@@ -242,7 +233,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
 
     @Override
     protected String getPath(final ProcessContext context) {
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+        final String directory = context.getProperty(AzureStorageUtils.DIRECTORY).evaluateAttributeExpressions().getValue();
         return directory != null ? directory : ".";
     }
 
@@ -280,20 +271,20 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
                                               final boolean applyFilters) throws IOException {
         final DataLakeServiceClientFactory currentClientFactory;
         if (ListingMode.CONFIGURATION_VERIFICATION == listingMode) {
-            currentClientFactory = new DataLakeServiceClientFactory(getLogger(), getProxyOptions(context));
+            currentClientFactory = new DataLakeServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
         } else {
             currentClientFactory = clientFactory;
         }
 
         try {
-            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context);
-            final String baseDirectory = evaluateDirectoryProperty(DIRECTORY, context);
+            final String fileSystem = AzureStorageUtils.evaluateFileSystemProperty(AzureStorageUtils.FILESYSTEM, context);
+            final String baseDirectory = AzureStorageUtils.evaluateDirectoryProperty(AzureStorageUtils.DIRECTORY, context);
             final boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
 
             final Pattern filePattern = listingMode == ListingMode.EXECUTION ? this.filePattern : getPattern(context, FILE_FILTER);
             final Pattern pathPattern = listingMode == ListingMode.EXECUTION ? this.pathPattern : getPattern(context, PATH_FILTER);
 
-            final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
+            final ADLSCredentialsService credentialsService = context.getProperty(AzureStorageUtils.ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
 
             final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
 

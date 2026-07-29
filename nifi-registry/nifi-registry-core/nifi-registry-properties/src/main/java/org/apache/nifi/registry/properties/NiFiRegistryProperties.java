@@ -392,7 +392,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
      * @return true if the login identity provider has been configured
      */
     public boolean isLoginIdentityProviderEnabled() {
-        return !StringUtils.isBlank(getProperty(NiFiRegistryProperties.SECURITY_IDENTITY_PROVIDER));
+        return !StringUtils.isBlank(getProperty(SECURITY_IDENTITY_PROVIDER));
     }
 
     /**

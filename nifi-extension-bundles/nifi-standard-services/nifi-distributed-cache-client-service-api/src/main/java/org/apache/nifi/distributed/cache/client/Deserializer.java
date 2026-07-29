@@ -34,7 +34,7 @@ public interface Deserializer<T> {
      * @return returns deserialized value
      * @throws DeserializationException if a valid object cannot be deserialized
      * from the given byte array
-     * @throws java.io.IOException ex
+     * @throws IOException ex
      */
     T deserialize(byte[] input) throws DeserializationException, IOException;
 

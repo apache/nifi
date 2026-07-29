@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class StandardFrameworkConnectorMigrationContext implements FrameworkConn
     private final ConnectorRepository connectorRepository;
     private final StateManagerProvider stateManagerProvider;
     private final ClusterTopologyProvider clusterTopologyProvider;
-    private final Set<String> copiedAssetIds = Collections.synchronizedSet(new java.util.LinkedHashSet<>());
+    private final Set<String> copiedAssetIds = Collections.synchronizedSet(new LinkedHashSet<>());
 
     private final Object stagingLock = new Object();
     private final Map<String, VersionedComponentState> stagedComponentStates = new LinkedHashMap<>();

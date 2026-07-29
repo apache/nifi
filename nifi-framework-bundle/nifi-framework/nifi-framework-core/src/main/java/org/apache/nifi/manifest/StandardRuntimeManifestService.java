@@ -33,6 +33,7 @@ import org.apache.nifi.extension.manifest.InputRequirement;
 import org.apache.nifi.extension.manifest.MultiProcessorUseCase;
 import org.apache.nifi.extension.manifest.ProcessorConfiguration;
 import org.apache.nifi.extension.manifest.Property;
+import org.apache.nifi.extension.manifest.Relationship;
 import org.apache.nifi.extension.manifest.UseCase;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.nar.ExtensionDefinition;
@@ -199,10 +200,10 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         extension.setTriggerSerially(false);
         extension.setTriggerWhenAnyDestinationAvailable(false);
 
-        final List<org.apache.nifi.extension.manifest.Relationship> relationships = new ArrayList<>();
+        final List<Relationship> relationships = new ArrayList<>();
         extension.setRelationships(relationships);
         for (final String relationshipName : List.of("success", "failure", "original")) {
-            final org.apache.nifi.extension.manifest.Relationship relationship = new org.apache.nifi.extension.manifest.Relationship();
+            final Relationship relationship = new Relationship();
             relationship.setAutoTerminated(false);
             relationship.setName(relationshipName);
             relationships.add(relationship);

@@ -325,8 +325,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         final Map<String, StatementFlowFileEnclosure> sqlToEnclosure = new HashMap<>();
 
         for (final FlowFile flowFile : flowFiles) {
-            final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
-                    ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
+            final String sql = context.getProperty(SQL_STATEMENT).isSet()
+                    ? context.getProperty(SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
             final StatementFlowFileEnclosure enclosure = sqlToEnclosure
@@ -338,8 +338,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     private final GroupingFunction groupFlowFilesBySQLBatch = (context, session, fc, conn, flowFiles, groups, result) -> {
         for (final FlowFile flowFile : flowFiles) {
-            final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
-                    ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
+            final String sql = context.getProperty(SQL_STATEMENT).isSet()
+                    ? context.getProperty(SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
             // Create a new PreparedStatement or reuse the one from the last group if that is the same.
@@ -367,8 +367,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     private final GroupingFunction groupFlowFilesBySQL = (context, session, fc, conn, flowFiles, groups, result) -> {
         for (final FlowFile flowFile : flowFiles) {
-            final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
-                    ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
+            final String sql = context.getProperty(SQL_STATEMENT).isSet()
+                    ? context.getProperty(SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
             // Create a new PreparedStatement or reuse the one from the last group if that is the same.

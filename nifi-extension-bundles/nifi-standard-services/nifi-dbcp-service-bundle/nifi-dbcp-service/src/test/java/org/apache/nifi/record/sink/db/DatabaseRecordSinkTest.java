@@ -23,7 +23,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPConnectionPool;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.InitializationException;
@@ -103,10 +102,10 @@ public class DatabaseRecordSinkTest {
         runner.addControllerService(SERVICE_ID, dbcpService);
 
         connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir);
-        runner.setProperty(dbcpService, DBCPProperties.DATABASE_URL, connectionUrl);
-        runner.setProperty(dbcpService, DBCPProperties.DB_USER, String.class.getSimpleName());
-        runner.setProperty(dbcpService, DBCPProperties.DB_PASSWORD, String.class.getName());
-        runner.setProperty(dbcpService, DBCPProperties.DB_DRIVERNAME, DRIVER_CLASS);
+        runner.setProperty(dbcpService, DATABASE_URL, connectionUrl);
+        runner.setProperty(dbcpService, DB_USER, String.class.getSimpleName());
+        runner.setProperty(dbcpService, DB_PASSWORD, String.class.getName());
+        runner.setProperty(dbcpService, DB_DRIVERNAME, DRIVER_CLASS);
     }
 
     @Test

@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.VersionedComponentAuthorizable;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -182,7 +183,7 @@ public interface AuthorizableLookup {
      * @param filter the filter
      * @return all encapsulated controller services
      */
-    Set<ComponentAuthorizable> getControllerServices(String groupId, Predicate<org.apache.nifi.authorization.resource.VersionedComponentAuthorizable> filter);
+    Set<ComponentAuthorizable> getControllerServices(String groupId, Predicate<VersionedComponentAuthorizable> filter);
 
     /**
      * Get the authorizable ControllerService.

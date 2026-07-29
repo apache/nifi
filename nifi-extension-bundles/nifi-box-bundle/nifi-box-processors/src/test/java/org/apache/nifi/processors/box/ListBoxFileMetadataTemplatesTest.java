@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -121,11 +122,11 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         testRunner.getLogger().info("FlowFile content: {}", content);
 
         // Check that content contains key elements
-        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"$id\""));
-        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"$template\""));
-        org.junit.jupiter.api.Assertions.assertTrue(content.contains("\"$scope\""));
-        org.junit.jupiter.api.Assertions.assertTrue(content.contains("["));
-        org.junit.jupiter.api.Assertions.assertTrue(content.contains("]"));
+        assertTrue(content.contains("\"$id\""));
+        assertTrue(content.contains("\"$template\""));
+        assertTrue(content.contains("\"$scope\""));
+        assertTrue(content.contains("["));
+        assertTrue(content.contains("]"));
     }
 
     @Test

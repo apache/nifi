@@ -40,7 +40,7 @@ public interface FlowFileRepository extends Closeable {
      * Claims
      *
      * @param claimManager for handling claims
-     * @throws java.io.IOException if unable to initialize repository
+     * @throws IOException if unable to initialize repository
      */
     void initialize(ResourceClaimManager claimManager) throws IOException;
 
@@ -72,7 +72,7 @@ public interface FlowFileRepository extends Closeable {
      * Updates the repository with the given RepositoryRecords.
      *
      * @param records the records to update the repository with
-     * @throws java.io.IOException if update fails
+     * @throws IOException if update fails
      */
     void updateRepository(Collection<RepositoryRecord> records) throws IOException;
 
