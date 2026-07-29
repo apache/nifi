@@ -28,7 +28,7 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-public class AutoResumeStateControllerServiceIT extends NiFiSystemIT {
+class AutoResumeStateControllerServiceIT extends NiFiSystemIT {
 
     private static final String ENABLED = "ENABLED";
 
