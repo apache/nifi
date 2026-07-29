@@ -30,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class AutoResumeStateControllerServiceIT extends NiFiSystemIT {
 
+    private static final String ENABLED = "ENABLED";
+
     @Override
     protected boolean isDestroyEnvironmentAfterEachTest() {
         return true;
@@ -41,33 +43,31 @@ public class AutoResumeStateControllerServiceIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testRootControllerServiceNotResumedWhenAutoResumeDisabled() throws NiFiClientException, IOException, InterruptedException {
+    void testRootControllerServiceNotResumedWhenAutoResumeDisabled() throws NiFiClientException, IOException {
         final ControllerServiceEntity service = getClientUtil().createRootLevelControllerService("StandardCountService");
         getClientUtil().enableControllerService(service);
-        getClientUtil().waitForControllerServiceRunStatus(service.getId(), "ENABLED");
+        getClientUtil().waitForControllerServiceRunStatus(service.getId(), ENABLED);
 
         restartWithAutoResumeStateDisabled();
 
         final ControllerServiceEntity serviceAfterRestart = getNifiClient().getControllerServicesClient().getControllerService(service.getId());
-        assertNotEquals("ENABLED", serviceAfterRestart.getComponent().getState());
+        assertNotEquals(ENABLED, serviceAfterRestart.getComponent().getState());
     }
 
     @Test
-    public void testProcessGroupControllerServiceNotResumedWhenAutoResumeDisabled() throws NiFiClientException, IOException, InterruptedException {
+    void testProcessGroupControllerServiceNotResumedWhenAutoResumeDisabled() throws NiFiClientException, IOException {
         final ProcessGroupEntity processGroup = getClientUtil().createProcessGroup("Auto Resume Test", "root");
         final ControllerServiceEntity service = getClientUtil().createControllerService("StandardCountService", processGroup.getId());
         getClientUtil().enableControllerService(service);
-        getClientUtil().waitForControllerServiceRunStatus(service.getId(), "ENABLED");
+        getClientUtil().waitForControllerServiceRunStatus(service.getId(), ENABLED);
 
         restartWithAutoResumeStateDisabled();
 
         final ControllerServiceEntity serviceAfterRestart = getNifiClient().getControllerServicesClient().getControllerService(service.getId());
-        assertNotEquals("ENABLED", serviceAfterRestart.getComponent().getState());
+        assertNotEquals(ENABLED, serviceAfterRestart.getComponent().getState());
     }
 
-    private void restartWithAutoResumeStateDisabled() throws IOException, InterruptedException {
-        Thread.sleep(3000);
-
+    private void restartWithAutoResumeStateDisabled() throws IOException {
         getNiFiInstance().stop();
         getNiFiInstance().setProperty(NiFiProperties.AUTO_RESUME_STATE, "false");
         getNiFiInstance().start(true);
