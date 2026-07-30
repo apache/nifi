@@ -96,19 +96,6 @@ public class ContentLengthFilter implements Filter {
         }
     }
 
-    @Override
-    public void destroy() {
-    }
-
-    /**
-     * Returns the currently configured max content length in bytes.
-     *
-     * @return the max content length
-     */
-    public int getMaxContentLength() {
-        return maxContentLength;
-    }
-
     /**
      * Returns {@code true} if this request is subject to the filter operation, {@code false} if not.
      *
@@ -137,7 +124,7 @@ public class ContentLengthFilter implements Filter {
 
     // This wrapper ensures that the input stream of the wrapped request is not read past the given maximum.
     private static class LimitedContentLengthRequest extends HttpServletRequestWrapper {
-        private int maxRequestLength;
+        private final int maxRequestLength;
 
         public LimitedContentLengthRequest(HttpServletRequest request, int maxLength) {
             super(request);
@@ -174,7 +161,7 @@ public class ContentLengthFilter implements Filter {
 
                     inputStreamByteCounter += 1;
                     if (inputStreamByteCounter > maxRequestLength) {
-                        throw new IOException(String.format("Request input stream longer than %d B.", maxRequestLength));
+                        throw new RequestContentLengthExceededException("Content Too Large: exceeded " + formatSize(maxRequestLength));
                     }
                     return read;
                 }

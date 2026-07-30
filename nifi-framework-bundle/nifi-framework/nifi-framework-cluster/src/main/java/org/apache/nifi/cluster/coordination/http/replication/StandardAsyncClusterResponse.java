@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -216,6 +217,7 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
 
         final long start = System.nanoTime();
         mergedResponse = responseMapper.mapResponses(uri, method, nodeResponses, merge);
+        closeUnusedResponses(nodeResponses);
         final long nanos = System.nanoTime() - start;
         addTiming("Map/Merge Responses", "All Nodes", nanos);
 
@@ -327,6 +329,23 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     public String toString() {
         return "StandardAsyncClusterResponse[id=" + id + ", uri=" + uri + ", method=" + method + ", failure=" + (failure != null)
             + ", responses=" + getCompletedNodeIdentifiers().size() + "/" + responseMap.size() + "]";
+    }
+
+    private void closeUnusedResponses(final Set<NodeResponse> nodeResponses) {
+        final Response clientMergedResponse = mergedResponse.getClientResponse();
+        if (mergedResponse.getUpdatedEntity() != null) {
+            // Close merged response since Updated Entity used in place of stream
+            clientMergedResponse.close();
+        }
+
+        for (final NodeResponse nodeResponse : nodeResponses) {
+            final Response clientNodeResponse = nodeResponse.getClientResponse();
+            if (clientMergedResponse == clientNodeResponse) {
+                continue;
+            }
+
+            nodeResponse.close();
+        }
     }
 
     private static class ResponseHolder {

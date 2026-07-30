@@ -523,8 +523,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                         // If all nodes responded with 202-Accepted, then we can replicate the original request
                         // to all nodes and we are finished.
                         if (dissentingCount == 0) {
-                            logger.debug("Received verification from all {} nodes that mutable request {} {} can be made", numNodes, method, uri.getPath());
-                            replicate(nodeIds, method, uri, entity, headers, false, clusterResponse, true, merge, monitor);
+                            try {
+                                logger.debug("Received verification from all {} nodes that mutable request {} {} can be made", numNodes, method, uri.getPath());
+                                replicate(nodeIds, method, uri, entity, headers, false, clusterResponse, true, merge, monitor);
+                            } finally {
+                                // Close HTTP Responses after replication completed
+                                nodeResponses.forEach(NodeResponse::close);
+                            }
                             return;
                         }
 
@@ -582,6 +587,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                                     clusterResponse.setFailure(failure, response.getNodeId());
                                 }
                             }
+
+                            // Close verification responses for cancelled transactions
+                            nodeResponses.forEach(NodeResponse::close);
                         } finally {
                             if (monitor != null) {
                                 synchronized (monitor) {

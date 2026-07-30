@@ -69,6 +69,7 @@ import org.apache.nifi.web.server.filter.LogoutCompleteRedirectFilter;
 import org.apache.nifi.web.server.filter.RequestFilterProvider;
 import org.apache.nifi.web.server.filter.RestApiRequestFilterProvider;
 import org.apache.nifi.web.server.filter.StandardRequestFilterProvider;
+import org.eclipse.jetty.compression.server.CompressionHandler;
 import org.eclipse.jetty.deploy.StandardDeployer;
 import org.eclipse.jetty.ee.webapp.WebAppClassLoader;
 import org.eclipse.jetty.ee11.servlet.ErrorPageErrorHandler;
@@ -222,7 +223,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 deployer = new StandardDeployer(contextHandlerCollection);
                 server.addBean(deployer);
 
-                serverHandlerCollection.addHandler(contextHandlerCollection);
+                // Deploy the web applications beneath the CompressionHandler
+                final CompressionHandler compressionHandler = serverHandlerCollection.getDescendant(CompressionHandler.class);
+                if (compressionHandler == null) {
+                    throw new IllegalStateException("Compression Handler not configured: Server Provider configuration failed");
+                } else {
+                    compressionHandler.setHandler(contextHandlerCollection);
+                }
             } else {
                 throw new IllegalStateException("Server Handler not Handler.Collection: Server Provider configuration failed");
             }
