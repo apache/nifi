@@ -673,7 +673,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final FlowManager flowManager = controller.getFlowManager();
 
             // request to stop all processors on node
-            flowManager.getRootGroup().stopProcessing();
+            try {
+                flowManager.getRootGroup().stopProcessing().get();
+            } catch (final Exception e) {
+                logger.warn("Encountered failure while waiting for processors to stop", e);
+            }
 
             // terminate all processors
             flowManager.getRootGroup().findAllProcessors()
