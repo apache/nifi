@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -93,7 +93,7 @@ public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.6"; // January 2026
+    public static final String IMAGE_NAME = System.getProperty("kafka.docker.image", "apache/kafka:4.3.1");
 
     private static final String DELIVERY_TIMEOUT_MS_KEY = "delivery.timeout.ms";
     private static final String DELIVERY_TIMEOUT_MS_VALUE = "60000";
@@ -121,7 +121,8 @@ public class Kafka3ConnectionServiceBaseIT {
 
     private static final int POLLING_ATTEMPTS = 3;
 
-    private static final Set<String> fileLocationNames = Set.of("KAFKA_SSL_KEYSTORE_LOCATION", "KAFKA_SSL_TRUSTSTORE_LOCATION");
+    protected static final String CONTAINER_KEY_STORE_PATH = "/tmp/kafka-keystore.p12";
+    protected static final String CONTAINER_TRUST_STORE_PATH = "/tmp/kafka-truststore.p12";
 
     protected static final String TEST_USERNAME = "nifi";
     protected static final String TEST_PASSWORD = UUID.randomUUID().toString();
@@ -143,7 +144,7 @@ public class Kafka3ConnectionServiceBaseIT {
 
     protected TestRunner runner;
 
-    private ConfluentKafkaContainer kafkaContainer;
+    private KafkaContainer kafkaContainer;
 
     private Kafka3ConnectionService service;
 
@@ -170,7 +171,7 @@ public class Kafka3ConnectionServiceBaseIT {
             trustStore.store(outputStream, KEY_STORE_PASSWORD.toCharArray());
         }
 
-        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse(IMAGE_NAME));
+        kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
         initializeContainer();
         kafkaContainer.start();
     }
@@ -194,14 +195,18 @@ public class Kafka3ConnectionServiceBaseIT {
     }
 
     protected void initializeContainer() {
-        Map<String, String> environment = getKafkaContainerConfigProperties();
+        final Map<String, String> environment = getKafkaContainerConfigProperties();
         kafkaContainer.withEnv(environment);
 
-        // For each property which is a file location, copy the file into the kafka container.
-        environment.entrySet().stream()
-                .filter(e -> fileLocationNames.contains(e.getKey()))
-                .forEach(e -> kafkaContainer.withCopyFileToContainer(
-                        MountableFile.forHostPath(e.getValue()), e.getValue()));
+        final String keyStoreLocation = environment.get("KAFKA_SSL_KEYSTORE_LOCATION");
+        if (keyStoreLocation != null) {
+            kafkaContainer.withCopyFileToContainer(MountableFile.forHostPath(keyStorePath), keyStoreLocation);
+        }
+
+        final String trustStoreLocation = environment.get("KAFKA_SSL_TRUSTSTORE_LOCATION");
+        if (trustStoreLocation != null) {
+            kafkaContainer.withCopyFileToContainer(MountableFile.forHostPath(trustStorePath), trustStoreLocation);
+        }
     }
 
     protected Map<String, String> getKafkaContainerConfigProperties() {

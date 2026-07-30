@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -50,11 +50,11 @@ public class KafkaConnectivityIT {
 
     private static final String TEST_TOPIC = "nifi-" + System.currentTimeMillis();
 
-    private static ConfluentKafkaContainer kafka;
+    private static KafkaContainer kafka;
 
     @BeforeAll
     static void beforeAll() {
-        kafka = new ConfluentKafkaContainer(DockerImageName.parse(Kafka3ConnectionServiceBaseIT.IMAGE_NAME));
+        kafka = new KafkaContainer(DockerImageName.parse(Kafka3ConnectionServiceBaseIT.IMAGE_NAME));
         kafka.start();
     }
 
