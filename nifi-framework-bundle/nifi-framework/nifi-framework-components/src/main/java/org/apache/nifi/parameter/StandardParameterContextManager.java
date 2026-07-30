@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.parameter;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 public class StandardParameterContextManager implements ParameterContextManager {
     private final Map<String, ParameterContext> parameterContexts = new HashMap<>();
+    private Map<String, ParameterContext> nameMappingCache = null;
 
     @Override
     public boolean hasParameterContext(final String id) {
@@ -67,8 +69,25 @@ public class StandardParameterContextManager implements ParameterContextManager 
         return new HashSet<>(parameterContexts.values());
     }
 
-    @Override
-    public Map<String, ParameterContext> getParameterContextNameMapping() {
-        return parameterContexts.values().stream().collect(Collectors.toMap(ParameterContext::getName, Function.identity()));
+    public synchronized Map<String, ParameterContext> getParameterContextNameMapping() {
+        boolean valid = nameMappingCache != null && nameMappingCache.size() == parameterContexts.size();
+        if (valid) {
+            for (final ParameterContext context : parameterContexts.values()) {
+                if (nameMappingCache.get(context.getName()) != context) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+
+        if (!valid) {
+            final Map<String, ParameterContext> mapping = new HashMap<>();
+            for (final ParameterContext context : parameterContexts.values()) {
+                mapping.put(context.getName(), context);
+            }
+            nameMappingCache = Collections.unmodifiableMap(mapping);
+        }
+
+        return nameMappingCache;
     }
 }
