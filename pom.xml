@@ -122,13 +122,13 @@
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.49.5</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.50.2</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.8</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.11.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.22.0</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.22.1</org.apache.commons.codec.version>
         <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
         <org.apache.commons.compress.version>1.28.0</org.apache.commons.compress.version>
         <org.apache.commons.configuration.version>2.15.1</org.apache.commons.configuration.version>
@@ -165,7 +165,7 @@
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
-        <groovy.version>5.0.7</groovy.version>
+        <groovy.version>5.0.8</groovy.version>
         <kotlin.version>2.4.10</kotlin.version>
 
         <!-- Logging and observability -->
@@ -204,7 +204,7 @@
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>7.1.0</spring.security.version>
         <spring.version>7.0.8</spring.version>
-        <swagger.annotations.version>2.2.52</swagger.annotations.version>
+        <swagger.annotations.version>2.2.53</swagger.annotations.version>
 
         <!-- Testing and quality -->
         <junit.version>6.1.2</junit.version>
@@ -607,7 +607,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.22.2</version>
+                <version>1.23.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -840,7 +840,7 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.52</version>
+                    <version>2.2.53</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>

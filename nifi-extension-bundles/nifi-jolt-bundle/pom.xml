@@ -30,7 +30,7 @@
         <module>nifi-jolt-utils</module>
     </modules>
     <properties>
-        <jolt.version>1.2.0</jolt.version>
+        <jolt.version>1.3.0</jolt.version>
     </properties>
     <dependencyManagement>
         <dependencies>
