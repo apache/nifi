@@ -129,6 +129,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final ConcurrentMap<String, NodeConnectionStatus> nodeStatuses = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, CircularFifoQueue<NodeEvent>> nodeEvents = new ConcurrentHashMap<>(); //NOPMD
     private final ConcurrentMap<String, Thread> pendingDisconnections = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Long> nodeRevisionMismatches = new ConcurrentHashMap<>();
 
     private final List<ClusterTopologyEventListener> eventListeners = new CopyOnWriteArrayList<>();
 
@@ -1072,10 +1073,23 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             // This can happen, for instance, if the node connects to the cluster at the same time that a new node is joining and becoming the Cluster Coordinator.
             // This case is very rare but can occur on occasion. As a result, we check for that here and if it occurs, request that the node disconnect so that
             // it can reconnect.
-            final String message = String.format("Node has a Revision Update Count of %s but local value is only %s. Node appears not to have the appropriate set of Component Revisions",
-                heartbeat.getRevisionUpdateCount(), localUpdateCount);
-            logger.warn("Requesting that {} reconnect to the cluster due to: {}", heartbeat.getNodeIdentifier(), message);
-            requestNodeConnect(heartbeat.getNodeIdentifier(), null);
+            // In some cases, a race condition during Two-Phase Commit can cause the node to report an N+1 revision before the coordinator applies it locally.
+            // To handle this, we tolerate an off-by-one mismatch for up to 5 seconds before forcing a disconnect.
+            final long mismatchTime = nodeRevisionMismatches.computeIfAbsent(heartbeat.getNodeIdentifier().getId(), id -> System.currentTimeMillis());
+            final long mismatchDuration = System.currentTimeMillis() - mismatchTime;
+            
+            if (mismatchDuration > 5000L || (nodeUpdateCount - localUpdateCount > 1)) {
+                final String message = String.format("Node has a Revision Update Count of %s but local value is only %s. Node appears not to have the appropriate set of Component Revisions",
+                    heartbeat.getRevisionUpdateCount(), localUpdateCount);
+                logger.warn("Requesting that {} reconnect to the cluster due to: {}", heartbeat.getNodeIdentifier(), message);
+                requestNodeConnect(heartbeat.getNodeIdentifier(), null);
+                nodeRevisionMismatches.remove(heartbeat.getNodeIdentifier().getId());
+            } else {
+                logger.debug("Node {} has a Revision Update Count of {} but local value is only {}. Tolerating mismatch for up to 5 seconds to account for transient replication delays.", 
+                    heartbeat.getNodeIdentifier(), heartbeat.getRevisionUpdateCount(), localUpdateCount);
+            }
+        } else {
+            nodeRevisionMismatches.remove(heartbeat.getNodeIdentifier().getId());
         }
     }
 
