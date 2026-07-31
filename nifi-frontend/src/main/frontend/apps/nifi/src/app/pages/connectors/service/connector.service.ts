@@ -23,7 +23,7 @@ import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ConnectorsResponse, CreateConnectorRequest } from '../state';
 import { ConnectorEntity } from '@nifi/shared';
-import { ParameterContextEntity, SearchResultsEntity } from '../../../state/shared';
+import { ControllerServiceEntity, ParameterContextEntity, SearchResultsEntity } from '../../../state/shared';
 import { DropRequestEntity } from '../../../state/empty-queue';
 
 @Injectable({ providedIn: 'root' })
@@ -124,11 +124,11 @@ export class ConnectorService {
         );
     }
 
-    getControllerService(connectorId: string, controllerServiceId: string): Observable<any> {
-        const uiOnly: any = { uiOnly: true };
-        return this.httpClient.get(
+    getControllerService(connectorId: string, controllerServiceId: string): Observable<ControllerServiceEntity> {
+        const params: Record<string, boolean> = { uiOnly: true };
+        return this.httpClient.get<ControllerServiceEntity>(
             `${ConnectorService.API}/connectors/${connectorId}/controller-services/${controllerServiceId}`,
-            { params: uiOnly }
+            { params }
         );
     }
 
