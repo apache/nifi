@@ -30,43 +30,42 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 
-@Tags({"connection", "source", "load", "balance"})
-@CapabilityDescription("Produces rule violation when a source processor does not have a Load-Balanced Connection (LBC) downstream"
+@Tags({"connection", "source", "load", "balance", "primary"})
+@CapabilityDescription("Produces rule violation when a source processor running only on the Primary Node does not have a Load-Balanced Connection (LBC) downstream"
         + " in all outgoing connections")
 public class RequireLoadBalancedConnectionAfterPrimaryNodeSourceProcessor extends AbstractFlowAnalysisRule {
 
 
     @Override
-    public Collection<GroupAnalysisResult> analyzeProcessGroup(VersionedProcessGroup processGroup, FlowAnalysisRuleContext context) {
+    public Collection<GroupAnalysisResult> analyzeProcessGroup(final VersionedProcessGroup processGroup, final FlowAnalysisRuleContext context) {
 
-        Collection<GroupAnalysisResult> analysisResults = new HashSet<>();
+        final Collection<GroupAnalysisResult> analysisResults = new HashSet<>();
 
         Map<String, VersionedProcessor> sourceProcessors = new HashMap<>();
         for (VersionedProcessor processor : processGroup.getProcessors()) {
-            if (ExecutionNode.PRIMARY.toString().equals(processor.getExecutionNode())) {
+            if (ExecutionNode.PRIMARY.name().equals(processor.getExecutionNode())) {
                 sourceProcessors.put(processor.getIdentifier(), processor);
             }
         }
         // Remove all processors that are not source processors or not running
         processGroup.getConnections().forEach(connection -> {
-            if (connection.getDestination().getType() == ConnectableComponentType.PROCESSOR) {
+            if (connection.getDestination() != null && connection.getDestination().getType() == ConnectableComponentType.PROCESSOR) {
                 sourceProcessors.remove(connection.getDestination().getId());
             }
         });
 
         processGroup.getConnections().forEach(connection -> {
-            if (connection.getSource().getId() != null) {
+            if (connection.getSource() != null && connection.getSource().getId() != null) {
                 VersionedProcessor sourceProcessor = sourceProcessors.get(connection.getSource().getId());
                 if (sourceProcessor != null) {
                     // Check if the connection is a Load-Balanced Connection
-                    if (Objects.equals(connection.getLoadBalanceStrategy(), "DO_NOT_LOAD_BALANCE")) {
+                    if (connection.getLoadBalanceStrategy() == null || "DO_NOT_LOAD_BALANCE".equals(connection.getLoadBalanceStrategy())) {
                         // If not, we need to report this as a violation
                         analysisResults.add(
                                 GroupAnalysisResult.forComponent(sourceProcessor,
-                                                connection.getIdentifier() + "_" + "LoadBalancedConnectionRequired",
-                                                "Source processors must configure their downstream connections to use a Load Balancing Strategy")
+                                                String.format("%s_LoadBalancedConnectionRequired", connection.getIdentifier()),
+                                                "Source processors running on the Primary Node only must configure their downstream connections to use a Load Balancing Strategy")
                                         .build());
                     }
                 }
