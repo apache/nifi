@@ -95,7 +95,7 @@
         "happy-dom": "^20.0.2",
         "ng-mocks": "^14.12.2",
         "ng-packagr": "21.1.0",
-        "nx": "22.5.4",
+        "nx": "22.7.2",
         "postcss": "^8.5.10",
         "prettier": "^3.2.5",
         "tailwindcss": "^4.2.2",
