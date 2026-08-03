@@ -647,6 +647,93 @@ describe('ConnectorCanvasEffects', () => {
             expect(mockDialogRef.componentInstance.parameterContext).toBeUndefined();
             expect(mockDialogRef.componentInstance.goToParameter).toBeUndefined();
         });
+
+        it('wires goToService to fetch via the connector-scoped API and navigate to the controller service', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogRef } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            mockConnectorService.getControllerService = vi
+                .fn()
+                .mockReturnValue(of({ id: 'svc-1', component: { parentGroupId: 'pg-cs', id: 'svc-1' } }));
+            mockDialogRef.close = vi.fn();
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            expect(mockDialogRef.componentInstance.goToService).toBeInstanceOf(Function);
+            mockDialogRef.componentInstance.goToService('svc-1');
+
+            expect(mockConnectorService.getControllerService).toHaveBeenCalledWith('connector-1', 'svc-1');
+            expect(mockDialogRef.close).toHaveBeenCalled();
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                navigateToControllerService({
+                    processGroupId: 'pg-cs',
+                    serviceId: 'svc-1'
+                })
+            );
+        });
+
+        it('dispatches a banner error when goToService fails to fetch the controller service', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogRef, mockErrorHelper } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            const errorResponse = new HttpErrorResponse({ status: 404, statusText: 'Not Found' });
+            mockConnectorService.getControllerService = vi.fn().mockReturnValue(throwError(() => errorResponse));
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            mockDialogRef.componentInstance.goToService('svc-missing');
+
+            expect(mockErrorHelper.getErrorString).toHaveBeenCalledWith(errorResponse);
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Error message'],
+                        context: ErrorContextKey.CONNECTOR_CANVAS
+                    }
+                })
+            );
+        });
+
+        it('dispatches a banner error when goToService cannot resolve the connector id', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogRef } = await setup({
+                connectorId: null
+            });
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            mockConnectorService.getControllerService = vi.fn();
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            mockDialogRef.componentInstance.goToService('svc-1');
+
+            expect(mockConnectorService.getControllerService).not.toHaveBeenCalled();
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine Connector id for navigation.'],
+                        context: ErrorContextKey.CONNECTOR_CANVAS
+                    }
+                })
+            );
+        });
     });
 
     describe('navigateToProvenanceForComponent$', () => {

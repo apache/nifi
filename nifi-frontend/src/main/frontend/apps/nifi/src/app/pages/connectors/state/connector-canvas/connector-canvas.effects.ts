@@ -65,6 +65,7 @@ import { EditRemoteProcessGroup } from '../../../../ui/common/component-dialogs/
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import * as ConnectorControllerServicesActions from '../connector-controller-services/connector-controller-services.actions';
 import { bindConnectorParameterContext } from './bind-connector-parameter-context';
+import { bindGoToService } from './bind-go-to-service';
 import { SelectedComponent } from './connector-canvas.actions';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
@@ -720,7 +721,14 @@ export class ConnectorCanvasEffects {
         instance.createNewProperty = () => NEVER;
         instance.createNewService = () => NEVER;
         instance.convertToParameter = () => NEVER;
-        instance.goToService = () => undefined;
+        instance.goToService = bindGoToService(
+            this.store,
+            this.connectorService,
+            this.errorHelper,
+            dialogRef,
+            this.store.select(selectConnectorIdFromRoute),
+            ErrorContextKey.CONNECTOR_CANVAS
+        );
 
         // EditProcessor only exposes `parameterContext`; the underlying property table
         // disables parameter affordances on its own when parameterContext is undefined.

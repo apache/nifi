@@ -31,6 +31,8 @@ import {
     selectConnectorControllerService
 } from './connector-controller-services.actions';
 import { selectConnectorParameterContext } from '../connector-canvas/connector-canvas.selectors';
+import { navigateToControllerService } from '../connector-canvas/connector-canvas.actions';
+import { selectConnectorIdFromRoute } from './connector-controller-services.selectors';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
@@ -38,6 +40,8 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ControllerServiceEntity, ParameterContextEntity } from '../../../../state/shared';
 import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MockStore } from '@ngrx/store/testing';
 
 function buildService(overrides: Partial<ControllerServiceEntity> = {}): ControllerServiceEntity {
     return {
@@ -51,6 +55,7 @@ function buildService(overrides: Partial<ControllerServiceEntity> = {}): Control
 describe('ConnectorControllerServicesEffects', () => {
     interface SetupOptions {
         parameterContext?: ParameterContextEntity | null;
+        connectorId?: string | null;
     }
 
     async function setup(options: SetupOptions = {}) {
@@ -58,7 +63,8 @@ describe('ConnectorControllerServicesEffects', () => {
 
         const mockConnectorService = {
             getConnectorControllerServices: vi.fn(),
-            getConnectorFlow: vi.fn()
+            getConnectorFlow: vi.fn(),
+            getControllerService: vi.fn()
         };
 
         const mockErrorHelper = {
@@ -78,11 +84,13 @@ describe('ConnectorControllerServicesEffects', () => {
             parameterContext: undefined as any,
             supportsParameters: true as any
         };
+        const mockDialogRef = {
+            componentInstance: mockDialogInstance,
+            afterClosed: () => afterClosed$.asObservable(),
+            close: vi.fn()
+        };
         const mockDialog = {
-            open: vi.fn().mockReturnValue({
-                componentInstance: mockDialogInstance,
-                afterClosed: () => afterClosed$.asObservable()
-            })
+            open: vi.fn().mockReturnValue(mockDialogRef)
         };
 
         await TestBed.configureTestingModule({
@@ -94,6 +102,10 @@ describe('ConnectorControllerServicesEffects', () => {
                         {
                             selector: selectConnectorParameterContext,
                             value: options.parameterContext ?? null
+                        },
+                        {
+                            selector: selectConnectorIdFromRoute,
+                            value: options.connectorId !== undefined ? options.connectorId : 'conn-1'
                         }
                     ]
                 }),
@@ -106,10 +118,13 @@ describe('ConnectorControllerServicesEffects', () => {
 
         return {
             effects: TestBed.inject(ConnectorControllerServicesEffects),
+            store: TestBed.inject(MockStore),
             mockConnectorService,
+            mockErrorHelper,
             mockRouter,
             mockDialog,
             mockDialogInstance,
+            mockDialogRef,
             afterClosed$,
             actions$: (stream: Observable<Action>) => {
                 actions$ = stream;
@@ -255,6 +270,74 @@ describe('ConnectorControllerServicesEffects', () => {
             expect(mockDialogInstance.parameterContext).toBeUndefined();
             expect(mockDialogInstance.supportsParameters).toBe(false);
             expect(mockDialogInstance.goToParameter).toBeUndefined();
+        });
+
+        it('should wire goToService to fetch via the connector-scoped API and navigate to the controller service', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogInstance, mockDialogRef } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            mockConnectorService.getControllerService.mockReturnValue(
+                of({ id: 'svc-2', component: { parentGroupId: 'pg-cs', id: 'svc-2' } })
+            );
+
+            actions$(of(openViewControllerServiceDialog({ controllerService: buildService() })));
+            await firstValueFrom(effects.openViewControllerServiceDialog$);
+
+            expect(mockDialogInstance.goToService).toBeInstanceOf(Function);
+            mockDialogInstance.goToService('svc-2');
+
+            expect(mockConnectorService.getControllerService).toHaveBeenCalledWith('conn-1', 'svc-2');
+            expect(mockDialogRef.close).toHaveBeenCalled();
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                navigateToControllerService({
+                    processGroupId: 'pg-cs',
+                    serviceId: 'svc-2'
+                })
+            );
+        });
+
+        it('should dispatch a banner error when goToService fails to fetch the controller service', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogInstance, mockErrorHelper } =
+                await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            const errorResponse = new HttpErrorResponse({ status: 404, statusText: 'Not Found' });
+            mockConnectorService.getControllerService.mockReturnValue(throwError(() => errorResponse));
+
+            actions$(of(openViewControllerServiceDialog({ controllerService: buildService() })));
+            await firstValueFrom(effects.openViewControllerServiceDialog$);
+
+            mockDialogInstance.goToService('svc-missing');
+
+            expect(mockErrorHelper.getErrorString).toHaveBeenCalledWith(errorResponse);
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Error message'],
+                        context: ErrorContextKey.CONTROLLER_SERVICES
+                    }
+                })
+            );
+        });
+
+        it('should dispatch a banner error when goToService cannot resolve the connector id', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogInstance } = await setup({
+                connectorId: null
+            });
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            actions$(of(openViewControllerServiceDialog({ controllerService: buildService() })));
+            await firstValueFrom(effects.openViewControllerServiceDialog$);
+
+            mockDialogInstance.goToService('svc-1');
+
+            expect(mockConnectorService.getControllerService).not.toHaveBeenCalled();
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine Connector id for navigation.'],
+                        context: ErrorContextKey.CONTROLLER_SERVICES
+                    }
+                })
+            );
         });
     });
 });

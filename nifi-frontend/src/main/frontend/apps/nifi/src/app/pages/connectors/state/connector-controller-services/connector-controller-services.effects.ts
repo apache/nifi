@@ -30,7 +30,9 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import * as ConnectorControllerServicesActions from './connector-controller-services.actions';
+import { selectConnectorIdFromRoute } from './connector-controller-services.selectors';
 import { bindConnectorParameterContext } from '../connector-canvas/bind-connector-parameter-context';
+import { bindGoToService } from '../connector-canvas/bind-go-to-service';
 
 @Injectable()
 export class ConnectorControllerServicesEffects {
@@ -148,7 +150,14 @@ export class ConnectorControllerServicesEffects {
                     // values still render in the value tip.
                     instance.createNewService = () => NEVER;
                     instance.convertToParameter = () => NEVER;
-                    instance.goToService = () => undefined;
+                    instance.goToService = bindGoToService(
+                        this.store,
+                        this.connectorService,
+                        this.errorHelper,
+                        dialogRef,
+                        this.store.select(selectConnectorIdFromRoute),
+                        ErrorContextKey.CONTROLLER_SERVICES
+                    );
 
                     bindConnectorParameterContext(
                         this.store,
