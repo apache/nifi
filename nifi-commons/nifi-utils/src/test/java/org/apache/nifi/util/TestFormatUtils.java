@@ -178,6 +178,24 @@ public class TestFormatUtils {
         assertEquals(expected, FormatUtils.formatHoursMinutesSeconds(sourceDuration, sourceUnit));
     }
 
+    private static Stream<Arguments> getFormatTime() {
+        return Stream.of(Arguments.of(0L, TimeUnit.DAYS, "00:00:00.000"),
+                Arguments.of(1L, TimeUnit.HOURS, "01:00:00.000"),
+                Arguments.of(2L, TimeUnit.HOURS, "02:00:00.000"),
+                Arguments.of(1L, TimeUnit.MINUTES, "00:01:00.000"),
+                Arguments.of(10L, TimeUnit.SECONDS, "00:00:10.000"),
+                Arguments.of(777L, TimeUnit.MILLISECONDS, "00:00:00.777"),
+                Arguments.of(7777, TimeUnit.MILLISECONDS, "00:00:07.777"),
+                Arguments.of(TimeUnit.MILLISECONDS.convert(20, TimeUnit.HOURS)
+                        + TimeUnit.MILLISECONDS.convert(11, TimeUnit.MINUTES)
+                        + TimeUnit.MILLISECONDS.convert(36, TimeUnit.SECONDS)
+                        + TimeUnit.MILLISECONDS.convert(897, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "20:11:36.897"),
+                Arguments.of(TimeUnit.MILLISECONDS.convert(999, TimeUnit.HOURS)
+                        + TimeUnit.MILLISECONDS.convert(60, TimeUnit.MINUTES)
+                        + TimeUnit.MILLISECONDS.convert(60, TimeUnit.SECONDS)
+                        + TimeUnit.MILLISECONDS.convert(1001, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "1000:01:01.001"));
+    }
+
     @ParameterizedTest
     @MethodSource("getRelativeTimeArguments")
     public void testFormatRelativeTime(final long differenceMillis, final String expected) {
@@ -233,24 +251,6 @@ public class TestFormatUtils {
         );
     }
 
-    private static Stream<Arguments> getFormatTime() {
-        return Stream.of(Arguments.of(0L, TimeUnit.DAYS, "00:00:00.000"),
-            Arguments.of(1L, TimeUnit.HOURS, "01:00:00.000"),
-            Arguments.of(2L, TimeUnit.HOURS, "02:00:00.000"),
-            Arguments.of(1L, TimeUnit.MINUTES, "00:01:00.000"),
-            Arguments.of(10L, TimeUnit.SECONDS, "00:00:10.000"),
-            Arguments.of(777L, TimeUnit.MILLISECONDS, "00:00:00.777"),
-            Arguments.of(7777, TimeUnit.MILLISECONDS, "00:00:07.777"),
-            Arguments.of(TimeUnit.MILLISECONDS.convert(20, TimeUnit.HOURS)
-                         + TimeUnit.MILLISECONDS.convert(11, TimeUnit.MINUTES)
-                         + TimeUnit.MILLISECONDS.convert(36, TimeUnit.SECONDS)
-                         + TimeUnit.MILLISECONDS.convert(897, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "20:11:36.897"),
-            Arguments.of(TimeUnit.MILLISECONDS.convert(999, TimeUnit.HOURS)
-                         + TimeUnit.MILLISECONDS.convert(60, TimeUnit.MINUTES)
-                         + TimeUnit.MILLISECONDS.convert(60, TimeUnit.SECONDS)
-                         + TimeUnit.MILLISECONDS.convert(1001, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "1000:01:01.001"));
-    }
-
     @ParameterizedTest
     @MethodSource("getDurationValues")
     public void testFormatDurationToWords(Duration duration, String expected) {
@@ -259,17 +259,22 @@ public class TestFormatUtils {
 
     private static Stream<Arguments> getDurationValues() {
         return Stream.of(
-                Arguments.of(Duration.parse("PT0.000000001S"), "1ns"),
-                Arguments.of(Duration.parse("PT0.000000002S"), "2ns"),
-                Arguments.of(Duration.parse("PT1S"), "1s 0ns"),
-                Arguments.of(Duration.parse("PT2S"), "2s 0ns"),
-                Arguments.of(Duration.parse("PT1M"), "1m 0s 0ns"),
-                Arguments.of(Duration.parse("PT2M"), "2m 0s 0ns"),
-                Arguments.of(Duration.parse("PT1H"), "1h 0m 0s 0ns"),
-                Arguments.of(Duration.parse("PT2H"), "2h 0m 0s 0ns"),
-                Arguments.of(Duration.parse("P1D"), "1d 0h 0m 0s 0ns"),
-                Arguments.of(Duration.parse("P35D"), "35d 0h 0m 0s 0ns"),
-                Arguments.of(Duration.parse("P366D"), "366d 0h 0m 0s 0ns")
+                Arguments.of(Duration.parse("PT0.000000001S"), "0ms 1ns"),
+                Arguments.of(Duration.parse("PT0.001000001S"), "1ms 1ns"),
+                Arguments.of(Duration.parse("PT0.000000002S"), "0ms 2ns"),
+                Arguments.of(Duration.parse("PT1S"), "1s"),
+                Arguments.of(Duration.parse("PT1.001S"), "1s 1ms"),
+                Arguments.of(Duration.parse("PT1.000000001S"), "1s 0ms 1ns"),
+                Arguments.of(Duration.parse("PT1.001000001S"), "1s 1ms 1ns"),
+                Arguments.of(Duration.parse("PT2S"), "2s"),
+                Arguments.of(Duration.parse("PT1M"), "1m 0s"),
+                Arguments.of(Duration.parse("PT2M"), "2m 0s"),
+                Arguments.of(Duration.parse("PT1H"), "1h 0m 0s"),
+                Arguments.of(Duration.parse("PT2H"), "2h 0m 0s"),
+                Arguments.of(Duration.parse("P1D"), "1d 0h 0m 0s"),
+                Arguments.of(Duration.parse("PT25H"), "1d 1h 0m 0s"),
+                Arguments.of(Duration.parse("P35D"), "35d 0h 0m 0s"),
+                Arguments.of(Duration.parse("P366D"), "366d 0h 0m 0s")
         );
     }
 }
