@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.confluent.schemaregistry;
+package org.apache.nifi.confluent.schema;
 
 import org.junit.jupiter.api.Test;
 
@@ -23,10 +23,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.decodeZigZag;
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStream;
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.writeZigZagVarint;
+import static org.apache.nifi.confluent.schema.VarintUtils.decodeZigZag;
+import static org.apache.nifi.confluent.schema.VarintUtils.readVarintFromStream;
+import static org.apache.nifi.confluent.schema.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
+import static org.apache.nifi.confluent.schema.VarintUtils.writeZigZagVarint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
