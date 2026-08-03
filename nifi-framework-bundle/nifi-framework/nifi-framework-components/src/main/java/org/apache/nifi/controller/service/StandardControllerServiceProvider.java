@@ -283,9 +283,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
                 future.get(30, TimeUnit.SECONDS);
                 logger.debug("{} enabled with state [{}]", controllerServiceNode, controllerServiceNode.getState());
-            } catch (final ControllerServiceNotValidException e) {
-                logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
                     this.bulletinRepo.addBulletin(createControllerServiceBulletin(controllerServiceNode,
