@@ -75,6 +75,25 @@
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Confluent components used only for end-to-end write/read round-trip tests of the Confluent wire format -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-confluent-schema-registry-service</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-confluent-protobuf-message-index-writer</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-confluent-protobuf-message-name-resolver</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 </project>
