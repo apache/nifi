@@ -27,6 +27,7 @@ import org.apache.nifi.web.server.log.StandardRequestLogProvider;
 import org.eclipse.jetty.compression.gzip.GzipCompression;
 import org.eclipse.jetty.compression.server.CompressionConfig;
 import org.eclipse.jetty.compression.server.CompressionHandler;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
@@ -161,8 +162,10 @@ class StandardServerProvider implements ServerProvider {
 
         final CompressionConfig compressionConfig = CompressionConfig.builder()
                 .defaults()
+                // Override default inclusion of decompression for POST method
+                .decompressExcludeMethod(HttpMethod.POST.asString())
                 // Disable decompression of requests
-                .decompressExcludeEncoding(gzipCompression.getEncodingName())
+                .decompressExcludePath(ALL_PATHS_PATTERN)
                 .build();
         compressionHandler.putConfiguration(ROOT_PATH, compressionConfig);
 

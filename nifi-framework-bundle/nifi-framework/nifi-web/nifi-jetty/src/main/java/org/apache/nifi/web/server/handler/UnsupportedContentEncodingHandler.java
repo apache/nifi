@@ -23,6 +23,8 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.util.Callback;
 
+import java.util.List;
+
 /**
  * Handler that rejects requests declaring an unsupported Content-Encoding
  */
@@ -34,14 +36,32 @@ public class UnsupportedContentEncodingHandler extends Handler.Abstract {
 
     @Override
     public boolean handle(final Request request, final Response response, final Callback callback) {
-        final String contentEncoding = request.getHeaders().get(HttpHeader.CONTENT_ENCODING);
+        // Handle one or more Content-Encoding request headers
+        final List<String> contentEncodings = request.getHeaders().getValuesList(HttpHeader.CONTENT_ENCODING);
 
-        // A request without a Content-Encoding, or one declaring only the identity encoding, is passed to later Handlers
-        if (contentEncoding == null || contentEncoding.isBlank() || IDENTITY_ENCODING.equalsIgnoreCase(contentEncoding.trim())) {
-            return false;
+        final boolean handled;
+        if (isContentEncodingUnsupported(contentEncodings)) {
+            Response.writeError(request, response, callback, HttpStatus.UNSUPPORTED_MEDIA_TYPE_415, UNSUPPORTED_MESSAGE);
+            handled = true;
+        } else {
+            handled = false;
         }
 
-        Response.writeError(request, response, callback, HttpStatus.UNSUPPORTED_MEDIA_TYPE_415, UNSUPPORTED_MESSAGE);
-        return true;
+        return handled;
+    }
+
+    private boolean isContentEncodingUnsupported(final List<String> contentEncodings) {
+        // Empty Content-Encoding header is allowed
+        boolean unsupported = false;
+
+        for (final String contentEncoding : contentEncodings) {
+            // Content-Encoding with a value of identity is allowed indicating no encoding
+            if (!IDENTITY_ENCODING.equalsIgnoreCase(contentEncoding)) {
+                unsupported = true;
+                break;
+            }
+        }
+
+        return unsupported;
     }
 }
