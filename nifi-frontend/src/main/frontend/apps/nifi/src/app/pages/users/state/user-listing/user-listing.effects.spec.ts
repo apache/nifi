@@ -19,7 +19,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Action } from '@ngrx/store';
-import { ReplaySubject, of, take, throwError, Subject } from 'rxjs';
+import { ReplaySubject, of, take, throwError, Subject, merge } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import * as UserListingActions from './user-listing.actions';
@@ -321,7 +321,12 @@ describe('UserListingEffects', () => {
             action$.next(
                 UserListingActions.updateUserSuccess({
                     response: {
-                        user: { id: 'u1' } as any
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 0,
+                            userGroupsAdded: [],
+                            userGroupsRemoved: []
+                        }
                     }
                 })
             );
@@ -456,26 +461,6 @@ describe('UserListingEffects', () => {
     });
 
     describe('Await Update User Groups For CreateUser', () => {
-        it('should dispatch createUserComplete when expectedCount is 0', async () => {
-            const { effects } = await setup();
-
-            const createUserResponse = {
-                user: { id: 'u1' } as any,
-                userGroupUpdate: {
-                    requestId: 10,
-                    userGroups: []
-                }
-            };
-
-            action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
-
-            const result = await new Promise((resolve) =>
-                effects.awaitUpdateUserGroupsForCreateUser$.pipe(take(1)).subscribe(resolve)
-            );
-
-            expect(result).toEqual(UserListingActions.createUserComplete({ response: createUserResponse }));
-        });
-
         it('should wait for all updateUserGroupSuccess actions and then dispatch createUserComplete', async () => {
             const { effects } = await setup();
 
@@ -578,7 +563,11 @@ describe('UserListingEffects', () => {
             const { effects } = await setup();
 
             const createUserResponse = {
-                user: { id: 'u1' } as any
+                user: { id: 'u1' } as any,
+                userGroupUpdate: {
+                    requestId: 23,
+                    userGroups: []
+                }
             };
 
             action$.next(UserListingActions.createUserSuccess({ response: createUserResponse }));
@@ -593,15 +582,20 @@ describe('UserListingEffects', () => {
     });
 
     describe('Await Update User Groups For Update User', () => {
-        it('should dispatch updateUserComplete when expectedCount is 0', async () => {
+        it('should dispatch a single updateUserComplete when updateUserSuccess has no user group changes', async () => {
             const { effects } = await setup();
+
+            const results: any[] = [];
+            merge(effects.updateUserSuccess$, effects.awaitUpdateUserGroupsForUpdateUser$).subscribe((result) =>
+                results.push(result)
+            );
 
             action$.next(
                 UserListingActions.updateUserSuccess({
                     response: {
                         user: { id: 'u1' } as any,
                         userGroupUpdate: {
-                            requestId: 20,
+                            requestId: 24,
                             userGroupsAdded: [],
                             userGroupsRemoved: []
                         }
@@ -609,11 +603,9 @@ describe('UserListingEffects', () => {
                 })
             );
 
-            const result = await new Promise((resolve) =>
-                effects.awaitUpdateUserGroupsForUpdateUser$.pipe(take(1)).subscribe(resolve)
-            );
+            await new Promise((resolve) => setTimeout(resolve, 0));
 
-            expect(result).toEqual(UserListingActions.updateUserComplete());
+            expect(results).toEqual([UserListingActions.updateUserComplete()]);
         });
 
         it('should wait for all updateUserGroupSuccess actions for added and removed groups', async () => {
@@ -729,7 +721,12 @@ describe('UserListingEffects', () => {
             action$.next(
                 UserListingActions.updateUserSuccess({
                     response: {
-                        user: { id: 'u1' } as any
+                        user: { id: 'u1' } as any,
+                        userGroupUpdate: {
+                            requestId: 24,
+                            userGroupsAdded: [],
+                            userGroupsRemoved: []
+                        }
                     }
                 })
             );

@@ -26,6 +26,7 @@ import { selectTenant } from './user-listing.actions';
 import {
     catchError,
     combineLatest,
+    EMPTY,
     filter,
     from,
     last,
@@ -279,13 +280,12 @@ export class UserListingEffects {
             mergeMap((createUserResponse) => {
                 const expectedCount = createUserResponse.userGroupUpdate?.userGroups?.length ?? 0;
                 if (expectedCount === 0) {
-                    return of(UserListingActions.createUserComplete({ response: createUserResponse }));
+                    return EMPTY;
                 }
                 return this.actions$.pipe(
                     ofType(UserListingActions.updateUserGroupSuccess, UserListingActions.updateUserGroupError),
                     filter(
                         (action) =>
-                            // @ts-ignore
                             createUserResponse.userGroupUpdate.requestId ===
                             ('response' in action ? action.response.requestId : action.requestId)
                     ),
@@ -397,6 +397,11 @@ export class UserListingEffects {
                                                 userPayload: {
                                                     ...request.user.component,
                                                     ...response.user.payload
+                                                },
+                                                userGroupUpdate: {
+                                                    requestId: this.requestId++,
+                                                    userGroupsAdded: [],
+                                                    userGroupsRemoved: []
                                                 }
                                             }
                                         })
@@ -565,14 +570,13 @@ export class UserListingEffects {
                 const expectedCount = addedCount + removedCount;
 
                 if (expectedCount === 0) {
-                    return of(UserListingActions.updateUserComplete());
+                    return EMPTY;
                 }
 
                 return this.actions$.pipe(
                     ofType(UserListingActions.updateUserGroupSuccess, UserListingActions.updateUserGroupError),
                     filter(
                         (action) =>
-                            // @ts-ignore
                             updateUserResponse.userGroupUpdate.requestId ===
                             ('response' in action ? action.response.requestId : action.requestId)
                     ),
