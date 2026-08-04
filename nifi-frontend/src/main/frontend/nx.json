@@ -21,7 +21,12 @@
         },
         "@nx/eslint:lint": {
             "cache": true,
-            "inputs": ["default", "{workspaceRoot}/eslint.config.mjs"]
+            "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*"
+            ]
         },
         "@nx/js:tsc": {
             "cache": true,
