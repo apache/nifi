@@ -18,9 +18,6 @@ package org.apache.nifi.oauth2;
 
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 /**
  * Supported strategies for producing the RFC 7523 JWT assertion presented to the token endpoint.
  */
@@ -38,7 +35,7 @@ public enum AssertionStrategy implements DescribedValue {
 
     @Override
     public String getValue() {
-        return displayName;
+        return name();
     }
 
     @Override
@@ -51,13 +48,4 @@ public enum AssertionStrategy implements DescribedValue {
         return description;
     }
 
-    public static Optional<AssertionStrategy> fromValue(final String value) {
-        if (value == null) {
-            return Optional.empty();
-        }
-
-        return Arrays.stream(values())
-                .filter(strategy -> strategy.getValue().equals(value))
-                .findFirst();
-    }
 }

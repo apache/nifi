@@ -285,7 +285,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
 
     @Test
     void testValidationFailsWhenExternalProviderStrategyMissingExternalAssertionProvider() {
-        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.getValue());
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name());
 
         final Collection<ValidationResult> validations = runner.validate(provider);
         assertTrue(validations.stream().anyMatch(validation -> validation.getSubject().equals(JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER.getDisplayName())));
@@ -309,7 +309,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
 
     @Test
     void testVerifySurfacesExternalProviderFailureCause() throws Exception {
-        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.getValue());
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name());
 
         final OAuth2AccessTokenProvider externalProvider = mock(OAuth2AccessTokenProvider.class);
         lenient().when(externalProvider.getAccessDetails()).thenThrow(new IllegalStateException("external provider unavailable"));
@@ -362,7 +362,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
     }
 
     private void setExternalAssertionProviderMock(String tokenValue) throws InitializationException {
-        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.getValue());
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name());
 
         final OAuth2AccessTokenProvider externalProvider = mock(OAuth2AccessTokenProvider.class);
         final AccessToken token = new AccessToken();
