@@ -34,7 +34,7 @@
                             @if (hasComments(item)) {
                                 <div
                                     class="pointer fa fa-comment primary-color"
-                                    [delayClose]="false"
+                                    [delayClose]="true"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     [tooltipInputData]="item.component.comments"></div>
@@ -42,7 +42,7 @@
                             @if (hasErrors(item)) {
                                 <div
                                     class="pointer fa fa-warning has-errors caution-color"
-                                    [delayClose]="false"
+                                    [delayClose]="true"
                                     nifiTooltip
                                     [tooltipComponentType]="ValidationErrorsTip"
                                     [tooltipInputData]="getValidationErrorsTipData(item)"></div>
