@@ -58,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -65,6 +66,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JWTBearerOAuth2AccessTokenProviderTest {
+
+    private static final String EXTERNAL_ASSERTION_PROVIDER_ID = "externalAssertionProvider";
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ConfigurationContext mockContext;
@@ -275,6 +278,56 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         runner.assertValid(provider);
     }
 
+    @Test
+    void testValidationFailsWhenSelfSignedStrategyMissingPrivateKeyService() {
+        // default strategy is Self-Signed; without a Private Key Service configured, validation must fail
+        final Collection<ValidationResult> validations = runner.validate(provider);
+        assertTrue(validations.stream().anyMatch(validation -> validation.getSubject().equals(JWTBearerOAuth2AccessTokenProvider.PRIVATE_KEY_SERVICE.getDisplayName())));
+    }
+
+    @Test
+    void testValidationFailsWhenExternalProviderStrategyMissingExternalAssertionProvider() {
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name());
+
+        final Collection<ValidationResult> validations = runner.validate(provider);
+        assertTrue(validations.stream().anyMatch(validation -> validation.getSubject().equals(JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER.getDisplayName())));
+    }
+
+    @Test
+    void testExternalAssertionProviderTokenIsUsedAsAssertion() throws Exception {
+        setExternalAssertionProviderMock("external-token-value");
+
+        runner.enableControllerService(provider);
+        provider.getAccessDetails();
+
+        // the external provider's token is used directly as the assertion, no local JWT is built or signed
+        assertNull(provider.getJwsHeader());
+        assertNull(provider.getJwtClaimsSet());
+
+        final Map<String, String> formParams = provider.getFormParams();
+        assertEquals("external-token-value", formParams.get("customAssertionField"));
+        assertEquals("urn:ietf:params:oauth:grant-type:jwt-bearer", formParams.get("grant_type"));
+    }
+
+    @Test
+    void testVerifySurfacesExternalProviderFailureCause() throws Exception {
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name());
+
+        final OAuth2AccessTokenProvider externalProvider = mock(OAuth2AccessTokenProvider.class);
+        lenient().when(externalProvider.getAccessDetails()).thenThrow(new IllegalStateException("external provider unavailable"));
+        lenient().when(externalProvider.getIdentifier()).thenReturn(EXTERNAL_ASSERTION_PROVIDER_ID);
+
+        runner.addControllerService(EXTERNAL_ASSERTION_PROVIDER_ID, externalProvider);
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER, EXTERNAL_ASSERTION_PROVIDER_ID);
+        runner.enableControllerService(externalProvider);
+        runner.enableControllerService(provider);
+
+        final List<ConfigVerificationResult> results = runner.verify(provider, Map.of());
+        assertEquals(1, results.size());
+        assertEquals(Outcome.FAILED, results.get(0).getOutcome());
+        assertTrue(results.get(0).getExplanation().contains("external provider unavailable"));
+    }
+
     private void setContext() {
         runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ISSUER, "TestIssuer");
         runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.SUBJECT, "TestSubject");
@@ -308,6 +361,20 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         runner.addControllerService("keyService", keyService);
         runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.PRIVATE_KEY_SERVICE, "keyService");
         runner.enableControllerService(keyService);
+    }
+
+    private void setExternalAssertionProviderMock(String tokenValue) throws InitializationException {
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name());
+
+        final OAuth2AccessTokenProvider externalProvider = mock(OAuth2AccessTokenProvider.class);
+        final AccessToken token = new AccessToken();
+        token.setAccessToken(tokenValue);
+        lenient().when(externalProvider.getAccessDetails()).thenReturn(token);
+        lenient().when(externalProvider.getIdentifier()).thenReturn(EXTERNAL_ASSERTION_PROVIDER_ID);
+
+        runner.addControllerService(EXTERNAL_ASSERTION_PROVIDER_ID, externalProvider);
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER, EXTERNAL_ASSERTION_PROVIDER_ID);
+        runner.enableControllerService(externalProvider);
     }
 
     private class JWTBearerOAuth2AccessTokenProviderForTests extends JWTBearerOAuth2AccessTokenProvider {
