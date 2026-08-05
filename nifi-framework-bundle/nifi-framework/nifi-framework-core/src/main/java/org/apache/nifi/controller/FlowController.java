@@ -1515,10 +1515,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             if (flowAnalyzer != null) {
                 new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier).run();
             }
-            new TriggerValidationTask(flowManager, triggerIfValidating).run();
+            final TriggerValidationTask initialValidationTask = new TriggerValidationTask(flowManager, triggerIfValidating, validationThreadPool);
+            initialValidationTask.run();
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            LOG.info("Performed initial validation of all components in {} milliseconds", millis);
+            if (initialValidationTask.isValidationComplete()) {
+                LOG.info("Performed initial validation of all components in {} milliseconds", millis);
+            } else {
+                LOG.warn("Initial validation of components did not complete for all components after {} milliseconds " +
+                        "(interrupted or validation thread pool unavailable); some components may still report a VALIDATING status", millis);
+            }
 
             scheduleBackgroundFlowAnalysis(rootProcessGroupSupplier);
             // Trigger component validation to occur every 5 seconds.
