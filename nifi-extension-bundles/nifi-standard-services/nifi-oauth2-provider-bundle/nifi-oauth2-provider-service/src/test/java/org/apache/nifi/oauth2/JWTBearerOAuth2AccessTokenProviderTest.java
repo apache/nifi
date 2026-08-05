@@ -67,6 +67,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class JWTBearerOAuth2AccessTokenProviderTest {
 
+    private static final String EXTERNAL_ASSERTION_PROVIDER_ID = "externalAssertionProvider";
+
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ConfigurationContext mockContext;
 
@@ -313,10 +315,10 @@ class JWTBearerOAuth2AccessTokenProviderTest {
 
         final OAuth2AccessTokenProvider externalProvider = mock(OAuth2AccessTokenProvider.class);
         lenient().when(externalProvider.getAccessDetails()).thenThrow(new IllegalStateException("external provider unavailable"));
-        lenient().when(externalProvider.getIdentifier()).thenReturn("externalAssertionProvider");
+        lenient().when(externalProvider.getIdentifier()).thenReturn(EXTERNAL_ASSERTION_PROVIDER_ID);
 
-        runner.addControllerService("externalAssertionProvider", externalProvider);
-        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER, "externalAssertionProvider");
+        runner.addControllerService(EXTERNAL_ASSERTION_PROVIDER_ID, externalProvider);
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER, EXTERNAL_ASSERTION_PROVIDER_ID);
         runner.enableControllerService(externalProvider);
         runner.enableControllerService(provider);
 
@@ -368,10 +370,10 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         final AccessToken token = new AccessToken();
         token.setAccessToken(tokenValue);
         lenient().when(externalProvider.getAccessDetails()).thenReturn(token);
-        lenient().when(externalProvider.getIdentifier()).thenReturn("externalAssertionProvider");
+        lenient().when(externalProvider.getIdentifier()).thenReturn(EXTERNAL_ASSERTION_PROVIDER_ID);
 
-        runner.addControllerService("externalAssertionProvider", externalProvider);
-        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER, "externalAssertionProvider");
+        runner.addControllerService(EXTERNAL_ASSERTION_PROVIDER_ID, externalProvider);
+        runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.EXTERNAL_ASSERTION_PROVIDER, EXTERNAL_ASSERTION_PROVIDER_ID);
         runner.enableControllerService(externalProvider);
     }
 

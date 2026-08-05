@@ -127,7 +127,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .description("Determines how the RFC 7523 JWT assertion presented to the Token Endpoint is produced.")
             .required(true)
             .allowableValues(AssertionStrategy.class)
-            .defaultValue(AssertionStrategy.SELF_SIGNED.name())
+            .defaultValue(AssertionStrategy.SELF_SIGNED)
             .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
@@ -135,7 +135,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .description("The private key service to use for signing JWTs.")
             .identifiesControllerService(PrivateKeyService.class)
             .required(true)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .build();
 
     public static final PropertyDescriptor EXTERNAL_ASSERTION_PROVIDER = new PropertyDescriptor.Builder()
@@ -147,7 +147,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
                     """)
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.EXTERNAL_PROVIDER)
             .build();
 
     public static final PropertyDescriptor SIGNING_ALGORITHM = new PropertyDescriptor.Builder()
@@ -166,7 +166,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
                     JWSAlgorithm.Ed25519.getName())
             .defaultValue(JWSAlgorithm.PS256.getName())
             .required(true)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(Validator.VALID)
             .build();
 
@@ -174,7 +174,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .name("Issuer")
             .description("The issuer claim (iss) for the JWT.")
             .required(false)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
@@ -183,7 +183,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .name("Subject")
             .description("The subject claim (sub) for the JWT.")
             .required(false)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
@@ -192,7 +192,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .name("Audience")
             .description("The audience claim (aud) for the JWT. Space-separated list of audiences if multiple are expected.")
             .required(false)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
@@ -201,7 +201,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .name("Scope")
             .description("The scope claim (scope) for the JWT.")
             .required(false)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
@@ -233,7 +233,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(Validator.VALID)
             .build();
 
@@ -255,7 +255,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
                     value to ${UUID()}.
                     """)
             .required(false)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
@@ -264,7 +264,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             .name("Key ID")
             .description("The ID of the public key used to sign the JWT. It'll be used as the kid header in the JWT.")
             .required(false)
-            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED.name())
+            .dependsOn(ASSERTION_STRATEGY, AssertionStrategy.SELF_SIGNED)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
