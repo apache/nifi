@@ -18,6 +18,7 @@
 import { Directive, ElementRef, HostListener, Input, OnDestroy, Type, inject } from '@angular/core';
 import { ConnectedPosition, Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
+import { Subscription } from 'rxjs';
 import { NiFiCommon } from '../services/nifi-common.service';
 
 @Directive({
@@ -25,6 +26,14 @@ import { NiFiCommon } from '../services/nifi-common.service';
     standalone: true
 })
 export class NifiTooltipDirective<T> implements OnDestroy {
+    /**
+     * Only one tooltip should ever be visible at a time. Tracking the currently
+     * attached instance lets a newly opened tooltip close any previous one, which
+     * prevents overlapping overlays from stealing each other's mouse events and
+     * getting stuck open.
+     */
+    private static openInstance: NifiTooltipDirective<unknown> | null = null;
+
     private element = inject<ElementRef<HTMLElement>>(ElementRef);
     private overlay = inject(Overlay);
 
@@ -38,17 +47,21 @@ export class NifiTooltipDirective<T> implements OnDestroy {
     private closeTimer = -1;
     private overlayRef: OverlayRef | null = null;
     private positionStrategy: PositionStrategy | null = null;
-    private overTip = false;
     private openTimer = -1;
+    private detachmentsSubscription: Subscription | null = null;
 
     @HostListener('mouseenter')
     mouseEnter() {
         if (this.delayOpen) {
             this.openTimer = window.setTimeout(() => {
-                if (!this.overlayRef?.hasAttached()) {
+                this.openTimer = -1;
+
+                // Only open if the pointer is genuinely still over the trigger. A quick
+                // pass-through whose mouseleave was dropped or coalesced must not open the
+                // tooltip once the delay elapses.
+                if (this.isPointerOverTrigger() && !this.overlayRef?.hasAttached()) {
                     this.attach();
                 }
-                this.openTimer = -1;
             }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
         } else {
             if (!this.overlayRef?.hasAttached()) {
@@ -60,11 +73,7 @@ export class NifiTooltipDirective<T> implements OnDestroy {
     @HostListener('mousemove')
     mouseMove() {
         if (this.overlayRef?.hasAttached() && this.tooltipDisabled) {
-            this.overlayRef?.detach();
-
-            if (this.positionStrategy?.detach) {
-                this.positionStrategy.detach();
-            }
+            this.detachTip();
         }
     }
 
@@ -86,33 +95,63 @@ export class NifiTooltipDirective<T> implements OnDestroy {
     }
 
     private closeTip(): void {
-        if (this.overlayRef?.hasAttached() && !this.overTip) {
-            if (this.delayClose) {
-                this.closeTimer = window.setTimeout(() => {
-                    this.overlayRef?.detach();
-
-                    if (this.positionStrategy?.detach) {
-                        this.positionStrategy.detach();
-                    }
-
-                    this.closeTimer = -1;
-                }, NiFiCommon.TOOLTIP_DELAY_CLOSE_MILLIS);
-            } else {
-                this.overlayRef?.detach();
-
-                if (this.positionStrategy?.detach) {
-                    this.positionStrategy.detach();
-                }
-            }
-        }
-
+        // cancel any pending open so a quick hover in-and-out never opens the tooltip
         if (this.openTimer > 0) {
             window.clearTimeout(this.openTimer);
             this.openTimer = -1;
         }
+
+        if (!this.overlayRef?.hasAttached()) {
+            return;
+        }
+
+        if (this.delayClose) {
+            this.scheduleClose();
+        } else {
+            this.detachTip();
+        }
+    }
+
+    /**
+     * Schedule a close check. When the timer fires, close only if the pointer is over
+     * neither the trigger nor the tooltip; otherwise reschedule. Re-checking against
+     * the live `:hover` state (rather than cancelling the timer when the pointer
+     * bridges onto the tooltip) keeps the "move onto the tooltip to scroll it"
+     * behavior working while guaranteeing that a dropped or coalesced mouseleave on
+     * either element can never leave the tooltip stuck open.
+     */
+    private scheduleClose(): void {
+        if (this.closeTimer > 0) {
+            window.clearTimeout(this.closeTimer);
+        }
+
+        this.closeTimer = window.setTimeout(() => {
+            this.closeTimer = -1;
+
+            if (this.isPointerOverTrigger() || this.isPointerOverTip()) {
+                this.scheduleClose();
+            } else {
+                this.detachTip();
+            }
+        }, NiFiCommon.TOOLTIP_DELAY_CLOSE_MILLIS);
     }
 
     ngOnDestroy(): void {
+        if (this.openTimer > 0) {
+            window.clearTimeout(this.openTimer);
+            this.openTimer = -1;
+        }
+
+        if (this.closeTimer > 0) {
+            window.clearTimeout(this.closeTimer);
+            this.closeTimer = -1;
+        }
+
+        if (NifiTooltipDirective.openInstance === (this as NifiTooltipDirective<unknown>)) {
+            NifiTooltipDirective.openInstance = null;
+        }
+
+        this.detachmentsSubscription?.unsubscribe();
         this.overlayRef?.dispose();
         this.positionStrategy?.dispose();
     }
@@ -122,33 +161,66 @@ export class NifiTooltipDirective<T> implements OnDestroy {
             return;
         }
 
+        // enforce a single visible tooltip across the application
+        const currentlyOpen = NifiTooltipDirective.openInstance;
+        if (currentlyOpen && currentlyOpen !== (this as NifiTooltipDirective<unknown>)) {
+            currentlyOpen.detachTip();
+        }
+
         if (!this.overlayRef) {
             this.positionStrategy = this.getPositionStrategy();
             this.overlayRef = this.overlay.create({ positionStrategy: this.positionStrategy });
+
+            // Reset transient state whenever the overlay detaches for any reason so
+            // a missed overlay mouseleave can't leave the instance in a state that
+            // permanently blocks closing.
+            this.detachmentsSubscription = this.overlayRef.detachments().subscribe(() => {
+                if (this.closeTimer > 0) {
+                    window.clearTimeout(this.closeTimer);
+                    this.closeTimer = -1;
+                }
+
+                if (NifiTooltipDirective.openInstance === (this as NifiTooltipDirective<unknown>)) {
+                    NifiTooltipDirective.openInstance = null;
+                }
+            });
+
+            // Leaving the tooltip closes it immediately. This is only a fast path;
+            // the scheduleClose() watchdog is the authoritative closer and self-heals
+            // if this mouseleave is ever dropped or coalesced by the browser.
+            this.overlayRef.overlayElement.addEventListener('mouseleave', () => {
+                this.detachTip();
+            });
         }
 
         const tooltipReference = this.overlayRef.attach(new ComponentPortal(this.tooltipComponentType));
         tooltipReference.setInput('data', this.tooltipInputData);
 
-        // register mouse events
-        tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
-            if (this.closeTimer > 0) {
-                window.clearTimeout(this.closeTimer);
-                this.closeTimer = -1;
-            }
+        NifiTooltipDirective.openInstance = this as NifiTooltipDirective<unknown>;
+    }
 
-            this.overTip = true;
-        });
-        tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
-            this.overlayRef?.detach();
-
-            if (this.positionStrategy?.detach) {
-                this.positionStrategy.detach();
-            }
-
+    private detachTip(): void {
+        if (this.closeTimer > 0) {
+            window.clearTimeout(this.closeTimer);
             this.closeTimer = -1;
-            this.overTip = false;
-        });
+        }
+
+        if (this.overlayRef?.hasAttached()) {
+            this.overlayRef.detach();
+        }
+
+        if (this.positionStrategy?.detach) {
+            this.positionStrategy.detach();
+        }
+    }
+
+    private isPointerOverTrigger(): boolean {
+        return this.element.nativeElement.matches(':hover');
+    }
+
+    private isPointerOverTip(): boolean {
+        const overlayElement = this.overlayRef?.overlayElement;
+        return !!overlayElement && overlayElement.matches(':hover');
     }
 
     private getPositionStrategy(): PositionStrategy {
