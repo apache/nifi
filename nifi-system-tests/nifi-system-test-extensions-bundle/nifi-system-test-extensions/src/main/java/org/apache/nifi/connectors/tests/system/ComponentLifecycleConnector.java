@@ -95,7 +95,7 @@ public class ComponentLifecycleConnector extends AbstractConnector {
         final VersionedProcessor rootTerminateProcessor = VersionedFlowUtils.addProcessor(rootGroup,
             "org.apache.nifi.processors.tests.system.TerminateFlowFile", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Root TerminateFlowFile", new Position(300, 100));
 
-        final VersionedProcessGroup childGroup = createChildGroup(rootGroup.getIdentifier());
+        final VersionedProcessGroup childGroup = createChildGroup(rootGroup.getIdentifier(), rootControllerService.getIdentifier());
         rootGroup.getProcessGroups().add(childGroup);
 
         final VersionedPort childInputPort = childGroup.getInputPorts().iterator().next();
@@ -109,7 +109,7 @@ public class ComponentLifecycleConnector extends AbstractConnector {
         return rootGroup;
     }
 
-    private VersionedProcessGroup createChildGroup(final String parentGroupId) {
+    private VersionedProcessGroup createChildGroup(final String parentGroupId, final String rootCountServiceId) {
         final VersionedProcessGroup childGroup = VersionedFlowUtils.createProcessGroup("child-group-id", "Child Group");
         childGroup.setPosition(new Position(100, 300));
         childGroup.setRemoteProcessGroups(new HashSet<>());
@@ -131,7 +131,7 @@ public class ComponentLifecycleConnector extends AbstractConnector {
         final VersionedProcessor childProcessor = VersionedFlowUtils.addProcessor(childGroup,
             "org.apache.nifi.processors.tests.system.PassThrough", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Child Terminate", new Position(100, 100));
 
-        final VersionedProcessGroup statelessGroup = createStatelessGroup(childGroup.getIdentifier());
+        final VersionedProcessGroup statelessGroup = createStatelessGroup(childGroup.getIdentifier(), rootCountServiceId);
         childGroup.getProcessGroups().add(statelessGroup);
 
         final VersionedPort statelessInputPort = statelessGroup.getInputPorts().iterator().next();
@@ -146,7 +146,7 @@ public class ComponentLifecycleConnector extends AbstractConnector {
         return childGroup;
     }
 
-    private VersionedProcessGroup createStatelessGroup(final String parentGroupId) {
+    private VersionedProcessGroup createStatelessGroup(final String parentGroupId, final String rootCountServiceId) {
         final VersionedProcessGroup statelessGroup = VersionedFlowUtils.createProcessGroup("stateless-group-id", "Stateless Group");
         statelessGroup.setPosition(new Position(400, 100));
         statelessGroup.setRemoteProcessGroups(new HashSet<>());
@@ -157,11 +157,21 @@ public class ComponentLifecycleConnector extends AbstractConnector {
 
         final VersionedPort statelessInput = VersionedFlowUtils.addInputPort(statelessGroup, "Stateless Input", new Position(0, 0));
 
+        // A processor inside the stateless group that references a controller service defined at the connector root.
+        // This mirrors real connectors (e.g. a Snowflake connection pool referenced from a "Create Journal Table"
+        // stateless subgroup) and lets tests exercise stopping/starting the stateless group as a single unit through
+        // the controller-service reference lifecycle.
+        final VersionedProcessor statelessCountProcessor = VersionedFlowUtils.addProcessor(statelessGroup,
+            "org.apache.nifi.processors.tests.system.CountFlowFiles", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Stateless Count", new Position(100, 50));
+        statelessCountProcessor.getProperties().put("Count Service", rootCountServiceId);
+
         final VersionedProcessor statelessProcessor = VersionedFlowUtils.addProcessor(statelessGroup,
             "org.apache.nifi.processors.tests.system.TerminateFlowFile", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Stateless Terminate", new Position(100, 100));
 
         VersionedFlowUtils.addConnection(statelessGroup, VersionedFlowUtils.createConnectableComponent(statelessInput),
-            VersionedFlowUtils.createConnectableComponent(statelessProcessor), Set.of(""));
+            VersionedFlowUtils.createConnectableComponent(statelessCountProcessor), Set.of(""));
+        VersionedFlowUtils.addConnection(statelessGroup, VersionedFlowUtils.createConnectableComponent(statelessCountProcessor),
+            VersionedFlowUtils.createConnectableComponent(statelessProcessor), Set.of("success"));
 
         return statelessGroup;
     }
