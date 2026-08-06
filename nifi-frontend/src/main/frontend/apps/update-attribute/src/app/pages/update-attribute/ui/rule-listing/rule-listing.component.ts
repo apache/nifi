@@ -214,6 +214,16 @@ export class RuleListing {
 
     newRuleExpanded(): void {
         this.scrollToNewRule = true;
+        const newRulePanel = this.ruleListing.nativeElement.querySelector('.new-rule');
+        if (newRulePanel) {
+            window.setTimeout(function () {
+                newRulePanel.scrollIntoView({
+                    block: 'center',
+                    behavior: 'smooth'
+                });
+                newRulePanel.focus();
+            }, 0);
+        }
     }
 
     deleteRule(rule: Rule): void {
