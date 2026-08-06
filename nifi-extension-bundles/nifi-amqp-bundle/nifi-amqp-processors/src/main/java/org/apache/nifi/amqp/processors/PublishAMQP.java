@@ -33,6 +33,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -75,6 +76,7 @@ import java.util.stream.Stream;
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_CLUSTER_ID_ATTRIBUTE, description = "The ID of the AMQP Cluster"),
 })
 public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
+    private static final long MAXIMUM_INPUT_FLOWFILE_SIZE_LIMIT = 128 * 1024 * 1024L;
 
     public static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()
             .name("Exchange Name")
@@ -107,6 +109,16 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .required(true)
             .allowableValues(DeliveryGuarantee.class)
             .defaultValue(DeliveryGuarantee.AT_MOST_ONCE)
+            .build();
+    public static final PropertyDescriptor MAXIMUM_INPUT_FLOWFILE_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum Input FlowFile Size")
+            .description("Maximum size of an input FlowFile that will be read into memory before publishing. PublishAMQP reads FlowFile content into a byte array "
+                    + "before publishing, so FlowFiles larger than this value are routed to failure before content is read. Configure this value according to "
+                    + "broker limits and available JVM memory.")
+            .required(true)
+            .defaultValue("128 MB")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, MAXIMUM_INPUT_FLOWFILE_SIZE_LIMIT))
             .build();
     public static final PropertyDescriptor HEADERS_SOURCE = new PropertyDescriptor.Builder()
             .name("Headers Source")
@@ -150,6 +162,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     EXCHANGE,
                     ROUTING_KEY,
                     DELIVERY_GUARANTEE,
+                    MAXIMUM_INPUT_FLOWFILE_SIZE,
                     HEADERS_SOURCE,
                     HEADERS_PATTERN,
                     HEADER_SEPARATOR
@@ -165,7 +178,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Will construct AMQP message by extracting its body from the incoming {@link FlowFile}. AMQP Properties will be extracted from the
      * {@link FlowFile} and converted to {@link BasicProperties} to be sent along with the message. Upon success the incoming {@link FlowFile} is
-     * transferred to 'success' {@link Relationship} and upon failure FlowFile is penalized and transferred to the 'failure' {@link Relationship}
+     * transferred to 'success' {@link Relationship} and upon failure FlowFile is transferred to the 'failure' {@link Relationship}
      * <br>
      * <p>
      * NOTE: Attributes extracted from {@link FlowFile} are considered candidates for AMQP properties if their names are prefixed with
@@ -177,6 +190,14 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     protected void processResource(final Connection connection, final AMQPPublisher publisher, ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
+            return;
+        }
+
+        final long maximumInputFlowFileSize = context.getProperty(MAXIMUM_INPUT_FLOWFILE_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
+        if (flowFile.getSize() > maximumInputFlowFileSize) {
+            getLogger().warn("FlowFile {} with size {} bytes exceeds configured maximum input FlowFile size of {} bytes; routing to failure",
+                    flowFile, flowFile.getSize(), maximumInputFlowFileSize);
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -201,7 +222,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             session.rollback();
             throw e;
         } catch (AMQPException e) {
-            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.transfer(flowFile, REL_FAILURE);
             throw e;
         }
 
@@ -235,7 +256,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * Extracts contents of the {@link FlowFile} as byte array.
      */
     private byte[] extractMessage(final FlowFile flowFile, ProcessSession session) {
-        final byte[] messageContent = new byte[(int) flowFile.getSize()];
+        final byte[] messageContent = new byte[Math.toIntExact(flowFile.getSize())];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
     }
@@ -332,14 +353,24 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         for (String strEntry : strEntries) {
             final String[] kv = strEntry.split("=", -1); // without using limit, trailing delimiter would be ignored
             if (kv.length == 2) {
-                headers.put(kv[0].trim(), kv[1].trim());
+                addHeader(headers, amqpPropValue, strEntry, kv[0], kv[1].trim());
             } else if (kv.length == 1) {
-                headers.put(kv[0].trim(), null);
+                addHeader(headers, amqpPropValue, strEntry, kv[0], null);
             } else {
                 getLogger().warn("Malformed key value pair in AMQP header property ({}): {}", amqpPropValue, strEntry);
             }
         }
         return headers;
+    }
+
+    private void addHeader(final Map<String, Object> headers, final String amqpPropValue, final String strEntry, final String headerKey, final Object headerValue) {
+        final String trimmedHeaderKey = headerKey.trim();
+        if (trimmedHeaderKey.isEmpty()) {
+            getLogger().warn("Skipping AMQP header with empty key in property ({}): {}", amqpPropValue, strEntry);
+            return;
+        }
+
+        headers.put(trimmedHeaderKey, headerValue);
     }
 
     protected Pattern getPattern(ProcessContext context, InputHeaderSource selectedHeaderSource) {

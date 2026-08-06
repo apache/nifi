@@ -37,7 +37,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PublishAMQPTest {
@@ -151,7 +153,7 @@ public class PublishAMQPTest {
         expectedHeaders.put("foo3", null);
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "foo=(bar,bar)|foo2=bar2|foo3|foo4=malformed=|foo5=mal=formed");
+        attributes.put(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "foo=(bar,bar)|foo2=bar2|foo3|foo4=malformed=|foo5=mal=formed||=ignored");
 
         runner.enqueue("Hello Joe".getBytes(), attributes);
 
@@ -172,6 +174,33 @@ public class PublishAMQPTest {
     }
 
     @Test
+    public void validateEmptyHeaderKeysIgnoredAndPublishToSuccess() throws Exception {
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
+
+        final Map<String, Object> expectedHeaders = new HashMap<>();
+        expectedHeaders.put("foo", "bar");
+        expectedHeaders.put("foo2", null);
+        expectedHeaders.put("foo3", "");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "foo=bar|=missing|   |foo2| foo3 = ");
+
+        runner.enqueue("Hello Joe".getBytes(), attributes);
+
+        runner.run();
+
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
+        assertNotNull(successFF);
+
+        final Channel channel = pubProc.getConnection().createChannel();
+        final GetResponse msg1 = channel.basicGet("queue1", true);
+        assertNotNull(msg1);
+
+        assertEquals(expectedHeaders, msg1.getProps().getHeaders());
+    }
+
+    @Test
     public void validateFailedPublishAndTransferToFailure() {
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.EXCHANGE, "nonExistentExchange");
@@ -181,7 +210,42 @@ public class PublishAMQPTest {
         runner.run();
 
         assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
-        assertNotNull(runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst());
+        final MockFlowFile failureFlowFile = runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst();
+        assertNotNull(failureFlowFile);
+        assertFalse(failureFlowFile.isPenalized());
+        runner.assertPenalizeCount(0);
+    }
+
+    @Test
+    public void validateOversizedFlowFileTransferredToFailureWithoutPublishing() throws Exception {
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE, "4 B");
+
+        runner.enqueue("Hello".getBytes());
+
+        runner.run();
+
+        assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
+        final MockFlowFile failureFlowFile = runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst();
+        assertNotNull(failureFlowFile);
+        assertFalse(failureFlowFile.isPenalized());
+        runner.assertPenalizeCount(0);
+
+        final Channel channel = pubProc.getConnection().createChannel();
+        assertNull(channel.basicGet("queue1", true));
+    }
+
+    @Test
+    public void validateMaximumInputFlowFileSizeProperty() {
+        assertEquals("Maximum Input FlowFile Size", PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE.getName());
+        assertEquals("128 MB", PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE.getDefaultValue());
+
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE, "128 MB");
+        runner.assertValid();
+
+        runner.setProperty(PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE, "129 MB");
+        runner.assertNotValid();
     }
 
     @Test
