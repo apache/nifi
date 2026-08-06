@@ -28,7 +28,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -49,15 +48,15 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 @CapabilityDescription("Updates the visibility timeout for a message from an Amazon Simple Queuing Service Queue")
 public class ChangeSQSMessageVisibilityTimeout extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder> {
 
-    public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
             .name("Queue URL")
-            .description("The URL of the queue delete from")
+            .description("The URL of the queue for which the message's visibility timeout should be updated")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
-    public static final PropertyDescriptor RECEIPT_HANDLE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RECEIPT_HANDLE = new PropertyDescriptor.Builder()
             .name("Receipt Handle")
             .description("The identifier that specifies the receipt of the message")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -66,7 +65,7 @@ public class ChangeSQSMessageVisibilityTimeout extends AbstractAwsSyncProcessor<
             .defaultValue("${sqs.receipt.handle}")
             .build();
 
-    public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Visibility Timeout")
             .description("The amount of time after a message is received but not deleted that the message is hidden from other consumers")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -75,7 +74,7 @@ public class ChangeSQSMessageVisibilityTimeout extends AbstractAwsSyncProcessor<
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         QUEUE_URL,
         VISIBILITY_TIMEOUT,
         REGION,
@@ -121,15 +120,15 @@ public class ChangeSQSMessageVisibilityTimeout extends AbstractAwsSyncProcessor<
         try {
             ChangeMessageVisibilityBatchResponse response = client.changeMessageVisibilityBatch(request);
 
-            // check for errors
             if (!response.failed().isEmpty()) {
-                throw new ProcessException(response.failed().getFirst().toString());
+                getLogger().error("Error updating visibility timeout for {}: {}", flowFile, response.failed().getFirst().toString());
+                session.transfer(flowFile, REL_FAILURE);
+            } else {
+                getLogger().info("Successfully updated visibility timeout to {} for SQS message for {}", visibilityTimeout, flowFile);
+                session.transfer(flowFile, REL_SUCCESS);
             }
-
-            getLogger().info("Successfully updated visibility timeout for SQS message for {}", flowFile);
-            session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
-            getLogger().error("Failed to update visiibility timeout for SQS message", e);
+            getLogger().error("Failed to update visibility timeout for SQS message for {}: {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

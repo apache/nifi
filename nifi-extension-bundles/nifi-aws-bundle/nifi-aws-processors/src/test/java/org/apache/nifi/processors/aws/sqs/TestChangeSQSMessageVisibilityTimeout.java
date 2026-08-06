@@ -34,13 +34,17 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestChangeSQSMessageVisibilityTimeout {
+class TestChangeSQSMessageVisibilityTimeout {
 
     private TestRunner runner = null;
     private SqsClient mockSQSClient = null;
 
+    private static final String queueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000";
+    private static final String filename = "1.txt";
+    private static final String receiptHandle = "test-receipt-handle-1";
+
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         mockSQSClient = Mockito.mock(SqsClient.class);
         ChangeMessageVisibilityBatchResponse mockResponse = ChangeMessageVisibilityBatchResponse.builder()
                 .failed(Collections.emptyList())
@@ -58,11 +62,11 @@ public class TestChangeSQSMessageVisibilityTimeout {
     }
 
     @Test
-    public void testChangeVisibilityTimeoutSingleMessage() {
-        runner.setProperty(ChangeSQSMessageVisibilityTimeout.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+    void testChangeVisibilityTimeoutSingleMessage() {
+        runner.setProperty(ChangeSQSMessageVisibilityTimeout.QUEUE_URL, queueURL);
         final Map<String, String> ffAttributes = new HashMap<>();
-        ffAttributes.put("filename", "1.txt");
-        ffAttributes.put("sqs.receipt.handle", "test-receipt-handle-1");
+        ffAttributes.put("filename", filename);
+        ffAttributes.put("sqs.receipt.handle", receiptHandle);
         runner.enqueue("TestMessageBody", ffAttributes);
 
         runner.assertValid();
@@ -79,13 +83,13 @@ public class TestChangeSQSMessageVisibilityTimeout {
     }
 
     @Test
-    public void testChangeVisibilityTimeoutWithCustomReceiptHandle() {
-        runner.setProperty(ChangeSQSMessageVisibilityTimeout.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+    void testChangeVisibilityTimeoutWithCustomReceiptHandle() {
+        runner.setProperty(ChangeSQSMessageVisibilityTimeout.QUEUE_URL, queueURL);
         runner.setProperty(ChangeSQSMessageVisibilityTimeout.RECEIPT_HANDLE, "${custom.receipt.handle}");
         runner.setProperty(ChangeSQSMessageVisibilityTimeout.VISIBILITY_TIMEOUT, "${custom.timeout.value}");
         final Map<String, String> ffAttributes = new HashMap<>();
-        ffAttributes.put("filename", "1.txt");
-        ffAttributes.put("custom.receipt.handle", "test-receipt-handle-1");
+        ffAttributes.put("filename", filename);
+        ffAttributes.put("custom.receipt.handle", receiptHandle);
         ffAttributes.put("custom.timeout.value", "1 min");
         runner.enqueue("TestMessageBody", ffAttributes);
 
@@ -101,11 +105,11 @@ public class TestChangeSQSMessageVisibilityTimeout {
     }
 
     @Test
-    public void testChangeMessageVisibilityTimeoutException() {
-        runner.setProperty(ChangeSQSMessageVisibilityTimeout.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
+    void testChangeMessageVisibilityTimeoutException() {
+        runner.setProperty(ChangeSQSMessageVisibilityTimeout.QUEUE_URL, queueURL);
         final Map<String, String> ff1Attributes = new HashMap<>();
-        ff1Attributes.put("filename", "1.txt");
-        ff1Attributes.put("sqs.receipt.handle", "test-receipt-handle-1");
+        ff1Attributes.put("filename", filename);
+        ff1Attributes.put("sqs.receipt.handle", receiptHandle);
         runner.enqueue("TestMessageBody1", ff1Attributes);
         Mockito.when(mockSQSClient.changeMessageVisibilityBatch(Mockito.any(ChangeMessageVisibilityBatchRequest.class)))
                 .thenThrow(new RuntimeException());

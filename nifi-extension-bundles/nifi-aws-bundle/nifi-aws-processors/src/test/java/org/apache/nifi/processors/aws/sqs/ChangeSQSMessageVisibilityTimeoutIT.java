@@ -30,10 +30,10 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ITChangeSQSMessageVisibilityTimeout extends AbstractSQSIT {
+public class ChangeSQSMessageVisibilityTimeoutIT extends AbstractSQSIT {
 
     @Test
-    public void testSimpleUpdate() {
+    void testSimpleUpdate() {
         final SendMessageRequest request = SendMessageRequest.builder()
                 .queueUrl(getQueueUrl())
                 .messageBody("Hello World")
