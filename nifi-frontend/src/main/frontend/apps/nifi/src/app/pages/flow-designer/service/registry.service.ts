@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ImportFromRegistryRequest } from '../state/flow';
+import { FlowComparisonEntity, ImportFromRegistryRequest } from '../state/flow';
 
 @Injectable({ providedIn: 'root' })
 export class RegistryService {
@@ -60,6 +60,25 @@ export class RegistryService {
         return this.httpClient.get(
             `${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows/${flowId}/versions`,
             { params }
+        );
+    }
+
+    getFlowDiff(
+        registryId: string,
+        bucketId: string,
+        flowId: string,
+        versionA: string,
+        versionB: string,
+        branch?: string | null
+    ): Observable<FlowComparisonEntity> {
+        if (branch) {
+            return this.httpClient.get<FlowComparisonEntity>(
+                `${RegistryService.API}/flow/registries/${registryId}/branches/${branch}/buckets/${bucketId}/flows/${flowId}/${versionA}/diff/branches/${branch}/buckets/${bucketId}/flows/${flowId}/${versionB}`
+            );
+        }
+
+        return this.httpClient.get<FlowComparisonEntity>(
+            `${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows/${flowId}/diff/${versionA}/${versionB}`
         );
     }
 
