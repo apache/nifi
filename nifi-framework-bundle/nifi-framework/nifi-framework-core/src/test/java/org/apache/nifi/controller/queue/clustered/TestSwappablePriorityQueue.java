@@ -84,6 +84,23 @@ public class TestSwappablePriorityQueue {
     }
 
     @Test
+    public void testPutBackRestoresPolledFlowFiles() {
+        final FlowFileRecord first = new MockFlowFileRecord(10L);
+        final FlowFileRecord second = new MockFlowFileRecord(20L);
+        queue.putAll(List.of(first, second));
+
+        final List<FlowFileRecord> polled = queue.poll(2, Collections.emptySet(), -1, PollStrategy.ALL_FLOWFILES);
+        assertEquals(new QueueSize(2, 30L), queue.size());
+        assertEquals(2, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
+
+        queue.putBack(polled);
+
+        assertEquals(new QueueSize(2, 30L), queue.size());
+        assertEquals(0, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(2, queue.getActiveFlowFiles().size());
+    }
+
+    @Test
     public void testPrioritizersBigQueue() {
         final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
             final int i1 = Integer.parseInt(o1.getAttribute("i"));

@@ -51,6 +51,15 @@ public class BlockingSwappablePriorityQueue extends SwappablePriorityQueue {
         }
     }
 
+    @Override
+    public void putBack(final Collection<FlowFileRecord> flowFiles) {
+        super.putBack(flowFiles);
+
+        synchronized (monitor) {
+            monitor.notifyAll();
+        }
+    }
+
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final long waitMillis, final PollStrategy pollStrategy) throws InterruptedException {
         final long maxTimestamp = System.currentTimeMillis() + waitMillis;
 

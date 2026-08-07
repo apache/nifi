@@ -53,13 +53,20 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     private final LoadBalancedFlowFileQueue flowFileQueue;
     private final String description;
 
+    private final Object lifecycleMonitor = new Object();
+
     private volatile boolean stopped = true;
     private RebalanceTask rebalanceTask;
+    private Thread rebalanceThread;
+    private boolean stopping;
 
     public StandardRebalancingPartition(final FlowFileSwapManager swapManager, final int swapThreshold, final EventReporter eventReporter,
                                         final LoadBalancedFlowFileQueue flowFileQueue, final DropFlowFileAction dropAction) {
+        this(new BlockingSwappablePriorityQueue(swapManager, swapThreshold, eventReporter, flowFileQueue, dropAction, SWAP_PARTITION_NAME), flowFileQueue);
+    }
 
-        this.queue = new BlockingSwappablePriorityQueue(swapManager, swapThreshold, eventReporter, flowFileQueue, dropAction, SWAP_PARTITION_NAME);
+    StandardRebalancingPartition(final BlockingSwappablePriorityQueue queue, final LoadBalancedFlowFileQueue flowFileQueue) {
+        this.queue = queue;
         this.queueIdentifier = flowFileQueue.getIdentifier();
         this.flowFileQueue = flowFileQueue;
         this.description = "RebalancingPartition[queueId=" + queueIdentifier + "]";
@@ -131,28 +138,91 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
-    public synchronized void start(final FlowFilePartitioner partitionerUsed) {
-        stopped = false;
-        rebalanceFromQueue();
+    public void start(final FlowFilePartitioner partitionerUsed) {
+        boolean interrupted = false;
+        synchronized (lifecycleMonitor) {
+            while (stopping) {
+                try {
+                    lifecycleMonitor.wait();
+                } catch (final InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+
+            stopped = false;
+            startRebalanceTask();
+        }
+
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
-    public synchronized void stop() {
-        stopped = true;
+    public void stop() {
+        final RebalanceTask task;
+        final Thread thread;
+        boolean interrupted = false;
 
-        if (this.rebalanceTask != null) {
-            this.rebalanceTask.stop();
+        synchronized (lifecycleMonitor) {
+            while (stopping) {
+                try {
+                    lifecycleMonitor.wait();
+                } catch (final InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+
+            stopped = true;
+            task = rebalanceTask;
+            thread = rebalanceThread;
+            if (task == null || thread == null) {
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+                return;
+            }
+
+            stopping = true;
         }
 
-        this.rebalanceTask = null;
+        task.stop();
+        thread.interrupt();
+
+        while (thread.isAlive()) {
+            try {
+                thread.join();
+            } catch (final InterruptedException e) {
+                interrupted = true;
+            }
+        }
+
+        synchronized (lifecycleMonitor) {
+            if (rebalanceTask == task) {
+                rebalanceTask = null;
+                rebalanceThread = null;
+            }
+            stopping = false;
+            lifecycleMonitor.notifyAll();
+        }
+
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
-    private synchronized void rebalanceFromQueue() {
-        if (stopped) {
-            logger.debug("Will not rebalance from queue because {} is stopped", this);
-            return;
-        }
+    private void rebalanceFromQueue() {
+        synchronized (lifecycleMonitor) {
+            if (stopped) {
+                logger.debug("Will not rebalance from queue because {} is stopped", this);
+                return;
+            }
 
+            startRebalanceTask();
+        }
+    }
+
+    private void startRebalanceTask() {
         // If a task is already defined, do nothing. There's already a thread running.
         if (rebalanceTask != null) {
             logger.debug("Rebalance Task already exists for {}", this);
@@ -161,7 +231,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
 
         this.rebalanceTask = new RebalanceTask();
 
-        final Thread rebalanceThread = new Thread(this.rebalanceTask);
+        rebalanceThread = new Thread(this.rebalanceTask);
         rebalanceThread.setName("Rebalance queued data for Connection " + queueIdentifier);
         rebalanceThread.start();
         logger.debug("No Rebalance Task currently exists for {}. Starting new Rebalance Thread {}", this, rebalanceThread);
@@ -192,13 +262,24 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         return queue.packageForRebalance(newPartitionName);
     }
 
-    private synchronized boolean isComplete() {
-        if (!queue.isEmpty()) {
-            return false;
+    private boolean isQueueEmpty() {
+        synchronized (lifecycleMonitor) {
+            return queue.isEmpty();
         }
+    }
 
-        this.rebalanceTask = null;
-        return true;
+    private void taskCompleted(final RebalanceTask task) {
+        synchronized (lifecycleMonitor) {
+            if (rebalanceTask == task) {
+                rebalanceTask = null;
+                rebalanceThread = null;
+            }
+
+            if (!stopped && !queue.isEmpty()) {
+                startRebalanceTask();
+            }
+            lifecycleMonitor.notifyAll();
+        }
     }
 
     private class RebalanceTask implements Runnable {
@@ -206,53 +287,67 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         private final Set<FlowFileRecord> expiredRecords = new HashSet<>();
         private final long pollWaitMillis = 100L;
 
-        public void stop() {
+        public synchronized void stop() {
             stopped = true;
+        }
+
+        private synchronized boolean distribute(final Collection<FlowFileRecord> flowFiles) {
+            if (stopped) {
+                return false;
+            }
+
+            flowFileQueue.distributeToPartitions(flowFiles);
+            queue.acknowledge(flowFiles);
+            return true;
         }
 
         @Override
         public void run() {
-            while (!stopped) {
-                final FlowFileRecord polled;
+            try {
+                while (!stopped) {
+                    final FlowFileRecord polled;
 
-                expiredRecords.clear();
+                    expiredRecords.clear();
 
-                // Wait up to #pollWaitMillis milliseconds to get a FlowFile. If none, then check if stopped
-                // and if not, poll again.
-                try {
-                    polled = queue.poll(expiredRecords, -1, pollWaitMillis, PollStrategy.ALL_FLOWFILES);
-                } catch (final InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    continue;
-                }
+                    // Wait up to #pollWaitMillis milliseconds to get a FlowFile. If none, then check if stopped
+                    // and if not, poll again.
+                    try {
+                        polled = queue.poll(expiredRecords, -1, pollWaitMillis, PollStrategy.ALL_FLOWFILES);
+                    } catch (final InterruptedException ie) {
+                        flowFileQueue.handleExpiredRecords(expiredRecords);
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
 
-                if (polled == null) {
+                    if (polled == null) {
+                        flowFileQueue.handleExpiredRecords(expiredRecords);
+
+                        if (isQueueEmpty()) {
+                            logger.debug("Rebalance Task completed for {}", this);
+                            return;
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    // We got 1 FlowFile. Try a second poll to obtain up to 999 more (for a total of 1,000).
+                    final List<FlowFileRecord> toDistribute = new ArrayList<>();
+                    toDistribute.add(polled);
+
+                    final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1, PollStrategy.ALL_FLOWFILES);
+                    toDistribute.addAll(additionalRecords);
+
                     flowFileQueue.handleExpiredRecords(expiredRecords);
 
-                    if (isComplete()) {
-                        logger.debug("Rebalance Task completed for {}", this);
+                    logger.debug("{} Rebalancing {}", this, toDistribute);
+
+                    if (!distribute(toDistribute)) {
+                        queue.putBack(toDistribute);
                         return;
-                    } else {
-                        continue;
                     }
                 }
-
-                // We got 1 FlowFile. Try a second poll to obtain up to 999 more (for a total of 1,000).
-                final List<FlowFileRecord> toDistribute = new ArrayList<>();
-                toDistribute.add(polled);
-
-                final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1, PollStrategy.ALL_FLOWFILES);
-                toDistribute.addAll(additionalRecords);
-
-                flowFileQueue.handleExpiredRecords(expiredRecords);
-
-                logger.debug("{} Rebalancing {}", this, toDistribute);
-
-                // Transfer all of the FlowFiles that we got back to the FlowFileQueue itself. This will cause the data to be
-                // re-partitioned and binned appropriately. We also then need to ensure that we acknowledge the data from our
-                // own SwappablePriorityQueue to ensure that the sizes are kept in check.
-                flowFileQueue.distributeToPartitions(toDistribute);
-                queue.acknowledge(toDistribute);
+            } finally {
+                taskCompleted(this);
             }
         }
     }
