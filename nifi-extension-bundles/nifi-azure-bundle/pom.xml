@@ -28,6 +28,7 @@
 
     <properties>
         <!-- when changing the Azure SDK version, also update msal4j to the version that is required by azure-identity -->
+        <micrometer.version>1.15.12</micrometer.version>
         <msal4j.version>1.23.1</msal4j.version>
         <qpid.proton.version>0.35.0</qpid.proton.version>
     </properties>
@@ -50,6 +51,11 @@
                 <version>${azure.sdk.bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>${micrometer.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
