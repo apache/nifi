@@ -90,7 +90,8 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
     + "records that do not adhere to the schema are routed to the \"invalid\" relationship. It is therefore possible for a single incoming FlowFile to be split into two individual "
     + "FlowFiles if some records are valid according to the schema and others are not. Any FlowFile that is routed to the \"invalid\" relationship will emit a ROUTE Provenance Event "
     + "with the Details field populated to explain why records were invalid. In addition, to gain further explanation of why records were invalid, DEBUG-level logging can be enabled "
-    + "for the \"org.apache.nifi.processors.standard.ValidateRecord\" logger.")
+    + "for the \"org.apache.nifi.processors.standard.ValidateRecord\" logger. "
+    + "If the incoming FlowFile contains no records, no output FlowFile is produced for any relationship and the incoming FlowFile is removed.")
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
     @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile routed to a relationship")
