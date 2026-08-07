@@ -26,7 +26,6 @@ import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.StandardHttpContentType;
@@ -1255,7 +1254,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     private byte[] toByteArray(final InputStream inputStream) throws FlowRegistryException {
         try (inputStream; ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            StreamUtils.copy(inputStream, outputStream);
+            inputStream.transferTo(outputStream);
             return outputStream.toByteArray();
         } catch (IOException e) {
             throw new FlowRegistryException("Failed to prepare multipart request", e);

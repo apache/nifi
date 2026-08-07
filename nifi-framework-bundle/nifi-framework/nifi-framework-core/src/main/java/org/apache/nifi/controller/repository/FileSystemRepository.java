@@ -771,7 +771,7 @@ public class FileSystemRepository implements ContentRepository {
         final ContentClaim newClaim = create(lossTolerant);
         try (final InputStream in = read(original);
              final OutputStream out = write(newClaim)) {
-            StreamUtils.copy(in, out);
+            in.transferTo(out);
         } catch (final IOException ioe) {
             decrementClaimantCount(newClaim);
             remove(newClaim);
@@ -790,7 +790,7 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public long importFrom(final InputStream content, final ContentClaim claim) throws IOException {
         try (final OutputStream out = write(claim, false)) {
-            return StreamUtils.copy(content, out);
+            return content.transferTo(out);
         }
     }
 
@@ -806,7 +806,7 @@ public class FileSystemRepository implements ContentRepository {
 
         try (final InputStream in = read(claim);
              final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
-            final long copied = StreamUtils.copy(in, fos);
+            final long copied = in.transferTo(fos);
             if (alwaysSync) {
                 fos.getFD().sync();
             }
@@ -853,7 +853,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         try (final InputStream in = read(claim)) {
-            return StreamUtils.copy(in, destination);
+            return in.transferTo(destination);
         }
     }
 

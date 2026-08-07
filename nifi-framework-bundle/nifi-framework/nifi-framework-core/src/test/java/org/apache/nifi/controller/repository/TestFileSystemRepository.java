@@ -493,21 +493,21 @@ public class TestFileSystemRepository {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final InputStream in = repository.read(claim1)) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
         }
 
         assertEquals("Hello", baos.toString());
 
         baos.reset();
         try (final InputStream in = repository.read(claim2)) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
         }
         assertEquals("", baos.toString());
         assertEquals(0, baos.size());
 
         baos.reset();
         try (final InputStream in = repository.read(claim3)) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
         }
         assertEquals(" World", baos.toString());
     }
@@ -576,7 +576,7 @@ public class TestFileSystemRepository {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final InputStream in = repository.read(claim)) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
         }
 
         assertArrayEquals(expected, baos.toByteArray());

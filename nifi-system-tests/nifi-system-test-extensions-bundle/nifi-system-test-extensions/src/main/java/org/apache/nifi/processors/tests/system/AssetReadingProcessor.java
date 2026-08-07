@@ -26,7 +26,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -93,7 +92,7 @@ public class AssetReadingProcessor extends AbstractProcessor {
         try {
             try (final InputStream inputStream = new FileInputStream(sourceFile);
                  final OutputStream outputStream = Files.newOutputStream(temporaryPath)) {
-                StreamUtils.copy(inputStream, outputStream);
+                inputStream.transferTo(outputStream);
             }
 
             try {

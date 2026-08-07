@@ -176,7 +176,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         final ContentClaim clone = create(lossTolerant);
         try (final InputStream in = read(original);
              final OutputStream out = write(clone)) {
-            StreamUtils.copy(in, out);
+            in.transferTo(out);
         }
 
         return clone;
@@ -192,7 +192,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     @Override
     public long importFrom(final InputStream content, final ContentClaim claim) throws IOException {
         try (final OutputStream out = write(claim)) {
-            return StreamUtils.copy(content, out);
+            return content.transferTo(out);
         }
     }
 
@@ -219,7 +219,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     @Override
     public long exportTo(final ContentClaim claim, final OutputStream destination) throws IOException {
         try (final InputStream in = read(claim)) {
-            return StreamUtils.copy(in, destination);
+            return in.transferTo(destination);
         }
     }
 

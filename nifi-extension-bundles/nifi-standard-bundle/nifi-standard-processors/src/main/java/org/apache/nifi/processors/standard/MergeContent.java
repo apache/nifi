@@ -70,7 +70,6 @@ import org.apache.nifi.processor.util.bin.InsertionLocation;
 import org.apache.nifi.processors.standard.merge.AttributeStrategy;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFilePackager;
 import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
@@ -807,7 +806,7 @@ public class MergeContent extends BinFiles {
                     final Iterator<FlowFile> itr = contents.iterator();
                     while (itr.hasNext()) {
                         final FlowFile flowFile = itr.next();
-                        bin.getSession().read(flowFile, in -> StreamUtils.copy(in, out));
+                        bin.getSession().read(flowFile, in -> in.transferTo(out));
 
                         if (itr.hasNext()) {
                             if (demarcator != null) {

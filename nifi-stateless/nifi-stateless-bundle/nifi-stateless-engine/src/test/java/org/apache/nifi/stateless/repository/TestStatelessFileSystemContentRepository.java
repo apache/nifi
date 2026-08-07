@@ -23,7 +23,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +81,7 @@ public class TestStatelessFileSystemContentRepository {
             final byte[] bytesRead;
             try (final InputStream in = repository.read(claim);
                  final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                StreamUtils.copy(in, baos);
+                in.transferTo(baos);
                 bytesRead = baos.toByteArray();
             }
 

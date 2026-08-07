@@ -39,7 +39,6 @@ import org.apache.nifi.processors.standard.ftp.FTPClientProvider;
 import org.apache.nifi.processors.standard.ftp.StandardFTPClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -325,7 +324,7 @@ public class FTPTransfer implements FileTransfer {
 
                 throw new IOException(reply);
             }
-            resultFlowFile = session.write(origFlowFile, out -> StreamUtils.copy(in, out));
+            resultFlowFile = session.write(origFlowFile, in::transferTo);
             client.completePendingCommand();
             return resultFlowFile;
         }

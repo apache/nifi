@@ -25,7 +25,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -120,7 +119,7 @@ public class TestFileSystemSwapManager {
         final File originalSwapFile = new File("src/test/resources/swap/444-old-swap-file.swap");
         try (final OutputStream fos = new FileOutputStream(targetFile);
              final InputStream fis = new FileInputStream(originalSwapFile)) {
-            StreamUtils.copy(fis, fos);
+            fis.transferTo(fos);
         }
 
         final FileSystemSwapManager swapManager = new FileSystemSwapManager(Paths.get("target"));

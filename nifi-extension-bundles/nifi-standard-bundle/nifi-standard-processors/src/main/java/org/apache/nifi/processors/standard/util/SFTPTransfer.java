@@ -38,7 +38,6 @@ import org.apache.nifi.processors.standard.ssh.SshClientProvider;
 import org.apache.nifi.processors.standard.ssh.StandardSshClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.cipher.BuiltinCiphers;
@@ -532,7 +531,7 @@ public class SFTPTransfer implements FileTransfer {
         final SftpClient sftpClient = getSFTPClient(origFlowFile);
 
         try (InputStream inputStream = sftpClient.read(remoteFileName)) {
-            return session.write(origFlowFile, out -> StreamUtils.copy(inputStream, out));
+            return session.write(origFlowFile, inputStream::transferTo);
         } catch (final SftpException e) {
             final int status = e.getStatus();
             switch (status) {

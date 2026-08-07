@@ -23,7 +23,6 @@ import org.apache.nifi.extensions.exception.BundleNotFoundException;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarManifestEntry;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -212,7 +211,7 @@ public class DownloadQueue {
                     // on startup, we could have two different threads attempting to download the same artifact. So we give the file a unique name by using the UUID.
                     final File tmpFile = new File(destinationFile.getParentFile(), destinationFile.getName() + ".download." + UUID.randomUUID());
                     try (final OutputStream out = new FileOutputStream(tmpFile)) {
-                        StreamUtils.copy(extensionStream, out);
+                        extensionStream.transferTo(out);
                     }
 
                     // We need to rename our temporary file to the destination file. There's a chance that another thread could be finishing the same process

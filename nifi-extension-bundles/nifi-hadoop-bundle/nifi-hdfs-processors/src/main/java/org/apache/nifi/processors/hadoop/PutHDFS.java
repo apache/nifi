@@ -62,7 +62,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.BufferedInputStream;
@@ -444,7 +443,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                     }
                                 } else {
                                     BufferedInputStream bis = new BufferedInputStream(in);
-                                    StreamUtils.copy(bis, fos);
+                                    bis.transferTo(fos);
                                     bis = null;
                                     fos.flush();
                                 }
