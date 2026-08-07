@@ -307,6 +307,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         final ExecutionEngine executionEngine = start.getExecutionEngine();
+        if (executionEngine == null) {
+            return null;
+        }
+
         return switch (executionEngine) {
             case STATELESS -> start;
             case INHERITED -> getStatelessGroup(start.getParent());
