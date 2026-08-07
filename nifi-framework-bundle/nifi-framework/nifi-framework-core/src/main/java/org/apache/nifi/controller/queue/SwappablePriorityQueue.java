@@ -572,6 +572,34 @@ public class SwappablePriorityQueue {
         }
     }
 
+    public void putBack(final Collection<FlowFileRecord> flowFiles) {
+        final int count = flowFiles.size();
+        final long bytes = flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum();
+
+        writeLock.lock();
+        try {
+            activeQueue.addAll(flowFiles);
+
+            boolean updated;
+            do {
+                final FlowFileQueueSize currentSize = getFlowFileQueueSize();
+                final FlowFileQueueSize updatedSize = new FlowFileQueueSize(
+                        currentSize.getActiveCount() + count,
+                        currentSize.getActiveBytes() + bytes,
+                        currentSize.getSwappedCount(),
+                        currentSize.getSwappedBytes(),
+                        currentSize.getSwapFileCount(),
+                        currentSize.getUnacknowledgedCount() - count,
+                        currentSize.getUnacknowledgedBytes() - bytes);
+                updated = updateSize(currentSize, updatedSize);
+            } while (!updated);
+
+            updateTopPenaltyExpiration();
+        } finally {
+            writeLock.unlock("putBack");
+        }
+    }
+
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
         return poll(expiredRecords, expirationMillis, PollStrategy.UNPENALIZED_FLOWFILES);
     }
