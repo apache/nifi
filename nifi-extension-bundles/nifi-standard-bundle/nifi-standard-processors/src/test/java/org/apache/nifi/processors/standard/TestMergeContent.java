@@ -1480,6 +1480,75 @@ public class TestMergeContent {
     }
 
     @Test
+    public void testDefragmentRemoveFragmentAttributes() throws IOException {
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        attributes.put(MergeContent.SEGMENT_ORIGINAL_FILENAME, "original");
+
+        runner.enqueue("Hello ".getBytes(StandardCharsets.UTF_8), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("World".getBytes(StandardCharsets.UTF_8), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst();
+        assembled.assertContentEquals("Hello World".getBytes(StandardCharsets.UTF_8));
+        assembled.assertAttributeNotExists(MergeContent.FRAGMENT_ID_ATTRIBUTE);
+        assembled.assertAttributeNotExists(MergeContent.FRAGMENT_INDEX_ATTRIBUTE);
+        assembled.assertAttributeNotExists(MergeContent.FRAGMENT_COUNT_ATTRIBUTE);
+        assembled.assertAttributeNotExists(MergeContent.SEGMENT_ORIGINAL_FILENAME);
+    }
+
+    @Test
+    public void testDefragmentRemoveFragmentAttributesFromFlowFileStream() throws IOException {
+        // Defragment two fragments into a FlowFile stream V3
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.FLOWFILE_STREAM_V3);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        attributes.put(MergeContent.SEGMENT_ORIGINAL_FILENAME, "original");
+
+        runner.enqueue("Hello ".getBytes(StandardCharsets.UTF_8), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("World".getBytes(StandardCharsets.UTF_8), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile merged = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst();
+
+        // Verify outer FlowFile has no fragment attributes
+        merged.assertAttributeNotExists(MergeContent.FRAGMENT_ID_ATTRIBUTE);
+        merged.assertAttributeNotExists(MergeContent.FRAGMENT_INDEX_ATTRIBUTE);
+        merged.assertAttributeNotExists(MergeContent.FRAGMENT_COUNT_ATTRIBUTE);
+        merged.assertAttributeNotExists(MergeContent.SEGMENT_ORIGINAL_FILENAME);
+
+        // Unpack the stream and verify inner FlowFiles also have no fragment attributes
+        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3);
+        unpackRunner.enqueue(merged);
+        unpackRunner.run();
+
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        for (final MockFlowFile inner : unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS)) {
+            inner.assertAttributeNotExists(MergeContent.FRAGMENT_ID_ATTRIBUTE);
+            inner.assertAttributeNotExists(MergeContent.FRAGMENT_INDEX_ATTRIBUTE);
+            inner.assertAttributeNotExists(MergeContent.FRAGMENT_COUNT_ATTRIBUTE);
+            inner.assertAttributeNotExists(MergeContent.SEGMENT_ORIGINAL_FILENAME);
+        }
+    }
+
+    @Test
     void testMigrateProperties() {
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("mergecontent-metadata-strategy", MergeContent.METADATA_STRATEGY.getName()),

@@ -52,7 +52,10 @@ fragment.identifier" attribute. Each FlowFile with the same identifier must also
 fragment.index" attribute so that the FlowFiles can be ordered correctly. For a given "fragment.identifier", at least
 one FlowFile must have the "fragment.count" attribute (which indicates how many FlowFiles belong in the bin). Other
 FlowFiles with the same identifier must have the same value for the "fragment.count" attribute, or they can omit this
-attribute. **NOTE:** while there are valid use cases for breaking apart FlowFiles and later re-merging them, it is an
+attribute. Once defragmentation is complete, the fragment attributes (fragment.identifier, fragment.index, fragment.count,
+and segment.original.filename) are automatically removed from the merged output FlowFile. When the Merge Format is a
+FlowFile stream, these attributes are also removed from each inner FlowFile packaged within the stream, so that unpacking
+the result does not produce FlowFiles with stale fragment attributes. **NOTE:** while there are valid use cases for breaking apart FlowFiles and later re-merging them, it is an
 antipattern to take a larger FlowFile, break it into a million tiny FlowFiles, and then re-merge them. Doing so can
 result in using huge amounts of Java heap and can result in Out Of Memory Errors. Additionally, it adds large amounts of
 load to the NiFi framework. This can result in increased CPU and disk utilization and often times can be an order of
