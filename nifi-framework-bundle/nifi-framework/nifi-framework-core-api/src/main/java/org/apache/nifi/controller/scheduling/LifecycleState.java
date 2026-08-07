@@ -110,7 +110,16 @@ public class LifecycleState {
         mustCallOnStoppedMethods.set(true);
 
         if (!scheduled) {
-            lastStopTime = System.currentTimeMillis();
+            // Force the stop time to strictly advance. System.currentTimeMillis() has millisecond resolution, so a
+            // second stop that happens within the same millisecond as the previous one would otherwise read the same
+            // value; that would defeat the race check in VirtualThreadSchedulingAgent, which relies on this field
+            // changing to signal that a prior scheduling generation has ended.
+            final long previousStopTime = lastStopTime;
+            long nextStopTime = System.currentTimeMillis();
+            if (nextStopTime <= previousStopTime) {
+                nextStopTime = previousStopTime + 1L;
+            }
+            lastStopTime = nextStopTime;
         }
     }
 

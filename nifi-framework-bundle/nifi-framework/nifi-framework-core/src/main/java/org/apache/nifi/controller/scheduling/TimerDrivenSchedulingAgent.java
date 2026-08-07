@@ -45,6 +45,8 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
         } catch (final IllegalArgumentException e) {
             throw new RuntimeException("Failed to create SchedulingAgent because the " + NiFiProperties.BORED_YIELD_DURATION + " property is set to an invalid time duration: " + boredYieldDuration);
         }
+
+        logger.info("TimerDrivenSchedulingAgent initialized with {} threads", flowEngine.getCorePoolSize());
     }
 
     @Override
@@ -89,7 +91,7 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
         }
 
         scheduleState.setFutures(futures);
-        logger.info("Scheduled {} to run with {} threads", connectable, connectable.getMaxConcurrentTasks());
+        logger.info("Scheduled {} to run with {} Timer-Driven Threads", connectable, connectable.getMaxConcurrentTasks());
     }
 
     private Runnable createTrigger(final ConnectableTask connectableTask, final LifecycleState scheduleState, final AtomicReference<ScheduledFuture<?>> futureRef) {
