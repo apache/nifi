@@ -36,6 +36,8 @@ import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
@@ -43,6 +45,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -65,6 +68,72 @@ import static org.junit.jupiter.api.Assertions.fail;
  * System tests that validate the Troubleshooting lifecycle of Connectors.
  */
 public class ConnectorTroubleshootingIT extends NiFiSystemIT {
+
+    /**
+     * Regression test for stateless-group handling in the controller-service reference lifecycle. A processor inside a
+     * stateless group references a controller service defined at the connector root. Stopping and starting that
+     * service's referencing components through the controller-service references endpoint must transition the entire
+     * stateless group as a single unit - including a sibling processor in the group that does not itself reference the
+     * service - rather than leaving the group in a mixed running/stopped state.
+     */
+    @Test
+    public void testControllerServiceReferenceLifecycleTransitionsStatelessGroupAsUnit() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity connector = getClientUtil().createConnector("ComponentLifecycleConnector");
+        final String connectorId = connector.getId();
+
+        getClientUtil().applyConnectorUpdate(connector);
+        getClientUtil().waitForValidConnector(connectorId);
+
+        getClientUtil().enterTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+
+        // The stateless group contains two processors; only one of them references the root controller service.
+        final List<ProcessorEntity> statelessProcessors = findStatelessProcessors(connectorId);
+        assertEquals(2, statelessProcessors.size(), "Stateless group should contain exactly two processors");
+        final List<String> statelessProcessorIds = statelessProcessors.stream().map(ProcessorEntity::getId).toList();
+
+        final String rootServiceId = findFirstControllerServiceId(connectorId);
+        assertNotNull(rootServiceId, "Managed flow should contain the root controller service");
+
+        // Enable the root controller service so its referencing components can be scheduled.
+        enableControllerService(rootServiceId);
+
+        final ControllerServiceReferencingComponentsEntity references =
+                getNifiClient().getControllerServicesClient().getControllerServiceReferences(rootServiceId);
+        final List<String> referencingProcessorIds = references.getControllerServiceReferencingComponents().stream()
+                .map(ControllerServiceReferencingComponentEntity::getId)
+                .toList();
+        assertFalse(referencingProcessorIds.isEmpty(), "Root controller service should have at least one referencing processor");
+        assertTrue(statelessProcessorIds.containsAll(referencingProcessorIds),
+                "Every referencing processor should be inside the stateless group");
+        assertFalse(referencingProcessorIds.containsAll(statelessProcessorIds),
+                "At least one stateless processor should not directly reference the service, to prove group-as-unit behavior");
+
+        // Start the referencing components; the whole stateless group must start, including the sibling that does not
+        // reference the service.
+        updateReferenceState(rootServiceId, references, ScheduledState.RUNNING.name());
+        for (final String processorId : statelessProcessorIds) {
+            waitForProcessorState(processorId, ScheduledState.RUNNING);
+        }
+
+        // Stop the referencing components; the whole stateless group must stop as a unit, with no mixed state.
+        final ControllerServiceReferencingComponentsEntity runningReferences =
+                getNifiClient().getControllerServicesClient().getControllerServiceReferences(rootServiceId);
+        updateReferenceState(rootServiceId, runningReferences, ScheduledState.STOPPED.name());
+        for (final String processorId : statelessProcessorIds) {
+            waitForProcessorState(processorId, ScheduledState.STOPPED);
+        }
+
+        // Disable services and exit Troubleshooting, then confirm the Connector starts cleanly with no mixed state.
+        final String managedGroupId = getNifiClient().getConnectorClient().getConnector(connectorId).getComponent().getManagedProcessGroupId();
+        getClientUtil().disableControllerServices(managedGroupId, true);
+
+        getClientUtil().endTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.STOPPED);
+
+        getClientUtil().startConnector(connectorId);
+        assertConnectorState(connectorId, ConnectorState.RUNNING);
+    }
 
     /**
      * Transition a Connector into Troubleshooting, modify a processor inside the managed flow, then transition back
@@ -557,6 +626,44 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
     private void assertConnectorState(final String connectorId, final ConnectorState expected) throws NiFiClientException, IOException {
         final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
         assertEquals(expected.name(), entity.getComponent().getState());
+    }
+
+    private List<ProcessorEntity> findStatelessProcessors(final String connectorId) throws NiFiClientException, IOException {
+        final List<ProcessorEntity> result = new ArrayList<>();
+        final Map<String, Boolean> statelessByGroupId = new HashMap<>();
+        for (final ProcessorEntity processor : findAllProcessors(connectorId)) {
+            final String parentGroupId = processor.getComponent().getParentGroupId();
+            Boolean stateless = statelessByGroupId.get(parentGroupId);
+            if (stateless == null) {
+                final ProcessGroupEntity parentGroup = getNifiClient().getProcessGroupClient().getProcessGroup(parentGroupId);
+                stateless = "STATELESS".equals(parentGroup.getComponent().getExecutionEngine());
+                statelessByGroupId.put(parentGroupId, stateless);
+            }
+
+            if (stateless) {
+                result.add(processor);
+            }
+        }
+        return result;
+    }
+
+    private void enableControllerService(final String serviceId) throws NiFiClientException, IOException, InterruptedException {
+        final ControllerServiceEntity service = getNifiClient().getControllerServicesClient().getControllerService(serviceId);
+        getClientUtil().enableControllerService(service);
+        getClientUtil().waitForControllerServiceRunStatus(serviceId, "ENABLED");
+    }
+
+    private void updateReferenceState(final String serviceId, final ControllerServiceReferencingComponentsEntity references, final String state) throws NiFiClientException, IOException {
+        final Map<String, RevisionDTO> revisions = new HashMap<>();
+        for (final ControllerServiceReferencingComponentEntity component : references.getControllerServiceReferencingComponents()) {
+            revisions.put(component.getId(), component.getRevision());
+        }
+
+        final UpdateControllerServiceReferenceRequestEntity request = new UpdateControllerServiceReferenceRequestEntity();
+        request.setId(serviceId);
+        request.setReferencingComponentRevisions(revisions);
+        request.setState(state);
+        getNifiClient().getControllerServicesClient().updateControllerServiceReferences(request);
     }
 
     /**
