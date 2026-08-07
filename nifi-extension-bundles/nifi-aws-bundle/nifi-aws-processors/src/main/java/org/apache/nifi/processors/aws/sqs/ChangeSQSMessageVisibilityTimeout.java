@@ -118,14 +118,14 @@ public class ChangeSQSMessageVisibilityTimeout extends AbstractAwsSyncProcessor<
                 .build();
 
         try {
-            ChangeMessageVisibilityBatchResponse response = client.changeMessageVisibilityBatch(request);
+            final ChangeMessageVisibilityBatchResponse response = client.changeMessageVisibilityBatch(request);
 
-            if (!response.failed().isEmpty()) {
-                getLogger().error("Error updating visibility timeout for {}: {}", flowFile, response.failed().getFirst().toString());
-                session.transfer(flowFile, REL_FAILURE);
-            } else {
+            if (response.failed().isEmpty()) {
                 getLogger().info("Successfully updated visibility timeout to {} for SQS message for {}", visibilityTimeout, flowFile);
                 session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                getLogger().error("Error updating visibility timeout for {}: {}", flowFile, response.failed().getFirst().toString());
+                session.transfer(flowFile, REL_FAILURE);
             }
         } catch (final Exception e) {
             getLogger().error("Failed to update visibility timeout for SQS message for {}: {}", flowFile, e);

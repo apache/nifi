@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -30,7 +31,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ChangeSQSMessageVisibilityTimeoutIT extends AbstractSQSIT {
+class ChangeSQSMessageVisibilityTimeoutIT extends AbstractSQSIT {
 
     @Test
     void testSimpleUpdate() {
@@ -53,7 +54,7 @@ public class ChangeSQSMessageVisibilityTimeoutIT extends AbstractSQSIT {
         // Test - update message with ChangeSQSMessageVisibilityTimeout
         final TestRunner runner = initRunner(ChangeSQSMessageVisibilityTimeout.class);
         final Map<String, String> ffAttributes = new HashMap<>();
-        ffAttributes.put("filename", "1.txt");
+        ffAttributes.put(CoreAttributes.FILENAME.key(), "1.txt");
         ffAttributes.put("sqs.receipt.handle", receiptHandle);
         runner.enqueue("TestMessageBody", ffAttributes);
 
