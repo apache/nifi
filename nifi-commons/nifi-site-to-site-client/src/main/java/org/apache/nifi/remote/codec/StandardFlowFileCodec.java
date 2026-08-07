@@ -60,7 +60,7 @@ public class StandardFlowFileCodec implements FlowFileCodec {
         out.writeLong(dataPacket.getSize());
 
         final InputStream in = dataPacket.getData();
-        StreamUtils.copy(in, encodedOut);
+        in.transferTo(encodedOut);
     }
 
     @Override

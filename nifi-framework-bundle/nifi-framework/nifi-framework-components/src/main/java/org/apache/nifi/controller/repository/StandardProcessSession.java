@@ -2776,7 +2776,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     if (currentReadClaimStream != null && currentReadClaimStream.getBytesConsumed() <= resourceClaimOffset) {
                         final long bytesToSkip = resourceClaimOffset - currentReadClaimStream.getBytesConsumed();
                         if (bytesToSkip > 0) {
-                            StreamUtils.skip(currentReadClaimStream, bytesToSkip);
+                            currentReadClaimStream.skipNBytes(bytesToSkip);
                         }
 
                         final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
@@ -2799,7 +2799,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 performanceTracker.endContentRead();
 
                 final InputStream performanceTrackInputStream = new PerformanceTrackingInputStream(contentRepoStream, performanceTracker);
-                StreamUtils.skip(performanceTrackInputStream, claim.getOffset() + contentClaimOffset);
+                performanceTrackInputStream.skipNBytes(claim.getOffset() + contentClaimOffset);
                 final InputStream bufferedContentStream = new BufferedInputStream(contentRepoStream);
                 final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset() + contentClaimOffset);
                 currentReadClaimStream = byteCountingInputStream;
@@ -3380,7 +3380,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     appendableStreams.put(newClaim, outStream);
 
                     // We need to copy all of the data from the old claim to the new claim
-                    StreamUtils.copy(oldClaimIn, outStream);
+                    oldClaimIn.transferTo(outStream);
 
                     // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
                     // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream

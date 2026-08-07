@@ -23,7 +23,6 @@ import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -819,7 +818,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         try (final InputStream fis = new FileInputStream(flow);
              final InputStream in = new GZIPInputStream(fis);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
             bytes = baos.toByteArray();
         }
 

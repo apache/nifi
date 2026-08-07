@@ -29,7 +29,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -103,7 +102,7 @@ public class ConcatenateFlowFiles extends AbstractSessionFactoryProcessor {
             try (final OutputStream out = mergeSession.write(merged)) {
                 for (final FlowFile input : flowFiles) {
                     try (final InputStream in = mergeSession.read(input)) {
-                        StreamUtils.copy(in, out);
+                        in.transferTo(out);
                     }
                 }
             } catch (final Exception e) {

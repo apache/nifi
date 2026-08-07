@@ -114,7 +114,7 @@ public class ByteArrayContentRepository implements ContentRepository {
         final ContentClaim clone = create(lossTolerant);
         try (final InputStream in = read(original);
              final OutputStream out = write(clone)) {
-            StreamUtils.copy(in, out);
+            in.transferTo(out);
         }
 
         return clone;
@@ -130,7 +130,7 @@ public class ByteArrayContentRepository implements ContentRepository {
     @Override
     public long importFrom(final InputStream content, final ContentClaim claim) throws IOException {
         try (final OutputStream out = write(claim)) {
-            return StreamUtils.copy(content, out);
+            return content.transferTo(out);
         }
     }
 
@@ -157,14 +157,14 @@ public class ByteArrayContentRepository implements ContentRepository {
     @Override
     public long exportTo(final ContentClaim claim, final OutputStream destination) throws IOException {
         try (final InputStream in = read(claim)) {
-            return StreamUtils.copy(in, destination);
+            return in.transferTo(destination);
         }
     }
 
     @Override
     public long exportTo(final ContentClaim claim, final OutputStream destination, final long offset, final long length) throws IOException {
         try (final InputStream in = read(claim)) {
-            StreamUtils.skip(in, offset);
+            in.skipNBytes(offset);
             StreamUtils.copy(in, destination, length);
         }
 

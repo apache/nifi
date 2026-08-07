@@ -64,7 +64,6 @@ import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.SSLContextProvider;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee11.servlet.ServletContextRequest;
 import org.eclipse.jetty.server.Connector;
@@ -658,7 +657,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
                     Part part = parts.get(i);
                     FlowFile flowFile = session.create();
                     try (OutputStream flowFileOut = session.write(flowFile)) {
-                        StreamUtils.copy(part.getInputStream(), flowFileOut);
+                        part.getInputStream().transferTo(flowFileOut);
                     } catch (IOException e) {
                         handleFlowContentStreamingError(session, container, Optional.of(flowFile), e);
                         return;
@@ -690,7 +689,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
         } else {
             FlowFile flowFile = session.create();
             try (OutputStream flowFileOut = session.write(flowFile)) {
-                StreamUtils.copy(request.getInputStream(), flowFileOut);
+                request.getInputStream().transferTo(flowFileOut);
             } catch (final IOException e) {
                 handleFlowContentStreamingError(session, container, Optional.of(flowFile), e);
                 return;

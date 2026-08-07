@@ -51,7 +51,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -569,7 +568,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             if (putToAttribute) {
                 try (SoftLimitBoundedByteArrayOutputStream softLimitBoundedBAOS = new SoftLimitBoundedByteArrayOutputStream(attributeSize)) {
                     readStdoutReadable(ignoreStdin, stdinWritable, logger, incomingFlowFileIS);
-                    final long longSize = StreamUtils.copy(stdoutReadable, softLimitBoundedBAOS);
+                    final long longSize = stdoutReadable.transferTo(softLimitBoundedBAOS);
 
                     // Because the outputStream has a cap that the copy doesn't know about, adjust
                     // the actual size
@@ -591,7 +590,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             } else {
                 outputFlowFile = session.write(outputFlowFile, out -> {
                     readStdoutReadable(ignoreStdin, stdinWritable, logger, incomingFlowFileIS);
-                    StreamUtils.copy(stdoutReadable, out);
+                    stdoutReadable.transferTo(out);
                     try {
                         exitCode = process.waitFor();
                     } catch (InterruptedException e) {
@@ -607,7 +606,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         Thread writerThread = new Thread(() -> {
             if (!ignoreStdin) {
                 try {
-                    StreamUtils.copy(incomingFlowFileIS, stdinWritable);
+                    incomingFlowFileIS.transferTo(stdinWritable);
                 } catch (IOException e) {
                     // This is unlikely to occur, and isn't handled at the moment
                     // Bug captured in NIFI-1194

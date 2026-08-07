@@ -629,7 +629,7 @@ public class StandardProcessSessionIT {
     private byte[] readContents(final FlowFile flowFile) throws IOException {
         try (final InputStream in = session.read(flowFile);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
             return baos.toByteArray();
         }
     }
@@ -1668,7 +1668,7 @@ public class StandardProcessSessionIT {
         // Read the content back and ensure that it is correct
         final byte[] buff;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            newSession.read(toUpdate, in -> StreamUtils.copy(in, baos));
+            newSession.read(toUpdate, in -> in.transferTo(baos));
             buff = baos.toByteArray();
         }
 
@@ -3368,7 +3368,7 @@ public class StandardProcessSessionIT {
         public long importFrom(InputStream content, ContentClaim claim) throws IOException {
             final long size;
             try (final OutputStream out = write(claim)) {
-                size = StreamUtils.copy(content, out);
+                size = content.transferTo(out);
             }
             ((StandardContentClaim) claim).setLength(size);
             return size;
@@ -3387,7 +3387,7 @@ public class StandardProcessSessionIT {
         @Override
         public long exportTo(ContentClaim claim, OutputStream destination) throws IOException {
             try (final InputStream in = read(claim)) {
-                return StreamUtils.copy(in, destination);
+                return in.transferTo(destination);
             }
         }
 

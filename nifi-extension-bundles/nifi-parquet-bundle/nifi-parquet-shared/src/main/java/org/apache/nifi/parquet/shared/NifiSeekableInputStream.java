@@ -17,7 +17,6 @@
 package org.apache.nifi.parquet.shared;
 
 import org.apache.nifi.stream.io.ByteCountingInputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.parquet.io.DelegatingSeekableInputStream;
 
 import java.io.IOException;
@@ -51,7 +50,7 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
         }
 
         // must call getPos() again in case reset was called above
-        StreamUtils.skip(input, newPos - getPos());
+        input.skipNBytes(newPos - getPos());
     }
 
     @Override

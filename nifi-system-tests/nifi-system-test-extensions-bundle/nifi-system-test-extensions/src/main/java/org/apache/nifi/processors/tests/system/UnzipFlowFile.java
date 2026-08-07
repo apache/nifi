@@ -22,7 +22,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -76,9 +75,7 @@ public class UnzipFlowFile extends AbstractProcessor {
                 outFile = session.putAttribute(outFile, "filename", filename);
                 created.add(outFile);
 
-                session.write(outFile, out -> {
-                    StreamUtils.copy(zipInputStream, out);
-                });
+                session.write(outFile, zipInputStream::transferTo);
             }
 
         } catch (final IOException e) {

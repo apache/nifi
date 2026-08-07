@@ -28,6 +28,15 @@ import java.util.List;
 
 public class StreamUtils {
 
+    /**
+     * Copies from <code>source</code> to <code>destination</code>.
+     * @param source source InputStream
+     * @param destination destination OutputStream
+     * @return Total number of bytes copied
+     * @throws IOException If an error occurs when copying.
+     * @deprecated Use {@link InputStream#transferTo(OutputStream)} instead.
+     */
+    @Deprecated(since = "2.12.0", forRemoval = true)
     public static long copy(final InputStream source, final OutputStream destination) throws IOException {
         final byte[] buffer = new byte[8192];
         int len;
@@ -239,7 +248,9 @@ public class StreamUtils {
      * @param stream the stream to skip over
      * @param bytesToSkip the number of bytes to skip
      * @throws IOException if any issues reading or skipping underlying stream
+     * @deprecated Use {@link InputStream#skipNBytes(long)} instead.
      */
+    @Deprecated(since = "2.12.0", forRemoval = true)
     public static void skip(final InputStream stream, final long bytesToSkip) throws IOException {
         if (bytesToSkip <= 0) {
             return;

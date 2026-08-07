@@ -72,7 +72,6 @@ import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -822,7 +821,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
 
             FlowFile flowFile = session.create();
-            flowFile = session.write(flowFile, out -> StreamUtils.copy(flowFileContents, out));
+            flowFile = session.write(flowFile, flowFileContents::transferTo);
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
             session.commitAsync();

@@ -255,7 +255,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
                 final InputStream in = contentRepository.read(contentClaim);
                 final long offset = flowFileRecord.getContentClaimOffset();
                 if (offset > 0) {
-                    StreamUtils.skip(in, offset);
+                    in.skipNBytes(offset);
                 }
 
                 return new LimitedInputStream(in, flowFile.getSize());

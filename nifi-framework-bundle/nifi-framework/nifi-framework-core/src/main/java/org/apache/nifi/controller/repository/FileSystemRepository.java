@@ -771,7 +771,7 @@ public class FileSystemRepository implements ContentRepository {
         final ContentClaim newClaim = create(lossTolerant);
         try (final InputStream in = read(original);
              final OutputStream out = write(newClaim)) {
-            StreamUtils.copy(in, out);
+            in.transferTo(out);
         } catch (final IOException ioe) {
             decrementClaimantCount(newClaim);
             remove(newClaim);
@@ -790,7 +790,7 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public long importFrom(final InputStream content, final ContentClaim claim) throws IOException {
         try (final OutputStream out = write(claim, false)) {
-            return StreamUtils.copy(content, out);
+            return content.transferTo(out);
         }
     }
 
@@ -806,7 +806,7 @@ public class FileSystemRepository implements ContentRepository {
 
         try (final InputStream in = read(claim);
              final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
-            final long copied = StreamUtils.copy(in, fos);
+            final long copied = in.transferTo(fos);
             if (alwaysSync) {
                 fos.getFD().sync();
             }
@@ -836,7 +836,7 @@ public class FileSystemRepository implements ContentRepository {
         try (final InputStream in = read(claim);
              final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
             if (offset > 0) {
-                StreamUtils.skip(in, offset);
+                in.skipNBytes(offset);
             }
             StreamUtils.copy(in, fos, length);
             if (alwaysSync) {
@@ -853,7 +853,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         try (final InputStream in = read(claim)) {
-            return StreamUtils.copy(in, destination);
+            return in.transferTo(destination);
         }
     }
 
@@ -870,7 +870,7 @@ public class FileSystemRepository implements ContentRepository {
             return exportTo(claim, destination);
         }
         try (final InputStream in = read(claim)) {
-            StreamUtils.skip(in, offset);
+            in.skipNBytes(offset);
             final byte[] buffer = new byte[8192];
             int len;
             long copied = 0L;
@@ -924,7 +924,7 @@ public class FileSystemRepository implements ContentRepository {
         final InputStream fis = getInputStream(claim);
         if (claim.getOffset() > 0L) {
             try {
-                StreamUtils.skip(fis, claim.getOffset());
+                fis.skipNBytes(claim.getOffset());
             } catch (final EOFException eof) {
                 closeQuietly(fis);
 
