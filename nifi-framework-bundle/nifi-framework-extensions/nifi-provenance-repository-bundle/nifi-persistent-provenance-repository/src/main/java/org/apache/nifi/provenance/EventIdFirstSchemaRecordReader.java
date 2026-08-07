@@ -170,7 +170,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
                 return Optional.ofNullable(event);
             } else {
                 // This is not the record we want. Skip over it instead of deserializing it.
-                dis.skipNBytes(recordLength);
+                StreamUtils.skip(dis, recordLength);
             }
         }
 

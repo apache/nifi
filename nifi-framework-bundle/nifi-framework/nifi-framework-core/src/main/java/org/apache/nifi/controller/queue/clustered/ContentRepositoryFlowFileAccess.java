@@ -21,6 +21,7 @@ import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.EOFException;
 import java.io.FilterInputStream;
@@ -45,7 +46,7 @@ public class ContentRepositoryFlowFileAccess implements FlowFileContentAccess {
 
         if (flowFile.getContentClaimOffset() > 0) {
             try {
-                rawIn.skipNBytes(flowFile.getContentClaimOffset());
+                StreamUtils.skip(rawIn, flowFile.getContentClaimOffset());
             } catch (final EOFException eof) {
                 throw new ContentNotFoundException(flowFile, flowFile.getContentClaim(), "FlowFile has a Content Claim Offset of "
                     + flowFile.getContentClaimOffset() + " bytes but the Content Claim does not have that many bytes");

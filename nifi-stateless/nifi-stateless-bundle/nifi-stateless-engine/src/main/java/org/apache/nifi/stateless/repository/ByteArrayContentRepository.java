@@ -164,7 +164,7 @@ public class ByteArrayContentRepository implements ContentRepository {
     @Override
     public long exportTo(final ContentClaim claim, final OutputStream destination, final long offset, final long length) throws IOException {
         try (final InputStream in = read(claim)) {
-            in.skipNBytes(offset);
+            StreamUtils.skip(in, offset);
             StreamUtils.copy(in, destination, length);
         }
 

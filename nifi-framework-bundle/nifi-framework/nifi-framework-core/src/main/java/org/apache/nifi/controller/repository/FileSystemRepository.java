@@ -836,7 +836,7 @@ public class FileSystemRepository implements ContentRepository {
         try (final InputStream in = read(claim);
              final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
             if (offset > 0) {
-                in.skipNBytes(offset);
+                StreamUtils.skip(in, offset);
             }
             StreamUtils.copy(in, fos, length);
             if (alwaysSync) {
@@ -870,7 +870,7 @@ public class FileSystemRepository implements ContentRepository {
             return exportTo(claim, destination);
         }
         try (final InputStream in = read(claim)) {
-            in.skipNBytes(offset);
+            StreamUtils.skip(in, offset);
             final byte[] buffer = new byte[8192];
             int len;
             long copied = 0L;
@@ -924,7 +924,7 @@ public class FileSystemRepository implements ContentRepository {
         final InputStream fis = getInputStream(claim);
         if (claim.getOffset() > 0L) {
             try {
-                fis.skipNBytes(claim.getOffset());
+                StreamUtils.skip(fis, claim.getOffset());
             } catch (final EOFException eof) {
                 closeQuietly(fis);
 

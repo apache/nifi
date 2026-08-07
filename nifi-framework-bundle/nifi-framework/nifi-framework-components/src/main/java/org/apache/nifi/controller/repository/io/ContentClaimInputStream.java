@@ -20,6 +20,7 @@ import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTrackingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -214,7 +215,7 @@ public class ContentClaimInputStream extends InputStream {
 
             performanceTracker.beginContentRead();
             try {
-                delegate.skipNBytes(markOffset - claimOffset);
+                StreamUtils.skip(delegate, markOffset - claimOffset);
             } finally {
                 performanceTracker.endContentRead();
             }
@@ -242,7 +243,7 @@ public class ContentClaimInputStream extends InputStream {
         performanceTracker.beginContentRead();
         try {
             delegate = new PerformanceTrackingInputStream(contentRepository.read(contentClaim), performanceTracker);
-            delegate.skipNBytes(claimOffset);
+            StreamUtils.skip(delegate, claimOffset);
             currentOffset = claimOffset;
         } finally {
             performanceTracker.endContentRead();

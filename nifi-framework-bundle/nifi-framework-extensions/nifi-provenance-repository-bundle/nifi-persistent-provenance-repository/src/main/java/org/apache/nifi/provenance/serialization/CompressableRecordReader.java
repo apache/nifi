@@ -22,6 +22,7 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +119,7 @@ public abstract class CompressableRecordReader implements RecordReader {
         final long bytesToSkip = offset - curOffset;
         if (bytesToSkip >= 0) {
             try {
-                rawInputStream.skipNBytes(bytesToSkip);
+                StreamUtils.skip(rawInputStream, bytesToSkip);
                 logger.debug("Skipped stream from offset {} to {} ({} bytes skipped)", curOffset, offset, bytesToSkip);
             } catch (final EOFException eof) {
                 throw new EOFException("Attempted to skip to byte offset " + offset + " for " + filename + " but file does not have that many bytes (TOC Reader=" + getTocReader() + ")");
@@ -244,7 +245,7 @@ public abstract class CompressableRecordReader implements RecordReader {
 
     @Override
     public void skip(final long bytesToSkip) throws IOException {
-        dis.skipNBytes(bytesToSkip);
+        StreamUtils.skip(dis, bytesToSkip);
     }
 
     @Override
@@ -261,7 +262,7 @@ public abstract class CompressableRecordReader implements RecordReader {
         }
 
         final long toSkip = position - currentPosition;
-        dis.skipNBytes(toSkip);
+        StreamUtils.skip(dis, toSkip);
     }
 
     protected String getFilename() {

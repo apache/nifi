@@ -2776,7 +2776,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     if (currentReadClaimStream != null && currentReadClaimStream.getBytesConsumed() <= resourceClaimOffset) {
                         final long bytesToSkip = resourceClaimOffset - currentReadClaimStream.getBytesConsumed();
                         if (bytesToSkip > 0) {
-                            currentReadClaimStream.skipNBytes(bytesToSkip);
+                            StreamUtils.skip(currentReadClaimStream, bytesToSkip);
                         }
 
                         final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
@@ -2799,7 +2799,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 performanceTracker.endContentRead();
 
                 final InputStream performanceTrackInputStream = new PerformanceTrackingInputStream(contentRepoStream, performanceTracker);
-                performanceTrackInputStream.skipNBytes(claim.getOffset() + contentClaimOffset);
+                StreamUtils.skip(performanceTrackInputStream, claim.getOffset() + contentClaimOffset);
                 final InputStream bufferedContentStream = new BufferedInputStream(contentRepoStream);
                 final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset() + contentClaimOffset);
                 currentReadClaimStream = byteCountingInputStream;

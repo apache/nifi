@@ -248,9 +248,7 @@ public class StreamUtils {
      * @param stream the stream to skip over
      * @param bytesToSkip the number of bytes to skip
      * @throws IOException if any issues reading or skipping underlying stream
-     * @deprecated Use {@link InputStream#skipNBytes(long)} instead.
      */
-    @Deprecated(since = "2.12.0", forRemoval = true)
     public static void skip(final InputStream stream, final long bytesToSkip) throws IOException {
         if (bytesToSkip <= 0) {
             return;

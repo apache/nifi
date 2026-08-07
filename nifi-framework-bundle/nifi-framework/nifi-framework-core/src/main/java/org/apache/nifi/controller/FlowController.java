@@ -226,6 +226,7 @@ import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -3403,7 +3404,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             stream = contentRepository.read(flowFile.getContentClaim());
             final long contentClaimOffset = flowFile.getContentClaimOffset();
             if (contentClaimOffset > 0L) {
-                stream.skipNBytes(contentClaimOffset);
+                StreamUtils.skip(stream, contentClaimOffset);
             }
 
             stream = new LimitingInputStream(stream, flowFile.getSize());
