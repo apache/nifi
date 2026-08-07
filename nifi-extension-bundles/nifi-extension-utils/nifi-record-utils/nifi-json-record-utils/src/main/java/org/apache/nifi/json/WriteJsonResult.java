@@ -45,6 +45,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Time;
 import java.util.Map;
@@ -69,23 +70,34 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final boolean prettyPrint;
     private final boolean allowScientificNotation;
     private final boolean serializedInputHandlingEnabled;
+    private final TimestampRepresentation timestampRepresentation;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
             final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
-        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json", false, true);
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json", false, true,
+                TimestampRepresentation.AUTO);
     }
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
         final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
         final String mimeType, final boolean allowScientificNotation) throws IOException {
-        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, mimeType, allowScientificNotation, true);
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, mimeType, allowScientificNotation, true,
+                TimestampRepresentation.AUTO);
     }
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
         final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
         final String mimeType, final boolean allowScientificNotation, final boolean serializedInputHandlingEnabled) throws IOException {
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, mimeType, allowScientificNotation,
+                serializedInputHandlingEnabled, TimestampRepresentation.AUTO);
+    }
+
+    public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
+        final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
+        final String mimeType, final boolean allowScientificNotation, final boolean serializedInputHandlingEnabled,
+        final TimestampRepresentation timestampRepresentation) throws IOException {
 
         super(out);
         this.logger = logger;
@@ -96,6 +108,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.mimeType = mimeType;
         this.allowScientificNotation = allowScientificNotation;
         this.serializedInputHandlingEnabled = serializedInputHandlingEnabled;
+        this.timestampRepresentation = timestampRepresentation;
 
         this.dateFormat = dateFormat;
         this.timeFormat = timeFormat;
@@ -199,7 +212,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
      * this writer with {@code serializedInputHandlingEnabled = false}.
      */
     private boolean isUseSerializeForm(final Record record, final RecordSchema writeSchema) {
-        if (!serializedInputHandlingEnabled) {
+        if (!serializedInputHandlingEnabled || timestampRepresentation != TimestampRepresentation.AUTO) {
             return false;
         }
 
@@ -348,8 +361,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
         if (value instanceof java.util.Date) {
-            final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timestampFormat), fieldName);
-            generator.writeObject(formatted);
+            writeTimestamp(generator, value, fieldName);
             return;
         }
         if (!allowScientificNotation) {
@@ -404,12 +416,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timestampFormat), fieldName);
-                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
-                    generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
-                } else {
-                    generator.writeString(stringValue);
-                }
+                writeTimestamp(generator, coercedValue, fieldName);
                 break;
             }
             case DOUBLE:
@@ -500,6 +507,29 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             writeValue(generator, element, fieldName, elementType);
         }
         generator.writeEndArray();
+    }
+
+    private void writeTimestamp(final JsonGenerator generator, final Object value, final String fieldName) throws IOException {
+        switch (timestampRepresentation) {
+            case FORMATTED_STRING:
+                generator.writeString(STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timestampFormat), fieldName));
+                break;
+            case EPOCH_MILLISECONDS:
+                generator.writeNumber(DataTypeUtils.toLong(value, fieldName));
+                break;
+            case EPOCH_SECONDS:
+                generator.writeNumber(BigDecimal.valueOf(DataTypeUtils.toLong(value, fieldName), 3));
+                break;
+            case AUTO:
+            default:
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timestampFormat), fieldName);
+                if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
+                    generator.writeNumber(DataTypeUtils.toLong(value, fieldName));
+                } else {
+                    generator.writeString(stringValue);
+                }
+                break;
+        }
     }
 
     @Override
