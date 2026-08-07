@@ -44,8 +44,6 @@ import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnJre;
-import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
@@ -77,7 +75,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 public class PutHDFSTest {
     private static final String TARGET_DIRECTORY = "target/test-classes";
     private static final String AVRO_TARGET_DIRECTORY = TARGET_DIRECTORY + "/testdata-avro";
