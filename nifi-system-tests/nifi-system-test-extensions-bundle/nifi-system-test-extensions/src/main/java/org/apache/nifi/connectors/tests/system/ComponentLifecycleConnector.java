@@ -158,9 +158,6 @@ public class ComponentLifecycleConnector extends AbstractConnector {
         final VersionedPort statelessInput = VersionedFlowUtils.addInputPort(statelessGroup, "Stateless Input", new Position(0, 0));
 
         // A processor inside the stateless group that references a controller service defined at the connector root.
-        // This mirrors real connectors (e.g. a Snowflake connection pool referenced from a "Create Journal Table"
-        // stateless subgroup) and lets tests exercise stopping/starting the stateless group as a single unit through
-        // the controller-service reference lifecycle.
         final VersionedProcessor statelessCountProcessor = VersionedFlowUtils.addProcessor(statelessGroup,
             "org.apache.nifi.processors.tests.system.CountFlowFiles", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Stateless Count", new Position(100, 50));
         statelessCountProcessor.getProperties().put("Count Service", rootCountServiceId);
