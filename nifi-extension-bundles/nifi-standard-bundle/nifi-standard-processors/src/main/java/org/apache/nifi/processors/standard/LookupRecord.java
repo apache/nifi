@@ -58,12 +58,15 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.Tuple;
 
@@ -675,7 +678,16 @@ public class LookupRecord extends AbstractProcessor {
                     // the Lookup Record to the destination Record. However, if the destination Record Path returns
                     // something other than a Record, then we can't add the fields to it. We can only replace it,
                     // because it doesn't make sense to add fields to anything but a Record.
-                    resultPathResult.getSelectedFields().forEach(fieldVal -> {
+
+                    // First pass: create any missing intermediate parent Records in the path
+                    resultPathResult.getSelectedFields().forEach(fieldVal -> createMissingParentRecords(fieldVal, record));
+
+                    // Incorporate newly created Records into the schema before re-evaluation,
+                    // otherwise ChildFieldPath treats them as missing (field not in active schema).
+                    record.incorporateInactiveFields();
+
+                    // Second pass: apply updates with fresh FieldValues that reflect created parents
+                    resultPath.evaluate(record).getSelectedFields().forEach(fieldVal -> {
                         final Object destinationValue = fieldVal.getValue();
 
                         if (destinationValue instanceof final Record destinationRecord) {
@@ -703,10 +715,57 @@ public class LookupRecord extends AbstractProcessor {
                     });
                 } else {
                     final DataType inferredDataType = DataTypeUtils.inferDataType(lookupValue, RecordFieldType.STRING.getDataType());
-                    resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue, inferredDataType));
+
+                    // First pass: create any missing intermediate parent Records in the path
+                    resultPathResult.getSelectedFields().forEach(fieldVal -> createMissingParentRecords(fieldVal, record));
+
+                    // Incorporate newly created Records into the schema before re-evaluation,
+                    // otherwise ChildFieldPath treats them as missing (field not in active schema).
+                    record.incorporateInactiveFields();
+
+                    // Second pass: update with fresh FieldValues that reflect created parents
+                    resultPath.evaluate(record).getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue, inferredDataType));
                 }
 
                 record.incorporateInactiveFields();
+            }
+        }
+
+        /**
+         * Ensures that every intermediate Record in the FieldValue parent chain exists.
+         * When a result path such as /enrichment/value is configured and /enrichment does not
+         * yet exist in the record, this method creates an empty MapRecord for each missing
+         * intermediate node and sets it on its parent Record, so that the final value can be
+         * written to the correct location rather than falling back to the root record.
+         */
+        private void createMissingParentRecords(final FieldValue fieldValue, final Record rootRecord) {
+            // Build a top-down chain: [firstPathSegment, ..., immediateParent, fieldValue]
+            final List<FieldValue> chain = new ArrayList<>();
+            FieldValue current = fieldValue;
+            while (current.getParent().isPresent()) {
+                chain.add(0, current);
+                current = current.getParent().get();
+            }
+
+            // Process all nodes except the last one (the leaf field itself).
+            // Navigate from root down, creating empty Records wherever an intermediate is missing.
+            Record currentRecord = rootRecord;
+            for (int i = 0; i < chain.size() - 1; i++) {
+                final FieldValue fv = chain.get(i);
+                final String fieldName = fv.getField().getFieldName();
+                final Object existingValue = currentRecord.getValue(fieldName);
+
+                if (existingValue instanceof Record childRecord) {
+                    currentRecord = childRecord;
+                } else {
+                    final RecordField field = fv.getField();
+                    final RecordSchema schema = field.getDataType() instanceof RecordDataType recordDataType
+                            ? recordDataType.getChildSchema()
+                            : new SimpleRecordSchema(Collections.emptyList());
+                    final MapRecord newRecord = new MapRecord(schema, new HashMap<>());
+                    currentRecord.setValue(field, newRecord);
+                    currentRecord = newRecord;
+                }
             }
         }
 
