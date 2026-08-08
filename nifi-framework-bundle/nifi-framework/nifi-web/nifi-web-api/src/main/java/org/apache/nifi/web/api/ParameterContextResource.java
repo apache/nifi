@@ -282,7 +282,9 @@ public class ParameterContextResource extends AbstractParameterResource {
             }
     )
     public Response createParameterContext(
-            @Parameter(description = "The Parameter Context.", required = true) final ParameterContextEntity requestEntity) {
+            @Parameter(description = "The Parameter Context.", required = true) final ParameterContextEntity requestEntity,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam("includeReferencingComponents") @DefaultValue("true") final boolean includeReferences) {
 
         if (requestEntity == null || requestEntity.getComponent() == null) {
             throw new IllegalArgumentException("Parameter Context must be specified");
@@ -318,7 +320,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     entity.getComponent().setId(contextId);
 
                     final Revision revision = getRevision(entity.getRevision(), contextId);
-                    final ParameterContextEntity contextEntity = serviceFacade.createParameterContext(revision, entity.getComponent());
+                    final ParameterContextEntity contextEntity = serviceFacade.createParameterContext(revision, entity.getComponent(), includeReferences);
 
                     // generate a 201 created response
                     final String uri = generateResourceUri("parameter-contexts", contextEntity.getId());
@@ -992,7 +994,9 @@ public class ParameterContextResource extends AbstractParameterResource {
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED)
             @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @Parameter(description = "The Parameter Context ID.")
-            @PathParam("id") final String parameterContextId) {
+            @PathParam("id") final String parameterContextId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam("includeReferencingComponents") @DefaultValue("true") final boolean includeReferences) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -1020,7 +1024,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                 () -> serviceFacade.verifyDeleteParameterContext(parameterContextId),
                 (revision, groupEntity) -> {
                     // disconnect from version control
-                    final ParameterContextEntity entity = serviceFacade.deleteParameterContext(revision, parameterContextId);
+                    final ParameterContextEntity entity = serviceFacade.deleteParameterContext(revision, parameterContextId, includeReferences);
 
                     // generate the response
                     return generateOkResponse(entity).build();
