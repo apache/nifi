@@ -1504,7 +1504,7 @@ public final class DtoFactory {
     }
 
     public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
-                                                        final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1524,7 +1524,7 @@ public final class DtoFactory {
         final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getRawEffectiveParameters()
                 : parameterContext.getParameters();
         for (final Parameter parameter : parameters.values()) {
-            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup));
+            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup, includeReferences));
         }
 
         final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
@@ -1584,8 +1584,8 @@ public final class DtoFactory {
     }
 
     public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
-                                                final ParameterContextLookup parameterContextLookup) {
-        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup);
+                                                 final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
+        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup, includeReferences);
         final ParameterEntity entity = new ParameterEntity();
         entity.setParameter(dto);
 
@@ -1596,7 +1596,7 @@ public final class DtoFactory {
     }
 
     public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter,
-                                          final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup) {
+                                           final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final ParameterDTO dto = new ParameterDTO();
@@ -1610,14 +1610,16 @@ public final class DtoFactory {
         final List<Asset> assets = parameter.getReferencedAssets();
         dto.setReferencedAssets(assets == null ? List.of() : parameter.getReferencedAssets().stream().map(this::createAssetReferenceDto).toList());
 
-        final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
+        if (includeReferences) {
+            final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
 
-        final Set<ComponentNode> referencingComponents = new HashSet<>();
-        referencingComponents.addAll(parameterReferenceManager.getProcessorsReferencing(parameterContext, descriptor.getName()));
-        referencingComponents.addAll(parameterReferenceManager.getControllerServicesReferencing(parameterContext, descriptor.getName()));
+            final Set<ComponentNode> referencingComponents = new HashSet<>();
+            referencingComponents.addAll(parameterReferenceManager.getProcessorsReferencing(parameterContext, descriptor.getName()));
+            referencingComponents.addAll(parameterReferenceManager.getControllerServicesReferencing(parameterContext, descriptor.getName()));
 
-        final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
-        dto.setReferencingComponents(referencingComponentEntities);
+            final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
+            dto.setReferencingComponents(referencingComponentEntities);
+        }
 
         final ParameterContext containingParameterContext = resolveContainingParameterContext(parameterContext, parameter, parameterContextLookup);
 
