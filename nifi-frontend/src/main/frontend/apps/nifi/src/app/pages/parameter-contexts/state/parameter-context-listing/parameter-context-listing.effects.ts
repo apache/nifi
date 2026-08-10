@@ -16,6 +16,7 @@
  */
 
 import { Injectable, inject } from '@angular/core';
+import { Location } from '@angular/common';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
@@ -67,6 +68,7 @@ export class ParameterContextListingEffects {
     private parameterContextService = inject(ParameterContextService);
     private dialog = inject(MatDialog);
     private router = inject(Router);
+    private location = inject(Location);
     private errorHelper = inject(ErrorHelper);
 
     loadParameterContexts$ = createEffect(() =>
@@ -323,12 +325,21 @@ export class ParameterContextListingEffects {
 
                     this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
 
+                    const navigationState = this.location.getState() as { parameterName?: string } | null;
+                    const selectedParameterName = navigationState?.parameterName;
+
                     const editDialogReference = this.dialog.open(EditParameterContext, {
                         ...XL_DIALOG,
                         data: {
                             parameterContext: request.parameterContext
                         }
                     });
+
+                    if (selectedParameterName) {
+                        // Parameters tab
+                        editDialogReference.componentInstance.selectedIndex = 1;
+                        editDialogReference.componentInstance.selectedParameterName = selectedParameterName;
+                    }
 
                     editDialogReference.componentInstance.updateRequest = this.store.select(selectUpdateRequest);
 
