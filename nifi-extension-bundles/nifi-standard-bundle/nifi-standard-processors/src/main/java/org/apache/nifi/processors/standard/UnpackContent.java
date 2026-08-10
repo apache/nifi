@@ -311,32 +311,13 @@ public class UnpackContent extends AbstractProcessor {
             }
         }
 
-        // set the Unpacker to use for this FlowFile.  FlowFileUnpackager objects maintain state and are not reusable.
-        final Unpacker unpacker;
-        final boolean addFragmentAttrs = switch (packagingFormat) {
-            case TAR_FORMAT -> {
-                unpacker = tarUnpacker;
-                yield true;
-            }
-            case ZIP_FORMAT -> {
-                unpacker = zipUnpacker;
-                yield true;
-            }
-            case FLOWFILE_STREAM_FORMAT_V2 -> {
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-                yield false;
-            }
-            case FLOWFILE_STREAM_FORMAT_V3 -> {
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-                yield false;
-            }
-            case FLOWFILE_TAR_FORMAT -> {
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
-                yield false;
-            }
-            default ->
-                // The format of the unpacker should be known before initialization
-                throw new ProcessException(packagingFormat + " is not a valid packaging format");
+        final Unpacker unpacker = switch (packagingFormat) {
+            case TAR_FORMAT -> tarUnpacker;
+            case ZIP_FORMAT -> zipUnpacker;
+            case FLOWFILE_STREAM_FORMAT_V2 -> new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
+            case FLOWFILE_STREAM_FORMAT_V3 -> new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
+            case FLOWFILE_TAR_FORMAT -> new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
+            default -> throw new ProcessException("Format [%s] not supported".formatted(packagingFormat));
         };
 
         final List<FlowFile> unpacked = new ArrayList<>();
@@ -348,9 +329,17 @@ public class UnpackContent extends AbstractProcessor {
                 return;
             }
 
-            if (addFragmentAttrs) {
-                finishFragmentAttributes(session, flowFile, unpacked);
+            // Determine whether Fragment Identifiers are needed based on Unpacker and existing attribute status after unpacking
+            final boolean fragmentIdentifiersRequired;
+            if (unpacker instanceof final FlowFileStreamUnpacker streamUnpacker) {
+                fragmentIdentifiersRequired = !streamUnpacker.isFragmentIdentifierRestored();
+            } else {
+                fragmentIdentifiersRequired = true;
             }
+            if (fragmentIdentifiersRequired) {
+                putFragmentAttributes(session, flowFile, unpacked);
+            }
+
             session.transfer(unpacked, REL_SUCCESS);
             final String fragmentId = !unpacked.isEmpty() ? unpacked.getFirst().getAttribute(FRAGMENT_ID) : null;
             flowFile = FragmentAttributes.copyAttributesToOriginal(session, flowFile, fragmentId, unpacked.size());
@@ -648,8 +637,14 @@ public class UnpackContent extends AbstractProcessor {
 
         private final FlowFileUnpackager unpackager;
 
+        private boolean fragmentIdentifierRestored;
+
         public FlowFileStreamUnpacker(final FlowFileUnpackager unpackager) {
             this.unpackager = unpackager;
+        }
+
+        private boolean isFragmentIdentifierRestored() {
+            return fragmentIdentifierRestored;
         }
 
         @Override
@@ -677,6 +672,13 @@ public class UnpackContent extends AbstractProcessor {
                             // and later unpack it -- in this case, we have two FlowFiles with the same UUID.
                             attributes.remove(CoreAttributes.UUID.key());
 
+                            // Track whether the packaged FlowFile itself carried a fragment identifier. This is evaluated
+                            // against the restored attributes rather than the unpacked FlowFile, because a child created
+                            // from the source inherits the source's attributes and could otherwise report a false positive.
+                            if (attributes.containsKey(FRAGMENT_ID)) {
+                                fragmentIdentifierRestored = true;
+                            }
+
                             if (!attributes.containsKey(CoreAttributes.MIME_TYPE.key())) {
                                 attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
                             }
@@ -691,33 +693,49 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
-        // first pass verifies all FlowFiles have the FRAGMENT_INDEX attribute and gets the total number of fragments
-        int fragmentCount = 0;
-        for (FlowFile ff : unpacked) {
-            String fragmentIndex = ff.getAttribute(FRAGMENT_INDEX);
-            if (fragmentIndex != null) {
-                fragmentCount++;
-            } else {
-                return;
+    private void putFragmentAttributes(
+            final ProcessSession session,
+            final FlowFile source,
+            final List<FlowFile> unpacked
+    ) {
+        final String fragmentId = UUID.randomUUID().toString();
+        final String segmentOriginalFilename = getSegmentOriginalFilename(source);
+        final String fragmentCount = String.valueOf(unpacked.size());
+
+        final List<FlowFile> updated = new ArrayList<>(unpacked.size());
+        int fragmentIndex = 0;
+        for (final FlowFile unpackedFlowFile : unpacked) {
+            fragmentIndex++;
+            final Map<String, String> fragmentAttributes = new HashMap<>();
+
+            final String unpackedFragmentId = unpackedFlowFile.getAttribute(FRAGMENT_ID);
+            if (unpackedFragmentId == null) {
+                // Set Fragment Identifier and Index when absent for FlowFile Formats
+                fragmentAttributes.put(FRAGMENT_ID, fragmentId);
+                fragmentAttributes.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
             }
+
+            fragmentAttributes.put(FRAGMENT_COUNT, fragmentCount);
+            fragmentAttributes.put(SEGMENT_ORIGINAL_FILENAME, segmentOriginalFilename);
+
+            updated.add(session.putAllAttributes(unpackedFlowFile, fragmentAttributes));
         }
 
-        String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
-        if (originalFilename.endsWith(".tar") || originalFilename.endsWith(".zip") || originalFilename.endsWith(".pkg")) {
-            originalFilename = originalFilename.substring(0, originalFilename.length() - 4);
-        }
-
-        // second pass adds fragment attributes
-        List<FlowFile> newList = new ArrayList<>(unpacked);
         unpacked.clear();
-        for (FlowFile ff : newList) {
-            FlowFile newFF = session.putAllAttributes(ff, Map.of(
-                    FRAGMENT_COUNT, String.valueOf(fragmentCount),
-                    SEGMENT_ORIGINAL_FILENAME, originalFilename
-            ));
-            unpacked.add(newFF);
+        unpacked.addAll(updated);
+    }
+
+    private String getSegmentOriginalFilename(final FlowFile source) {
+        final String filename = source.getAttribute(CoreAttributes.FILENAME.key());
+
+        final String originalFilename;
+        if (filename.endsWith(".tar") || filename.endsWith(".zip") || filename.endsWith(".pkg")) {
+            originalFilename = filename.substring(0, filename.length() - 4);
+        } else {
+            originalFilename = filename;
         }
+
+        return originalFilename;
     }
 
     protected enum PackageFormat implements DescribedValue {
