@@ -25,7 +25,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -81,7 +80,7 @@ public class VerifyContents extends AbstractProcessor {
         try (final InputStream in = session.read(flowFile);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
             contents = baos.toString(StandardCharsets.UTF_8);
         } catch (final Exception e) {
             throw new ProcessException(e);

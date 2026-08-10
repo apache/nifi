@@ -37,7 +37,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -135,7 +134,7 @@ public class GetFileResource extends AbstractProcessor {
         FlowFile flowFile = session.create();
 
         try (final InputStream inputStream = context.getProperty(FILE_RESOURCE).asResource().read()) {
-            flowFile = session.write(flowFile, out -> StreamUtils.copy(inputStream, out));
+            flowFile = session.write(flowFile, inputStream::transferTo);
         } catch (IOException e) {
             getLogger().error("Could not create FlowFile from Resource [{}]", context.getProperty(FILE_RESOURCE).getValue(), e);
         }

@@ -44,7 +44,6 @@ import org.apache.nifi.processors.standard.encoding.EncodingType;
 import org.apache.nifi.processors.standard.encoding.LineOutputMode;
 import org.apache.nifi.processors.standard.util.ValidatingBase32InputStream;
 import org.apache.nifi.processors.standard.util.ValidatingBase64InputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
@@ -201,7 +200,7 @@ public class EncodeContent extends AbstractProcessor {
                                     .setLineSeparator(this.lineSeparator.getBytes())
                                     .get())
                     .get()) {
-                StreamUtils.copy(in, bos);
+                in.transferTo(bos);
             }
         }
     }
@@ -211,7 +210,7 @@ public class EncodeContent extends AbstractProcessor {
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
             try (Base64InputStream bis = new Base64InputStream(new ValidatingBase64InputStream(in))) {
-                StreamUtils.copy(bis, out);
+                bis.transferTo(out);
             }
         }
     }
@@ -239,7 +238,7 @@ public class EncodeContent extends AbstractProcessor {
                                     .setLineSeparator(this.lineSeparator.getBytes())
                                     .get())
                     .get()) {
-                StreamUtils.copy(in, bos);
+                in.transferTo(bos);
             }
         }
     }
@@ -249,7 +248,7 @@ public class EncodeContent extends AbstractProcessor {
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
             try (Base32InputStream bis = new Base32InputStream(new ValidatingBase32InputStream(in))) {
-                StreamUtils.copy(bis, out);
+                bis.transferTo(out);
             }
         }
     }

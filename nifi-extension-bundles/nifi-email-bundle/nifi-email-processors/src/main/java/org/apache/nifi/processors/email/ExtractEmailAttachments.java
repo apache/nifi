@@ -41,7 +41,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -135,7 +134,7 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                         String parentUuid = originalFlowFile.getAttribute(CoreAttributes.UUID.key());
                         attributes.put(ATTACHMENT_ORIGINAL_UUID, parentUuid);
                         attributes.put(ATTACHMENT_ORIGINAL_FILENAME, originalFlowFileName);
-                        split = session.append(split, out -> StreamUtils.copy(data.getInputStream(), out));
+                        split = session.append(split, out -> data.getInputStream().transferTo(out));
                         split = session.putAllAttributes(split, attributes);
                         attachmentsList.add(split);
                     }

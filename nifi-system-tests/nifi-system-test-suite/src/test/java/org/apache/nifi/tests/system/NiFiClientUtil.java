@@ -31,7 +31,6 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.toolkit.client.ConnectionClient;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClient;
@@ -2266,7 +2265,7 @@ public class NiFiClientUtil {
         try (final InputStream in = getFlowFileContent(connectionId, flowFileIndex);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
             return baos.toByteArray();
         }
     }

@@ -3380,7 +3380,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     appendableStreams.put(newClaim, outStream);
 
                     // We need to copy all of the data from the old claim to the new claim
-                    StreamUtils.copy(oldClaimIn, outStream);
+                    oldClaimIn.transferTo(outStream);
 
                     // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
                     // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream

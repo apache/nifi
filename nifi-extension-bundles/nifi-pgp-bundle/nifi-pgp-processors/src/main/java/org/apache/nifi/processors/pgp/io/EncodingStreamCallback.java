@@ -20,7 +20,6 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
@@ -103,7 +102,7 @@ public class EncodingStreamCallback implements StreamCallback {
     protected void processCompression(final InputStream inputStream, final OutputStream compressedOutputStream) throws IOException, PGPException {
         final PGPLiteralDataGenerator generator = new PGPLiteralDataGenerator();
         try (final OutputStream literalOutputStream = openLiteralOutputStream(generator, compressedOutputStream)) {
-            StreamUtils.copy(inputStream, literalOutputStream);
+            inputStream.transferTo(literalOutputStream);
         }
         generator.close();
     }

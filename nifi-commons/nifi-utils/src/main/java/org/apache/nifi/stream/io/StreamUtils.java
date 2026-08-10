@@ -28,6 +28,15 @@ import java.util.List;
 
 public class StreamUtils {
 
+    /**
+     * Copies from <code>source</code> to <code>destination</code>.
+     * @param source source InputStream
+     * @param destination destination OutputStream
+     * @return Total number of bytes copied
+     * @throws IOException If an error occurs when copying.
+     * @deprecated Use {@link InputStream#transferTo(OutputStream)} instead.
+     */
+    @Deprecated(since = "2.12.0", forRemoval = true)
     public static long copy(final InputStream source, final OutputStream destination) throws IOException {
         final byte[] buffer = new byte[8192];
         int len;

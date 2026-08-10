@@ -22,7 +22,6 @@ import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
@@ -161,7 +160,7 @@ public class ClusteredProviderParamFlowSyncIT extends NiFiSystemIT {
         try (final InputStream fis = new FileInputStream(flowFile);
              final InputStream in = new GZIPInputStream(fis);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
             bytes = baos.toByteArray();
         }
 

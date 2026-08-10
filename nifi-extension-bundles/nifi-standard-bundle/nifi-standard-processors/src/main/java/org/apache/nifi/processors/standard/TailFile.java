@@ -1488,7 +1488,7 @@ public class TailFile extends AbstractProcessor {
         try (final InputStream fis = new FileInputStream(file)) {
             flowFile = session.write(flowFile, out -> {
                 flushLinesBuffer(out, new CRC32());
-                StreamUtils.copy(fis, out);
+                fis.transferTo(out);
             });
         }
 

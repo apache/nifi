@@ -523,7 +523,7 @@ public class UnpackContent extends AbstractProcessor {
                         attributes.put(FRAGMENT_ID, fragmentId);
                         attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentIndex));
                         unpackedFile = session.putAllAttributes(unpackedFile, attributes);
-                        unpackedFile = session.write(unpackedFile, outputStream -> StreamUtils.copy(zipInputStream, outputStream));
+                        unpackedFile = session.write(unpackedFile, zipInputStream::transferTo);
                     } finally {
                         unpacked.add(unpackedFile);
                     }
