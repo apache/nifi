@@ -370,11 +370,15 @@ public class MockProcessSession implements ProcessSession {
             commitInternal();
         } catch (final Throwable t) {
             rollback();
-            onFailure.accept(t);
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
             throw t;
         }
 
-        onSuccess.run();
+        if (onSuccess != null) {
+            onSuccess.run();
+        }
     }
 
     /**
