@@ -354,7 +354,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         instance2.stop();
 
         final Map<String, String> updatedLoadBalanceProperties = new HashMap<>();
-        updatedLoadBalanceProperties.put("nifi.cluster.load.balance.host", "127.0.0.1");
+        updatedLoadBalanceProperties.put("nifi.cluster.load.balance.host", "localhost");
         updatedLoadBalanceProperties.put("nifi.cluster.load.balance.port", "7676");
         instance2.setProperties(updatedLoadBalanceProperties);
 

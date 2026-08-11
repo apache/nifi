@@ -105,6 +105,10 @@ public class PeerChannel implements Closeable {
         return peerDescription;
     }
 
+    SSLEngine getSslEngine() {
+        return sslEngine;
+    }
+
     /**
      * Write one byte to the channel
      *
