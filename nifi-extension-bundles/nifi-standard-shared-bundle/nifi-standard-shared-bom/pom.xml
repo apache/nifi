@@ -96,7 +96,7 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>${org.bouncycastle.version}</version>
+                <version>${org.bouncycastle.provider.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
