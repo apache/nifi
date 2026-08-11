@@ -34,6 +34,7 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -312,7 +313,7 @@ public class WaitNotifyProtocol {
 
         final Object expectedRevision = signal.cachedEntry != null ? signal.cachedEntry.getRevision().orElse(null) : null;
         final Object actualRevision = current.cachedEntry.getRevision().orElse(null);
-        if (expectedRevision != null && !expectedRevision.equals(actualRevision)) {
+        if (expectedRevision != null && !Objects.deepEquals(expectedRevision, actualRevision)) {
             throw new ConcurrentModificationException(String.format(
                     "Failed to complete signal [%s]: signal was concurrently modified (expected revision %s, found %s).",
                     signalId, expectedRevision, actualRevision));
