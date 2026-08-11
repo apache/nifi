@@ -45,11 +45,16 @@ import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUnpackContent {
 
     private static final String FIRST_FRAGMENT_INDEX = "1";
+
+    private static final String EXISTING_FRAGMENT_ID = "existing-fragment-id";
+
+    private static final String EXISTING_SEGMENT_FILENAME = "original-archive";
 
     private static final Path dataPath = Paths.get("src/test/resources/TestUnpackContent");
 
@@ -449,6 +454,67 @@ public class TestUnpackContent {
 
             flowFile.assertContentEquals(path.toFile());
         }
+    }
+
+    @Test
+    public void testFlowFileStreamAssignsFragmentAttributesWhenAbsent() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3);
+        runner.enqueue(dataPath.resolve("data.flowfilev3"));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final String fragmentId = unpacked.getFirst().getAttribute(UnpackContent.FRAGMENT_ID);
+        assertNotNull(fragmentId);
+        for (final MockFlowFile flowFile : unpacked) {
+            flowFile.assertAttributeEquals(UnpackContent.FRAGMENT_ID, fragmentId);
+            flowFile.assertAttributeEquals(UnpackContent.FRAGMENT_COUNT, "2");
+            flowFile.assertAttributeEquals(UnpackContent.SEGMENT_ORIGINAL_FILENAME, "data.flowfilev3");
+        }
+
+        unpacked.get(0).assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, FIRST_FRAGMENT_INDEX);
+        unpacked.get(1).assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, "2");
+    }
+
+    @Test
+    public void testFlowFileStreamPreservesExistingFragmentAttributes() {
+        final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
+        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.FLOWFILE_STREAM_V3);
+        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
+        mergeRunner.setProperty(MergeContent.MIN_ENTRIES, "2");
+        mergeRunner.setProperty(MergeContent.MAX_ENTRIES, "2");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(UnpackContent.FRAGMENT_ID, EXISTING_FRAGMENT_ID);
+        attributes.put(UnpackContent.FRAGMENT_COUNT, "2");
+        attributes.put(UnpackContent.SEGMENT_ORIGINAL_FILENAME, EXISTING_SEGMENT_FILENAME);
+        attributes.put(UnpackContent.FRAGMENT_INDEX, FIRST_FRAGMENT_INDEX);
+        mergeRunner.enqueue("Hello ".getBytes(StandardCharsets.UTF_8), attributes);
+        attributes.put(UnpackContent.FRAGMENT_INDEX, "2");
+        mergeRunner.enqueue("World".getBytes(StandardCharsets.UTF_8), attributes);
+        mergeRunner.run();
+
+        mergeRunner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile packaged = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst();
+
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3);
+        runner.enqueue(packaged);
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+
+        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        for (final MockFlowFile flowFile : unpacked) {
+            flowFile.assertAttributeEquals(UnpackContent.FRAGMENT_ID, EXISTING_FRAGMENT_ID);
+            flowFile.assertAttributeEquals(UnpackContent.FRAGMENT_COUNT, "2");
+            flowFile.assertAttributeEquals(UnpackContent.SEGMENT_ORIGINAL_FILENAME, EXISTING_SEGMENT_FILENAME);
+        }
+
+        unpacked.get(0).assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, FIRST_FRAGMENT_INDEX);
+        unpacked.get(1).assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, "2");
     }
 
     @Test
