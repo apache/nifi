@@ -102,7 +102,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
@@ -113,6 +113,8 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     private static final String NAR_DEPENDENCIES_PATH = "NAR-INF/bundled-dependencies";
     private static final String CONNECTOR_WAR_MANIFEST_PATH = "META-INF/nifi-connector";
     private static final String WAR_EXTENSION = ".war";
+    private static final Duration DEFAULT_STOP_TIMEOUT = Duration.ofSeconds(60);
+    private static final long STOP_POLL_INTERVAL_MILLIS = 250L;
 
     private Bundle systemBundle;
     private Set<Bundle> bundles;
@@ -362,13 +364,35 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public void stopConnector() {
+        // The no-arg convenience method keeps its unchecked contract: a timeout at the default budget is not
+        // something a caller is expected to recover from, so wrap the checked TimeoutException.
         try {
-            connectorNode.stop(flowEngine).get(10, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while waiting for connector to stop", e);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to stop Connector", e);
+            stopConnector(DEFAULT_STOP_TIMEOUT);
+        } catch (final TimeoutException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void stopConnector(final Duration maxWaitTime) throws TimeoutException {
+        // Initiate the asynchronous stop, then actively poll the Connector's state until it reports STOPPED.
+        // The node flips its state to STOPPED at the same point it completes the stop future, and it retries a
+        // failed component stop internally (every 10 seconds), so polling the state rides through those retries
+        // up to maxWaitTime instead of being capped by a single fixed blocking wait.
+        connectorNode.stop(flowEngine);
+
+        final long expirationTime = System.currentTimeMillis() + maxWaitTime.toMillis();
+        while (connectorNode.getCurrentState() != ConnectorState.STOPPED) {
+            if (System.currentTimeMillis() > expirationTime) {
+                throw new TimeoutException("Timed out waiting for the Connector to stop after " + maxWaitTime);
+            }
+
+            try {
+                Thread.sleep(STOP_POLL_INTERVAL_MILLIS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for the Connector to stop", e);
+            }
         }
     }
 
