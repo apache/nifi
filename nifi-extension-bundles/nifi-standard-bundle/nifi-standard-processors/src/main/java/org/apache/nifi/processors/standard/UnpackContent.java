@@ -40,6 +40,8 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -227,6 +229,8 @@ public class UnpackContent extends AbstractProcessor {
             REL_ORIGINAL
     );
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(UnpackContent.class);
+
     private Pattern fileFilter;
 
     private Unpacker tarUnpacker;
@@ -249,9 +253,14 @@ public class UnpackContent extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws ProcessException {
-        if (fileFilter == null) {
-            final PackageFormat packageFormat = context.getProperty(PACKAGING_FORMAT).asAllowableValue(PackageFormat.class);
+        final PackageFormat packageFormat = context.getProperty(PACKAGING_FORMAT).asAllowableValue(PackageFormat.class);
+        if (PackageFormat.FLOWFILE_STREAM_FORMAT_V2 == packageFormat) {
+            deprecationLogger.warn("FlowFile Stream V2 is deprecated for removal");
+        } else if (PackageFormat.FLOWFILE_TAR_FORMAT == packageFormat) {
+            deprecationLogger.warn("FlowFile TAR V1 is deprecated for removal");
+        }
 
+        if (fileFilter == null) {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
 
             tarUnpacker = switch (packageFormat) {
@@ -311,6 +320,7 @@ public class UnpackContent extends AbstractProcessor {
             }
         }
 
+        @SuppressWarnings("removal")
         final Unpacker unpacker = switch (packagingFormat) {
             case TAR_FORMAT -> tarUnpacker;
             case ZIP_FORMAT -> zipUnpacker;
@@ -743,8 +753,8 @@ public class UnpackContent extends AbstractProcessor {
         TAR_FORMAT(TAR_FORMAT_NAME, null, "application/x-tar"),
         ZIP_FORMAT(ZIP_FORMAT_NAME, null, "application/zip"),
         FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, null, StandardFlowFileMediaType.VERSION_3.getMediaType()),
-        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, null, StandardFlowFileMediaType.VERSION_2.getMediaType()),
-        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, null, StandardFlowFileMediaType.VERSION_1.getMediaType());
+        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, "FlowFile Stream V2 is deprecated", StandardFlowFileMediaType.VERSION_2.getMediaType()),
+        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, "FlowFile TAR V1 is deprecated", StandardFlowFileMediaType.VERSION_1.getMediaType());
 
         private final String value;
         private final String description;

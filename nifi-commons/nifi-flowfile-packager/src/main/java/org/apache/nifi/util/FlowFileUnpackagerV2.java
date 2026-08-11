@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+@Deprecated(since = "2.12.0", forRemoval = true)
 public class FlowFileUnpackagerV2 implements FlowFileUnpackager {
 
     private final byte[] readBuffer = new byte[8192];

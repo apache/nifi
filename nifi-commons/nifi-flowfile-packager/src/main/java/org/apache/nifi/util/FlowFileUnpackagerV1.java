@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+@Deprecated(since = "2.12.0", forRemoval = true)
 public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
 
     private int flowFilesRead = 0;

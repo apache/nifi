@@ -449,6 +449,7 @@ public class ListenHTTPServlet extends HttpServlet {
         }
     }
 
+    @SuppressWarnings("removal")
     private FlowFileUnpackager getFlowFileUnpackager(String contentType) {
         final FlowFileUnpackager unpackager;
         if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(contentType)) {

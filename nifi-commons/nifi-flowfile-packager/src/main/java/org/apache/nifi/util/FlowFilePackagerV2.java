@@ -83,6 +83,7 @@ import java.util.Map;
  * 64 21
  * </pre>
  */
+@Deprecated(since = "2.12.0", forRemoval = true)
 public class FlowFilePackagerV2 implements FlowFilePackager {
 
     private static final int MAX_VALUE_2_BYTES = 65535;
