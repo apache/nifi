@@ -785,7 +785,9 @@ public class ParameterProviderResource extends AbstractParameterResource {
             @Parameter(
                     description = "The parameter fetch request.",
                     required = true
-            ) final ParameterProviderParameterFetchEntity fetchParametersEntity) {
+            ) final ParameterProviderParameterFetchEntity fetchParametersEntity,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         if (fetchParametersEntity.getId() == null) {
             throw new IllegalArgumentException("The ID of the Parameter Provider must be specified");
@@ -815,7 +817,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         final Collection<ParameterContextDTO> referencingParameterContextDtos = new HashSet<>();
         references.forEach(referencingEntity -> {
             final String parameterContextId = referencingEntity.getComponent().getId();
-            final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user);
+            final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user, true);
             parameterContextEntity.getComponent().getParameters().stream()
                     .filter(dto -> Boolean.TRUE.equals(dto.getParameter().getProvided()))
                     .forEach(p -> referencingComponents.addAll(p.getParameter().getReferencingComponents()));
@@ -854,7 +856,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
                         parameterGroupConfigurations.add(new ParameterGroupConfiguration(group.getGroupName(), group.getParameterContextName(),
                                 updatedSensitivities, group.isSynchronized()));
                     });
-                    final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
+                    final List<ParameterContextEntity> parameterContextUpdates =
+                            serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations, includeReferences);
 
                     final Set<ParameterEntity> removedParameters = parameterContextUpdates.stream()
                             .flatMap(context -> context.getComponent().getParameters().stream())
@@ -867,7 +870,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     if (!affectedComponents.isEmpty()) {
                         entity.getComponent().setAffectedComponents(affectedComponents);
                     }
-                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(entity, parameterContextUpdates, removedParameters, user);
+                    final Set<ParameterStatusDTO> parameterStatus = getParameterStatus(entity, parameterContextUpdates, removedParameters, user, includeReferences);
                     if (!parameterStatus.isEmpty()) {
                         entity.getComponent().setParameterStatus(parameterStatus);
                     }
@@ -879,7 +882,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
     }
 
     private void authorizeReferencingComponents(final String parameterContextId, final AuthorizableLookup lookup, final NiFiUser user) {
-        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser(), true);
 
         for (final ParameterEntity parameterEntity : context.getComponent().getParameters()) {
             final ParameterDTO dto = parameterEntity.getParameter();
@@ -922,7 +925,9 @@ public class ParameterProviderResource extends AbstractParameterResource {
     public Response submitApplyParameters(
             @Parameter(description = "The ID of the Parameter Provider")
             @PathParam("providerId") final String parameterProviderId,
-            @Parameter(description = "The apply parameters request.", required = true) final ParameterProviderParameterApplicationEntity requestEntity) {
+            @Parameter(description = "The apply parameters request.", required = true) final ParameterProviderParameterApplicationEntity requestEntity,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         if (requestEntity == null) {
             throw new IllegalArgumentException("Apply Parameters Request must be specified.");
@@ -967,14 +972,14 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 .forEach(parameterGroupConfiguration -> {
                     final ParameterContextEntity newParameterContext = getNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration);
                     try {
-                        performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
+                        performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext, includeReferences);
                     } catch (final LifecycleManagementException e) {
                         throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
                     }
                 });
 
         // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
-        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
+        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations, includeReferences);
 
         final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
         logger.debug("Received Apply Request for Parameter Provider: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
@@ -1005,7 +1010,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     // Verify Request
                     serviceFacade.verifyCanApplyParameters(parameterProviderId, parameterGroupConfigurations);
                 },
-                this::submitApplyRequest
+                (rev, wrapper) -> submitApplyRequest(rev, wrapper, includeReferences)
         );
     }
 
@@ -1017,7 +1022,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
     }
 
     private Set<ParameterStatusDTO> getParameterStatus(final ParameterProviderEntity parameterProvider, final List<ParameterContextEntity> parameterContextUpdates,
-                                                       final Set<ParameterEntity> removedParameters, final NiFiUser niFiUser) {
+                                                       final Set<ParameterEntity> removedParameters, final NiFiUser niFiUser, final boolean includeReferences) {
         final Set<ParameterStatusDTO> parameterStatus = new HashSet<>();
         if (parameterProvider.getComponent() == null || parameterProvider.getComponent().getReferencingParameterContexts() == null) {
             return parameterStatus;
@@ -1034,7 +1039,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
         for (final ParameterProviderReferencingComponentEntity reference : parameterProvider.getComponent().getReferencingParameterContexts()) {
             final String parameterContextId = reference.getComponent().getId();
-            final ParameterContextEntity parameterContext = serviceFacade.getParameterContext(parameterContextId, false, niFiUser);
+            final ParameterContextEntity parameterContext = serviceFacade.getParameterContext(parameterContextId, false, niFiUser, includeReferences);
             if (parameterContext.getComponent() == null) {
                 continue;
             }
@@ -1108,11 +1113,13 @@ public class ParameterProviderResource extends AbstractParameterResource {
     )
     public Response getParameterProviderApplyParametersRequest(
             @Parameter(description = "The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
-            @Parameter(description = "The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
+            @Parameter(description = "The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         authorizeReadParameterProvider(parameterProviderId);
 
-        return retrieveApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId);
+        return retrieveApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId, includeReferences);
     }
 
     @DELETE
@@ -1142,10 +1149,12 @@ public class ParameterProviderResource extends AbstractParameterResource {
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @Parameter(description = "The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
-            @Parameter(description = "The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
+            @Parameter(description = "The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         authorizeReadParameterProvider(parameterProviderId);
-        return deleteApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId, disconnectedNodeAcknowledged.booleanValue());
+        return deleteApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId, disconnectedNodeAcknowledged.booleanValue(), includeReferences);
     }
 
     @POST
@@ -1424,7 +1433,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return entity;
     }
 
-    private Response retrieveApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId) {
+    private Response retrieveApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId, final boolean includeReferences) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1433,11 +1442,13 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
         // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
-        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity = createApplyParametersRequestEntity(asyncRequest, requestType, parameterProviderId, requestId);
+        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity =
+                createApplyParametersRequestEntity(asyncRequest, requestType, parameterProviderId, requestId, includeReferences);
         return generateOkResponse(applyParametersRequestEntity).build();
     }
 
-    private Response deleteApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId, final boolean disconnectedNodeAcknowledged) {
+    private Response deleteApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId, final boolean disconnectedNodeAcknowledged,
+                                                  final boolean includeReferences) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1458,12 +1469,14 @@ public class ParameterProviderResource extends AbstractParameterResource {
             asyncRequest.cancel();
         }
 
-        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity = createApplyParametersRequestEntity(asyncRequest, requestType, parameterProviderId, requestId);
+        final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity =
+                createApplyParametersRequestEntity(asyncRequest, requestType, parameterProviderId, requestId, includeReferences);
         return generateOkResponse(applyParametersRequestEntity).build();
     }
 
     private ParameterProviderApplyParametersRequestEntity createApplyParametersRequestEntity(final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest,
-                                                                                             final String requestType, final String parameterProviderId, final String requestId) {
+                                                                                             final String requestType, final String parameterProviderId, final String requestId,
+                                                                                             final boolean includeReferences) {
         final ParameterProviderApplyParametersRequestEntity applyParametersRequestEntity = new ParameterProviderApplyParametersRequestEntity();
         final ParameterProviderApplyParametersRequestDTO applyParametersRequestDTO = new ParameterProviderApplyParametersRequestDTO();
         applyParametersRequestDTO.setComplete(asyncRequest.isComplete());
@@ -1495,7 +1508,12 @@ public class ParameterProviderResource extends AbstractParameterResource {
             // The AffectedComponentEntity itself does not evaluate equality based on component information. As a result, we want to de-dupe the entities based on their identifiers.
             final Map<String, AffectedComponentEntity> affectedComponents = new HashMap<>();
             for (final ParameterEntity entity : parameterContextEntity.getComponent().getParameters()) {
-                for (final AffectedComponentEntity affectedComponentEntity : entity.getParameter().getReferencingComponents()) {
+                final Set<AffectedComponentEntity> referencingComponents = entity.getParameter().getReferencingComponents();
+                if (referencingComponents == null) {
+                    continue;
+                }
+
+                for (final AffectedComponentEntity affectedComponentEntity : referencingComponents) {
                     final AffectedComponentEntity updatedAffectedComponentEntity = serviceFacade.getUpdatedAffectedComponentEntity(affectedComponentEntity);
                     final String affectedComponentEntityId = affectedComponentEntity.getId();
 
@@ -1505,7 +1523,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
             }
 
             // Populate the Affected Components
-            final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextEntity.getId(), false, NiFiUserUtils.getNiFiUser());
+            final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextEntity.getId(), false, NiFiUserUtils.getNiFiUser(), includeReferences);
             final ParameterContextUpdateEntity parameterContextUpdate = new ParameterContextUpdateEntity();
             parameterContextUpdate.setReferencingComponents(new HashSet<>(affectedComponents.values()));
 
@@ -1583,7 +1601,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return parameterContextEntity;
     }
 
-    private Response submitApplyRequest(final Revision requestRevision, final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper) {
+    private Response submitApplyRequest(final Revision requestRevision, final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper, final boolean includeReferences) {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
@@ -1614,12 +1632,12 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
         // Generate the response.
         final ParameterProviderApplyParametersRequestEntity applicationRequestEntity = createApplyParametersRequestEntity(
-                request, "apply-parameters-requests", parameterProviderId, requestId);
+                request, "apply-parameters-requests", parameterProviderId, requestId, includeReferences);
         return generateOkResponse(applicationRequestEntity).build();
     }
 
     private ParameterContextEntity performParameterContextCreate(final NiFiUser user, final URI exampleUri, final boolean replicateRequest,
-                                                                 final ParameterContextEntity parameterContext) throws LifecycleManagementException {
+                                                                 final ParameterContextEntity parameterContext, final boolean includeReferences) throws LifecycleManagementException {
 
         if (replicateRequest) {
             final URI updateUri;
@@ -1644,14 +1662,14 @@ public class ParameterProviderResource extends AbstractParameterResource {
             }
             final String parameterContextId = ParameterUpdateManager.getResponseEntity(clusterResponse, ParameterContextEntity.class).getId();
 
-            return serviceFacade.getParameterContext(parameterContextId, false, user);
+            return serviceFacade.getParameterContext(parameterContextId, false, user, includeReferences);
         } else {
             serviceFacade.verifyCreateParameterContext(parameterContext.getComponent());
             final String contextId = generateUuid();
             parameterContext.getComponent().setId(contextId);
 
             final Revision revision = getRevision(parameterContext.getRevision(), contextId);
-            return serviceFacade.createParameterContext(revision, parameterContext.getComponent());
+            return serviceFacade.createParameterContext(revision, parameterContext.getComponent(), includeReferences);
         }
     }
 

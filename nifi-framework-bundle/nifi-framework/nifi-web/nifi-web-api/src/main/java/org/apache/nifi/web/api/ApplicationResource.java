@@ -121,6 +121,7 @@ public abstract class ApplicationResource {
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
     public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
+    public static final String INCLUDE_REFERENCING_COMPONENTS = "includeReferencingComponents";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
