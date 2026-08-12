@@ -468,6 +468,7 @@ public class MergeContent extends BinFiles {
     protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
         final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
 
+        @SuppressWarnings("removal")
         MergeBin merger = switch (context.getProperty(MERGE_FORMAT).asAllowableValue(MergeFormat.class)) {
             case TAR -> new TarMerge();
             case ZIP -> new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
