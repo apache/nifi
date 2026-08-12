@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.json;
 
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -33,8 +38,22 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestJsonRecordSetWriter {
+
+    @Test
+    void testFormattedStringRequiresTimestampFormat() throws InitializationException {
+        final JsonRecordSetWriter service = new JsonRecordSetWriter();
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        runner.addControllerService("writer", service);
+        runner.setProperty(service, JsonRecordSetWriter.TIMESTAMP_REPRESENTATION, TimestampRepresentation.FORMATTED_STRING.name());
+
+        assertThrows(IllegalStateException.class, () -> runner.enableControllerService(service));
+
+        runner.setProperty(service, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSSX");
+        runner.enableControllerService(service);
+    }
 
     @Test
     void testMigrateProperties() {
