@@ -120,7 +120,9 @@ public class StreamUtils {
      * @throws IllegalArgumentException if the given byte array is smaller than <code>byteCount</code> elements.
      * @throws EOFException if the InputStream does not have <code>byteCount</code> bytes in the InputStream
      * @throws IOException if unable to read from the InputStream
+     * @deprecated Use {@link InputStream#readNBytes(byte[], int, int)} instead.
      */
+    @Deprecated(since = "2.12.0", forRemoval = true)
     public static void read(final InputStream source, final byte[] destination, final int byteCount) throws IOException {
         if (destination.length < byteCount) {
             throw new IllegalArgumentException();
