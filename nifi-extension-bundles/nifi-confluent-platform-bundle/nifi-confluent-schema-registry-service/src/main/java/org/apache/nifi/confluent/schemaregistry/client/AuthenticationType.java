@@ -22,5 +22,7 @@ package org.apache.nifi.confluent.schemaregistry.client;
 public enum AuthenticationType {
     BASIC,
 
-    NONE
+    NONE,
+
+    OAUTH2
 }

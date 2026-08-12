@@ -25,6 +25,7 @@ import org.apache.avro.SchemaParseException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
@@ -54,8 +55,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
+import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static org.apache.nifi.schemaregistry.services.SchemaDefinition.SchemaType;
 
 /**
@@ -73,6 +76,9 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private final List<String> baseUrls;
     private final ComponentLog logger;
     private final Map<String, String> httpHeaders;
+    private final String username;
+    private final String password;
+    private final OAuth2AccessTokenProvider oauth2AccessTokenProvider;
     private final WebClientService webClientService;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -90,24 +96,21 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String APPLICATION_JSON_CONTENT_TYPE = "application/json";
     private static final String BASIC_CREDENTIALS_FORMAT = "%s:%s";
     private static final String BASIC_AUTHORIZATION_FORMAT = "Basic %s";
+    private static final String BEARER_AUTHORIZATION_FORMAT = "Bearer %s";
 
     public RestSchemaRegistryClient(final List<String> baseUrls,
                                     final int timeoutMillis,
                                     final SSLContextProvider sslContextProvider,
                                     final String username,
                                     final String password,
+                                    final OAuth2AccessTokenProvider oauth2AccessTokenProvider,
                                     final ComponentLog logger,
                                     final Map<String, String> httpHeaders) {
         this.baseUrls = new ArrayList<>(baseUrls);
         this.httpHeaders = new HashMap<>(httpHeaders);
-
-        if (StringUtils.isNoneBlank(username, password)) {
-            final String credentials = BASIC_CREDENTIALS_FORMAT.formatted(username, password);
-            final byte[] credentialsEncoded = credentials.getBytes(StandardCharsets.UTF_8);
-            final String authorization = Base64.getEncoder().encodeToString(credentialsEncoded);
-            final String basicAuthorization = BASIC_AUTHORIZATION_FORMAT.formatted(authorization);
-            this.httpHeaders.put(HttpHeaderName.AUTHORIZATION.getHeaderName(), basicAuthorization);
-        }
+        this.username = username;
+        this.password = password;
+        this.oauth2AccessTokenProvider = oauth2AccessTokenProvider;
 
         final StandardWebClientService standardWebClientService = new StandardWebClientService();
         final Duration timeout = Duration.ofMillis(timeoutMillis);
@@ -184,7 +187,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
             if (subjectsJson != null) {
                 final ArrayNode subjectsList = (ArrayNode) subjectsJson;
-                for (JsonNode subject: subjectsList) {
+                for (JsonNode subject : subjectsList) {
                     final String searchName = subject.asText();
                     try {
                         // get complete schema (name + id + version) using the subject name API
@@ -234,7 +237,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             try {
                 final JsonNode subjectsAllJson = fetchJsonResponse("/subjects", "subjects array");
                 final ArrayNode subjectsAllList = (ArrayNode) subjectsAllJson;
-                for (JsonNode subject: subjectsAllList) {
+                for (JsonNode subject : subjectsAllList) {
                     try {
                         final String searchName = subject.asText();
                         completeSchema = postJsonResponse("/subjects/" + searchName, schemaJson, "schema id: " + schemaId);
@@ -380,7 +383,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     private JsonNode postJsonResponse(final String pathSuffix, final JsonNode schema, final String schemaDescription) throws SchemaNotFoundException {
         String errorMessage = null;
-        for (final String baseUrl: baseUrls) {
+        for (final String baseUrl : baseUrls) {
             final String path = getPath(pathSuffix);
             final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;
@@ -388,41 +391,56 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
             logger.debug("POST JSON response URL {}", url);
 
-            HttpRequestBodySpec requestBodySpec = webClientService.post()
-                    .uri(uri)
-                    .header(HttpHeaderName.ACCEPT.getHeaderName(), APPLICATION_JSON_CONTENT_TYPE)
-                    .header(HttpHeaderName.CONTENT_TYPE.getHeaderName(), SCHEMA_REGISTRY_CONTENT_TYPE);
+            boolean oauthTokenRefreshed = false;
+            while (true) {
+                HttpRequestBodySpec requestBodySpec = webClientService.post()
+                        .uri(uri)
+                        .header(HttpHeaderName.ACCEPT.getHeaderName(), APPLICATION_JSON_CONTENT_TYPE)
+                        .header(HttpHeaderName.CONTENT_TYPE.getHeaderName(), SCHEMA_REGISTRY_CONTENT_TYPE);
 
-            for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
-                requestBodySpec = requestBodySpec.header(header.getKey(), header.getValue());
+                requestBodySpec = applyRequestHeaders(requestBodySpec);
+
+                final String requestBody = schema.toString();
+                try (HttpResponseEntity responseEntity = requestBodySpec.body(requestBody).retrieve()) {
+                    final int responseCode = responseEntity.statusCode();
+
+                    switch (responseCode) {
+                        case HTTP_OK:
+                            try (InputStream responseBody = responseEntity.body()) {
+                                final JsonNode jsonResponse = objectMapper.readTree(responseBody);
+
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug("JSON Response: {}", jsonResponse);
+                                }
+
+                                return jsonResponse;
+                            } catch (final IOException e) {
+                                throw new SchemaNotFoundException("Failed to read Response Body from URL [%s]".formatted(url), e);
+                            }
+                        case HTTP_UNAUTHORIZED:
+                        case HTTP_FORBIDDEN:
+                            if (!oauthTokenRefreshed && refreshOAuthAccessToken()) {
+                                oauthTokenRefreshed = true;
+                                continue;
+                            }
+                            errorMessage = readErrorResponseBody(responseEntity);
+                            break;
+                        case HTTP_NOT_FOUND:
+                            logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
+                            errorMessage = null;
+                            break;
+
+                        default:
+                            errorMessage = readErrorResponseBody(responseEntity);
+                    }
+                } catch (final IOException e) {
+                    throw new SchemaNotFoundException("Failed to read Response from URL [%s]".formatted(url), e);
+                }
+                break;
             }
 
-            final String requestBody = schema.toString();
-            try (HttpResponseEntity responseEntity = requestBodySpec.body(requestBody).retrieve()) {
-                final int responseCode = responseEntity.statusCode();
-
-                switch (responseCode) {
-                    case HTTP_OK:
-                        try (InputStream responseBody = responseEntity.body()) {
-                            final JsonNode jsonResponse = objectMapper.readTree(responseBody);
-
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("JSON Response: {}", jsonResponse);
-                            }
-
-                            return jsonResponse;
-                        } catch (final IOException e) {
-                            throw new SchemaNotFoundException("Failed to read Response Body from URL [%s]".formatted(url), e);
-                        }
-                    case HTTP_NOT_FOUND:
-                        logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
-                        continue;
-
-                    default:
-                        errorMessage = readErrorResponseBody(responseEntity);
-                }
-            } catch (final IOException e) {
-                throw new SchemaNotFoundException("Failed to read Response from URL [%s]".formatted(url), e);
+            if (errorMessage == null) {
+                continue;
             }
         }
 
@@ -441,42 +459,92 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
             logger.debug("GET JSON response URL {}", url);
 
-            HttpRequestBodySpec requestBodySpec = webClientService.get()
-                    .uri(uri)
-                    .header(HttpHeaderName.ACCEPT.getHeaderName(), APPLICATION_JSON_CONTENT_TYPE);
+            boolean oauthTokenRefreshed = false;
+            while (true) {
+                HttpRequestBodySpec requestBodySpec = webClientService.get()
+                        .uri(uri)
+                        .header(HttpHeaderName.ACCEPT.getHeaderName(), APPLICATION_JSON_CONTENT_TYPE);
 
-            for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
-                requestBodySpec = requestBodySpec.header(header.getKey(), header.getValue());
-            }
-            try (HttpResponseEntity responseEntity = requestBodySpec.retrieve()) {
-                final int responseCode = responseEntity.statusCode();
+                requestBodySpec = applyRequestHeaders(requestBodySpec);
+                try (HttpResponseEntity responseEntity = requestBodySpec.retrieve()) {
+                    final int responseCode = responseEntity.statusCode();
 
-                switch (responseCode) {
-                    case HTTP_OK:
-                        try (InputStream responseBody = responseEntity.body()) {
-                            final JsonNode jsonResponse = objectMapper.readTree(responseBody);
+                    switch (responseCode) {
+                        case HTTP_OK:
+                            try (InputStream responseBody = responseEntity.body()) {
+                                final JsonNode jsonResponse = objectMapper.readTree(responseBody);
 
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("JSON Response {}", jsonResponse);
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug("JSON Response {}", jsonResponse);
+                                }
+
+                                return jsonResponse;
+                            } catch (final IOException e) {
+                                throw new SchemaNotFoundException("Failed to read Schema Response Body from URL [%s]".formatted(url), e);
                             }
+                        case HTTP_UNAUTHORIZED:
+                        case HTTP_FORBIDDEN:
+                            if (!oauthTokenRefreshed && refreshOAuthAccessToken()) {
+                                oauthTokenRefreshed = true;
+                                continue;
+                            }
+                            errorMessage = readErrorResponseBody(responseEntity);
+                            break;
+                        case HTTP_NOT_FOUND:
+                            logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
+                            errorMessage = null;
+                            break;
 
-                            return jsonResponse;
-                        } catch (final IOException e) {
-                            throw new SchemaNotFoundException("Failed to read Schema Response Body from URL [%s]".formatted(url), e);
-                        }
-                    case HTTP_NOT_FOUND:
-                        logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
-                        continue;
-
-                    default:
-                        errorMessage = readErrorResponseBody(responseEntity);
+                        default:
+                            errorMessage = readErrorResponseBody(responseEntity);
+                    }
+                } catch (final IOException e) {
+                    throw new SchemaNotFoundException("Failed to read Response from URL [%s]".formatted(url), e);
                 }
-            } catch (final IOException e) {
-                throw new SchemaNotFoundException("Failed to read Response from URL [%s]".formatted(url), e);
+                break;
+            }
+
+            if (errorMessage == null) {
+                continue;
             }
         }
         throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription
                 + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
+    }
+
+    private HttpRequestBodySpec applyRequestHeaders(final HttpRequestBodySpec requestBodySpec) {
+        HttpRequestBodySpec updatedRequest = requestBodySpec;
+        for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
+            updatedRequest = updatedRequest.header(header.getKey(), header.getValue());
+        }
+        if (!httpHeaders.containsKey(HttpHeaderName.AUTHORIZATION.getHeaderName())) {
+            updatedRequest = applyAuthorizationHeader(updatedRequest);
+        }
+        return updatedRequest;
+    }
+
+    private HttpRequestBodySpec applyAuthorizationHeader(final HttpRequestBodySpec requestBodySpec) {
+        if (oauth2AccessTokenProvider != null) {
+            final String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
+            return requestBodySpec.header(HttpHeaderName.AUTHORIZATION.getHeaderName(),
+                    BEARER_AUTHORIZATION_FORMAT.formatted(accessToken));
+        }
+        if (StringUtils.isNoneBlank(username, password)) {
+            final String credentials = BASIC_CREDENTIALS_FORMAT.formatted(username, password);
+            final byte[] credentialsEncoded = credentials.getBytes(StandardCharsets.UTF_8);
+            final String authorization = Base64.getEncoder().encodeToString(credentialsEncoded);
+            return requestBodySpec.header(HttpHeaderName.AUTHORIZATION.getHeaderName(),
+                    BASIC_AUTHORIZATION_FORMAT.formatted(authorization));
+        }
+        return requestBodySpec;
+    }
+
+    private boolean refreshOAuthAccessToken() {
+        if (oauth2AccessTokenProvider == null) {
+            return false;
+        }
+        oauth2AccessTokenProvider.refreshAccessDetails();
+        return true;
     }
 
     private String getTrimmedBase(String baseUrl) {
