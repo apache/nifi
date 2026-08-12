@@ -23,6 +23,8 @@ import mockwebserver3.MockWebServer;
 import mockwebserver3.RecordedRequest;
 import okhttp3.Headers;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition.SchemaType;
@@ -44,6 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +63,7 @@ class RestSchemaRegistryClientTest {
     private static final String REFERENCED_SCHEMA_NAME = "common.proto";
     private static final String PROTOBUF = "PROTOBUF";
     private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String OAUTH_ACCESS_TOKEN = "oauth-access-token";
     private static final String AVRO_SCHEMA_TEXT = """
         {
             "type": "record",
@@ -144,6 +149,38 @@ class RestSchemaRegistryClientTest {
         if (mockWebServer != null) {
             mockWebServer.close();
         }
+    }
+
+    @Test
+    void testGetSchemaByNameWithOAuth2BearerToken() throws IOException, SchemaNotFoundException, InterruptedException {
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mockOAuth2AccessTokenProvider(OAUTH_ACCESS_TOKEN);
+        client = new RestSchemaRegistryClient(List.of(baseUrl), 30000, null, oauth2AccessTokenProvider, logger, Map.of());
+
+        enqueueCompleteSchemaResponse(SUBJECT_NAME, SCHEMA_ID, SCHEMA_VERSION, AVRO_SCHEMA_TEXT);
+
+        RecordSchema schema = client.getSchema(SUBJECT_NAME);
+
+        assertNotNull(schema);
+        assertEquals(SUBJECT_NAME, schema.getIdentifier().getName().get());
+
+        final RecordedRequest request = verifyRequest("GET", "/subjects/" + SUBJECT_NAME + "/versions/latest");
+        assertEquals("Bearer " + OAUTH_ACCESS_TOKEN, request.getHeaders().get(AUTHORIZATION_HEADER));
+    }
+
+    @Test
+    void testGetSchemaByNameUsesConfiguredAuthorizationHeaderInsteadOfOAuth2Provider() throws IOException, SchemaNotFoundException, InterruptedException {
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mockOAuth2AccessTokenProvider(OAUTH_ACCESS_TOKEN);
+
+        client = new RestSchemaRegistryClient(List.of(baseUrl), 30000, null, oauth2AccessTokenProvider, logger,
+                Map.of(AUTHORIZATION_HEADER, "Bearer static-token"));
+
+        enqueueCompleteSchemaResponse(SUBJECT_NAME, SCHEMA_ID, SCHEMA_VERSION, AVRO_SCHEMA_TEXT);
+
+        RecordSchema schema = client.getSchema(SUBJECT_NAME);
+
+        assertNotNull(schema);
+        final RecordedRequest request = verifyRequest("GET", "/subjects/" + SUBJECT_NAME + "/versions/latest");
+        assertEquals("Bearer static-token", request.getHeaders().get(AUTHORIZATION_HEADER));
     }
 
     @Test
@@ -469,5 +506,15 @@ class RestSchemaRegistryClientTest {
         assertEquals(method, request.getMethod());
         assertEquals(expectedPath, request.getTarget());
         return request;
+    }
+
+    private OAuth2AccessTokenProvider mockOAuth2AccessTokenProvider(final String accessToken) {
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class);
+        when(oauth2AccessTokenProvider.getAccessDetails()).thenReturn(accessToken(accessToken));
+        return oauth2AccessTokenProvider;
+    }
+
+    private AccessToken accessToken(final String token) {
+        return new AccessToken(token, null, "Bearer", 3600L, null);
     }
 }
