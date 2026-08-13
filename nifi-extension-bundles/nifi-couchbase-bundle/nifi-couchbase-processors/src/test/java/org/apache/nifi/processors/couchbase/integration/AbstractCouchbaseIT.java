@@ -16,17 +16,24 @@
  */
 package org.apache.nifi.processors.couchbase.integration;
 
-import com.couchbase.client.java.Cluster;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.couchbase.CouchbaseClient;
 import org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService;
+import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
+import org.apache.nifi.services.couchbase.utils.DocumentType;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_COLLECTION;
+import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.DEFAULT_SCOPE;
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.CONNECTION_STRING;
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.PASSWORD;
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.USERNAME;
@@ -37,6 +44,8 @@ public class AbstractCouchbaseIT {
     protected static final String COUCHBASE_IMAGE_COMMUNITY_RECENT = "couchbase/server:community-7.6.2";
     protected static final String SERVICE_ID = "couchbaseConnectionService";
     protected static final String TEST_DOCUMENT_ID = "test-document-id";
+    private static final Duration CLIENT_READY_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration CLIENT_READY_POLL_INTERVAL = Duration.ofMillis(100);
 
     protected static final String TEST_DATA = """
             {
@@ -46,29 +55,60 @@ public class AbstractCouchbaseIT {
             }""";
 
     protected static TestRunner runner;
+    private StandardCouchbaseConnectionService connectionService;
 
     protected static CouchbaseContainer container = new CouchbaseContainer(COUCHBASE_IMAGE_COMMUNITY_RECENT).withBucket(new BucketDefinition(TEST_BUCKET_NAME));
 
     protected void initConnectionService() throws InitializationException {
-        final StandardCouchbaseConnectionService connectionService = new StandardCouchbaseConnectionService();
+        connectionService = new StandardCouchbaseConnectionService();
         runner.addControllerService(SERVICE_ID, connectionService);
         runner.setProperty(connectionService, CONNECTION_STRING, container.getConnectionString());
         runner.setProperty(connectionService, USERNAME, container.getUsername());
         runner.setProperty(connectionService, PASSWORD, container.getPassword());
         runner.setValidateExpressionUsage(false);
         runner.enableControllerService(connectionService);
+        waitForClientReady();
     }
 
     @BeforeAll
     public static void start() {
         container.start();
-        try (Cluster cluster = Cluster.connect(container.getConnectionString(), container.getUsername(), container.getPassword())) {
-            cluster.bucket(TEST_BUCKET_NAME).waitUntilReady(Duration.ofSeconds(60));
+    }
+
+    @AfterEach
+    public void disableConnectionService() {
+        if (connectionService != null && runner.isControllerServiceEnabled(connectionService)) {
+            runner.disableControllerService(connectionService);
         }
     }
 
     @AfterAll
     public static void stop() {
         container.stop();
+    }
+
+    private void waitForClientReady() {
+        final CouchbaseContext context = new CouchbaseContext(TEST_BUCKET_NAME, DEFAULT_SCOPE, DEFAULT_COLLECTION, DocumentType.JSON);
+        final CouchbaseClient client = connectionService.getClient(context);
+        final long deadline = System.nanoTime() + CLIENT_READY_TIMEOUT.toNanos();
+        CouchbaseException lastException;
+
+        do {
+            try {
+                client.documentExists(TEST_DOCUMENT_ID);
+                return;
+            } catch (final CouchbaseException e) {
+                lastException = e;
+            }
+
+            try {
+                TimeUnit.NANOSECONDS.sleep(CLIENT_READY_POLL_INTERVAL.toNanos());
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted while waiting for Couchbase client readiness", e);
+            }
+        } while (System.nanoTime() < deadline);
+
+        throw new AssertionError("Couchbase client was not ready within %s".formatted(CLIENT_READY_TIMEOUT), lastException);
     }
 }
