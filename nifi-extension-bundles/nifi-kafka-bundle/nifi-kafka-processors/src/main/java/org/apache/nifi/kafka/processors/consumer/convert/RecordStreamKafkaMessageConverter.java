@@ -44,8 +44,10 @@ public class RecordStreamKafkaMessageConverter extends AbstractRecordStreamKafka
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
             final ComponentLog logger,
-            final String brokerUri) {
-        super(readerFactory, writerFactory, headerValueConverter, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri);
+            final String brokerUri,
+            final RecordGroupingStrategy recordGroupingStrategy) {
+        super(readerFactory, writerFactory, headerValueConverter, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri,
+                recordGroupingStrategy);
     }
 
     @Override
