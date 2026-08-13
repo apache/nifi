@@ -149,8 +149,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             }
         }
 
-        // Start each component that is not disabled. A processor in a stateless group is started through its group
-        // (the group is a single scheduling unit), and each stateless group is started at most once.
+        // A processor in a stateless group is started through its group (the group is a single scheduling unit), and
+        // each stateless group is started at most once.
         final Set<ComponentNode> updated = new HashSet<>();
         final Set<ProcessGroup> startedStatelessGroups = new HashSet<>();
         for (final ProcessorNode node : processors) {
@@ -162,7 +162,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 continue;
             }
 
-            final ProcessGroup statelessGroup = getStatelessGroup(node.getProcessGroup());
+            final ProcessGroup statelessGroup = getTopMostStatelessGroup(node.getProcessGroup());
             if (statelessGroup == null) {
                 componentScheduler.startComponent(node);
             } else if (startedStatelessGroups.add(statelessGroup)) {
@@ -205,8 +205,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final Map<ComponentNode, Future<Void>> updated = new HashMap<>();
 
-        // Partition running/starting processors: those in a stateless group are stopped through the group (a single
-        // scheduling unit); standard processors are stopped individually.
+        // A processor in a stateless group is stopped through the group (a single scheduling unit); standard processors
+        // are stopped individually.
         final Map<ProcessGroup, List<ProcessorNode>> statelessMembersByGroup = new HashMap<>();
         final List<ProcessorNode> standardProcessors = new ArrayList<>();
         for (final ProcessorNode node : processors) {
@@ -214,7 +214,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 continue;
             }
 
-            final ProcessGroup statelessGroup = getStatelessGroup(node.getProcessGroup());
+            final ProcessGroup statelessGroup = getTopMostStatelessGroup(node.getProcessGroup());
             if (statelessGroup == null) {
                 standardProcessors.add(node);
             } else {
@@ -297,25 +297,24 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     /**
-     * Returns the explicit stateless process group that the given process group belongs to, or {@code null} if the
-     * process group is not part of a stateless group. A group whose execution engine is {@code INHERITED} resolves to
-     * its nearest ancestor that explicitly declares an execution engine.
+     * Returns the top-most Process Group that runs using the Stateless Engine and contains the given Process Group, or
+     * {@code null} if the given Process Group is {@code null} or does not run using the Stateless Engine. Only the
+     * top-most stateless group may be started or stopped directly; {@link ProcessGroup#startProcessing()} and
+     * {@link ProcessGroup#stopProcessing()} are no-ops on a nested stateless group.
      */
-    private ProcessGroup getStatelessGroup(final ProcessGroup start) {
-        if (start == null) {
-            return null;
+    private ProcessGroup getTopMostStatelessGroup(final ProcessGroup start) {
+        ProcessGroup topMost = null;
+
+        // a Standard-Engine group cannot be a child of a stateless group, so the stateless chain is contiguous
+        for (ProcessGroup group = start; group != null; group = group.getParent()) {
+            if (group.resolveExecutionEngine() != ExecutionEngine.STATELESS) {
+                break;
+            }
+
+            topMost = group;
         }
 
-        final ExecutionEngine executionEngine = start.getExecutionEngine();
-        if (executionEngine == null) {
-            return null;
-        }
-
-        return switch (executionEngine) {
-            case STATELESS -> start;
-            case INHERITED -> getStatelessGroup(start.getParent());
-            default -> null;
-        };
+        return topMost;
     }
 
     @Override

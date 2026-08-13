@@ -70,11 +70,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
     /**
-     * Regression test for stateless-group handling in the controller-service reference lifecycle. A processor inside a
-     * stateless group references a controller service defined at the connector root. Stopping and starting that
-     * service's referencing components through the controller-service references endpoint must transition the entire
-     * stateless group as a single unit - including a sibling processor in the group that does not itself reference the
-     * service - rather than leaving the group in a mixed running/stopped state.
+     * Regression test for stateless-group handling in the controller-service reference lifecycle. The managed flow has
+     * two stateless subtrees that both reference a controller service defined at the connector root: a flat one, and one
+     * where the referencing processor sits in a nested group that also declares the Stateless Engine. Stopping and
+     * starting the service's referencing components must transition each stateless subtree as a single unit, resolving
+     * up to the top-most stateless group rather than leaving a mixed running/stopped state.
      */
     @Test
     public void testControllerServiceReferenceLifecycleTransitionsStatelessGroupAsUnit() throws NiFiClientException, IOException, InterruptedException {
@@ -87,9 +87,8 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().enterTroubleshooting(connectorId);
         assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
 
-        // The stateless group contains two processors; only one of them references the root controller service.
         final List<ProcessorEntity> statelessProcessors = findStatelessProcessors(connectorId);
-        assertEquals(2, statelessProcessors.size(), "Stateless group should contain exactly two processors");
+        assertEquals(4, statelessProcessors.size(), "Stateless groups should contain exactly four processors");
         final List<String> statelessProcessorIds = statelessProcessors.stream().map(ProcessorEntity::getId).toList();
 
         final String rootServiceId = findFirstControllerServiceId(connectorId);
@@ -105,18 +104,21 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
                 .toList();
         assertFalse(referencingProcessorIds.isEmpty(), "Root controller service should have at least one referencing processor");
         assertTrue(statelessProcessorIds.containsAll(referencingProcessorIds),
-                "Every referencing processor should be inside the stateless group");
+                "Every referencing processor should be inside a stateless group");
         assertFalse(referencingProcessorIds.containsAll(statelessProcessorIds),
                 "At least one stateless processor should not directly reference the service, to prove group-as-unit behavior");
 
-        // Start the referencing components; the whole stateless group must start, including the sibling that does not
-        // reference the service.
+        final ProcessorEntity nestedCountProcessor = findProcessorByName(connectorId, "Nested Inner Count");
+        assertNotNull(nestedCountProcessor, "Managed flow should contain the nested stateless Count processor");
+        assertTrue(referencingProcessorIds.contains(nestedCountProcessor.getId()),
+                "The nested-group Count processor should reference the root service, so top-most-group resolution is covered");
+
+        // Start the referencing components; every stateless subtree must start whole.
         updateReferenceState(rootServiceId, references, ScheduledState.RUNNING.name());
         for (final String processorId : statelessProcessorIds) {
             waitForProcessorState(processorId, ScheduledState.RUNNING);
         }
 
-        // Stop the referencing components; the whole stateless group must stop as a unit, with no mixed state.
         final ControllerServiceReferencingComponentsEntity runningReferences =
                 getNifiClient().getControllerServicesClient().getControllerServiceReferences(rootServiceId);
         updateReferenceState(rootServiceId, runningReferences, ScheduledState.STOPPED.name());

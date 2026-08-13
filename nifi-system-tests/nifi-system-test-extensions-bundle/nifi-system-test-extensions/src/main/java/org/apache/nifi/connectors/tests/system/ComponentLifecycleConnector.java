@@ -47,6 +47,7 @@ import java.util.Set;
  * - A child process group with input and output ports
  * - A processor within the child group
  * - A stateless group with a processor
+ * - A pair of nested stateless groups, where only the inner one holds a processor
  *
  * This allows testing that start/stop operations properly handle all component types recursively.
  */
@@ -136,10 +137,17 @@ public class ComponentLifecycleConnector extends AbstractConnector {
 
         final VersionedPort statelessInputPort = statelessGroup.getInputPorts().iterator().next();
 
+        final VersionedProcessGroup nestedOuterGroup = createNestedStatelessGroups(childGroup.getIdentifier(), rootCountServiceId);
+        childGroup.getProcessGroups().add(nestedOuterGroup);
+
+        final VersionedPort nestedOuterInputPort = nestedOuterGroup.getInputPorts().iterator().next();
+
         VersionedFlowUtils.addConnection(childGroup, VersionedFlowUtils.createConnectableComponent(inputPort),
             VersionedFlowUtils.createConnectableComponent(childProcessor), Set.of(""));
         VersionedFlowUtils.addConnection(childGroup, VersionedFlowUtils.createConnectableComponent(inputPort),
             VersionedFlowUtils.createConnectableComponent(statelessInputPort), Set.of(""));
+        VersionedFlowUtils.addConnection(childGroup, VersionedFlowUtils.createConnectableComponent(inputPort),
+            VersionedFlowUtils.createConnectableComponent(nestedOuterInputPort), Set.of(""));
         VersionedFlowUtils.addConnection(childGroup, VersionedFlowUtils.createConnectableComponent(childProcessor),
             VersionedFlowUtils.createConnectableComponent(outputPort), Set.of("success"));
 
@@ -147,30 +155,62 @@ public class ComponentLifecycleConnector extends AbstractConnector {
     }
 
     private VersionedProcessGroup createStatelessGroup(final String parentGroupId, final String rootCountServiceId) {
-        final VersionedProcessGroup statelessGroup = VersionedFlowUtils.createProcessGroup("stateless-group-id", "Stateless Group");
-        statelessGroup.setPosition(new Position(400, 100));
-        statelessGroup.setRemoteProcessGroups(new HashSet<>());
-        statelessGroup.setScheduledState(ScheduledState.ENABLED);
-        statelessGroup.setExecutionEngine(ExecutionEngine.STATELESS);
-        statelessGroup.setStatelessFlowTimeout("1 min");
-        statelessGroup.setGroupIdentifier(parentGroupId);
-
-        final VersionedPort statelessInput = VersionedFlowUtils.addInputPort(statelessGroup, "Stateless Input", new Position(0, 0));
-
-        // A processor inside the stateless group that references a controller service defined at the connector root.
-        final VersionedProcessor statelessCountProcessor = VersionedFlowUtils.addProcessor(statelessGroup,
-            "org.apache.nifi.processors.tests.system.CountFlowFiles", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Stateless Count", new Position(100, 50));
-        statelessCountProcessor.getProperties().put("Count Service", rootCountServiceId);
-
-        final VersionedProcessor statelessProcessor = VersionedFlowUtils.addProcessor(statelessGroup,
-            "org.apache.nifi.processors.tests.system.TerminateFlowFile", SYSTEM_TEST_EXTENSIONS_BUNDLE, "Stateless Terminate", new Position(100, 100));
-
-        VersionedFlowUtils.addConnection(statelessGroup, VersionedFlowUtils.createConnectableComponent(statelessInput),
-            VersionedFlowUtils.createConnectableComponent(statelessCountProcessor), Set.of(""));
-        VersionedFlowUtils.addConnection(statelessGroup, VersionedFlowUtils.createConnectableComponent(statelessCountProcessor),
-            VersionedFlowUtils.createConnectableComponent(statelessProcessor), Set.of("success"));
-
+        final VersionedProcessGroup statelessGroup = createStatelessGroupShell("stateless-group-id", "Stateless", new Position(400, 100), parentGroupId);
+        addCountingFlow(statelessGroup, "Stateless", rootCountServiceId);
         return statelessGroup;
+    }
+
+    private VersionedProcessGroup createNestedStatelessGroups(final String parentGroupId, final String rootCountServiceId) {
+        final VersionedProcessGroup outerGroup = createStatelessGroupShell("nested-stateless-outer-group-id", "Nested Outer",
+            new Position(400, 300), parentGroupId);
+
+        // Only the inner group holds a processor referencing the root service, so a resolver that stops at the inner
+        // group silently no-ops instead of transitioning the subtree.
+        final VersionedProcessGroup innerGroup = createStatelessGroupShell("nested-stateless-inner-group-id", "Nested Inner",
+            new Position(200, 0), outerGroup.getIdentifier());
+        addCountingFlow(innerGroup, "Nested Inner", rootCountServiceId);
+        outerGroup.getProcessGroups().add(innerGroup);
+
+        VersionedFlowUtils.addConnection(outerGroup, VersionedFlowUtils.createConnectableComponent(getInputPort(outerGroup)),
+            VersionedFlowUtils.createConnectableComponent(getInputPort(innerGroup)), Set.of(""));
+
+        return outerGroup;
+    }
+
+    private VersionedProcessGroup createStatelessGroupShell(final String identifier, final String namePrefix, final Position position,
+                                                            final String parentGroupId) {
+        final VersionedProcessGroup group = VersionedFlowUtils.createProcessGroup(identifier, namePrefix + " Group");
+        group.setPosition(position);
+        group.setRemoteProcessGroups(new HashSet<>());
+        group.setScheduledState(ScheduledState.ENABLED);
+        group.setExecutionEngine(ExecutionEngine.STATELESS);
+        group.setStatelessFlowTimeout("1 min");
+        group.setGroupIdentifier(parentGroupId);
+
+        VersionedFlowUtils.addInputPort(group, namePrefix + " Input", new Position(0, 0));
+        return group;
+    }
+
+    /**
+     * Wires {@code input port -> CountFlowFiles -> TerminateFlowFile} inside the given group, with the CountFlowFiles
+     * processor referencing a Controller Service that lives outside the group.
+     */
+    private void addCountingFlow(final VersionedProcessGroup group, final String namePrefix, final String rootCountServiceId) {
+        final VersionedProcessor countProcessor = VersionedFlowUtils.addProcessor(group,
+            "org.apache.nifi.processors.tests.system.CountFlowFiles", SYSTEM_TEST_EXTENSIONS_BUNDLE, namePrefix + " Count", new Position(100, 50));
+        countProcessor.getProperties().put("Count Service", rootCountServiceId);
+
+        final VersionedProcessor terminateProcessor = VersionedFlowUtils.addProcessor(group,
+            "org.apache.nifi.processors.tests.system.TerminateFlowFile", SYSTEM_TEST_EXTENSIONS_BUNDLE, namePrefix + " Terminate", new Position(100, 100));
+
+        VersionedFlowUtils.addConnection(group, VersionedFlowUtils.createConnectableComponent(getInputPort(group)),
+            VersionedFlowUtils.createConnectableComponent(countProcessor), Set.of(""));
+        VersionedFlowUtils.addConnection(group, VersionedFlowUtils.createConnectableComponent(countProcessor),
+            VersionedFlowUtils.createConnectableComponent(terminateProcessor), Set.of("success"));
+    }
+
+    private VersionedPort getInputPort(final VersionedProcessGroup group) {
+        return group.getInputPorts().iterator().next();
     }
 
     @Override

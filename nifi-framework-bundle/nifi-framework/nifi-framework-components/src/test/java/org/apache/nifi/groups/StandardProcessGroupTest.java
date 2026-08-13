@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
@@ -41,13 +42,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -142,6 +148,26 @@ class StandardProcessGroupTest {
                 assetManager,
                 null
         );
+    }
+
+    @Test
+    void testStartAndStopProcessingDoNothingWhenParentIsStateless() throws Exception {
+        // Callers that resolve a component's owning stateless group rely on this no-op: only the top-most stateless
+        // group may be started or stopped directly. It is also what terminates the recursive stopComponents() walk,
+        // so making it throw or delegate upward would break stateless shutdown.
+        when(parentProcessGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STATELESS);
+        when(parentProcessGroup.resolveExecutionEngine()).thenReturn(ExecutionEngine.STATELESS);
+        processGroup.setParent(parentProcessGroup);
+        processGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+
+        processGroup.startProcessing();
+
+        final CompletableFuture<Void> stopFuture = processGroup.stopProcessing();
+
+        assertTrue(stopFuture.isDone());
+        assertNull(stopFuture.get());
+        verify(processScheduler, never()).startStatelessGroup(any());
+        verify(processScheduler, never()).stopStatelessGroup(any());
     }
 
     @Test
