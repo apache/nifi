@@ -35,6 +35,7 @@ import org.apache.nifi.processors.smb.util.CompletionStrategy;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbException;
+import org.apache.nifi.services.smb.SmbShareAccess;
 
 import java.util.List;
 import java.util.Map;
@@ -149,8 +150,8 @@ public class FetchSmb extends AbstractProcessor {
 
         final SmbClientProviderService clientProviderService = context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
 
-        try (SmbClientService client = clientProviderService.getClient(getLogger())) {
-            flowFile = session.write(flowFile, outputStream -> client.readFile(filePath, outputStream));
+        try (SmbClientService client = clientProviderService.getClient(getLogger(), attributes)) {
+            flowFile = session.write(flowFile, outputStream -> client.readFile(filePath, outputStream, SmbShareAccess.READ));
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
@@ -188,7 +189,7 @@ public class FetchSmb extends AbstractProcessor {
 
         final SmbClientProviderService clientProviderService = context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
 
-        try (SmbClientService client = clientProviderService.getClient(getLogger())) {
+        try (SmbClientService client = clientProviderService.getClient(getLogger(), attributes)) {
             if (completionStrategy == CompletionStrategy.MOVE) {
                 final String destinationDirectory = context.getProperty(DESTINATION_DIRECTORY).evaluateAttributeExpressions(attributes).getValue();
                 final boolean createDestinationDirectory = context.getProperty(CREATE_DESTINATION_DIRECTORY).asBoolean();

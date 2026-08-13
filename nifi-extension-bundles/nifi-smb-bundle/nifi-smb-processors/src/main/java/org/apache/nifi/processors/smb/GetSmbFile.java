@@ -16,22 +16,7 @@
  */
 package org.apache.nifi.processors.smb;
 
-import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.mserref.NtStatus;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.msfscc.fileinformation.FileAllInformation;
-import com.hierynomus.msfscc.fileinformation.FileBasicInformation;
-import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.File;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -55,16 +40,20 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.smb.util.LocalSmbProperties;
+import org.apache.nifi.services.smb.SmbClientProvider;
+import org.apache.nifi.services.smb.SmbClientProviderService;
+import org.apache.nifi.services.smb.SmbClientService;
+import org.apache.nifi.services.smb.SmbException;
+import org.apache.nifi.services.smb.SmbShareAccess;
+import org.apache.nifi.services.smb.SmbjClientProvider;
 
-import java.io.InputStream;
 import java.net.URI;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -79,7 +68,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.CONNECTION_CONFIGURATION_STRATEGY;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.ConnectionConfigurationStrategy;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.DOMAIN;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.PASSWORD;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.SMB_CLIENT_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.USERNAME;
 import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_ENABLE_DFS_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_SMB_DIALECT_PROPERTY_NAME;
@@ -88,7 +84,6 @@ import static org.apache.nifi.smb.common.SmbProperties.OLD_USE_ENCRYPTION_PROPER
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
-import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -114,18 +109,19 @@ public class GetSmbFile extends AbstractProcessor {
     public static final String SHARE_ACCESS_READDELETE = "read, delete";
     public static final String SHARE_ACCESS_READWRITEDELETE = "read, write, delete";
 
+    public static final long ERROR_CODE_SHARING_VIOLATION = 0xC0000043L;
+
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Hostname")
-            .description("The network host to which files should be written.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .fromPropertyDescriptor(LocalSmbProperties.HOSTNAME)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(LocalSmbProperties.PORT)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
-            .name("Share")
-            .description("The network share to which files should be written. This is the \"first folder\"" +
-            "after the hostname: \\\\hostname\\[share]\\dir1\\dir2")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .fromPropertyDescriptor(LocalSmbProperties.SHARE)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
@@ -134,25 +130,6 @@ public class GetSmbFile extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
-    public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
-            .name("Domain")
-            .description("The domain used for authentication. Optional, in most cases username and password is sufficient.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .name("Username")
-            .description("The username used for authentication. If no username is set then anonymous authentication is attempted.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("Password")
-            .description("The password used for authentication. Required if Username is set.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
             .build();
     public static final PropertyDescriptor SHARE_ACCESS = new PropertyDescriptor.Builder()
             .name("Share Access Strategy")
@@ -224,7 +201,10 @@ public class GetSmbFile extends AbstractProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+        CONNECTION_CONFIGURATION_STRATEGY,
+        SMB_CLIENT_PROVIDER_SERVICE,
         HOSTNAME,
+        PORT,
         SHARE,
         DIRECTORY,
         DOMAIN,
@@ -248,21 +228,21 @@ public class GetSmbFile extends AbstractProcessor {
         REL_SUCCESS
     );
 
-    private final BlockingQueue<String> fileQueue = new LinkedBlockingQueue<>();
-    private final Set<String> inProcess = new HashSet<>();    // guarded by queueLock
-    private final Set<String> recentlyProcessed = new HashSet<>();    // guarded by queueLock
+    private final BlockingQueue<SmbFileInfo> fileQueue = new LinkedBlockingQueue<>();
+    private final Set<SmbFileInfo> inProcess = new HashSet<>();    // guarded by queueLock
+    private final Set<SmbFileInfo> recentlyProcessed = new HashSet<>();    // guarded by queueLock
     private final Lock queueLock = new ReentrantLock();
 
     private final Lock listingLock = new ReentrantLock();
 
     private final AtomicLong queueLastUpdated = new AtomicLong(0L);
 
-    private SMBClient smbClient = null; // this gets synchronized when the `connect` method is called
+    private SmbClientProvider clientProvider;
 
     private Pattern filePattern;
     private Pattern pathPattern;
     private boolean ignoreHidden;
-    private Set<SMB2ShareAccess> sharedAccess;
+    private Set<SmbShareAccess> sharedAccess;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -276,33 +256,36 @@ public class GetSmbFile extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        smbClient = initSmbClient(context);
+        clientProvider = switch (context.getProperty(CONNECTION_CONFIGURATION_STRATEGY).asAllowableValue(LocalSmbProperties.ConnectionConfigurationStrategy.class)) {
+            case CONTROLLER_SERVICE -> context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
+            case LOCAL_PROPERTIES -> new SmbjClientProvider(context, getLogger());
+        };
 
         initiateFilterFile(context);
         fileQueue.clear();
 
         switch (context.getProperty(SHARE_ACCESS).getValue()) {
             case SHARE_ACCESS_NONE:
-                sharedAccess = Collections.emptySet();
+                sharedAccess = SmbShareAccess.NONE;
                 break;
             case SHARE_ACCESS_READ:
-                sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ);
+                sharedAccess = SmbShareAccess.READ;
                 break;
             case SHARE_ACCESS_READDELETE:
-                sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ, SMB2ShareAccess.FILE_SHARE_DELETE);
+                sharedAccess = SmbShareAccess.READ_DELETE;
                 break;
             case SHARE_ACCESS_READWRITEDELETE:
-                sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ, SMB2ShareAccess.FILE_SHARE_WRITE, SMB2ShareAccess.FILE_SHARE_DELETE);
+                sharedAccess = SmbShareAccess.READ_WRITE_DELETE;
                 break;
         }
     }
 
     @OnStopped
     public void onStopped() {
-        if (smbClient != null) {
-            smbClient.close();
-            smbClient = null;
+        if (clientProvider instanceof SmbjClientProvider smbjClientProvider) {
+            smbjClientProvider.close();
         }
+        clientProvider = null;
     }
 
     @Override
@@ -316,14 +299,14 @@ public class GetSmbFile extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Collection<ValidationResult> set = new ArrayList<>();
-        if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
-            set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
-        }
-        return set;
-    }
 
-    SMBClient initSmbClient(final ProcessContext context) {
-        return buildSmbClient(context);
+        if (validationContext.getProperty(CONNECTION_CONFIGURATION_STRATEGY).asAllowableValue(ConnectionConfigurationStrategy.class) == ConnectionConfigurationStrategy.LOCAL_PROPERTIES) {
+            if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
+                set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
+            }
+        }
+
+        return set;
     }
 
     private void initiateFilterFile(final ProcessContext context) {
@@ -331,55 +314,35 @@ public class GetSmbFile extends AbstractProcessor {
         filePattern = filePatternStr == null ? null : Pattern.compile(filePatternStr);
         final String pathPatternStr = context.getProperty(PATH_FILTER).getValue();
         pathPattern = pathPatternStr == null ? null : Pattern.compile(pathPatternStr);
-        ignoreHidden = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean().booleanValue();
+        ignoreHidden = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean();
     }
 
-    private boolean filterFile(final String directory, final String filename, final long fileAttributes) {
-        if (pathPattern != null && !pathPattern.matcher(directory).matches()) {
+    private boolean filterFile(final SmbFileInfo fileInfo) {
+        if (pathPattern != null && !pathPattern.matcher(fileInfo.path()).matches()) {
             return false;
         }
-        if (filePattern != null && !filePattern.matcher(filename).matches()) {
+        if (filePattern != null && !filePattern.matcher(fileInfo.filename()).matches()) {
             return false;
         }
-        if (ignoreHidden && (fileAttributes & FileAttributes.FILE_ATTRIBUTE_HIDDEN.getValue()) != 0) {
+        if (ignoreHidden && fileInfo.hidden()) {
             return false;
         }
         return true;
     }
 
-    private Set<String> performListing(final DiskShare diskShare, final String directory, final String filter, final boolean recurseSubdirectories) {
-        final Set<String> queue = new HashSet<>();
-        if (!diskShare.folderExists(directory)) {
-            return queue;
-        }
-
-        final List<FileIdBothDirectoryInformation> children = diskShare.list(directory);
-        if (children == null) {
-            return queue;
-        }
-
-        for (final FileIdBothDirectoryInformation child : children) {
-            final String filename = child.getFileName();
-            if (filename.equals(".") || filename.equals("..")) {
-                continue;
-            }
-            String fullPath;
-            if (directory.isEmpty()) {
-                fullPath = filename;
-            } else {
-                fullPath = directory + "\\" + filename;
-            }
-            final long fileAttributes = child.getFileAttributes();
-            if ((fileAttributes & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0) {
-                if (recurseSubdirectories) {
-                    queue.addAll(performListing(diskShare, fullPath, filter, true));
-                }
-            } else if (filterFile(directory, filename, fileAttributes)) {
-                queue.add(fullPath);
-            }
-        }
-
-        return queue;
+    private Set<SmbFileInfo> performListing(final SmbClientService client, final String directory, final boolean recurseSubdirectories) {
+        return client.listFiles(directory, recurseSubdirectories)
+                .map(e -> new SmbFileInfo(
+                        e.getName(),
+                        e.getPath().replace('/', '\\'),
+                        e.getSize(),
+                        e.isHidden(),
+                        e.getCreationTime(),
+                        e.getLastModifiedTime(),
+                        e.getLastAccessTime()
+                ))
+                .filter(this::filterFile)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -387,38 +350,22 @@ public class GetSmbFile extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        final String hostname = context.getProperty(HOSTNAME).getValue();
-        final String shareName = context.getProperty(SHARE).getValue();
+        final URI serviceLocation = clientProvider.getServiceLocation();
+        final String hostname = serviceLocation.getHost();
+        final String shareName = StringUtils.removeStart(serviceLocation.getPath(), '/');
 
-        final String domain = context.getProperty(DOMAIN).getValue();
-        final String username = context.getProperty(USERNAME).getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
-
-        AuthenticationContext ac = null;
-        if (username != null && password != null) {
-            ac = new AuthenticationContext(
-                username,
-                password.toCharArray(),
-                domain);
-        } else {
-            ac = AuthenticationContext.anonymous();
-        }
-
-        try (Connection connection = smbClient.connect(hostname);
-            Session smbSession = connection.authenticate(ac);
-            DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
+        try (SmbClientService client = clientProvider.getClient(getLogger())) {
             String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
             if (directory == null) {
                 directory = "";
             }
             final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
-            final String filter = context.getProperty(FILE_FILTER).getValue();
 
             if (fileQueue.size() < 100) {
                 final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
                 if ((queueLastUpdated.get() < System.currentTimeMillis() - pollingMillis) && listingLock.tryLock()) {
                     try {
-                        final Set<String> listing = performListing(share, directory, filter, context.getProperty(RECURSE).asBoolean().booleanValue());
+                        final Set<SmbFileInfo> listing = performListing(client, directory, context.getProperty(RECURSE).asBoolean());
 
                         queueLock.lock();
                         try {
@@ -446,7 +393,7 @@ public class GetSmbFile extends AbstractProcessor {
             }
 
             final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-            final List<String> files = new ArrayList<>(batchSize);
+            final List<SmbFileInfo> files = new ArrayList<>(batchSize);
             queueLock.lock();
             try {
                 fileQueue.drainTo(files, batchSize);
@@ -459,56 +406,43 @@ public class GetSmbFile extends AbstractProcessor {
                 queueLock.unlock();
             }
 
-            final ListIterator<String> itr = files.listIterator();
+            final ListIterator<SmbFileInfo> itr = files.listIterator();
             FlowFile flowFile = null;
 
             try {
                 while (itr.hasNext()) {
-                    final String file = itr.next();
-                    final String[] fileSplits = file.split("\\\\");
-                    final String filename = fileSplits[fileSplits.length - 1];
-                    final String filePath = String.join("\\", Arrays.copyOf(fileSplits, fileSplits.length - 1));
-                    final URI uri = new URI("smb", hostname, "/" + file.replace('\\', '/'), null);
+                    final SmbFileInfo fileInfo = itr.next();
+                    final String fullPath = String.format("%s\\%s", fileInfo.path(), fileInfo.filename());
+                    final String transitUri = String.format("%s/%s", serviceLocation, fullPath.replace('\\', '/'));
 
                     flowFile = session.create();
                     final long importStart = System.nanoTime();
 
-                    try (File f = share.openFile(
-                            file,
-                            EnumSet.of(AccessMask.GENERIC_READ),
-                            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                            sharedAccess,
-                            SMB2CreateDisposition.FILE_OPEN,
-                        EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY));
-                        InputStream is = f.getInputStream()) {
-
-                        flowFile = session.importFrom(is, flowFile);
+                    try {
+                        flowFile = session.write(flowFile, outputStream -> client.readFile(fullPath, outputStream, sharedAccess));
 
                         final long importNanos = System.nanoTime() - importStart;
                         final long importMillis = TimeUnit.MILLISECONDS.convert(importNanos, TimeUnit.NANOSECONDS);
-                        final FileAllInformation fileInfo = f.getFileInformation();
-                        final FileBasicInformation fileBasicInfo = fileInfo.getBasicInformation();
-                        final long fileSize = fileInfo.getStandardInformation().getEndOfFile();
 
                         final Map<String, String> attributes = new HashMap<>();
-                        attributes.put(CoreAttributes.FILENAME.key(), filename);
-                        attributes.put(CoreAttributes.PATH.key(), filePath);
-                        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + file);
-                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toInstant().atZone(ZoneId.systemDefault())));
-                        attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
-                        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toInstant().atZone(ZoneId.systemDefault())));
-                        attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
+                        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.filename());
+                        attributes.put(CoreAttributes.PATH.key(), fileInfo.path());
+                        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + fullPath);
+                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(Instant.ofEpochMilli(fileInfo.creationTime()).atZone(ZoneId.systemDefault())));
+                        attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(Instant.ofEpochMilli(fileInfo.lastAccessTime()).atZone(ZoneId.systemDefault())));
+                        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(Instant.ofEpochMilli(fileInfo.lastModifiedTime()).atZone(ZoneId.systemDefault())));
+                        attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileInfo.size()));
                         attributes.put(HOSTNAME.getName(), hostname);
                         attributes.put(SHARE.getName(), shareName);
 
                         flowFile = session.putAllAttributes(flowFile, attributes);
-                        session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
+                        session.getProvenanceReporter().receive(flowFile, transitUri, importMillis);
 
                         session.transfer(flowFile, REL_SUCCESS);
-                    } catch (SMBApiException e) {
+                    } catch (SmbException e) {
                         // do not fail whole batch if a single file cannot be accessed
-                        if (e.getStatus() == NtStatus.STATUS_SHARING_VIOLATION) {
-                            logger.info("Could not acquire sharing access for file {}", file);
+                        if (e.getErrorCode() == ERROR_CODE_SHARING_VIOLATION) {
+                            logger.info("Could not acquire sharing access for file {}", fullPath);
                             if (flowFile != null) {
                                 session.remove(flowFile);
                             }
@@ -520,17 +454,17 @@ public class GetSmbFile extends AbstractProcessor {
 
                     try {
                         if (!keepingSourceFile) {
-                            share.rm(file);
+                            client.deleteFile(fullPath);
                         }
-                    } catch (SMBApiException e) {
-                        logger.error("Could not remove file {}", file);
+                    } catch (SmbException e) {
+                        logger.error("Could not remove file {}", fullPath);
                     }
 
                     if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.
                         queueLock.lock();
                         try {
                             while (itr.hasNext()) {
-                                final String nextFile = itr.next();
+                                final SmbFileInfo nextFile = itr.next();
                                 fileQueue.add(nextFile);
                                 inProcess.remove(nextFile);
                             }
@@ -560,7 +494,16 @@ public class GetSmbFile extends AbstractProcessor {
         } catch (Exception e) {
             logger.error("Could not establish smb connection", e);
             context.yield();
-            smbClient.getServerList().unregister(hostname);
         }
     }
+
+    private record SmbFileInfo(
+            String filename,
+            String path,
+            long size,
+            boolean hidden,
+            long creationTime,
+            long lastModifiedTime,
+            long lastAccessTime
+    ) { }
 }
