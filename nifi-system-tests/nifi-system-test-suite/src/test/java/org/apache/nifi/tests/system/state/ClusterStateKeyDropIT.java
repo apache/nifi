@@ -68,8 +68,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
 
         runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "1", "c", "1"));
 
         // trying to remove key a
         final Map<String, String> newState = Map.of("b", "1", "c", "1");
@@ -90,8 +89,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
 
         runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "1", "c", "1"));
 
         // trying to remove key "a" but with wrong value for "b"
         assertThrows(NiFiClientException.class, () -> {
@@ -105,8 +103,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         final String processorId = processor.getId();
         runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "1", "c", "1"));
 
         // trying to remove two keys
         assertThrows(NiFiClientException.class, () -> {
@@ -120,8 +117,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         final String processorId = processor.getId();
         runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "1", "c", "1"));
 
         // trying to remove key a
         final Map<String, String> newState = Map.of("b", "1", "c", "1");
@@ -131,8 +127,7 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         response.getComponentState().getClusterState().getState().forEach(entry -> updatedState.put(entry.getKey(), entry.getValue()));
         assertEquals(newState, updatedState);
 
-        final Map<String, String> state = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(newState, state);
+        waitForProcessorState(processorId, Scope.CLUSTER, newState);
     }
 
     @Test
@@ -141,14 +136,12 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         final String processorId = processor.getId();
         runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "1", "c", "1"));
 
         final ComponentStateEntity response = dropProcessorState(processorId, null);
         assertTrue(response.getComponentState().getClusterState().getState().isEmpty());
 
-        final Map<String, String> state = getProcessorState(processorId, Scope.CLUSTER);
-        assertTrue(state.isEmpty());
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of());
     }
 
     @Test
@@ -157,13 +150,11 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         final String processorId = processor.getId();
         runProcessorOnce(processor);
 
-        final Map<String, String> currentState = getProcessorState(processorId, Scope.CLUSTER);
-        assertEquals(Map.of("a", "1", "b", "1", "c", "1"), currentState);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "1", "c", "1"));
 
         final ComponentStateEntity response = dropProcessorState(processorId, Map.of());
         assertTrue(response.getComponentState().getClusterState().getState().isEmpty());
 
-        final Map<String, String> state = getProcessorState(processorId, Scope.CLUSTER);
-        assertTrue(state.isEmpty());
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of());
     }
 }

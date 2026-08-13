@@ -77,6 +77,11 @@ public class ClusteredProviderParamFlowSyncIT extends NiFiSystemIT {
     }
 
     @Override
+    protected boolean isAllowFactoryReuse() {
+        return false;
+    }
+
+    @Override
     protected boolean isDestroyEnvironmentAfterEachTest() {
         // This test intentionally corrupts the persisted flow, so the environment must not be reused.
         return true;
