@@ -34,6 +34,7 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
+        <httpcore5.version>5.4.3</httpcore5.version>
         <tika.version>3.3.2</tika.version>
     </properties>
     <dependencyManagement>
@@ -174,6 +175,16 @@
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>${httpcore5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5-h2</artifactId>
+                <version>${httpcore5.version}</version>
             </dependency>
             <!-- Override Commons Compiler 3.1.9 from calcite-core -->
             <dependency>
