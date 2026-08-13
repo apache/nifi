@@ -114,6 +114,60 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
     }
 
     /**
+     * A Connector may resolve value-derived flow state during its apply path while leaving that value blank in
+     * getActiveFlow. Exiting Troubleshooting must recompute that derived state onto the managed flow so that a required,
+     * Parameter-bound processor property becomes valid and the Connector can start.
+     */
+    @Test
+    public void testExitTroubleshootingReappliesDerivedParameters() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity connector = getClientUtil().createConnector("DeferredParameterConnector");
+        final String connectorId = connector.getId();
+
+        getClientUtil().configureConnector(connector, "Deferred Parameter Configuration", Map.of("Resolved Value", "resolved-content"));
+        getClientUtil().applyConnectorUpdate(connector);
+
+        // applyUpdate resolves the derived Parameter onto the managed Parameter Context, so the WriteToFile processor's
+        // required Filename property (which references #{resolved_value}) becomes valid and the Connector is valid.
+        getClientUtil().waitForValidConnector(connectorId);
+
+        getClientUtil().enterTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+
+        getClientUtil().endTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.STOPPED);
+
+        getClientUtil().waitForValidConnector(connectorId);
+        getClientUtil().startConnector(connectorId);
+        assertConnectorState(connectorId, ConnectorState.RUNNING);
+    }
+
+    /**
+     * A Connector whose applyUpdate does not reinstall the managed flow must still discard manual Process Group edits
+     * when exiting Troubleshooting, because the framework restores the authoritative flow before recomputing apply-time
+     * state.
+     */
+    @Test
+    public void testExitTroubleshootingDiscardsManualEditsForNopConnector() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
+        final String connectorId = connector.getId();
+
+        getClientUtil().applyConnectorUpdate(connector);
+        getClientUtil().waitForValidConnector(connectorId);
+
+        getClientUtil().enterTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+
+        final String managedGroupId = getNifiClient().getConnectorClient().getConnector(connectorId).getComponent().getManagedProcessGroupId();
+        final ProcessorEntity troubleshootingProcessor = getClientUtil().createProcessor("Sleep", managedGroupId);
+        final String troubleshootingProcessorId = troubleshootingProcessor.getId();
+        assertTrue(containsProcessorId(connectorId, troubleshootingProcessorId));
+
+        getClientUtil().endTroubleshooting(connectorId);
+        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertFalse(containsProcessorId(connectorId, troubleshootingProcessorId));
+    }
+
+    /**
      * Transition into Troubleshooting, add a new Connection, queue up data in that Connection, and verify that ending
      * Troubleshooting fails with a 409. Restart NiFi and verify the data is still queued. Drop all FlowFiles, then end
      * Troubleshooting successfully.

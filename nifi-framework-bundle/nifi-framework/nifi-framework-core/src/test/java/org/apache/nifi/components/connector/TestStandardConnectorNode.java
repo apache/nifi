@@ -124,7 +124,7 @@ public class TestStandardConnectorNode {
                 final ProcessGroupFacadeFactory processGroupFacadeFactory = mock(ProcessGroupFacadeFactory.class);
                 final ParameterContextFacadeFactory parameterContextFacadeFactory = mock(ParameterContextFacadeFactory.class);
 
-                return new StandardFlowContext(managedProcessGroup, currentConfiguration, processGroupFacadeFactory,
+                return new StandardFlowContext(managedProcessGroup, currentConfiguration.clone(), processGroupFacadeFactory,
                     parameterContextFacadeFactory, connectorLogger, FlowContextType.WORKING, bundle);
             }
         };
@@ -1108,6 +1108,64 @@ public class TestStandardConnectorNode {
         assertTrue(node.isModified());
     }
 
+    @Test
+    public void testEndTroubleshootingReAppliesConnectorConfiguration() throws FlowUpdateException {
+        final TroubleshootingApplyConnector connector = new TroubleshootingApplyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+
+        connectorNode.enterTroubleshooting();
+        assertEquals(ConnectorState.TROUBLESHOOTING, connectorNode.getCurrentState());
+
+        connectorNode.endTroubleshooting();
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(1, connector.getApplyUpdateInvocations());
+        assertTrue(connector.wasDerivedParameterResolved());
+        assertEquals(FlowContextType.ACTIVE, connector.getLastInheritedContextType());
+        assertEquals(FlowContextType.ACTIVE, connector.getLastActiveContextType());
+    }
+
+    @Test
+    public void testEndTroubleshootingLeavesPendingWorkingConfigurationUnchanged() throws FlowUpdateException {
+        final TroubleshootingApplyConnector connector = new TroubleshootingApplyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "active-value")));
+        connectorNode.applyUpdate();
+
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "pending-value")));
+
+        final ConnectorConfiguration activeBeforeExit = connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final ConnectorConfiguration workingBeforeExit = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        assertEquals(createTestConfiguration("step1", "prop1", "active-value"), activeBeforeExit);
+        assertEquals(createTestConfiguration("step1", "prop1", "pending-value"), workingBeforeExit);
+
+        connectorNode.enterTroubleshooting();
+        connectorNode.endTroubleshooting();
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(activeBeforeExit, connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration());
+        assertEquals(workingBeforeExit, connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration());
+        assertEquals(FlowContextType.ACTIVE, connector.getLastInheritedContextType());
+        assertEquals(FlowContextType.ACTIVE, connector.getLastActiveContextType());
+    }
+
+    @Test
+    public void testEndTroubleshootingPropagatesApplyUpdateFailure() throws FlowUpdateException {
+        final FailingApplyConnector connector = new FailingApplyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.enterTroubleshooting();
+        assertEquals(ConnectorState.TROUBLESHOOTING, connectorNode.getCurrentState());
+
+        final FlowUpdateException thrown = assertThrows(FlowUpdateException.class, connectorNode::endTroubleshooting);
+        assertTrue(thrown.getCause() instanceof IllegalStateException);
+        assertEquals(ConnectorState.TROUBLESHOOTING, connectorNode.getCurrentState());
+    }
+
     private static void seedActiveConfiguration(final StandardConnectorNode node, final String stepName, final Map<String, ConnectorValueReference> properties) {
         node.getActiveFlowContext().getConfigurationContext().setProperties(stepName, new StepConfiguration(properties));
     }
@@ -1705,6 +1763,107 @@ public class TestStandardConnectorNode {
 
         public boolean wasStopCalled() {
             return stopCalled;
+        }
+    }
+
+    /**
+     * Test connector that resolves value-derived flow state during {@code applyUpdate} and records the FlowContext
+     * arguments passed by the framework when exiting Troubleshooting.
+     */
+    private static class TroubleshootingApplyConnector extends AbstractConnector {
+        private int applyUpdateInvocations;
+        private boolean derivedParameterResolved;
+        private FlowContextType lastInheritedContextType;
+        private FlowContextType lastActiveContextType;
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+            applyUpdateInvocations++;
+            lastInheritedContextType = workingContext.getType();
+            lastActiveContextType = activeContext.getType();
+            derivedParameterResolved = true;
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        public int getApplyUpdateInvocations() {
+            return applyUpdateInvocations;
+        }
+
+        public boolean wasDerivedParameterResolved() {
+            return derivedParameterResolved;
+        }
+
+        public FlowContextType getLastInheritedContextType() {
+            return lastInheritedContextType;
+        }
+
+        public FlowContextType getLastActiveContextType() {
+            return lastActiveContextType;
+        }
+    }
+
+    /**
+     * Test connector whose {@code applyUpdate} fails so that Troubleshooting exit error handling can be verified.
+     */
+    private static class FailingApplyConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+            throw new IllegalStateException("Simulated applyUpdate failure");
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
         }
     }
 

@@ -921,9 +921,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         // After confirming all components are stopped or disabled, check if the managed flow can be safely reverted to the
-        // Connector's authoritative flow. This mirrors exactly what endTroubleshooting() will do so that any problem
-        // (e.g. a Connection whose contents cannot be preserved or a component that cannot be replaced) is reported
-        // synchronously rather than surfacing halfway through the state change. This check is intentionally not run by
+        // Connector's authoritative flow. This mirrors the framework restore that endTroubleshooting() performs first so
+        // that any problem (e.g. a Connection whose contents cannot be preserved or a component that cannot be replaced)
+        // is reported synchronously rather than surfacing halfway through the state change. The subsequent apply-time
+        // recompute from the active configuration is not preflighted here. This check is intentionally not run by
         // createEndTroubleshootingAction (which is called on every GET of the Connector entity) because it requires
         // resolving the authoritative flow from the Connector plugin and running a full flow-comparison; that work is
         // only paid by the explicit verify REST endpoint and by endTroubleshooting itself.
@@ -1037,15 +1038,24 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     @Override
     public void endTroubleshooting() throws FlowUpdateException {
         verifyCanEndTroubleshooting();
-        logger.info("Exiting TROUBLESHOOTING state for {} by restoring Connector's authoritative flow", this);
+        logger.info("Exiting TROUBLESHOOTING state for {} by restoring the authoritative flow and recomputing apply-time state", this);
 
         final VersionedExternalFlow flowToApply = resolveAuthoritativeFlow();
 
-        // Route the update through the ConnectorInitializationContext so that bundle coordinates referenced by the
-        // authoritative flow are resolved against the currently-available bundles. This mirrors how the initial flow
-        // is applied in initializeConnector and avoids failing validation when the Connector hard-codes a bundle
-        // version that differs from the currently-installed NAR (which is common in test Connectors).
+        // Restore the Connector's authoritative flow so that manual managed Process Group edits made during
+        // Troubleshooting are discarded. Route through the ConnectorInitializationContext so that bundle coordinates
+        // referenced by the authoritative flow are resolved against the currently-available bundles.
         initializationContext.updateFlow(activeFlowContext, flowToApply, BundleCompatibility.RESOLVE_BUNDLE);
+
+        // Recompute value-derived flow state from the active configuration. Both arguments are the active FlowContext
+        // so that pending working-configuration changes (which survive Troubleshooting entry) are not applied or
+        // committed. Components are already required to be stopped or disabled by verifyCanEndTroubleshooting.
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+            getConnector().applyUpdate(activeFlowContext, activeFlowContext);
+        } catch (final Throwable t) {
+            logger.error("Failed to recompute apply-time state while exiting TROUBLESHOOTING for {}", this, t);
+            throw new FlowUpdateException("Failed to exit Troubleshooting mode for " + this, t);
+        }
 
         stateTransition.setDesiredState(ConnectorState.STOPPED);
         stateTransition.setCurrentState(ConnectorState.STOPPED);
