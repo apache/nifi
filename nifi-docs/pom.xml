@@ -72,6 +72,7 @@
                         <idseparator>-</idseparator>
                         <docinfo1>true</docinfo1>
                         <stylesheet>asciidoc-mod.css</stylesheet>
+                        <reproducible>true</reproducible>
                     </attributes>
                 </configuration>
             </plugin>
