@@ -292,6 +292,31 @@ public final class StandardConnection implements Connection {
             return;
         }
 
+        verifyCanUpdateDestination();
+
+        if (newDestination instanceof Funnel && newDestination.equals(source)) {
+            throw new IllegalStateException("Funnels do not support self-looping connections.");
+        }
+
+        try {
+            previousDestination.removeConnection(this);
+            this.destination.set(newDestination);
+            getSource().updateConnection(this);
+            newDestination.addConnection(this);
+        } catch (final RuntimeException e) {
+            this.destination.set(previousDestination);
+            throw e;
+        }
+    }
+
+    /**
+     * @throws IllegalStateException if the current destination is running and is not exempt, or FlowFiles from this
+     * Connection are currently held by the destination
+     */
+    @Override
+    public void verifyCanUpdateDestination() {
+        final Connectable previousDestination = destination.get();
+
         // Allow destination changes when the current destination is a Funnel, a LocalPort, or a
         // RemoteGroupPort. Funnels and LocalPorts cannot be stopped/started so they are exempt.
         // RemoteGroupPort represents an S2S ingress point: re-routing its incoming connections
@@ -309,20 +334,6 @@ public final class StandardConnection implements Connection {
 
         if (getFlowFileQueue().isUnacknowledgedFlowFile()) {
             throw new IllegalStateException("Cannot change destination of Connection because FlowFiles from this Connection are currently held by " + previousDestination);
-        }
-
-        if (newDestination instanceof Funnel && newDestination.equals(source)) {
-            throw new IllegalStateException("Funnels do not support self-looping connections.");
-        }
-
-        try {
-            previousDestination.removeConnection(this);
-            this.destination.set(newDestination);
-            getSource().updateConnection(this);
-            newDestination.addConnection(this);
-        } catch (final RuntimeException e) {
-            this.destination.set(previousDestination);
-            throw e;
         }
     }
 
