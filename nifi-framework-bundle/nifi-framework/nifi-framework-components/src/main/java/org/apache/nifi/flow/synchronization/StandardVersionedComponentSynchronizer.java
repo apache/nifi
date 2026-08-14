@@ -1672,34 +1672,26 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final String proposedValue = proposedProperties.get(propertyName);
                 final String value;
                 if (descriptor != null && referencesService && proposedValue != null && !isReferencingParameter(proposedValue)) {
-                    // Need to determine if the component's property descriptor for this service is already set to an id
-                    // of an existing service that is outside the current processor group, and if it is, we want to leave
-                    // the property set to that value
-                    String existingExternalServiceId = null;
-                    final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
-                    if (componentDescriptorValue != null) {
-                        final ProcessGroup parentGroup = topLevelGroup.getParent();
-                        if (parentGroup != null) {
-                            final ControllerServiceNode serviceNode = parentGroup.findControllerService(componentDescriptorValue, false, true);
-                            if (serviceNode != null) {
-                                existingExternalServiceId = componentDescriptorValue;
-                            }
-                        }
-                    }
+                    final String instanceId = getServiceInstanceId(proposedValue, group);
 
-                    // If the component's property descriptor is not already set to an id of an existing external service,
-                    // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
-                    if (existingExternalServiceId == null) {
-                        String instanceId = getServiceInstanceId(proposedValue, group);
-                        value = (instanceId == null) ? proposedValue : instanceId;
-
-                        // Find the same property descriptor in the component's CreatedExtension and replace it with the
-                        // instance ID of the service
+                    if (instanceId != null) {
+                        value = instanceId;
                         createdAndModifiedExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdOrModifiedExtension -> {
                             createdOrModifiedExtension.propertyValues.replace(propertyName, value);
                         });
                     } else {
-                        value = existingExternalServiceId;
+                        final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
+                        final ProcessGroup parentGroup = topLevelGroup.getParent();
+                        final ControllerServiceNode externalService = componentDescriptorValue == null || parentGroup == null
+                                ? null
+                                : parentGroup.findControllerService(componentDescriptorValue, false, true);
+
+                        value = externalService == null ? proposedValue : componentDescriptorValue;
+                        if (externalService == null) {
+                            createdAndModifiedExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdOrModifiedExtension -> {
+                                createdOrModifiedExtension.propertyValues.replace(propertyName, value);
+                            });
+                        }
                     }
                 } else {
                     value = proposedValue;
