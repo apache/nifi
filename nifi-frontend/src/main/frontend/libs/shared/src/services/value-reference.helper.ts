@@ -38,6 +38,19 @@ export interface SecretReferenceOptions {
 }
 
 /**
+ * Coerces a BOOLEAN property value into a real boolean.
+ *
+ * BOOLEAN values cross the wire as the strings `"true"` / `"false"` (both
+ * `ConnectorValueReferenceDTO.value` and `ConnectorPropertyDescriptorDTO.defaultValue`
+ * are declared as String server-side). `MatSlideToggle.writeValue` coerces with a bare
+ * `!!value`, so the string `"false"` is truthy and would render the toggle as checked.
+ * Any value other than `true` / `"true"` is therefore treated as false.
+ */
+export function toBooleanValue(value: unknown): boolean {
+    return value === true || value === 'true';
+}
+
+/**
  * Creates a ConnectorValueReference from a primitive form value.
  * Supports STRING_LITERAL, ASSET_REFERENCE, and SECRET_REFERENCE value types.
  *
@@ -194,6 +207,13 @@ export function fromValueReference(
             return [{ id: rawValue }] as AssetReference[];
         }
         return [];
+    }
+
+    // For BOOLEAN, coerce the wire string ("true"/"false") into a real boolean so the
+    // toggle renders the stored value rather than the truthiness of a non-empty string.
+    // null/undefined is preserved so callers can still fall back to the descriptor default.
+    if (propertyType === 'BOOLEAN' && rawValue !== null && rawValue !== undefined) {
+        return toBooleanValue(rawValue);
     }
 
     // For STRING_LIST, split comma-separated string into array for multi-select

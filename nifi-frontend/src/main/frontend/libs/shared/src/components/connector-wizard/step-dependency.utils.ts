@@ -58,6 +58,33 @@ function getPropertyValue(
 }
 
 /**
+ * Evaluate whether a dependency condition is met by a property's current value.
+ *
+ * `dependentValues` always arrives from the API as `string[]` (e.g. `["true"]`), while the
+ * live value may be a native non-string once a control has been bound -- notably a real
+ * `boolean` for BOOLEAN properties. `Array.prototype.includes` uses strict equality and does
+ * not coerce, so the value is compared as a string.
+ *
+ * Shared by step-level dependencies and the configuration step's property-level dependencies
+ * so the two sites cannot drift apart.
+ *
+ * @param value The dependent property's current value
+ * @param dependentValues The values that satisfy the dependency; empty means "any non-empty value"
+ * @returns boolean indicating if the dependency condition is met
+ */
+export function isDependencyValueSatisfied(
+    value: ConnectorPropertyFormValue | undefined,
+    dependentValues: string[] | undefined | null
+): boolean {
+    if (!dependentValues || dependentValues.length === 0) {
+        // No specific values required - any non-empty value satisfies
+        return value !== null && value !== undefined && value !== '';
+    }
+
+    return value !== null && value !== undefined && dependentValues.includes(String(value));
+}
+
+/**
  * Evaluate if a single step dependency is satisfied.
  * A dependency on a hidden step is NOT satisfied (transitive hiding).
  *
@@ -87,14 +114,7 @@ export function isStepDependencySatisfied(
     // Get the current property value
     const value = getPropertyValue(stepName, propertyName, stepConfigurations, unsavedStepValues);
 
-    // Evaluate based on dependentValues
-    if (!dependentValues || dependentValues.length === 0) {
-        // No specific values required - any non-empty value satisfies
-        return value !== null && value !== undefined && value !== '';
-    } else {
-        // Value must be in the allowed list
-        return value != null && dependentValues.includes(String(value));
-    }
+    return isDependencyValueSatisfied(value, dependentValues);
 }
 
 /**

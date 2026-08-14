@@ -16,7 +16,7 @@
  */
 
 import { ConfigurationStepConfiguration, ConnectorPropertyDescriptor, ConnectorValueReference } from '../../types';
-import { getVisibleStepNames, isStepDependencySatisfied } from './step-dependency.utils';
+import { getVisibleStepNames, isDependencyValueSatisfied, isStepDependencySatisfied } from './step-dependency.utils';
 
 describe('Step Dependency Utils', () => {
     function createStepConfig(
@@ -120,6 +120,57 @@ describe('Step Dependency Utils', () => {
             const visibleSteps = new Set(['NonExistent']);
 
             expect(isStepDependencySatisfied(dependency, {}, {}, visibleSteps)).toBe(false);
+        });
+
+        // A BOOLEAN toggle puts a native boolean into the form, while dependentValues is always
+        // string[] from the API. Both directions of the toggle must be evaluated correctly.
+        it('should satisfy a boolean dependency when the unsaved value is the boolean true', () => {
+            const dependency = { stepName: 'Step1', propertyName: 'enableCortex', dependentValues: ['true'] };
+            const stepConfigurations = {
+                Step1: createStepConfig('Step1', [], { group1: { enableCortex: 'false' } })
+            };
+            const unsavedValues = { Step1: { enableCortex: true } };
+            const visibleSteps = new Set(['Step1']);
+
+            expect(isStepDependencySatisfied(dependency, stepConfigurations, unsavedValues, visibleSteps)).toBe(true);
+        });
+
+        it('should not satisfy a boolean dependency when the unsaved value is the boolean false', () => {
+            const dependency = { stepName: 'Step1', propertyName: 'enableCortex', dependentValues: ['true'] };
+            const stepConfigurations = {
+                Step1: createStepConfig('Step1', [], { group1: { enableCortex: 'true' } })
+            };
+            const unsavedValues = { Step1: { enableCortex: false } };
+            const visibleSteps = new Set(['Step1']);
+
+            expect(isStepDependencySatisfied(dependency, stepConfigurations, unsavedValues, visibleSteps)).toBe(false);
+        });
+    });
+
+    describe('isDependencyValueSatisfied', () => {
+        it('matches a native boolean against the string dependentValues from the API', () => {
+            expect(isDependencyValueSatisfied(true, ['true'])).toBe(true);
+            expect(isDependencyValueSatisfied(false, ['true'])).toBe(false);
+            expect(isDependencyValueSatisfied(false, ['false'])).toBe(true);
+        });
+
+        it('still matches string values', () => {
+            expect(isDependencyValueSatisfied('true', ['true'])).toBe(true);
+            expect(isDependencyValueSatisfied('other', ['value1', 'value2'])).toBe(false);
+            expect(isDependencyValueSatisfied('value2', ['value1', 'value2'])).toBe(true);
+        });
+
+        it('treats any non-empty value as satisfying an empty dependentValues list', () => {
+            expect(isDependencyValueSatisfied('anything', [])).toBe(true);
+            expect(isDependencyValueSatisfied(false, undefined)).toBe(true);
+            expect(isDependencyValueSatisfied('', [])).toBe(false);
+            expect(isDependencyValueSatisfied(null, [])).toBe(false);
+            expect(isDependencyValueSatisfied(undefined, [])).toBe(false);
+        });
+
+        it('never matches null or undefined against a dependentValues list', () => {
+            expect(isDependencyValueSatisfied(null, ['true'])).toBe(false);
+            expect(isDependencyValueSatisfied(undefined, ['undefined'])).toBe(false);
         });
     });
 

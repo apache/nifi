@@ -47,6 +47,7 @@ import {
 } from '../../types';
 import { SearchableSelect } from '../searchable-select/searchable-select.component';
 import { AssetUpload } from '../asset-upload/asset-upload.component';
+import { toBooleanValue } from '../../services/value-reference.helper';
 import { StringListOrphansStrippedEvent } from './connector-property-input.types';
 
 /**
@@ -189,10 +190,9 @@ export class ConnectorPropertyInput implements ControlValueAccessor, DoCheck, On
     }
 
     writeValue(value: unknown): void {
-        let normalized = value;
-        if (this.property()?.type === 'BOOLEAN') {
-            normalized = value === true || value === 'true';
-        }
+        // BOOLEAN values may still arrive as the wire strings "true"/"false". MatSlideToggle
+        // coerces with `!!value`, which would render "false" as checked, so normalize first.
+        const normalized = this.property()?.type === 'BOOLEAN' ? toBooleanValue(value) : value;
         this.formControl.setValue(normalized, { emitEvent: false });
         if (this.property()?.type === 'SECRET') {
             this.selectOptions = this.computeSelectOptions();
