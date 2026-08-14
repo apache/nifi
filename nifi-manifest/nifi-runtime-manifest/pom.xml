@@ -89,6 +89,12 @@
                             </artifactItems>
                         </configuration>
                     </execution>
+                    <execution>
+                        <!-- Must exactly match the ID from the top-level parent POM -->
+                        <id>copy-mockito-core</id>
+                        <!-- Binds the execution to a non-existent phase so it never runs -->
+                        <phase>none</phase>
+                    </execution>
                 </executions>
                 <dependencies>
                     <dependency>
