@@ -215,6 +215,7 @@
         <checkstyle.version>13.11.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
+        <argLine></argLine>
     </properties>
     <dependencyManagement>
         <dependencies>
