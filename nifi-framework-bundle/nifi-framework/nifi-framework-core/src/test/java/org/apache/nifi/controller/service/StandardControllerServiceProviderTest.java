@@ -19,8 +19,8 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
 import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.NodeTypeProvider;
@@ -251,7 +251,7 @@ class StandardControllerServiceProviderTest {
                 .nodeTypeProvider(mock(NodeTypeProvider.class))
                 .validationTrigger(mock(ValidationTrigger.class))
                 .reloadComponent(mock(ReloadComponent.class))
-                .verifiableComponentFactory(mock(VerifiableComponentFactory.class))
+                .componentInstanceFactory(mock(ComponentInstanceFactory.class))
                 .stateManagerProvider(mock(StateManagerProvider.class))
                 .extensionManager(extensionManager)
                 .buildControllerService();

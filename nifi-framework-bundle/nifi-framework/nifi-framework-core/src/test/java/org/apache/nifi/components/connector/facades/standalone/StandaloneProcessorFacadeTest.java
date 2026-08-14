@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector.facades.standalone;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.BacklogReportingException;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -46,28 +47,35 @@ public class StandaloneProcessorFacadeTest {
     private ComponentContextProvider componentContextProvider;
     private ParameterContext parameterContext;
     private ProcessContext processContext;
-    private StandaloneProcessorFacade facade;
+    private ProcessScheduler scheduler;
+    private VersionedProcessor versionedProcessor;
+    private ComponentLog connectorLogger;
+    private ExtensionManager extensionManager;
+    private AssetManager assetManager;
 
     @BeforeEach
     public void setUp() {
         processorNode = mock(ProcessorNode.class);
-        final VersionedProcessor versionedProcessor = mock(VersionedProcessor.class);
-        final ProcessScheduler scheduler = mock(ProcessScheduler.class);
+        versionedProcessor = mock(VersionedProcessor.class);
+        scheduler = mock(ProcessScheduler.class);
         parameterContext = mock(ParameterContext.class);
         componentContextProvider = mock(ComponentContextProvider.class);
-        final ComponentLog connectorLogger = mock(ComponentLog.class);
-        final ExtensionManager extensionManager = mock(ExtensionManager.class);
-        final AssetManager assetManager = mock(AssetManager.class);
+        connectorLogger = mock(ComponentLog.class);
+        extensionManager = mock(ExtensionManager.class);
+        assetManager = mock(AssetManager.class);
 
         processContext = mock(ProcessContext.class);
         when(componentContextProvider.createProcessContext(processorNode, parameterContext)).thenReturn(processContext);
+    }
 
-        facade = new StandaloneProcessorFacade(processorNode, versionedProcessor, scheduler, parameterContext,
-                componentContextProvider, connectorLogger, extensionManager, assetManager);
+    private StandaloneProcessorFacade createFacade(final FlowContextType flowContextType) {
+        return new StandaloneProcessorFacade(processorNode, versionedProcessor, scheduler, parameterContext,
+                componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
     }
 
     @Test
     public void testReportsBacklogDelegatesToProcessorNode() {
+        final StandaloneProcessorFacade facade = createFacade(FlowContextType.WORKING);
         when(processorNode.supportsBacklogReporting()).thenReturn(true);
         assertTrue(facade.reportsBacklog());
 
@@ -77,6 +85,7 @@ public class StandaloneProcessorFacadeTest {
 
     @Test
     public void testGetBacklogDelegatesToProcessorNode() throws BacklogReportingException {
+        final StandaloneProcessorFacade facade = createFacade(FlowContextType.WORKING);
         final Optional<Backlog> reported = Optional.of(Backlog.builder().records(11L).precision(Backlog.Precision.EXACT).build());
         when(processorNode.getReportedBacklog(any(ProcessContext.class))).thenReturn(reported);
 
@@ -87,6 +96,7 @@ public class StandaloneProcessorFacadeTest {
 
     @Test
     public void testGetBacklogPropagatesBacklogReportingException() throws BacklogReportingException {
+        final StandaloneProcessorFacade facade = createFacade(FlowContextType.WORKING);
         final BacklogReportingException failure = new BacklogReportingException("Source unreachable");
         when(processorNode.getReportedBacklog(any(ProcessContext.class))).thenThrow(failure);
 

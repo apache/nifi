@@ -24,6 +24,7 @@ import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.InvocationFailedException;
 import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.Connectable;
@@ -351,7 +352,24 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
-    public abstract String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ProcessContext processContext) throws InvocationFailedException;
+    /**
+     * Invokes a {@link org.apache.nifi.components.connector.components.ConnectorMethod} on this Processor.
+     * <p>
+     * When {@code flowContextType} is {@link FlowContextType#ACTIVE}, the method is always invoked on the live
+     * Processor instance. When {@link FlowContextType#WORKING} and additional classpath resources must be reloaded, the
+     * method may be invoked on a temporary Processor instance loaded under a temporary InstanceClassLoader. Temporary instances
+     * are not lifecycle-managed: {@code @OnScheduled}, {@code @OnEnabled}, and {@code @OnRemoved} are not invoked.
+     * </p>
+     *
+     * @param methodName the ConnectorMethod name
+     * @param jsonArguments serialized JSON arguments keyed by parameter name
+     * @param processContext the ProcessContext for the invocation
+     * @param flowContextType the Flow Context from which the invocation originates
+     * @return the method result serialized as JSON, or {@code null}
+     * @throws InvocationFailedException if the method cannot be invoked
+     */
+    public abstract String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ProcessContext processContext, FlowContextType flowContextType)
+            throws InvocationFailedException;
 
     public abstract List<ConnectorMethod> getConnectorMethods();
 }

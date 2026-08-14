@@ -17,7 +17,7 @@
 package org.apache.nifi.stateless.engine;
 
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ProcessorNode;
@@ -33,58 +33,70 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 
-public class StatelessVerifiableComponentFactory implements VerifiableComponentFactory {
+public class StatelessComponentInstanceFactory implements ComponentInstanceFactory {
 
     private final StateManagerProvider stateManagerProvider;
     private final ControllerServiceProvider controllerServiceProvider;
     private final KerberosConfig kerberosConfig;
 
-    public StatelessVerifiableComponentFactory(final StateManagerProvider stateManagerProvider, final ControllerServiceProvider controllerServiceProvider, final KerberosConfig kerberosConfig) {
+    public StatelessComponentInstanceFactory(final StateManagerProvider stateManagerProvider, final ControllerServiceProvider controllerServiceProvider, final KerberosConfig kerberosConfig) {
         this.stateManagerProvider = stateManagerProvider;
         this.controllerServiceProvider = controllerServiceProvider;
         this.kerberosConfig = kerberosConfig;
     }
 
     @Override
-    public VerifiableProcessor createProcessor(final ProcessorNode processorNode, final ClassLoader classLoader) throws ProcessorInstantiationException {
-        final VerifiableProcessor verifiableProcessor;
+    public Processor createProcessorInstance(final ProcessorNode processorNode, final ClassLoader classLoader) throws ProcessorInstantiationException {
         final String identifier = processorNode.getIdentifier();
         final String processorClassName = processorNode.getProcessor().getClass().getName();
         try {
             final Class<?> rawProcessorClass = Class.forName(processorClassName, true, classLoader);
-            final Class<? extends VerifiableProcessor> processorClass = rawProcessorClass.asSubclass(VerifiableProcessor.class);
-            verifiableProcessor = processorClass.getDeclaredConstructor().newInstance();
+            final Class<? extends Processor> processorClass = rawProcessorClass.asSubclass(Processor.class);
+            final Processor processor = processorClass.getDeclaredConstructor().newInstance();
 
             final ProcessorInitializationContext tempInitializationContext = new StandardProcessorInitializationContext(identifier, processorNode.getLogger(),
                     controllerServiceProvider, new StatelessNodeTypeProvider(), kerberosConfig);
-            if (verifiableProcessor instanceof final Processor processor) {
-                processor.initialize(tempInitializationContext);
-            }
-        } catch (Exception e) {
-            throw new ProcessorInstantiationException("Failed to instantiate Verifiable Processor Class [%s]".formatted(processorClassName), e);
+            processor.initialize(tempInitializationContext);
+            return processor;
+        } catch (final Exception e) {
+            throw new ProcessorInstantiationException("Failed to instantiate Processor Class [%s]".formatted(processorClassName), e);
+        }
+    }
+
+    @Override
+    public VerifiableProcessor createProcessor(final ProcessorNode processorNode, final ClassLoader classLoader) throws ProcessorInstantiationException {
+        final Processor processor = createProcessorInstance(processorNode, classLoader);
+        if (!(processor instanceof final VerifiableProcessor verifiableProcessor)) {
+            throw new ProcessorInstantiationException("Processor Class [%s] does not implement VerifiableProcessor".formatted(processorNode.getCanonicalClassName()));
         }
         return verifiableProcessor;
     }
 
     @Override
-    public VerifiableControllerService createControllerService(final ControllerServiceNode serviceNode, final ClassLoader classLoader) {
-        final VerifiableControllerService verifiableControllerService;
+    public ControllerService createControllerServiceInstance(final ControllerServiceNode serviceNode, final ClassLoader classLoader) {
         final String identifier = serviceNode.getIdentifier();
         final String controllerServiceClassName = serviceNode.getCanonicalClassName();
         try {
-            final Class<?> rawControllorServiceClass = Class.forName(controllerServiceClassName, true, classLoader);
-            final Class<? extends VerifiableControllerService> controllerServiceClass = rawControllorServiceClass.asSubclass(VerifiableControllerService.class);
-            verifiableControllerService = controllerServiceClass.getDeclaredConstructor().newInstance();
+            final Class<?> rawControllerServiceClass = Class.forName(controllerServiceClassName, true, classLoader);
+            final Class<? extends ControllerService> controllerServiceClass = rawControllerServiceClass.asSubclass(ControllerService.class);
+            final ControllerService controllerService = controllerServiceClass.getDeclaredConstructor().newInstance();
 
             final ControllerServiceInitializationContext tempInitializationContext = new StandardControllerServiceInitializationContext(identifier,
                     serviceNode.getLogger(),
                     controllerServiceProvider, stateManagerProvider.getStateManager(identifier),
                     kerberosConfig, new StatelessNodeTypeProvider());
-            if (verifiableControllerService instanceof final ControllerService controllerService) {
-                controllerService.initialize(tempInitializationContext);
-            }
-        } catch (Exception e) {
-            throw new ControllerServiceInstantiationException("Failed to instantiate Verifiable Controller Service Class [%s]".formatted(controllerServiceClassName), e);
+            controllerService.initialize(tempInitializationContext);
+            return controllerService;
+        } catch (final Exception e) {
+            throw new ControllerServiceInstantiationException("Failed to instantiate Controller Service Class [%s]".formatted(controllerServiceClassName), e);
+        }
+    }
+
+    @Override
+    public VerifiableControllerService createControllerService(final ControllerServiceNode serviceNode, final ClassLoader classLoader) {
+        final ControllerService controllerService = createControllerServiceInstance(serviceNode, classLoader);
+        if (!(controllerService instanceof final VerifiableControllerService verifiableControllerService)) {
+            throw new ControllerServiceInstantiationException("Controller Service Class [%s] does not implement VerifiableControllerService".formatted(serviceNode.getCanonicalClassName()));
         }
         return verifiableControllerService;
     }

@@ -14,14 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.tests.system.dynamicclasspath;
 
-package org.apache.nifi.components.connector;
-
-import org.apache.nifi.components.connector.components.FlowContextType;
-import org.apache.nifi.components.connector.components.ProcessGroupFacade;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.logging.ComponentLog;
-
-public interface ProcessGroupFacadeFactory {
-    ProcessGroupFacade create(ProcessGroup processGroup, ComponentLog connectorLogger, FlowContextType flowContextType);
+public class DynamicallyLoadedType {
 }

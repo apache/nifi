@@ -29,6 +29,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.ConnectorParameterLookup;
 import org.apache.nifi.components.connector.InvocationFailedException;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.components.ProcessorFacade;
 import org.apache.nifi.components.connector.components.ProcessorLifecycle;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
@@ -66,10 +67,11 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
     private final ComponentLog connectorLogger;
     private final ExtensionManager extensionManager;
     private final AssetManager assetManager;
+    private final FlowContextType flowContextType;
 
     public StandaloneProcessorFacade(final ProcessorNode processorNode, final VersionedProcessor versionedProcessor, final ProcessScheduler scheduler,
             final ParameterContext parameterContext, final ComponentContextProvider componentContextProvider, final ComponentLog connectorLogger,
-            final ExtensionManager extensionManager, final AssetManager assetManager) {
+            final ExtensionManager extensionManager, final AssetManager assetManager, final FlowContextType flowContextType) {
 
         this.processorNode = processorNode;
         this.versionedProcessor = versionedProcessor;
@@ -78,6 +80,7 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
         this.connectorLogger = connectorLogger;
         this.extensionManager = extensionManager;
         this.assetManager = assetManager;
+        this.flowContextType = flowContextType;
 
         this.lifecycle = new StandaloneProcessorLifecycle(processorNode, scheduler);
     }
@@ -194,7 +197,7 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
     public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments) throws InvocationFailedException {
         final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
         final ProcessContext processContext = componentContextProvider.createProcessContext(processorNode, parameterContext);
-        final String jsonResult = processorNode.invokeConnectorMethod(methodName, jsonArguments, processContext);
+        final String jsonResult = processorNode.invokeConnectorMethod(methodName, jsonArguments, processContext, flowContextType);
         if (jsonResult == null) {
             return null;
         }
@@ -210,7 +213,7 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
     public <T> T invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final Class<T> returnType) throws InvocationFailedException {
         final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
         final ProcessContext processContext = componentContextProvider.createProcessContext(processorNode, parameterContext);
-        final String jsonResult = processorNode.invokeConnectorMethod(methodName, jsonArguments, processContext);
+        final String jsonResult = processorNode.invokeConnectorMethod(methodName, jsonArguments, processContext, flowContextType);
         if (jsonResult == null) {
             return null;
         }

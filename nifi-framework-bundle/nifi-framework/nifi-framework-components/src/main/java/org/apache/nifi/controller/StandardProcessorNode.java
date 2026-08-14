@@ -51,11 +51,12 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.InvocationFailedException;
 import org.apache.nifi.components.connector.components.ComponentState;
 import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.components.MethodArgument;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.ConnectableType;
@@ -107,6 +108,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.support.CronExpression;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
@@ -176,7 +178,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicLong schedulingNanos;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler processScheduler;
-    private final VerifiableComponentFactory verifiableComponentFactory;
+    private final ComponentInstanceFactory componentInstanceFactory;
     private long runNanos = 0L;
     private volatile long yieldNanos;
     private volatile ScheduledState desiredState = ScheduledState.STOPPED;
@@ -200,17 +202,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final ReloadComponent reloadComponent,
-                                 final VerifiableComponentFactory verifiableComponentFactory, final ExtensionManager extensionManager,
+                                 final ComponentInstanceFactory componentInstanceFactory, final ExtensionManager extensionManager,
                                  final ValidationTrigger validationTrigger) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider, processor.getComponent().getClass().getSimpleName(),
-            processor.getComponent().getClass().getCanonicalName(), reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger, false);
+            processor.getComponent().getClass().getCanonicalName(), reloadComponent, componentInstanceFactory, extensionManager, validationTrigger, false);
     }
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final String componentType, final String componentCanonicalClass,
-                                 final ReloadComponent reloadComponent, final VerifiableComponentFactory verifiableComponentFactory, final ExtensionManager extensionManager,
+                                 final ReloadComponent reloadComponent, final ComponentInstanceFactory componentInstanceFactory, final ExtensionManager extensionManager,
                                  final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
         super(uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, reloadComponent,
@@ -218,7 +220,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         final ProcessorDetails processorDetails = new ProcessorDetails(processor);
         this.processorRef = new AtomicReference<>(processorDetails);
-        this.verifiableComponentFactory = verifiableComponentFactory;
+        this.componentInstanceFactory = componentInstanceFactory;
 
         identifier = uuid;
         destinations = new ConcurrentHashMap<>();
@@ -1029,7 +1031,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getCanonicalClassName(), getIdentifier(), bundle, classpathUrls, false,
                                 classloaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
-                        final VerifiableProcessor tempVerifiable = verifiableComponentFactory.createProcessor(this, detectedClassLoader);
+                        final VerifiableProcessor tempVerifiable = componentInstanceFactory.createProcessor(this, detectedClassLoader);
                         try {
                             results.addAll(tempVerifiable.verify(context, logger, attributes));
                         } finally {
@@ -2028,60 +2030,95 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public String invokeConnectorMethod(final String methodName, final Map<String, String> jsonArguments, final ProcessContext processContext) throws InvocationFailedException {
-        final ConfigurableComponent component = getComponent();
+    public String invokeConnectorMethod(final String methodName, final Map<String, String> jsonArguments, final ProcessContext processContext,
+            final FlowContextType flowContextType) throws InvocationFailedException {
+        if (flowContextType == FlowContextType.WORKING && isReloadAdditionalResourcesNecessary()) {
+            LOG.debug("Classpath reload required for Connector Method invocation. Create temporary InstanceClassLoader for {}", this);
+            final ExtensionManager extensionManager = getExtensionManager();
+            final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+            final Set<URL> classpathUrls = getAdditionalClasspathResources(processContext.getProperties().keySet(),
+                    descriptor -> processContext.getProperty(descriptor).getValue());
+            final String classloaderIsolationKey = getClassLoaderIsolationKey(processContext);
 
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
-            final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
-            final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
-            final List<Object> argumentValues = new ArrayList<>();
-
-            for (final MethodArgument methodArgument : methodArguments) {
-                if (ProcessContext.class.equals(methodArgument.type())) {
-                    continue;
-                }
-
-                final String jsonValue = jsonArguments.get(methodArgument.name());
-                if (jsonValue == null && methodArgument.required()) {
-                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
-                        + methodArgument.name() + "' was not provided");
-                }
-
-                if (jsonValue == null) {
-                    argumentValues.add(null);
-                } else {
-                    try {
-                        final Object argumentValue = OBJECT_MAPPER.readValue(jsonValue, methodArgument.type());
-                        argumentValues.add(argumentValue);
-                    } catch (final JsonProcessingException e) {
-                        throw new InvocationFailedException("Failed to deserialize argument '" + methodArgument.name() + "' as type " + methodArgument.type().getName() +
-                                                            " for Connector Method '" + methodName + "' on " + this, e);
-                    }
-                }
-            }
-
-            // Inject ProcessContext if the method signature supports it
-            final Class<?>[] argumentTypes = implementationMethod.getParameterTypes();
-            if (argumentTypes.length > 0 && ProcessContext.class.isAssignableFrom(argumentTypes[0])) {
-                argumentValues.addFirst(processContext);
-            }
-            if (argumentTypes.length > 1 && ProcessContext.class.isAssignableFrom(argumentTypes[argumentTypes.length - 1])) {
-                argumentValues.add(processContext);
-            }
-
+            final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+            String jsonResult = null;
             try {
-                implementationMethod.setAccessible(true);
-                final Object result = implementationMethod.invoke(component, argumentValues.toArray());
-                if (result == null) {
-                    return null;
+                try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getCanonicalClassName(), getIdentifier(), bundle, classpathUrls, false,
+                            classloaderIsolationKey)) {
+                    Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                    try {
+                        final Processor tempProcessor = componentInstanceFactory.createProcessorInstance(this, detectedClassLoader);
+                        jsonResult = invokeConnectorMethodOnComponent(tempProcessor, methodName, jsonArguments, processContext);
+                    } catch (final ProcessorInstantiationException e) {
+                        throw new InvocationFailedException("Failed to create temporary Processor instance for Connector Method '" + methodName + "' on " + this, e);
+                    }
+                } catch (final IOException e) {
+                    LOG.warn("Failed to close temporary InstanceClassLoader created for Connector Method '{}' on {}", methodName, this, e);
                 }
 
-                return OBJECT_MAPPER.writeValueAsString(result);
-            } catch (final JsonProcessingException e) {
-                throw new InvocationFailedException("Failed to serialize return value for Connector Method '" + methodName + "' on " + this, e);
-            } catch (final Exception e) {
-                throw new InvocationFailedException(e);
+                return jsonResult;
+            } finally {
+                Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
+        } else {
+            final ConfigurableComponent component = getComponent();
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
+                return invokeConnectorMethodOnComponent(component, methodName, jsonArguments, processContext);
+            }
+        }
+    }
+
+    private String invokeConnectorMethodOnComponent(final ConfigurableComponent component, final String methodName, final Map<String, String> jsonArguments,
+            final ProcessContext processContext) throws InvocationFailedException {
+        final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
+        final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
+        final List<Object> argumentValues = new ArrayList<>();
+
+        for (final MethodArgument methodArgument : methodArguments) {
+            if (ProcessContext.class.equals(methodArgument.type())) {
+                continue;
+            }
+
+            final String jsonValue = jsonArguments.get(methodArgument.name());
+            if (jsonValue == null && methodArgument.required()) {
+                throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
+                    + methodArgument.name() + "' was not provided");
+            }
+
+            if (jsonValue == null) {
+                argumentValues.add(null);
+            } else {
+                try {
+                    final Object argumentValue = OBJECT_MAPPER.readValue(jsonValue, methodArgument.type());
+                    argumentValues.add(argumentValue);
+                } catch (final JsonProcessingException e) {
+                    throw new InvocationFailedException("Failed to deserialize argument '" + methodArgument.name() + "' as type " + methodArgument.type().getName() +
+                                                        " for Connector Method '" + methodName + "' on " + this, e);
+                }
+            }
+        }
+
+        // Inject ProcessContext if the method signature supports it
+        final Class<?>[] argumentTypes = implementationMethod.getParameterTypes();
+        if (argumentTypes.length > 0 && ProcessContext.class.isAssignableFrom(argumentTypes[0])) {
+            argumentValues.addFirst(processContext);
+        }
+        if (argumentTypes.length > 1 && ProcessContext.class.isAssignableFrom(argumentTypes[argumentTypes.length - 1])) {
+            argumentValues.add(processContext);
+        }
+
+        try {
+            implementationMethod.setAccessible(true);
+            final Object result = implementationMethod.invoke(component, argumentValues.toArray());
+            if (result == null) {
+                return null;
+            }
+
+            return OBJECT_MAPPER.writeValueAsString(result);
+        } catch (final JsonProcessingException e) {
+            throw new InvocationFailedException("Failed to serialize return value for Connector Method '" + methodName + "' on " + this, e);
+        } catch (final Exception e) {
+            throw new InvocationFailedException(e);
         }
     }
 

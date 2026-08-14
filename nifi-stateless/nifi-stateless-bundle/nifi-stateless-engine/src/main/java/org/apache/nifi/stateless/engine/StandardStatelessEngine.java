@@ -29,9 +29,9 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReloadComponent;
@@ -125,7 +125,7 @@ public class StandardStatelessEngine implements StatelessEngine {
 
     // Member Variables created/managed internally
     private final ReloadComponent reloadComponent;
-    private final VerifiableComponentFactory verifiableComponentFactory;
+    private final ComponentInstanceFactory componentInstanceFactory;
     private final ValidationTrigger validationTrigger;
 
     // Member Variables injected via initialization. Effectively final.
@@ -152,7 +152,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         this.componentEnableTimeout = parseDuration(builder.componentEnableTimeout);
 
         this.reloadComponent = new StatelessReloadComponent(this);
-        this.verifiableComponentFactory = new StatelessVerifiableComponentFactory(stateManagerProvider, controllerServiceProvider, kerberosConfig);
+        this.componentInstanceFactory = new StatelessComponentInstanceFactory(stateManagerProvider, controllerServiceProvider, kerberosConfig);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
     }
 
@@ -791,7 +791,7 @@ public class StandardStatelessEngine implements StatelessEngine {
     }
 
     @Override
-    public VerifiableComponentFactory getVerifiableComponentFactory() {
-        return verifiableComponentFactory;
+    public ComponentInstanceFactory getComponentInstanceFactory() {
+        return componentInstanceFactory;
     }
 }

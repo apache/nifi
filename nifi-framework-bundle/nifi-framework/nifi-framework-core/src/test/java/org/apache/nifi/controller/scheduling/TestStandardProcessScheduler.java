@@ -24,9 +24,9 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ExtensionBuilder;
@@ -207,7 +207,7 @@ public class TestStandardProcessScheduler {
                 .nodeTypeProvider(mock(NodeTypeProvider.class))
                 .validationTrigger(mock(ValidationTrigger.class))
                 .reloadComponent(mock(ReloadComponent.class))
-                .verifiableComponentFactory(mock(VerifiableComponentFactory.class))
+                .componentInstanceFactory(mock(ComponentInstanceFactory.class))
                 .stateManagerProvider(mock(StateManagerProvider.class))
                 .extensionManager(extensionManager)
                 .buildControllerService();
@@ -259,7 +259,7 @@ public class TestStandardProcessScheduler {
         proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
 
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
+        final ComponentInstanceFactory componentInstanceFactory = mock(ComponentInstanceFactory.class);
 
         final ControllerServiceNode service = flowManager.createControllerService(NoStartServiceImpl.class.getName(), "service",
                 systemBundle.getBundleDetails().getCoordinate(), null, true, true, null);
@@ -269,7 +269,7 @@ public class TestStandardProcessScheduler {
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider);
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, scheduler,
-            serviceProvider, reloadComponent, verifiableComponentFactory, extensionManager, new SynchronousValidationTrigger());
+            serviceProvider, reloadComponent, componentInstanceFactory, extensionManager, new SynchronousValidationTrigger());
 
         rootGroup.addProcessor(procNode);
 
@@ -557,12 +557,12 @@ public class TestStandardProcessScheduler {
 
         proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
+        final ComponentInstanceFactory componentInstanceFactory = mock(ComponentInstanceFactory.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
             new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider, reloadComponent,
-            verifiableComponentFactory, extensionManager, new SynchronousValidationTrigger());
+            componentInstanceFactory, extensionManager, new SynchronousValidationTrigger());
 
         procNode.performValidation();
         rootGroup.addProcessor(procNode);
@@ -585,12 +585,12 @@ public class TestStandardProcessScheduler {
 
         proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
+        final ComponentInstanceFactory componentInstanceFactory = mock(ComponentInstanceFactory.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
             new StandardValidationContextFactory(serviceProvider),
-            scheduler, serviceProvider, reloadComponent, verifiableComponentFactory, extensionManager, new SynchronousValidationTrigger());
+            scheduler, serviceProvider, reloadComponent, componentInstanceFactory, extensionManager, new SynchronousValidationTrigger());
 
         rootGroup.addProcessor(procNode);
 
@@ -616,12 +616,12 @@ public class TestStandardProcessScheduler {
 
         proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
+        final ComponentInstanceFactory componentInstanceFactory = mock(ComponentInstanceFactory.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
             new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider, reloadComponent,
-            verifiableComponentFactory, extensionManager, new SynchronousValidationTrigger());
+            componentInstanceFactory, extensionManager, new SynchronousValidationTrigger());
 
         rootGroup.addProcessor(procNode);
 
@@ -832,7 +832,7 @@ public class TestStandardProcessScheduler {
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), logger);
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid,
             new StandardValidationContextFactory(serviceProvider), harness.scheduler(), serviceProvider, mock(ReloadComponent.class),
-            mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
+            mock(ComponentInstanceFactory.class), extensionManager, new SynchronousValidationTrigger());
         rootGroup.addProcessor(procNode);
         return procNode;
     }

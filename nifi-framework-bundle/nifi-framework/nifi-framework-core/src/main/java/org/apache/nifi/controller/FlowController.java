@@ -69,12 +69,12 @@ import org.apache.nifi.components.connector.secrets.StandardSecretsManagerInitia
 import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
+import org.apache.nifi.components.validation.StandardComponentInstanceFactory;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
-import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
 import org.apache.nifi.components.validation.TriggerValidationTask;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -355,7 +355,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final ValidationTrigger validationTrigger;
     private final ConnectorValidationTrigger connectorValidationTrigger;
     private final ReloadComponent reloadComponent;
-    private final VerifiableComponentFactory verifiableComponentFactory;
+    private final ComponentInstanceFactory componentInstanceFactory;
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
     private final UserAwareEventAccess eventAccess;
     private final ParameterContextManager parameterContextManager;
@@ -702,7 +702,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
 
         this.snippetManager = new SnippetManager();
-        this.verifiableComponentFactory = new StandardVerifiableComponentFactory(this, this.nifiProperties);
+        this.componentInstanceFactory = new StandardComponentInstanceFactory(this, this.nifiProperties);
 
         final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
@@ -2439,8 +2439,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return reloadComponent;
     }
 
-    public VerifiableComponentFactory getVerifiableComponentFactory() {
-        return verifiableComponentFactory;
+    public ComponentInstanceFactory getComponentInstanceFactory() {
+        return componentInstanceFactory;
     }
 
     public void startProcessor(final String parentGroupId, final String processorId) {

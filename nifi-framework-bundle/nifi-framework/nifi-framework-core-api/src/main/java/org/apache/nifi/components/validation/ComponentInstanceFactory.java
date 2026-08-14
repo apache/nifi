@@ -16,17 +16,35 @@
  */
 package org.apache.nifi.components.validation;
 
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
 
-public interface VerifiableComponentFactory {
+/**
+ * Creates temporary component instances loaded with a given {@link ClassLoader}.
+ * Used when configuration verification or Connector Method invocation requires
+ * additional classpath resources that are not present on the live component's classloader.
+ */
+public interface ComponentInstanceFactory {
 
     /**
-     * Returns an instance with a new <code>ClassLoader</code> based on the existing <code>ProcessorNode</code>
+     * Returns a Processor instance with a new <code>ClassLoader</code> based on the existing <code>ProcessorNode</code>.
+     * Unlike {@link #createProcessor}, this does not require the component to implement {@link VerifiableProcessor}.
+     *
+     * @param processorNode the ProcessorNode the new instance is based on
+     * @param classLoader the new classloader
+     * @return the processor created with the new ClassLoader
+     * @throws ProcessorInstantiationException if unable to create the instance
+     */
+    Processor createProcessorInstance(ProcessorNode processorNode, ClassLoader classLoader) throws ProcessorInstantiationException;
+
+    /**
+     * Returns a {@link VerifiableProcessor} instance with a new <code>ClassLoader</code> based on the existing <code>ProcessorNode</code>
      *
      * @param processorNode the ProcessorNode the new instance is based on
      * @param classLoader the new classloader
@@ -36,7 +54,18 @@ public interface VerifiableComponentFactory {
     VerifiableProcessor createProcessor(ProcessorNode processorNode, ClassLoader classLoader) throws ProcessorInstantiationException;
 
     /**
-     * Returns an instance with a new <code>ClassLoader</code> based on the existing <code>ControllerServiceNode</code>
+     * Returns a Controller Service instance with a new <code>ClassLoader</code> based on the existing <code>ControllerServiceNode</code>.
+     * Unlike {@link #createControllerService}, this does not require the component to implement {@link VerifiableControllerService}.
+     *
+     * @param serviceNode the ControllerServiceNode the new instance is based on
+     * @param classLoader the new classloader
+     * @return the controller service created with the new ClassLoader
+     * @throws ControllerServiceInstantiationException if unable to create the instance
+     */
+    ControllerService createControllerServiceInstance(ControllerServiceNode serviceNode, ClassLoader classLoader);
+
+    /**
+     * Returns a {@link VerifiableControllerService} instance with a new <code>ClassLoader</code> based on the existing <code>ControllerServiceNode</code>
      *
      * @param serviceNode the ControllerServiceNode the new instance is based on
      * @param classLoader the new classloader

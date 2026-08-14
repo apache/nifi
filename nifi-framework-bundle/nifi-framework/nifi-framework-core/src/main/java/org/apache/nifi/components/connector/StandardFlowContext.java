@@ -57,7 +57,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
         this.flowContextType = flowContextType;
         this.bundle = bundle;
 
-        this.rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        this.rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog, flowContextType);
         this.parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 
@@ -102,7 +102,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
         managedProcessGroup.updateFlow(externalFlowWithResolvedParameters, managedProcessGroup.getIdentifier(), false, true, true);
 
-        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog, flowContextType);
 
         final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(versionedExternalFlow.getParameterContexts().values(), assetManager);
         getParameterContext().updateParameters(parameterLookup.getParameterValues());
@@ -122,7 +122,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
         managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow);
 
-        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog, flowContextType);
         parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 

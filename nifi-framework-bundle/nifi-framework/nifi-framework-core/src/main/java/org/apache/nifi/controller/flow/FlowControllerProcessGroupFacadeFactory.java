@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.flow;
 
 import org.apache.nifi.components.connector.ProcessGroupFacadeFactory;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.components.connector.facades.standalone.ComponentContextProvider;
 import org.apache.nifi.components.connector.facades.standalone.StandaloneProcessGroupFacade;
@@ -41,7 +42,7 @@ public class FlowControllerProcessGroupFacadeFactory implements ProcessGroupFaca
     }
 
     @Override
-    public ProcessGroupFacade create(final ProcessGroup processGroup, final ComponentLog connectorLogger) {
+    public ProcessGroupFacade create(final ProcessGroup processGroup, final ComponentLog connectorLogger, final FlowContextType flowContextType) {
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapSensitiveConfiguration(true)
             .mapPropertyDescriptors(true)
@@ -65,6 +66,6 @@ public class FlowControllerProcessGroupFacadeFactory implements ProcessGroupFaca
 
         return new StandaloneProcessGroupFacade(processGroup, versionedManagedGroup,
             processScheduler, parameterContext, flowController.getControllerServiceProvider(),
-            componentContextProvider, connectorLogger, extensionManager, flowController.getAssetManager());
+            componentContextProvider, connectorLogger, extensionManager, flowController.getAssetManager(), flowContextType);
     }
 }

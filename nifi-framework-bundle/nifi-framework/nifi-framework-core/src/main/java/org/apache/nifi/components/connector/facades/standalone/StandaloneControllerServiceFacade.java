@@ -29,6 +29,7 @@ import org.apache.nifi.components.connector.ConnectorParameterLookup;
 import org.apache.nifi.components.connector.InvocationFailedException;
 import org.apache.nifi.components.connector.components.ControllerServiceFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceLifecycle;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -61,10 +62,11 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
     private final ComponentLog connectorLogger;
     private final ExtensionManager extensionManager;
     private final AssetManager assetManager;
+    private final FlowContextType flowContextType;
 
     public StandaloneControllerServiceFacade(final ControllerServiceNode controllerServiceNode, final VersionedControllerService versionedControllerService,
             final ParameterContext parameterContext, final ProcessScheduler processScheduler, final ComponentContextProvider componentContextProvider, final ComponentLog connectorLogger,
-            final ExtensionManager extensionManager, final AssetManager assetManager) {
+            final ExtensionManager extensionManager, final AssetManager assetManager, final FlowContextType flowContextType) {
 
         this.controllerServiceNode = controllerServiceNode;
         this.versionedControllerService = versionedControllerService;
@@ -73,6 +75,7 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
         this.connectorLogger = connectorLogger;
         this.extensionManager = extensionManager;
         this.assetManager = assetManager;
+        this.flowContextType = flowContextType;
 
         this.lifecycle = new StandaloneControllerServiceLifecycle(controllerServiceNode, processScheduler, componentContextProvider, parameterContext);
     }
@@ -173,7 +176,7 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
     public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments) throws InvocationFailedException {
         final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
         final ConfigurationContext configurationContext = componentContextProvider.createConfigurationContext(controllerServiceNode, parameterContext);
-        final String jsonResult = controllerServiceNode.invokeConnectorMethod(methodName, jsonArguments, configurationContext);
+        final String jsonResult = controllerServiceNode.invokeConnectorMethod(methodName, jsonArguments, configurationContext, flowContextType);
         if (jsonResult == null) {
             return null;
         }
@@ -189,7 +192,7 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
     public <T> T invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final Class<T> returnType) throws InvocationFailedException {
         final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
         final ConfigurationContext configurationContext = componentContextProvider.createConfigurationContext(controllerServiceNode, parameterContext);
-        final String jsonResult = controllerServiceNode.invokeConnectorMethod(methodName, jsonArguments, configurationContext);
+        final String jsonResult = controllerServiceNode.invokeConnectorMethod(methodName, jsonArguments, configurationContext, flowContextType);
         if (jsonResult == null) {
             return null;
         }

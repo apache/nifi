@@ -29,7 +29,7 @@ import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsMana
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.services.CounterService;
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
+import org.apache.nifi.components.validation.StandardComponentInstanceFactory;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -146,7 +146,7 @@ public class StandardConnectorNodeIT {
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
         when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
         when(flowController.getReloadComponent()).thenReturn(reloadComponent);
-        when(flowController.getVerifiableComponentFactory()).thenReturn(new StandardVerifiableComponentFactory(flowController, nifiProperties));
+        when(flowController.getComponentInstanceFactory()).thenReturn(new StandardComponentInstanceFactory(flowController, nifiProperties));
 
         final RepositoryContextFactory repoContextFactory = mock(RepositoryContextFactory.class);
         final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);

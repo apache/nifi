@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.components.connector.InvocationFailedException;
 import org.apache.nifi.components.connector.components.ConnectorMethod;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -276,7 +277,24 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
-    String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ConfigurationContext configurationContext) throws InvocationFailedException;
+    /**
+     * Invokes a {@link org.apache.nifi.components.connector.components.ConnectorMethod} on this Controller Service.
+     * <p>
+     * When {@code flowContextType} is {@link FlowContextType#ACTIVE}, the method is always invoked on the live
+     * Controller Service instance. When {@link FlowContextType#WORKING} and additional classpath resources must be reloaded,
+     * the method may be invoked on a temporary Controller Service instance loaded under a temporary InstanceClassLoader.
+     * Temporary instances are not lifecycle-managed: {@code @OnScheduled}, {@code @OnEnabled}, and {@code @OnRemoved} are not invoked.
+     * </p>
+     *
+     * @param methodName the ConnectorMethod name
+     * @param jsonArguments serialized JSON arguments keyed by parameter name
+     * @param configurationContext the ConfigurationContext for the invocation
+     * @param flowContextType the Flow Context from which the invocation originates
+     * @return the method result serialized as JSON, or {@code null}
+     * @throws InvocationFailedException if the method cannot be invoked
+     */
+    String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ConfigurationContext configurationContext, FlowContextType flowContextType)
+            throws InvocationFailedException;
 
     List<ConnectorMethod> getConnectorMethods();
 }

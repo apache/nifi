@@ -22,9 +22,9 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ComponentInstanceFactory;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
@@ -145,7 +145,7 @@ public class TestStandardControllerServiceProvider {
             .nodeTypeProvider(mock(NodeTypeProvider.class))
             .validationTrigger(mock(ValidationTrigger.class))
             .reloadComponent(mock(ReloadComponent.class))
-            .verifiableComponentFactory(mock(VerifiableComponentFactory.class))
+            .componentInstanceFactory(mock(ComponentInstanceFactory.class))
             .stateManagerProvider(mock(StateManagerProvider.class))
             .extensionManager(extensionManager)
             .buildControllerService();
@@ -359,7 +359,7 @@ public class TestStandardControllerServiceProvider {
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
-        final VerifiableComponentFactory verifiableComponentFactory = mock(VerifiableComponentFactory.class);
+        final ComponentInstanceFactory componentInstanceFactory = mock(ComponentInstanceFactory.class);
 
         final Processor processor = new DummyProcessor();
         final MockProcessContext context = new MockProcessContext(processor, mock(StateManager.class));
@@ -369,7 +369,7 @@ public class TestStandardControllerServiceProvider {
         final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
         final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, mockInitContext.getIdentifier(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider,
-                reloadComponent, verifiableComponentFactory, extensionManager, new SynchronousValidationTrigger());
+                reloadComponent, componentInstanceFactory, extensionManager, new SynchronousValidationTrigger());
 
         final FlowManager flowManager = mock(FlowManager.class);
         final FlowController flowController = mock(FlowController.class);

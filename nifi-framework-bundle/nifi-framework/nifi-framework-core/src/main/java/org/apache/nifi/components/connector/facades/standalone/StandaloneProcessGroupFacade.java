@@ -23,6 +23,7 @@ import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
+import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
 import org.apache.nifi.components.connector.components.ProcessorFacade;
@@ -75,10 +76,11 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
     private final ComponentLog connectorLogger;
     private final ExtensionManager extensionManager;
     private final AssetManager assetManager;
+    private final FlowContextType flowContextType;
 
     public StandaloneProcessGroupFacade(final ProcessGroup processGroup, final VersionedProcessGroup flowDefinition, final ProcessScheduler processScheduler,
             final ParameterContext parameterContext, final ControllerServiceProvider controllerServiceProvider, final ComponentContextProvider componentContextProvider,
-            final ComponentLog connectorLogger, final ExtensionManager extensionManager, final AssetManager assetManager) {
+            final ComponentLog connectorLogger, final ExtensionManager extensionManager, final AssetManager assetManager, final FlowContextType flowContextType) {
         this.processGroup = processGroup;
         this.flowDefinition = flowDefinition;
         this.processScheduler = processScheduler;
@@ -88,6 +90,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
         this.connectorLogger = connectorLogger;
         this.extensionManager = extensionManager;
         this.assetManager = assetManager;
+        this.flowContextType = flowContextType;
 
         this.processorMap = mapProcessors(flowDefinition);
         this.controllerServiceMap = mapControllerServices(flowDefinition);
@@ -147,7 +150,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
         }
 
         return new StandaloneProcessorFacade(processorNode, processor, processScheduler, parameterContext,
-            componentContextProvider, connectorLogger, extensionManager, assetManager);
+            componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
     }
 
     private ProcessorNode lookupProcessorNode(final String versionedComponentId) {
@@ -172,7 +175,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
             final ProcessorNode processorNode = processGroup.getProcessor(versionedProcessor.getInstanceIdentifier());
             if (processorNode != null) {
                 final ProcessorFacade processorFacade = new StandaloneProcessorFacade(processorNode, versionedProcessor, processScheduler,
-                    parameterContext, componentContextProvider, connectorLogger, extensionManager, assetManager);
+                    parameterContext, componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
                 processors.add(processorFacade);
             }
         }
@@ -193,7 +196,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
         }
 
         return new StandaloneControllerServiceFacade(controllerServiceNode, controllerService, parameterContext, processScheduler,
-            componentContextProvider, connectorLogger, extensionManager, assetManager);
+            componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
     }
 
     private ControllerServiceNode lookupControllerServiceNode(final String versionedComponentId) {
@@ -218,7 +221,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
             final ControllerServiceNode controllerServiceNode = processGroup.getControllerService(versionedControllerService.getInstanceIdentifier());
             if (controllerServiceNode != null) {
                 final ControllerServiceFacade serviceFacade = new StandaloneControllerServiceFacade(controllerServiceNode, versionedControllerService, parameterContext,
-                    processScheduler, componentContextProvider, connectorLogger, extensionManager, assetManager);
+                    processScheduler, componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
                 controllerServices.add(serviceFacade);
             }
         }
@@ -321,7 +324,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
         }
 
         return new StandaloneProcessGroupFacade(childProcessGroup, versionedProcessGroup, processScheduler, parameterContext,
-            controllerServiceProvider, componentContextProvider, connectorLogger, extensionManager, assetManager);
+            controllerServiceProvider, componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
     }
 
     private ProcessGroup lookupProcessGroup(final ProcessGroup start, final String versionedComponentId) {
@@ -353,7 +356,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
             final ProcessGroup childProcessGroup = processGroup.findProcessGroup(versionedProcessGroup.getInstanceIdentifier());
             if (childProcessGroup != null) {
                 final ProcessGroupFacade groupFacade = new StandaloneProcessGroupFacade(childProcessGroup, versionedProcessGroup, processScheduler, parameterContext,
-                    controllerServiceProvider, componentContextProvider, connectorLogger, extensionManager, assetManager);
+                    controllerServiceProvider, componentContextProvider, connectorLogger, extensionManager, assetManager, flowContextType);
                 processGroups.add(groupFacade);
             }
         }
