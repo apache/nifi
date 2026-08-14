@@ -85,6 +85,24 @@ public class TestGetSplunk {
     }
 
     @Test
+    public void testTimeZoneValidation() {
+        runner.setProperty(GetSplunk.QUERY, "search tcp:7879");
+        runner.setProperty(GetSplunk.EARLIEST_TIME, "-1h");
+        runner.setProperty(GetSplunk.LATEST_TIME, "now");
+        runner.setProperty(GetSplunk.OUTPUT_MODE, GetSplunk.ATOM_VALUE.getValue());
+        runner.assertValid();
+
+        runner.setProperty(GetSplunk.TIME_ZONE, "Not/AValidZone");
+        runner.assertNotValid();
+
+        runner.setProperty(GetSplunk.TIME_ZONE, "America/New_York");
+        runner.assertValid();
+
+        runner.setProperty(GetSplunk.TIME_ZONE, "UTC");
+        runner.assertValid();
+    }
+
+    @Test
     public void testGetWithProvidedTime() {
         final String query = "search tcp:7879";
         final String providedEarliest = "-1h";
