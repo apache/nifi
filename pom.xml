@@ -215,7 +215,7 @@
         <checkstyle.version>13.11.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
-        <argLine></argLine>
+        <mockitoArgLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</mockitoArgLine>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -733,7 +733,7 @@
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <!-- Configure mockito-core as Java Agent to enable explicit attachment to processes -->
-                        <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                        <argLine>@{argLine} ${mockitoArgLine}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
