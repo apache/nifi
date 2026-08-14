@@ -742,6 +742,8 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <!-- Configure mockito-core as Java Agent to enable explicit attachment to processes -->
+                        <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1012,20 +1014,47 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <configuration>
-                    <ignoredPackagings>
-                        <ignoredPackaging>nar</ignoredPackaging>
-                    </ignoredPackagings>
-                    <ignoredDependencies combine.children="append">
-                        <dependency>org.junit.jupiter:junit-jupiter-engine</dependency>
-                        <dependency>org.junit.jupiter:junit-jupiter-params</dependency>
-                        <dependency>org.junit.jupiter:junit-jupiter-api</dependency>
-                        <dependency>org.mockito:mockito-core</dependency>
-                        <dependency>org.mockito:mockito-junit-jupiter</dependency>
-                        <dependency>org.junit.platform:junit-platform-commons</dependency>
-                        <dependency>org.slf4j:slf4j-simple</dependency>
-                    </ignoredDependencies>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>analyze-dependencies</id>
+                        <goals>
+                            <goal>analyze-only</goal>
+                        </goals>
+                        <phase>verify</phase>
+                        <configuration>
+                            <ignoredPackagings>
+                                <ignoredPackaging>nar</ignoredPackaging>
+                            </ignoredPackagings>
+                            <ignoredDependencies combine.children="append">
+                                <dependency>org.junit.jupiter:junit-jupiter-engine</dependency>
+                                <dependency>org.junit.jupiter:junit-jupiter-params</dependency>
+                                <dependency>org.junit.jupiter:junit-jupiter-api</dependency>
+                                <dependency>org.mockito:mockito-core</dependency>
+                                <dependency>org.mockito:mockito-junit-jupiter</dependency>
+                                <dependency>org.junit.platform:junit-platform-commons</dependency>
+                                <dependency>org.slf4j:slf4j-simple</dependency>
+                            </ignoredDependencies>
+                        </configuration>
+                    </execution>
+                    <!-- Copy mockito-core library to target directory to avoid warnings in IntelliJ for agent loading -->
+                    <execution>
+                        <id>copy-mockito-core</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.mockito</groupId>
+                                    <artifactId>mockito-core</artifactId>
+                                    <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                                    <destFileName>mockito-core.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
