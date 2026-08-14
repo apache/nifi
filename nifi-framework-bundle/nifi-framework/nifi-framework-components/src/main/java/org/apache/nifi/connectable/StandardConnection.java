@@ -309,6 +309,10 @@ public final class StandardConnection implements Connection {
         }
     }
 
+    /**
+     * @throws IllegalStateException if the current destination is running and is not exempt, or FlowFiles from this
+     * Connection are currently held by the destination
+     */
     @Override
     public void verifyCanUpdateDestination() {
         final Connectable previousDestination = destination.get();

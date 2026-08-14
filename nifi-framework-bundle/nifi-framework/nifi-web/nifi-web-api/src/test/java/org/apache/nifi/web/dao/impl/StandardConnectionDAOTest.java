@@ -49,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -91,6 +92,14 @@ class StandardConnectionDAOTest {
     private static final String ROOT_CONNECTION_ID = "root-connection-id";
     private static final String CONNECTOR_CONNECTION_ID = "connector-connection-id";
     private static final String NON_EXISTENT_ID = "non-existent-id";
+    private static final String PROCESS_GROUP_ID = "group-id";
+    private static final String CURRENT_DESTINATION_ID = "current-destination-id";
+    private static final String NEW_DESTINATION_ID = "new-destination-id";
+    private static final String DESTINATION_ID = "dest-1";
+    private static final String ALTERNATIVE_DESTINATION_ID = "dest-2";
+    private static final String REMOTE_PORT_ID = "port-1";
+    private static final String REMOTE_PROCESS_GROUP_ID = "rpg-A";
+    private static final String ALTERNATIVE_REMOTE_PROCESS_GROUP_ID = "rpg-B";
 
     @BeforeEach
     void setUp() {
@@ -230,7 +239,7 @@ class StandardConnectionDAOTest {
 
     private void stubRootConnectionDestination(final String destinationId) {
         final ProcessGroup group = mock(ProcessGroup.class);
-        when(group.getIdentifier()).thenReturn("group-id");
+        when(group.getIdentifier()).thenReturn(PROCESS_GROUP_ID);
         when(rootConnection.getProcessGroup()).thenReturn(group);
 
         final Connectable currentDestination = mock(Connectable.class);
@@ -242,7 +251,7 @@ class StandardConnectionDAOTest {
 
     @Test
     void testVerifyUpdateDoesNotCheckDestinationForNonDestinationEdit() {
-        stubRootConnectionDestination("current-destination-id");
+        stubRootConnectionDestination(CURRENT_DESTINATION_ID);
 
         assertDoesNotThrow(() -> connectionDAO.verifyUpdate(connectionDtoWithNameOnly()));
         verify(rootConnection, never()).verifyCanUpdateDestination();
@@ -250,33 +259,33 @@ class StandardConnectionDAOTest {
 
     @Test
     void testVerifyUpdateWrapsIllegalStateFromDestinationGuardAsValidationException() {
-        stubRootConnectionDestination("current-destination-id");
+        stubRootConnectionDestination(CURRENT_DESTINATION_ID);
         final String guardMessage = "Cannot change destination of Connection because the current destination ([proc]) is running";
-        org.mockito.Mockito.doThrow(new IllegalStateException(guardMessage))
+        doThrow(new IllegalStateException(guardMessage))
                 .when(rootConnection).verifyCanUpdateDestination();
 
         final ValidationException thrown = assertThrows(ValidationException.class,
-                () -> connectionDAO.verifyUpdate(connectionDtoChangingDestination("new-destination-id")));
+                () -> connectionDAO.verifyUpdate(connectionDtoChangingDestination(NEW_DESTINATION_ID)));
         assertTrue(thrown.getValidationErrors().contains(guardMessage),
                 "ValidationException should carry the guard's message; was: " + thrown.getValidationErrors());
     }
 
     @Test
     void testVerifyUpdateChecksDestinationGuardWhenDestinationChanges() {
-        stubRootConnectionDestination("current-destination-id");
+        stubRootConnectionDestination(CURRENT_DESTINATION_ID);
 
-        assertDoesNotThrow(() -> connectionDAO.verifyUpdate(connectionDtoChangingDestination("new-destination-id")));
+        assertDoesNotThrow(() -> connectionDAO.verifyUpdate(connectionDtoChangingDestination(NEW_DESTINATION_ID)));
         verify(rootConnection).verifyCanUpdateDestination();
     }
 
     @Test
     void testIsDestinationChangingReturnsFalseForSameDestinationId() {
         final Connectable currentDestination = mock(Connectable.class);
-        when(currentDestination.getIdentifier()).thenReturn("dest-1");
+        when(currentDestination.getIdentifier()).thenReturn(DESTINATION_ID);
         when(rootConnection.getDestination()).thenReturn(currentDestination);
 
         final ConnectableDTO proposed = new ConnectableDTO();
-        proposed.setId("dest-1");
+        proposed.setId(DESTINATION_ID);
         proposed.setType(ConnectableType.PROCESSOR.name());
 
         assertFalse(connectionDAO.isDestinationChanging(rootConnection, proposed));
@@ -285,11 +294,11 @@ class StandardConnectionDAOTest {
     @Test
     void testIsDestinationChangingReturnsTrueForDifferentDestinationId() {
         final Connectable currentDestination = mock(Connectable.class);
-        when(currentDestination.getIdentifier()).thenReturn("dest-1");
+        when(currentDestination.getIdentifier()).thenReturn(DESTINATION_ID);
         when(rootConnection.getDestination()).thenReturn(currentDestination);
 
         final ConnectableDTO proposed = new ConnectableDTO();
-        proposed.setId("dest-2");
+        proposed.setId(ALTERNATIVE_DESTINATION_ID);
         proposed.setType(ConnectableType.PROCESSOR.name());
 
         assertTrue(connectionDAO.isDestinationChanging(rootConnection, proposed));
@@ -299,16 +308,16 @@ class StandardConnectionDAOTest {
     void testIsDestinationChangingRemoteInputPortSameGroupIsNotChanging() {
         final RemoteGroupPort currentRemotePort = mock(RemoteGroupPort.class);
         final RemoteProcessGroup currentRpg = mock(RemoteProcessGroup.class);
-        when(currentRemotePort.getIdentifier()).thenReturn("port-1");
+        when(currentRemotePort.getIdentifier()).thenReturn(REMOTE_PORT_ID);
         when(currentRemotePort.getConnectableType()).thenReturn(ConnectableType.REMOTE_INPUT_PORT);
         when(currentRemotePort.getRemoteProcessGroup()).thenReturn(currentRpg);
-        when(currentRpg.getIdentifier()).thenReturn("rpg-A");
+        when(currentRpg.getIdentifier()).thenReturn(REMOTE_PROCESS_GROUP_ID);
         when(rootConnection.getDestination()).thenReturn(currentRemotePort);
 
         final ConnectableDTO proposed = new ConnectableDTO();
-        proposed.setId("port-1");
+        proposed.setId(REMOTE_PORT_ID);
         proposed.setType(ConnectableType.REMOTE_INPUT_PORT.name());
-        proposed.setGroupId("rpg-A");
+        proposed.setGroupId(REMOTE_PROCESS_GROUP_ID);
 
         assertFalse(connectionDAO.isDestinationChanging(rootConnection, proposed));
     }
@@ -317,16 +326,16 @@ class StandardConnectionDAOTest {
     void testIsDestinationChangingRemoteInputPortDifferentGroupIsChanging() {
         final RemoteGroupPort currentRemotePort = mock(RemoteGroupPort.class);
         final RemoteProcessGroup currentRpg = mock(RemoteProcessGroup.class);
-        when(currentRemotePort.getIdentifier()).thenReturn("port-1");
+        when(currentRemotePort.getIdentifier()).thenReturn(REMOTE_PORT_ID);
         when(currentRemotePort.getConnectableType()).thenReturn(ConnectableType.REMOTE_INPUT_PORT);
         when(currentRemotePort.getRemoteProcessGroup()).thenReturn(currentRpg);
-        when(currentRpg.getIdentifier()).thenReturn("rpg-A");
+        when(currentRpg.getIdentifier()).thenReturn(REMOTE_PROCESS_GROUP_ID);
         when(rootConnection.getDestination()).thenReturn(currentRemotePort);
 
         final ConnectableDTO proposed = new ConnectableDTO();
-        proposed.setId("port-1");
+        proposed.setId(REMOTE_PORT_ID);
         proposed.setType(ConnectableType.REMOTE_INPUT_PORT.name());
-        proposed.setGroupId("rpg-B");
+        proposed.setGroupId(ALTERNATIVE_REMOTE_PROCESS_GROUP_ID);
 
         assertTrue(connectionDAO.isDestinationChanging(rootConnection, proposed));
     }
