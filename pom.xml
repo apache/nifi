@@ -216,6 +216,8 @@
         <checkstyle.version>14.0.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
+        <!-- Default baseline: provides a safe JVM flag so the variable is never null -->
+        <argLine>-ea</argLine>
         <mockitoArgLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</mockitoArgLine>
     </properties>
     <dependencyManagement>
@@ -744,7 +746,7 @@
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <!-- Configure mockito-core as Java Agent to enable explicit attachment to processes -->
-                        <argLine>@{argLine} ${mockitoArgLine}</argLine>
+                        <argLine>${argLine} ${mockitoArgLine}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
