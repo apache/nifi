@@ -23,8 +23,11 @@ import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
@@ -36,17 +39,22 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.MigrationRequestDTO;
 import org.apache.nifi.web.api.dto.MigrationRequestLocalSourceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.BacklogEntity;
 import org.apache.nifi.web.api.entity.BacklogRequestEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
@@ -57,6 +65,7 @@ import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
+import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -78,6 +87,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -91,6 +101,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -139,6 +150,7 @@ public class TestConnectorResource {
     private static final String CONFIGURATION_STEP_NAME = "test-step";
     private static final String PROPERTY_GROUP_NAME = "test-group";
     private static final String PROPERTY_NAME = "test-property";
+    private static final String SECRET_PROVIDER_ID = "parameter-provider-1";
     private static final String PROCESS_GROUP_ID = "test-process-group-id";
     private static final String PROCESSOR_ID = "test-processor-id";
     private static final String CONTROLLER_SERVICE_ID = "test-controller-service-id";
@@ -541,6 +553,93 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).getSecrets();
+    }
+
+    private ConfigurationStepConfigurationDTO createConfigurationStepWithSecretReference() {
+        final ConnectorValueReferenceDTO secretReference = new ConnectorValueReferenceDTO();
+        secretReference.setValueType("SECRET_REFERENCE");
+        secretReference.setSecretProviderId(SECRET_PROVIDER_ID);
+        secretReference.setSecretName("api-key");
+
+        final PropertyGroupConfigurationDTO propertyGroup = new PropertyGroupConfigurationDTO();
+        propertyGroup.setPropertyGroupName(PROPERTY_GROUP_NAME);
+        propertyGroup.setPropertyValues(Map.of(PROPERTY_NAME, secretReference));
+
+        final ConfigurationStepConfigurationDTO configurationStep = new ConfigurationStepConfigurationDTO();
+        configurationStep.setConfigurationStepName(CONFIGURATION_STEP_NAME);
+        configurationStep.setPropertyGroupConfigurations(List.of(propertyGroup));
+        return configurationStep;
+    }
+
+    private VerifyConnectorConfigStepRequestEntity createVerifyConfigStepRequestEntity() {
+        final VerifyConnectorConfigStepRequestDTO requestDto = new VerifyConnectorConfigStepRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setConfigurationStepName(CONFIGURATION_STEP_NAME);
+        requestDto.setConfigurationStep(createConfigurationStepWithSecretReference());
+
+        final VerifyConnectorConfigStepRequestEntity requestEntity = new VerifyConnectorConfigStepRequestEntity();
+        requestEntity.setRequest(requestDto);
+        return requestEntity;
+    }
+
+    private ConfigurationStepEntity createUpdateConfigurationStepEntity() {
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setVersion(1L);
+        revision.setClientId("client-id");
+
+        final ConfigurationStepEntity entity = new ConfigurationStepEntity();
+        entity.setParentConnectorId(CONNECTOR_ID);
+        entity.setParentConnectorRevision(revision);
+        entity.setConfigurationStep(createConfigurationStepWithSecretReference());
+        return entity;
+    }
+
+    private AuthorizableLookup wireDeniedSecretReferenceAuthorization() {
+        final AuthorizableLookup lookup = mock(AuthorizableLookup.class);
+
+        final Authorizable connector = mock(Authorizable.class);
+        when(lookup.getConnector(CONNECTOR_ID)).thenReturn(connector);
+
+        final Authorizable secretProvider = mock(Authorizable.class);
+        when(lookup.getConnectorSecretProvider(SECRET_PROVIDER_ID, null, null)).thenReturn(secretProvider);
+        doThrow(new AccessDeniedException("Not authorized to read the referenced secret's Parameter Provider"))
+                .when(secretProvider).authorize(any(), eq(RequestAction.READ), any());
+
+        doAnswer(invocation -> {
+            final AuthorizeAccess authorizeAccess = invocation.getArgument(0);
+            authorizeAccess.authorize(lookup);
+            return null;
+        }).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        return lookup;
+    }
+
+    @Test
+    public void testSubmitConfigStepVerificationAuthorizesReferencesBeforeVerification() {
+        authenticate();
+        final AuthorizableLookup lookup = wireDeniedSecretReferenceAuthorization();
+
+        final VerifyConnectorConfigStepRequestEntity requestEntity = createVerifyConfigStepRequestEntity();
+
+        assertThrows(AccessDeniedException.class,
+                () -> connectorResource.submitConfigurationStepVerificationRequest(CONNECTOR_ID, CONFIGURATION_STEP_NAME, requestEntity));
+
+        verify(lookup).getConnectorSecretProvider(SECRET_PROVIDER_ID, null, null);
+        verify(serviceFacade, never()).verifyCanVerifyConnectorConfigurationStep(anyString(), anyString());
+        verify(serviceFacade, never()).performConnectorConfigurationStepVerification(anyString(), anyString(), any());
+    }
+
+    @Test
+    public void testUpdateConfigStepAuthorizesReferencesBeforeUpdate() {
+        final AuthorizableLookup lookup = wireDeniedSecretReferenceAuthorization();
+
+        final ConfigurationStepEntity requestEntity = createUpdateConfigurationStepEntity();
+
+        assertThrows(AccessDeniedException.class,
+                () -> connectorResource.updateConnectorConfigurationStep(CONNECTOR_ID, CONFIGURATION_STEP_NAME, requestEntity));
+
+        verify(lookup).getConnectorSecretProvider(SECRET_PROVIDER_ID, null, null);
+        verify(serviceFacade, never()).updateConnectorConfigurationStep(any(Revision.class), anyString(), anyString(), any());
     }
 
     @Test

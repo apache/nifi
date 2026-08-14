@@ -171,6 +171,7 @@ public class ConnectorAssetsIT extends NiFiSystemIT {
         }
         assertNotNull(groupWithoutAsset);
 
+        configuredAssetValue.setValueType(null);
         configuredAssetValue.setAssetReferences(null);
         final Map<String, ConnectorValueReferenceDTO> propertyValuesWithoutAsset = groupWithoutAsset.getPropertyValues();
         propertyValuesWithoutAsset.put(propertyName, configuredAssetValue);
