@@ -743,7 +743,7 @@
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <!-- Configure mockito-core as Java Agent to enable explicit attachment to processes -->
-                        <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                        <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
