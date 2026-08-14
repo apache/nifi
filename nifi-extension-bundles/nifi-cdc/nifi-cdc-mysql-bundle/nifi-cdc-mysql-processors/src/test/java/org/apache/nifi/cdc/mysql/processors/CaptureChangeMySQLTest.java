@@ -47,8 +47,9 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -126,6 +127,9 @@ public class CaptureChangeMySQLTest {
     private static final String FOUR = "4";
     private static final String TEN = "10";
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String LEGACY_DRIVER_CLASS_NAME = "com.mysql.jdbc.Driver";
+    private static final String CURRENT_DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
+    private static final String CUSTOM_DRIVER_CLASS_NAME = "com.example.CustomDriver";
 
     private MockCaptureChangeMySQL processor;
     private TestRunner testRunner;
@@ -153,32 +157,32 @@ public class CaptureChangeMySQLTest {
     }
 
     @Test
-    public void testSslModeRequiredSslContextServiceConfigured(@Mock SSLContextService sslContextService) throws InitializationException {
+    public void testSslModeRequiredSslContextServiceConfigured(@Mock SSLContextProvider sslContextProvider) throws InitializationException {
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
         testRunner.setProperty(CaptureChangeMySQL.SSL_MODE, SSLMode.REQUIRED.toString());
 
-        String identifier = SSLContextService.class.getName();
-        when(sslContextService.getIdentifier()).thenReturn(identifier);
-        testRunner.addControllerService(identifier, sslContextService);
-        testRunner.enableControllerService(sslContextService);
+        String identifier = SSLContextProvider.class.getName();
+        when(sslContextProvider.getIdentifier()).thenReturn(identifier);
+        testRunner.addControllerService(identifier, sslContextProvider);
+        testRunner.enableControllerService(sslContextProvider);
 
         testRunner.setProperty(CaptureChangeMySQL.SSL_CONTEXT_SERVICE, identifier);
         testRunner.assertValid();
     }
 
     @Test
-    public void testSslModeRequiredSslContextServiceConnected(@Mock SSLContextService sslContextService) throws NoSuchAlgorithmException, InitializationException {
+    public void testSslModeRequiredSslContextServiceConnected(@Mock SSLContextProvider sslContextProvider) throws NoSuchAlgorithmException, InitializationException {
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
         SSLMode sslMode = SSLMode.REQUIRED;
         testRunner.setProperty(CaptureChangeMySQL.SSL_MODE, sslMode.toString());
 
         SSLContext sslContext = SSLContext.getDefault();
-        String identifier = SSLContextService.class.getName();
-        when(sslContextService.getIdentifier()).thenReturn(identifier);
-        doReturn(sslContext).when(sslContextService).createContext();
+        String identifier = SSLContextProvider.class.getName();
+        when(sslContextProvider.getIdentifier()).thenReturn(identifier);
+        doReturn(sslContext).when(sslContextProvider).createContext();
 
-        testRunner.addControllerService(identifier, sslContextService);
-        testRunner.enableControllerService(sslContextService);
+        testRunner.addControllerService(identifier, sslContextProvider);
+        testRunner.enableControllerService(sslContextProvider);
         testRunner.setProperty(CaptureChangeMySQL.SSL_CONTEXT_SERVICE, identifier);
         testRunner.assertValid();
 
@@ -1348,6 +1352,26 @@ public class CaptureChangeMySQLTest {
                 "capture-change-mysql-dist-map-cache-client",
                 "Distributed Map Cache Client - unused");
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
+
+    @Test
+    void testMigrationReplacesLegacyDriverClassName() {
+        final MockPropertyConfiguration config = new MockPropertyConfiguration(
+                Map.of(CaptureChangeMySQL.DRIVER_NAME.getName(), LEGACY_DRIVER_CLASS_NAME));
+
+        processor.migrateProperties(config);
+
+        assertEquals(CURRENT_DRIVER_CLASS_NAME, config.getRawPropertyValue(CaptureChangeMySQL.DRIVER_NAME.getName()).orElse(null));
+    }
+
+    @Test
+    void testMigrationRetainsCustomDriverClassName() {
+        final MockPropertyConfiguration config = new MockPropertyConfiguration(
+                Map.of(CaptureChangeMySQL.DRIVER_NAME.getName(), CUSTOM_DRIVER_CLASS_NAME));
+
+        processor.migrateProperties(config);
+
+        assertEquals(CUSTOM_DRIVER_CLASS_NAME, config.getRawPropertyValue(CaptureChangeMySQL.DRIVER_NAME.getName()).orElse(null));
     }
 
     /********************************
