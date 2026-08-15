@@ -47,6 +47,7 @@ import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.asset.Asset;
+import org.apache.nifi.authorization.AuthorizeConnectorConfigReferences;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -1403,7 +1404,9 @@ public class ConnectorResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Parameter Providers - /parameter-providers/{uuid}"),
+                    @SecurityRequirement(name = "Read - /connectors/{uuid} when referencing Assets owned by the connector")
             }
     )
     public Response updateConnectorConfigurationStep(
@@ -1458,10 +1461,7 @@ public class ConnectorResource extends ApplicationResource {
                 serviceFacade,
                 requestConfigurationStepEntity,
                 requestRevision,
-                lookup -> {
-                    final Authorizable connector = lookup.getConnector(id);
-                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                lookup -> AuthorizeConnectorConfigReferences.authorize(authorizer, lookup, id, requestConfigurationStep),
                 () -> {
                     // Verify the connector exists and the configuration step exists
                     serviceFacade.getConnectorConfigurationStep(id, configurationStepName);
@@ -1507,7 +1507,9 @@ public class ConnectorResource extends ApplicationResource {
                     "/connectors/{connectorId}/configuration-steps/{stepName}/verify-config/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
                     "/connectors/{connectorId}/configuration-steps/{stepName}/verify-config/{requestId}.",
             security = {
-                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Parameter Providers - /parameter-providers/{uuid}"),
+                    @SecurityRequirement(name = "Read - /connectors/{uuid} when referencing Assets owned by the connector")
             }
     )
     public Response submitConfigurationStepVerificationRequest(
@@ -1552,10 +1554,7 @@ public class ConnectorResource extends ApplicationResource {
         return withWriteLock(
                 serviceFacade,
                 requestEntity,
-                lookup -> {
-                    final Authorizable connector = lookup.getConnector(id);
-                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                lookup -> AuthorizeConnectorConfigReferences.authorize(authorizer, lookup, id, requestDto.getConfigurationStep()),
                 () -> {
                     serviceFacade.verifyCanVerifyConnectorConfigurationStep(id, configurationStepName);
                 },
