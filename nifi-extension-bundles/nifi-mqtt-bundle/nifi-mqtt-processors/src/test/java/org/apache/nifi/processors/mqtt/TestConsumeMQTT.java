@@ -27,7 +27,7 @@ import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -831,12 +831,12 @@ public class TestConsumeMQTT {
     }
 
     private static String addSSLContextService(TestRunner testRunner) throws InitializationException {
-        final SSLContextService sslContextService = mock(SSLContextService.class);
-        final String identifier = SSLContextService.class.getSimpleName();
-        when(sslContextService.getIdentifier()).thenReturn(identifier);
+        final SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        final String identifier = SSLContextProvider.class.getSimpleName();
+        when(sslContextProvider.getIdentifier()).thenReturn(identifier);
 
-        testRunner.addControllerService(identifier, sslContextService);
-        testRunner.enableControllerService(sslContextService);
+        testRunner.addControllerService(identifier, sslContextProvider);
+        testRunner.enableControllerService(sslContextProvider);
         return identifier;
     }
 }

@@ -35,7 +35,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -143,9 +143,9 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+            .description("The SSL Context Provider used to provide client certificate information for TLS connections.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor PROP_LAST_WILL_MESSAGE = new PropertyDescriptor.Builder()
@@ -387,10 +387,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         clientProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
         clientProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 
-        final SSLContextService sslContextService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            clientProperties.setTlsConfiguration(sslContextService.createTlsConfiguration());
-        }
+        final SSLContextProvider sslContextProvider = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        clientProperties.setSslContextProvider(sslContextProvider);
 
         if (context.getProperty(PROP_LAST_WILL_MESSAGE).isSet()) {
             clientProperties.setLastWillMessage(context.getProperty(PROP_LAST_WILL_MESSAGE).getValue());
