@@ -40,6 +40,7 @@ import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.context.PropertyContext;
@@ -193,10 +194,24 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
+
+    private static final Set<String> AVAILABLE_TIME_ZONE_IDS = Set.of(TimeZone.getAvailableIDs());
+
+    private static final Validator TIME_ZONE_VALIDATOR = (subject, input, context) -> new ValidationResult.Builder()
+            .subject(subject)
+            .input(input)
+            .valid(input != null && AVAILABLE_TIME_ZONE_IDS.contains(input))
+            .explanation("must be a valid time zone identifier such as UTC or America/New_York")
+            .build();
+
     public static final PropertyDescriptor TIME_ZONE = new PropertyDescriptor.Builder()
             .name("Time Zone")
-            .description("The Time Zone to use for formatting dates when performing a search. Only used with Managed time strategies.")
-            .allowableValues(TimeZone.getAvailableIDs())
+            .description("""
+                    The Time Zone to use for formatting dates when performing a search. Only used with Managed time strategies.
+                    The value must be a valid Java time zone identifier, such as UTC or America/New_York.
+                    """
+            )
+            .addValidator(TIME_ZONE_VALIDATOR)
             .defaultValue("UTC")
             .required(true)
             .build();
