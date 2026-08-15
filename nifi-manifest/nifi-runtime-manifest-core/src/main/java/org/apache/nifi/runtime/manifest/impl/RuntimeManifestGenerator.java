@@ -40,7 +40,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -56,10 +56,7 @@ public class RuntimeManifestGenerator {
     private static final String PROJECT_VERSION_PROPERTY = "Project-Version";
     private static final String BUILD_REVISION = "Build-Revision";
     private static final String BUILD_TIMESTAMP = "Build-Timestamp";
-    private static final String BUILD_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
     private static final String BUILD_JDK = "Build-Jdk";
-    private static final String BUILD_JDK_VENDOR = "Build-Jdk-Vendor";
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(BUILD_TIMESTAMP_FORMAT);
 
     private final File extensionManifestBaseDir;
     private final File buildPropertiesFile;
@@ -84,20 +81,12 @@ public class RuntimeManifestGenerator {
         final String buildRevision = buildProperties.getProperty(BUILD_REVISION);
         final String buildTimestamp = buildProperties.getProperty(BUILD_TIMESTAMP);
         final String buildJdk = buildProperties.getProperty(BUILD_JDK);
-        final String buildJdkVendor = buildProperties.getProperty(BUILD_JDK_VENDOR);
-
-        long buildTimestampMillis;
-        try {
-            buildTimestampMillis = OffsetDateTime.parse(buildTimestamp, TIMESTAMP_FORMATTER).toInstant().toEpochMilli();
-        } catch (Exception e) {
-            buildTimestampMillis = System.currentTimeMillis();
-        }
 
         final BuildInfo buildInfo = new BuildInfo();
         buildInfo.setVersion(runtimeVersion);
         buildInfo.setRevision(buildRevision);
-        buildInfo.setTimestamp(buildTimestampMillis);
-        buildInfo.setCompiler(buildJdkVendor + " " + buildJdk);
+        buildInfo.setTimestamp(parseBuildTimestampMillis(buildTimestamp));
+        buildInfo.setCompiler(buildJdk);
 
         final List<ExtensionManifestContainer> extensionsManifests = extensionManifestProvider.getExtensionManifests();
 
@@ -137,6 +126,23 @@ public class RuntimeManifestGenerator {
                     Files.write(additionalDetailsFile.toPath(), additionalDetails.getBytes(StandardCharsets.UTF_8));
                 }
             }
+        }
+    }
+
+    private long parseBuildTimestampMillis(final String buildTimestamp) {
+        if (buildTimestamp == null || buildTimestamp.isBlank()) {
+            return 0L;
+        }
+
+        // project.build.outputTimestamp may be provided as seconds since the epoch or as an ISO-8601 timestamp
+        if (buildTimestamp.chars().allMatch(Character::isDigit)) {
+            return Long.parseLong(buildTimestamp) * 1000L;
+        }
+
+        try {
+            return OffsetDateTime.parse(buildTimestamp).toInstant().toEpochMilli();
+        } catch (final DateTimeParseException e) {
+            return 0L;
         }
     }
 
