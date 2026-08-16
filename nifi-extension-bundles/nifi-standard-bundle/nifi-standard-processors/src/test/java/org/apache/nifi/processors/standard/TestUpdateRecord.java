@@ -33,6 +33,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -53,6 +54,8 @@ public class TestUpdateRecord {
     private static String personWithNameAndMother;
     private static Path multiArraysJson;
     private static String multiArraysJsonContent;
+    private static String uuidListSchema;
+    private static String uuidListSchemaChild;
     private TestRunner runner;
     private MockRecordParser readerService;
 
@@ -64,6 +67,12 @@ public class TestUpdateRecord {
         nameFieldsOnly = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc"));
         personWithNameAndMother = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc"));
         multiArraysJson = Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json");
+
+        // These schemas were generated with Claude Opus
+        uuidListSchema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/uuid-list-test-parent.avsc"));
+        uuidListSchemaChild = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/uuid-list-test-child.avsc"));
+        //
+
         multiArraysJsonContent = JsonUtil.getExpectedContent(multiArraysJson);
     }
 
@@ -881,6 +890,38 @@ public class TestUpdateRecord {
         content = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().getContent();
         assertCountMatches(content, "newCity", 9);
         runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]/city");
+    }
+
+    @Test
+    @DisplayName("Updating a field with a pattern like arrayOf(/participants[*]/user_id) caused a NPE pre-patch")
+    public void testNiFi16213() throws Exception {
+        //This referenced sample input as generated with Claude Opus
+        final String inputJson = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/input/uuid-list-test-input.json"));
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = uuidListSchema;
+        final String outputSchemaText = uuidListSchemaChild;
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES);
+        runner.enableControllerService(jsonWriter);
+
+        runner.enqueue(inputJson);
+        runner.setProperty("/participants", "arrayOf(/participants[*]/user_id)");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS);
     }
 
     private void assertCountMatches(String content, String match, int expectedCount) {
