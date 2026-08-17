@@ -35,8 +35,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
-    private int unknown = 24;
-    private int size = 2444;
+    private final int unknown = 24;
+    private final int size = 2444;
     private int stringOffset = 0;
     private String tagName = "tagName";
     private OpenStartElementNode openStartElementNode;

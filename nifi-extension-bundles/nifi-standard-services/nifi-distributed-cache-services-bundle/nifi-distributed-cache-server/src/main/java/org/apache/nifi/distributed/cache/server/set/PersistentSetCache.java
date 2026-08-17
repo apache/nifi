@@ -196,7 +196,7 @@ public class PersistentSetCache implements SetCache {
 
     private static class SerdeFactory implements SerDeFactory<SetRecord> {
 
-        private Serde serde;
+        private final Serde serde;
 
         public SerdeFactory() {
             this.serde = new Serde();

@@ -42,7 +42,7 @@ public class FlowFileRepositorySchema extends BaseSchema implements WritableSche
     private String flowFileRepository = DEFAULT_FLOWFILE_REPOSITORY_IMPLEMENTATION;
     private String checkpointInterval = DEFAULT_CHECKPOINT_INTERVAL;
     private Boolean alwaysSync = DEFAULT_ALWAYS_SYNC;
-    private SwapSchema swapProperties;
+    private final SwapSchema swapProperties;
 
     public FlowFileRepositorySchema() {
         swapProperties = new SwapSchema();

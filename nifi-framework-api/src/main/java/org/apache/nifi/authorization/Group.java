@@ -99,7 +99,7 @@ public class Group { // TODO rename to UserGroup
 
         private String identifier;
         private String name;
-        private Set<String> users = new HashSet<>();
+        private final Set<String> users = new HashSet<>();
         private final boolean fromGroup;
 
         public Builder() {

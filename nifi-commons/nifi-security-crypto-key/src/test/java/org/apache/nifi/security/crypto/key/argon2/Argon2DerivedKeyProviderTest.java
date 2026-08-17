@@ -49,7 +49,7 @@ class Argon2DerivedKeyProviderTest {
 
     private static final String SERIALIZED = String.format("%s$%s", PARAMETERS, HASH);
 
-    Base64.Decoder decoder = Base64.getDecoder();
+    final Base64.Decoder decoder = Base64.getDecoder();
 
     Argon2DerivedKeyProvider provider;
 

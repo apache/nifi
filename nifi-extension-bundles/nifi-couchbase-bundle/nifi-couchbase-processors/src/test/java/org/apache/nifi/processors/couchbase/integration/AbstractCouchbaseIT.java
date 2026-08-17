@@ -54,17 +54,17 @@ public class AbstractCouchbaseIT {
                 "age": "30"
             }""";
 
+    protected static final CouchbaseContainer CONTAINER = new CouchbaseContainer(COUCHBASE_IMAGE_COMMUNITY_RECENT).withBucket(new BucketDefinition(TEST_BUCKET_NAME));
     protected static TestRunner runner;
     private StandardCouchbaseConnectionService connectionService;
 
-    protected static CouchbaseContainer container = new CouchbaseContainer(COUCHBASE_IMAGE_COMMUNITY_RECENT).withBucket(new BucketDefinition(TEST_BUCKET_NAME));
 
     protected void initConnectionService() throws InitializationException {
         connectionService = new StandardCouchbaseConnectionService();
         runner.addControllerService(SERVICE_ID, connectionService);
-        runner.setProperty(connectionService, CONNECTION_STRING, container.getConnectionString());
-        runner.setProperty(connectionService, USERNAME, container.getUsername());
-        runner.setProperty(connectionService, PASSWORD, container.getPassword());
+        runner.setProperty(connectionService, CONNECTION_STRING, CONTAINER.getConnectionString());
+        runner.setProperty(connectionService, USERNAME, CONTAINER.getUsername());
+        runner.setProperty(connectionService, PASSWORD, CONTAINER.getPassword());
         runner.setValidateExpressionUsage(false);
         runner.enableControllerService(connectionService);
         waitForClientReady();
@@ -72,7 +72,7 @@ public class AbstractCouchbaseIT {
 
     @BeforeAll
     public static void start() {
-        container.start();
+        CONTAINER.start();
     }
 
     @AfterEach
@@ -84,7 +84,7 @@ public class AbstractCouchbaseIT {
 
     @AfterAll
     public static void stop() {
-        container.stop();
+        CONTAINER.stop();
     }
 
     private void waitForClientReady() {

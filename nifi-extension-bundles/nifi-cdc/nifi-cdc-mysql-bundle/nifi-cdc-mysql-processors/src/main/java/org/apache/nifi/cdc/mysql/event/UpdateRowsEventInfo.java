@@ -28,7 +28,7 @@ import java.util.Map;
  */
 public class UpdateRowsEventInfo extends BaseBinlogRowEventInfo<Map.Entry<Serializable[], Serializable[]>> {
 
-    private BitSet includedColumnsBeforeUpdate;
+    private final BitSet includedColumnsBeforeUpdate;
 
     public UpdateRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, Long binlogPosition, UpdateRowsEventData data) {
         super(tableInfo, UPDATE_EVENT, timestamp, binlogFilename, binlogPosition, data.getIncludedColumns(), data.getRows());

@@ -69,8 +69,8 @@ public class X509IdentityProvider implements IdentityProvider {
         }
     };
 
-    private X509PrincipalExtractor principalExtractor;
-    private X509CertificateExtractor certificateExtractor;
+    private final X509PrincipalExtractor principalExtractor;
+    private final X509CertificateExtractor certificateExtractor;
 
     @Autowired
     public X509IdentityProvider(X509PrincipalExtractor principalExtractor, X509CertificateExtractor certificateExtractor) {

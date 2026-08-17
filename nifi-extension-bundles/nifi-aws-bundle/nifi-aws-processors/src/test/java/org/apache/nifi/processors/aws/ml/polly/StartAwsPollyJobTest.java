@@ -65,7 +65,7 @@ public class StartAwsPollyJobTest {
 
     private StartAwsPollyJob processor;
 
-    private ObjectMapper objectMapper = JsonMapper.builder()
+    private final ObjectMapper objectMapper = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .build();
     @Captor

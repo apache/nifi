@@ -21,7 +21,7 @@ package org.apache.nifi.processors.mqtt.common;
  */
 public class ReceivedMqttMessage extends StandardMqttMessage {
 
-    private String topic;
+    private final String topic;
 
     public ReceivedMqttMessage(byte[] payload, int qos, boolean retained, String topic) {
         super(payload, qos, retained);

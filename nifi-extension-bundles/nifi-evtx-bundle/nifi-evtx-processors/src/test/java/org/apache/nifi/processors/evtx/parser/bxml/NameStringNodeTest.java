@@ -31,9 +31,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class NameStringNodeTest extends BxmlNodeTestBase {
-    private int nextOffset = 300;
-    private int hash = 100;
-    private String string = "test string";
+    private final int nextOffset = 300;
+    private final int hash = 100;
+    private final String string = "test string";
     private NameStringNode nameStringNode;
 
     public static int putNode(TestBinaryReaderBuilder testBinaryReaderBuilder, int nextOffset, int hash, String string) throws IOException {

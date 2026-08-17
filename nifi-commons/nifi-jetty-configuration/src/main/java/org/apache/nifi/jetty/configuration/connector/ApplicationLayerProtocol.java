@@ -24,7 +24,7 @@ public enum ApplicationLayerProtocol {
 
     H2("h2");
 
-    private String protocol;
+    private final String protocol;
 
     ApplicationLayerProtocol(final String protocol) {
         this.protocol = protocol;

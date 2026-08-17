@@ -76,11 +76,11 @@ public class AuthorizationService {
     public static final String MSG_NON_CONFIGURABLE_POLICIES = "This NiFi Registry is not configured to allow configurable policies. Please contact your system administrator.";
     public static final String MSG_NON_CONFIGURABLE_USERS = "This NiFi Registry is not configured to allow configurable users and groups. Please contact your system administrator.";
 
-    private AuthorizableLookup authorizableLookup;
-    private Authorizer authorizer;
-    private RegistryService registryService;
-    private UserGroupProvider userGroupProvider;
-    private AccessPolicyProvider accessPolicyProvider;
+    private final AuthorizableLookup authorizableLookup;
+    private final Authorizer authorizer;
+    private final RegistryService registryService;
+    private final UserGroupProvider userGroupProvider;
+    private final AccessPolicyProvider accessPolicyProvider;
 
     @Autowired
     public AuthorizationService(

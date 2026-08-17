@@ -21,9 +21,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 public class SalesforceSchemaHolder {
 
-    RecordSchema querySObjectResultSchema;
-    RecordSchema recordSchema;
-    SObjectDescription salesforceObject;
+    final RecordSchema querySObjectResultSchema;
+    final RecordSchema recordSchema;
+    final SObjectDescription salesforceObject;
 
     public SalesforceSchemaHolder(RecordSchema querySObjectResultSchema, RecordSchema recordSchema, SObjectDescription salesforceObject) {
         this.querySObjectResultSchema = querySObjectResultSchema;

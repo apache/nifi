@@ -523,7 +523,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     public void testUpsertWithOid() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
-        byte[] bytes = documentToByteArray(oidDocument);
+        byte[] bytes = documentToByteArray(OID_DOCUMENT);
 
         runner.setProperty(PutMongo.MODE, "update");
         runner.setProperty(PutMongo.UPSERT, "true");
@@ -534,13 +534,13 @@ public class PutMongoIT extends MongoWriteTestBase {
         MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
 
-        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, oidDocument.getObjectId("_id").toString());
+        out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, OID_DOCUMENT.getObjectId("_id").toString());
         out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(0));
         out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(0));
 
         // verify 1 doc inserted into the collection
         assertEquals(1, collection.countDocuments());
-        assertEquals(oidDocument, collection.find().first());
+        assertEquals(OID_DOCUMENT, collection.find().first());
     }
 
     @Test

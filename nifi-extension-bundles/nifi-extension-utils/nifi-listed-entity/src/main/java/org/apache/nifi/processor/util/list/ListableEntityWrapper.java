@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 public class ListableEntityWrapper<T> implements ListableEntity {
 
-    private T rawEntity;
+    private final T rawEntity;
     private final Function<T, String> toName;
     private final Function<T, String> toIdentifier;
     private final Function<T, Long> toTimestamp;

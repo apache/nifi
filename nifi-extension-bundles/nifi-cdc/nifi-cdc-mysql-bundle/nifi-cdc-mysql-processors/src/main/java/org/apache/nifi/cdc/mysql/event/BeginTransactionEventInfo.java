@@ -21,7 +21,7 @@ package org.apache.nifi.cdc.mysql.event;
  */
 public class BeginTransactionEventInfo extends BaseBinlogEventInfo {
 
-    private String databaseName;
+    private final String databaseName;
 
     public BeginTransactionEventInfo(String databaseName, Long timestamp, String binlogFilename, long binlogPosition) {
         super(BEGIN_EVENT, timestamp, binlogFilename, binlogPosition);

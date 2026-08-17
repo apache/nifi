@@ -24,7 +24,7 @@ public class KustoIngestQueryResponse {
 
     private boolean error;
 
-    private Map<Integer, List<String>> queryResult;
+    private final Map<Integer, List<String>> queryResult;
 
     public boolean isError() {
         return error;

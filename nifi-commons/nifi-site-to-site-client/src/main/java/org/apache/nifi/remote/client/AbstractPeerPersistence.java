@@ -33,7 +33,7 @@ public abstract class AbstractPeerPersistence implements PeerPersistence {
 
     static final String REMOTE_INSTANCE_URIS_PREFIX = "Remote Instance URIs: ";
 
-    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected PeerStatusCache restorePeerStatuses(final BufferedReader reader,
                                      long cachedTimestamp) throws IOException {

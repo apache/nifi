@@ -30,7 +30,7 @@ public class SecureClientZooKeeperFactory implements ZookeeperFactory {
 
     public static final String NETTY_CLIENT_CNXN_SOCKET = ClientCnxnSocketNetty.class.getName();
 
-    private ZKClientConfig zkSecureClientConfig;
+    private final ZKClientConfig zkSecureClientConfig;
 
     public SecureClientZooKeeperFactory(final ZooKeeperClientConfig zkConfig) {
         this.zkSecureClientConfig = new ZKClientConfig();

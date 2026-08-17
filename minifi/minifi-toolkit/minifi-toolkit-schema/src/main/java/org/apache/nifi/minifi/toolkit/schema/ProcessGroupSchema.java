@@ -46,14 +46,14 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
     public static final String ID_DEFAULT = "Root-Group";
 
     private String comment;
-    private List<ProcessorSchema> processors;
-    private List<ControllerServiceSchema> controllerServiceSchemas;
-    private List<FunnelSchema> funnels;
-    private List<ConnectionSchema> connections;
-    private List<RemoteProcessGroupSchema> remoteProcessGroups;
-    private List<ProcessGroupSchema> processGroupSchemas;
-    private List<PortSchema> inputPortSchemas;
-    private List<PortSchema> outputPortSchemas;
+    private final List<ProcessorSchema> processors;
+    private final List<ControllerServiceSchema> controllerServiceSchemas;
+    private final List<FunnelSchema> funnels;
+    private final List<ConnectionSchema> connections;
+    private final List<RemoteProcessGroupSchema> remoteProcessGroups;
+    private final List<ProcessGroupSchema> processGroupSchemas;
+    private final List<PortSchema> inputPortSchemas;
+    private final List<PortSchema> outputPortSchemas;
 
     public ProcessGroupSchema(Map map, String wrapperName) {
         super(map, wrapperName);

@@ -43,7 +43,7 @@ import javax.xml.stream.XMLStreamWriter;
  */
 public class XmlBxmlNodeVisitor implements BxmlNodeVisitor {
     private final XMLStreamWriter xmlStreamWriter;
-    private List<VariantTypeNode> substitutions;
+    private final List<VariantTypeNode> substitutions;
 
     public XmlBxmlNodeVisitor(XMLStreamWriter xmlStreamWriter, RootNode rootNode) throws IOException {
         this.xmlStreamWriter = xmlStreamWriter;

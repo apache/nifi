@@ -36,8 +36,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class PermissionsService {
 
-    private AuthorizationService authorizationService;
-    private AuthorizableLookup authorizableLookup;
+    private final AuthorizationService authorizationService;
+    private final AuthorizableLookup authorizableLookup;
 
     @Autowired
     public PermissionsService(AuthorizationService authorizationService, AuthorizableLookup authorizableLookup) {

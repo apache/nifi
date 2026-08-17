@@ -46,24 +46,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DisabledIfSystemProperty(named = "neo4j.ssl.test", matches = "true")
 public class ITNeo4JCypherExecutorNoSSL {
 
-    private static Neo4jContainer neo4jContainer = new Neo4jContainer(DockerImageName.parse(System.getProperty("neo4j.docker.image"))).withAdminPassword("testing1234");
+    private static final Neo4jContainer NEO4J_CONTAINER = new Neo4jContainer(DockerImageName.parse(System.getProperty("neo4j.docker.image"))).withAdminPassword("testing1234");
 
     protected TestRunner runner;
     protected Driver driver;
-    protected String user = "neo4j";
-    protected String password = "testing1234";
+    protected final String user = "neo4j";
+    protected final String password = "testing1234";
 
     private GraphClientService clientService;
     private static final GraphQueryResultCallback EMPTY_CALLBACK = (record, hasMore) -> { };
 
     @BeforeAll
     public static void start() {
-        neo4jContainer.start();
+        NEO4J_CONTAINER.start();
     }
 
     @AfterAll
     public static void stop() {
-        neo4jContainer.stop();
+        NEO4J_CONTAINER.stop();
     }
 
     @BeforeEach
@@ -71,11 +71,11 @@ public class ITNeo4JCypherExecutorNoSSL {
         clientService = new Neo4JCypherClientService();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", clientService);
-        runner.setProperty(clientService, Neo4JCypherClientService.CONNECTION_URL, neo4jContainer.getBoltUrl());
+        runner.setProperty(clientService, Neo4JCypherClientService.CONNECTION_URL, NEO4J_CONTAINER.getBoltUrl());
         runner.setProperty(clientService, Neo4JCypherClientService.USERNAME, user);
         runner.setProperty(clientService, Neo4JCypherClientService.PASSWORD, password);
         runner.enableControllerService(clientService);
-        driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic(user, password));
+        driver = GraphDatabase.driver(NEO4J_CONTAINER.getBoltUrl(), AuthTokens.basic(user, password));
         executeSession("match (n) detach delete n");
 
         List<Record> result = executeSession("match (n) return n");

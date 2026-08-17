@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestFlowFileAttributesSerializer {
 
-    private FlowFileAttributesSerializer serializer = new FlowFileAttributesSerializer();
+    private final FlowFileAttributesSerializer serializer = new FlowFileAttributesSerializer();
 
     @Test
     public void testBothWays() throws SerializationException, IOException {

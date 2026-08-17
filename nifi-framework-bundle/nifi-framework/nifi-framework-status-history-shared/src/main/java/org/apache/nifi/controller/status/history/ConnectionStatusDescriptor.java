@@ -84,7 +84,7 @@ public enum ConnectionStatusDescriptor {
         Formatter.DURATION,
             s -> s.getQueuedCount() == 0 ? 0L : s.getTotalQueuedDuration() / s.getQueuedCount());
 
-    private MetricDescriptor<ConnectionStatus> descriptor;
+    private final MetricDescriptor<ConnectionStatus> descriptor;
 
     ConnectionStatusDescriptor(final String field, final String label, final String description,
                               final MetricDescriptor.Formatter formatter, final ValueMapper<ConnectionStatus> valueFunction) {

@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ReflectionUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
-    private static Map<Class<?>, Map<Annotations, List<Method>>> annotationCache = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Map<Annotations, List<Method>>> ANNOTATION_CACHE = new ConcurrentHashMap<>();
 
     /**
      * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
@@ -167,7 +167,7 @@ public class ReflectionUtils {
         // This can add up to several seconds very easily.
         final Annotations annotations = new Annotations(annotationClasses);
 
-        final Map<Annotations, List<Method>> innerMap = annotationCache.get(clazz);
+        final Map<Annotations, List<Method>> innerMap = ANNOTATION_CACHE.get(clazz);
         if (innerMap != null) {
             final List<Method> methods = innerMap.get(annotations);
             if (methods != null) {
@@ -179,14 +179,14 @@ public class ReflectionUtils {
         final List<Method> methods = discoverMethodsWithAnnotations(clazz, annotationClasses);
 
         // Store the discovered methods in our cache so that they are available next time.
-        final Map<Annotations, List<Method>> discoveredInnerMap = annotationCache.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>(Collections.singletonMap(annotations, methods)));
+        final Map<Annotations, List<Method>> discoveredInnerMap = ANNOTATION_CACHE.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>(Collections.singletonMap(annotations, methods)));
         discoveredInnerMap.putIfAbsent(annotations, methods);
 
         return methods;
     }
 
     public static void invalidateCacheForClassLoader(final ClassLoader classLoader) {
-        annotationCache.keySet().removeIf((clazz -> Objects.equals(clazz.getClassLoader(), classLoader)));
+        ANNOTATION_CACHE.keySet().removeIf((clazz -> Objects.equals(clazz.getClassLoader(), classLoader)));
     }
 
     private static List<Method> discoverMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotations) {

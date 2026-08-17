@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public final class EmbeddedDatabaseManagerBuilder {
-    private SimpleEmbeddedDatabaseManagerContext context;
+    private final SimpleEmbeddedDatabaseManagerContext context;
 
     private EmbeddedDatabaseManagerBuilder(final String persistPath) {
         this.context = new SimpleEmbeddedDatabaseManagerContext();

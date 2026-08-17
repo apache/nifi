@@ -99,7 +99,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     protected ComponentLifecycle clusterComponentLifecycle;
     protected ComponentLifecycle localComponentLifecycle;
 
-    protected RequestManager<T, T> requestManager =
+    protected final RequestManager<T, T> requestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
                     "Process Group Update Thread");
 

@@ -821,7 +821,7 @@ public class TestWriteAheadFlowFileRepository {
 
     private static class TestQueueProvider implements QueueProvider {
 
-        private List<Connection> connectionList = new ArrayList<>();
+        private final List<Connection> connectionList = new ArrayList<>();
 
         public void addConnection(final Connection connection) {
             this.connectionList.add(connection);

@@ -85,7 +85,7 @@ public class StandardEvent implements Event {
     public static class Builder {
 
         private EventType eventType;
-        private List<EventField> eventFields = new ArrayList<>();
+        private final List<EventField> eventFields = new ArrayList<>();
 
         public Builder eventType(final EventType eventType) {
             this.eventType = eventType;

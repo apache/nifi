@@ -33,9 +33,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class TemplateNodeTest extends BxmlNodeTestBase {
 
-    private int nextOffset = 101;
-    private String guid = "33323130-3534-3736-3839-616263646566";
-    private int dataLength = 102;
+    private final int nextOffset = 101;
+    private final String guid = "33323130-3534-3736-3839-616263646566";
+    private final int dataLength = 102;
     private TemplateNode templateNode;
 
     public static int putNode(TestBinaryReaderBuilder testBinaryReaderBuilder, int nextOffset, String guid, int dataLength) {

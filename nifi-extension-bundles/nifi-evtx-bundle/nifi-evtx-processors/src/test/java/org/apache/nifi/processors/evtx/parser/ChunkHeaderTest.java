@@ -47,17 +47,17 @@ import static org.mockito.Mockito.mock;
 
 public class ChunkHeaderTest {
     private final Random random = new Random();
-    private int headerOffset = 101;
-    private int chunkNumber = 102;
+    private final int headerOffset = 101;
+    private final int chunkNumber = 102;
     private ChunkHeader chunkHeader;
-    private int fileFirstRecordNumber = 103;
-    private int fileLastRecordNumber = 105;
-    private int logFirstRecordNumber = 106;
-    private int logLastRecordNumber = 107;
-    private int headerSize = 112;
-    private int lastRecordOffset = 12380;
-    private int nextRecordOffset = 2380;
-    private int dataChecksum = 1111;
+    private final int fileFirstRecordNumber = 103;
+    private final int fileLastRecordNumber = 105;
+    private final int logFirstRecordNumber = 106;
+    private final int logLastRecordNumber = 107;
+    private final int headerSize = 112;
+    private final int lastRecordOffset = 12380;
+    private final int nextRecordOffset = 2380;
+    private final int dataChecksum = 1111;
     private List<String> guids;
 
     @BeforeEach

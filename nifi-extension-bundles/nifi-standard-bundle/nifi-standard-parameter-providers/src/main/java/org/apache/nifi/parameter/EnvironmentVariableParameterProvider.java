@@ -59,8 +59,8 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
         COMMA_SEPARATED(COMMA_SEPARATED_STRATEGY.getValue(), CommaSeparatedEnvironmentVariableInclusionStrategy::new),
         REGEX_STRATEGY(EnvironmentVariableParameterProvider.REGEX_STRATEGY.getValue(), RegexEnvironmentVariableInclusionStrategy::new);
 
-        private String name;
-        private Function<String, EnvironmentVariableInclusionStrategy> factoryMethod;
+        private final String name;
+        private final Function<String, EnvironmentVariableInclusionStrategy> factoryMethod;
 
         InclusionStrategyValue(final String name, final Function<String, EnvironmentVariableInclusionStrategy> factoryMethod) {
             this.name = name;

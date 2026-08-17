@@ -33,9 +33,9 @@ abstract class Padding extends RecordPathSegment {
 
     public static final String DEFAULT_PADDING_STRING = "_";
 
-    private RecordPathSegment paddingStringPath;
-    private RecordPathSegment inputStringPath;
-    private RecordPathSegment desiredLengthPath;
+    private final RecordPathSegment paddingStringPath;
+    private final RecordPathSegment inputStringPath;
+    private final RecordPathSegment desiredLengthPath;
 
     Padding(final String path,
              final RecordPathSegment parentPath,

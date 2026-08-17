@@ -34,10 +34,10 @@ import java.util.Map;
 
 public class MockRecordSinkService extends AbstractConfigurableComponent implements RecordSinkService {
 
-    private List<Map<String, Object>> rows = new ArrayList<>();
+    private final List<Map<String, Object>> rows = new ArrayList<>();
     private boolean transmitted = false;
     private boolean failWithRetryableError = false;
-    private String name;
+    private final String name;
     private int resetCount = 0;
 
     public MockRecordSinkService(String name) {

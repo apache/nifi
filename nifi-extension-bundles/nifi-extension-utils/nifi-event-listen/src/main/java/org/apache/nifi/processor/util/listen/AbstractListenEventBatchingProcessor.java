@@ -228,7 +228,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
     protected final class FlowFileEventBatch {
 
         private FlowFile flowFile;
-        private List<E> events;
+        private final List<E> events;
 
         public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
             this.flowFile = flowFile;

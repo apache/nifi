@@ -93,7 +93,7 @@ class GitFlowMetaData {
     /**
      * Bucket ID to Bucket.
      */
-    private Map<String, Bucket> buckets = new HashMap<>();
+    private final Map<String, Bucket> buckets = new HashMap<>();
 
     public void setRemoteToPush(String remoteToPush) {
         this.remoteToPush = remoteToPush;

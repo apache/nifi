@@ -91,8 +91,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private List<NodeIdentifier> nodeIds;
     private int nodePort = 4096;
 
-    private List<RepositoryRecord> repoRecords = new ArrayList<>();
-    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+    private final List<RepositoryRecord> repoRecords = new ArrayList<>();
+    private final List<ProvenanceEventRecord> provRecords = new ArrayList<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")

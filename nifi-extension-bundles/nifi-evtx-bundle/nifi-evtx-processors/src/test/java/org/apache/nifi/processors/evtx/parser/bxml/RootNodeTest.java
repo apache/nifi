@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class RootNodeTest extends BxmlNodeTestBase {
 
-    private String testString = "testString";
+    private final String testString = "testString";
     private RootNode rootNode;
 
     @Override

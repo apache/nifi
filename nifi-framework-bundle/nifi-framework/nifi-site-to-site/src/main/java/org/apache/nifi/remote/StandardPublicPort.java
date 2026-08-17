@@ -83,7 +83,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     private final boolean secure;
     private final Authorizer authorizer;
     private final List<IdentityMapping> identityMappings;
-    private TransferDirection direction;
+    private final TransferDirection direction;
 
     @SuppressWarnings("unused")
     private final BulletinRepository bulletinRepository;

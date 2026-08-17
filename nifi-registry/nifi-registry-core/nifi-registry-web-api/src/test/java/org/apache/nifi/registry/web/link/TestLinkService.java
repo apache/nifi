@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 public class TestLinkService {
 
     private static final String BASE_URI = "http://localhost:18080/nifi-registry-api";
-    private URI baseUri = UriBuilder.fromUri(BASE_URI).build();
+    private final URI baseUri = UriBuilder.fromUri(BASE_URI).build();
 
     private LinkService linkService;
 

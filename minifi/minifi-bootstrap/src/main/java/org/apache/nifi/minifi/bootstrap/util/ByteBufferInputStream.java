@@ -22,7 +22,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 public class ByteBufferInputStream extends InputStream {
-    ByteBuffer buf;
+    final ByteBuffer buf;
 
     public ByteBufferInputStream(ByteBuffer buf) {
         this.buf = buf;

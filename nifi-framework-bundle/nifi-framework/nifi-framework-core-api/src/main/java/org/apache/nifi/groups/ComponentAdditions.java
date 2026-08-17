@@ -30,15 +30,15 @@ import java.util.Set;
 
 public class ComponentAdditions {
 
-    private Set<ProcessGroup> processGroups;
-    private Set<RemoteProcessGroup> remoteProcessGroups;
-    private Set<ProcessorNode> processors;
-    private Set<Port> inputPorts;
-    private Set<Port> outputPorts;
-    private Set<Connection> connections;
-    private Set<Label> labels;
-    private Set<Funnel> funnels;
-    private Set<ControllerServiceNode> controllerServices;
+    private final Set<ProcessGroup> processGroups;
+    private final Set<RemoteProcessGroup> remoteProcessGroups;
+    private final Set<ProcessorNode> processors;
+    private final Set<Port> inputPorts;
+    private final Set<Port> outputPorts;
+    private final Set<Connection> connections;
+    private final Set<Label> labels;
+    private final Set<Funnel> funnels;
+    private final Set<ControllerServiceNode> controllerServices;
 
     private ComponentAdditions(final Builder builder) {
         this.processGroups = Collections.unmodifiableSet(builder.processGroups);
@@ -89,15 +89,15 @@ public class ComponentAdditions {
     }
 
     public static class Builder {
-        private Set<ProcessGroup> processGroups = new HashSet<>();
-        private Set<RemoteProcessGroup> remoteProcessGroups = new HashSet<>();
-        private Set<ProcessorNode> processors = new HashSet<>();
-        private Set<Port> inputPorts = new HashSet<>();
-        private Set<Port> outputPorts = new HashSet<>();
-        private Set<Connection> connections = new HashSet<>();
-        private Set<Label> labels = new HashSet<>();
-        private Set<Funnel> funnels = new HashSet<>();
-        private Set<ControllerServiceNode> controllerServices = new HashSet<>();
+        private final Set<ProcessGroup> processGroups = new HashSet<>();
+        private final Set<RemoteProcessGroup> remoteProcessGroups = new HashSet<>();
+        private final Set<ProcessorNode> processors = new HashSet<>();
+        private final Set<Port> inputPorts = new HashSet<>();
+        private final Set<Port> outputPorts = new HashSet<>();
+        private final Set<Connection> connections = new HashSet<>();
+        private final Set<Label> labels = new HashSet<>();
+        private final Set<Funnel> funnels = new HashSet<>();
+        private final Set<ControllerServiceNode> controllerServices = new HashSet<>();
 
         public Builder addProcessGroup(ProcessGroup processGroup) {
             this.processGroups.add(processGroup);

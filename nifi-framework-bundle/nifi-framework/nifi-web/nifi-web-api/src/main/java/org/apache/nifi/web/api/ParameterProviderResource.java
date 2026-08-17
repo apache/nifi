@@ -149,10 +149,10 @@ public class ParameterProviderResource extends AbstractParameterResource {
     private ParameterUpdateManager parameterUpdateManager;
 
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
-    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+    private final RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Parameter Provider Config Thread");
 
-    private RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager =
+    private final RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Provider Apply Thread");
 
     private ComponentLifecycle clusterComponentLifecycle;

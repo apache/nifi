@@ -33,7 +33,7 @@ public class DatabaseProfileValueSource implements ProfileValueSource {
     private static final String POSTGRES = "postgres";
     private static final String H2 = "h2";
 
-    private String currentDatabase;
+    private final String currentDatabase;
 
     DatabaseProfileValueSource() {
         currentDatabase = resolveCurrentDatabase();

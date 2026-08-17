@@ -1385,7 +1385,7 @@ public class CaptureChangeMySQLTest {
             this.mockConnection = mockConnection;
         }
 
-        Map<TableInfoCacheKey, TableInfo> cache = new HashMap<>();
+        final Map<TableInfoCacheKey, TableInfo> cache = new HashMap<>();
 
         @Override
         protected BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
