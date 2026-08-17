@@ -20,6 +20,7 @@ package org.apache.nifi.processors.mqtt.common;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,12 +30,16 @@ public class MqttTestClient implements MqttClient {
 
     public AtomicBoolean connected = new AtomicBoolean(false);
 
+    public AtomicBoolean closed = new AtomicBoolean(false);
+
+    // Allows simulating a broker rejecting the SUBSCRIBE after the client has already connected.
+    public RuntimeException subscribeException;
+
     public ConnectType type;
 
     public enum ConnectType { Publisher, Subscriber }
 
-    public String subscribedTopic;
-    public int subscribedQos;
+    public List<MqttTopicSubscription> subscriptions;
     public ReceivedMqttMessageHandler receivedMqttMessageHandler;
     public MqttTestClient(ConnectType type) {
         this.type = type;
@@ -57,7 +62,7 @@ public class MqttTestClient implements MqttClient {
 
     @Override
     public void close() {
-
+        closed.set(true);
     }
 
     @Override
@@ -73,10 +78,12 @@ public class MqttTestClient implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
-        subscribedTopic = topicFilter;
-        subscribedQos = qos;
+    public void subscribe(List<MqttTopicSubscription> subscriptions, ReceivedMqttMessageHandler handler) {
+        this.subscriptions = subscriptions;
         receivedMqttMessageHandler = handler;
+        if (subscribeException != null) {
+            throw subscribeException;
+        }
     }
 
     public Pair<String, StandardMqttMessage> getLastPublished() {

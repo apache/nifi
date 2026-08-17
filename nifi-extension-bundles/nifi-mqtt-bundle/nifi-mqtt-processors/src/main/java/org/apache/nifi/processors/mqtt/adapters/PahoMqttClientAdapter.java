@@ -20,23 +20,31 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
+import org.apache.nifi.processors.mqtt.common.MqttTopicSubscription;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class PahoMqttClientAdapter implements MqttClient {
 
     public static final int DISCONNECT_TIMEOUT = 5000;
+
+    // MQTT SUBACK reason code indicating the broker rejected the requested subscription, for example due to an ACL
+    // denial. Paho does not surface this as an error on its own, so the granted QoS array has to be checked here.
+    private static final int SUBACK_FAILURE_CODE = 0x80;
 
     private final IMqttClient client;
     private final MqttClientProperties clientProperties;
@@ -44,6 +52,14 @@ public class PahoMqttClientAdapter implements MqttClient {
 
     public PahoMqttClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {
         this.client = createClient(brokerUri, clientProperties, logger);
+        this.clientProperties = clientProperties;
+        this.logger = logger;
+        client.setCallback(new DefaultMqttCallback());
+    }
+
+    // Package-private constructor for injecting a test double for the underlying Paho client.
+    PahoMqttClientAdapter(IMqttClient client, MqttClientProperties clientProperties, ComponentLog logger) {
+        this.client = client;
         this.clientProperties = clientProperties;
         this.logger = logger;
         client.setCallback(new DefaultMqttCallback());
@@ -123,15 +139,28 @@ public class PahoMqttClientAdapter implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
-        logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
+    public void subscribe(List<MqttTopicSubscription> subscriptions, ReceivedMqttMessageHandler handler) {
+        final String[] topicFilters = subscriptions.stream().map(MqttTopicSubscription::topicFilter).toArray(String[]::new);
+        final int[] qosLevels = subscriptions.stream().mapToInt(MqttTopicSubscription::qos).toArray();
+
+        logger.debug("Subscribing to {} with QoS: {}", Arrays.toString(topicFilters), Arrays.toString(qosLevels));
 
         client.setCallback(new ConsumerMqttCallback(handler));
 
         try {
-            client.subscribe(topicFilter, qos);
+            final IMqttToken token = client.subscribeWithResponse(topicFilters, qosLevels);
+            final int[] grantedQos = token.getGrantedQos();
+            final List<String> failedTopicFilters = new ArrayList<>();
+            for (int i = 0; i < grantedQos.length; i++) {
+                if (grantedQos[i] == SUBACK_FAILURE_CODE) {
+                    failedTopicFilters.add(topicFilters[i]);
+                }
+            }
+            if (!failedTopicFilters.isEmpty()) {
+                throw new MqttException("Broker rejected subscription for the following topic filter(s): " + failedTopicFilters);
+            }
         } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
-            throw new MqttException("An error has occurred during subscribing to " + topicFilter + " with QoS: " + qos, e);
+            throw new MqttException("An error has occurred during subscribing to " + Arrays.toString(topicFilters) + " with QoS: " + Arrays.toString(qosLevels), e);
         }
     }
 

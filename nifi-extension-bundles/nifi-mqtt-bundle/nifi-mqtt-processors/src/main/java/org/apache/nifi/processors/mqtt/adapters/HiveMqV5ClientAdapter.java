@@ -22,12 +22,16 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscription;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.MqttProtocolScheme;
+import org.apache.nifi.processors.mqtt.common.MqttTopicSubscription;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
@@ -36,10 +40,13 @@ import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -57,6 +64,13 @@ public class HiveMqV5ClientAdapter implements MqttClient {
 
     public HiveMqV5ClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
         this.mqtt5BlockingClient = createClient(brokerUri, clientProperties, logger);
+        this.clientProperties = clientProperties;
+        this.logger = logger;
+    }
+
+    // Package-private constructor for injecting a test double for the underlying HiveMQ client.
+    HiveMqV5ClientAdapter(Mqtt5BlockingClient mqtt5BlockingClient, MqttClientProperties clientProperties, ComponentLog logger) {
+        this.mqtt5BlockingClient = mqtt5BlockingClient;
         this.clientProperties = clientProperties;
         this.logger = logger;
     }
@@ -127,29 +141,50 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
-        logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
+    public void subscribe(List<MqttTopicSubscription> subscriptions, ReceivedMqttMessageHandler handler) {
+        logger.debug("Subscribing to {}", subscriptions);
 
-        CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
-                .topicFilter(topicFilter)
-                .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
-                .callback(mqtt5Publish -> {
-                    final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(
-                            mqtt5Publish.getPayloadAsBytes(),
-                            mqtt5Publish.getQos().getCode(),
-                            mqtt5Publish.isRetain(),
-                            mqtt5Publish.getTopic().toString());
-                    handler.handleReceivedMessage(receivedMessage);
-                })
-                .send();
+        final List<Mqtt5Subscription> mqtt5Subscriptions = subscriptions.stream()
+                .map(subscription -> Mqtt5Subscription.builder()
+                        .topicFilter(subscription.topicFilter())
+                        .qos(Objects.requireNonNull(MqttQos.fromCode(subscription.qos())))
+                        .build())
+                .collect(Collectors.toList());
 
-        // Setting "listener" callback is only possible with async client, though sending subscribe message
-        // should happen in a blocking way to make sure the processor is blocked until ack is not arrived.
+        final Mqtt5Subscribe mqtt5Subscribe = Mqtt5Subscribe.builder()
+                .addSubscriptions(mqtt5Subscriptions)
+                .build();
+
+        // Setting the "listener" callback is only possible with the async client, though sending the subscribe
+        // message should happen in a blocking way to make sure the processor is blocked until the ack arrives.
+        final CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribe(mqtt5Subscribe, mqtt5Publish -> {
+            final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(
+                    mqtt5Publish.getPayloadAsBytes(),
+                    mqtt5Publish.getQos().getCode(),
+                    mqtt5Publish.isRetain(),
+                    mqtt5Publish.getTopic().toString());
+            handler.handleReceivedMessage(receivedMessage);
+        });
+
+        final Mqtt5SubAck ack;
         try {
-            final Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
-            logger.debug("Received mqtt5 subscribe ack: {}", ack);
+            ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
         } catch (Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);
+        }
+        logger.debug("Received mqtt5 subscribe ack: {}", ack);
+
+        // A SUBACK carries one reason code per requested Topic Filter, in the order they were sent, so a subscription
+        // can be rejected individually, for example due to an ACL denial, while the others are granted.
+        final List<Mqtt5SubAckReasonCode> reasonCodes = ack.getReasonCodes();
+        final List<String> failedTopicFilters = new ArrayList<>();
+        for (int i = 0; i < reasonCodes.size() && i < subscriptions.size(); i++) {
+            if (reasonCodes.get(i).isError()) {
+                failedTopicFilters.add(subscriptions.get(i).topicFilter() + " (" + reasonCodes.get(i) + ")");
+            }
+        }
+        if (!failedTopicFilters.isEmpty()) {
+            throw new MqttException("Broker rejected subscription for the following topic filter(s): " + failedTopicFilters);
         }
     }
 
