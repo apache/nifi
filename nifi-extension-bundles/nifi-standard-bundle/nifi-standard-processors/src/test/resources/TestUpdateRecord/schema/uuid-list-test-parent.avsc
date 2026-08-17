@@ -1,0 +1,38 @@
+{
+  "type": "record",
+  "name": "IngestedChatMessage",
+  "namespace": "com.example.chat",
+  "fields": [
+
+    {
+      "name": "chat_name",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "participants",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Participant",
+          "doc": "One chat member and when they joined.",
+          "fields": [
+            {
+              "name": "user_id",
+              "type": { "type": "string", "logicalType": "uuid" }
+            },
+            {
+              "name": "authenticator",
+              "type": "string"
+            },
+            {
+              "name": "principal",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
