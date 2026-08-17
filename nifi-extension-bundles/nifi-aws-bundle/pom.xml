@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <guava.version>33.6.0-jre</guava.version>
+        <guava.version>33.7.0-jre</guava.version>
         <protobuf.version>4.35.1</protobuf.version>
     </properties>
 
