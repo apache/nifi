@@ -137,7 +137,7 @@
                                 }
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
                                     @if (canGoToParameter(item)) {
-                                        <button mat-menu-item [routerLink]="getParameterLink(item)">
+                                        <button aria-label="Go to" mat-menu-item (click)="goToParameterClicked(item)">
                                             <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                             Go to
                                         </button>
@@ -171,6 +171,7 @@
                         *matRowDef="let row; let even = even; columns: displayedColumns"
                         (click)="selectParameter(row)"
                         (dblclick)="doubleClicked(row)"
+                        [attr.data-parameter-name]="row.originalEntity.parameter.name"
                         [class.selected]="isSelected(row)"
                         [class.even]="even"></tr>
                 </table>

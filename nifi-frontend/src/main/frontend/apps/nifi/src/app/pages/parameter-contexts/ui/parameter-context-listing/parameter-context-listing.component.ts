@@ -17,6 +17,7 @@
 
 import { Component, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
+import { Router } from '@angular/router';
 import { ParameterContextListingState } from '../../state/parameter-context-listing';
 import {
     selectContext,
@@ -52,6 +53,7 @@ import { ParameterContextTable } from './parameter-context-table/parameter-conte
 })
 export class ParameterContextListing implements OnInit {
     private store = inject<Store<ParameterContextListingState>>(Store);
+    private router = inject(Router);
 
     parameterContextListingState$ = this.store.select(selectParameterContextListingState);
     selectedParameterContextId$ = this.store.select(selectParameterContextIdFromRoute);
@@ -73,10 +75,14 @@ export class ParameterContextListing implements OnInit {
             )
             .subscribe((entity) => {
                 if (entity) {
+                    const highlightedParameterName = this.router.lastSuccessfulNavigation()?.extras?.state?.[
+                        'highlightedParameterName'
+                    ] as string | undefined;
                     this.store.dispatch(
                         getEffectiveParameterContextAndOpenDialog({
                             request: {
-                                id: entity.id
+                                id: entity.id,
+                                highlightedParameterName
                             }
                         })
                     );

@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
-import { ParameterContextEntity, ParameterContextUpdateRequestEntity } from '../../../../state/shared';
+import {
+    ParameterContextEntity,
+    ParameterContextUpdateRequestEntity,
+    PostUpdateNavigationState
+} from '../../../../state/shared';
 
 export const parameterContextListingFeatureKey = 'parameterContextListing';
 
@@ -34,10 +38,12 @@ export interface CreateParameterContextSuccess {
 
 export interface GetEffectiveParameterContext {
     id: string;
+    highlightedParameterName?: string;
 }
 
 export interface EditParameterContextRequest {
     parameterContext?: ParameterContextEntity;
+    highlightedParameterName?: string;
 }
 
 export interface DeleteParameterContextRequest {
@@ -56,6 +62,9 @@ export interface ParameterContextListingState {
     parameterContexts: ParameterContextEntity[];
     updateRequestEntity: ParameterContextUpdateRequestEntity | null;
     updateRequestParameterContextId: string | null;
+    postUpdateNavigation: string[] | null;
+    postUpdateNavigationBoundary: string[] | null;
+    postUpdateNavigationState: PostUpdateNavigationState | null;
     saving: boolean;
     loadedTimestamp: string;
     deleteUpdateRequestInitiated: boolean;
