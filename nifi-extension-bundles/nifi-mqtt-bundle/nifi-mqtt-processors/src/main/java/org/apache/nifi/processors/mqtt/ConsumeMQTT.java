@@ -45,6 +45,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MqttException;
+import org.apache.nifi.processors.mqtt.common.MqttTopicSubscription;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -67,6 +68,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,6 +78,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_DUPLICATE_ATTRIBUTE_KEY;
@@ -133,7 +137,10 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
 
     public static final PropertyDescriptor PROP_TOPIC_FILTER = new PropertyDescriptor.Builder()
             .name("Topic Filter")
-            .description("The MQTT topic filter to designate the topics to subscribe to.")
+            .description("The MQTT topic filter to designate the topics to subscribe to. More than one can be supplied if comma separated, in which case a single SUBSCRIBE request "
+                    + "listing every filter is sent to the broker, avoiding the need for a separate processor and broker connection per topic. A value without a comma is used as a "
+                    + "single topic filter exactly as configured, while the entries of a comma separated value are trimmed. Because MQTT topic filters may legally contain a comma, "
+                    + "a Topic Filter containing one is interpreted as multiple filters; this is a rare edge case but should be kept in mind.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -192,6 +199,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
     private volatile int qos;
     private volatile String topicPrefix = "";
     private volatile String topicFilter;
+    private volatile List<MqttTopicSubscription> topicSubscriptions = List.of();
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
 
     private volatile BlockingQueue<ReceivedMqttMessage> mqttQueue;
@@ -288,6 +296,27 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
                     .build());
         }
 
+        final String rawTopicFilter = context.getProperty(PROP_TOPIC_FILTER).evaluateAttributeExpressions().getValue();
+        if (rawTopicFilter != null) {
+            final List<String> topicFilters = parseTopicFilters(rawTopicFilter);
+            if (topicFilters.isEmpty()) {
+                results.add(new ValidationResult.Builder()
+                        .subject(PROP_TOPIC_FILTER.getDisplayName())
+                        .valid(false)
+                        .explanation("at least one non-blank Topic Filter must be provided.")
+                        .build());
+            } else {
+                final Set<String> uniqueTopicFilters = new HashSet<>(topicFilters);
+                if (uniqueTopicFilters.size() != topicFilters.size()) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(PROP_TOPIC_FILTER.getDisplayName())
+                            .valid(false)
+                            .explanation("duplicate Topic Filters are not allowed: " + topicFilters)
+                            .build());
+                }
+            }
+        }
+
         return results;
     }
 
@@ -318,6 +347,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         } else {
             topicPrefix = "";
         }
+
+        // The shared subscription prefix applies to an individual Topic Filter, so it has to be added to each of them
+        // separately rather than to the configured, potentially comma separated, value as a whole.
+        topicSubscriptions = new LinkedHashSet<>(parseTopicFilters(topicFilter)).stream()
+                .map(filter -> new MqttTopicSubscription(topicPrefix + filter, qos))
+                .collect(Collectors.toList());
 
         scheduled.set(true);
     }
@@ -389,12 +424,37 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         try {
             mqttClient = createMqttClient();
             mqttClient.connect();
-            mqttClient.subscribe(topicPrefix + topicFilter, qos, this::handleReceivedMessage);
+            mqttClient.subscribe(topicSubscriptions, this::handleReceivedMessage);
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
-            mqttClient = null; // prevent stuck processor when subscribe fails
+            // A SUBSCRIBE carrying several Topic Filters can be granted partially, so the client may be connected and
+            // subscribed even though subscribe() failed. Disconnecting and closing it, rather than only dropping the
+            // reference, prevents an orphaned client from holding a broker connection and feeding the internal queue.
+            stopClient();
             context.yield();
         }
+    }
+
+    /**
+     * Splits the configured Topic Filter property, which may contain a comma-separated list of topic filters, into
+     * a list of non-blank topic filters, preserving duplicates so that {@link #customValidate(ValidationContext)} can
+     * flag them. A value without a comma is a single topic filter and is used verbatim, so existing configurations
+     * behave identically. Only the segments of a comma-separated value are trimmed, because leading and trailing
+     * whitespace is significant in an MQTT topic filter and trimming is merely a convenience for writing a list.
+     */
+    private static List<String> parseTopicFilters(final String rawTopicFilters) {
+        if (rawTopicFilters.indexOf(',') < 0) {
+            return List.of(rawTopicFilters);
+        }
+
+        final List<String> topicFilters = new ArrayList<>();
+        for (final String topicFilter : rawTopicFilters.split(",", -1)) {
+            final String trimmedTopicFilter = topicFilter.trim();
+            if (!trimmedTopicFilter.isEmpty()) {
+                topicFilters.add(trimmedTopicFilter);
+            }
+        }
+        return topicFilters;
     }
 
     private void transferQueue(ProcessSession session) {
@@ -430,7 +490,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             }
         });
 
-        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(topicPrefix, topicFilter));
+        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(getSubscribedTopicsForProvenance()));
         session.transfer(messageFlowfile, REL_MESSAGE);
         session.commitAsync();
     }
@@ -607,7 +667,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         }
 
         session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().receive(flowFile, getTransitUri(topicPrefix, topicFilter));
+        session.getProvenanceReporter().receive(flowFile, getTransitUri(getSubscribedTopicsForProvenance()));
         session.transfer(flowFile, REL_MESSAGE);
 
         final int count = recordCount.get();
@@ -643,6 +703,18 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             stringBuilder.append(append);
         }
         return stringBuilder.toString();
+    }
+
+    /**
+     * Returns the subscribed topic filters, including the shared subscription prefix if any, as a single comma
+     * separated value. A FlowFile produced by the demarcator or record based code paths may aggregate messages of
+     * several topics, so the individual topic of a message cannot be used for those. For a single Topic Filter this
+     * returns exactly the previously reported value.
+     */
+    private String getSubscribedTopicsForProvenance() {
+        return topicSubscriptions.stream()
+                .map(MqttTopicSubscription::topicFilter)
+                .collect(Collectors.joining(","));
     }
 
     private void handleReceivedMessage(ReceivedMqttMessage message) {
