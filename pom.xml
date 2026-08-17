@@ -165,7 +165,7 @@
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
-        <groovy.version>5.0.8</groovy.version>
+        <groovy.version>5.1.0</groovy.version>
         <kotlin.version>2.4.10</kotlin.version>
 
         <!-- Logging and observability -->
