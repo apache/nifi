@@ -71,6 +71,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
+import org.apache.nifi.components.validation.ParallelTriggerValidationTask;
 import org.apache.nifi.components.validation.TriggerValidationTask;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -1515,7 +1516,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             if (flowAnalyzer != null) {
                 new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier).run();
             }
-            final TriggerValidationTask initialValidationTask = new TriggerValidationTask(flowManager, triggerIfValidating, validationThreadPool);
+            final ParallelTriggerValidationTask initialValidationTask = new ParallelTriggerValidationTask(flowManager, triggerIfValidating, validationThreadPool);
             initialValidationTask.run();
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
