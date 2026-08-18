@@ -23,8 +23,12 @@ import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.RequestConfig;
+import org.glassfish.jersey.media.multipart.ContentDisposition;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -139,18 +143,41 @@ public class AbstractJerseyClient {
         if (StringUtils.isBlank(contentDispositionHeader)) {
             throw new IllegalStateException("Content-Disposition header was blank or missing");
         }
-
-        final int equalsIndex = contentDispositionHeader.lastIndexOf("=");
-        final String filenameValue = contentDispositionHeader.substring(equalsIndex + 1).trim();
-
-        final StringBuilder filename = new StringBuilder(filenameValue);
-        if (!filename.isEmpty() && filename.charAt(0) == '"') {
-            filename.deleteCharAt(0);
+        if (contentDispositionHeader.indexOf('\\') >= 0) {
+            throw new IllegalStateException("Content-Disposition filename was invalid");
         }
-        if (!filename.isEmpty() && filename.charAt(filename.length() - 1) == '"') {
-            filename.setLength(filename.length() - 1);
+
+        final String filename;
+        try {
+            final String normalizedHeader = contentDispositionHeader.replaceFirst("(?i);\\s*filename\\s*=\\s*", "; filename=");
+            filename = new ContentDisposition(normalizedHeader).getFileName();
+        } catch (final ParseException e) {
+            throw new IllegalStateException("Content-Disposition header was invalid", e);
         }
-        return filename.toString();
+
+        if (StringUtils.isBlank(filename) || filename.equals(".") || filename.equals("..")
+                || filename.indexOf('/') >= 0 || filename.indexOf('\\') >= 0
+                || filename.chars().anyMatch(character -> Character.isISOControl(character))) {
+            throw new IllegalStateException("Content-Disposition filename was invalid");
+        }
+        return filename;
+    }
+
+    protected File getContentDispositionFile(final Response response, final File outputDirectory) {
+        final String filename = getContentDispositionFilename(response);
+        final Path outputPath = outputDirectory.toPath().toAbsolutePath().normalize();
+        final Path filenamePath;
+        try {
+            filenamePath = Path.of(filename);
+        } catch (final RuntimeException e) {
+            throw new IllegalStateException("Content-Disposition filename was invalid", e);
+        }
+
+        final Path destinationPath = outputPath.resolve(filenamePath).normalize();
+        if (filenamePath.isAbsolute() || filenamePath.getNameCount() != 1 || !outputPath.equals(destinationPath.getParent())) {
+            throw new IllegalStateException("Content-Disposition filename was invalid");
+        }
+        return destinationPath.toFile();
     }
 
 }

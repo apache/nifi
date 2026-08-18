@@ -744,8 +744,7 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 .accept(MediaType.APPLICATION_OCTET_STREAM_TYPE)
                 .get();
 
-            final String filename = getContentDispositionFilename(response);
-            final File assetFile = new File(outputDirectory, filename);
+            final File assetFile = getContentDispositionFile(response, outputDirectory);
 
             try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
                 Files.copy(responseInputStream, assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
