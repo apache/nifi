@@ -215,9 +215,12 @@
         <checkstyle.version>13.11.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
-        <!-- Default baseline: provides a safe JVM flag so the variable is never null -->
-        <argLine>-ea</argLine>
-        <mockitoArgLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</mockitoArgLine>
+        <!-- Define the CI/CD properties with a baseline default
+             This stops Maven from breaking if they aren't provided -->
+        <user.language>en</user.language>
+        <user.country>US</user.country>
+        <user.region>US</user.region>
+        <user.timezone>America/New_York</user.timezone>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -734,8 +737,15 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <!-- Configure mockito-core as Java Agent to enable explicit attachment to processes -->
-                        <argLine>${argLine} ${mockitoArgLine}</argLine>
+                        <!-- Explicitly tie the properties together inside the fork line and
+                            configure mockito-core as a Java Agent to enable explicit attachment to processes. -->
+                        <argLine>
+                            -Duser.language=${user.language}
+                            -Duser.country=${user.country}
+                            -Duser.region=${user.region}
+                            -Duser.timezone=${user.timezone}
+                            -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        </argLine>
                     </configuration>
                 </plugin>
                 <plugin>
