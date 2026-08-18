@@ -317,6 +317,184 @@ describe('SearchableSelect', () => {
             expect(component['_activeOptionIndex']).toBe(-1);
             expect(component['_isNavigating']).toBe(false);
         });
+
+        it('should scroll and select ungrouped options via keyboard navigation', async () => {
+            const mockOptions: SearchableSelectOption<string>[] = [
+                { value: 'one', label: 'one test' },
+                { value: 'two', label: 'two test' },
+                { value: 'three', label: 'three test' }
+            ];
+            const { component, fixture } = await setup({ options: mockOptions });
+            const onChange = vi.fn();
+            component.registerOnChange(onChange);
+            const scrollSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(vi.fn());
+
+            component.selectionPanelToggled(true);
+            component.select().open();
+            fixture.detectChanges();
+            await new Promise((r) => setTimeout(r, 0));
+            fixture.detectChanges();
+
+            const navEvent = (key: string) =>
+                ({
+                    key,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn(),
+                    stopImmediatePropagation: vi.fn()
+                }) as unknown as KeyboardEvent;
+
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+            expect(document.getElementById(component.activeOptionId)).toBeTruthy();
+            expect(scrollSpy).toHaveBeenCalled();
+
+            component.onSearchInputKeydown(navEvent('Enter'));
+            fixture.detectChanges();
+
+            expect(onChange).toHaveBeenCalledWith('two');
+
+            scrollSpy.mockRestore();
+        });
+
+        it('should resolve activeOptionId for the first visible option when earlier options are filtered out', async () => {
+            const mockOptions: SearchableSelectOption<string>[] = [
+                { value: 'alpha', label: 'alpha option' },
+                { value: 'beta', label: 'beta option' },
+                { value: 'gamma', label: 'gamma option' }
+            ];
+            const { component, fixture } = await setup({ options: mockOptions, searchString: 'beta' });
+            const onChange = vi.fn();
+            component.registerOnChange(onChange);
+
+            component.selectionPanelToggled(true);
+            component.select().open();
+            fixture.detectChanges();
+            await new Promise((r) => setTimeout(r, 0));
+            fixture.detectChanges();
+
+            const navEvent = (key: string) =>
+                ({
+                    key,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn(),
+                    stopImmediatePropagation: vi.fn()
+                }) as unknown as KeyboardEvent;
+
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+
+            const activeElement = document.getElementById(component.activeOptionId);
+            expect(activeElement).toBeTruthy();
+            expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('beta');
+
+            // Enter must select the visible (non-hidden) option, not a filtered-out one
+            component.onSearchInputKeydown(navEvent('Enter'));
+            fixture.detectChanges();
+            expect(onChange).toHaveBeenCalledWith('beta');
+        });
+
+        it('should not leave the value-change permission flag armed when no option resolves', async () => {
+            const mockOptions: SearchableSelectOption<string>[] = [
+                { value: 'one', label: 'one test' },
+                { value: 'two', label: 'two test' }
+            ];
+            const { component, fixture } = await setup({ options: mockOptions });
+            const onChange = vi.fn();
+            component.registerOnChange(onChange);
+
+            component.selectionPanelToggled(true);
+            component.select().open();
+            fixture.detectChanges();
+            await new Promise((r) => setTimeout(r, 0));
+            fixture.detectChanges();
+
+            // Simulate handleEnterKey arming the flag, then a toggle that resolves nothing
+            // (value not present in the rendered options).
+            component['_allowNextValueChange'] = true;
+            component['toggleOption']('does-not-exist' as unknown as string);
+
+            expect(onChange).not.toHaveBeenCalled();
+            expect(component['_allowNextValueChange']).toBe(false);
+        });
+
+        it('should not accept closed-panel arrow auto-select after Enter on the already-selected option', async () => {
+            // Re-selecting the current value emits no mat-select valueChange, so onValueChanged
+            // never consumes _allowNextValueChange. handleEnterKey must disarm the flag; otherwise
+            // the next closed-panel Material arrow auto-selection is ACCEPTed once.
+            const mockOptions: SearchableSelectOption<string>[] = [
+                { value: 'one', label: 'one test' },
+                { value: 'two', label: 'two test' },
+                { value: 'three', label: 'three test' }
+            ];
+            const { component, fixture } = await setup({ options: mockOptions });
+            const onChange = vi.fn();
+            component.registerOnChange(onChange);
+
+            const navEvent = (key: string) =>
+                ({
+                    key,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn(),
+                    stopImmediatePropagation: vi.fn()
+                }) as unknown as KeyboardEvent;
+
+            const openPanel = async () => {
+                component.selectionPanelToggled(true);
+                component.select().open();
+                fixture.detectChanges();
+                await new Promise((r) => setTimeout(r, 0));
+                fixture.detectChanges();
+            };
+
+            // Select "two"
+            await openPanel();
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+            expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('two');
+            component.onSearchInputKeydown(navEvent('Enter'));
+            fixture.detectChanges();
+            expect(onChange).toHaveBeenCalledWith('two');
+            expect(component['_lastIntentionalValue']).toBe('two');
+
+            // Re-open and Enter on the same already-selected option
+            await openPanel();
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+            component.onSearchInputKeydown(navEvent('ArrowDown'));
+            expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('two');
+            component.onSearchInputKeydown(navEvent('Enter'));
+            fixture.detectChanges();
+
+            expect(component['_allowNextValueChange']).toBe(false);
+
+            // Panel close must also leave the permission flag disarmed (defense in depth)
+            component.select().close();
+            component.selectionPanelToggled(false);
+            fixture.detectChanges();
+            expect(component.select().panelOpen).toBe(false);
+            expect(component['_allowNextValueChange']).toBe(false);
+
+            // Simulate Material closed-panel arrow auto-select of an adjacent value
+            const writeValueSpy = vi.spyOn(component.select(), 'writeValue');
+            component.onValueChanged('three');
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(onChange).not.toHaveBeenCalledWith('three');
+            expect(component['_lastIntentionalValue']).toBe('two');
+            expect(writeValueSpy).toHaveBeenCalledWith('two');
+        });
+
+        it('should clear the value-change permission flag when the panel closes', async () => {
+            const { component, fixture } = await setup();
+
+            component.selectionPanelToggled(true);
+            component.select().open();
+            fixture.detectChanges();
+
+            component['_allowNextValueChange'] = true;
+            component.selectionPanelToggled(false);
+            fixture.detectChanges();
+
+            expect(component['_allowNextValueChange']).toBe(false);
+        });
     });
 
     describe('Focus Management', () => {
@@ -1204,6 +1382,183 @@ describe('SearchableSelect', () => {
             });
         });
 
+        describe('Keyboard navigation with async option batches', () => {
+            const batchA: SearchableSelectOption<string>[] = [
+                { value: 'a1', label: 'Alpha One' },
+                { value: 'a2', label: 'Alpha Two' },
+                { value: 'a3', label: 'Alpha Three' }
+            ];
+            const batchB: SearchableSelectOption<string>[] = [
+                { value: 'b1', label: 'Beta One' },
+                { value: 'b2', label: 'Beta Two' }
+            ];
+
+            function createNavKeyEvent(key: string): KeyboardEvent {
+                return {
+                    key,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn(),
+                    stopImmediatePropagation: vi.fn()
+                } as unknown as KeyboardEvent;
+            }
+
+            async function openAsyncPanel(
+                fixture: Awaited<ReturnType<typeof setup>>['fixture'],
+                component: Awaited<ReturnType<typeof setup>>['component'],
+                options: SearchableSelectOption<string>[]
+            ) {
+                fixture.componentRef.setInput('asyncSearchEnabled', true);
+                fixture.componentRef.setInput('options', options);
+                fixture.detectChanges();
+
+                component.selectionPanelToggled(true);
+                component.select().open();
+                fixture.detectChanges();
+                await new Promise((r) => setTimeout(r, 0));
+                fixture.detectChanges();
+            }
+
+            it('should clear navigation state and activeOptionRef when a new options batch arrives', async () => {
+                const { component, fixture } = await setup({ options: batchA });
+                await openAsyncPanel(fixture, component, batchA);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['_activeOptionIndex']).toBe(1);
+                expect(component['_isNavigating']).toBe(true);
+                expect(document.getElementById(component.activeOptionId)).toBeTruthy();
+
+                // Simulate remote search results replacing the batch
+                fixture.componentRef.setInput('options', batchB);
+                fixture.detectChanges();
+
+                expect(component['_activeOptionIndex']).toBe(-1);
+                expect(component['_isNavigating']).toBe(false);
+                expect(component['activeOptionRef']()).toBeNull();
+                expect(document.getElementById(component.activeOptionId)).toBeNull();
+            });
+
+            it('should no-op Enter after an options batch replace wipes the highlight', async () => {
+                const { component, fixture } = await setup({ options: batchA });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+                await openAsyncPanel(fixture, component, batchA);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['_activeOptionIndex']).toBe(0);
+
+                fixture.componentRef.setInput('options', batchB);
+                fixture.detectChanges();
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).not.toHaveBeenCalled();
+            });
+
+            it('should select the highlighted option when Enter is pressed before the next batch arrives', async () => {
+                const { component, fixture } = await setup({ options: batchA });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+                await openAsyncPanel(fixture, component, batchA);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('a2');
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).toHaveBeenCalledWith('a2');
+            });
+
+            it('should not select a ghost via the value fallback when the selected value is missing from the batch', async () => {
+                // Async ghosts exist only while the selected value is absent from the current
+                // options batch. The value fallback must refuse them (they render first in the
+                // QueryList and are hidden, not disabled).
+                const { component, fixture } = await setup({
+                    options: [{ value: 'kept', label: 'Kept' }]
+                });
+                await openAsyncPanel(fixture, component, [{ value: 'kept', label: 'Kept' }]);
+
+                component.writeValue('kept');
+                fixture.detectChanges();
+
+                // Drop "kept" from the batch -> ghost is created for the still-selected value
+                fixture.componentRef.setInput('options', [{ value: 'other', label: 'Other' }]);
+                fixture.detectChanges();
+
+                const ghosts = component.getGhostOptions();
+                expect(ghosts.some((g) => g.value === 'kept')).toBe(true);
+
+                const ghostOption = component
+                    .select()
+                    .options.find(
+                        (opt) => opt.value === 'kept' && opt._getHostElement().classList.contains('ghost-option')
+                    );
+                expect(ghostOption).toBeTruthy();
+                const ghostSpy = vi.spyOn(ghostOption!, '_selectViaInteraction');
+
+                // Force the value-fallback path: clear nav state and flush so no option carries
+                // activeOptionId. Only the ghost matches value "kept"; fallback must refuse it.
+                component['_isNavigating'] = false;
+                component['updateActiveTemplateIndex']();
+                fixture.detectChanges();
+                expect(document.getElementById(component.activeOptionId)).toBeNull();
+
+                component['_allowNextValueChange'] = true;
+                component['toggleOption']('kept');
+                fixture.detectChanges();
+
+                expect(ghostSpy).not.toHaveBeenCalled();
+                expect(component['_allowNextValueChange']).toBe(false);
+            });
+
+            it('should select a real async option via keyboard when a previously selected value returns in a new batch', async () => {
+                const { component, fixture } = await setup({
+                    options: [
+                        { value: 'other', label: 'Other' },
+                        { value: 'kept', label: 'Kept' }
+                    ]
+                });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+                await openAsyncPanel(fixture, component, [
+                    { value: 'other', label: 'Other' },
+                    { value: 'kept', label: 'Kept' }
+                ]);
+
+                component.writeValue('kept');
+                fixture.detectChanges();
+
+                // Temporarily missing -> ghost, then returned in the next batch
+                fixture.componentRef.setInput('options', [{ value: 'other', label: 'Other' }]);
+                fixture.detectChanges();
+                fixture.componentRef.setInput('options', [
+                    { value: 'other', label: 'Other' },
+                    { value: 'kept', label: 'Kept' }
+                ]);
+                fixture.detectChanges();
+
+                // Batch replace clears nav; re-navigate to the real "kept" row and Enter
+                component.resetEmissionTracking();
+                onChange.mockClear();
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('kept');
+
+                const activeMatOption = component.select().options.find((opt) => opt.id === component.activeOptionId);
+                expect(activeMatOption).toBeTruthy();
+                expect(activeMatOption!._getHostElement().classList.contains('ghost-option')).toBe(false);
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).toHaveBeenCalledWith('kept');
+            });
+        });
+
         describe('Virtual Scrolling with Async Search', () => {
             it('should include "more options" footer when asyncSearchOptionsHaveMore is true', async () => {
                 const { component, fixture } = await setup({ enableVirtualScrolling: true });
@@ -1795,6 +2150,243 @@ describe('SearchableSelect', () => {
             });
         });
 
+        describe('Keyboard navigation with groups', () => {
+            function createNavKeyEvent(key: string): KeyboardEvent {
+                return {
+                    key,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn(),
+                    stopImmediatePropagation: vi.fn()
+                } as unknown as KeyboardEvent;
+            }
+
+            async function openGroupedPanel(
+                fixture: Awaited<ReturnType<typeof setupGrouped>>['fixture'],
+                component: Awaited<ReturnType<typeof setupGrouped>>['component']
+            ) {
+                component.selectionPanelToggled(true);
+                component.select().open();
+                fixture.detectChanges();
+                await new Promise((r) => setTimeout(r, 0));
+                fixture.detectChanges();
+            }
+
+            it('should scroll the active grouped option into view when navigating past the visible area', async () => {
+                const { component, fixture } = await setupGrouped();
+                const scrollSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(vi.fn());
+
+                await openGroupedPanel(fixture, component);
+
+                for (let i = 0; i < 4; i++) {
+                    component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                }
+
+                const activeElement = document.getElementById(component.activeOptionId);
+                expect(activeElement).toBeTruthy();
+                expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('az-1');
+                expect(scrollSpy).toHaveBeenCalled();
+
+                scrollSpy.mockRestore();
+            });
+
+            it('should select the highlighted grouped option when Enter is pressed', async () => {
+                const { component, fixture } = await setupGrouped();
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openGroupedPanel(fixture, component);
+
+                for (let i = 0; i < 4; i++) {
+                    component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                }
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).toHaveBeenCalledWith('az-1');
+            });
+
+            it('should select a grouped option via MatSelect options even after navigation highlight is cleared', async () => {
+                // Guards the Enter path against relying on activeOptionId still being in the DOM
+                // after _isNavigating is cleared (the failure mode of the prior id-based click).
+                // After the highlight is flushed from the DOM, toggleOption must fall through to
+                // the non-ghost value match.
+                const { component, fixture } = await setupGrouped();
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openGroupedPanel(fixture, component);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('aws-2');
+                expect(document.getElementById(component.activeOptionId)).toBeTruthy();
+
+                const matOption = component.select().options.find((opt) => opt.value === 'aws-2');
+                expect(matOption).toBeTruthy();
+                const selectViaSpy = vi.spyOn(matOption!, '_selectViaInteraction');
+
+                // Flush the active id off the DOM so id-find misses and value-fallback runs
+                component['_allowNextValueChange'] = true;
+                component['_isNavigating'] = false;
+                component['updateActiveTemplateIndex']();
+                fixture.detectChanges();
+                expect(document.getElementById(component.activeOptionId)).toBeNull();
+
+                component['toggleOption']('aws-2');
+                fixture.detectChanges();
+
+                expect(selectViaSpy).toHaveBeenCalled();
+                expect(onChange).toHaveBeenCalledWith('aws-2');
+            });
+
+            it('should assign activeOptionId to exactly one rendered grouped option', async () => {
+                const { component, fixture } = await setupGrouped();
+
+                await openGroupedPanel(fixture, component);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+
+                const overlayContainer = document.querySelector('.cdk-overlay-container');
+                const activeOptions = overlayContainer?.querySelectorAll(`#${component.activeOptionId}`) ?? [];
+
+                expect(activeOptions.length).toBe(1);
+            });
+
+            it('should assign activeOptionId to exactly one option when two groups share a value', async () => {
+                // Reference-identity (not value equality) must drive the active id so duplicate
+                // values across groups can never both receive activeOptionId.
+                const duplicateValueOptions = [
+                    { value: 'dup', label: 'In AWS', group: 'AWS Secrets Manager' },
+                    { value: 'dup', label: 'In Azure', group: 'Azure Key Vault' }
+                ];
+                const { component, fixture } = await setupGrouped({ options: duplicateValueOptions });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openGroupedPanel(fixture, component);
+
+                // Groups sort alphabetically: AWS first, then Azure.
+                // ArrowDown x2 highlights the Azure row (same value, different identity).
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+
+                const overlayContainer = document.querySelector('.cdk-overlay-container');
+                const activeOptions = overlayContainer?.querySelectorAll(`#${component.activeOptionId}`) ?? [];
+                expect(activeOptions.length).toBe(1);
+
+                // Enter must select the highlighted duplicate (Azure), not the first QueryList match (AWS).
+                const highlighted = component['activeOptionRef']();
+                expect(highlighted?.label).toBe('In Azure');
+
+                const azureOption = component.select().options.find((opt) => opt.id === component.activeOptionId);
+                expect(azureOption).toBeTruthy();
+                const selectViaSpy = vi.spyOn(azureOption!, '_selectViaInteraction');
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(selectViaSpy).toHaveBeenCalled();
+                expect(onChange).toHaveBeenCalledWith('dup');
+            });
+
+            it('should toggle the same duplicate-value option twice in multi-select via Enter', async () => {
+                // After the first Enter, highlight identity must remain so a second Enter hits the
+                // same MatOption (Azure), not the first QueryList match with the same value (AWS).
+                // Material's multi-select model is value-based, so two MatOptions sharing a value can
+                // still produce odd selection arrays; what we lock here is Enter identity.
+                const duplicateValueOptions = [
+                    { value: 'dup', label: 'In AWS', group: 'AWS Secrets Manager' },
+                    { value: 'dup', label: 'In Azure', group: 'Azure Key Vault' }
+                ];
+                const { component, fixture } = await setupGrouped({
+                    options: duplicateValueOptions,
+                    multiple: true
+                });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openGroupedPanel(fixture, component);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['activeOptionRef']()?.label).toBe('In Azure');
+
+                const azureOption = component.select().options.find((opt) => opt.id === component.activeOptionId);
+                expect(azureOption).toBeTruthy();
+                const awsOption = component.select().options.find((opt) => opt.value === 'dup' && opt !== azureOption);
+                expect(awsOption).toBeTruthy();
+
+                const azureSpy = vi.spyOn(azureOption!, '_selectViaInteraction');
+                const awsSpy = vi.spyOn(awsOption!, '_selectViaInteraction');
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+                expect(azureSpy).toHaveBeenCalledTimes(1);
+                expect(awsSpy).not.toHaveBeenCalled();
+                expect(onChange).toHaveBeenLastCalledWith(['dup']);
+                expect(component['_isNavigating']).toBe(true);
+                expect(document.getElementById(component.activeOptionId)).toBe(azureOption!._getHostElement());
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+                expect(azureSpy).toHaveBeenCalledTimes(2);
+                expect(awsSpy).not.toHaveBeenCalled();
+                expect(component.select().panelOpen).toBe(true);
+            });
+
+            it('should clear all navigation state when Escape closes the panel', async () => {
+                const { component, fixture } = await setupGrouped();
+
+                await openGroupedPanel(fixture, component);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['_isNavigating']).toBe(true);
+                expect(component['activeOptionRef']()).not.toBeNull();
+                expect(component['_activeOptionIndex']).toBeGreaterThanOrEqual(0);
+                component['_allowNextValueChange'] = true;
+
+                component.onSearchInputKeydown(createNavKeyEvent('Escape'));
+                fixture.detectChanges();
+
+                expect(component.select().panelOpen).toBe(false);
+                expect(component['_isNavigating']).toBe(false);
+                expect(component['activeOptionRef']()).toBeNull();
+                expect(component['_activeOptionIndex']).toBe(-1);
+                // Escape must disarm directly; this test does not call selectionPanelToggled(false).
+                expect(component['_allowNextValueChange']).toBe(false);
+            });
+
+            it('should toggle grouped options in multi-select mode via Enter without closing the panel', async () => {
+                const { component, fixture } = await setupGrouped({ multiple: true });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openGroupedPanel(fixture, component);
+
+                // Navigate to the second option (aws-2) and select it
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component.getVisibleOptions()[component['_activeOptionIndex']].value).toBe('aws-2');
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).toHaveBeenLastCalledWith(['aws-2']);
+                // Multi-select keeps the panel open for further selection
+                expect(component.select().panelOpen).toBe(true);
+
+                // Enter again while the same option remains the active nav index -- toggles it off
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).toHaveBeenLastCalledWith([]);
+                expect(component.select().panelOpen).toBe(true);
+            });
+        });
+
         describe('Virtual scrolling with groups', () => {
             it('should include group headers in virtual items', async () => {
                 const { component } = await setupGrouped({ enableVirtualScrolling: true });
@@ -1834,6 +2426,29 @@ describe('SearchableSelect', () => {
                 expect(component.trackByVirtualItem(0, header)).toBe('__group-header-AWS Secrets Manager');
 
                 expect(component.trackByVirtualItem(1, option)).toBe('aws-1');
+            });
+
+            it('documents that virtual + groups highlight is value-based (duplicate values unsupported)', async () => {
+                // Grouped + virtual does not use activeOptionRef; isOptionActiveByValue matches by
+                // value, so two rows sharing a value both appear active. This test locks that
+                // documented limitation rather than implementing reference-identity for virtual.
+                const duplicateValueOptions = [
+                    { value: 'dup', label: 'In AWS', group: 'AWS Secrets Manager' },
+                    { value: 'dup', label: 'In Azure', group: 'Azure Key Vault' }
+                ];
+                const { component } = await setupGrouped({
+                    options: duplicateValueOptions,
+                    enableVirtualScrolling: true
+                });
+
+                component['_isNavigating'] = true;
+                component['_activeOptionIndex'] = 0;
+
+                expect(component.isOptionActiveByValue('dup')).toBe(true);
+                // Value-based: both duplicate rows match the active value (unsupported ambiguity).
+                const visible = component.getVisibleOptions().filter((o) => o.value === 'dup');
+                expect(visible.length).toBe(2);
+                expect(visible.every((o) => component.isOptionActiveByValue(o.value))).toBe(true);
             });
         });
 
