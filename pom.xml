@@ -216,6 +216,8 @@
         <checkstyle.version>14.0.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
+        <!--Default value for argLine in order to prevent surefire failure if syntax @{argLine} does not resolve-->
+        <argLine/>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -730,12 +732,12 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <configuration>
+                        <environmentVariables>
+                            <!-- Map the GitHub host environment variable directly into the test environment -->
+                            <NIFI_CI_LOCALE>${env.NIFI_CI_LOCALE}</NIFI_CI_LOCALE>
+                        </environmentVariables>
                         <systemPropertyVariables>
                             <java.awt.headless>true</java.awt.headless>
-                            <user.language>${user.language}</user.language>
-                            <user.country>${user.country}</user.country>
-                            <user.region>${user.region}</user.region>
-                            <user.timezone>${user.timezone}</user.timezone>
                         </systemPropertyVariables>
                         <includes>
                             <include>**/*Test.class</include>
@@ -746,9 +748,9 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <!-- Explicitly tie the properties together inside the fork line and
+                        <!-- Preserve the incoming command-line with the syntax @{argLine} and
                             configure mockito-core as a Java Agent to enable explicit attachment to processes. -->
-                        <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                        <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
