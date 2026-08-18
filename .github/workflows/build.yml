@@ -331,6 +331,7 @@ jobs:
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
+            -DNIFI_CI_LOCALE="${env.NIFI_CI_LOCALE}"
         run: >-
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
@@ -406,6 +407,7 @@ jobs:
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
+            -DNIFI_CI_LOCALE="${env.NIFI_CI_LOCALE}"
         run: >-
           ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
