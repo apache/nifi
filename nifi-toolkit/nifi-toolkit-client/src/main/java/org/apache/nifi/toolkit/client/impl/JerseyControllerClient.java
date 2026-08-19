@@ -560,8 +560,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
                     .accept(MediaType.APPLICATION_OCTET_STREAM_TYPE)
                     .get();
 
-            final String filename = getContentDispositionFilename(response);
-            final File narFile = new File(outputDirectory, filename);
+            final File narFile = getContentDispositionFile(response, outputDirectory);
 
             try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
                 Files.copy(responseInputStream, narFile.toPath(), StandardCopyOption.REPLACE_EXISTING);

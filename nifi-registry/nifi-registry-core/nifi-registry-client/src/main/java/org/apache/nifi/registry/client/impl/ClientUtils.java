@@ -18,13 +18,23 @@ package org.apache.nifi.registry.client.impl;
 
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.glassfish.jersey.media.multipart.ContentDisposition;
 
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.text.ParseException;
+import java.util.regex.Pattern;
 
 public class ClientUtils {
+
+    private static final char FORWARD_SLASH = '/';
+
+    private static final char BACKWARD_SLASH = '\\';
+
+    private static final Pattern FILENAME_PARAMETER_PATTERN = Pattern.compile(";\\s*filename\\s*=\\s*", Pattern.CASE_INSENSITIVE);
 
     public static File getExtensionBundleVersionContent(final Response response, final File outputDirectory) {
         final String contentDispositionHeader = response.getHeaderString("Content-Disposition");
@@ -32,9 +42,7 @@ public class ClientUtils {
             throw new IllegalStateException("Content-Disposition header was blank or missing");
         }
 
-        final int equalsIndex = contentDispositionHeader.lastIndexOf("=");
-        final String filename = contentDispositionHeader.substring(equalsIndex + 1).trim();
-        final File bundleFile = new File(outputDirectory, filename);
+        final File bundleFile = getContentDispositionFile(contentDispositionHeader, outputDirectory);
 
         try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
             Files.copy(responseInputStream, bundleFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -42,6 +50,40 @@ public class ClientUtils {
         } catch (Exception e) {
             throw new IllegalStateException("Unable to write bundle content due to: " + e.getMessage(), e);
         }
+    }
+
+    private static File getContentDispositionFile(final String contentDispositionHeader, final File outputDirectory) {
+        if (contentDispositionHeader.indexOf(BACKWARD_SLASH) >= 0) {
+            throw new IllegalStateException("Content-Disposition filename was invalid");
+        }
+
+        final String filename;
+        try {
+            final String normalizedHeader = FILENAME_PARAMETER_PATTERN.matcher(contentDispositionHeader).replaceFirst("; filename=");
+            filename = new ContentDisposition(normalizedHeader).getFileName();
+        } catch (final ParseException e) {
+            throw new IllegalStateException("Content-Disposition header was invalid", e);
+        }
+
+        if (StringUtils.isBlank(filename) || filename.equals(".") || filename.equals("..")
+                || filename.indexOf(FORWARD_SLASH) >= 0 || filename.indexOf(BACKWARD_SLASH) >= 0
+                || filename.chars().anyMatch(character -> Character.isISOControl(character))) {
+            throw new IllegalStateException("Content-Disposition filename was invalid");
+        }
+
+        final Path outputPath = outputDirectory.toPath().toAbsolutePath().normalize();
+        final Path filenamePath;
+        try {
+            filenamePath = Path.of(filename);
+        } catch (final RuntimeException e) {
+            throw new IllegalStateException("Content-Disposition filename was invalid", e);
+        }
+
+        final Path bundlePath = outputPath.resolve(filenamePath).normalize();
+        if (filenamePath.isAbsolute() || filenamePath.getNameCount() != 1 || !outputPath.equals(bundlePath.getParent())) {
+            throw new IllegalStateException("Content-Disposition filename was invalid");
+        }
+        return bundlePath.toFile();
     }
 
 }
