@@ -26,8 +26,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.ParseException;
+import java.util.regex.Pattern;
 
 public class ClientUtils {
+
+    private static final char FORWARD_SLASH = '/';
+
+    private static final char BACKWARD_SLASH = '\\';
+
+    private static final Pattern FILENAME_PARAMETER_PATTERN = Pattern.compile(";\\s*filename\\s*=\\s*", Pattern.CASE_INSENSITIVE);
 
     public static File getExtensionBundleVersionContent(final Response response, final File outputDirectory) {
         final String contentDispositionHeader = response.getHeaderString("Content-Disposition");
@@ -46,20 +53,20 @@ public class ClientUtils {
     }
 
     private static File getContentDispositionFile(final String contentDispositionHeader, final File outputDirectory) {
-        if (contentDispositionHeader.indexOf('\\') >= 0) {
+        if (contentDispositionHeader.indexOf(BACKWARD_SLASH) >= 0) {
             throw new IllegalStateException("Content-Disposition filename was invalid");
         }
 
         final String filename;
         try {
-            final String normalizedHeader = contentDispositionHeader.replaceFirst("(?i);\\s*filename\\s*=\\s*", "; filename=");
+            final String normalizedHeader = FILENAME_PARAMETER_PATTERN.matcher(contentDispositionHeader).replaceFirst("; filename=");
             filename = new ContentDisposition(normalizedHeader).getFileName();
         } catch (final ParseException e) {
             throw new IllegalStateException("Content-Disposition header was invalid", e);
         }
 
         if (StringUtils.isBlank(filename) || filename.equals(".") || filename.equals("..")
-                || filename.indexOf('/') >= 0 || filename.indexOf('\\') >= 0
+                || filename.indexOf(FORWARD_SLASH) >= 0 || filename.indexOf(BACKWARD_SLASH) >= 0
                 || filename.chars().anyMatch(character -> Character.isISOControl(character))) {
             throw new IllegalStateException("Content-Disposition filename was invalid");
         }
