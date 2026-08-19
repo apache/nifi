@@ -24,6 +24,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
@@ -32,6 +33,7 @@ import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
@@ -56,6 +58,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1108,6 +1111,120 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterContextEntity updatedParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
         assertEquals(1, updatedParent.getComponent().getInheritedParameterContexts().size());
         assertEquals(childContext2.getId(), updatedParent.getComponent().getInheritedParameterContexts().get(0).getId());
+    }
+
+    @Test
+    public void testAddInheritedContextWithAssetReference() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity parentContext = getClientUtil().createParameterContext("parentContext", Map.of("fileToIngest", ""));
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(parentContext.getId(), assetFile);
+
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                parentContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(parentContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity childContext = getClientUtil().createParameterContext("childContext", Map.of("otherParam", "otherValue"));
+        final ParameterContextEntity fetchedChild = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        fetchedChild.getComponent().setParameters(Set.of());
+
+        final ParameterContextReferenceEntity parentReference = new ParameterContextReferenceEntity();
+        parentReference.setId(parentContext.getId());
+        final ParameterContextReferenceDTO parentReferenceDto = new ParameterContextReferenceDTO();
+        parentReferenceDto.setId(parentContext.getId());
+        parentReferenceDto.setName(parentContext.getComponent().getName());
+        parentReference.setComponent(parentReferenceDto);
+        fetchedChild.getComponent().setInheritedParameterContexts(List.of(parentReference));
+
+        final ParameterContextUpdateRequestEntity addInheritanceRequest =
+                getNifiClient().getParamContextClient().updateParamContext(fetchedChild);
+        getClientUtil().waitForParameterContextRequestToComplete(childContext.getId(), addInheritanceRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity updatedChildLocal = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), false);
+        assertEquals(1, updatedChildLocal.getComponent().getInheritedParameterContexts().size());
+        assertEquals(parentContext.getId(), updatedChildLocal.getComponent().getInheritedParameterContexts().getFirst().getId());
+        assertTrue(updatedChildLocal.getComponent().getParameters().stream()
+                .noneMatch(parameter -> "fileToIngest".equals(parameter.getParameter().getName())));
+
+        final ParameterContextEntity updatedChildEffective = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        final ParameterEntity inheritedAssetParameter = updatedChildEffective.getComponent().getParameters().stream()
+                .filter(parameter -> "fileToIngest".equals(parameter.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(inheritedAssetParameter);
+        assertTrue(inheritedAssetParameter.getParameter().getInherited());
+        assertEquals(parentContext.getId(), inheritedAssetParameter.getParameter().getParameterContext().getId());
+        assertEquals(asset.getAsset().getId(), inheritedAssetParameter.getParameter().getReferencedAssets().getFirst().getId());
+
+        final ParameterContextUpdateRequestEntity resubmitRequest =
+                getNifiClient().getParamContextClient().updateParamContext(updatedChildEffective);
+        getClientUtil().waitForParameterContextRequestToComplete(childContext.getId(), resubmitRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity resubmittedChild = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        final ParameterEntity resubmittedAssetParameter = resubmittedChild.getComponent().getParameters().stream()
+                .filter(parameter -> "fileToIngest".equals(parameter.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(resubmittedAssetParameter);
+        assertTrue(resubmittedAssetParameter.getParameter().getInherited());
+        assertEquals(parentContext.getId(), resubmittedAssetParameter.getParameter().getParameterContext().getId());
+    }
+
+    @Test
+    public void testDeleteLocalParameterOverrideRevealsInheritedParameter() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity parentContext = getClientUtil().createParameterContext("overrideParent", Map.of("shared", "parent-value"));
+        final ParameterContextEntity childContext = getClientUtil().createParameterContext("overrideChild",
+                Map.of("shared", "child-value"), List.of(parentContext.getId()), null);
+
+        final ParameterContextEntity fetchedChild = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        final ParameterEntity localOverride = fetchedChild.getComponent().getParameters().stream()
+                .filter(parameter -> "shared".equals(parameter.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(localOverride);
+        assertFalse(Boolean.TRUE.equals(localOverride.getParameter().getInherited()));
+        assertEquals("child-value", localOverride.getParameter().getValue());
+
+        final ParameterDTO deletionDto = new ParameterDTO();
+        deletionDto.setName("shared");
+        final ParameterEntity deletionEntity = new ParameterEntity();
+        deletionEntity.setParameter(deletionDto);
+        fetchedChild.getComponent().setParameters(Set.of(deletionEntity));
+
+        final ParameterContextUpdateRequestEntity deleteRequest = getNifiClient().getParamContextClient().updateParamContext(fetchedChild);
+        getClientUtil().waitForParameterContextRequestToComplete(childContext.getId(), deleteRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity updatedChildLocal = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), false);
+        assertTrue(updatedChildLocal.getComponent().getParameters().stream()
+                .noneMatch(parameter -> "shared".equals(parameter.getParameter().getName())));
+
+        final ParameterContextEntity updatedChildEffective = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        final ParameterEntity inheritedParameter = updatedChildEffective.getComponent().getParameters().stream()
+                .filter(parameter -> "shared".equals(parameter.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(inheritedParameter);
+        assertTrue(inheritedParameter.getParameter().getInherited());
+        assertEquals("parent-value", inheritedParameter.getParameter().getValue());
+        assertEquals(parentContext.getId(), inheritedParameter.getParameter().getParameterContext().getId());
+    }
+
+    @Test
+    public void testUpdateReferencedLocalParameterPreservesRawReference() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity context = getClientUtil().createParameterContext("localReferenceContext",
+                Map.of("X", "original", "Y", "#{X}"));
+
+        final ParameterContextUpdateRequestEntity updateRequest = updateParameterContext(context, "X", "updated");
+        getClientUtil().waitForParameterContextRequestToComplete(context.getId(), updateRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity updatedContext = getNifiClient().getParamContextClient().getParamContext(context.getId(), false);
+        final Map<String, ParameterDTO> parameters = updatedContext.getComponent().getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+
+        assertEquals("updated", parameters.get("X").getValue());
+        assertEquals("#{X}", parameters.get("Y").getValue());
     }
 
     @Test

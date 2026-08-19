@@ -1810,12 +1810,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
             }
 
-            // Parameter is inherited if either this is the removal of a parameter not directly in this context, or it's parameter not specified directly in the DTO
-            final boolean isInherited = (parameter == null && !parameterContext.getParameters().containsKey(new ParameterDescriptor.Builder().name(parameterName).build()))
-                    || (parameter != null && !parameterEntities.containsKey(parameterName));
-            parameterEntity.getParameter().setInherited(isInherited);
+            parameterEntity.getParameter().setInherited(isInheritedParameterUpdate(parameter, parameterContext, parameterEntities, parameterName));
             parameterContextDto.getParameters().add(parameterEntity);
         }
+    }
+
+    static boolean isInheritedParameterUpdate(final Parameter parameter, final ParameterContext parameterContext,
+                                               final Map<String, ParameterEntity> originalParameterEntities, final String parameterName) {
+        if (parameter == null) {
+            return !parameterContext.getParameters().containsKey(new ParameterDescriptor.Builder().name(parameterName).build());
+        }
+
+        final ParameterEntity originalParameterEntity = originalParameterEntities.get(parameterName);
+        return originalParameterEntity == null || originalParameterEntity.getParameter() != null
+                && Boolean.TRUE.equals(originalParameterEntity.getParameter().getInherited());
     }
 
     private void addReferencingComponents(final ControllerServiceNode service, final Set<ComponentNode> affectedComponents, final List<ParameterDTO> affectedParameterDtos,
