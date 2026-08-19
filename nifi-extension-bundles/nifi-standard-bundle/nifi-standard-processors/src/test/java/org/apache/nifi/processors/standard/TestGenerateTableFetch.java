@@ -18,6 +18,11 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
+import org.apache.nifi.database.dialect.service.api.StatementRequest;
+import org.apache.nifi.database.dialect.service.api.StatementResponse;
+import org.apache.nifi.database.dialect.service.api.StatementType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockSessionFactory;
@@ -46,6 +51,7 @@ import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.WHERE_CLAUSE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
@@ -1118,6 +1124,39 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
+    @Test
+    void testUncheckedDialectFailureRollsBackIncomingFlowFile() throws Exception {
+        final DatabaseDialectService dialectService = new FailingDatabaseDialectService();
+        runner.addControllerService("failing-dialect", dialectService);
+        runner.enableControllerService(dialectService);
+        runner.setProperty(DB_TYPE, "Database Dialect Service");
+        runner.setProperty(GenerateTableFetch.DATABASE_DIALECT_SERVICE, "failing-dialect");
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(true);
+        runner.enqueue("", Map.of("tableName", "TEST_QUERY_DB_TABLE"));
+
+        final AssertionError error = assertThrows(AssertionError.class, runner::run);
+        assertEquals(IllegalArgumentException.class, error.getCause().getClass());
+
+        final MockProcessSession session = ((MockSessionFactory) runner.getProcessSessionFactory()).getCreatedSessions().iterator().next();
+        session.assertRolledBack();
+        runner.assertQueueNotEmpty();
+    }
+
+    @Test
+    void testStateReadFailureRollsBackIncomingFlowFile() {
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(true);
+        runner.enqueue("", Map.of("tableName", "TEST_QUERY_DB_TABLE"));
+        runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
+
+        runner.run();
+
+        final MockProcessSession session = ((MockSessionFactory) runner.getProcessSessionFactory()).getCreatedSessions().iterator().next();
+        session.assertRolledBack();
+        runner.assertQueueNotEmpty();
+    }
+
     private void assertResultsFound(final String query, final int results) throws SQLException {
         int resultsFound = 0;
         try (
@@ -1130,5 +1169,17 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
             }
         }
         assertEquals(results, resultsFound);
+    }
+
+    private static class FailingDatabaseDialectService extends AbstractControllerService implements DatabaseDialectService {
+        @Override
+        public StatementResponse getStatement(final StatementRequest statementRequest) {
+            throw new IllegalArgumentException("Order By is required when paging is specified");
+        }
+
+        @Override
+        public Set<StatementType> getSupportedStatementTypes() {
+            return Set.of(StatementType.SELECT);
+        }
     }
 }
