@@ -472,6 +472,10 @@ public class FlowDifferenceFilters {
                 return false;
             }
 
+            if (!replaceNull(processorNode.getConnections(relationship), Collections.emptySet()).isEmpty()) {
+                return false;
+            }
+
             if (hasConnection(processGroup, processorA, relationshipName)) {
                 return false;
             }

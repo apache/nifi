@@ -31,6 +31,7 @@ import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
@@ -1091,6 +1092,63 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.SCHEDULED_STATE_CHANGED, processorA, processorB, "STOPPED", "RUNNING", "");
 
         assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(scheduledStateDiff, null, flowManager));
+    }
+
+    @Test
+    public void testAutoTerminatedRelationshipChangeRequiresUpdateWhenCurrentlyConnected() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final Connection connection = Mockito.mock(Connection.class);
+        final String processorInstanceId = "processor-instance";
+        final String relationshipName = "discard";
+
+        final VersionedProcessor currentProcessor = new VersionedProcessor();
+        currentProcessor.setAutoTerminatedRelationships(Set.of());
+        final InstantiatedVersionedProcessor proposedProcessor = new InstantiatedVersionedProcessor(processorInstanceId, "group-id");
+        proposedProcessor.setAutoTerminatedRelationships(Set.of(relationshipName));
+        final Relationship relationship = new Relationship.Builder()
+                .name(relationshipName)
+                .autoTerminateDefault(true)
+                .build();
+
+        Mockito.when(flowManager.getProcessorNode(processorInstanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getRelationship(relationshipName)).thenReturn(relationship);
+        Mockito.when(processorNode.getConnections(relationship)).thenReturn(Set.of(connection));
+
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.AUTO_TERMINATED_RELATIONSHIPS_CHANGED, currentProcessor, proposedProcessor,
+                Set.of(), Set.of(relationshipName), "Auto-terminated relationships changed");
+
+        assertFalse(FlowDifferenceFilters.isEnvironmentalChange(difference, new VersionedProcessGroup(), flowManager));
+        assertTrue(FlowDifferenceFilters.isComponentUpdateRequired(difference, new VersionedProcessGroup(), flowManager));
+    }
+
+    @Test
+    public void testAutoTerminatedRelationshipChangeDoesNotRequireUpdateWhenNotCurrentlyConnected() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        final String processorInstanceId = "processor-instance";
+        final String relationshipName = "discard";
+
+        final VersionedProcessor currentProcessor = new VersionedProcessor();
+        currentProcessor.setAutoTerminatedRelationships(Set.of());
+        final InstantiatedVersionedProcessor proposedProcessor = new InstantiatedVersionedProcessor(processorInstanceId, "group-id");
+        proposedProcessor.setAutoTerminatedRelationships(Set.of(relationshipName));
+        final Relationship relationship = new Relationship.Builder()
+                .name(relationshipName)
+                .autoTerminateDefault(true)
+                .build();
+
+        Mockito.when(flowManager.getProcessorNode(processorInstanceId)).thenReturn(processorNode);
+        Mockito.when(processorNode.getRelationship(relationshipName)).thenReturn(relationship);
+        Mockito.when(processorNode.getConnections(relationship)).thenReturn(Set.of());
+
+        final FlowDifference difference = new StandardFlowDifference(
+                DifferenceType.AUTO_TERMINATED_RELATIONSHIPS_CHANGED, currentProcessor, proposedProcessor,
+                Set.of(), Set.of(relationshipName), "Auto-terminated relationships changed");
+
+        assertTrue(FlowDifferenceFilters.isEnvironmentalChange(difference, new VersionedProcessGroup(), flowManager));
+        assertFalse(FlowDifferenceFilters.isComponentUpdateRequired(difference, new VersionedProcessGroup(), flowManager));
     }
 
     @Test
