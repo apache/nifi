@@ -20,10 +20,10 @@ package org.apache.nifi.processors.email;
 import java.nio.charset.StandardCharsets;
 
 public class GenerateAttachment {
-    String from;
-    String to;
-    String subject;
-    String message;
+    final String from;
+    final String to;
+    final String subject;
+    final String message;
 
     private static final String NEWLINE = "\n";
 

@@ -24,7 +24,7 @@ import java.util.List;
 public final class FlowFileEventBatch<E extends NetworkEvent> {
 
     private FlowFile flowFile;
-    private List<E> events;
+    private final List<E> events;
 
     public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
         this.flowFile = flowFile;

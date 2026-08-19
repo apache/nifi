@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketMessageRouters {
-    private Map<String, WebSocketMessageRouter> routers = new ConcurrentHashMap<>();
+    private final Map<String, WebSocketMessageRouter> routers = new ConcurrentHashMap<>();
 
     private synchronized WebSocketMessageRouter getRouterOrCreate(final String endpointId) {
         WebSocketMessageRouter router = routers.get(endpointId);

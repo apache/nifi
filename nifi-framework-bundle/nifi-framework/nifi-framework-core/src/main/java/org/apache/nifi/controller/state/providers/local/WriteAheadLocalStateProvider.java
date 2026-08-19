@@ -322,7 +322,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
     private static class SerdeFactory implements SerDeFactory<StateMapUpdate> {
 
-        private StateMapSerDe serde;
+        private final StateMapSerDe serde;
 
         public SerdeFactory(StateMapSerDe serde) {
             this.serde = serde;

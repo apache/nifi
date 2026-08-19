@@ -424,8 +424,8 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
      * A value of null for getIncludedColumns indicates that all columns/fields should be included.
      */
     static class SqlAndIncludedColumns {
-        String sql;
-        List<Integer> fieldIndexes;
+        final String sql;
+        final List<Integer> fieldIndexes;
 
         /**
          * Constructor
@@ -448,9 +448,9 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
     }
 
     static class TableSchema {
-        private List<String> requiredColumnNames;
-        private Map<String, ColumnDescription> columns;
-        private String quotedIdentifierString;
+        private final List<String> requiredColumnNames;
+        private final Map<String, ColumnDescription> columns;
+        private final String quotedIdentifierString;
 
         private TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames, final String quotedIdentifierString) {
             this.columns = new HashMap<>();

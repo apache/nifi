@@ -46,9 +46,9 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
     public static final List<String> DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST = Collections.emptyList();
     public static final String IT_IS_NOT_A_VALID_SCHEDULING_STRATEGY = "it is not a valid scheduling strategy";
 
-    private String processorClass;
-    private String schedulingStrategy;
-    private String schedulingPeriod;
+    private final String processorClass;
+    private final String schedulingStrategy;
+    private final String schedulingPeriod;
     private Number maxConcurrentTasks = DEFAULT_MAX_CONCURRENT_TASKS;
     private String penalizationPeriod = DEFAULT_PENALIZATION_PERIOD;
     private String yieldPeriod = DEFAULT_YIELD_DURATION;

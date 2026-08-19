@@ -27,9 +27,9 @@ import javax.script.ScriptEngine;
  */
 public abstract class BaseScriptRunner implements ScriptRunner {
 
-    protected ScriptEngine scriptEngine;
-    protected String scriptBody;
-    protected String[] modulePaths;
+    protected final ScriptEngine scriptEngine;
+    protected final String scriptBody;
+    protected final String[] modulePaths;
 
     public BaseScriptRunner(final ScriptEngine engine, final String scriptBody, final String[] modulePaths) {
         this(engine, scriptBody, null, modulePaths);

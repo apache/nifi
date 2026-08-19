@@ -31,7 +31,7 @@ import java.util.Arrays;
 
 public class JASN1Utils {
 
-    private static Logger logger = LoggerFactory.getLogger(JASN1Utils.class);
+    private static final Logger logger = LoggerFactory.getLogger(JASN1Utils.class);
 
     /**
      * Since the same class can be read many times in case reading an array, having a cache can reduce processing time.

@@ -73,18 +73,18 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     public static final String CONNECTION_WITH_NAME = "Connection with name ";
     public static final String HAS_INVALID_DESTINATION_NAME = " has invalid destination name ";
     public static final String HAS_INVALID_SOURCE_NAME = " has invalid source name ";
-    private FlowControllerSchema flowControllerProperties;
-    private CorePropertiesSchema coreProperties;
-    private FlowFileRepositorySchema flowfileRepositoryProperties;
-    private ContentRepositorySchema contentRepositoryProperties;
-    private ComponentStatusRepositorySchema componentStatusRepositoryProperties;
-    private SecurityPropertiesSchema securityProperties;
-    private List<ProcessorSchemaV1> processors;
-    private List<ConnectionSchemaV1> connections;
-    private List<RemoteProcessGroupSchemaV1> remoteProcessingGroups;
-    private ProvenanceReportingSchema provenanceReportingProperties;
+    private final FlowControllerSchema flowControllerProperties;
+    private final CorePropertiesSchema coreProperties;
+    private final FlowFileRepositorySchema flowfileRepositoryProperties;
+    private final ContentRepositorySchema contentRepositoryProperties;
+    private final ComponentStatusRepositorySchema componentStatusRepositoryProperties;
+    private final SecurityPropertiesSchema securityProperties;
+    private final List<ProcessorSchemaV1> processors;
+    private final List<ConnectionSchemaV1> connections;
+    private final List<RemoteProcessGroupSchemaV1> remoteProcessingGroups;
+    private final ProvenanceReportingSchema provenanceReportingProperties;
 
-    private ProvenanceRepositorySchema provenanceRepositorySchema;
+    private final ProvenanceRepositorySchema provenanceRepositorySchema;
 
     public ConfigSchemaV1(Map map) {
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);

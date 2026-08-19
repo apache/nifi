@@ -109,7 +109,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceResource.class);
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
-    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+    private final RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Controller Service Config Thread");
 
     private NiFiServiceFacade serviceFacade;

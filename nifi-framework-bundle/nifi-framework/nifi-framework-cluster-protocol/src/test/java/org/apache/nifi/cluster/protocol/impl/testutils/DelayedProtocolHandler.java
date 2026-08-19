@@ -29,7 +29,7 @@ import java.util.Set;
 public class DelayedProtocolHandler implements ProtocolHandler {
 
     private int delay = 0;
-    private List<ProtocolMessage> messages = new ArrayList<>();
+    private final List<ProtocolMessage> messages = new ArrayList<>();
 
     public DelayedProtocolHandler(int delay) {
         this.delay = delay;

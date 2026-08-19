@@ -118,7 +118,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private final String workspace;
     private final String repoName;
     private final String repoPath;
-    private WebClientServiceProvider webClient;
+    private final WebClientServiceProvider webClient;
     private BitbucketToken<String> authToken;
 
     private final boolean canRead;
@@ -1266,7 +1266,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private class BasicAuthToken implements BitbucketToken<String> {
-        private String token;
+        private final String token;
 
         public BasicAuthToken(final String username, final String appPassword) {
             final String basicCreds = username + ":" + appPassword;
@@ -1283,7 +1283,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private class AccessToken implements BitbucketToken<String> {
-        private String token;
+        private final String token;
 
         public AccessToken(final String token) {
             this.token = token;
@@ -1296,7 +1296,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private class OAuthToken implements BitbucketToken<String> {
-        private OAuth2AccessTokenProvider oauthService;
+        private final OAuth2AccessTokenProvider oauthService;
 
         public OAuthToken(final OAuth2AccessTokenProvider oauthService) {
             this.oauthService = oauthService;

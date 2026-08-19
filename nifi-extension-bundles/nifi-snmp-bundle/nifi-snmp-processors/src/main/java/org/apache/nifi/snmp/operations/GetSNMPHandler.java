@@ -56,7 +56,7 @@ public class GetSNMPHandler {
             "associated with this %s OID does not contain child OIDs. Please check if the OID exists in the agent " +
             "MIB or specify a parent OID with at least one child element";
 
-    private Snmp snmpManager;
+    private final Snmp snmpManager;
     private TreeUtils treeUtils;
 
     public GetSNMPHandler(final Snmp snmpManager) {

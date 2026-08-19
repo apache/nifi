@@ -41,7 +41,7 @@ public class TestExceptionHandler {
      * Simulate an external procedure.
      */
     static class ExternalProcedure {
-        private boolean available = true;
+        private final boolean available = true;
         int divide(Integer a, Integer b) throws Exception {
             if (!available) {
                 throw new IOException("Not available");
@@ -94,7 +94,7 @@ public class TestExceptionHandler {
     }
 
     // Reusable Exception mapping function.
-    static Function<Exception, ErrorTypes> exceptionMapping = i -> {
+    static final Function<Exception, ErrorTypes> exceptionMapping = i -> {
         try {
             throw i;
         } catch (NullPointerException | ArithmeticException | NumberFormatException e) {

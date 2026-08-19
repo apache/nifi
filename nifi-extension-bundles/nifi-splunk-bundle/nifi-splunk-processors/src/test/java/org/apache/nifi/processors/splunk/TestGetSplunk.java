@@ -375,7 +375,7 @@ public class TestGetSplunk {
     private static class TestableGetSplunk extends GetSplunk {
 
         int count;
-        Service mockService;
+        final Service mockService;
 
         public TestableGetSplunk(Service mockService) {
             this.mockService = mockService;
@@ -394,7 +394,7 @@ public class TestGetSplunk {
     @SuppressWarnings("PMD.LooseCoupling")
     private static class JobExportArgsMatcher implements ArgumentMatcher<JobExportArgs> {
 
-        private JobExportArgs expected;
+        private final JobExportArgs expected;
 
         public JobExportArgsMatcher(JobExportArgs expected) {
             this.expected = expected;

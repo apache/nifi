@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class ProcessingInstructionDataNodeTest extends BxmlNodeWithTokenTestBase {
-    private String data = "testData";
+    private final String data = "testData";
     private ProcessingInstructionDataNode processingInstructionDataNode;
 
     @Override

@@ -24,7 +24,7 @@ import com.github.shyiko.mysql.binlog.event.Event;
 public class RawBinlogEvent {
 
     private Event event;
-    private String binlogFilename;
+    private final String binlogFilename;
 
     public RawBinlogEvent(Event event, String binlogFilename) {
         this.event = event;

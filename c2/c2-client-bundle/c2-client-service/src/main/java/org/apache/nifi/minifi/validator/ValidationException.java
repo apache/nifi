@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class ValidationException extends IllegalStateException {
-    private List<ValidationResult> validationResults;
+    private final List<ValidationResult> validationResults;
 
     public ValidationException(String message, List<ValidationResult> details) {
         super(message);

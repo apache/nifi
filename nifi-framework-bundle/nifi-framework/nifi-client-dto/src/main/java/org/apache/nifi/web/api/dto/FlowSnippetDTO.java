@@ -48,7 +48,7 @@ public class FlowSnippetDTO {
     private Set<ControllerServiceDTO> controllerServices = new LinkedHashSet<>();
 
     private final boolean newTemplate;
-    private Set<String> convertedUuids = new HashSet<>();
+    private final Set<String> convertedUuids = new HashSet<>();
 
     public FlowSnippetDTO() {
         this(false);

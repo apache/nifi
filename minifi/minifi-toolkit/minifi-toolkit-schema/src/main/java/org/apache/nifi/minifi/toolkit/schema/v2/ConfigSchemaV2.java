@@ -65,15 +65,15 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_FUNNEL_IDS = "Found the following duplicate funnel ids: ";
     public static final String TOP_LEVEL_NAME = "top level";
 
-    private FlowControllerSchema flowControllerProperties;
-    private CorePropertiesSchemaV2 coreProperties;
-    private FlowFileRepositorySchema flowfileRepositoryProperties;
-    private ContentRepositorySchema contentRepositoryProperties;
-    private ComponentStatusRepositorySchema componentStatusRepositoryProperties;
-    private SecurityPropertiesSchema securityProperties;
-    private ProcessGroupSchemaV2 processGroupSchema;
-    private ProvenanceReportingSchema provenanceReportingProperties;
-    private ProvenanceRepositorySchema provenanceRepositorySchema;
+    private final FlowControllerSchema flowControllerProperties;
+    private final CorePropertiesSchemaV2 coreProperties;
+    private final FlowFileRepositorySchema flowfileRepositoryProperties;
+    private final ContentRepositorySchema contentRepositoryProperties;
+    private final ComponentStatusRepositorySchema componentStatusRepositoryProperties;
+    private final SecurityPropertiesSchema securityProperties;
+    private final ProcessGroupSchemaV2 processGroupSchema;
+    private final ProvenanceReportingSchema provenanceReportingProperties;
+    private final ProvenanceRepositorySchema provenanceRepositorySchema;
 
     public ConfigSchemaV2(Map map) {
         this(map, Collections.emptyList());

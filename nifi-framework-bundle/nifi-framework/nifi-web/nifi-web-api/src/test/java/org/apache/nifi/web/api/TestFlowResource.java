@@ -137,7 +137,7 @@ public class TestFlowResource {
     private static final String SECOND_SERVICE_ID = "00000000-0000-0000-0000-000000000002";
 
     @InjectMocks
-    private FlowResource resource = new FlowResource();
+    private final FlowResource resource = new FlowResource();
 
     @Mock
     private NiFiServiceFacade serviceFacade;

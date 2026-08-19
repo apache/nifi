@@ -28,7 +28,7 @@ public enum StandardFlowFileMediaType implements FlowFileMediaType {
 
     VERSION_UNSPECIFIED("application/flowfile");
 
-    private String mediaType;
+    private final String mediaType;
 
     StandardFlowFileMediaType(final String mediaType) {
         this.mediaType = mediaType;

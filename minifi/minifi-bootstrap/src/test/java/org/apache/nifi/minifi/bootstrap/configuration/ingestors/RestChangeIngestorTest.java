@@ -53,7 +53,7 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
         when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(new byte[0])));
 
         restChangeIngestor.initialize(properties, configurationFileHolder, testNotifier);
-        restChangeIngestor.setDifferentiator(mockDifferentiator);
+        restChangeIngestor.setDifferentiator(MOCK_DIFFERENTIATOR);
         restChangeIngestor.start();
 
         client = new OkHttpClient();

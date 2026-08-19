@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class ManifestHashProviderTest {
-    private ManifestHashProvider manifestHashProvider = new ManifestHashProvider();
+    private final ManifestHashProvider manifestHashProvider = new ManifestHashProvider();
 
     @Test
     void testManifestHashChangesWhenManifestBundleChanges() {

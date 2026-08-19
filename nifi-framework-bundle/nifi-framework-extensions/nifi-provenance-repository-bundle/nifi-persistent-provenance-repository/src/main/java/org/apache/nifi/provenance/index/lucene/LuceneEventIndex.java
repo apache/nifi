@@ -111,7 +111,7 @@ public class LuceneEventIndex implements EventIndex {
     private LatestEventsPerProcessorQuery latestEventsPerProcessorQuery; // effectively final
 
     private ScheduledExecutorService maintenanceExecutor; // effectively final
-    private ScheduledExecutorService cacheWarmerExecutor;
+    private final ScheduledExecutorService cacheWarmerExecutor;
     private EventStore eventStore;
     private volatile boolean newestIndexDefunct = false;
 

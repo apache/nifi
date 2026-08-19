@@ -63,7 +63,7 @@ public class StandardParameterContext implements ParameterContext {
     private final Authorizable parentAuthorizable;
 
     private String name;
-    private AtomicLong version = new AtomicLong(0L);
+    private final AtomicLong version = new AtomicLong(0L);
     private final Map<ParameterDescriptor, Parameter> parameters = new LinkedHashMap<>();
     private final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
     private ParameterProvider parameterProvider;

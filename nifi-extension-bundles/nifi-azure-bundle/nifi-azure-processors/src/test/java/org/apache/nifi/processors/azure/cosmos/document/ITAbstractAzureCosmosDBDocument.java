@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class ITAbstractAzureCosmosDBDocument {
-    static Logger logger = Logger.getLogger(ITAbstractAzureCosmosDBDocument.class.getName());
+    static final Logger logger = Logger.getLogger(ITAbstractAzureCosmosDBDocument.class.getName());
 
     private static final Properties CONFIG;
 

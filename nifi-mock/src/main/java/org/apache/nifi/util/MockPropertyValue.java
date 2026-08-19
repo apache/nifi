@@ -51,7 +51,7 @@ public class MockPropertyValue implements PropertyValue {
     private final PropertyValue stdPropValue;
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
-    private Map<String, String> environmentVariables;
+    private final Map<String, String> environmentVariables;
 
     private boolean expressionsEvaluated;
 

@@ -28,7 +28,7 @@ public class HashiCorpVaultPropertySource extends PropertySource<HashiCorpVaultP
     private static final String PREFIX = "vault";
     private static final Pattern DASH_LETTER_PATTERN = Pattern.compile("-[a-z]");
 
-    private PropertyLookup propertyLookup;
+    private final PropertyLookup propertyLookup;
 
     public HashiCorpVaultPropertySource(final HashiCorpVaultProperties source) {
         super(HashiCorpVaultPropertySource.class.getName(), source);

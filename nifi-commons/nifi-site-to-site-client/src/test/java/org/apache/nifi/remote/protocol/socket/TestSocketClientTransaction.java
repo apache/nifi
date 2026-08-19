@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 
 public class TestSocketClientTransaction {
 
-    private FlowFileCodec codec = new StandardFlowFileCodec();
+    private final FlowFileCodec codec = new StandardFlowFileCodec();
 
     private SocketClientTransaction getClientTransaction(ByteArrayInputStream bis, ByteArrayOutputStream bos, TransferDirection direction) throws IOException {
         PeerDescription description = null;

@@ -38,7 +38,7 @@ public class TestContentClaimInputStream {
 
     private ContentRepository repo;
     private ContentClaim contentClaim;
-    private AtomicBoolean closed = new AtomicBoolean();
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     @BeforeEach
     public void setup() throws IOException {

@@ -20,9 +20,9 @@ package org.apache.nifi.processors.mqtt.common;
  * Represents a MQTT message.
  */
 public class StandardMqttMessage {
-    private byte[] payload;
-    private int qos;
-    private boolean retained;
+    private final byte[] payload;
+    private final int qos;
+    private final boolean retained;
 
     public StandardMqttMessage(byte[] payload, int qos, boolean retained) {
         this.payload = payload;

@@ -281,17 +281,17 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
 class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
 
-    static CosmosClient mockClient = mock(CosmosClient.class);
-    static CosmosContainer mockContainer = mock(CosmosContainer.class);
+    static final CosmosClient MOCK_CLIENT = mock(CosmosClient.class);
+    static final CosmosContainer MOCK_CONTAINER = mock(CosmosContainer.class);
     private final List<Map<String, Object>> mockBackend = new ArrayList<>();
 
     @Override
     protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel consistencyLevel) {
-        this.setCosmosClient(mockClient);
+        this.setCosmosClient(MOCK_CLIENT);
     }
     @Override
     protected void getCosmosDocumentContainer(final ProcessContext context) throws CosmosException {
-        this.setContainer(mockContainer);
+        this.setContainer(MOCK_CONTAINER);
     }
 
     @Override

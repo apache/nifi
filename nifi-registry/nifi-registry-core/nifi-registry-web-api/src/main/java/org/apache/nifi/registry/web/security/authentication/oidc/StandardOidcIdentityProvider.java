@@ -84,8 +84,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProvider.class);
     private static final String EMAIL_CLAIM = "email";
 
-    private NiFiRegistryProperties properties;
-    private JwtService jwtService;
+    private final NiFiRegistryProperties properties;
+    private final JwtService jwtService;
     private OIDCProviderMetadata oidcProviderMetadata;
     private int oidcConnectTimeout;
     private int oidcReadTimeout;

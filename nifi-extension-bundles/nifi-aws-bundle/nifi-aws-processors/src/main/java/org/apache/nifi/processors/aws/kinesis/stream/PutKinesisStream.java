@@ -126,7 +126,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
         ENDPOINT_OVERRIDE);
 
     /** A random number generator for cases where partition key is not available */
-    protected Random randomPartitionKeyGenerator = new Random();
+    protected final Random randomPartitionKeyGenerator = new Random();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

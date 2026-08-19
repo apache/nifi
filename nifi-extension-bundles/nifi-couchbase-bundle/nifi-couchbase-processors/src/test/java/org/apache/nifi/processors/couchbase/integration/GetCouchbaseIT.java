@@ -77,15 +77,15 @@ public class GetCouchbaseIT extends AbstractCouchbaseIT {
         final ProvenanceEventRecord receiveEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.FETCH, receiveEvent.getEventType());
         assertEquals(
-                StringUtils.join(Arrays.asList(container.getConnectionString(), TEST_BUCKET_NAME, DEFAULT_SCOPE, DEFAULT_COLLECTION, TEST_DOCUMENT_ID), "/"),
+                StringUtils.join(Arrays.asList(CONTAINER.getConnectionString(), TEST_BUCKET_NAME, DEFAULT_SCOPE, DEFAULT_COLLECTION, TEST_DOCUMENT_ID), "/"),
                 receiveEvent.getTransitUri());
     }
 
     private void insertTestDocument() {
         try (Cluster cluster = Cluster.connect(
-                container.getConnectionString(),
-                container.getUsername(),
-                container.getPassword()
+                CONTAINER.getConnectionString(),
+                CONTAINER.getUsername(),
+                CONTAINER.getPassword()
         )) {
             final Bucket bucket = cluster.bucket(TEST_BUCKET_NAME);
             final Collection collection = bucket.defaultCollection();

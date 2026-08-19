@@ -38,7 +38,7 @@ public class InstrumentedStandardValidator implements Validator {
      * Count the number of calls to validate()
      */
     private int validateCallCount;
-    private Validator mockedValidator;
+    private final Validator mockedValidator;
 
     /**
      * Constructs a new InstrumentedStandardValidator.

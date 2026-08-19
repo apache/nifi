@@ -301,7 +301,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         private final ProcessContext context;
         private final Map<String, String> flowFileAttributes;
         private final ComponentLog logger;
-        private Collection<WriteRequest> accumulator;
+        private final Collection<WriteRequest> accumulator;
         private int itemCounter = 0;
 
         private DynamoDbSplitRecordSetHandler(

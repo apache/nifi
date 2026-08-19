@@ -94,7 +94,7 @@ public class GetHDFSSequenceFileTest {
 
     public class TestableGetHDFSSequenceFile extends GetHDFSSequenceFile {
 
-        UserGroupInformation userGroupInformation;
+        final UserGroupInformation userGroupInformation;
 
         public TestableGetHDFSSequenceFile(UserGroupInformation ugi) {
             userGroupInformation = ugi;

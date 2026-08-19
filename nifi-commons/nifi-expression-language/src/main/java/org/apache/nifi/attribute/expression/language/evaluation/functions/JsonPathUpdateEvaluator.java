@@ -36,7 +36,7 @@ public abstract class JsonPathUpdateEvaluator extends JsonPathBaseEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathUpdateEvaluator.class);
 
-    protected Evaluator<?> valueEvaluator;
+    protected final Evaluator<?> valueEvaluator;
 
     public JsonPathUpdateEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator) {
         super(subject, jsonPathExp);

@@ -399,7 +399,7 @@ public final class StandardConnection implements Connection {
 
         private String id = UUID.randomUUID().toString();
         private String name;
-        private List<Position> bendPoints = new ArrayList<>();
+        private final List<Position> bendPoints = new ArrayList<>();
         private ProcessGroup processGroup;
         private Connectable source;
         private Connectable destination;

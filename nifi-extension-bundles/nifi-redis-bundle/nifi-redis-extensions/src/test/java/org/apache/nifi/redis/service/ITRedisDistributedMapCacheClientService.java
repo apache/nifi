@@ -52,7 +52,7 @@ public class ITRedisDistributedMapCacheClientService {
     private static final Serializer<String> STRING_SERIALIZER = new StringSerializer();
     private static final Deserializer<String> STRING_DESERIALIZER = new StringDeserializer();
 
-    public static RedisContainer redisContainer = new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME).withExposedPorts(6379);
+    public static final RedisContainer REDIS_CONTAINER = new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME).withExposedPorts(6379);
 
     private TestRunner testRunner;
     private RedisConnectionPoolService redisConnectionPool;
@@ -60,12 +60,12 @@ public class ITRedisDistributedMapCacheClientService {
 
     @BeforeAll
     public static void startContainer() {
-        redisContainer.start();
+        REDIS_CONTAINER.start();
     }
 
     @AfterAll
     public static void stopContainer() {
-        redisContainer.stop();
+        REDIS_CONTAINER.stop();
     }
 
     @BeforeEach
@@ -78,7 +78,7 @@ public class ITRedisDistributedMapCacheClientService {
         testRunner.addControllerService("redis-pool", redisConnectionPool);
         testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, "Standalone");
         testRunner.setProperty(redisConnectionPool, RedisUtils.CONNECTION_STRING,
-                redisContainer.getHost() + ":" + redisContainer.getFirstMappedPort());
+                REDIS_CONTAINER.getHost() + ":" + REDIS_CONTAINER.getFirstMappedPort());
         testRunner.enableControllerService(redisConnectionPool);
 
         cacheClient = new RedisDistributedMapCacheClientService();
@@ -175,7 +175,7 @@ public class ITRedisDistributedMapCacheClientService {
 
     private static void flushDatabase() {
         try {
-            final Container.ExecResult execResult = redisContainer.execInContainer("redis-cli", "flushall");
+            final Container.ExecResult execResult = REDIS_CONTAINER.execInContainer("redis-cli", "flushall");
             if (execResult.getExitCode() != 0) {
                 throw new IllegalStateException(String.format("Failed to flush Redis container: %s%s",
                         execResult.getStdout(), execResult.getStderr()));

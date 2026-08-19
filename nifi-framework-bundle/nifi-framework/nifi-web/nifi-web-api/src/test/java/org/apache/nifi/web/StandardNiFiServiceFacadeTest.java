@@ -1357,7 +1357,7 @@ public class StandardNiFiServiceFacadeTest {
 
     private static class MockTestBulletinRepository extends MockBulletinRepository {
 
-        List<Bulletin> bulletinList;
+        final List<Bulletin> bulletinList;
 
         public MockTestBulletinRepository() {
             bulletinList = new ArrayList<>();

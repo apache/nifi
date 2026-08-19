@@ -79,7 +79,7 @@ final class DeleteOldRolloverStrategy implements RolloverStrategy {
     }
 
     private static class PartitionQueryResultProcessor implements QueryResultProcessor<List<String>> {
-        List<String> result = new LinkedList<>();
+        final List<String> result = new LinkedList<>();
 
         @Override
         public void processRow(final QueryRowContext context) {

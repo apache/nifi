@@ -216,7 +216,7 @@ public class StandardRuntimeManifestServiceTest {
      */
     private static class TestableRuntimeManifestService extends StandardRuntimeManifestService {
 
-        private Bundle frameworkBundle;
+        private final Bundle frameworkBundle;
 
         public TestableRuntimeManifestService(final ExtensionManager extensionManager, final ExtensionManifestParser extensionManifestParser, final Bundle frameworkBundle) {
             super(extensionManager, extensionManifestParser);

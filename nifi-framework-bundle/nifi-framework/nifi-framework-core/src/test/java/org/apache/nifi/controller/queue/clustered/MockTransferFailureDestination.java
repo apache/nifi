@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.function.Function;
 
 public class MockTransferFailureDestination implements TransferFailureDestination {
-    private List<FlowFileRecord> flowFilesTransferred = new ArrayList<>();
-    private List<String> swapFilesTransferred = new ArrayList<>();
+    private final List<FlowFileRecord> flowFilesTransferred = new ArrayList<>();
+    private final List<String> swapFilesTransferred = new ArrayList<>();
     private final boolean rebalanceOnFailure;
 
     public MockTransferFailureDestination(final boolean rebalanceOnFailure) {

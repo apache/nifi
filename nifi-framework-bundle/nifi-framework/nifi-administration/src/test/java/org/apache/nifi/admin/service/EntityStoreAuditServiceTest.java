@@ -114,7 +114,7 @@ class EntityStoreAuditServiceTest {
 
     private EntityStoreAuditService service;
 
-    InMemoryFlowActionReporter flowActionReporter = new InMemoryFlowActionReporter();
+    final InMemoryFlowActionReporter flowActionReporter = new InMemoryFlowActionReporter();
 
     @BeforeEach
     void setService() {
@@ -479,7 +479,7 @@ class EntityStoreAuditServiceTest {
     }
 
     private static class InMemoryFlowActionReporter implements FlowActionReporter {
-        List<FlowAction> reportedActions = new ArrayList<>();
+        final List<FlowAction> reportedActions = new ArrayList<>();
 
         @Override
         public void reportFlowActions(final Collection<FlowAction> actions) {

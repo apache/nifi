@@ -42,7 +42,7 @@ import java.util.Optional;
 
 public class JerseyExtensionRepoClient extends AbstractJerseyClient implements ExtensionRepoClient {
 
-    private WebTarget extensionRepoTarget;
+    private final WebTarget extensionRepoTarget;
 
     public JerseyExtensionRepoClient(final WebTarget baseTarget) {
         this(baseTarget, null);

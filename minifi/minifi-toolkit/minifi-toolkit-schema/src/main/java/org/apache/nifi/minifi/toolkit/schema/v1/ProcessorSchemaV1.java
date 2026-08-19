@@ -48,10 +48,10 @@ import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.SC
 import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
 
 public class ProcessorSchemaV1 extends BaseSchema implements ConvertableSchema<ProcessorSchema> {
-    private String name;
-    private String processorClass;
-    private String schedulingStrategy;
-    private String schedulingPeriod;
+    private final String name;
+    private final String processorClass;
+    private final String schedulingStrategy;
+    private final String schedulingPeriod;
     private Number maxConcurrentTasks = DEFAULT_MAX_CONCURRENT_TASKS;
     private String penalizationPeriod = DEFAULT_PENALIZATION_PERIOD;
     private String yieldPeriod = DEFAULT_YIELD_DURATION;

@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExecuteGraphQueryRecordTest {
     private TestRunner runner;
-    Map<String, String> enqueueProperties = new HashMap<>();
+    final Map<String, String> enqueueProperties = new HashMap<>();
 
     @BeforeEach
     public void setup() throws InitializationException {

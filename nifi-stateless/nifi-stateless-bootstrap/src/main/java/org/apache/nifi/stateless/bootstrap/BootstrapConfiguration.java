@@ -47,7 +47,7 @@ public class BootstrapConfiguration {
     private File engineConfigFile = null;
     private File flowDefinitionFile = null;
     private boolean runContinuous;
-    private List<ParameterOverride> parameterOverrides = new ArrayList<>();
+    private final List<ParameterOverride> parameterOverrides = new ArrayList<>();
 
     static void printUsage() {
         System.out.println("Usage:");

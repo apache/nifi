@@ -25,7 +25,7 @@ public enum SecurityCookieName {
 
     AUTHORIZATION_BEARER("__Secure-Authorization-Bearer");
 
-    private String name;
+    private final String name;
 
     SecurityCookieName(final String name) {
         this.name = name;

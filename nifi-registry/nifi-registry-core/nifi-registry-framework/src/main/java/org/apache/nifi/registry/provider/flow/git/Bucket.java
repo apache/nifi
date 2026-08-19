@@ -28,7 +28,7 @@ class Bucket {
     /**
      * Flow ID to Flow.
      */
-    private Map<String, Flow> flows = new HashMap<>();
+    private final Map<String, Flow> flows = new HashMap<>();
 
     public Bucket(String bucketId) {
         this.bucketId = bucketId;

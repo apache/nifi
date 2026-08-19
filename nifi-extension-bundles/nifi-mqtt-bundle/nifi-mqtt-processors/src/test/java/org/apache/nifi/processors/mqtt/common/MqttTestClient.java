@@ -27,9 +27,9 @@ public class MqttTestClient implements MqttClient {
 
     private final Queue<Pair<String, StandardMqttMessage>> publishedMessages = new LinkedList<>();
 
-    public AtomicBoolean connected = new AtomicBoolean(false);
+    public final AtomicBoolean connected = new AtomicBoolean(false);
 
-    public ConnectType type;
+    public final ConnectType type;
 
     public enum ConnectType { Publisher, Subscriber }
 

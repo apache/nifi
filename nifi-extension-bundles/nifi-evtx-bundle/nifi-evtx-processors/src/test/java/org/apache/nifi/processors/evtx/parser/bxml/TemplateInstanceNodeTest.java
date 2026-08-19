@@ -34,9 +34,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class TemplateInstanceNodeTest extends BxmlNodeWithTokenTestBase {
-    private byte unknown = 23;
-    private int templateId = 101;
-    private int templateLength = 25;
+    private final byte unknown = 23;
+    private final int templateId = 101;
+    private final int templateLength = 25;
     private TemplateNode templateNode;
     private TemplateInstanceNode templateInstanceNode;
 

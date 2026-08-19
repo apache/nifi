@@ -41,8 +41,8 @@ public class FlowMetadataSynchronizer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FlowMetadataSynchronizer.class);
 
-    private MetadataService metadataService;
-    private FlowPersistenceProvider persistenceProvider;
+    private final MetadataService metadataService;
+    private final FlowPersistenceProvider persistenceProvider;
 
     @Autowired
     public FlowMetadataSynchronizer(final MetadataService metadataService,

@@ -25,7 +25,7 @@ import java.io.OutputStream;
 
 public class NifiParquetOutputFile implements OutputFile {
 
-    private OutputStream outputStream;
+    private final OutputStream outputStream;
 
     public NifiParquetOutputFile(OutputStream outputStream) {
         this.outputStream = outputStream;

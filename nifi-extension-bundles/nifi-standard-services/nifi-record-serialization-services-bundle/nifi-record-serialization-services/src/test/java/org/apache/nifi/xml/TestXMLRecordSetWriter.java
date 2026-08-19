@@ -269,7 +269,7 @@ public class TestXMLRecordSetWriter {
 
     static class TestableXMLRecordSetWriter extends XMLRecordSetWriter {
 
-        RecordSchema recordSchema;
+        final RecordSchema recordSchema;
 
         TestableXMLRecordSetWriter(RecordSchema recordSchema) {
             this.recordSchema = recordSchema;

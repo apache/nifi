@@ -22,7 +22,7 @@ import org.apache.ftpserver.ftplet.User;
 
 public class VirtualFileSystemFactory implements FileSystemFactory {
 
-    private VirtualFileSystem fileSystem;
+    private final VirtualFileSystem fileSystem;
 
     public VirtualFileSystemFactory() {
         fileSystem = new DefaultVirtualFileSystem();

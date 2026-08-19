@@ -89,9 +89,9 @@ public class BundleDetails {
     public static class Builder {
 
         private BundleIdentifier bundleIdentifier;
-        private Set<BundleIdentifier> dependencies = new HashSet<>();
-        private Set<Extension> extensions = new HashSet<>();
-        private Map<String, String> additionalDetails = new HashMap<>();
+        private final Set<BundleIdentifier> dependencies = new HashSet<>();
+        private final Set<Extension> extensions = new HashSet<>();
+        private final Map<String, String> additionalDetails = new HashMap<>();
         private BuildInfo buildInfo;
         private String systemApiVersion;
 

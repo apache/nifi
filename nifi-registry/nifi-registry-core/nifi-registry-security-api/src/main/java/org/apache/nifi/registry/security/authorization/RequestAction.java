@@ -26,7 +26,7 @@ public enum RequestAction {
     WRITE("write"),
     DELETE("delete");
 
-    private String value;
+    private final String value;
 
     RequestAction(String value) {
         this.value = value;

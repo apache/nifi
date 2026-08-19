@@ -239,7 +239,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
 
     private class ProxiedReturnObjectInvocationHandler implements InvocationHandler {
         private final Object bareObject;
-        private ClassLoader bareObjectClassLoader;
+        private final ClassLoader bareObjectClassLoader;
 
         public ProxiedReturnObjectInvocationHandler(final Object bareObject) {
             this.bareObject = bareObject;
