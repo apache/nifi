@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Continue with Merged Schema strategy: groups by topic, partition, and grouping attributes,
@@ -90,7 +91,7 @@ public class MergeSchemaGrouping implements RecordGroupingStrategy {
             }
 
             final Map<String, String> flowFileAttributes = new HashMap<>();
-            final int[] recordCountHolder = new int[1];
+            final AtomicInteger recordCount = new AtomicInteger();
             flowFile = session.write(flowFile, out -> {
                 try (final RecordSetWriter writer = writerFactory.createWriter(logger, schemaToWrite, out, group.attributes)) {
                     writer.beginRecordSet();
@@ -98,7 +99,7 @@ public class MergeSchemaGrouping implements RecordGroupingStrategy {
                         writer.write(record);
                     }
                     final WriteResult writeResult = writer.finishRecordSet();
-                    recordCountHolder[0] = writeResult.getRecordCount();
+                    recordCount.set(writeResult.getRecordCount());
 
                     flowFileAttributes.putAll(writeResult.getAttributes());
                     flowFileAttributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
@@ -107,10 +108,8 @@ public class MergeSchemaGrouping implements RecordGroupingStrategy {
                 }
             });
 
-            final int recordCount = recordCountHolder[0];
-
-            flowFileAttributes.put("record.count", String.valueOf(recordCount));
-            flowFileAttributes.put(KafkaFlowFileAttribute.KAFKA_COUNT, String.valueOf(recordCount));
+            flowFileAttributes.put("record.count", String.valueOf(recordCount.get()));
+            flowFileAttributes.put(KafkaFlowFileAttribute.KAFKA_COUNT, String.valueOf(recordCount.get()));
 
             flowFileAttributes.put(KafkaFlowFileAttribute.KAFKA_TOPIC, key.topic());
             flowFileAttributes.put(KafkaFlowFileAttribute.KAFKA_PARTITION, String.valueOf(key.partition()));
@@ -123,7 +122,7 @@ public class MergeSchemaGrouping implements RecordGroupingStrategy {
             flowFile = session.putAllAttributes(flowFile, flowFileAttributes);
 
             session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + key.topic());
-            session.adjustCounter("Records Received from " + key.topic(), recordCount, false);
+            session.adjustCounter("Records Received from " + key.topic(), recordCount.get(), false);
             session.transfer(flowFile, ConsumeKafka.SUCCESS);
         }
         mergeGroups.clear();

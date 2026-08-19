@@ -50,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -137,13 +138,8 @@ class ConsumeKafkaMergeSchemaTypedIT extends AbstractConsumeKafkaIT {
                 serializeAvro(SCHEMA_WITH_ID, Map.of("id", 1L)),
                 serializeAvro(SCHEMA_WITH_NAME, Map.of("name", "Alice"))));
 
-        int pollAttempts = 30;
-        while ((--pollAttempts >= 0) && runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, r -> !r.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), Duration.ofSeconds(30));
         runner.run(1, true, false);
-
-        assertTrue(pollAttempts >= 0, "Timed out waiting for merged Avro FlowFile");
 
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS);
         assertEquals(1, successFlowFiles.size());

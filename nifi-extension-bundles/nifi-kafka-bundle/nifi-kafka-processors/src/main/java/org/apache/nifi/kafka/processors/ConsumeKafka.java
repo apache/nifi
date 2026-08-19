@@ -280,9 +280,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor SCHEMA_CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Schema Conflict Resolution")
-            .description("Specifies how to handle records with different schemas within the same topic and partition. "
-                    + "When set to Create New FlowFile, a new FlowFile is created for each distinct schema. "
-                    + "When set to Continue with Merged Schema, all schemas within a group are merged so that records are batched into a single FlowFile.")
+            .description("Specifies how records with different schemas are grouped into FlowFiles.")
             .required(true)
             .defaultValue(SchemaConflictResolution.CREATE_NEW_FLOWFILE)
             .allowableValues(SchemaConflictResolution.class)

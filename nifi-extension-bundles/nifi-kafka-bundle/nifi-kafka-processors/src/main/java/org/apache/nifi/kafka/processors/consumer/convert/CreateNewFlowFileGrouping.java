@@ -24,12 +24,14 @@ import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,7 +67,7 @@ public class CreateNewFlowFileGrouping implements RecordGroupingStrategy {
             final Record recordToWrite,
             final RecordSchema writeSchema,
             final Map<String, String> attributes,
-            final Map<String, String> groupingAttributes) throws Exception {
+            final Map<String, String> groupingAttributes) throws IOException, SchemaNotFoundException {
         final String topic = consumerRecord.getTopic();
         final int partition = consumerRecord.getPartition();
 
@@ -82,7 +84,7 @@ public class CreateNewFlowFileGrouping implements RecordGroupingStrategy {
             try {
                 writer = writerFactory.createWriter(logger, writeSchema, out, attributes);
                 writer.beginRecordSet();
-            } catch (final Exception ex) {
+            } catch (final IOException | SchemaNotFoundException ex) {
                 out.close();
                 throw ex;
             }
@@ -124,10 +126,10 @@ public class CreateNewFlowFileGrouping implements RecordGroupingStrategy {
             final Map<String, String> resultAttrs = new HashMap<>();
             final int recordCount;
             try (final RecordSetWriter writer = group.writer()) {
-                final WriteResult wr = writer.finishRecordSet();
-                resultAttrs.putAll(wr.getAttributes());
-                resultAttrs.put("record.count", String.valueOf(wr.getRecordCount()));
-                resultAttrs.put(KafkaFlowFileAttribute.KAFKA_COUNT, String.valueOf(wr.getRecordCount()));
+                final WriteResult writeResult = writer.finishRecordSet();
+                resultAttrs.putAll(writeResult.getAttributes());
+                resultAttrs.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                resultAttrs.put(KafkaFlowFileAttribute.KAFKA_COUNT, String.valueOf(writeResult.getRecordCount()));
                 resultAttrs.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
 
                 final long maxOffset = group.maxOffset().get();
@@ -141,7 +143,7 @@ public class CreateNewFlowFileGrouping implements RecordGroupingStrategy {
 
                 resultAttrs.putAll(criteria.groupingAttributes());
                 resultAttrs.put(KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
-                recordCount = wr.getRecordCount();
+                recordCount = writeResult.getRecordCount();
             } catch (final Exception ex) {
                 throw new ProcessException("Failed to write Kafka records to FlowFile", ex);
             }

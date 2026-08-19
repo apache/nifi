@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -1603,14 +1604,7 @@ public class DataTypeUtils {
         }
 
         final List<RecordField> otherFields = otherSchema.getFields();
-        if (otherFields.isEmpty()) {
-            return thisSchema;
-        }
-
         final List<RecordField> thisFields = thisSchema.getFields();
-        if (thisFields.isEmpty()) {
-            return otherSchema;
-        }
 
         final Map<String, Integer> fieldIndices = new HashMap<>();
         final List<RecordField> fields = new ArrayList<>();
@@ -1627,7 +1621,7 @@ public class DataTypeUtils {
             fields.add(field);
         }
 
-        final Set<Integer> matchedFieldIndices = new HashSet<>();
+        final BitSet matchedFieldIndices = new BitSet(thisFields.size());
         for (final RecordField otherField : otherFields) {
             Integer fieldIndex = fieldIndices.get(otherField.getFieldName());
 
@@ -1650,7 +1644,7 @@ public class DataTypeUtils {
                 continue;
             }
 
-            matchedFieldIndices.add(fieldIndex);
+            matchedFieldIndices.set(fieldIndex);
 
             // Merge the two fields, if necessary
             final RecordField thisField = fields.get(fieldIndex);
@@ -1661,7 +1655,7 @@ public class DataTypeUtils {
         }
 
         for (int i = 0; i < thisFields.size(); i++) {
-            if (!matchedFieldIndices.contains(i)) {
+            if (!matchedFieldIndices.get(i)) {
                 fields.set(i, makeNullable(fields.get(i)));
             }
         }

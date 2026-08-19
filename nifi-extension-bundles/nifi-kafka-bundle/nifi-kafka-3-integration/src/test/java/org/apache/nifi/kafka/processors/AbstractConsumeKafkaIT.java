@@ -22,17 +22,21 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.nifi.util.TestRunner;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public abstract class AbstractConsumeKafkaIT extends AbstractKafkaBaseIT {
 
@@ -70,6 +74,19 @@ public abstract class AbstractConsumeKafkaIT extends AbstractKafkaBaseIT {
         for (RecordMetadata metadata : metadatas) {
             assertEquals(topic, metadata.topic());
             assertTrue(metadata.hasOffset());
+        }
+    }
+
+    /**
+     * Runs the processor until {@code condition} is satisfied or {@code timeout} elapses.
+     */
+    protected void runUntil(final TestRunner runner, final Predicate<TestRunner> condition, final Duration timeout) {
+        final long deadline = System.nanoTime() + timeout.toNanos();
+        while (!condition.test(runner)) {
+            if (System.nanoTime() >= deadline) {
+                fail("Timed out after " + timeout + " waiting for condition to be met");
+            }
+            runner.run(1, false, false);
         }
     }
 }

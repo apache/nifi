@@ -1413,6 +1413,21 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testMergeSchemasWhenOneSchemaIsStrictSubset() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("x", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("shared", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("shared", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(2, merged.getFieldCount());
+        assertTrue(merged.getField("x").orElseThrow().isNullable());
+        assertFalse(merged.getField("shared").orElseThrow().isNullable());
+    }
+
+    @Test
     public void testMergeSchemasKeepsSharedNonNullableFieldNonNullable() {
         final RecordSchema schemaA = new SimpleRecordSchema(List.of(
             new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
@@ -1598,7 +1613,7 @@ public class TestDataTypeUtils {
     }
 
     @Test
-    public void testMergeSchemasWithEmptySchemaReturnsOtherUnchanged() {
+    public void testMergeSchemasWithEmptySchemaMakesOtherFieldsNullable() {
         final RecordSchema schemaA = new SimpleRecordSchema(List.of(
             new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
         final RecordSchema empty = new SimpleRecordSchema(List.of());
@@ -1606,8 +1621,10 @@ public class TestDataTypeUtils {
         final RecordSchema mergedWithEmptyOther = DataTypeUtils.merge(schemaA, empty);
         final RecordSchema mergedWithEmptyThis = DataTypeUtils.merge(empty, schemaA);
 
-        assertFalse(mergedWithEmptyOther.getField("id").orElseThrow().isNullable());
-        assertFalse(mergedWithEmptyThis.getField("id").orElseThrow().isNullable());
+        assertEquals(1, mergedWithEmptyOther.getFieldCount());
+        assertTrue(mergedWithEmptyOther.getField("id").orElseThrow().isNullable());
+        assertEquals(1, mergedWithEmptyThis.getFieldCount());
+        assertTrue(mergedWithEmptyThis.getField("id").orElseThrow().isNullable());
     }
 
     @Test

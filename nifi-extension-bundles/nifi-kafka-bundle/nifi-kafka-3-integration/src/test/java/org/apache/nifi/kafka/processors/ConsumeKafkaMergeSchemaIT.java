@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -88,9 +89,7 @@ class ConsumeKafkaMergeSchemaIT extends AbstractConsumeKafkaIT {
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_ID, List.<Header>of()),
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_NAME, List.<Header>of())));
 
-        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, r -> !r.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), Duration.ofSeconds(30));
 
         runner.run(1, true, false);
 
@@ -129,9 +128,7 @@ class ConsumeKafkaMergeSchemaIT extends AbstractConsumeKafkaIT {
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_ID, List.<Header>of()),
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_NAME, List.<Header>of())));
 
-        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).size() < 2) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, r -> r.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).size() >= 2, Duration.ofSeconds(30));
 
         runner.run(1, true, false);
 
@@ -169,9 +166,7 @@ class ConsumeKafkaMergeSchemaIT extends AbstractConsumeKafkaIT {
                 new ProducerRecord<>(topic, 0, (String) null, RECORD_WITH_NAME, List.<Header>of()),
                 new ProducerRecord<>(topic, 1, (String) null, RECORD_WITH_NAME, List.<Header>of())));
 
-        while (totalRecordCount(runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS)) < 3) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, r -> totalRecordCount(r.getFlowFilesForRelationship(ConsumeKafka.SUCCESS)) >= 3, Duration.ofSeconds(30));
 
         runner.run(1, true, false);
 
@@ -218,9 +213,7 @@ class ConsumeKafkaMergeSchemaIT extends AbstractConsumeKafkaIT {
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, INVALID_RECORD, List.<Header>of()),
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_NAME, List.<Header>of())));
 
-        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, r -> !r.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), Duration.ofSeconds(30));
 
         runner.run(1, true, false);
 
@@ -297,9 +290,7 @@ class ConsumeKafkaMergeSchemaIT extends AbstractConsumeKafkaIT {
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_ID, List.<Header>of()),
                 new ProducerRecord<>(topic, FIRST_PARTITION, (String) null, RECORD_WITH_NAME, List.<Header>of())));
 
-        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, r -> !r.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), Duration.ofSeconds(30));
 
         runner.run(1, true, false);
 

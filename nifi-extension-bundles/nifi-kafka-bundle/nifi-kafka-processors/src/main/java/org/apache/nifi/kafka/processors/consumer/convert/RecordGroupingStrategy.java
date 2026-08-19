@@ -18,9 +18,11 @@ package org.apache.nifi.kafka.processors.consumer.convert;
 
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -39,7 +41,7 @@ public interface RecordGroupingStrategy {
             Record recordToWrite,
             RecordSchema writeSchema,
             Map<String, String> attributes,
-            Map<String, String> groupingAttributes) throws Exception;
+            Map<String, String> groupingAttributes) throws IOException, SchemaNotFoundException;
 
     void finishAllGroups(ProcessSession session);
 }
