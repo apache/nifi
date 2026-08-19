@@ -76,7 +76,7 @@ import java.util.stream.Stream;
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_CLUSTER_ID_ATTRIBUTE, description = "The ID of the AMQP Cluster"),
 })
 public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
-    private static final long MAXIMUM_INPUT_FLOWFILE_SIZE_LIMIT = 128 * 1024 * 1024L;
+    private static final long MAXIMUM_INPUT_FLOWFILE_SIZE_LIMIT = 512 * 1024 * 1024L;
 
     public static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()
             .name("Exchange Name")
@@ -112,9 +112,11 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .build();
     public static final PropertyDescriptor MAXIMUM_INPUT_FLOWFILE_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Input FlowFile Size")
-            .description("Maximum size of an input FlowFile that will be read into memory before publishing. PublishAMQP reads FlowFile content into a byte array "
-                    + "before publishing, so FlowFiles larger than this value are routed to failure before content is read. Configure this value according to "
-                    + "broker limits and available JVM memory.")
+            .description("""
+                    Maximum size of an input FlowFile that will be read into memory before publishing. PublishAMQP reads FlowFile content into a byte array
+                    before publishing, so FlowFiles larger than this value are routed to failure before content is read. Configure this value according to
+                    broker limits and available JVM memory.
+                    """)
             .required(true)
             .defaultValue("128 MB")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
