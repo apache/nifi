@@ -368,6 +368,50 @@ class VersionedFlowSynchronizerTest {
                 "Parameter value must be re-sourced from the Parameter Provider, not the corrupted serialized value or null");
     }
 
+    @Test
+    void testSyncRejectsParameterNameRejectedByRestApi() {
+        setRootGroup();
+        setFlowController();
+
+        final String contextName = "pc_snowflake_secret";
+        final String invalidParameterName = "OPENFLOW_NETJETS_SECRET_{{ envi }}";
+
+        final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        when(flowManager.getParameterContextManager()).thenReturn(contextManager);
+        doAnswer(invocation -> {
+            invocation.getArgument(0, Runnable.class).run();
+            return null;
+        }).when(flowManager).withParameterContextResolution(any());
+        doAnswer(invocation -> {
+            final String id = invocation.getArgument(0);
+            final String name = invocation.getArgument(1);
+            final Map<String, Parameter> parameters = invocation.getArgument(3);
+            final StandardParameterContext context = new StandardParameterContext.Builder()
+                    .id(id)
+                    .name(name)
+                    .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                    .build();
+            context.setParameters(parameters);
+            contextManager.addParameterContext(context);
+            return context;
+        }).when(flowManager).createParameterContext(any(), any(), any(), any(), any(), any());
+
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setName(invalidParameterName);
+        versionedParameter.setSensitive(true);
+        versionedParameter.setValue("secret-value");
+
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setInstanceIdentifier("provider-backed-context");
+        versionedParameterContext.setName(contextName);
+        versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
+        when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
+
+        final FlowSynchronizationException exception = assertThrows(FlowSynchronizationException.class, () ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+        assertTrue(exception.getCause().getMessage().contains(invalidParameterName));
+    }
+
     private void setRootGroup() {
         when(flowController.getFlowManager()).thenReturn(flowManager);
         when(flowManager.getRootGroup()).thenReturn(rootGroup);

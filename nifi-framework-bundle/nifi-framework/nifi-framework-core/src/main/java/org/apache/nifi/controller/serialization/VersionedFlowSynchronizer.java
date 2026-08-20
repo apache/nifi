@@ -111,6 +111,7 @@ import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ParameterNameValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -953,6 +954,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versioned : versionedParameterContext.getParameters()) {
+            ParameterNameValidator.validate(versioned.getName());
             final boolean provided = providerBacked || versioned.isProvided();
             final String parameterValue;
             final String rawValue = versioned.getValue();
